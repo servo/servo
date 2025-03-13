@@ -87,6 +87,7 @@ impl Window {
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
             .with_inner_size(LogicalSize::new(window_size.width, window_size.height))
+            .with_min_inner_size(LogicalSize::new(1, 1))
             .with_visible(true);
 
         #[allow(deprecated)]
@@ -691,6 +692,12 @@ impl WindowPortsMethods for Window {
 
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>) {
         self.toolbar_height.set(height);
+        // Prevent the inner area from being 0 pixels wide or tall
+        // this prevents a crash in the compositor due to invalid surface size
+        self.winit_window.set_min_inner_size(Some(PhysicalSize::new(
+            1.0,
+            1.0 + (self.toolbar_height() * self.hidpi_factor()).0,
+        )));
     }
 
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {
