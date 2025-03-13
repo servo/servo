@@ -8,8 +8,6 @@
 <meta name="assert" content="
   The inline size resulting from an intrinsic keyword is transferred
   to the block axis through aspect ratio.
-  Except if the inline size is `auto`, then we ignore the ratio and
-  just use the natural block size instead.
 ">
 
 <style>
@@ -17,7 +15,7 @@ canvas { aspect-ratio: 1; height: auto; background: cyan; }
 </style>
 
 <canvas width="50" height="25" style="width: auto"
-        data-expected-width="50" data-expected-height="25"></canvas>
+        data-expected-width="50" data-expected-height="50"></canvas>
 <canvas width="50" height="25" style="width: min-content"
         data-expected-width="50" data-expected-height="50"></canvas>
 <canvas width="50" height="25" style="width: fit-content"
