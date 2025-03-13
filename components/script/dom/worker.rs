@@ -187,10 +187,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             pipeline_id: global.pipeline_id(),
         };
 
-        let webview_id = global
-            .downcast::<Window>()
-            .expect("Worker constructor should be called with a Window")
-            .webview_id();
+        let webview_id = global.webview_id().expect("global must have a webview id");
 
         let browsing_context = global
             .downcast::<Window>()
