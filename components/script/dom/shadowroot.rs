@@ -77,6 +77,8 @@ pub(crate) struct ShadowRoot {
     available_to_element_internals: Cell<bool>,
 
     slots: DomRefCell<HashMap<DOMString, Vec<Dom<HTMLSlotElement>>>>,
+
+    is_user_agent_widget: bool,
 }
 
 impl ShadowRoot {
@@ -87,6 +89,7 @@ impl ShadowRoot {
         mode: ShadowRootMode,
         slot_assignment_mode: SlotAssignmentMode,
         clonable: bool,
+        is_user_agent_widget: IsUserAgentWidget,
     ) -> ShadowRoot {
         let document_fragment = DocumentFragment::new_inherited(document);
         let node = document_fragment.upcast::<Node>();
@@ -109,6 +112,7 @@ impl ShadowRoot {
             clonable,
             available_to_element_internals: Cell::new(false),
             slots: Default::default(),
+            is_user_agent_widget: is_user_agent_widget == IsUserAgentWidget::Yes,
         }
     }
 
@@ -118,6 +122,7 @@ impl ShadowRoot {
         mode: ShadowRootMode,
         slot_assignment_mode: SlotAssignmentMode,
         clonable: bool,
+        is_user_agent_widget: IsUserAgentWidget,
         can_gc: CanGc,
     ) -> DomRoot<ShadowRoot> {
         reflect_dom_object(
@@ -127,6 +132,7 @@ impl ShadowRoot {
                 mode,
                 slot_assignment_mode,
                 clonable,
+                is_user_agent_widget,
             )),
             document.window(),
             can_gc,
@@ -265,6 +271,10 @@ impl ShadowRoot {
     /// <https://dom.spec.whatwg.org/#shadowroot-available-to-element-internals>
     pub(crate) fn is_available_to_element_internals(&self) -> bool {
         self.available_to_element_internals.get()
+    }
+
+    pub(crate) fn is_user_agent_widget(&self) -> bool {
+        self.is_user_agent_widget
     }
 }
 
