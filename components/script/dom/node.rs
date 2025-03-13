@@ -35,6 +35,7 @@ use selectors::matching::{
 };
 use selectors::parser::SelectorList;
 use servo_arc::Arc;
+use servo_config::pref;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
 use style::context::QuirksMode;
@@ -1209,9 +1210,12 @@ impl Node {
         let host = maybe_shadow_root
             .map(ShadowRoot::Host)
             .map(|host| host.upcast::<Node>().unique_id());
-        let is_shadow_host = self
-            .downcast::<Element>()
-            .is_some_and(Element::is_shadow_host);
+        let is_shadow_host = self.downcast::<Element>().is_some_and(|potential_host| {
+            let Some(root) = potential_host.shadow_root() else {
+                return false;
+            };
+            !root.is_user_agent_widget() || pref!(inspector_show_servo_internal_shadow_roots)
+        });
 
         let num_children = if is_shadow_host {
             // Shadow roots count as children

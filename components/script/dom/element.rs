@@ -542,6 +542,7 @@ impl Element {
             mode,
             slot_assignment_mode,
             clonable,
+            is_ua_widget,
             can_gc,
         );
 
