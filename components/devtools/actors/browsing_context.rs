@@ -173,9 +173,9 @@ impl Actor for BrowsingContextActor {
 impl BrowsingContextActor {
     pub(crate) fn new(
         console: String,
-        id: BrowsingContextId,
+        browsing_context_id: BrowsingContextId,
         page_info: DevtoolsPageInfo,
-        pipeline: PipelineId,
+        pipeline_id: PipelineId,
         script_sender: IpcSender<DevtoolScriptControlMsg>,
         actors: &mut ActorRegistry,
     ) -> BrowsingContextActor {
@@ -224,8 +224,8 @@ impl BrowsingContextActor {
             script_chan: script_sender,
             title: RefCell::new(title),
             url: RefCell::new(url.into_string()),
-            active_pipeline: Cell::new(pipeline),
-            browsing_context_id: id,
+            active_pipeline: Cell::new(pipeline_id),
+            browsing_context_id,
             accessibility: accessibility.name(),
             console,
             css_properties: css_properties.name(),
@@ -308,8 +308,8 @@ impl BrowsingContextActor {
         }
     }
 
-    pub(crate) fn title_changed(&self, pipeline: PipelineId, title: String) {
-        if pipeline != self.active_pipeline.get() {
+    pub(crate) fn title_changed(&self, pipeline_id: PipelineId, title: String) {
+        if pipeline_id != self.active_pipeline.get() {
             return;
         }
         *self.title.borrow_mut() = title;
