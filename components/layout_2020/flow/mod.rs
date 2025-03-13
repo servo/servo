@@ -170,7 +170,7 @@ impl BlockLevelBox {
         let inline_size = content_box_sizes.inline.resolve(
             Direction::Inline,
             Size::Stretch,
-            Au::zero(),
+            Au::zero,
             Some(available_inline_size),
             get_inline_content_sizes,
             false, /* is_table */
@@ -1034,7 +1034,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     let block_size = block_sizes.resolve(
         Direction::Block,
         Size::FitContent,
-        Au::zero(),
+        Au::zero,
         available_block_size,
         || content_block_size.into(),
         false, /* is_table */
@@ -1158,7 +1158,7 @@ impl IndependentNonReplacedContents {
         let block_size = block_sizes.resolve(
             Direction::Block,
             Size::FitContent,
-            Au::zero(),
+            Au::zero,
             available_block_size,
             || layout.content_block_size.into(),
             layout_style.is_table(),
@@ -1292,7 +1292,7 @@ impl IndependentNonReplacedContents {
             content_box_sizes.inline.resolve(
                 Direction::Inline,
                 automatic_inline_size,
-                Au::zero(),
+                Au::zero,
                 Some(stretch_size),
                 get_inline_content_sizes,
                 is_table,
@@ -1303,7 +1303,7 @@ impl IndependentNonReplacedContents {
             content_box_sizes.block.resolve(
                 Direction::Block,
                 Size::FitContent,
-                Au::zero(),
+                Au::zero,
                 available_block_size,
                 || layout.content_block_size.into(),
                 is_table,
@@ -1741,7 +1741,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let inline_size = content_box_sizes.inline.resolve(
         Direction::Inline,
         automatic_inline_size,
-        Au::zero(),
+        Au::zero,
         Some(available_inline_size),
         get_inline_content_sizes,
         is_table,
@@ -2252,7 +2252,7 @@ impl IndependentFormattingContext {
                 let inline_size = content_box_sizes_and_pbm.content_box_sizes.inline.resolve(
                     Direction::Inline,
                     Size::FitContent,
-                    Au::zero(),
+                    Au::zero,
                     Some(available_inline_size),
                     get_content_size,
                     is_table,
@@ -2283,7 +2283,7 @@ impl IndependentFormattingContext {
                 let block_size = content_box_sizes_and_pbm.content_box_sizes.block.resolve(
                     Direction::Block,
                     Size::FitContent,
-                    Au::zero(),
+                    Au::zero,
                     available_block_size,
                     || independent_layout.content_block_size.into(),
                     is_table,

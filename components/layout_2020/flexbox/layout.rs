@@ -1715,7 +1715,7 @@ impl InitialFlexLineLayout<'_> {
                 item.item.content_cross_sizes.resolve(
                     axis,
                     Size::Stretch,
-                    Au::zero(),
+                    Au::zero,
                     Some(final_line_cross_size - item.item.pbm_auto_is_zero.cross),
                     || content_size.into(),
                     // Tables have a special sizing in the block axis in that handles collapsed rows,
@@ -1966,7 +1966,7 @@ impl FlexItem<'_> {
                 self.content_cross_sizes.resolve(
                     Direction::Inline,
                     automatic_size,
-                    Au::zero(),
+                    Au::zero,
                     Some(stretch_size),
                     get_content_size,
                     self.is_table(),
@@ -2117,7 +2117,7 @@ impl FlexItem<'_> {
                     self.content_cross_sizes.resolve(
                         Direction::Block,
                         Size::FitContent,
-                        Au::zero(),
+                        Au::zero,
                         stretch_size,
                         || content_block_size.into(),
                         self.is_table(),
