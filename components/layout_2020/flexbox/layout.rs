@@ -41,9 +41,7 @@ use crate::positioned::{
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, IntrinsicSizingMode,
 };
-use crate::style_ext::{
-    AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin,
-};
+use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
     SizeConstraint,
@@ -2314,11 +2312,8 @@ impl FlexItemBox {
             } else {
                 self.layout_for_block_content_size(
                     flex_context_getter(),
-                    pbm,
-                    content_box_sizes.map(|size| size.preferred),
-                    // TODO(#32853): handle size keywords.
-                    content_box_sizes.map(|size| size.min.to_numeric().unwrap_or_default()),
-                    content_box_sizes.map(|size| size.max.to_numeric()),
+                    &pbm_auto_is_zero,
+                    content_box_sizes,
                     preferred_aspect_ratio,
                     auto_cross_size_stretches_to_container_size,
                     IntrinsicSizingMode::Size,
@@ -2458,28 +2453,10 @@ impl FlexItemBox {
                 (sizes, depends_on_block_constraints)
             },
             FlexAxis::Column => {
-                let content_box_sizes = &content_box_sizes_and_pbm.content_box_sizes;
-                let content_box_size = content_box_sizes.map(|size| size.preferred);
-                let content_min_size_no_auto = LogicalVec2 {
-                    // TODO(#32853): handle size keywords.
-                    inline: content_box_sizes
-                        .inline
-                        .min
-                        .to_numeric()
-                        .unwrap_or_default(),
-                    block: content_min_main_size,
-                };
-                let content_max_box_size = LogicalVec2 {
-                    // TODO(#32853): handle size keywords.
-                    inline: content_box_sizes.inline.max.to_numeric(),
-                    block: content_max_main_size,
-                };
                 let size = self.layout_for_block_content_size(
                     flex_context_getter(),
-                    &content_box_sizes_and_pbm.pbm,
-                    content_box_size,
-                    content_min_size_no_auto,
-                    content_max_box_size,
+                    &pbm_auto_is_zero,
+                    &content_box_sizes_and_pbm.content_box_sizes,
                     preferred_aspect_ratio,
                     auto_cross_size_stretches_to_container_size,
                     IntrinsicSizingMode::Contribution,
@@ -2645,10 +2622,8 @@ impl FlexItemBox {
     fn layout_for_block_content_size(
         &self,
         flex_context: &FlexContext,
-        padding_border_margin: &PaddingBorderMargin,
-        mut content_box_size: LogicalVec2<Size<Au>>,
-        mut min_size: LogicalVec2<Au>,
-        mut max_size: LogicalVec2<Option<Au>>,
+        pbm_auto_is_zero: &FlexRelativeVec2<Au>,
+        content_box_sizes: &LogicalVec2<Sizes>,
         preferred_aspect_ratio: Option<AspectRatio>,
         auto_cross_size_stretches_to_container_size: bool,
         intrinsic_sizing_mode: IntrinsicSizingMode,
@@ -2662,34 +2637,27 @@ impl FlexItemBox {
         let style = self.independent_formatting_context.style();
         match &self.independent_formatting_context.contents {
             IndependentFormattingContextContents::Replaced(replaced) => {
-                content_box_size.inline = content_box_size.inline.map(|v| v.max(Au::zero()));
-                if intrinsic_sizing_mode == IntrinsicSizingMode::Size {
-                    content_box_size.block = Size::Initial;
-                    min_size.block = Au::zero();
-                    max_size.block = None;
-                }
-                replaced
-                    .used_size_as_if_inline_element_from_content_box_sizes(
+                let get_used_size = |block_sizes| {
+                    replaced.used_size_as_if_inline_element_from_content_box_sizes(
                         flex_context.containing_block,
                         style,
                         preferred_aspect_ratio,
                         LogicalVec2 {
-                            block: &Sizes::new(
-                                content_box_size.block,
-                                Size::Numeric(min_size.block),
-                                max_size.block.map_or(Size::Initial, Size::Numeric),
-                            ),
-                            inline: &Sizes::new(
-                                content_box_size.inline,
-                                Size::Numeric(min_size.inline),
-                                max_size.inline.map_or(Size::Initial, Size::Numeric),
-                            ),
+                            block: block_sizes,
+                            inline: &content_box_sizes.inline,
                         },
                         Size::FitContent.into(),
-                        padding_border_margin.padding_border_sums +
-                            padding_border_margin.margin.auto_is(Au::zero).sum(),
+                        LogicalVec2 {
+                            inline: pbm_auto_is_zero.cross,
+                            block: pbm_auto_is_zero.main,
+                        },
                     )
-                    .block
+                };
+                if intrinsic_sizing_mode == IntrinsicSizingMode::Size {
+                    get_used_size(&Sizes::default()).block
+                } else {
+                    get_used_size(&content_box_sizes.block).block
+                }
             },
             IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                 // TODO: This is wrong if the item writing mode is different from the flex
@@ -2700,11 +2668,9 @@ impl FlexItemBox {
                     } else {
                         Size::FitContent
                     };
-                    let stretch_size = flex_context.containing_block.size.inline -
-                        padding_border_margin.padding_border_sums.inline -
-                        padding_border_margin.margin.inline_start.auto_is(Au::zero) -
-                        padding_border_margin.margin.inline_end.auto_is(Au::zero);
-                    let content_size = LazyCell::new(|| {
+                    let stretch_size =
+                        flex_context.containing_block.size.inline - pbm_auto_is_zero.cross;
+                    let get_content_size = || {
                         let constraint_space = ConstraintSpace::new(
                             SizeConstraint::default(),
                             style.writing_mode,
@@ -2713,11 +2679,15 @@ impl FlexItemBox {
                         self.independent_formatting_context
                             .inline_content_sizes(flex_context.layout_context, &constraint_space)
                             .sizes
-                    });
-                    content_box_size
-                        .inline
-                        .resolve_for_preferred(initial_behavior, Some(stretch_size), &content_size)
-                        .clamp_between_extremums(min_size.inline, max_size.inline)
+                    };
+                    content_box_sizes.inline.resolve(
+                        Direction::Inline,
+                        initial_behavior,
+                        Au::zero,
+                        Some(stretch_size),
+                        get_content_size,
+                        false,
+                    )
                 };
                 let item_as_containing_block = ContainingBlock {
                     size: ContainingBlockSize {
@@ -2760,27 +2730,27 @@ impl FlexItemBox {
                 };
                 match intrinsic_sizing_mode {
                     IntrinsicSizingMode::Contribution => {
-                        let stretch_size =
-                            flex_context.containing_block.size.block.to_definite().map(
-                                |block_size| {
-                                    block_size -
-                                        padding_border_margin.padding_border_sums.block -
-                                        padding_border_margin.margin.block_start.auto_is(Au::zero) -
-                                        padding_border_margin.margin.block_end.auto_is(Au::zero)
-                                },
-                            );
-                        let inner_block_size = content_box_size
+                        let stretch_size = flex_context
+                            .containing_block
+                            .size
                             .block
-                            .resolve_for_preferred(
-                                Size::FitContent,
-                                stretch_size,
-                                &LazyCell::new(|| ContentSizes::from(content_block_size())),
-                            )
-                            .clamp_between_extremums(min_size.block, max_size.block);
-                        inner_block_size +
-                            padding_border_margin.padding_border_sums.block +
-                            padding_border_margin.margin.block_start.auto_is(Au::zero) +
-                            padding_border_margin.margin.block_end.auto_is(Au::zero)
+                            .to_definite()
+                            .map(|block_size| block_size - pbm_auto_is_zero.main);
+                        let inner_block_size = content_box_sizes.block.resolve(
+                            Direction::Block,
+                            Size::FitContent,
+                            Au::zero,
+                            stretch_size,
+                            || ContentSizes::from(content_block_size()),
+                            // Tables have a special sizing in the block axis that handles collapsed rows
+                            // by ignoring the sizing properties and instead relying on the content block size,
+                            // which should indirectly take sizing properties into account.
+                            // However, above we laid out the table with a SizeConstraint::default() block size,
+                            // so the content block size doesn't take sizing properties into account.
+                            // Therefore, pretending that it's never a table tends to provide a better result.
+                            false, /* is_table */
+                        );
+                        inner_block_size + pbm_auto_is_zero.main
                     },
                     IntrinsicSizingMode::Size => content_block_size(),
                 }
