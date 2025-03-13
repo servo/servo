@@ -850,12 +850,12 @@ impl Size<Au> {
     #[inline]
     pub(crate) fn resolve_for_min<F: FnOnce() -> ContentSizes>(
         &self,
-        automatic_minimum_size: Au,
+        get_automatic_minimum_size: impl FnOnce() -> Au,
         stretch_size: Option<Au>,
         content_size: &LazyCell<ContentSizes, F>,
     ) -> Au {
         match self {
-            Self::Initial => automatic_minimum_size,
+            Self::Initial => get_automatic_minimum_size(),
             Self::MinContent => content_size.min_content,
             Self::MaxContent => content_size.max_content,
             Self::FitContent => content_size.shrink_to_fit(stretch_size.unwrap_or_default()),
@@ -974,7 +974,7 @@ impl Sizes {
         &self,
         axis: Direction,
         automatic_size: Size<Au>,
-        automatic_minimum_size: Au,
+        get_automatic_minimum_size: impl FnOnce() -> Au,
         stretch_size: Option<Au>,
         get_content_size: impl FnOnce() -> ContentSizes,
         is_table: bool,
@@ -994,9 +994,9 @@ impl Sizes {
         let preferred =
             self.preferred
                 .resolve_for_preferred(automatic_size, stretch_size, &content_size);
-        let mut min = self
-            .min
-            .resolve_for_min(automatic_minimum_size, stretch_size, &content_size);
+        let mut min =
+            self.min
+                .resolve_for_min(get_automatic_minimum_size, stretch_size, &content_size);
         if is_table {
             // In addition to the specified minimum, the inline size of a table is forced to be
             // at least as big as its min-content size.

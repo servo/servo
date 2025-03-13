@@ -538,7 +538,7 @@ impl ReplacedContents {
         let inline_size = sizes.inline.resolve(
             Direction::Inline,
             automatic_size.inline,
-            Au::zero(),
+            Au::zero,
             Some(inline_stretch_size),
             get_inline_content_size,
             false, /* is_table */
@@ -558,7 +558,7 @@ impl ReplacedContents {
         let block_size = sizes.block.resolve(
             Direction::Block,
             automatic_size.block,
-            Au::zero(),
+            Au::zero,
             block_stretch_size,
             || *block_content_size,
             false, /* is_table */

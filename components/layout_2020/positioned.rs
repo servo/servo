@@ -793,7 +793,7 @@ impl AbsoluteAxisSolver<'_> {
                 SizeConstraint::Definite(self.computed_sizes.resolve(
                     self.axis,
                     initial_behavior,
-                    Au::zero(),
+                    Au::zero,
                     Some(stretch_size),
                     get_content_size,
                     self.is_table,
