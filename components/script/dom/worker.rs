@@ -6,7 +6,6 @@ use std::cell::Cell;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use base::id::WebViewId;
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;

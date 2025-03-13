@@ -144,7 +144,6 @@ impl Actor for RootActor {
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
-
         Ok(match msg_type {
             "connect" => {
                 let message = json!({
