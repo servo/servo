@@ -64,8 +64,6 @@ enum PipeToState {
     PendingReady,
     /// Waiting for a read to resolve.
     PendingRead,
-    /// Waiting for the erroring destination to finish pending writes.
-    PendingDestinationErrored,
     /// Waiting for all pending writes to finish,
     /// as part of shutting down with an optional action.
     ShuttingDownWithPendingWrites(Option<ShutdownAction>),
@@ -158,9 +156,9 @@ impl Callback for PipeTo {
         let global = self.reader.global();
 
         // Note: we only care about the result of writes when they are rejected,
-        // and the error is accessed not through handlers, 
+        // and the error is accessed not through handlers,
         // but directly using `dest.get_stored_error`.
-        // So we must mark rejected promises as handled 
+        // So we must mark rejected promises as handled
         // to prevent unhandled rejection errors.
         self.pending_writes.borrow_mut().retain(|p| {
             let pending = p.is_pending();
@@ -181,35 +179,37 @@ impl Callback for PipeTo {
         // part of shutdown.
         if state_before_checks == PipeToState::PendingRead {
             let source = self.reader.get_stream().expect("Source stream must be set");
-            let dest = self
-                .writer
-                .get_stream()
-                .expect("Destination stream must be set");
+            if source.is_closed() {
+                let dest = self
+                    .writer
+                    .get_stream()
+                    .expect("Destination stream must be set");
 
-            // If dest.[[state]] is "writable",
-            // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
-            if dest.is_writable() && !dest.close_queued_or_in_flight() && source.is_closed() {
-                let has_done = {
-                    if !result.is_object() {
-                        false
-                    } else {
-                        rooted!(in(*cx) let object = result.to_object());
-                        rooted!(in(*cx) let mut done = UndefinedValue());
-                        get_dictionary_property(*cx, object.handle(), "done", done.handle_mut())
-                            .unwrap()
+                // If dest.[[state]] is "writable",
+                // and ! WritableStreamCloseQueuedOrInFlight(dest) is false,
+                if dest.is_writable() && !dest.close_queued_or_in_flight() {
+                    let has_done = {
+                        if !result.is_object() {
+                            false
+                        } else {
+                            rooted!(in(*cx) let object = result.to_object());
+                            rooted!(in(*cx) let mut done = UndefinedValue());
+                            get_dictionary_property(*cx, object.handle(), "done", done.handle_mut())
+                                .unwrap()
+                        }
+                    };
+                    // If any chunks have been read but not yet written, write them to dest.
+                    let contained_bytes = self.write_chunk(cx, &global, result, can_gc);
+
+                    if !contained_bytes && !has_done {
+                        // This is the case that the microtask ran in reaction
+                        // to the closed promise of the reader,
+                        // so we should wait for subsequent chunks,
+                        // and skip the shutdown below
+                        // (reader is closed, but there are still pending reads).
+                        // Shutdown will happen when the last chunk has been received.
+                        return;
                     }
-                };
-                // If any chunks have been read but not yet written, write them to dest.
-                let contained_bytes = self.write_chunk(cx, &global, result, can_gc);
-
-                if !contained_bytes && !has_done {
-                    // This is the case that the microtask ran in reaction
-                    // to the closed promise of the reader,
-                    // so we should wait for subsequent chunks,
-                    // and skip the shutdown below
-                    // (reader is closed, but there are still pending reads).
-                    // Shutdown will happen when the last chunk has been received.
-                    return;
                 }
             }
         }
@@ -232,29 +232,8 @@ impl Callback for PipeTo {
         match state {
             PipeToState::Starting => unreachable!("PipeTo should not be in the Starting state."),
             PipeToState::PendingReady => {
-                let ready_promise = self.writer.Ready();
-                let writer_ready = ready_promise.is_fulfilled();
-                let reader_closed = self.reader.Closed().is_fulfilled();
-                if writer_ready && !reader_closed {
-                    // Read a chunk.
-                    self.read_chunk(&global, realm, can_gc);
-                } else if ready_promise.is_rejected() {
-                    // If ready is rejected, but we haven't seen an error on the destination stream yet,
-                    // it means the destination is erroring, and we should wait on pending writes to complete.
-                    let Some(write) = self.pending_writes.borrow_mut().back().cloned() else {
-                        unreachable!("Destination is erroring and should have pending writes");
-                    };
-                    self.wait_on_pending_write(&global, write, realm, can_gc);
-                    *self.state.borrow_mut() = PipeToState::PendingDestinationErrored;
-                }
-            },
-            PipeToState::PendingDestinationErrored => {
-                // If destination hasn't errored yet(checked and progated above),
-                // this means we must still have pending writes.
-                let Some(write) = self.pending_writes.borrow_mut().back().cloned() else {
-                    unreachable!("Destination is erroring and should have pending writes");
-                };
-                self.wait_on_pending_write(&global, write, realm, can_gc);
+                // Read a chunk.
+                self.read_chunk(&global, realm, can_gc);
             },
             PipeToState::PendingRead => {
                 // Write the chunk.
