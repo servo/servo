@@ -52,8 +52,8 @@ fn with_independant_formatting_context<T>(
     cb: impl FnOnce(&IndependentFormattingContext) -> T,
 ) -> T {
     match item {
-        TaffyItemBoxInner::InFlowBox(ref mut context) => cb(context),
-        TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ref abspos_box) => {
+        TaffyItemBoxInner::InFlowBox(context) => cb(context),
+        TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(abspos_box) => {
             cb(&AtomicRefCell::borrow(abspos_box).context)
         },
     }

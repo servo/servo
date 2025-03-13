@@ -3097,8 +3097,10 @@ fn is_named_element_with_id_attribute(elem: &Element) -> bool {
 }
 
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 /// Helper for interactive debugging sessions in lldb/gdb.
 unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {
-    DumpJSStack(cx, true, false, false);
+    unsafe {
+        DumpJSStack(cx, true, false, false);
+    }
 }

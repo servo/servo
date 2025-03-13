@@ -238,14 +238,14 @@ impl Dialog {
             Dialog::Authentication {
                 username,
                 password,
-                ref mut request,
+                request,
             } => {
                 let mut is_open = true;
                 Modal::new("authentication".into()).show(ctx, |ui| {
                     let mut frame = egui::Frame::default().inner_margin(10.0).begin(ui);
                     frame.content_ui.set_min_width(150.0);
 
-                    if let Some(ref request) = request {
+                    if let Some(request) = request {
                         let url =
                             egui::RichText::new(request.url().origin().unicode_serialization());
                         frame.content_ui.heading(url);

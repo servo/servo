@@ -780,7 +780,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         for (index, image) in b.background_image.0.iter().enumerate().rev() {
             match image {
                 Image::None => {},
-                Image::Gradient(ref gradient) => {
+                Image::Gradient(gradient) => {
                     let intrinsic = NaturalSizes::empty();
                     let Some(layer) =
                         &background::layout_layer(self, painter, builder, index, intrinsic)
@@ -816,7 +816,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         },
                     }
                 },
-                Image::Url(ref image_url) => {
+                Image::Url(image_url) => {
                     // FIXME: images won’t always have in intrinsic width or
                     // height when support for SVG is added, or a WebRender
                     // `ImageKey`, for that matter.

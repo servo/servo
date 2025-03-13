@@ -37,7 +37,7 @@ pub fn resident_size() -> Option<usize> {
     }
 }
 
-extern "C" {
+unsafe extern "C" {
     fn TaskBasicInfoVirtualSize(virtual_size: *mut size_t) -> c_int;
     fn TaskBasicInfoResidentSize(resident_size: *mut size_t) -> c_int;
 }

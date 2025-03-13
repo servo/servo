@@ -21,7 +21,7 @@ mod platform {
     ///
     /// Passing a non-heap allocated pointer to this function results in undefined behavior.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
-        tikv_jemallocator::usable_size(ptr)
+        unsafe { tikv_jemallocator::usable_size(ptr) }
     }
 
     /// Memory allocation APIs compatible with libc

@@ -1093,7 +1093,7 @@ impl<'a> TableLayout<'a> {
                     .par_iter()
                     .enumerate()
                     .map(|(column_index, slot)| {
-                        let TableSlot::Cell(ref cell) = slot else {
+                        let TableSlot::Cell(cell) = slot else {
                             return None;
                         };
 
@@ -2303,19 +2303,18 @@ impl<'a> RowFragmentLayout<'a> {
                 relative_adjustement(&self.row.style, containing_block_for_children);
         }
 
-        let (inline_size, block_size) =
-            if let Some(ref row_group_layout) = row_group_fragment_layout {
-                self.rect.start_corner -= row_group_layout.rect.start_corner;
-                (
-                    row_group_layout.rect.size.inline,
-                    SizeConstraint::Definite(row_group_layout.rect.size.block),
-                )
-            } else {
-                (
-                    containing_block_for_logical_conversion.size.inline,
-                    containing_block_for_logical_conversion.size.block,
-                )
-            };
+        let (inline_size, block_size) = if let Some(row_group_layout) = row_group_fragment_layout {
+            self.rect.start_corner -= row_group_layout.rect.start_corner;
+            (
+                row_group_layout.rect.size.inline,
+                SizeConstraint::Definite(row_group_layout.rect.size.block),
+            )
+        } else {
+            (
+                containing_block_for_logical_conversion.size.inline,
+                containing_block_for_logical_conversion.size.block,
+            )
+        };
 
         let row_group_containing_block = ContainingBlock {
             size: ContainingBlockSize {

@@ -114,7 +114,7 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
             _ => return None,
         };
         let script_msg = match common_worker_msg {
-            WorkerScriptMsg::Common(ref script_msg) => script_msg,
+            WorkerScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
         };
         match script_msg {

@@ -5490,7 +5490,7 @@ where
     fn maybe_close_random_pipeline(&mut self) {
         match self.random_pipeline_closure {
             Some((ref mut rng, probability)) => {
-                if probability <= rng.gen::<f32>() {
+                if probability <= rng.r#gen::<f32>() {
                     return;
                 }
             },
@@ -5506,7 +5506,7 @@ where
                         .pending_changes
                         .iter()
                         .any(|change| change.new_pipeline_id == pipeline.id) &&
-                        probability <= rng.gen::<f32>()
+                        probability <= rng.r#gen::<f32>()
                     {
                         // We tend not to close pending pipelines, as that almost always
                         // results in pipelines being closed early in their lifecycle,

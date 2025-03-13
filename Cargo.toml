@@ -11,9 +11,9 @@ exclude = [".cargo", "support/crown"]
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2021"
+edition = "2024"
 publish = false
-rust-version = "1.83.0"
+rust-version = "1.85.0"
 
 [workspace.dependencies]
 accountable-refcell = "0.2.0"

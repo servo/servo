@@ -63,7 +63,7 @@ impl<Node> AnonymousTableContent<'_, Node> {
     fn is_whitespace_only(&self) -> bool {
         match self {
             Self::Element { .. } => false,
-            Self::Text(_, ref text) => text.chars().all(char_is_whitespace),
+            Self::Text(_, text) => text.chars().all(char_is_whitespace),
         }
     }
 
@@ -170,7 +170,7 @@ impl Table {
         let slot = self.get_slot(coords);
         match slot {
             Some(TableSlot::Cell(cell)) => vec![ResolvedSlotAndLocation { cell, coords }],
-            Some(TableSlot::Spanned(ref offsets)) => offsets
+            Some(TableSlot::Spanned(offsets)) => offsets
                 .iter()
                 .flat_map(|offset| self.resolve_slot_at(coords - *offset))
                 .collect(),
@@ -434,7 +434,7 @@ impl TableBuilder {
         for row_index in 0..self.table.size.height {
             let last_row_index_in_group = self.last_row_index_in_row_group_at_row_n(row_index);
             for cell in self.table.slots[row_index].iter_mut() {
-                if let TableSlot::Cell(ref mut cell) = cell {
+                if let TableSlot::Cell(cell) = cell {
                     if cell.rowspan == 1 {
                         continue;
                     }

@@ -75,7 +75,10 @@ pub(crate) struct TaskCanceller {
 
 impl TaskCanceller {
     /// Returns a wrapped `task` that will be cancelled if the `TaskCanceller` says so.
-    pub(crate) fn wrap_task(&self, task: impl TaskOnce) -> impl TaskOnce {
+    pub(crate) fn wrap_task<T>(&self, task: T) -> impl TaskOnce + use<T>
+    where
+        T: TaskOnce,
+    {
         CancellableTask {
             canceller: self.clone(),
             inner: task,

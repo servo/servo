@@ -338,7 +338,7 @@ impl ComputedValuesExt for ComputedValues {
     fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
         fn convert(inset: &Inset) -> LengthPercentageOrAuto<'_> {
             match inset {
-                Inset::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
+                Inset::LengthPercentage(v) => LengthPercentageOrAuto::LengthPercentage(v),
                 Inset::Auto => LengthPercentageOrAuto::Auto,
                 Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
                 Inset::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
@@ -460,7 +460,7 @@ impl ComputedValuesExt for ComputedValues {
     fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
         fn convert(inset: &Margin) -> LengthPercentageOrAuto<'_> {
             match inset {
-                Margin::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
+                Margin::LengthPercentage(v) => LengthPercentageOrAuto::LengthPercentage(v),
                 Margin::Auto => LengthPercentageOrAuto::Auto,
                 Margin::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
             }

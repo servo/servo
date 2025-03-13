@@ -986,7 +986,7 @@ impl<'a> CanvasData<'a> {
     ) {
         self.ensure_path();
         let result = match self.path_state.as_ref() {
-            Some(PathState::UserSpacePath(ref path, ref transform)) => {
+            Some(PathState::UserSpacePath(path, transform)) => {
                 let target_transform = self.drawtarget.get_transform();
                 let path_transform = transform.as_ref().unwrap_or(&target_transform);
                 path.contains_point(x, y, path_transform)
@@ -1227,8 +1227,8 @@ impl<'a> CanvasData<'a> {
         // to move between device and user space.
         match self.path_state.as_mut() {
             None | Some(PathState::DeviceSpacePathBuilder(..)) => (),
-            Some(PathState::UserSpacePathBuilder(_, ref mut transform)) |
-            Some(PathState::UserSpacePath(_, ref mut transform)) => {
+            Some(PathState::UserSpacePathBuilder(_, transform)) |
+            Some(PathState::UserSpacePath(_, transform)) => {
                 if transform.is_none() {
                     *transform = Some(self.drawtarget.get_transform());
                 }
