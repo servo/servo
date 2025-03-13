@@ -214,12 +214,10 @@ codegen-units = 1
 # [patch."https://github.com/servo/stylo"]
 # selectors = { path = "../stylo/selectors" }
 # servo_arc = { path = "../stylo/servo_arc" }
-# stylo_atoms = { path = "../stylo/atoms" }
-# static_prefs = { path = "../stylo/style_static_prefs" }
+# stylo_atoms = { path = "../stylo/stylo_atoms" }
 # style = { path = "../stylo/style" }
 # stylo_config = { path = "../stylo/stylo_config" }
-# style_derive = { path = "../stylo/style_derive" }
-# stylo_dom = { path = "../stylo/dom", package = "dom" }
+# stylo_dom = { path = "../stylo/stylo_dom" }
 # style_malloc_size_of = { path = "../stylo/malloc_size_of", package = "malloc_size_of" }
 # style_traits = { path = "../stylo/style_traits" }
 #
