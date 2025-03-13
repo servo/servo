@@ -828,7 +828,7 @@ impl StructuredSerializedData {
 
         for serializable in Serializable::iter() {
             let clone_impl = serializable.clone_values();
-            clone_impl(&self, &mut cloned);
+            clone_impl(self, &mut cloned);
         }
 
         cloned

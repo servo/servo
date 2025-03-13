@@ -89,7 +89,7 @@ impl crate::BroadcastClone for BlobImpl {
             // Not panicking only because this is called from the constellation.
             log::warn!("Serialized blob not in memory format(should never happen).");
         }
-        return None;
+        None
     }
 }
 
