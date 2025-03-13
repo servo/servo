@@ -682,27 +682,24 @@ pub(crate) fn create_buffer_source_with_constructor(
     byte_offset: usize,
     byte_length: usize,
 ) -> Fallible<HeapBufferSource<ArrayBufferViewU8>> {
-    let buffer = unsafe {
-        Heap::boxed(
-            *buffer_source
-                .get_typed_array()
-                .expect("Failed to get typed array")
-                .underlying_object(),
-        )
-        .handle()
-    };
-
-    match constructor {
-        Constructor::DataView => Ok(HeapBufferSource::new(BufferSource::ArrayBufferView(
-            Heap::boxed(unsafe { JS_NewDataView(*cx, buffer, byte_offset, byte_length) }),
-        ))),
-        Constructor::Name(name_type) => construct_typed_array(
-            cx,
-            name_type,
-            buffer_source,
-            byte_offset,
-            byte_length as i64,
-        ),
+    match &buffer_source.buffer_source {
+        BufferSource::ArrayBuffer(heap) => match constructor {
+            Constructor::DataView => Ok(HeapBufferSource::new(BufferSource::ArrayBufferView(
+                Heap::boxed(unsafe {
+                    JS_NewDataView(*cx, heap.handle(), byte_offset, byte_length)
+                }),
+            ))),
+            Constructor::Name(name_type) => construct_typed_array(
+                cx,
+                name_type,
+                buffer_source,
+                byte_offset,
+                byte_length as i64,
+            ),
+        },
+        BufferSource::ArrayBufferView(_) => {
+            unreachable!("Can not create a new ArrayBufferView from an existing ArrayBufferView");
+        },
     }
 }
 
@@ -714,52 +711,63 @@ fn construct_typed_array(
     byte_offset: usize,
     byte_length: i64,
 ) -> Fallible<HeapBufferSource<ArrayBufferViewU8>> {
-    let buffer = unsafe {
-        Heap::boxed(
-            *buffer_source
-                .get_typed_array()
-                .expect("Failed to get typed array")
-                .underlying_object(),
-        )
-        .handle()
-    };
-    let array_view = match name_type {
-        Type::Int8 => unsafe { JS_NewInt8ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
-        Type::Uint8 => unsafe { JS_NewUint8ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
-        Type::Uint16 => unsafe {
-            JS_NewUint16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
-        },
-        Type::Int16 => unsafe { JS_NewInt16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
-        Type::Int32 => unsafe { JS_NewInt32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
-        Type::Uint32 => unsafe {
-            JS_NewUint32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
-        },
-        Type::Float32 => unsafe {
-            JS_NewFloat32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
-        },
-        Type::Float64 => unsafe {
-            JS_NewFloat64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
-        },
-        Type::Uint8Clamped => unsafe {
-            JS_NewUint8ClampedArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
-        },
-        Type::BigInt64 => unsafe {
-            JS_NewBigInt64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
-        },
-        Type::BigUint64 => unsafe {
-            JS_NewBigUint64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
-        },
-        Type::Float16 => unsafe {
-            JS_NewFloat16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
-        },
-        Type::Int64 | Type::Simd128 | Type::MaxTypedArrayViewType => {
-            unreachable!("Invalid TypedArray type")
-        },
-    };
+    match &buffer_source.buffer_source {
+        BufferSource::ArrayBuffer(heap) => {
+            let array_view = unsafe {
+                match name_type {
+                    Type::Int8 => {
+                        JS_NewInt8ArrayWithBuffer(*cx, heap.handle(), byte_offset, byte_length)
+                    },
+                    Type::Uint8 => {
+                        JS_NewUint8ArrayWithBuffer(*cx, heap.handle(), byte_offset, byte_length)
+                    },
+                    Type::Uint16 => {
+                        JS_NewUint16ArrayWithBuffer(*cx, heap.handle(), byte_offset, byte_length)
+                    },
+                    Type::Int16 => {
+                        JS_NewInt16ArrayWithBuffer(*cx, heap.handle(), byte_offset, byte_length)
+                    },
+                    Type::Int32 => {
+                        JS_NewInt32ArrayWithBuffer(*cx, heap.handle(), byte_offset, byte_length)
+                    },
+                    Type::Uint32 => {
+                        JS_NewUint32ArrayWithBuffer(*cx, heap.handle(), byte_offset, byte_length)
+                    },
+                    Type::Float32 => {
+                        JS_NewFloat32ArrayWithBuffer(*cx, heap.handle(), byte_offset, byte_length)
+                    },
+                    Type::Float64 => {
+                        JS_NewFloat64ArrayWithBuffer(*cx, heap.handle(), byte_offset, byte_length)
+                    },
+                    Type::Uint8Clamped => JS_NewUint8ClampedArrayWithBuffer(
+                        *cx,
+                        heap.handle(),
+                        byte_offset,
+                        byte_length,
+                    ),
+                    Type::BigInt64 => {
+                        JS_NewBigInt64ArrayWithBuffer(*cx, heap.handle(), byte_offset, byte_length)
+                    },
+                    Type::BigUint64 => {
+                        JS_NewBigUint64ArrayWithBuffer(*cx, heap.handle(), byte_offset, byte_length)
+                    },
+                    Type::Float16 => {
+                        JS_NewFloat16ArrayWithBuffer(*cx, heap.handle(), byte_offset, byte_length)
+                    },
+                    Type::Int64 | Type::Simd128 | Type::MaxTypedArrayViewType => {
+                        unreachable!("Invalid TypedArray type")
+                    },
+                }
+            };
 
-    Ok(HeapBufferSource::new(BufferSource::ArrayBufferView(
-        Heap::boxed(array_view),
-    )))
+            Ok(HeapBufferSource::new(BufferSource::ArrayBufferView(
+                Heap::boxed(array_view),
+            )))
+        },
+        BufferSource::ArrayBufferView(_) => {
+            unreachable!("Can not create a new ArrayBufferView from an existing ArrayBufferView");
+        },
+    }
 }
 
 pub(crate) fn create_array_buffer_with_size(
