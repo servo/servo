@@ -14,9 +14,11 @@ use embedder_traits::{
 use ipc_channel::ipc::IpcSender;
 use script_traits::{AnimationTickType, LogEntry, WindowSizeData, WindowSizeType};
 use servo_url::ServoUrl;
+use strum_macros::IntoStaticStr;
 use webrender_traits::CompositorHitTestResult;
 
 /// Messages to the constellation.
+#[derive(IntoStaticStr)]
 pub enum ConstellationMsg {
     /// Exit the constellation.
     Exit,
@@ -77,41 +79,7 @@ pub enum ConstellationMsg {
 
 impl fmt::Debug for ConstellationMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "ConstellationMsg::{}", self.variant_name())
-    }
-}
-
-impl ConstellationMsg {
-    /// Return the variant name, for error logging that happens after the message is consumed.
-    pub fn variant_name(&self) -> &'static str {
-        use self::ConstellationMsg::*;
-        match *self {
-            Exit => "Exit",
-            GetBrowsingContext(..) => "GetBrowsingContext",
-            GetPipeline(..) => "GetPipeline",
-            GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",
-            IsReadyToSaveImage(..) => "IsReadyToSaveImage",
-            AllowNavigationResponse(..) => "AllowNavigationResponse",
-            LoadUrl(..) => "LoadUrl",
-            TraverseHistory(..) => "TraverseHistory",
-            WindowSize(..) => "WindowSize",
-            ThemeChange(..) => "ThemeChange",
-            TickAnimation(..) => "TickAnimation",
-            WebDriverCommand(..) => "WebDriverCommand",
-            Reload(..) => "Reload",
-            LogEntry(..) => "LogEntry",
-            NewWebView(..) => "NewWebView",
-            CloseWebView(..) => "CloseWebView",
-            FocusWebView(..) => "FocusWebView",
-            BlurWebView => "BlurWebView",
-            SendError(..) => "SendError",
-            ForwardInputEvent(..) => "ForwardEvent",
-            SetCursor(..) => "SetCursor",
-            ToggleProfiler(..) => "EnableProfiler",
-            ExitFullScreen(..) => "ExitFullScreen",
-            MediaSessionAction(..) => "MediaSessionAction",
-            SetWebViewThrottled(..) => "SetWebViewThrottled",
-            ClearCache => "ClearCache",
-        }
+        let variant_string: &'static str = self.into();
+        write!(formatter, "ConstellationMsg::{variant_string}")
     }
 }

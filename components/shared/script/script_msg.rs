@@ -22,6 +22,7 @@ use net_traits::CoreResourceMsg;
 use net_traits::storage_thread::StorageType;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use strum_macros::IntoStaticStr;
 use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::{WebGPU, WebGPUResponse, wgc};
@@ -46,7 +47,7 @@ pub struct IFrameSizeMsg {
 }
 
 /// Messages from the layout to the constellation.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum LayoutMsg {
     /// Requests that the constellation inform the compositor that it needs to record
     /// the time when the frame with the given ID (epoch) is painted.
@@ -55,11 +56,8 @@ pub enum LayoutMsg {
 
 impl fmt::Debug for LayoutMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use self::LayoutMsg::*;
-        let variant = match *self {
-            PendingPaintMetric(..) => "PendingPaintMetric",
-        };
-        write!(formatter, "LayoutMsg::{}", variant)
+        let variant_string: &'static str = self.into();
+        write!(formatter, "LayoutMsg::{variant_string}")
     }
 }
 
@@ -86,7 +84,7 @@ pub enum LogEntry {
 }
 
 /// Messages from the script to the constellation.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptMsg {
     /// Request to complete the transfer of a set of ports to a router.
     CompleteMessagePortTransfer(MessagePortRouterId, Vec<MessagePortId>),
@@ -252,65 +250,8 @@ pub enum ScriptMsg {
 
 impl fmt::Debug for ScriptMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use self::ScriptMsg::*;
-        let variant = match *self {
-            CompleteMessagePortTransfer(..) => "CompleteMessagePortTransfer",
-            MessagePortTransferResult(..) => "MessagePortTransferResult",
-            NewMessagePortRouter(..) => "NewMessagePortRouter",
-            RemoveMessagePortRouter(..) => "RemoveMessagePortRouter",
-            NewMessagePort(..) => "NewMessagePort",
-            RerouteMessagePort(..) => "RerouteMessagePort",
-            RemoveMessagePort(..) => "RemoveMessagePort",
-            MessagePortShipped(..) => "MessagePortShipped",
-            EntanglePorts(..) => "EntanglePorts",
-            NewBroadcastChannelRouter(..) => "NewBroadcastChannelRouter",
-            RemoveBroadcastChannelRouter(..) => "RemoveBroadcastChannelRouter",
-            RemoveBroadcastChannelNameInRouter(..) => "RemoveBroadcastChannelNameInRouter",
-            NewBroadcastChannelNameInRouter(..) => "NewBroadcastChannelNameInRouter",
-            ScheduleBroadcast(..) => "ScheduleBroadcast",
-            ForwardToEmbedder(..) => "ForwardToEmbedder",
-            BroadcastStorageEvent(..) => "BroadcastStorageEvent",
-            ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
-            CreateCanvasPaintThread(..) => "CreateCanvasPaintThread",
-            Focus => "Focus",
-            GetBrowsingContextInfo(..) => "GetBrowsingContextInfo",
-            GetTopForBrowsingContext(..) => "GetParentBrowsingContext",
-            GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",
-            LoadComplete => "LoadComplete",
-            LoadUrl(..) => "LoadUrl",
-            AbortLoadUrl => "AbortLoadUrl",
-            PostMessage { .. } => "PostMessage",
-            NavigatedToFragment(..) => "NavigatedToFragment",
-            TraverseHistory(..) => "TraverseHistory",
-            PushHistoryState(..) => "PushHistoryState",
-            ReplaceHistoryState(..) => "ReplaceHistoryState",
-            JointSessionHistoryLength(..) => "JointSessionHistoryLength",
-            RemoveIFrame(..) => "RemoveIFrame",
-            SetThrottledComplete(..) => "SetThrottledComplete",
-            ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
-            ScriptNewIFrame(..) => "ScriptNewIFrame",
-            CreateAuxiliaryWebView(..) => "ScriptNewAuxiliary",
-            ActivateDocument => "ActivateDocument",
-            SetDocumentState(..) => "SetDocumentState",
-            SetLayoutEpoch(..) => "SetLayoutEpoch",
-            SetFinalUrl(..) => "SetFinalUrl",
-            TouchEventProcessed(..) => "TouchEventProcessed",
-            LogEntry(..) => "LogEntry",
-            DiscardDocument => "DiscardDocument",
-            DiscardTopLevelBrowsingContext => "DiscardTopLevelBrowsingContext",
-            PipelineExited => "PipelineExited",
-            ForwardDOMMessage(..) => "ForwardDOMMessage",
-            ScheduleJob(..) => "ScheduleJob",
-            MediaSessionEvent(..) => "MediaSessionEvent",
-            #[cfg(feature = "webgpu")]
-            RequestAdapter(..) => "RequestAdapter",
-            #[cfg(feature = "webgpu")]
-            GetWebGPUChan(..) => "GetWebGPUChan",
-            TitleChanged(..) => "TitleChanged",
-            IFrameSizes(..) => "IFramSizes",
-            ReportMemory(..) => "ReportMemory",
-        };
-        write!(formatter, "ScriptMsg::{}", variant)
+        let variant_string: &'static str = self.into();
+        write!(formatter, "ScriptMsg::{variant_string}")
     }
 }
 

@@ -22,6 +22,7 @@ log = { workspace = true }
 pixels = { path = '../../pixels' }
 script_traits = { workspace = true }
 servo_url = { path = "../../url" }
+strum_macros = { workspace = true }
 style_traits = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }

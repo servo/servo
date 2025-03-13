@@ -50,6 +50,7 @@ use pixels::PixelFormat;
 use profile_traits::{mem, time as profile_time};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use strum_macros::IntoStaticStr;
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
@@ -288,7 +289,7 @@ pub enum UpdatePipelineIdReason {
 
 /// Messages sent to the `ScriptThread` event loop from the `Constellation`, `Compositor`, and (for
 /// now) `Layout`.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptThreadMessage {
     /// Takes the associated window proxy out of "delaying-load-events-mode",
     /// used if a scheduled navigated was refused by the embedder.
@@ -408,44 +409,8 @@ pub enum ScriptThreadMessage {
 
 impl fmt::Debug for ScriptThreadMessage {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use self::ScriptThreadMessage::*;
-        let variant = match *self {
-            StopDelayingLoadEventsMode(..) => "StopDelayingLoadsEventMode",
-            AttachLayout(..) => "AttachLayout",
-            Resize(..) => "Resize",
-            ThemeChange(..) => "ThemeChange",
-            ResizeInactive(..) => "ResizeInactive",
-            UnloadDocument(..) => "UnloadDocument",
-            ExitPipeline(..) => "ExitPipeline",
-            ExitScriptThread => "ExitScriptThread",
-            SendInputEvent(..) => "SendInputEvent",
-            Viewport(..) => "Viewport",
-            GetTitle(..) => "GetTitle",
-            SetDocumentActivity(..) => "SetDocumentActivity",
-            SetThrottled(..) => "SetThrottled",
-            SetThrottledInContainingIframe(..) => "SetThrottledInContainingIframe",
-            NavigateIframe(..) => "NavigateIframe",
-            PostMessage { .. } => "PostMessage",
-            UpdatePipelineId(..) => "UpdatePipelineId",
-            UpdateHistoryState(..) => "UpdateHistoryState",
-            RemoveHistoryStates(..) => "RemoveHistoryStates",
-            FocusIFrame(..) => "FocusIFrame",
-            WebDriverScriptCommand(..) => "WebDriverScriptCommand",
-            TickAllAnimations(..) => "TickAllAnimations",
-            WebFontLoaded(..) => "WebFontLoaded",
-            DispatchIFrameLoadEvent { .. } => "DispatchIFrameLoadEvent",
-            DispatchStorageEvent(..) => "DispatchStorageEvent",
-            ReportCSSError(..) => "ReportCSSError",
-            Reload(..) => "Reload",
-            PaintMetric(..) => "PaintMetric",
-            ExitFullScreen(..) => "ExitFullScreen",
-            MediaSessionAction(..) => "MediaSessionAction",
-            #[cfg(feature = "webgpu")]
-            SetWebGPUPort(..) => "SetWebGPUPort",
-            SetScrollStates(..) => "SetScrollStates",
-            SetEpochPaintTime(..) => "SetEpochPaintTime",
-        };
-        write!(formatter, "ConstellationControlMsg::{}", variant)
+        let variant_string: &'static str = self.into();
+        write!(formatter, "ConstellationControlMsg::{variant_string}")
     }
 }
 
