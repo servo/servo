@@ -166,7 +166,7 @@ impl Attr {
 
         MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), mutation);
 
-        if owner.get_custom_element_definition().is_some() {
+        if owner.is_custom() {
             let reaction = CallbackReaction::AttributeChanged(
                 name,
                 Some(old_value),

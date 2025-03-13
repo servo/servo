@@ -371,6 +371,11 @@ impl Element {
         CustomElementState::Uncustomized
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-element-custom>
+    pub(crate) fn is_custom(&self) -> bool {
+        self.get_custom_element_state() == CustomElementState::Custom
+    }
+
     pub(crate) fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {
         self.ensure_rare_data().custom_element_definition = Some(definition);
     }
@@ -1579,7 +1584,7 @@ impl Element {
 
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
-        if self.get_custom_element_definition().is_some() {
+        if self.is_custom() {
             let value = DOMString::from(&**attr.value());
             let reaction = CallbackReaction::AttributeChanged(name, None, Some(value), namespace);
             ScriptThread::enqueue_callback_reaction(self, reaction, None);
@@ -1771,9 +1776,11 @@ impl Element {
 
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
-            let reaction =
-                CallbackReaction::AttributeChanged(name, Some(old_value), None, namespace);
-            ScriptThread::enqueue_callback_reaction(self, reaction, None);
+            if self.is_custom() {
+                let reaction =
+                    CallbackReaction::AttributeChanged(name, Some(old_value), None, namespace);
+                ScriptThread::enqueue_callback_reaction(self, reaction, None);
+            }
 
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
@@ -2452,7 +2459,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             }
 
             // Step 4.
-            if self.get_custom_element_definition().is_some() {
+            if self.is_custom() {
                 let old_name = old_attr.local_name().clone();
                 let old_value = DOMString::from(&**old_attr.value());
                 let new_value = DOMString::from(&**attr.value());
