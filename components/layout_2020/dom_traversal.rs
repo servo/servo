@@ -116,6 +116,11 @@ where
                 },
                 _ => {},
             }
+            if element.type_id() ==
+                Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement))
+            {
+                flags.insert(FragmentFlags::IS_INPUT_ELEMENT);
+            }
         };
 
         Self {

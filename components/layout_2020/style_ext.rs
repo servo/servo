@@ -493,7 +493,8 @@ impl ComputedValuesExt for ComputedValues {
         // <https://drafts.csswg.org/css-transforms/#transformable-element>
         // TODO: check for all cases listed in the above spec.
         !self.get_box().display.is_inline_flow() ||
-            fragment_flags.contains(FragmentFlags::IS_REPLACED)
+            fragment_flags.contains(FragmentFlags::IS_REPLACED) ||
+            fragment_flags.contains(FragmentFlags::IS_INPUT_ELEMENT)
     }
 
     /// Returns true if this style has a transform, or perspective property set and
