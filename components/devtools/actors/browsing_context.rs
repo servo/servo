@@ -268,10 +268,11 @@ impl BrowsingContextActor {
             },
             title: self.title.borrow().clone(),
             url: self.url.borrow().clone(),
+            // FIXME: shouldn't ignore pipeline namespace field (#35954)
             webview_id: self.webview_id.0.index.0.get(),
-            //FIXME: shouldn't ignore pipeline namespace field
+            // FIXME: shouldn't ignore pipeline namespace field (#35954)
             browsing_context_id: self.browsing_context_id.index.0.get(),
-            //FIXME: shouldn't ignore pipeline namespace field
+            // FIXME: shouldn't ignore pipeline namespace field (#35954)
             outer_window_id: self.active_pipeline.get().index.0.get(),
             is_top_level_target: true,
             accessibility_actor: self.accessibility.clone(),
