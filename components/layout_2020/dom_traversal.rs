@@ -243,14 +243,14 @@ fn traverse_element<'dom, Node>(
             }
         },
         Display::GeneratingBox(display) => {
-            let nonreplaced = match element.type_id() {
+            let non_replaced = match element.type_id() {
                 LayoutNodeType::Element(LayoutElementType::HTMLInputElement) => {
                     NonReplacedContents::TextControl.into()
                 },
                 _ => NonReplacedContents::OfElement.into(),
             };
 
-            let contents = replaced.map_or(nonreplaced, Contents::Replaced);
+            let contents = replaced.map_or(non_replaced, Contents::Replaced);
             let display = display.used_value_for_contents(&contents);
             let box_slot = element.element_box_slot();
             let info = NodeAndStyleInfo::new(element, style);
