@@ -146,6 +146,23 @@ impl HTMLOptionElement {
                 .perform_validation_and_update(ValidationFlags::all(), can_gc);
         }
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-option-label>
+    ///
+    /// Note that this is not equivalent to <https://html.spec.whatwg.org/multipage/#dom-option-label>.
+    pub(crate) fn displayed_label(&self) -> DOMString {
+        // > The label of an option element is the value of the label content attribute, if there is one
+        // > and its value is not the empty string, or, otherwise, the value of the element's text IDL attribute.
+        let label = self
+            .upcast::<Element>()
+            .get_string_attribute(&local_name!("label"));
+
+        if label.is_empty() {
+            return self.Text();
+        }
+
+        label
+    }
 }
 
 // FIXME(ajeffrey): Provide a way of buffering DOMStrings other than using Strings
