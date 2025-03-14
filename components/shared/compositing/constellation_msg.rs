@@ -7,7 +7,7 @@ use std::fmt;
 use std::time::Duration;
 
 use base::Epoch;
-use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use base::id::{PipelineId, WebViewId};
 use embedder_traits::{
     Cursor, InputEvent, MediaSessionActionType, Theme, TraversalDirection, WebDriverCommandMsg,
 };
@@ -22,12 +22,6 @@ use webrender_traits::CompositorHitTestResult;
 pub enum ConstellationMsg {
     /// Exit the constellation.
     Exit,
-    /// Request that the constellation send the BrowsingContextId corresponding to the document
-    /// with the provided pipeline id
-    GetBrowsingContext(PipelineId, IpcSender<Option<BrowsingContextId>>),
-    /// Request that the constellation send the current pipeline id for the provided
-    /// browsing context id, over a provided channel.
-    GetPipeline(BrowsingContextId, IpcSender<Option<PipelineId>>),
     /// Request that the constellation send the current focused top-level browsing context id,
     /// over a provided channel.
     GetFocusTopLevelBrowsingContext(IpcSender<Option<WebViewId>>),
