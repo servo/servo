@@ -328,7 +328,7 @@ impl HTMLSelectElement {
         let selected_option_text = self
             .selected_option()
             .or_else(|| self.list_of_options().next())
-            .map(|option| option.Label())
+            .map(|option| option.displayed_label())
             .unwrap_or_default();
 
         // Replace newlines with whitespace, then collapse and trim whitespace
