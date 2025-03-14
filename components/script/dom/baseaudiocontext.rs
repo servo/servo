@@ -125,7 +125,7 @@ impl BaseAudioContext {
         };
 
         let client_context_id =
-            ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
+            ClientContextId::build(pipeline_id.namespace_id().0, pipeline_id.index().0.get());
         let audio_context_impl = ServoMedia::get()
             .create_audio_context(&client_context_id, options.convert())
             .map_err(|_| Error::NotSupported)?;
