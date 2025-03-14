@@ -3244,16 +3244,13 @@ dependencies = [
 
 [[package]]
 name = "html5ever"
-version = "0.29.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e15626aaf9c351bc696217cbe29cb9b5e86c43f8a46b5e2f5c6c5cf7cb904ce"
+version = "0.29.1"
+source = "git+https://github.com/servo/html5ever?rev=da7d3f4dd112f94157797e354d8883c3e9f13151#da7d3f4dd112f94157797e354d8883c3e9f13151"
 dependencies = [
  "log",
  "mac",
  "markup5ever",
- "proc-macro2",
- "quote",
- "syn",
+ "match_token",
 ]
 
 [[package]]
@@ -4510,8 +4507,7 @@ dependencies = [
 [[package]]
 name = "markup5ever"
 version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7a7213d12e1864c0f002f52c2923d4556935a43dec5e71355c2760e0f6e7a18"
+source = "git+https://github.com/servo/html5ever?rev=da7d3f4dd112f94157797e354d8883c3e9f13151#da7d3f4dd112f94157797e354d8883c3e9f13151"
 dependencies = [
  "log",
  "phf",
@@ -4519,6 +4515,16 @@ dependencies = [
  "string_cache",
  "string_cache_codegen",
  "tendril",
+]
+
+[[package]]
+name = "match_token"
+version = "0.1.0"
+source = "git+https://github.com/servo/html5ever?rev=da7d3f4dd112f94157797e354d8883c3e9f13151#da7d3f4dd112f94157797e354d8883c3e9f13151"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -9391,8 +9397,7 @@ checksum = "c5b940ebc25896e71dd073bad2dbaa2abfe97b0a391415e22ad1326d9c54e3c4"
 [[package]]
 name = "xml5ever"
 version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2278b4bf33071ba8e30368a59436c65eec8e01c49d5c29b3dfeb0cdc45331383"
+source = "git+https://github.com/servo/html5ever?rev=da7d3f4dd112f94157797e354d8883c3e9f13151#da7d3f4dd112f94157797e354d8883c3e9f13151"
 dependencies = [
  "log",
  "mac",

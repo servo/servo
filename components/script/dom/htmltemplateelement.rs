@@ -58,6 +58,10 @@ impl HTMLTemplateElement {
         n.upcast::<Node>().set_weird_parser_insertion_mode();
         n
     }
+
+    pub(crate) fn set_contents_ptr(&self, document_fragment: Option<&DocumentFragment>) {
+        self.contents.set(document_fragment);
+    }
 }
 
 impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
