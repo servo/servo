@@ -122,7 +122,6 @@ use crate::proxies::ConstellationProxy;
 use crate::servo_delegate::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
-use crate::webview_delegate::WebViewErrorChannel;
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, NavigationRequest, PermissionRequest,
     WebResourceLoad, WebViewDelegate,
@@ -209,7 +208,6 @@ pub struct Servo {
     /// references.
     webviews: RefCell<HashMap<WebViewId, Weak<RefCell<WebViewInner>>>>,
     servo_errors: ServoErrorChannel,
-    webview_errors: WebViewErrorChannel,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
@@ -542,7 +540,6 @@ impl Servo {
             shutdown_state,
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),
-            webview_errors: WebViewErrorChannel::default(),
             _js_engine_setup: js_engine_setup,
         }
     }
@@ -620,11 +617,6 @@ impl Servo {
     fn handle_delegate_errors(&self) {
         while let Some(error) = self.servo_errors.try_recv() {
             self.delegate().notify_error(self, error);
-        }
-        while let Some((webview, error)) = self.webview_errors.try_recv() {
-            if let Some(webview) = WebView::from_weak_handle(&webview) {
-                webview.delegate().notify_error(&webview, error);
-            }
         }
     }
 
@@ -780,7 +772,7 @@ impl Servo {
                     let request = AllowOrDenyRequest::new(
                         response_sender,
                         AllowOrDeny::Allow,
-                        Box::new(self.webview_errors.sender_for_webview(&webview)),
+                        self.servo_errors.sender(),
                     );
                     webview.delegate().request_unload(webview, request);
                 }
@@ -853,7 +845,7 @@ impl Servo {
                     let web_resource_load = WebResourceLoad::new(
                         web_resource_request,
                         response_sender,
-                        Box::new(self.webview_errors.sender_for_webview(&webview)),
+                        self.servo_errors.sender(),
                     );
                     webview
                         .delegate()
@@ -862,7 +854,7 @@ impl Servo {
                     let web_resource_load = WebResourceLoad::new(
                         web_resource_request,
                         response_sender,
-                        Box::new(self.servo_errors.sender()),
+                        self.servo_errors.sender(),
                     );
                     self.delegate().load_web_resource(web_resource_load);
                 }
@@ -904,7 +896,7 @@ impl Servo {
                         url.into_url(),
                         for_proxy,
                         response_sender,
-                        self.webview_errors.sender_for_webview(&webview),
+                        self.servo_errors.sender(),
                     );
                     webview
                         .delegate()
@@ -918,7 +910,7 @@ impl Servo {
                         allow_deny_request: AllowOrDenyRequest::new(
                             response_sender,
                             AllowOrDeny::Deny,
-                            Box::new(self.webview_errors.sender_for_webview(&webview)),
+                            self.servo_errors.sender(),
                         ),
                     };
                     webview
@@ -964,7 +956,7 @@ impl Servo {
                     AllowOrDenyRequest::new(
                         response_sender,
                         AllowOrDeny::Deny,
-                        Box::new(self.servo_errors.sender()),
+                        self.servo_errors.sender(),
                     ),
                 );
             },
