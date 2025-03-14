@@ -162,6 +162,7 @@ class MachCommands(CommandBase):
             "background_hang_monitor",
             "base",
             "constellation",
+            "devtools",
             "fonts",
             "hyper_serde",
             "layout_2020",

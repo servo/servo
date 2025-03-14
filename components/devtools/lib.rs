@@ -106,6 +106,7 @@ pub(crate) struct StreamId(u32);
 
 struct DevtoolsInstance {
     actors: Arc<Mutex<ActorRegistry>>,
+    id_map: Arc<Mutex<IdMap>>,
     browsing_contexts: HashMap<BrowsingContextId, String>,
     receiver: Receiver<DevtoolsControlMsg>,
     pipelines: HashMap<PipelineId, BrowsingContextId>,
@@ -166,6 +167,7 @@ impl DevtoolsInstance {
 
         let instance = Self {
             actors,
+            id_map: Arc::new(Mutex::new(IdMap::default())),
             browsing_contexts: HashMap::new(),
             pipelines: HashMap::new(),
             receiver,
@@ -298,7 +300,7 @@ impl DevtoolsInstance {
             .lock()
             .unwrap()
             .find::<BrowsingContextActor>(actor_name)
-            .navigate(state);
+            .navigate(state, &mut self.id_map.lock().expect("Mutex poisoned"));
     }
 
     // We need separate actor representations for each script global that exists;
@@ -313,6 +315,10 @@ impl DevtoolsInstance {
         let mut actors = self.actors.lock().unwrap();
 
         let (browsing_context_id, pipeline_id, worker_id, webview_id) = ids;
+        let id_map = &mut self.id_map.lock().expect("Mutex poisoned");
+        let devtools_browser_id = id_map.browser_id(webview_id);
+        let devtools_browsing_context_id = id_map.browsing_context_id(browsing_context_id);
+        let devtools_outer_window_id = id_map.outer_window_id(pipeline_id);
 
         let console_name = actors.new_name("console");
 
@@ -350,10 +356,11 @@ impl DevtoolsInstance {
                 .or_insert_with(|| {
                     let browsing_context_actor = BrowsingContextActor::new(
                         console_name.clone(),
-                        webview_id,
-                        browsing_context_id,
+                        devtools_browser_id,
+                        devtools_browsing_context_id,
                         page_info,
                         pipeline_id,
+                        devtools_outer_window_id,
                         script_sender,
                         &mut actors,
                     );
@@ -551,4 +558,167 @@ fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, strea
     }
 
     actors.lock().unwrap().cleanup(stream_id);
+}
+
+#[derive(Debug, Default)]
+struct IdMap {
+    browser_ids: HashMap<WebViewId, u32>,
+    browsing_context_ids: HashMap<BrowsingContextId, u32>,
+    outer_window_ids: HashMap<PipelineId, u32>,
+}
+
+impl IdMap {
+    fn browser_id(&mut self, webview_id: WebViewId) -> DevtoolsBrowserId {
+        let len = self
+            .browser_ids
+            .len()
+            .checked_add(1)
+            .expect("WebViewId count overflow")
+            .try_into()
+            .expect("DevtoolsBrowserId overflow");
+        DevtoolsBrowserId(*self.browser_ids.entry(webview_id).or_insert(len))
+    }
+    fn browsing_context_id(
+        &mut self,
+        browsing_context_id: BrowsingContextId,
+    ) -> DevtoolsBrowsingContextId {
+        let len = self
+            .browsing_context_ids
+            .len()
+            .checked_add(1)
+            .expect("BrowsingContextId count overflow")
+            .try_into()
+            .expect("DevtoolsBrowsingContextId overflow");
+        DevtoolsBrowsingContextId(
+            *self
+                .browsing_context_ids
+                .entry(browsing_context_id)
+                .or_insert(len),
+        )
+    }
+    fn outer_window_id(&mut self, pipeline_id: PipelineId) -> DevtoolsOuterWindowId {
+        let len = self
+            .outer_window_ids
+            .len()
+            .checked_add(1)
+            .expect("PipelineId count overflow")
+            .try_into()
+            .expect("DevtoolsOuterWindowId overflow");
+        DevtoolsOuterWindowId(*self.outer_window_ids.entry(pipeline_id).or_insert(len))
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct DevtoolsBrowserId(u32);
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct DevtoolsBrowsingContextId(u32);
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct DevtoolsOuterWindowId(u32);
+
+impl DevtoolsBrowserId {
+    pub(crate) fn value(&self) -> u32 {
+        self.0
+    }
+}
+impl DevtoolsBrowsingContextId {
+    pub(crate) fn value(&self) -> u32 {
+        self.0
+    }
+}
+impl DevtoolsOuterWindowId {
+    pub(crate) fn value(&self) -> u32 {
+        self.0
+    }
+}
+
+#[test]
+fn test_id_map() {
+    use std::thread;
+
+    use base::id::{PipelineNamespace, PipelineNamespaceId};
+
+    macro_rules! test_sequential_id_assignment {
+        ($id_type:ident, $new_id_function:expr, $map_id_function:expr) => {
+            let (sender, receiver) = unbounded();
+            let sender1 = sender.clone();
+            let sender2 = sender.clone();
+            let sender3 = sender.clone();
+            let threads = [
+                thread::spawn(move || {
+                    PipelineNamespace::install(PipelineNamespaceId(1));
+                    sender1.send($new_id_function()).expect("Send failed");
+                    sender1.send($new_id_function()).expect("Send failed");
+                    sender1.send($new_id_function()).expect("Send failed");
+                }),
+                thread::spawn(move || {
+                    PipelineNamespace::install(PipelineNamespaceId(2));
+                    sender2.send($new_id_function()).expect("Send failed");
+                    sender2.send($new_id_function()).expect("Send failed");
+                    sender2.send($new_id_function()).expect("Send failed");
+                }),
+                thread::spawn(move || {
+                    PipelineNamespace::install(PipelineNamespaceId(3));
+                    sender3.send($new_id_function()).expect("Send failed");
+                    sender3.send($new_id_function()).expect("Send failed");
+                    sender3.send($new_id_function()).expect("Send failed");
+                }),
+            ];
+            for thread in threads {
+                thread.join().expect("Thread join failed");
+            }
+            let mut id_map = IdMap::default();
+            assert_eq!(
+                $map_id_function(&mut id_map, receiver.recv().expect("Recv failed")),
+                $id_type(1)
+            );
+            assert_eq!(
+                $map_id_function(&mut id_map, receiver.recv().expect("Recv failed")),
+                $id_type(2)
+            );
+            assert_eq!(
+                $map_id_function(&mut id_map, receiver.recv().expect("Recv failed")),
+                $id_type(3)
+            );
+            assert_eq!(
+                $map_id_function(&mut id_map, receiver.recv().expect("Recv failed")),
+                $id_type(4)
+            );
+            assert_eq!(
+                $map_id_function(&mut id_map, receiver.recv().expect("Recv failed")),
+                $id_type(5)
+            );
+            assert_eq!(
+                $map_id_function(&mut id_map, receiver.recv().expect("Recv failed")),
+                $id_type(6)
+            );
+            assert_eq!(
+                $map_id_function(&mut id_map, receiver.recv().expect("Recv failed")),
+                $id_type(7)
+            );
+            assert_eq!(
+                $map_id_function(&mut id_map, receiver.recv().expect("Recv failed")),
+                $id_type(8)
+            );
+            assert_eq!(
+                $map_id_function(&mut id_map, receiver.recv().expect("Recv failed")),
+                $id_type(9)
+            );
+        };
+    }
+
+    test_sequential_id_assignment!(
+        DevtoolsBrowserId,
+        || WebViewId::new(),
+        |id_map: &mut IdMap, id| id_map.browser_id(id)
+    );
+    test_sequential_id_assignment!(
+        DevtoolsBrowsingContextId,
+        || BrowsingContextId::new(),
+        |id_map: &mut IdMap, id| id_map.browsing_context_id(id)
+    );
+    test_sequential_id_assignment!(
+        DevtoolsOuterWindowId,
+        || PipelineId::new(),
+        |id_map: &mut IdMap, id| id_map.outer_window_id(id)
+    );
 }
