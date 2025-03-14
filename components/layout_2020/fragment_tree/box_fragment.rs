@@ -350,6 +350,12 @@ impl BoxFragment {
             !self.base.flags.contains(FragmentFlags::IS_REPLACED)
     }
 
+    /// Whether this is an atomic inline-level box.
+    /// <https://drafts.csswg.org/css-display-3/#atomic-inline>
+    pub(crate) fn is_atomic_inline_level(&self) -> bool {
+        self.style.get_box().display.outside() == DisplayOutside::Inline && !self.is_inline_box()
+    }
+
     /// Whether this is a table wrapper box.
     /// <https://www.w3.org/TR/css-tables-3/#table-wrapper-box>
     pub(crate) fn is_table_wrapper(&self) -> bool {
@@ -357,14 +363,6 @@ impl BoxFragment {
             self.specific_layout_info,
             Some(SpecificLayoutInfo::TableWrapper)
         )
-    }
-
-    /// Whether this is an atomic inline-level box.
-    /// <https://drafts.csswg.org/css-display-3/#atomic-inline>
-    pub(crate) fn is_atomic_inline_level(&self) -> bool {
-        let display = self.style.get_box().display;
-        display.outside() == DisplayOutside::Inline && !self.is_inline_box()
-            || matches!(display, Display::InlineGrid)
     }
 
     pub(crate) fn has_collapsed_borders(&self) -> bool {
