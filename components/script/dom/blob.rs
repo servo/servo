@@ -108,8 +108,8 @@ impl Serializable for Blob {
         let blobs = sc_writer.blobs.get_or_insert_with(HashMap::new);
         blobs.insert(new_blob_id, blob_impl);
 
-        let PipelineNamespaceId(name_space) = new_blob_id.namespace_id;
-        let BlobIndex(index) = new_blob_id.index;
+        let PipelineNamespaceId(name_space) = new_blob_id.namespace_id();
+        let BlobIndex(index) = new_blob_id.index();
         let index = index.get();
 
         let name_space = name_space.to_ne_bytes();
@@ -137,10 +137,7 @@ impl Serializable for Blob {
         let index =
             BlobIndex(NonZeroU32::new(storage_key.index).expect("Deserialized blob index is zero"));
 
-        let id = BlobId {
-            namespace_id,
-            index,
-        };
+        let id = BlobId::with_namespace_id_and_index(namespace_id, index);
 
         // 2. Get the transferred object from its storage, using the key.
         let blob_impls_map = sc_reader

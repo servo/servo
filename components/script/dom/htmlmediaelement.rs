@@ -1365,7 +1365,7 @@ impl HTMLMediaElement {
 
         let pipeline_id = window.pipeline_id();
         let client_context_id =
-            ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
+            ClientContextId::build(pipeline_id.namespace_id().0, pipeline_id.index().0.get());
         let player = ServoMedia::get().create_player(
             &client_context_id,
             stream_type,

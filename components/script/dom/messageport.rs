@@ -181,8 +181,8 @@ impl Transferable for MessagePort {
             sc_writer.ports = Some(ports);
         }
 
-        let PipelineNamespaceId(name_space) = (id).namespace_id;
-        let MessagePortIndex(index) = (id).index;
+        let PipelineNamespaceId(name_space) = (id).namespace_id();
+        let MessagePortIndex(index) = (id).index();
         let index = index.get();
 
         let mut big: [u8; 8] = [0; 8];
@@ -221,10 +221,7 @@ impl Transferable for MessagePort {
             .expect("Index to be non-zero"),
         );
 
-        let id = MessagePortId {
-            namespace_id,
-            index,
-        };
+        let id = MessagePortId::with_namespace_id_and_index(namespace_id, index);
 
         // 2. Get the transferred object from its storage, using the key.
         // Assign the transfer-received port-impl, and total number of transferred ports.
