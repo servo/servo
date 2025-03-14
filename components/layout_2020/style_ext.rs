@@ -24,9 +24,11 @@ use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{AlignItems, BorderStyle, Color, Inset, LengthPercentage, Margin};
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
+use style::values::generics::transform::{GenericRotate, GenericScale, GenericTranslate};
 use style::values::specified::align::AlignFlags;
 use style::values::specified::{Overflow, WillChangeBits, box_ as stylo};
 use webrender_api as wr;
+use webrender_api::units::LayoutTransform;
 
 use crate::dom_traversal::Contents;
 use crate::fragment_tree::FragmentFlags;
@@ -501,6 +503,9 @@ impl ComputedValuesExt for ComputedValues {
     fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool {
         self.is_transformable(fragment_flags) &&
             (!self.get_box().transform.0.is_empty() ||
+                self.get_box().scale != GenericScale::None ||
+                self.get_box().rotate != GenericRotate::None ||
+                self.get_box().translate != GenericTranslate::None ||
                 self.get_box().perspective != Perspective::None)
     }
 
@@ -1179,5 +1184,18 @@ impl Clamp for Au {
 
     fn clamp_between_extremums(self, min: Self, max: Option<Self>) -> Self {
         self.clamp_below_max(max).max(min)
+    }
+}
+
+pub(crate) trait TransformExt {
+    fn change_basis(&self, x: f32, y: f32, z: f32) -> Self;
+}
+
+impl TransformExt for LayoutTransform {
+    /// <https://drafts.csswg.org/css-transforms/#transformation-matrix-computation>
+    fn change_basis(&self, x: f32, y: f32, z: f32) -> Self {
+        let pre_translation = Self::translation(x, y, z);
+        let post_translation = Self::translation(-x, -y, -z);
+        post_translation.then(self).then(&pre_translation)
     }
 }

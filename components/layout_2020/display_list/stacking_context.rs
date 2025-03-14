@@ -19,10 +19,11 @@ use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::properties::ComputedValues;
+use style::values::computed::angle::Angle;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::{ClipRectOrAuto, Length};
 use style::values::generics::box_::Perspective;
-use style::values::generics::transform;
+use style::values::generics::transform::{self, GenericRotate, GenericScale, GenericTranslate};
 use style::values::specified::box_::DisplayOutside;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self as wr, BorderRadius};
@@ -39,7 +40,7 @@ use crate::fragment_tree::{
     PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, PhysicalRect, PhysicalSides};
-use crate::style_ext::ComputedValuesExt;
+use crate::style_ext::{ComputedValuesExt, TransformExt};
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
@@ -1635,17 +1636,37 @@ impl BoxFragment {
     /// Returns the 4D matrix representing this fragment's transform.
     pub fn calculate_transform_matrix(&self, border_rect: &Rect<Au>) -> Option<LayoutTransform> {
         let list = &self.style.get_box().transform;
+        let length_rect = au_rect_to_length_rect(border_rect);
+        // https://drafts.csswg.org/css-transforms-2/#individual-transforms
+        let rotate = match self.style.clone_rotate() {
+            GenericRotate::Rotate(angle) => (0., 0., 1., angle),
+            GenericRotate::Rotate3D(x, y, z, angle) => (x, y, z, angle),
+            GenericRotate::None => (0., 0., 1., Angle::zero()),
+        };
+        let scale = match self.style.clone_scale() {
+            GenericScale::Scale(sx, sy, sz) => (sx, sy, sz),
+            GenericScale::None => (1., 1., 1.),
+        };
+        let translation = match self.style.clone_translate() {
+            GenericTranslate::Translate(x, y, z) => LayoutTransform::translation(
+                x.resolve(length_rect.size.width).px(),
+                y.resolve(length_rect.size.height).px(),
+                z.px(),
+            ),
+            GenericTranslate::None => LayoutTransform::identity(),
+        };
 
-        let transform = LayoutTransform::from_untyped(
-            &list
-                .to_transform_3d_matrix(Some(&au_rect_to_length_rect(border_rect)))
-                .ok()?
-                .0,
-        );
+        let angle = euclid::Angle::radians(rotate.3.radians());
+        let transform_base = list.to_transform_3d_matrix(Some(&length_rect)).ok()?;
+        let transform = LayoutTransform::from_untyped(&transform_base.0)
+            .then_rotate(rotate.0, rotate.1, rotate.2, angle)
+            .then_scale(scale.0, scale.1, scale.2)
+            .then(&translation);
         // WebRender will end up dividing by the scale value of this transform, so we
         // want to ensure we don't feed it a divisor of 0.
-        assert_ne!(transform.m11, 0.);
-        assert_ne!(transform.m22, 0.);
+        if transform.m11 == 0. || transform.m22 == 0. {
+            return Some(LayoutTransform::identity());
+        }
 
         let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x = transform_origin
@@ -1658,18 +1679,7 @@ impl BoxFragment {
             .to_f32_px();
         let transform_origin_z = transform_origin.depth.px();
 
-        let pre_transform = LayoutTransform::translation(
-            transform_origin_x,
-            transform_origin_y,
-            transform_origin_z,
-        );
-        let post_transform = LayoutTransform::translation(
-            -transform_origin_x,
-            -transform_origin_y,
-            -transform_origin_z,
-        );
-
-        Some(post_transform.then(&transform).then(&pre_transform))
+        Some(transform.change_basis(transform_origin_x, transform_origin_y, transform_origin_z))
     }
 
     /// Returns the 4D matrix representing this fragment's perspective.
@@ -1688,20 +1698,15 @@ impl BoxFragment {
                         .px(),
                 );
 
-                let pre_transform =
-                    LayoutTransform::translation(perspective_origin.x, perspective_origin.y, 0.0);
-                let post_transform =
-                    LayoutTransform::translation(-perspective_origin.x, -perspective_origin.y, 0.0);
-
                 let perspective_matrix = LayoutTransform::from_untyped(
                     &transform::create_perspective_matrix(length.px()),
                 );
 
-                Some(
-                    post_transform
-                        .then(&perspective_matrix)
-                        .then(&pre_transform),
-                )
+                Some(perspective_matrix.change_basis(
+                    perspective_origin.x,
+                    perspective_origin.y,
+                    0.0,
+                ))
             },
             Perspective::None => None,
         }
