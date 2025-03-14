@@ -2076,7 +2076,7 @@ impl Element {
     ) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
         // TODO(#11995): XML case.
-        let new_children = ServoParser::parse_html_fragment(self, markup, can_gc);
+        let new_children = ServoParser::parse_html_fragment(self, markup, false, can_gc);
         // Step 3.
         // See https://github.com/w3c/DOM-Parsing/issues/61.
         let context_document = {
@@ -2855,6 +2855,39 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
     fn ClientHeight(&self, can_gc: CanGc) -> i32 {
         self.client_rect(can_gc).size.height
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
+    fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+        // Step 2. Let target be this's template contents if this is a template element; otherwise this.
+        let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+            DomRoot::upcast(template.Content(can_gc))
+        } else {
+            DomRoot::from_ref(self.upcast())
+        };
+
+        // Step 3. Unsafely set HTML given target, this, and compliantHTML.
+        // Let newChildren be the result of the HTML fragment parsing algorithm.
+        let new_children = ServoParser::parse_html_fragment(self, html, true, can_gc);
+
+        let context_document = {
+            if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+                template.Content(can_gc).upcast::<Node>().owner_doc()
+            } else {
+                self.owner_document()
+            }
+        };
+
+        // Let fragment be a new DocumentFragment whose node document is contextElement's node document.
+        let frag = DocumentFragment::new(&context_document, can_gc);
+
+        // For each node in newChildren, append node to fragment.
+        for child in new_children {
+            frag.upcast::<Node>().AppendChild(&child).unwrap();
+        }
+
+        // Replace all with fragment within target.
+        Node::replace_all(Some(frag.upcast()), &target);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>

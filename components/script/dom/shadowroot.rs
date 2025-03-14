@@ -79,6 +79,9 @@ pub(crate) struct ShadowRoot {
     slots: DomRefCell<HashMap<DOMString, Vec<Dom<HTMLSlotElement>>>>,
 
     is_user_agent_widget: bool,
+
+    /// <https://dom.spec.whatwg.org/#shadowroot-declarative>
+    declarative: Cell<bool>,
 }
 
 impl ShadowRoot {
@@ -113,6 +116,7 @@ impl ShadowRoot {
             available_to_element_internals: Cell::new(false),
             slots: Default::default(),
             is_user_agent_widget: is_user_agent_widget == IsUserAgentWidget::Yes,
+            declarative: Cell::new(false),
         }
     }
 
@@ -275,6 +279,10 @@ impl ShadowRoot {
 
     pub(crate) fn is_user_agent_widget(&self) -> bool {
         self.is_user_agent_widget
+    }
+
+    pub(crate) fn set_declarative(&self, declarative: bool) {
+        self.declarative.set(declarative);
     }
 }
 
