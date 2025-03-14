@@ -204,16 +204,13 @@ impl Transferable for MessagePort {
 
 impl IdFromComponents for MessagePortId {
     fn from(namespace_id: PipelineNamespaceId, index: NonZeroU32) -> MessagePortId {
-        MessagePortId {
-            namespace_id,
-            index: MessagePortIndex(index),
-        }
+        MessagePortId::with_namespace_id_and_index(namespace_id, MessagePortIndex(index))
     }
 }
 
 impl ExtractComponents for MessagePortId {
     fn components(&self) -> (PipelineNamespaceId, NonZeroU32) {
-        (self.namespace_id, self.index.0)
+        (self.namespace_id(), self.index().0)
     }
 }
 

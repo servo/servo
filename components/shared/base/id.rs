@@ -49,8 +49,8 @@ macro_rules! namespace_id {
             Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
         )]
         pub struct $id_name {
-            pub namespace_id: PipelineNamespaceId,
-            pub index: $index_name,
+            namespace_id: PipelineNamespaceId,
+            index: $index_name,
         }
 
         impl fmt::Debug for $id_name {
@@ -64,6 +64,17 @@ macro_rules! namespace_id {
         impl fmt::Display for $id_name {
             fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
                 write!(fmt, "{}{:?}", $display_prefix, self)
+            }
+        }
+
+        impl $id_name {
+            #[deprecated]
+            pub fn namespace_id(&self) -> PipelineNamespaceId {
+                self.namespace_id
+            }
+            #[deprecated]
+            pub fn index(&self) -> $index_name {
+                self.index
             }
         }
     };
@@ -343,6 +354,17 @@ impl MessagePortId {
             next_message_port_id
         })
     }
+
+    #[deprecated]
+    pub fn with_namespace_id_and_index(
+        namespace_id: PipelineNamespaceId,
+        index: MessagePortIndex,
+    ) -> Self {
+        Self {
+            namespace_id,
+            index,
+        }
+    }
 }
 
 namespace_id! {MessagePortRouterId, MessagePortRouterIndex, "MessagePortRouter"}
@@ -408,6 +430,17 @@ impl BlobId {
             tls.set(Some(namespace));
             next_blob_id
         })
+    }
+
+    #[deprecated]
+    pub fn with_namespace_id_and_index(
+        namespace_id: PipelineNamespaceId,
+        index: BlobIndex,
+    ) -> Self {
+        Self {
+            namespace_id,
+            index,
+        }
     }
 }
 

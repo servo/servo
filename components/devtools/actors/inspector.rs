@@ -80,7 +80,7 @@ impl Actor for InspectorActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
-        let pipeline = browsing_context.active_pipeline.get();
+        let pipeline = browsing_context.active_pipeline_id.get();
         Ok(match msg_type {
             "getWalker" => {
                 let (tx, rx) = ipc::channel().unwrap();
