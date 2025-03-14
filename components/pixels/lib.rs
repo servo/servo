@@ -3,10 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::fmt;
+use std::io::Cursor;
+use std::time::Duration;
+use std::{fmt, vec};
 
 use euclid::default::{Point2D, Rect, Size2D};
-use image::ImageFormat;
+use image::codecs::gif::GifDecoder;
+use image::{AnimationDecoder as _, ImageFormat};
 use ipc_channel::ipc::IpcSharedMemory;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -120,11 +123,26 @@ pub struct Image {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
-    pub bytes: IpcSharedMemory,
     #[ignore_malloc_size_of = "Defined in webrender_api"]
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
+    pub frames: Vec<ImageFrame>,
+}
+
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+pub struct ImageFrame {
+    pub delay: Option<Duration>,
+    #[ignore_malloc_size_of = "Defined in ipc-channel"]
+    pub bytes: IpcSharedMemory,
+}
+
+impl Image {
+    pub fn should_animate(&self) -> bool {
+        self.frames.len() > 1
+    }
+    pub fn get_first_frame(&self) -> &ImageFrame {
+        self.frames.first().unwrap() // should at least have one frame.
+    }
 }
 
 impl fmt::Debug for Image {
@@ -157,22 +175,73 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
             debug!("{}", msg);
             None
         },
-        Ok(_) => match image::load_from_memory(buffer) {
-            Ok(image) => {
-                let mut rgba = image.into_rgba8();
-                rgba8_byte_swap_colors_inplace(&mut rgba);
-                Some(Image {
-                    width: rgba.width(),
-                    height: rgba.height(),
-                    format: PixelFormat::BGRA8,
-                    bytes: IpcSharedMemory::from_bytes(&rgba),
-                    id: None,
-                    cors_status,
-                })
+        Ok(format) => match format {
+            ImageFormat::Gif => {
+                let decoder = GifDecoder::new(Cursor::new(buffer));
+                let mut width = 0;
+                let mut height = 0;
+                match decoder {
+                    Ok(dec) => {
+                        let mut frames = vec![];
+                        let frames_result = dec.into_frames();
+                        for frame_result in frames_result {
+                            match frame_result {
+                                Ok(mut f) => {
+                                    rgba8_byte_swap_colors_inplace(f.buffer_mut());
+                                    frames.push(ImageFrame {
+                                        bytes: IpcSharedMemory::from_bytes(f.buffer()),
+                                        delay: Some(Duration::from(f.delay())),
+                                    });
+                                    width = f.buffer().width();
+                                    height = f.buffer().height();
+                                },
+                                Err(e) => {
+                                    debug!("{}", e);
+                                    break;
+                                },
+                            }
+                        }
+                        if frames.is_empty() {
+                            debug!("Animated Image decoding error");
+                            None
+                        } else {
+                            Some(Image {
+                                width,
+                                height,
+                                cors_status,
+                                frames,
+                                id: None,
+                                format: PixelFormat::BGRA8,
+                            })
+                        }
+                    },
+                    Err(e) => {
+                        debug!("Image decoding error: {:?}", e);
+                        None
+                    },
+                }
             },
-            Err(e) => {
-                debug!("Image decoding error: {:?}", e);
-                None
+            _ => match image::load_from_memory(buffer) {
+                Ok(image) => {
+                    let mut rgba = image.into_rgba8();
+                    rgba8_byte_swap_colors_inplace(&mut rgba);
+                    let frame = ImageFrame {
+                        delay: None,
+                        bytes: IpcSharedMemory::from_bytes(&rgba),
+                    };
+                    Some(Image {
+                        width: rgba.width(),
+                        height: rgba.height(),
+                        format: PixelFormat::BGRA8,
+                        frames: vec![frame],
+                        id: None,
+                        cors_status,
+                    })
+                },
+                Err(e) => {
+                    debug!("Image decoding error: {:?}", e);
+                    None
+                },
             },
         },
     }

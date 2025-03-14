@@ -53,16 +53,17 @@ fn get_placeholder_image(compositor_api: &CrossProcessCompositorApi, data: &[u8]
 fn set_webrender_image_key(compositor_api: &CrossProcessCompositorApi, image: &mut Image) {
     if image.id.is_some() {
         return;
-    }
+    } // Maybe we should do premultiply here for each frame.
     let mut bytes = Vec::new();
+    let frame = image.get_first_frame();
     let is_opaque = match image.format {
         PixelFormat::BGRA8 => {
-            bytes.extend_from_slice(&image.bytes);
+            bytes.extend_from_slice(&frame.bytes);
             pixels::rgba8_premultiply_inplace(bytes.as_mut_slice())
         },
         PixelFormat::RGB8 => {
-            bytes.reserve(image.bytes.len() / 3 * 4);
-            for bgr in image.bytes.chunks(3) {
+            bytes.reserve(frame.bytes.len() / 3 * 4);
+            for bgr in frame.bytes.chunks(3) {
                 bytes.extend_from_slice(&[bgr[2], bgr[1], bgr[0], 0xff]);
             }
 

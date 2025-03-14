@@ -1861,6 +1861,17 @@ impl ScriptThread {
             ScriptThreadMessage::SetEpochPaintTime(pipeline_id, epoch, time) => {
                 self.handle_set_epoch_paint_time(pipeline_id, epoch, time)
             },
+            ScriptThreadMessage::UpdateImageActiveFrame(pipeline_id) => {
+                // Each documents should try to update.
+                if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+                    document.try_update_animated_image_active_frame(); // TODO(Ray): Should have better design.
+                } else {
+                    warn!(
+                        "Trying to update animated image active frame for closed pipeline: {}.",
+                        pipeline_id
+                    )
+                }
+            },
         }
     }
 

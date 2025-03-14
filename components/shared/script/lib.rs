@@ -405,6 +405,8 @@ pub enum ScriptThreadMessage {
     SetScrollStates(PipelineId, Vec<ScrollState>),
     /// Send the paint time for a specific epoch.
     SetEpochPaintTime(PipelineId, Epoch, CrossProcessInstant),
+    /// Notify Image Animation UPdate.
+    UpdateImageActiveFrame(PipelineId),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

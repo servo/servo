@@ -18,6 +18,7 @@ atomic_refcell = { workspace = true }
 canvas_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
+fxhash = { workspace = true }
 fonts = { path = "../../fonts" }
 fonts_traits = { workspace = true }
 html5ever = { workspace = true }
@@ -39,3 +40,4 @@ style = { workspace = true }
 style_traits = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
+parking_lot = { workspace = true }

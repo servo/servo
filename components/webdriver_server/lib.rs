@@ -1673,7 +1673,8 @@ impl Handler {
             "Unexpected screenshot pixel format"
         );
 
-        let rgb = RgbaImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
+        let rgb = RgbaImage::from_raw(img.width, img.height, img.get_first_frame().bytes.to_vec())
+            .unwrap();
         let mut png_data = Cursor::new(Vec::new());
         DynamicImage::ImageRgba8(rgb)
             .write_to(&mut png_data, ImageFormat::Png)
