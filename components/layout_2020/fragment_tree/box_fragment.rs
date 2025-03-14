@@ -359,6 +359,14 @@ impl BoxFragment {
         )
     }
 
+    /// Whether this is an atomic inline-level box.
+    /// <https://drafts.csswg.org/css-display-3/#atomic-inline>
+    pub(crate) fn is_atomic_inline_level(&self) -> bool {
+        let display = self.style.get_box().display;
+        display.outside() == DisplayOutside::Inline && !self.is_inline_box()
+            || matches!(display, Display::InlineGrid)
+    }
+
     pub(crate) fn has_collapsed_borders(&self) -> bool {
         match &self.specific_layout_info {
             Some(SpecificLayoutInfo::TableCellWithCollapsedBorders) => true,
