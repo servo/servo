@@ -146,6 +146,8 @@ pub(super) enum NonReplacedContents {
     /// Content of a `::before` or `::after` pseudo-element that is being generated.
     /// <https://drafts.csswg.org/css2/generate.html#content>
     OfPseudoElement(Vec<PseudoElementContentItem>),
+    /// Workaround for input element until we properly implement display-inside
+    TextControl,
 }
 
 #[derive(Debug)]
@@ -241,24 +243,15 @@ fn traverse_element<'dom, Node>(
             }
         },
         Display::GeneratingBox(display) => {
-            let contents =
-                replaced.map_or(NonReplacedContents::OfElement.into(), Contents::Replaced);
-            let display = match element.type_id() {
-                // if it's an input, make sure the display-inside is flow-root
-                // <https://html.spec.whatwg.org/multipage/#form-controls>
-                LayoutNodeType::Element(LayoutElementType::HTMLInputElement) => match display {
-                    DisplayGeneratingBox::OutsideInside { outside, .. } => {
-                        DisplayGeneratingBox::OutsideInside {
-                            outside: outside,
-                            inside: DisplayInside::FlowRoot {
-                                is_list_item: false,
-                            },
-                        }
-                    },
-                    display => display,
+            let nonreplaced = match element.type_id() {
+                LayoutNodeType::Element(LayoutElementType::HTMLInputElement) => {
+                    NonReplacedContents::TextControl.into()
                 },
-                _ => display.used_value_for_contents(&contents),
+                _ => NonReplacedContents::OfElement.into(),
             };
+
+            let contents = replaced.map_or(nonreplaced, Contents::Replaced);
+            let display = display.used_value_for_contents(&contents);
             let box_slot = element.element_box_slot();
             let info = NodeAndStyleInfo::new(element, style);
             handler.handle_element(&info, display, contents, box_slot);
@@ -386,7 +379,9 @@ impl NonReplacedContents {
             },
         };
         match self {
-            NonReplacedContents::OfElement => traverse_children_of(node, context, handler),
+            NonReplacedContents::OfElement | NonReplacedContents::TextControl => {
+                traverse_children_of(node, context, handler)
+            },
             NonReplacedContents::OfPseudoElement(items) => {
                 traverse_pseudo_element_contents(info, context, handler, items)
             },
