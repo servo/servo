@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crossbeam_channel::{Receiver, Sender, TryRecvError, unbounded};
-use log::warn;
-
 use crate::Servo;
-use crate::responders::DelegateErrorSender;
 use crate::webview_delegate::{AllowOrDenyRequest, WebResourceLoad};
 
 #[derive(Debug)]
@@ -19,51 +15,6 @@ pub enum ServoError {
     DevtoolsFailedToStart,
     /// Failed to send response to delegate request.
     ResponseSend(bincode::Error),
-}
-
-/// Channel for errors raised by [`WebViewDelegate`] request objects.
-///
-/// This allows errors to be raised asynchronously.
-pub(crate) struct ServoErrorChannel {
-    sender: Sender<ServoError>,
-    receiver: Receiver<ServoError>,
-}
-
-impl Default for ServoErrorChannel {
-    fn default() -> Self {
-        let (sender, receiver) = unbounded();
-        Self { sender, receiver }
-    }
-}
-
-impl ServoErrorChannel {
-    pub(crate) fn sender(&self) -> ServoErrorSender {
-        ServoErrorSender {
-            sender: self.sender.clone(),
-        }
-    }
-    pub(crate) fn try_recv(&self) -> Option<ServoError> {
-        match self.receiver.try_recv() {
-            Ok(result) => Some(result),
-            Err(error) => {
-                debug_assert_eq!(error, TryRecvError::Empty);
-                None
-            },
-        }
-    }
-}
-
-/// Sender for [`ServoError`] that identifies the [`WebView`] in question.
-pub(crate) struct ServoErrorSender {
-    sender: Sender<ServoError>,
-}
-
-impl DelegateErrorSender for ServoErrorSender {
-    fn raise_response_send_error(&self, error: bincode::Error) {
-        if let Err(error) = self.sender.send(ServoError::ResponseSend(error)) {
-            warn!("Failed to send Servo error: {error:?}");
-        }
-    }
 }
 
 pub trait ServoDelegate {

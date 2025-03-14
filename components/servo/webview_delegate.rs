@@ -17,8 +17,7 @@ use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
-use crate::responders::DelegateErrorSender;
-use crate::servo_delegate::ServoErrorSender;
+use crate::responders::ServoErrorSender;
 use crate::{ConstellationProxy, WebView};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled

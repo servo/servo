@@ -119,7 +119,7 @@ pub use {
 pub use {bluetooth, bluetooth_traits};
 
 use crate::proxies::ConstellationProxy;
-use crate::servo_delegate::ServoErrorChannel;
+use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
 pub use crate::webview_delegate::{
