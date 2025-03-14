@@ -280,7 +280,7 @@ impl ShadowRoot {
     pub(crate) fn is_user_agent_widget(&self) -> bool {
         self.is_user_agent_widget
     }
-    
+
     pub(crate) fn set_declarative(&self, declarative: bool) {
         self.declarative.set(declarative);
     }
