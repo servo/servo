@@ -5,10 +5,12 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
+use script_bindings::str::DOMString;
 use stylo_dom::ElementState;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
+use crate::dom::bindings::codegen::GenericBindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
@@ -16,12 +18,13 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{BindContext, Node, ShadowIncluding, UnbindContext};
+use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
+/// <https://html.spec.whatwg.org/multipage/#htmloptgroupelement>
 #[dom_struct]
 pub(crate) struct HTMLOptGroupElement {
     htmlelement: HTMLElement,
@@ -62,16 +65,17 @@ impl HTMLOptGroupElement {
     }
 
     fn update_select_validity(&self) {
-        if let Some(select) = self
-            .upcast::<Node>()
-            .ancestors()
-            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
-            .next()
-        {
+        if let Some(select) = self.owner_select_element() {
             select
                 .validity_state()
                 .perform_validation_and_update(ValidationFlags::all());
         }
+    }
+
+    fn owner_select_element(&self) -> Option<DomRoot<HTMLSelectElement>> {
+        self.upcast::<Node>()
+            .GetParentNode()
+            .and_then(DomRoot::downcast)
     }
 }
 
@@ -81,6 +85,12 @@ impl HTMLOptGroupElementMethods<crate::DomTypeHolder> for HTMLOptGroupElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-optgroup-disabled
     make_bool_setter!(SetDisabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage/#dom-optgroup-label
+    make_getter!(Label, "label");
+
+    // https://html.spec.whatwg.org/multipage/#dom-optgroup-label
+    make_setter!(SetLabel, "label");
 }
 
 impl VirtualMethods for HTMLOptGroupElement {
@@ -133,12 +143,7 @@ impl VirtualMethods for HTMLOptGroupElement {
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
 
-        if let Some(select) = context
-            .parent
-            .inclusive_ancestors(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
-            .next()
-        {
+        if let Some(select) = context.parent.downcast::<HTMLSelectElement>() {
             select
                 .validity_state()
                 .perform_validation_and_update(ValidationFlags::all());
