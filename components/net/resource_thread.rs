@@ -496,7 +496,7 @@ where
     let mut string_buffer: String = String::new();
     match file.read_to_string(&mut string_buffer) {
         Err(why) => panic!("couldn't read from {}: {}", display, why),
-        Ok(_) => println!("successfully read from {}", display),
+        Ok(_) => debug!("successfully read from {}", display),
     }
 
     match serde_json::from_str(&string_buffer) {
@@ -523,7 +523,7 @@ where
 
     match file.write_all(json_encoded.as_bytes()) {
         Err(why) => panic!("couldn't write to {}: {}", display, why),
-        Ok(_) => println!("successfully wrote to {}", display),
+        Ok(_) => debug!("successfully wrote to {}", display),
     }
 }
 

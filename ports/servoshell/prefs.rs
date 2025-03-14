@@ -128,7 +128,6 @@ fn get_preferences(opts_matches: &Matches, config_dir: &Option<PathBuf>) -> Pref
 
     let user_prefs_path = config_dir
         .clone()
-        .or_else(default_config_dir)
         .map(|path| path.join("prefs.json"))
         .filter(|path| path.exists());
     let user_prefs_hash = user_prefs_path.map(read_prefs_file).unwrap_or_default();
@@ -382,7 +381,18 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         process::exit(0);
     };
 
-    let config_dir = opt_match.opt_str("config-dir").map(Into::into);
+    let config_dir = opt_match
+        .opt_str("config-dir")
+        .map(Into::into)
+        .or_else(default_config_dir)
+        .inspect(|path| {
+            if !path.exists() {
+                fs::create_dir_all(path).unwrap_or_else(|e| {
+                    error!("Failed to create config directory at {:?}: {:?}", path, e)
+                })
+            }
+        });
+
     let mut preferences = get_preferences(&opt_match, &config_dir);
 
     // If this is the content process, we'll receive the real options over IPC. So just fill in
