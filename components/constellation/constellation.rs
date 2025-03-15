@@ -1242,12 +1242,6 @@ where
             FromCompositorMsg::Exit => {
                 self.handle_exit();
             },
-            FromCompositorMsg::GetBrowsingContext(pipeline_id, response_sender) => {
-                self.handle_get_browsing_context(pipeline_id, response_sender);
-            },
-            FromCompositorMsg::GetPipeline(browsing_context_id, response_sender) => {
-                self.handle_get_pipeline(browsing_context_id, response_sender);
-            },
             FromCompositorMsg::GetFocusTopLevelBrowsingContext(resp_chan) => {
                 let _ = resp_chan.send(self.webviews.focused_webview().map(|(id, _)| id));
             },
@@ -4189,49 +4183,6 @@ where
         };
         if let Err(e) = result {
             self.handle_send_error(pipeline_id, e);
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_get_pipeline(
-        &mut self,
-        browsing_context_id: BrowsingContextId,
-        response_sender: IpcSender<Option<PipelineId>>,
-    ) {
-        let current_pipeline_id = self
-            .browsing_contexts
-            .get(&browsing_context_id)
-            .map(|browsing_context| browsing_context.pipeline_id);
-        let pipeline_id_loaded = self
-            .pending_changes
-            .iter()
-            .rev()
-            .find(|x| x.browsing_context_id == browsing_context_id)
-            .map(|x| x.new_pipeline_id)
-            .or(current_pipeline_id);
-        if let Err(e) = response_sender.send(pipeline_id_loaded) {
-            warn!("Failed get_pipeline response ({}).", e);
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_get_browsing_context(
-        &mut self,
-        pipeline_id: PipelineId,
-        response_sender: IpcSender<Option<BrowsingContextId>>,
-    ) {
-        let browsing_context_id = self
-            .pipelines
-            .get(&pipeline_id)
-            .map(|pipeline| pipeline.browsing_context_id);
-        if let Err(e) = response_sender.send(browsing_context_id) {
-            warn!("Failed get_browsing_context response ({}).", e);
         }
     }
 

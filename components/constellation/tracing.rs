@@ -61,8 +61,6 @@ mod from_compositor {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::Exit => target!("Exit"),
-                Self::GetBrowsingContext(..) => target!("GetBrowsingContext"),
-                Self::GetPipeline(..) => target!("GetPipeline"),
                 Self::GetFocusTopLevelBrowsingContext(..) => {
                     target!("GetFocusTopLevelBrowsingContext")
                 },
