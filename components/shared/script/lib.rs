@@ -50,8 +50,8 @@ use pixels::PixelFormat;
 use profile_traits::{mem, time as profile_time};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use strum_macros::IntoStaticStr;
 use strum::{EnumIter, IntoEnumIterator};
+use strum_macros::IntoStaticStr;
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
