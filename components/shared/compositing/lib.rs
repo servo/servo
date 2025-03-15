@@ -8,9 +8,8 @@ mod constellation_msg;
 
 use std::fmt::{Debug, Error, Formatter};
 
-use base::Epoch;
 use base::id::{PipelineId, WebViewId};
-pub use constellation_msg::ConstellationMsg;
+pub use constellation_msg::{ConstellationMsg, PaintMetricEvent};
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::{EventLoopWaker, MouseButton, MouseButtonAction};
 use euclid::Rect;
@@ -84,10 +83,6 @@ pub enum CompositorMsg {
     // sends a reply on the IpcSender, the constellation knows it's safe to
     // tear down the other threads associated with this pipeline.
     PipelineExited(WebViewId, PipelineId, IpcSender<()>),
-    /// Indicates to the compositor that it needs to record the time when the frame with
-    /// the given ID (epoch) is painted and report it to the layout of the given
-    /// WebViewId and PipelienId.
-    PendingPaintMetric(WebViewId, PipelineId, Epoch),
     /// The load of a page has completed
     LoadComplete(WebViewId),
     /// WebDriver mouse button event

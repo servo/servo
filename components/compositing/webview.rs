@@ -252,12 +252,6 @@ impl WebView {
         }
     }
 
-    pub(crate) fn add_pending_paint_metric(&mut self, pipeline_id: PipelineId, epoch: base::Epoch) {
-        self.ensure_pipeline_details(pipeline_id)
-            .pending_paint_metrics
-            .push(epoch);
-    }
-
     /// On a Window refresh tick (e.g. vsync)
     pub fn on_vsync(&mut self) {
         if let Some(fling_action) = self.touch_handler.on_vsync() {

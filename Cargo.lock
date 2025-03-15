@@ -4613,17 +4613,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "metrics_tests"
-version = "0.0.1"
-dependencies = [
- "base",
- "ipc-channel",
- "metrics",
- "profile_traits",
- "servo_url",
-]
-
-[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5846,8 +5835,10 @@ dependencies = [
  "crossbeam-channel",
  "ipc-channel",
  "log",
+ "malloc_size_of_derive",
  "serde",
  "servo_config",
+ "servo_malloc_size_of",
  "signpost",
  "strum_macros",
  "time",

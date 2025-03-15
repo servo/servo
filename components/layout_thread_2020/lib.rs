@@ -16,7 +16,6 @@ use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
 use base::Epoch;
-use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
 use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
@@ -37,7 +36,6 @@ use layout::traversal::RecalcStyle;
 use layout::{BoxTree, FragmentTree};
 use log::{debug, error};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
@@ -159,9 +157,6 @@ pub struct LayoutThread {
 
     /// Cross-process access to the Compositor API.
     compositor_api: CrossProcessCompositorApi,
-
-    /// Paint time metrics.
-    paint_time_metrics: PaintTimeMetrics,
 
     /// Debug options, copied from configuration to this `LayoutThread` in order
     /// to avoid having to constantly access the thread-safe global options.
@@ -462,10 +457,6 @@ impl Layout for LayoutThread {
             .map(|scroll_state| (scroll_state.scroll_id, scroll_state.scroll_offset))
             .collect();
     }
-
-    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: CrossProcessInstant) {
-        self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
-    }
 }
 
 impl LayoutThread {
@@ -520,7 +511,6 @@ impl LayoutThread {
             scroll_offsets: Default::default(),
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             webrender_image_cache: Default::default(),
-            paint_time_metrics: config.paint_time_metrics,
             debug: opts::get().debug.clone(),
         }
     }
@@ -856,6 +846,7 @@ impl LayoutThread {
             self.id.into(),
             epoch.into(),
             fragment_tree.viewport_scroll_sensitivity,
+            self.first_reflow.get(),
         );
         display_list.wr.begin();
 
@@ -874,7 +865,7 @@ impl LayoutThread {
             display_list.build_stacking_context_tree(&fragment_tree, &self.debug);
 
         // Build the rest of the display list which inclues all of the WebRender primitives.
-        let is_contentful = display_list.build(context, &fragment_tree, &root_stacking_context);
+        display_list.build(context, &fragment_tree, &root_stacking_context);
 
         if self.debug.dump_flow_tree {
             fragment_tree.print();
@@ -883,12 +874,6 @@ impl LayoutThread {
             root_stacking_context.debug_print();
         }
         debug!("Layout done!");
-
-        // Observe notifications about rendered frames if needed right before
-        // sending the display list to WebRender in order to set time related
-        // Progressive Web Metrics.
-        self.paint_time_metrics
-            .maybe_observe_paint_time(self, epoch, is_contentful);
 
         if reflow_goal.needs_display() {
             self.compositor_api.send_display_list(
@@ -988,12 +973,6 @@ impl LayoutThread {
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
-    }
-}
-
-impl ProfilerMetadataFactory for LayoutThread {
-    fn new_metadata(&self) -> Option<TimerMetadata> {
-        self.profiler_metadata()
     }
 }
 
