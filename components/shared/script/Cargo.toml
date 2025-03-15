@@ -42,6 +42,7 @@ serde = { workspace = true }
 strum_macros = { workspace = true }
 stylo_atoms = { workspace = true }
 servo_url = { path = "../../url" }
+strum = { workspace = true, features = ["derive"] }
 style_traits = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }
