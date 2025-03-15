@@ -165,6 +165,12 @@ jobs:
       - name: Install crown
         run: cargo install --path support/crown
 
+      - name: Build libservo with examples (${{ inputs.profile }})
+        if: ${{ inputs.build-libservo }}
+        run: cargo build -p libservo --all-targets --${{ inputs.profile }} --target-dir target/libservo
+      - name: Clean libservo build to save disk space
+        if: ${{ inputs.build-libservo }}
+        run: rm -Rf target/libservo
       - name: Build (${{ inputs.profile }})
         run: |
           ./mach build --use-crown --locked --${{ inputs.profile }}
@@ -180,10 +186,6 @@ jobs:
           timeout_minutes: 20
           max_attempts: 2 # https://github.com/servo/servo/issues/30683
           command: ./mach test-unit --${{ inputs.profile }}
-      - name: Build libservo with examples
-        if: ${{ inputs.build-libservo }}
-        continue-on-error: true
-        run: cargo build -p libservo --all-targets
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
