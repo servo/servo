@@ -1959,6 +1959,7 @@ impl Window {
             pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
+            image_animation_set: document.image_animation().set.to_layout_image_animate_set(),
             theme: self.theme.get(),
         };
 
@@ -1976,6 +1977,8 @@ impl Window {
         // visual contents of the page. A case where full display might be delayed
         // is when reflowing just for the purpose of doing a layout query.
         document.set_needs_paint(!for_display);
+
+        document.update_image_animations_manager_with_action(results.pending_animated_image_action);
 
         for image in results.pending_images {
             let id = image.id;

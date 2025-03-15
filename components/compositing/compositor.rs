@@ -30,7 +30,7 @@ use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
-use pixels::{CorsStatus, Image, PixelFormat};
+use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
 use script_traits::{
@@ -184,7 +184,7 @@ pub struct IOCompositor {
 }
 
 /// Why we need to be repainted. This is used for debugging.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 struct RepaintReason(u8);
 
 bitflags! {
@@ -825,6 +825,14 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(txn);
             },
 
+            CrossProcessCompositorMessage::VsyncUpdateEvent(updates, webview_id) => {
+                // put this inside the webview pipeline details.
+                let Some(webview) = self.webviews.get_mut(webview_id) else {
+                    return;
+                };
+                webview.extend_pending_vsync_events(updates);
+            },
+
             CrossProcessCompositorMessage::AddFont(font_key, data, index) => {
                 self.add_font(font_key, index, data);
             },
@@ -1454,7 +1462,10 @@ impl IOCompositor {
                 width: image.width(),
                 height: image.height(),
                 format: PixelFormat::RGBA8,
-                bytes: ipc::IpcSharedMemory::from_bytes(&image),
+                frames: vec![ImageFrame {
+                    delay: None,
+                    bytes: ipc::IpcSharedMemory::from_bytes(&image),
+                }],
                 id: None,
                 cors_status: CorsStatus::Safe,
             }))
@@ -1673,6 +1684,8 @@ impl IOCompositor {
         let mut webviews = take(&mut self.webviews);
         for webview in webviews.iter_mut() {
             webview.process_pending_scroll_events(self);
+            // TODO: Maybe we can merge this two handling, to reduce frame generation.
+            webview.process_pending_image_update(self);
         }
         self.webviews = webviews;
         self.global.borrow().shutdown_state() != ShutdownState::FinishedShuttingDown

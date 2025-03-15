@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_map::{Entry, Keys, Values, ValuesMut};
 use std::rc::Rc;
+use std::vec;
 
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::{ConstellationMsg, SendableFrameTree};
@@ -20,9 +21,9 @@ use script_traits::{AnimationState, ScriptThreadMessage, ScrollState, TouchEvent
 use webrender::Transaction;
 use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{
-    ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
+    DirtyRect, ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
-use webrender_traits::CompositorHitTestResult;
+use webrender_traits::{CompositorHitTestResult, ImageUpdate};
 
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};
@@ -59,6 +60,8 @@ pub(crate) struct WebView {
     pub(crate) global: Rc<RefCell<ServoRenderer>>,
     /// Pending scroll/zoom events.
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
+    /// Pending Animated Image Update Events.
+    pending_vsync_update_events: Vec<ImageUpdate>,
     /// Touch input state machine
     touch_handler: TouchHandler,
 }
@@ -82,6 +85,7 @@ impl WebView {
             touch_handler: TouchHandler::new(),
             global,
             pending_scroll_zoom_events: Default::default(),
+            pending_vsync_update_events: Default::default(),
         }
     }
 
@@ -257,6 +261,23 @@ impl WebView {
             .pending_paint_metrics
             .push(epoch);
     }
+    // Send Image Animation Message to ScriptThread. TODO: Should only send message if there are Image that need update.
+    pub(crate) fn tick_all_vsync_media_update(&mut self) {
+        for pipeline_details in self.pipelines.values_mut() {
+            // TODO: Potentially track animated image existence in pipeline details to reduce message sending.
+            if let Some(pipeline) = pipeline_details.pipeline.as_mut() {
+                let _ = pipeline
+                    .script_chan
+                    .send(ScriptThreadMessage::UpdateImageActiveFrame(
+                        pipeline_details.id,
+                    ));
+            }
+        }
+    }
+
+    pub(crate) fn extend_pending_vsync_events(&mut self, pending_events: Vec<ImageUpdate>) {
+        self.pending_vsync_update_events.extend(pending_events);
+    }
 
     /// On a Window refresh tick (e.g. vsync)
     pub fn on_vsync(&mut self) {
@@ -266,6 +287,7 @@ impl WebView {
                 fling_action.cursor,
             );
         }
+        self.tick_all_vsync_media_update();
     }
 
     pub(crate) fn dispatch_input_event(&mut self, event: InputEvent) {
@@ -833,6 +855,21 @@ impl WebView {
         // TODO: Scroll to keep the center in view?
         self.pending_scroll_zoom_events
             .push(ScrollZoomEvent::PinchZoom(magnification));
+    }
+
+    pub fn process_pending_image_update(&mut self, compositor: &mut IOCompositor) {
+        // Can try to aggregate the scroll node update and the image update.
+        if self.pending_vsync_update_events.is_empty() {
+            return;
+        }
+        let mut txn = Transaction::new();
+        for update_image in self.pending_vsync_update_events.drain(std::ops::RangeFull) {
+            if let ImageUpdate::UpdateImage(id, desc, data) = update_image {
+                txn.update_image(id, desc, data.into(), &DirtyRect::All);
+            }
+        }
+        compositor.generate_frame(&mut txn, RenderReasons::RESOURCE_UPDATE);
+        self.global.borrow_mut().send_transaction(txn);
     }
 }
 #[derive(Debug)]

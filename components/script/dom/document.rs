@@ -13,7 +13,7 @@ use std::mem;
 use std::rc::Rc;
 use std::slice::from_ref;
 use std::sync::{LazyLock, Mutex};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
@@ -52,7 +52,9 @@ use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
-use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
+use script_layout_interface::{
+    ImageAnimationAction, ImageIdentifier, PendingRestyle, TrustedNodeAddress,
+};
 use script_traits::{
     AnimationState, AnimationTickType, ConstellationInputEvent, DocumentActivity, ScriptMsg,
 };
@@ -198,6 +200,7 @@ use crate::dom::xpathevaluator::XPathEvaluator;
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
+use crate::image_animation::{ImageAnimateState, ImageAnimationManager};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
@@ -481,6 +484,8 @@ pub(crate) struct Document {
     animation_timeline: DomRefCell<AnimationTimeline>,
     /// Animations for this Document
     animations: DomRefCell<Animations>,
+    /// Image Animation Manager for this Document
+    image_animation_manager: DomRefCell<ImageAnimationManager>,
     /// The nearest inclusive ancestors to all the nodes that require a restyle.
     dirty_root: MutNullableDom<Element>,
     /// <https://html.spec.whatwg.org/multipage/#will-declaratively-refresh>
@@ -3730,6 +3735,7 @@ impl Document {
                 DomRefCell::new(AnimationTimeline::new())
             },
             animations: DomRefCell::new(Animations::new()),
+            image_animation_manager: DomRefCell::new(ImageAnimationManager::new()),
             dirty_root: Default::default(),
             declarative_refresh: Default::default(),
             pending_animation_ticks: Default::default(),
@@ -4538,6 +4544,63 @@ impl Document {
         // Steps 4 through 7 occur inside `send_pending_events().`
         let _realm = enter_realm(self);
         self.animations().send_pending_events(self.window(), can_gc);
+    }
+
+    pub(crate) fn image_animation(&self) -> Ref<ImageAnimationManager> {
+        self.image_animation_manager.borrow()
+    }
+    pub(crate) fn try_update_animated_image_active_frame(&self) {
+        // Maybe only try to update animated image if the window is not throttled? Where should throttled be checked?
+        let update_images = self
+            .image_animation_manager
+            .borrow()
+            .update_for_new_timeline_value();
+        self.window()
+            .compositor_api()
+            .vsync_update_events(update_images, self.window().webview_id());
+    }
+    /// Use after layout to update the animated image that we need to track.
+    /// remove images that is no longer being display (does not have a node contains it.)
+    pub(crate) fn update_image_animations_manager_with_action(
+        &self,
+        actions: Vec<ImageAnimationAction>,
+    ) {
+        // first try to update the node_to_key mapping, then try to update the image state hashmap.
+        let image_animation_manager = self.image_animation_manager.borrow_mut();
+        let mut node_to_image_map = image_animation_manager.set.node_to_image_key.write();
+        let mut image_state_store = image_animation_manager.set.image_state.write();
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs_f64();
+        for action in actions {
+            match action {
+                ImageAnimationAction::Cancel(cancel_item) => {
+                    node_to_image_map.remove(&cancel_item.node);
+                },
+                ImageAnimationAction::Register(register_item) => {
+                    node_to_image_map.insert(register_item.node, register_item.identifier.clone()); // value is updated.
+                    // we may want to check whether this image exist or not.
+                    if let std::collections::hash_map::Entry::Vacant(e) =
+                        image_state_store.entry(register_item.identifier)
+                    {
+                        e.insert(ImageAnimateState {
+                            image: register_item.image,
+                            current_active_index: 0,
+                            last_update_time: current_time,
+                        });
+                    }
+                },
+            }
+        }
+        let mut image_set_not_displaying_by_node: HashSet<ImageIdentifier> =
+            image_state_store.keys().cloned().collect();
+        for img_id in node_to_image_map.values() {
+            image_set_not_displaying_by_node.remove(img_id);
+        }
+        for to_be_delete_image in image_set_not_displaying_by_node {
+            image_state_store.remove(&to_be_delete_image);
+        }
     }
 
     pub(crate) fn will_declaratively_refresh(&self) -> bool {

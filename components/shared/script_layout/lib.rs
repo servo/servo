@@ -25,11 +25,15 @@ use euclid::Size2D;
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
+use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
 use metrics::PaintTimeMetrics;
 use net_traits::image_cache::{ImageCache, PendingImageId};
+use net_traits::request::CorsSettings;
+use parking_lot::RwLock;
+use pixels::Image;
 use profile_traits::mem::Report;
 use profile_traits::time;
 use script_traits::{
@@ -409,6 +413,8 @@ pub struct ReflowResult {
     /// to communicate them with the Constellation and also the `Window`
     /// element of their content pages.
     pub iframe_sizes: IFrameSizes,
+    /// The list of animated Image action that were encounter during the layout process.
+    pub pending_animated_image_action: Vec<ImageAnimationAction>,
 }
 
 /// Information needed for a script-initiated reflow.
@@ -436,6 +442,8 @@ pub struct ReflowRequest {
     pub animation_timeline_value: f64,
     /// The set of animations for this document.
     pub animations: DocumentAnimationSet,
+    /// The set of image animations.
+    pub image_animation_set: LayoutImageAnimateSet,
     /// The theme for the window
     pub theme: PrefersColorScheme,
 }
@@ -499,4 +507,38 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
         return Some(id & !3);
     }
     None
+}
+
+pub type ImageIdentifier = (ServoUrl, ImmutableOrigin, Option<CorsSettings>);
+
+#[derive(Clone, Debug)]
+pub struct LayoutImageAnimateSet {
+    pub node_to_image_key: Arc<RwLock<FxHashMap<OpaqueNode, ImageIdentifier>>>,
+}
+
+#[derive(Debug)]
+pub enum ImageAnimationAction {
+    Register(ImageAnimateRegisterItem), // Also replace
+    Cancel(ImageAnimationCancelItem),
+}
+/*
+    During Layout Process, if we are able to get the fully loaded image for a <node, url>,
+    we should check whether we should register or cancel the animation for this image.
+    The cancel and register item could exist for the same node. or, if it is a replace, just have an register item.
+    Cancel Condition: (cancel should be triggered if any of below condition match)
+        -  the new image is not animated (This is check during layout, so we will queue a ImageAnimationCancelItem)
+        -  the node containing the animated image does not exist anymore.  (This will be handle post layout)
+    Register Condition:
+        -  the image is animated, and its <node, url> does not exist in ImageAnimationSet. (maybe replace)
+*/
+#[derive(Debug)]
+pub struct ImageAnimationCancelItem {
+    // This is used for previously the node contains a animated image, but then the src changed to a non-animated image.
+    pub node: OpaqueNode,
+}
+#[derive(Debug)]
+pub struct ImageAnimateRegisterItem {
+    pub node: OpaqueNode,
+    pub identifier: ImageIdentifier,
+    pub image: Arc<Image>,
 }

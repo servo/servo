@@ -65,6 +65,8 @@ pub enum CrossProcessCompositorMessage {
     AddImage(ImageKey, ImageDescriptor, SerializableImageData),
     /// Perform a resource update operation.
     UpdateImages(Vec<ImageUpdate>),
+    /// Rendering Update that is triggered by Vsync
+    VsyncUpdateEvent(Vec<ImageUpdate>, WebViewId),
 
     /// Generate a new batch of font keys which can be used to allocate
     /// keys asynchronously.
@@ -103,6 +105,7 @@ impl fmt::Debug for CrossProcessCompositorMessage {
             Self::HitTest(..) => f.write_str("HitTest"),
             Self::GenerateImageKey(..) => f.write_str("GenerateImageKey"),
             Self::UpdateImages(..) => f.write_str("UpdateImages"),
+            Self::VsyncUpdateEvent(..) => f.write_str("VsyncUpdateEvent"),
             Self::RemoveFonts(..) => f.write_str("RemoveFonts"),
             Self::AddFontInstance(..) => f.write_str("AddFontInstance"),
             Self::AddFont(..) => f.write_str("AddFont"),
@@ -235,6 +238,14 @@ impl CrossProcessCompositorApi {
             .send(CrossProcessCompositorMessage::UpdateImages(updates))
         {
             warn!("error sending image updates: {}", e);
+        }
+    }
+
+    pub fn vsync_update_events(&self, updates: Vec<ImageUpdate>, webview_id: WebViewId) {
+        if let Err(e) = self.0.send(CrossProcessCompositorMessage::VsyncUpdateEvent(
+            updates, webview_id,
+        )) {
+            warn!("Error Sending Vsync Update Events: {}", e);
         }
     }
 
@@ -457,6 +468,16 @@ pub enum ImageUpdate {
     DeleteImage(ImageKey),
     /// Update an existing image registration.
     UpdateImage(ImageKey, ImageDescriptor, SerializableImageData),
+}
+
+impl fmt::Debug for ImageUpdate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::AddImage(..) => f.write_str("AddImage"),
+            Self::DeleteImage(..) => f.write_str("DeleteImage"),
+            Self::UpdateImage(..) => f.write_str("UpdateImage"),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

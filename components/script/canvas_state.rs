@@ -292,7 +292,7 @@ impl CanvasState {
 
         let image_size = Size2D::new(img.width, img.height);
         let image_data = match img.format {
-            PixelFormat::BGRA8 => img.bytes.clone(),
+            PixelFormat::BGRA8 => img.get_first_frame().bytes.clone(),
             pixel_format => unimplemented!("unsupported pixel format ({:?})", pixel_format),
         };
 
