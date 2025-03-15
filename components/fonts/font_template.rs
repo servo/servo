@@ -13,6 +13,7 @@ use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
 use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::font::FontWeight;
+use unicode_script::Script;
 
 use crate::font::FontDescriptor;
 use crate::system_font_service::{
@@ -31,6 +32,9 @@ pub struct FontTemplateDescriptor {
     pub weight: (FontWeight, FontWeight),
     pub stretch: (FontStretch, FontStretch),
     pub style: (FontStyle, FontStyle),
+    // Actually it is not necessary to be Option
+    // We must allways set script Unknown
+    pub script: Option<u8>,
     #[ignore_malloc_size_of = "MallocSizeOf does not yet support RangeInclusive"]
     pub unicode_range: Option<Vec<RangeInclusive<u32>>>,
 }
@@ -52,6 +56,7 @@ impl FontTemplateDescriptor {
             weight: (weight, weight),
             stretch: (stretch, stretch),
             style: (style, style),
+            script: Some(Script::Unknown as u8),
             unicode_range: None,
         }
     }
@@ -204,6 +209,9 @@ pub trait FontTemplateRefMethods {
     /// Whether or not this character is in the unicode ranges specified in
     /// this temlates `@font-face` definition, if any.
     fn char_in_unicode_range(&self, character: char) -> bool;
+    /// Whether or not this character is in the unicode ranges specified in
+    /// this temlates `@font-face` definition, if any.
+    fn char_belongs_to_template_script(&self, character: char) -> bool;
 }
 
 impl FontTemplateRefMethods for FontTemplateRef {
@@ -230,6 +238,19 @@ impl FontTemplateRefMethods for FontTemplateRef {
             .unicode_range
             .as_ref()
             .is_none_or(|ranges| ranges.iter().any(|range| range.contains(&character)))
+    }
+
+    fn char_belongs_to_template_script(&self, character: char) -> bool {
+        self.borrow()
+            .descriptor
+            .script
+            .as_ref()
+            .map_or(false, |script| {
+                if *script  == (Script::Unknown as u8) {
+                    return true;
+                }
+                *script == (Script::from(character) as u8)
+            })
     }
 }
 

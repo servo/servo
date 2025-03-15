@@ -630,7 +630,10 @@ impl FontGroup {
         };
 
         let char_in_template =
-            |template: FontTemplateRef| template.char_in_unicode_range(options.character);
+            |template: FontTemplateRef| {
+                template.char_in_unicode_range(options.character) &
+                template.char_belongs_to_template_script(options.character)
+            };
 
         if let Some(font) = self.find(
             font_context,
