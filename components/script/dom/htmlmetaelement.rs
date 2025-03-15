@@ -7,10 +7,11 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use regex::bytes::Regex;
 use script_traits::NavigationHistoryBehavior;
+use script_traits::viewport::ViewportDescription;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 
@@ -90,6 +91,9 @@ impl HTMLMetaElement {
             if name == "referrer" {
                 self.apply_referrer();
             }
+            if name == "viewport" {
+                self.parse_viewport_attribute();
+            }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
         } else if !self.HttpEquiv().is_empty() {
             // TODO: Implement additional http-equiv candidates
@@ -119,6 +123,14 @@ impl HTMLMetaElement {
             if let Some(head) = parent.downcast::<HTMLHeadElement>() {
                 head.set_document_referrer();
             }
+        }
+    }
+    /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
+    fn parse_viewport_attribute(&self) {
+        let element = self.upcast::<Element>();
+        dbg!("DebugSG", element.);
+        if let Some(ref content) = element.get_attribute(&ns!(), &local_name!("content")) {
+            dbg!("DebugSG", content.value())
         }
     }
 
