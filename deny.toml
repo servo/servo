@@ -159,10 +159,6 @@ skip = [
     # duplicated by font-kit
     "redox_users",
     "dirs-sys",
-
-    # duplicated by wgpu
-    "strum",
-    "strum_macros",
 ]
 
 # github.com organizations to allow git sources for
