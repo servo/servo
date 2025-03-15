@@ -3250,7 +3250,7 @@ checksum = "2e15626aaf9c351bc696217cbe29cb9b5e86c43f8a46b5e2f5c6c5cf7cb904ce"
 dependencies = [
  "log",
  "mac",
- "markup5ever",
+ "markup5ever 0.14.1",
  "proc-macro2",
  "quote",
  "syn",
@@ -4294,7 +4294,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -4512,6 +4512,20 @@ name = "markup5ever"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7a7213d12e1864c0f002f52c2923d4556935a43dec5e71355c2760e0f6e7a18"
+dependencies = [
+ "log",
+ "phf",
+ "phf_codegen",
+ "string_cache",
+ "string_cache_codegen",
+ "tendril",
+]
+
+[[package]]
+name = "markup5ever"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "03a7b81dfb91586d0677086d40a6d755070e0799b71bb897485bac408dfd5c69"
 dependencies = [
  "log",
  "phf",
@@ -6836,7 +6850,7 @@ dependencies = [
  "ipc-channel",
  "keyboard-types",
  "malloc_size_of",
- "markup5ever",
+ "markup5ever 0.14.1",
  "servo_allocator",
  "servo_arc",
  "smallvec",
@@ -7236,7 +7250,7 @@ dependencies = [
  "log",
  "malloc_size_of",
  "malloc_size_of_derive",
- "markup5ever",
+ "markup5ever 0.14.1",
  "matches",
  "mime",
  "new_debug_unreachable",
@@ -9391,13 +9405,13 @@ checksum = "c5b940ebc25896e71dd073bad2dbaa2abfe97b0a391415e22ad1326d9c54e3c4"
 
 [[package]]
 name = "xml5ever"
-version = "0.20.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2278b4bf33071ba8e30368a59436c65eec8e01c49d5c29b3dfeb0cdc45331383"
+checksum = "47c1674e7fd36e860ec15118780a781c6f444a73b598e29350c0c886c80bf878"
 dependencies = [
  "log",
  "mac",
- "markup5ever",
+ "markup5ever 0.15.0",
 ]
 
 [[package]]
