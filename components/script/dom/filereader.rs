@@ -517,12 +517,15 @@ impl FileReader {
         let filereader_success = DomRoot::from_ref(self);
         let filereader_error = DomRoot::from_ref(self);
 
-        // Read all bytes from stream with reader.
+        // In parallel, while true:
+        // Wait for chunkPromise to be fulfilled or rejected.
         // Note: the spec appears wrong or outdated,
         // so for now we use the simple `read_all_bytes` call,
         // which means we cannot fire the progress event at each chunk.
         // This can be revisisted following the discussion at
         // <https://github.com/w3c/FileAPI/issues/208>
+
+        // Read all bytes from stream with reader.
         reader.read_all_bytes(
             cx,
             &self.global(),
@@ -530,16 +533,32 @@ impl FileReader {
                 let global = filereader_success.global();
                 let task_manager = global.task_manager();
                 let task_source = task_manager.file_reading_task_source();
+
+                // If chunkPromise is fulfilled,
+                // and isFirstChunk is true,
+                // queue a task
+                // Note: this should be done for the first chunk,
+                // see issue above.
                 task_source.queue(FileReadingTask::ProcessRead(
                     Trusted::new(&filereader_success.clone()),
                     gen_id,
                 ));
+                // If chunkPromise is fulfilled
+                // with an object whose done property is false
+                // and whose value property is a Uint8Array object
+                // Note: this should be done for each chunk,
+                // see issue above.
                 if !blob_contents.is_empty() {
                     task_source.queue(FileReadingTask::ProcessReadData(
                         Trusted::new(&filereader_success.clone()),
                         gen_id,
                     ));
                 }
+                // Otherwise,
+                // if chunkPromise is fulfilled with an object whose done property is true,
+                // queue a task
+                // Note: we are in the succes steps of `read_all_bytes`,
+                // so the last chunk has been received.
                 task_source.queue(FileReadingTask::ProcessReadEOF(
                     Trusted::new(&filereader_success.clone()),
                     gen_id,
@@ -552,8 +571,10 @@ impl FileReader {
                 let task_manager = global.task_manager();
                 let task_source = task_manager.file_reading_task_source();
 
-                // Note: not using the error from the stream.
-                // TODO: follow spec after <https://github.com/w3c/FileAPI/issues/208>
+                // Otherwise, if chunkPromise is rejected with an error error,
+                // queue a task
+                // Note: not using the error from `read_all_bytes`,
+                // see issue above.
                 task_source.queue(FileReadingTask::ProcessReadError(
                     Trusted::new(&filereader_error),
                     gen_id,
