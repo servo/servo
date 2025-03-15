@@ -509,6 +509,13 @@ impl Window {
         })
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
+    pub(crate) fn top_level_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
+        self.undiscarded_window_proxy().and_then(|window_proxy| {
+            ScriptThread::find_window_proxy(window_proxy.top_level_browsing_context_id().0)
+        })
+    }
+
     #[cfg(feature = "bluetooth")]
     pub(crate) fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.bluetooth_thread.clone()
@@ -2214,11 +2221,16 @@ impl Window {
         )
     }
 
+    // query content box without considering any reflow
+    pub(crate) fn content_box_query_unchecked(&self, node: &Node) -> Option<UntypedRect<Au>> {
+        self.layout.borrow().query_content_box(node.to_opaque())
+    }
+
     pub(crate) fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBox, can_gc) {
             return None;
         }
-        self.layout.borrow().query_content_box(node.to_opaque())
+        self.content_box_query_unchecked(node)
     }
 
     pub(crate) fn content_boxes_query(&self, node: &Node, can_gc: CanGc) -> Vec<UntypedRect<Au>> {

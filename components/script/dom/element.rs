@@ -653,15 +653,28 @@ impl Element {
         }))
     }
 
-    /// Add a new IntersectionObserverRegistration to the element.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn add_intersection_observer_registration(
+    pub(crate) fn get_intersection_observer_registration(
         &self,
-        registration: IntersectionObserverRegistration,
+        observer: &IntersectionObserver,
+    ) -> Option<Ref<IntersectionObserverRegistration>> {
+        if let Some(registrations) = self.registered_intersection_observers() {
+            registrations
+                .iter()
+                .position(|reg_obs| reg_obs.observer == observer)
+                .map(|index| Ref::map(registrations, |registrations| &registrations[index]))
+        } else {
+            None
+        }
+    }
+
+    /// Add a new IntersectionObserverRegistration with initial value to the element.
+    pub(crate) fn add_initial_intersection_observer_registration(
+        &self,
+        observer: &IntersectionObserver,
     ) {
         self.ensure_rare_data()
             .registered_intersection_observers
-            .push(registration);
+            .push(IntersectionObserverRegistration::new_initial(observer));
     }
 
     /// Removes a certain IntersectionObserver.
