@@ -658,6 +658,7 @@ impl WindowPortsMethods for Window {
         }
     }
 
+    #[cfg(feature = "webxr")]
     fn new_glwindow(
         &self,
         event_loop: &ActiveEventLoop,
@@ -771,6 +772,7 @@ fn load_icon(icon_bytes: &[u8]) -> Icon {
     Icon::from_rgba(icon_rgba, icon_width, icon_height).expect("Failed to load icon")
 }
 
+#[cfg(feature = "webxr")]
 struct XRWindow {
     winit_window: winit::window::Window,
     pose: Rc<XRWindowPose>,
@@ -781,6 +783,7 @@ struct XRWindowPose {
     xr_translation: Cell<Vector3D<f32, UnknownUnit>>,
 }
 
+#[cfg(feature = "webxr")]
 impl servo::webxr::glwindow::GlWindow for XRWindow {
     fn get_render_target(
         &self,

@@ -7,7 +7,6 @@
 use net::protocols::ProtocolRegistry;
 use servo::compositing::windowing::EmbedderMethods;
 use servo::servo_config::pref;
-use servo::webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use servo::webxr::openxr::OpenXrDiscovery;
 use servo::{EmbedderProxy, EventLoopWaker};
@@ -15,7 +14,8 @@ use servo::{EmbedderProxy, EventLoopWaker};
 use crate::desktop::protocols::{resource, servo as servo_handler, urlinfo};
 
 pub enum XrDiscovery {
-    GlWindow(GlWindowDiscovery),
+    #[cfg(feature = "webxr")]
+    GlWindow(servo::webxr::glwindow::GlWindowDiscovery),
     #[cfg(target_os = "windows")]
     OpenXr(OpenXrDiscovery),
 }
