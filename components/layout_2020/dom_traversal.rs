@@ -116,6 +116,11 @@ where
                 },
                 _ => {},
             }
+            if element.type_id() ==
+                Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement))
+            {
+                flags.insert(FragmentFlags::IS_INPUT_ELEMENT);
+            }
         };
 
         Self {
@@ -141,6 +146,8 @@ pub(super) enum NonReplacedContents {
     /// Content of a `::before` or `::after` pseudo-element that is being generated.
     /// <https://drafts.csswg.org/css2/generate.html#content>
     OfPseudoElement(Vec<PseudoElementContentItem>),
+    /// Workaround for input element until we properly implement display-inside
+    TextControl,
 }
 
 #[derive(Debug)]
@@ -236,8 +243,14 @@ fn traverse_element<'dom, Node>(
             }
         },
         Display::GeneratingBox(display) => {
-            let contents =
-                replaced.map_or(NonReplacedContents::OfElement.into(), Contents::Replaced);
+            let non_replaced = match element.type_id() {
+                LayoutNodeType::Element(LayoutElementType::HTMLInputElement) => {
+                    NonReplacedContents::TextControl.into()
+                },
+                _ => NonReplacedContents::OfElement.into(),
+            };
+
+            let contents = replaced.map_or(non_replaced, Contents::Replaced);
             let display = display.used_value_for_contents(&contents);
             let box_slot = element.element_box_slot();
             let info = NodeAndStyleInfo::new(element, style);
@@ -366,7 +379,9 @@ impl NonReplacedContents {
             },
         };
         match self {
-            NonReplacedContents::OfElement => traverse_children_of(node, context, handler),
+            NonReplacedContents::OfElement | NonReplacedContents::TextControl => {
+                traverse_children_of(node, context, handler)
+            },
             NonReplacedContents::OfPseudoElement(items) => {
                 traverse_pseudo_element_contents(info, context, handler, items)
             },

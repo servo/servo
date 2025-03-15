@@ -30,7 +30,7 @@ use style::values::specified::{Overflow, WillChangeBits, box_ as stylo};
 use webrender_api as wr;
 use webrender_api::units::LayoutTransform;
 
-use crate::dom_traversal::Contents;
+use crate::dom_traversal::{Contents, NonReplacedContents};
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalSides,
@@ -82,6 +82,22 @@ impl DisplayGeneratingBox {
                 inside: DisplayInside::Flow {
                     is_list_item: false,
                 },
+            }
+        } else if matches!(
+            contents,
+            Contents::NonReplaced(NonReplacedContents::TextControl)
+        ) {
+            // if it's an input, make sure the display-inside is flow-root
+            // <https://html.spec.whatwg.org/multipage/#form-controls>
+            if let DisplayGeneratingBox::OutsideInside { outside, .. } = self {
+                DisplayGeneratingBox::OutsideInside {
+                    outside: *outside,
+                    inside: DisplayInside::FlowRoot {
+                        is_list_item: false,
+                    },
+                }
+            } else {
+                *self
             }
         } else {
             *self
@@ -495,7 +511,8 @@ impl ComputedValuesExt for ComputedValues {
         // <https://drafts.csswg.org/css-transforms/#transformable-element>
         // TODO: check for all cases listed in the above spec.
         !self.get_box().display.is_inline_flow() ||
-            fragment_flags.contains(FragmentFlags::IS_REPLACED)
+            fragment_flags.contains(FragmentFlags::IS_REPLACED) ||
+            fragment_flags.contains(FragmentFlags::IS_INPUT_ELEMENT)
     }
 
     /// Returns true if this style has a transform, or perspective property set and
