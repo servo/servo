@@ -372,19 +372,15 @@ impl Handler {
             PointerOrigin::Pointer => (start_x + x_offset, start_y + y_offset),
             PointerOrigin::Element(ref x) => {
                 let (sender, receiver) = ipc::channel().unwrap();
-                self.top_level_script_command(WebDriverScriptCommand::GetElementInViewCenterPoint(
-                    x.to_string(),
-                    sender,
-                ))
+                self.browsing_context_script_command(
+                    WebDriverScriptCommand::GetElementInViewCenterPoint(x.to_string(), sender),
+                )
                 .unwrap();
 
-                match receiver.recv().unwrap() {
-                    Ok(point) => match point {
-                        Some(point) => point,
-                        None => return Err(ErrorStatus::UnknownError),
-                    },
-                    Err(_) => return Err(ErrorStatus::UnknownError),
-                }
+                let Some(point) = receiver.recv().unwrap()? else {
+                    return Err(ErrorStatus::UnknownError);
+                };
+                point
             },
         };
 
