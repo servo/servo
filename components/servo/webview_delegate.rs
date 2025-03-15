@@ -17,6 +17,7 @@ use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
+use crate::responders::ServoErrorSender;
 use crate::{ConstellationProxy, WebView};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
@@ -122,22 +123,30 @@ impl PermissionRequest {
     }
 }
 
-pub struct AllowOrDenyRequest(IpcResponder<AllowOrDeny>);
+pub struct AllowOrDenyRequest(IpcResponder<AllowOrDeny>, ServoErrorSender);
 
 impl AllowOrDenyRequest {
     pub(crate) fn new(
         response_sender: IpcSender<AllowOrDeny>,
         default_response: AllowOrDeny,
+        error_sender: ServoErrorSender,
     ) -> Self {
-        Self(IpcResponder::new(response_sender, default_response))
+        Self(
+            IpcResponder::new(response_sender, default_response),
+            error_sender,
+        )
     }
 
     pub fn allow(mut self) {
-        let _ = self.0.send(AllowOrDeny::Allow);
+        if let Err(error) = self.0.send(AllowOrDeny::Allow) {
+            self.1.raise_response_send_error(error);
+        }
     }
 
     pub fn deny(mut self) {
-        let _ = self.0.send(AllowOrDeny::Deny);
+        if let Err(error) = self.0.send(AllowOrDeny::Deny) {
+            self.1.raise_response_send_error(error);
+        }
     }
 }
 
@@ -148,6 +157,7 @@ pub struct AuthenticationRequest {
     pub(crate) url: Url,
     pub(crate) for_proxy: bool,
     pub(crate) responder: IpcResponder<Option<AuthenticationResponse>>,
+    pub(crate) error_sender: ServoErrorSender,
 }
 
 impl AuthenticationRequest {
@@ -155,11 +165,13 @@ impl AuthenticationRequest {
         url: Url,
         for_proxy: bool,
         response_sender: IpcSender<Option<AuthenticationResponse>>,
+        error_sender: ServoErrorSender,
     ) -> Self {
         Self {
             url,
             for_proxy,
             responder: IpcResponder::new(response_sender, None),
+            error_sender,
         }
     }
 
@@ -173,9 +185,12 @@ impl AuthenticationRequest {
     }
     /// Respond to the [`AuthenticationRequest`] with the given username and password.
     pub fn authenticate(mut self, username: String, password: String) {
-        let _ = self
+        if let Err(error) = self
             .responder
-            .send(Some(AuthenticationResponse { username, password }));
+            .send(Some(AuthenticationResponse { username, password }))
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
     }
 }
 
@@ -185,16 +200,19 @@ impl AuthenticationRequest {
 pub struct WebResourceLoad {
     pub request: WebResourceRequest,
     pub(crate) responder: IpcResponder<WebResourceResponseMsg>,
+    pub(crate) error_sender: ServoErrorSender,
 }
 
 impl WebResourceLoad {
     pub(crate) fn new(
         web_resource_request: WebResourceRequest,
         response_sender: IpcSender<WebResourceResponseMsg>,
+        error_sender: ServoErrorSender,
     ) -> Self {
         Self {
             request: web_resource_request,
             responder: IpcResponder::new(response_sender, WebResourceResponseMsg::DoNotIntercept),
+            error_sender,
         }
     }
 
@@ -205,11 +223,14 @@ impl WebResourceLoad {
     /// Intercept this [`WebResourceLoad`] and control the response via the returned
     /// [`InterceptedWebResourceLoad`].
     pub fn intercept(mut self, response: WebResourceResponse) -> InterceptedWebResourceLoad {
-        let _ = self.responder.send(WebResourceResponseMsg::Start(response));
+        if let Err(error) = self.responder.send(WebResourceResponseMsg::Start(response)) {
+            self.error_sender.raise_response_send_error(error);
+        }
         InterceptedWebResourceLoad {
             request: self.request.clone(),
             response_sender: self.responder.into_inner(),
             finished: false,
+            error_sender: self.error_sender,
         }
     }
 }
@@ -223,28 +244,38 @@ pub struct InterceptedWebResourceLoad {
     pub request: WebResourceRequest,
     pub(crate) response_sender: IpcSender<WebResourceResponseMsg>,
     pub(crate) finished: bool,
+    pub(crate) error_sender: ServoErrorSender,
 }
 
 impl InterceptedWebResourceLoad {
     /// Send a chunk of response body data. It's possible to make subsequent calls to
     /// this method when streaming body data.
     pub fn send_body_data(&self, data: Vec<u8>) {
-        let _ = self
+        if let Err(error) = self
             .response_sender
-            .send(WebResourceResponseMsg::SendBodyData(data));
+            .send(WebResourceResponseMsg::SendBodyData(data))
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
     }
     /// Finish this [`InterceptedWebResourceLoad`] and complete the response.
     pub fn finish(mut self) {
-        let _ = self
+        if let Err(error) = self
             .response_sender
-            .send(WebResourceResponseMsg::FinishLoad);
+            .send(WebResourceResponseMsg::FinishLoad)
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
         self.finished = true;
     }
     /// Cancel this [`InterceptedWebResourceLoad`], which will trigger a network error.
     pub fn cancel(mut self) {
-        let _ = self
+        if let Err(error) = self
             .response_sender
-            .send(WebResourceResponseMsg::CancelLoad);
+            .send(WebResourceResponseMsg::CancelLoad)
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
         self.finished = true;
     }
 }
@@ -252,9 +283,12 @@ impl InterceptedWebResourceLoad {
 impl Drop for InterceptedWebResourceLoad {
     fn drop(&mut self) {
         if !self.finished {
-            let _ = self
+            if let Err(error) = self
                 .response_sender
-                .send(WebResourceResponseMsg::FinishLoad);
+                .send(WebResourceResponseMsg::FinishLoad)
+            {
+                self.error_sender.raise_response_send_error(error);
+            }
         }
     }
 }
