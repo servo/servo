@@ -985,7 +985,7 @@ impl BoxFragment {
             return Some(StackingContextType::FloatStackingContainer);
         }
 
-        if box_style.display.is_atomic_inline_level() {
+        if self.is_atomic_inline_level() {
             return Some(StackingContextType::AtomicInlineStackingContainer);
         }
 
