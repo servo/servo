@@ -21,6 +21,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
 
+use super::byteteeunderlyingsource::ByteTeeUnderlyingSource;
+
 /// <https://streams.spec.whatwg.org/#underlying-source-api>
 /// The `Js` variant corresponds to
 /// the JavaScript object representing the underlying source.
@@ -40,6 +42,8 @@ pub(crate) enum UnderlyingSourceType {
     Js(JsUnderlyingSource, Heap<*mut JSObject>),
     /// Tee
     Tee(Dom<DefaultTeeUnderlyingSource>),
+    // Tee Byte
+    TeeByte(Dom<ByteTeeUnderlyingSource>),
 }
 
 impl UnderlyingSourceType {
@@ -47,9 +51,9 @@ impl UnderlyingSourceType {
     pub(crate) fn is_native(&self) -> bool {
         matches!(
             self,
-            UnderlyingSourceType::Memory(_) |
-                UnderlyingSourceType::Blob(_) |
-                UnderlyingSourceType::FetchResponse
+            UnderlyingSourceType::Memory(_)
+                | UnderlyingSourceType::Blob(_)
+                | UnderlyingSourceType::FetchResponse
         )
     }
 
@@ -128,6 +132,10 @@ impl UnderlyingSourceContainer {
                 // Call the cancel algorithm for the appropriate branch.
                 tee_underlyin_source.cancel_algorithm(reason, can_gc)
             },
+            UnderlyingSourceType::TeeByte(tee_underlyin_source) => {
+                // Call the cancel algorithm for the appropriate branch.
+                tee_underlyin_source.cancel_algorithm(reason, can_gc)
+            },
             _ => None,
         }
     }
@@ -157,6 +165,10 @@ impl UnderlyingSourceContainer {
             UnderlyingSourceType::Tee(tee_underlyin_source) => {
                 // Call the pull algorithm for the appropriate branch.
                 Some(Ok(tee_underlyin_source.pull_algorithm(can_gc)))
+            },
+            UnderlyingSourceType::TeeByte(tee_underlyin_source) => {
+                // Call the pull algorithm for the appropriate branch.
+                Some(Ok(tee_underlyin_source.pull_algorithm(None, can_gc)))
             },
             // Note: other source type have no pull steps for now.
             _ => None,

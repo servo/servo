@@ -22,3 +22,25 @@ ReadableStreamBYOBReader includes ReadableStreamGenericReader;
 dictionary ReadableStreamBYOBReaderReadOptions {
   [EnforceRange] unsigned long long min = 1;
 };
+
+
+// The ByteTeeReadIntoRequest interface is entirely internal to Servo, and should not be accessible to
+// web pages.
+[LegacyNoInterfaceObject, Exposed=(Window,Worker)]
+// Need to escape "ByteTeeReadIntoRequest" so it's treated as an identifier.
+interface _ByteTeeReadIntoRequest {
+};
+
+// The ByteTeeReadRequest interface is entirely internal to Servo, and should not be accessible to
+// web pages.
+[LegacyNoInterfaceObject, Exposed=(Window,Worker)]
+// Need to escape "ByteTeeReadRequest" so it's treated as an identifier.
+interface _ByteTeeReadRequest {
+};
+
+// The ByteTeeUnderlyingSource interface is entirely internal to Servo, and should not be accessible to
+// web pages.
+[LegacyNoInterfaceObject, Exposed=(Window,Worker)]
+// Need to escape "ByteTeeUnderlyingSource" so it's treated as an identifier.
+interface _ByteTeeUnderlyingSource {
+};

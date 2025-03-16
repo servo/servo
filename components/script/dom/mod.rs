@@ -240,6 +240,9 @@ pub(crate) mod bluetooth;
 pub(crate) use self::bluetooth::*;
 pub(crate) mod broadcastchannel;
 pub(crate) mod bytelengthqueuingstrategy;
+pub(crate) mod byteteereadrequest;
+pub(crate) mod byteteereadintorequest;
+pub(crate) mod byteteeunderlyingsource;
 pub(crate) mod canvasgradient;
 pub(crate) mod canvaspattern;
 #[allow(dead_code)]

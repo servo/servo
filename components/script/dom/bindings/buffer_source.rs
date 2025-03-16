@@ -62,6 +62,17 @@ pub(crate) enum BufferSource {
     ArrayBuffer(Box<Heap<*mut JSObject>>),
 }
 
+impl Clone for BufferSource {
+    fn clone(&self) -> Self {
+        match self {
+            BufferSource::ArrayBufferView(heap) => {
+                BufferSource::ArrayBufferView(Heap::boxed(heap.get()))
+            },
+            BufferSource::ArrayBuffer(heap) => BufferSource::ArrayBuffer(Heap::boxed(heap.get())),
+        }
+    }
+}
+
 pub(crate) fn new_initialized_heap_buffer_source<T>(
     init: HeapTypedArrayInit,
     can_gc: CanGc,
@@ -114,6 +125,18 @@ where
                     heap.handle() == from_heap.handle()
                 },
             },
+        }
+    }
+}
+
+impl<T> Clone for HeapBufferSource<T>
+where
+    T: TypedArrayElement,
+{
+    fn clone(&self) -> Self {
+        HeapBufferSource {
+            buffer_source: self.buffer_source.clone(),
+            phantom: PhantomData,
         }
     }
 }
@@ -325,6 +348,101 @@ where
             },
         }
     }
+
+    /// <https://tc39.es/ecma262/#sec-clonearraybuffer>
+    pub(crate) fn clone_array_buffer(
+        &self,
+        cx: JSContext,
+        byte_offset: usize,
+        byte_length: usize,
+    ) -> Fallible<HeapBufferSource<ArrayBufferU8>> {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(heap) => {
+                let mut is_shared = false;
+                unsafe {
+                    assert!(JS_IsArrayBufferViewObject(*heap.handle()));
+                    rooted!(in (*cx) let view_buffer =
+                                JS_GetArrayBufferViewBuffer(*cx, heap.handle(), &mut is_shared));
+
+                    let result = ArrayBufferClone(
+                        *cx,
+                        view_buffer.handle().into(),
+                        byte_offset,
+                        byte_length,
+                    );
+
+                    if result.is_null() {
+                        rooted!(in(*cx) let mut rval = UndefinedValue());
+
+                        assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                        JS_ClearPendingException(*cx);
+
+                        Err(Error::Type("can't clone array buffer".to_owned()))
+                    } else {
+                        Ok(HeapBufferSource::<ArrayBufferU8>::new(
+                            BufferSource::ArrayBuffer(Heap::boxed(result)),
+                        ))
+                    }
+                }
+            },
+            BufferSource::ArrayBuffer(heap) => {
+                let result =
+                    unsafe { ArrayBufferClone(*cx, heap.handle(), byte_offset, byte_length) };
+                if result.is_null() {
+                    rooted!(in(*cx) let mut rval = UndefinedValue());
+                    unsafe {
+                        assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                        JS_ClearPendingException(*cx)
+                    };
+
+                    Err(Error::Type("can't clone array buffer".to_owned()))
+                } else {
+                    Ok(HeapBufferSource::<ArrayBufferU8>::new(
+                        BufferSource::ArrayBuffer(Heap::boxed(result)),
+                    ))
+                }
+            },
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-cloneasuint8array>
+    #[allow(unsafe_code)]
+    pub(crate) fn clone_as_uint8_array(
+        &self,
+        cx: JSContext,
+    ) -> Fallible<HeapBufferSource<ArrayBufferViewU8>> {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(buffer) => {
+                // Assert: O is an Object.
+                // Assert: O has an [[ViewedArrayBuffer]] internal slot.
+                assert!(unsafe { JS_IsArrayBufferViewObject(*buffer.handle()) });
+
+                // Assert: ! IsDetachedBuffer(O.[[ViewedArrayBuffer]]) is false.
+                assert!(self.is_detached_buffer(cx));
+
+                // Let buffer be ? CloneArrayBuffer(O.[[ViewedArrayBuffer]], O.[[ByteOffset]], O.[[ByteLength]], %ArrayBuffer%).
+                let byte_offset = self.get_byte_offset();
+                let byte_length = self.byte_length();
+
+                let buffer = self.clone_array_buffer(cx, byte_offset, byte_length)?;
+
+                // Let array be ! Construct(%Uint8Array%, « buffer »).
+                // Return array.
+                construct_typed_array(cx, &Type::Uint8, &buffer, 0, byte_length as i64)
+            },
+            BufferSource::ArrayBuffer(_buffer) => {
+                unreachable!("BufferSource::ArrayBuffer does not have a view buffer.")
+            },
+        }
+    }
+
+    pub(crate) fn is_undefined(&self) -> bool {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
+                buffer.get().is_null()
+            },
+        }
+    }
 }
 
 impl<T> HeapBufferSource<T>
@@ -430,28 +548,6 @@ where
         Ok(())
     }
 
-    /// <https://tc39.es/ecma262/#sec-clonearraybuffer>
-    pub(crate) fn clone_array_buffer(
-        &self,
-        cx: JSContext,
-        byte_offset: usize,
-        byte_length: usize,
-    ) -> Option<HeapBufferSource<ArrayBufferU8>> {
-        match &self.buffer_source {
-            BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => {
-                let result =
-                    unsafe { ArrayBufferClone(*cx, heap.handle(), byte_offset, byte_length) };
-                if result.is_null() {
-                    None
-                } else {
-                    Some(HeapBufferSource::<ArrayBufferU8>::new(
-                        BufferSource::ArrayBuffer(Heap::boxed(result)),
-                    ))
-                }
-            },
-        }
-    }
-
     /// <https://streams.spec.whatwg.org/#abstract-opdef-cancopydatablockbytes>
     // CanCopyDataBlockBytes(descriptorBuffer, destStart, queueBuffer, queueByteOffset, bytesToCopy)
     pub(crate) fn can_copy_data_block_bytes(
@@ -474,8 +570,8 @@ where
         match &self.buffer_source {
             BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => {
                 match &from_buffer.buffer_source {
-                    BufferSource::ArrayBufferView(from_heap) |
-                    BufferSource::ArrayBuffer(from_heap) => {
+                    BufferSource::ArrayBufferView(from_heap)
+                    | BufferSource::ArrayBuffer(from_heap) => {
                         unsafe {
                             if heap.handle() == from_heap.handle() {
                                 return false;
@@ -521,8 +617,8 @@ where
         match &self.buffer_source {
             BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => unsafe {
                 match &from_buffer.buffer_source {
-                    BufferSource::ArrayBufferView(from_heap) |
-                    BufferSource::ArrayBuffer(from_heap) => ArrayBufferCopyData(
+                    BufferSource::ArrayBufferView(from_heap)
+                    | BufferSource::ArrayBuffer(from_heap) => ArrayBufferCopyData(
                         *cx,
                         heap.handle(),
                         dest_start,
@@ -724,38 +820,167 @@ fn construct_typed_array(
         .handle()
     };
     let array_view = match name_type {
-        Type::Int8 => unsafe { JS_NewInt8ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
-        Type::Uint8 => unsafe { JS_NewUint8ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
-        Type::Uint16 => unsafe {
-            JS_NewUint16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+        Type::Int8 => unsafe {
+            let result = JS_NewInt8ArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create int8 array".to_owned()))
+            } else {
+                Ok(result)
+            }
         },
-        Type::Int16 => unsafe { JS_NewInt16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
-        Type::Int32 => unsafe { JS_NewInt32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length) },
+        Type::Uint8 => unsafe {
+            let result = JS_NewUint8ArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create uint8 array".to_owned()))
+            } else {
+                Ok(result)
+            }
+        },
+        Type::Uint16 => unsafe {
+            let result = JS_NewUint16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create uint16 array".to_owned()))
+            } else {
+                Ok(result)
+            }
+        },
+        Type::Int16 => unsafe {
+            let result = JS_NewInt16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create int16 array".to_owned()))
+            } else {
+                Ok(result)
+            }
+        },
+        Type::Int32 => unsafe {
+            let result = JS_NewInt32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create int32 array".to_owned()))
+            } else {
+                Ok(result)
+            }
+        },
         Type::Uint32 => unsafe {
-            JS_NewUint32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+            let result = JS_NewUint32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create uint32 array".to_owned()))
+            } else {
+                Ok(result)
+            }
         },
         Type::Float32 => unsafe {
-            JS_NewFloat32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+            let result = JS_NewFloat32ArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create float32 array".to_owned()))
+            } else {
+                Ok(result)
+            }
         },
         Type::Float64 => unsafe {
-            JS_NewFloat64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+            let result = JS_NewFloat64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create float64 array".to_owned()))
+            } else {
+                Ok(result)
+            }
         },
         Type::Uint8Clamped => unsafe {
-            JS_NewUint8ClampedArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+            let result = JS_NewUint8ClampedArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create uint8clamped array".to_owned()))
+            } else {
+                Ok(result)
+            }
         },
         Type::BigInt64 => unsafe {
-            JS_NewBigInt64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+            let result = JS_NewBigInt64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create bigint64 array".to_owned()))
+            } else {
+                Ok(result)
+            }
         },
         Type::BigUint64 => unsafe {
-            JS_NewBigUint64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+            let result = JS_NewBigUint64ArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create biguint64 array".to_owned()))
+            } else {
+                Ok(result)
+            }
         },
         Type::Float16 => unsafe {
-            JS_NewFloat16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length)
+            let result = JS_NewFloat16ArrayWithBuffer(*cx, buffer, byte_offset, byte_length);
+
+            if result.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                JS_ClearPendingException(*cx);
+
+                Err(Error::Type("can't create float16 array".to_owned()))
+            } else {
+                Ok(result)
+            }
         },
         Type::Int64 | Type::Simd128 | Type::MaxTypedArrayViewType => {
             unreachable!("Invalid TypedArray type")
         },
-    };
+    }?;
 
     Ok(HeapBufferSource::new(BufferSource::ArrayBufferView(
         Heap::boxed(array_view),

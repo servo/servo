@@ -15,7 +15,6 @@ use js::typedarray::{ArrayBufferU8, ArrayBufferViewU8};
 
 use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::cell::DomRefCell;
-use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
 use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::Dom;
 use super::readablestreambyobreader::ReadIntoRequest;
@@ -274,7 +273,7 @@ impl ReadableByteStreamController {
         cx: SafeJSContext,
         read_into_request: &ReadIntoRequest,
         view: HeapBufferSource<ArrayBufferViewU8>,
-        options: &ReadableStreamBYOBReaderReadOptions,
+        min: u64,
         can_gc: CanGc,
     ) {
         // Let stream be controller.[[stream]].
@@ -298,7 +297,7 @@ impl ReadableByteStreamController {
         }
 
         // Let minimumFill be min × elementSize.
-        let minimum_fill = options.min * element_size;
+        let minimum_fill = min * element_size;
 
         // Assert: minimumFill ≥ 0 and minimumFill ≤ view.[[ByteLength]].
         assert!(minimum_fill <= (view.byte_length() as u64));
@@ -495,8 +494,8 @@ impl ReadableByteStreamController {
 
                 // If firstDescriptor’s bytes filled + bytesWritten > firstDescriptor’s byte length,
                 // throw a RangeError exception.
-                if first_descriptor.bytes_filled.get() + bytes_written >
-                    first_descriptor.byte_length
+                if first_descriptor.bytes_filled.get() + bytes_written
+                    > first_descriptor.byte_length
                 {
                     return Err(Error::Range(
                         "bytes filled + bytesWritten > byte length".to_owned(),
@@ -743,8 +742,8 @@ impl ReadableByteStreamController {
 
             // If firstDescriptor’s byte offset + firstDescriptor’ bytes filled is not view.[[ByteOffset]],
             // throw a RangeError exception.
-            if first_descriptor.byte_offset + first_descriptor.bytes_filled.get() !=
-                (view.get_byte_offset() as u64)
+            if first_descriptor.byte_offset + first_descriptor.bytes_filled.get()
+                != (view.get_byte_offset() as u64)
             {
                 return Err(Error::Range(
                     "firstDescriptor's byte offset + bytes filled is not view byte offset"
@@ -754,8 +753,8 @@ impl ReadableByteStreamController {
 
             // If firstDescriptor’s buffer byte length is not view.[[ViewedArrayBuffer]].[[ByteLength]],
             // throw a RangeError exception.
-            if first_descriptor.buffer_byte_length !=
-                (view.viewed_buffer_array_byte_length(cx) as u64)
+            if first_descriptor.buffer_byte_length
+                != (view.viewed_buffer_array_byte_length(cx) as u64)
             {
                 return Err(Error::Range(
                 "firstDescriptor's buffer byte length is not view viewed buffer array byte length"
@@ -765,8 +764,8 @@ impl ReadableByteStreamController {
 
             // If firstDescriptor’s bytes filled + view.[[ByteLength]] > firstDescriptor’s byte length,
             // throw a RangeError exception.
-            if first_descriptor.bytes_filled.get() + (view.byte_length()) as u64 >
-                first_descriptor.byte_length
+            if first_descriptor.bytes_filled.get() + (view.byte_length()) as u64
+                > first_descriptor.byte_length
             {
                 return Err(Error::Range(
                     "bytes filled + view byte length > byte length".to_owned(),
@@ -874,8 +873,8 @@ impl ReadableByteStreamController {
 
             // If the remainder after dividing firstPendingPullInto’s bytes filled by
             // firstPendingPullInto’s element size is not 0,
-            if first_pending_pull_into.bytes_filled.get() % first_pending_pull_into.element_size !=
-                0
+            if first_pending_pull_into.bytes_filled.get() % first_pending_pull_into.element_size
+                != 0
             {
                 // needed to drop the borrow and avoid BorrowMutError
                 drop(pending_pull_intos);
@@ -1376,8 +1375,8 @@ impl ReadableByteStreamController {
         {
             let pending_pull_intos = self.pending_pull_intos.borrow();
             assert!(
-                pending_pull_intos.is_empty() ||
-                    pending_pull_intos.first().unwrap() == pull_into_descriptor
+                pending_pull_intos.is_empty()
+                    || pending_pull_intos.first().unwrap() == pull_into_descriptor
             );
         }
 
@@ -1436,7 +1435,7 @@ impl ReadableByteStreamController {
         can_gc: CanGc,
     ) -> Fallible<()> {
         // Let cloneResult be CloneArrayBuffer(buffer, byteOffset, byteLength, %ArrayBuffer%).
-        if let Some(clone_result) =
+        if let Ok(clone_result) =
             buffer.clone_array_buffer(cx, byte_offset as usize, byte_length as usize)
         {
             // Perform ! ReadableByteStreamControllerEnqueueChunkToQueue
@@ -1543,7 +1542,7 @@ impl ReadableByteStreamController {
         view.get_buffer_view_value(cx, view_value.handle_mut());
         result.set(*view_value);
 
-        read_request.chunk_steps(result, can_gc);
+        read_request.chunk_steps(result, &self.global(), can_gc);
 
         Ok(())
     }
@@ -1923,6 +1922,10 @@ impl ReadableByteStreamController {
 
     pub(crate) fn get_queue_total_size(&self) -> f64 {
         self.queue_total_size.get()
+    }
+
+    pub(crate) fn get_pending_pull_intos_size(&self) -> usize {
+        self.pending_pull_intos.borrow().len()
     }
 }
 
