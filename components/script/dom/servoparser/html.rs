@@ -12,14 +12,13 @@ use html5ever::buffer_queue::BufferQueue;
 use html5ever::serialize::TraversalScope::IncludeNode;
 use html5ever::serialize::{AttrRef, Serialize, Serializer, TraversalScope};
 use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
-use html5ever::tree_builder::{Tracer as HtmlTracer, TreeBuilder, TreeBuilderOpts};
-use js::jsapi::JSTracer;
+use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
+use script_bindings::trace::CustomTraceable;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
@@ -100,28 +99,6 @@ impl Tokenizer {
 
     pub(crate) fn set_plaintext_state(&self) {
         self.inner.set_plaintext_state();
-    }
-}
-
-#[allow(unsafe_code)]
-unsafe impl CustomTraceable for HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        struct Tracer(*mut JSTracer);
-        let tracer = Tracer(trc);
-
-        impl HtmlTracer for Tracer {
-            type Handle = Dom<Node>;
-            #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-            fn trace_handle(&self, node: &Dom<Node>) {
-                unsafe {
-                    node.trace(self.0);
-                }
-            }
-        }
-
-        let tree_builder = &self.sink;
-        tree_builder.trace_handles(&tracer);
-        tree_builder.sink.trace(trc);
     }
 }
 

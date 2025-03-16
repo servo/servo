@@ -154,7 +154,6 @@ pub(crate) mod namespace;
 pub(crate) mod num;
 pub(crate) mod principals;
 pub(crate) mod proxyhandler;
-pub(crate) mod record;
 pub(crate) mod refcounted;
 pub(crate) mod reflector;
 pub(crate) mod root;

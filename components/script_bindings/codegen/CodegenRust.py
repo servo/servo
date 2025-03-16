@@ -2287,7 +2287,7 @@ class CGImports(CGWrapper):
                     extras += [descriptor.path, descriptor.bindingPath]
                     parentName = descriptor.getParentName()
             elif t.isType() and t.isRecord():
-                extras += ['crate::dom::bindings::record::Record']
+                extras += ['script_bindings::record::Record']
             elif isinstance(t, IDLPromiseType):
                 extras += ['crate::dom::promise::Promise']
             else:
@@ -2643,7 +2643,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::import::base::*',
         'crate::dom::bindings::codegen::DomTypes::DomTypes',
         'crate::dom::bindings::conversions::windowproxy_from_handlevalue',
-        'crate::dom::bindings::record::Record',
+        'script_bindings::record::Record',
         'crate::dom::types::*',
         'crate::dom::windowproxy::WindowProxy',
         'js::typedarray',

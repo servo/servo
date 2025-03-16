@@ -17,14 +17,20 @@ use js::jsapi::{
     JSITER_SYMBOLS, JSPROP_ENUMERATE, PropertyDescriptor,
 };
 use js::jsval::{ObjectValue, UndefinedValue};
+use js::rooted;
 use js::rust::wrappers::{GetPropertyKeys, JS_DefineUCProperty2, JS_GetPropertyById, JS_IdToValue};
 use js::rust::{HandleId, HandleValue, IdVector, MutableHandleValue};
 
-use crate::dom::bindings::conversions::jsid_to_string;
-use crate::dom::bindings::str::{ByteString, DOMString, USVString};
+use crate::conversions::jsid_to_string;
+use crate::str::{ByteString, DOMString, USVString};
 
-pub(crate) trait RecordKey: Eq + Hash + Sized {
+pub trait RecordKey: Eq + Hash + Sized {
     fn to_utf16_vec(&self) -> Vec<u16>;
+
+    /// Attempt to extract a key from a JS id.
+    /// # Safety
+    /// - cx must point to a non-null, valid JSContext.
+    #[allow(clippy::result_unit_err)]
     unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()>;
 }
 
@@ -71,14 +77,14 @@ impl RecordKey for ByteString {
 
 /// The `Record` (open-ended dictionary) type.
 #[derive(Clone, JSTraceable)]
-pub(crate) struct Record<K: RecordKey, V> {
+pub struct Record<K: RecordKey, V> {
     #[custom_trace]
     map: IndexMap<K, V>,
 }
 
 impl<K: RecordKey, V> Record<K, V> {
     /// Create an empty `Record`.
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Record {
             map: IndexMap::new(),
         }
