@@ -36,7 +36,7 @@ macro_rules! native_raw_obj_fn {
         #[allow(clippy::macro_metavars_in_unsafe)]
         unsafe {
             let name: &std::ffi::CStr = $name;
-            let raw_fun = $crate::dom::bindings::import::module::jsapi::JS_NewFunction(
+            let raw_fun = js::jsapi::JS_NewFunction(
                 *$cx,
                 Some(wrapper),
                 $nargs,
@@ -44,7 +44,7 @@ macro_rules! native_raw_obj_fn {
                 name.as_ptr() as *const std::ffi::c_char,
             );
             assert!(!raw_fun.is_null());
-            $crate::dom::bindings::import::module::jsapi::JS_GetFunctionObject(raw_fun)
+            js::jsapi::JS_GetFunctionObject(raw_fun)
         }
     }};
 }

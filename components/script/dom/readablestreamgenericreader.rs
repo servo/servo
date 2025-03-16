@@ -9,8 +9,7 @@ use js::rust::HandleValue as SafeHandleValue;
 
 use super::readablestream::ReaderType;
 use super::types::ReadableStream;
-use crate::dom::bindings::error::{Error, ErrorToJsval};
-use crate::dom::bindings::import::module::Fallible;
+use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
