@@ -392,6 +392,9 @@ where
 /// integer.
 ///
 /// Handling of invalid UTF-16 in strings depends on the relevant option.
+///
+/// # Safety
+/// - cx must point to a non-null, valid JSContext instance.
 pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
     let id_raw = *id;
     if id_raw.is_string() {

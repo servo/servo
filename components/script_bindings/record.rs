@@ -26,6 +26,11 @@ use crate::str::{ByteString, DOMString, USVString};
 
 pub trait RecordKey: Eq + Hash + Sized {
     fn to_utf16_vec(&self) -> Vec<u16>;
+
+    /// Attempt to extract a key from a JS id.
+    /// # Safety
+    /// - cx must point to a non-null, valid JSContext.
+    #[allow(clippy::result_unit_err)]
     unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()>;
 }
 
