@@ -11,6 +11,7 @@ use js::rust::HandleObject;
 use webxr_api::{ContextId as WebXRContextId, LayerId, LayerInit, Viewport};
 
 use crate::canvas_context::CanvasContext as _;
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
@@ -35,15 +36,15 @@ use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
 use crate::script_runtime::CanGc;
 
-impl<'a> From<&'a XRWebGLLayerInit> for LayerInit {
-    fn from(init: &'a XRWebGLLayerInit) -> LayerInit {
+impl Convert<LayerInit> for XRWebGLLayerInit {
+    fn convert(self) -> LayerInit {
         LayerInit::WebGLLayer {
-            alpha: init.alpha,
-            antialias: init.antialias,
-            depth: init.depth,
-            stencil: init.stencil,
-            framebuffer_scale_factor: *init.framebufferScaleFactor as f32,
-            ignore_depth_values: init.ignoreDepthValues,
+            alpha: self.alpha,
+            antialias: self.antialias,
+            depth: self.depth,
+            stencil: self.stencil,
+            framebuffer_scale_factor: *self.framebufferScaleFactor as f32,
+            ignore_depth_values: self.ignoreDepthValues,
         }
     }
 }
@@ -271,7 +272,7 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
             // Step 9.3. "Allocate and initialize resources compatible with session’s XR device,
             // including GPU accessible memory buffers, as required to support the compositing of layer."
             let context_id = WebXRContextId::from(context.context_id());
-            let layer_init = LayerInit::from(init);
+            let layer_init: LayerInit = init.convert();
             let layer_id = session
                 .with_session(|session| session.create_layer(context_id, layer_init))
                 .map_err(|_| Error::Operation)?;

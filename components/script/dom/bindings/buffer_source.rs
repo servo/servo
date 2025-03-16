@@ -39,8 +39,7 @@ use js::typedarray::{
     TypedArray, TypedArrayElement, TypedArrayElementCreator,
 };
 
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::import::module::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 #[cfg(feature = "webgpu")]
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};

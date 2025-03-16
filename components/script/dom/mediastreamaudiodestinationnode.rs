@@ -9,7 +9,7 @@ use servo_media::audio::node::AudioNodeInit;
 use servo_media::streams::MediaStreamType;
 
 use crate::dom::audiocontext::AudioContext;
-use crate::dom::audionode::AudioNode;
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     AudioNodeOptions, ChannelCountMode, ChannelInterpretation,
 };

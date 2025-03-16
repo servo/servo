@@ -18,7 +18,7 @@ use super::bindings::error::Fallible;
 use super::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use super::bindings::root::DomRoot;
 use super::types::GlobalScope;
-use crate::dom::bindings::import::module::get_dictionary_property;
+use crate::dom::bindings::utils::get_dictionary_property;
 use crate::native_fn;
 use crate::script_runtime::CanGc;
 

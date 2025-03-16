@@ -19,7 +19,7 @@ use webrender_api::units::DeviceIntSize;
 
 use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;
-use crate::canvas_context::CanvasContext;
+use crate::canvas_context::{CanvasContext, CanvasHelpers};
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTexture_Binding::GPUTextureMethods;

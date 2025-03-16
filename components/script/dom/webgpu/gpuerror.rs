@@ -90,8 +90,12 @@ impl Convert<GPUErrorFilter> for ErrorFilter {
     }
 }
 
-impl GPUErrorFilter {
-    pub(crate) fn as_webgpu(&self) -> ErrorFilter {
+pub(crate) trait AsWebGpu {
+    fn as_webgpu(&self) -> ErrorFilter;
+}
+
+impl AsWebGpu for GPUErrorFilter {
+    fn as_webgpu(&self) -> ErrorFilter {
         match self {
             GPUErrorFilter::Validation => ErrorFilter::Validation,
             GPUErrorFilter::Out_of_memory => ErrorFilter::OutOfMemory,

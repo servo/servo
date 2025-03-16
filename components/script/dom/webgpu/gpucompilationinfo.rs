@@ -7,8 +7,8 @@ use js::rust::MutableHandleValue;
 use webgpu::ShaderCompilationInfo;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUCompilationInfoMethods;
-use crate::dom::bindings::import::module::DomRoot;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::GPUCompilationMessage;

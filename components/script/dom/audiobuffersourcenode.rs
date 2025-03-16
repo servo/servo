@@ -13,6 +13,7 @@ use servo_media::audio::buffer_source_node::{
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
+use crate::conversions::Convert;
 use crate::dom::audiobuffer::AudioBuffer;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
@@ -52,7 +53,7 @@ impl AudioBufferSourceNode {
     ) -> Fallible<AudioBufferSourceNode> {
         let node_options = Default::default();
         let source_node = AudioScheduledSourceNode::new_inherited(
-            AudioNodeInit::AudioBufferSourceNode(options.into()),
+            AudioNodeInit::AudioBufferSourceNode(options.convert()),
             context,
             node_options,
             0, /* inputs */
@@ -274,18 +275,18 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
     }
 }
 
-impl<'a> From<&'a AudioBufferSourceOptions> for AudioBufferSourceNodeOptions {
-    fn from(options: &'a AudioBufferSourceOptions) -> Self {
-        Self {
-            buffer: options
+impl Convert<AudioBufferSourceNodeOptions> for &AudioBufferSourceOptions {
+    fn convert(self) -> AudioBufferSourceNodeOptions {
+        AudioBufferSourceNodeOptions {
+            buffer: self
                 .buffer
                 .as_ref()
                 .and_then(|b| (*b.as_ref()?.get_channels()).clone()),
-            detune: *options.detune,
-            loop_enabled: options.loop_,
-            loop_end: Some(*options.loopEnd),
-            loop_start: Some(*options.loopStart),
-            playback_rate: *options.playbackRate,
+            detune: *self.detune,
+            loop_enabled: self.loop_,
+            loop_end: Some(*self.loopEnd),
+            loop_start: Some(*self.loopStart),
+            playback_rate: *self.playbackRate,
         }
     }
 }

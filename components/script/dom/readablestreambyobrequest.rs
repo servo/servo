@@ -11,7 +11,7 @@ use super::bindings::cell::DomRefCell;
 use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::DomRoot;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBRequestBinding::ReadableStreamBYOBRequestMethods;
-use crate::dom::bindings::import::module::{Error, Fallible};
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
