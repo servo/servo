@@ -21,8 +21,8 @@ use std::sync::Arc;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
-    BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
-    WebViewId,
+    BlobId, BrowsingContextId, DomPointId, HistoryStateId, MessagePortId, PipelineId,
+    PipelineNamespaceId, WebViewId,
 };
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
@@ -64,7 +64,7 @@ pub use crate::script_msg::{
     DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg,
     SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg, TouchEventResult,
 };
-use crate::serializable::BlobImpl;
+use crate::serializable::{BlobImpl, DomPoint};
 use crate::transferable::MessagePortImpl;
 
 /// The origin where a given load was initiated.
@@ -648,12 +648,14 @@ impl ScriptToConstellationChan {
 
 /// A data-holder for serialized data and transferred objects.
 /// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct StructuredSerializedData {
     /// Data serialized by SpiderMonkey.
     pub serialized: Vec<u8>,
     /// Serialized in a structured callback,
     pub blobs: Option<HashMap<BlobId, BlobImpl>>,
+    /// Serialized point objects.
+    pub points: Option<HashMap<DomPointId, DomPoint>>,
     /// Transferred objects.
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
 }
@@ -678,12 +680,17 @@ where
 pub enum Serializable {
     /// The `Blob` interface.
     Blob,
+    /// The `DOMPointReadOnly` interface.
+    DomPointReadOnly,
 }
 
 impl Serializable {
     fn clone_values(&self) -> fn(&StructuredSerializedData, &mut StructuredSerializedData) {
         match self {
             Serializable::Blob => StructuredSerializedData::clone_all_of_type::<BlobImpl>,
+            Serializable::DomPointReadOnly => {
+                StructuredSerializedData::clone_all_of_type::<DomPoint>
+            },
         }
     }
 }
@@ -737,9 +744,7 @@ impl StructuredSerializedData {
 
         let mut cloned = StructuredSerializedData {
             serialized,
-            blobs: None,
-            // Ports cannot be broadcast.
-            ports: None,
+            ..Default::default()
         };
 
         for serializable in Serializable::iter() {
