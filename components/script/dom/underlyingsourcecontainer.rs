@@ -12,8 +12,8 @@ use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValu
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
-use crate::dom::bindings::error::Error;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
