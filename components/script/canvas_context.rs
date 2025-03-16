@@ -64,8 +64,13 @@ pub(crate) trait CanvasContext {
     }
 }
 
-impl HTMLCanvasElementOrOffscreenCanvas {
-    pub(crate) fn size(&self) -> Size2D<u64> {
+pub(crate) trait CanvasHelpers {
+    fn size(&self) -> Size2D<u64>;
+    fn canvas(&self) -> Option<&HTMLCanvasElement>;
+}
+
+impl CanvasHelpers for HTMLCanvasElementOrOffscreenCanvas {
+    fn size(&self) -> Size2D<u64> {
         match self {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
                 canvas.get_size().cast()
@@ -74,7 +79,7 @@ impl HTMLCanvasElementOrOffscreenCanvas {
         }
     }
 
-    pub(crate) fn canvas(&self) -> Option<&HTMLCanvasElement> {
+    fn canvas(&self) -> Option<&HTMLCanvasElement> {
         match self {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => Some(canvas),
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.placeholder(),

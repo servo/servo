@@ -15,6 +15,7 @@ use servo_media::audio::oscillator_node::{
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::Convert;
+use crate::dom::audionode::AudioNodeOptionsHelper;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;

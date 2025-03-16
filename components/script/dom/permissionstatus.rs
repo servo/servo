@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::fmt::{self, Display, Formatter};
 
 use dom_struct::dom_struct;
 
@@ -62,10 +61,4 @@ impl PermissionStatusMethods<crate::DomTypeHolder> for PermissionStatus {
 
     // https://w3c.github.io/permissions/#dom-permissionstatus-onchange
     event_handler!(change, GetOnchange, SetOnchange);
-}
-
-impl Display for PermissionName {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
 }

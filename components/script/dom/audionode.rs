@@ -387,8 +387,17 @@ impl Convert<ServoMediaChannelInterpretation> for ChannelInterpretation {
     }
 }
 
-impl AudioNodeOptions {
-    pub(crate) fn unwrap_or(
+pub(crate) trait AudioNodeOptionsHelper {
+    fn unwrap_or(
+        &self,
+        count: u32,
+        mode: ChannelCountMode,
+        interpretation: ChannelInterpretation,
+    ) -> UnwrappedAudioNodeOptions;
+}
+
+impl AudioNodeOptionsHelper for AudioNodeOptions {
+    fn unwrap_or(
         &self,
         count: u32,
         mode: ChannelCountMode,

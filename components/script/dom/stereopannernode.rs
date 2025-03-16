@@ -8,6 +8,8 @@ use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
 use servo_media::audio::stereo_panner::StereoPannerOptions as ServoMediaStereoPannerOptions;
 
+use crate::conversions::Convert;
+use crate::dom::audionode::AudioNodeOptionsHelper;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
@@ -48,8 +50,9 @@ impl StereoPannerNode {
         if node_options.count > 2 || node_options.count == 0 {
             return Err(Error::NotSupported);
         }
+        let pan = *options.pan;
         let source_node = AudioScheduledSourceNode::new_inherited(
-            AudioNodeInit::StereoPannerNode(options.into()),
+            AudioNodeInit::StereoPannerNode(options.convert()),
             context,
             node_options,
             1, /* inputs */
@@ -63,7 +66,7 @@ impl StereoPannerNode {
             AudioNodeType::StereoPannerNode,
             ParamType::Pan,
             AutomationRate::A_rate,
-            *options.pan,
+            pan,
             -1.,
             1.,
             CanGc::note(),
@@ -120,8 +123,8 @@ impl StereoPannerNodeMethods<crate::DomTypeHolder> for StereoPannerNode {
     }
 }
 
-impl<'a> From<&'a StereoPannerOptions> for ServoMediaStereoPannerOptions {
-    fn from(options: &'a StereoPannerOptions) -> Self {
-        Self { pan: *options.pan }
+impl Convert<ServoMediaStereoPannerOptions> for StereoPannerOptions {
+    fn convert(self) -> ServoMediaStereoPannerOptions {
+        ServoMediaStereoPannerOptions { pan: *self.pan }
     }
 }

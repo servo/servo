@@ -10,7 +10,8 @@ use servo_media::audio::gain_node::GainNodeOptions;
 use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
-use crate::dom::audionode::AudioNode;
+use crate::conversions::Convert;
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
@@ -42,8 +43,9 @@ impl GainNode {
             options
                 .parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
+        let gain = *options.gain;
         let node = AudioNode::new_inherited(
-            AudioNodeInit::GainNode(options.into()),
+            AudioNodeInit::GainNode(options.convert()),
             context,
             node_options,
             1, // inputs
@@ -56,9 +58,9 @@ impl GainNode {
             AudioNodeType::GainNode,
             ParamType::Gain,
             AutomationRate::A_rate,
-            *options.gain, // default value
-            f32::MIN,      // min value
-            f32::MAX,      // max value
+            gain,     // default value
+            f32::MIN, // min value
+            f32::MAX, // max value
             can_gc,
         );
         Ok(GainNode {
@@ -112,10 +114,8 @@ impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
     }
 }
 
-impl<'a> From<&'a GainOptions> for GainNodeOptions {
-    fn from(options: &'a GainOptions) -> Self {
-        Self {
-            gain: *options.gain,
-        }
+impl Convert<GainNodeOptions> for GainOptions {
+    fn convert(self) -> GainNodeOptions {
+        GainNodeOptions { gain: *self.gain }
     }
 }

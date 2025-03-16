@@ -10,7 +10,7 @@ use profile_traits::ipc;
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_url::ServoUrl;
 
-use crate::canvas_context::{CanvasContext, LayoutCanvasRenderingContextHelpers};
+use crate::canvas_context::{CanvasContext, CanvasHelpers, LayoutCanvasRenderingContextHelpers};
 use crate::canvas_state::CanvasState;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,

@@ -12,7 +12,8 @@ use js::typedarray::Float32Array;
 use servo_media::audio::iir_filter_node::{IIRFilterNode as IIRFilter, IIRFilterNodeOptions};
 use servo_media::audio::node::AudioNodeInit;
 
-use crate::dom::audionode::AudioNode;
+use crate::conversions::Convert;
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
@@ -53,7 +54,9 @@ impl IIRFilterNode {
             options
                 .parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
-        let init_options = options.into();
+        let feedforward = (*options.feedforward).to_vec();
+        let feedback = (*options.feedback).to_vec();
+        let init_options = options.clone().convert();
         let node = AudioNode::new_inherited(
             AudioNodeInit::IIRFilterNode(init_options),
             context,
@@ -63,8 +66,8 @@ impl IIRFilterNode {
         )?;
         Ok(IIRFilterNode {
             node,
-            feedforward: (*options.feedforward).to_vec(),
-            feedback: (*options.feedback).to_vec(),
+            feedforward,
+            feedback,
         })
     }
 
@@ -139,12 +142,11 @@ impl IIRFilterNodeMethods<crate::DomTypeHolder> for IIRFilterNode {
     }
 }
 
-impl<'a> From<&'a IIRFilterOptions> for IIRFilterNodeOptions {
-    fn from(options: &'a IIRFilterOptions) -> Self {
-        let feedforward: Vec<f64> =
-            (*options.feedforward.iter().map(|v| **v).collect_vec()).to_vec();
-        let feedback: Vec<f64> = (*options.feedback.iter().map(|v| **v).collect_vec()).to_vec();
-        Self {
+impl Convert<IIRFilterNodeOptions> for IIRFilterOptions {
+    fn convert(self) -> IIRFilterNodeOptions {
+        let feedforward: Vec<f64> = (*self.feedforward.iter().map(|v| **v).collect_vec()).to_vec();
+        let feedback: Vec<f64> = (*self.feedback.iter().map(|v| **v).collect_vec()).to_vec();
+        IIRFilterNodeOptions {
             feedforward: Arc::new(feedforward),
             feedback: Arc::new(feedback),
         }
