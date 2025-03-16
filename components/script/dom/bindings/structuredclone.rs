@@ -38,6 +38,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
 use crate::dom::bindings::transferable::{ExtractComponents, IdFromComponents, Transferable};
 use crate::dom::blob::Blob;
+use crate::dom::dompoint::DOMPoint;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
@@ -56,6 +57,7 @@ pub(super) enum StructuredCloneTags {
     MessagePort = 0xFFFF8002,
     Principals = 0xFFFF8003,
     DomPointReadOnly = 0xFFFF8004,
+    DomPoint = 0xFFFF8005,
     Max = 0xFFFFFFFF,
 }
 
@@ -64,6 +66,7 @@ impl From<SerializableInterface> for StructuredCloneTags {
         match v {
             SerializableInterface::Blob => StructuredCloneTags::DomBlob,
             SerializableInterface::DomPointReadOnly => StructuredCloneTags::DomPointReadOnly,
+            SerializableInterface::DomPoint => StructuredCloneTags::DomPoint,
         }
     }
 }
@@ -87,6 +90,7 @@ fn reader_for_type(
     match val {
         SerializableInterface::Blob => read_object::<Blob>,
         SerializableInterface::DomPointReadOnly => read_object::<DOMPointReadOnly>,
+        SerializableInterface::DomPoint => read_object::<DOMPoint>,
     }
 }
 
@@ -219,6 +223,7 @@ fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
     match val {
         SerializableInterface::Blob => try_serialize::<Blob>,
         SerializableInterface::DomPointReadOnly => try_serialize::<DOMPointReadOnly>,
+        SerializableInterface::DomPoint => try_serialize::<DOMPoint>,
     }
 }
 
@@ -472,6 +477,7 @@ pub(crate) struct StructuredDataReader {
     pub(crate) blobs: Option<HashMap<StorageKey, DomRoot<Blob>>>,
     /// A map of deserialized points, stored temporarily here to keep them rooted.
     pub(crate) points_read_only: Option<HashMap<StorageKey, DomRoot<DOMPointReadOnly>>>,
+    pub(crate) dom_points: Option<HashMap<StorageKey, DomRoot<DOMPoint>>>,
     /// A vec of transfer-received DOM ports,
     /// to be made available to script through a message event.
     pub(crate) message_ports: Option<Vec<DomRoot<MessagePort>>>,
@@ -567,6 +573,7 @@ pub(crate) fn read(
         blobs: None,
         message_ports: None,
         points_read_only: None,
+        dom_points: None,
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),
         points: data.points.take(),

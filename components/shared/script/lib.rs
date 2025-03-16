@@ -680,6 +680,8 @@ where
 pub enum Serializable {
     /// The `Blob` interface.
     Blob,
+    /// The `DOMPoint` interface.
+    DomPoint,
     /// The `DOMPointReadOnly` interface.
     DomPointReadOnly,
 }
@@ -691,6 +693,7 @@ impl Serializable {
             Serializable::DomPointReadOnly => {
                 StructuredSerializedData::clone_all_of_type::<DomPoint>
             },
+            Serializable::DomPoint => StructuredSerializedData::clone_all_of_type::<DomPoint>,
         }
     }
 }
