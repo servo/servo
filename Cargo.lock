@@ -6382,22 +6382,30 @@ name = "script_bindings"
 version = "0.0.1"
 dependencies = [
  "bitflags 2.9.0",
+ "crossbeam-channel",
  "cssparser",
  "html5ever",
+ "indexmap",
  "jstraceable_derive",
  "libc",
  "log",
  "malloc_size_of_derive",
  "mozjs",
  "num-traits",
+ "parking_lot",
  "phf_codegen",
  "phf_shared",
  "regex",
  "serde_json",
+ "servo_arc",
  "servo_config",
  "servo_malloc_size_of",
+ "smallvec",
  "style",
  "stylo_atoms",
+ "tendril",
+ "webxr-api",
+ "xml5ever",
 ]
 
 [[package]]

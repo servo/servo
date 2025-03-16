@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
+use std::ops::Deref;
 
 use base::id::{PipelineId, WebViewId};
 use content_security_policy::Destination;
@@ -30,13 +31,29 @@ use crate::script_module::ScriptFetchOptions;
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in html5ever"]
-    inner: HtmlTokenizer<PrefetchSink>,
+    inner: TraceableTokenizer,
+}
+
+struct TraceableTokenizer(HtmlTokenizer<PrefetchSink>);
+
+impl Deref for TraceableTokenizer {
+    type Target = HtmlTokenizer<PrefetchSink>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 #[allow(unsafe_code)]
-unsafe impl CustomTraceable for HtmlTokenizer<PrefetchSink> {
+unsafe impl JSTraceable for TraceableTokenizer {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        self.sink.trace(trc)
+        CustomTraceable::trace(&self.0, trc)
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe impl CustomTraceable for PrefetchSink {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        <Self as JSTraceable>::trace(self, trc)
     }
 }
 
@@ -58,7 +75,7 @@ impl Tokenizer {
             insecure_requests_policy: document.insecure_requests_policy(),
         };
         let options = Default::default();
-        let inner = HtmlTokenizer::new(sink, options);
+        let inner = TraceableTokenizer(HtmlTokenizer::new(sink, options));
         Tokenizer { inner }
     }
 
@@ -91,6 +108,7 @@ struct PrefetchSink {
 }
 
 /// The prefetch tokenizer produces trivial results
+#[derive(Clone, Copy, JSTraceable)]
 struct PrefetchHandle;
 
 impl TokenSink for PrefetchSink {
