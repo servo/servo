@@ -1,5 +1,5 @@
 <!doctype HTML>
-<html lang="zh-CN">
+<html lang="tr">
   <meta charset="utf-8">
   <title>HTML5 Canvas Test:  The lang attribute is inherited from the document in offscreen canvas</title>
   <link rel="match" href="canvas.2d.offscreen.lang-ref.html" />
@@ -7,12 +7,12 @@
   <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
   <meta name="assert" content="An offscreen canvas inherits the lang from the document." />
   <style>
-    #canvas-zh-CN {
+    #canvas-tr {
       position: absolute;
       top: 10px;
       left: 10px;
     }
-    #canvas-ja {
+    #canvas-en {
       position: absolute;
       top: 120px;
       left: 10px;
@@ -26,24 +26,33 @@
       var offscreen = new OffscreenCanvas(300, 100);
       var offscreen_ctx = offscreen.getContext('2d');
 
-      offscreen_ctx.font = '25px serif';
-      offscreen_ctx.fillText('今骨直', 5, 50);
+      offscreen_ctx.font = '25px Lato-Medium';
+      offscreen_ctx.fillText('fi', 5, 50);
 
       const bitmap = offscreen.transferToImageBitmap();
       bitmap_ctx.transferFromImageBitmap(bitmap);
     }
 
     function runTest() {
-      drawText('zh-CN');
-      document.documentElement.setAttribute('lang', 'ja');
-      drawText('ja');
+      let test_font = new FontFace(
+        // Lato-Medium is a font with language specific ligatures.
+        "Lato-Medium",
+        "url(/css/css-fonts/support/fonts/Lato-Medium.ttf)"
+      );
+
+      test_font.load().then((font) => {
+        document.fonts.add(font);
+        drawText('tr');
+        document.documentElement.setAttribute('lang', 'en');
+        drawText('en');
+      });
     }
   </script>
   <body onload="runTest()">
-    <canvas lang="zh-CN" id="canvas-zh-CN" width="300" height="100">
+    <canvas lang="tr" id="canvas-tr" width="300" height="100">
       Browser does not support HTML5 Canvas.
     </canvas>
-    <canvas lang="ja" id="canvas-ja" width="300" height="100">
+    <canvas lang="en" id="canvas-en" width="300" height="100">
       Browser does not support HTML5 Canvas.
     </canvas>
   </body>

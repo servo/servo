@@ -12,13 +12,12 @@
   promise_test(async t => {
     await setupShardedServerState();
     const expectedCookieAndValue = "auth_cookie=abcdef0123";
-    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
-    addCookieAndSessionCleanup(t, expectedCookieAndAttributes);
+    addCookieAndSessionCleanup(t);
 
     // Prompt starting a session, and wait until registration completes.
     const login_response = await fetch('login.py');
     assert_equals(login_response.status, 200);
     // For HTTP, this call will time out, because the cookie is never set.
-    assert_false(await waitForCookie(expectedCookieAndValue));
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/false);
   }, "Try to establish a session over HTTP");
 </script>

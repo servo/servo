@@ -4,6 +4,13 @@
 'use strict';
 
 promise_test(async t => {
+  // Language detection is available after call to `create()`.
+  const detector = await ai.languageDetector.create();
+  const availability = await detector.availability();
+  assert_equals(availability, 'available');
+}, 'Simple AILanguageDetector.availability() call');
+
+promise_test(async t => {
   const detector = await ai.languageDetector.create();
   const results = await detector.detect('this string is in English');
   // "en" should be highest confidence.
@@ -28,7 +35,8 @@ promise_test(async t => {
   controller.abort();
 
   const detector = await ai.languageDetector.create();
-  const detectPromise = await detector.detect('this string is in English');
+  const detectPromise =
+      detector.detect('this string is in English', {signal: controller.signal});
 
   await promise_rejects_dom(t, 'AbortError', detectPromise);
 }, 'AILanguageDetector.detect() call with an aborted signal.');

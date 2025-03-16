@@ -248,7 +248,8 @@
       // The first frame may not have had scaleResolutionDownBy applied
       const numTries = 5;
       for (let i = 1; i <= numTries; i++) {
-        worker.postMessage({type:"getVideoFrame", track: e.track}, [e.track]);
+        const clone = e.track.clone();
+        worker.postMessage({type:"getVideoFrame", track: clone}, [clone]);
         const {frame: outputFrame} = await new Promise(resolve => worker.onmessage = e => resolve(e.data));
         if (outputFrame.displayWidth !== width / 2) {
           assert_less_than(i, numTries, `First ${numTries} frames were the wrong size.`);

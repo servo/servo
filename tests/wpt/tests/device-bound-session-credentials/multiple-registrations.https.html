@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DBSC multiple registrations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, waitForCookie, addCookieAndSessionCleanup, configureServer, setupShardedServerState, postJson, documentHasCookie } from "./helper.js";
+
+  async function runMultipleRegistrationsTest(t, useSingleHeader) {
+    await setupShardedServerState();
+    const expectedCookieAndValue1 = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes1 = `${expectedCookieAndValue1};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t, expectedCookieAndAttributes1);
+    const expectedCookieAndValue2 = "other_cookie=ghijkl4567";
+    const expectedCookieAndAttributes2 = `${expectedCookieAndValue2};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t, expectedCookieAndAttributes2);
+
+    // Configure server to configure cookies for next two created sessions.
+    configureServer({
+      cookieNamesAndValuesForNextRegisteredSessions: [expectedCookieAndValue1, expectedCookieAndValue2]
+    });
+
+    // Prompt starting one session, and wait until registration completes.
+    const login_response = await postJson('login.py', { numSessions: 2, useSingleHeader });
+    assert_equals(login_response.status, 200);
+    await waitForCookie(expectedCookieAndValue1, /*expectCookie=*/true);
+    await waitForCookie(expectedCookieAndValue2, /*expectCookie=*/true);
+
+    async function triggerRefreshAndCheckBothCookies() {
+      const auth_response = await fetch('verify_authenticated.py');
+      assert_equals(auth_response.status, 200);
+      assert_true(documentHasCookie(expectedCookieAndValue1))
+      assert_true(documentHasCookie(expectedCookieAndValue2))
+    }
+    // Trigger a refresh for the first session, and confirm we have both cookies.
+    expireCookie(expectedCookieAndAttributes1);
+    await triggerRefreshAndCheckBothCookies();
+    // Trigger a refresh for the second session, and confirm we have both cookies.
+    expireCookie(expectedCookieAndAttributes2);
+    await triggerRefreshAndCheckBothCookies();
+    // Trigger a refresh for both sessions, and confirm we have both cookies.
+    expireCookie(expectedCookieAndAttributes1);
+    expireCookie(expectedCookieAndAttributes2);
+    await triggerRefreshAndCheckBothCookies();
+  }
+
+  promise_test(async t => {
+    await runMultipleRegistrationsTest(t, /*useSingleHeader=*/true);
+  }, "Multiple registrations can be triggered in one response (single header)");
+
+  promise_test(async t => {
+    await runMultipleRegistrationsTest(t, /*useSingleHeader=*/false);
+  }, "Multiple registrations can be triggered in one response (multiple headers)");
+</script>

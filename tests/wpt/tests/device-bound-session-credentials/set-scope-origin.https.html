@@ -13,7 +13,7 @@
     await setupShardedServerState();
     const expectedCookieAndValue = "auth_cookie=abcdef0123";
     const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
-    addCookieAndSessionCleanup(t, expectedCookieAndAttributes);
+    addCookieAndSessionCleanup(t);
 
     // Configure server to have the same scope origin as the upcoming request.
     configureServer({ scopeOrigin: get_host_info().HTTPS_ORIGIN });
@@ -21,7 +21,7 @@
     // Prompt starting a session, and wait until registration completes.
     const login_response = await fetch('login.py');
     assert_equals(login_response.status, 200);
-    assert_true(await waitForCookie(expectedCookieAndValue));
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
 
     // Confirm that a request has the cookie set.
     const auth_response = await fetch('verify_authenticated.py');
@@ -39,7 +39,7 @@
     await setupShardedServerState();
     const expectedCookieAndValue = "auth_cookie=abcdef0123";
     const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
-    addCookieAndSessionCleanup(t, expectedCookieAndAttributes);
+    addCookieAndSessionCleanup(t);
 
     // Configure server to have a scope origin that does not match the upcoming request.
     configureServer({ scopeOrigin: get_host_info().OTHER_ORIGIN });
@@ -47,7 +47,7 @@
     // Prompt starting a session, and wait until registration completes.
     const login_response = await fetch('login.py');
     assert_equals(login_response.status, 200);
-    assert_true(await waitForCookie(expectedCookieAndValue));
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
 
     // Confirm that a request has the cookie set.
     const auth_response = await fetch('verify_authenticated.py');

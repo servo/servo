@@ -48,7 +48,13 @@
         eventList = [];
       }
       function getEventHandler(description) {
-        return (e) => eventList.push(`${e.type} on ${e.target.className} at ${description}`);
+        return (e) => {
+          let focused = '';
+          if (e.type == 'keydown' || e.type == 'keyup') {
+            focused = ` focused: ${document.activeElement.className || document.activeElement.tagName}.`;
+          }
+          eventList.push(`${e.type} on ${e.target.className} at ${description}. open: ${select.matches(':open')}.${focused}`);
+        };
       }
       events.forEach(evt => wrapper.addEventListener(evt,getEventHandler('wrapper')));
       events.forEach(evt => select.addEventListener(evt,getEventHandler('select')));
@@ -58,12 +64,18 @@
       await test_driver.click(select);
       assert_true(select.matches(':open'));
       assert_events([
-        'pointerdown on select at select', 'pointerdown on select at wrapper',
-        'mousedown on select at select', 'mousedown on select at wrapper',
-        'focusin on option1 at select', 'focusin on option1 at wrapper',
-        'pointerup on select at select', 'pointerup on select at wrapper',
-        'mouseup on select at select', 'mouseup on select at wrapper',
-        'click on select at select', 'click on select at wrapper'
+        'pointerdown on select at select. open: false.',
+        'pointerdown on select at wrapper. open: false.',
+        'mousedown on select at select. open: false.',
+        'mousedown on select at wrapper. open: false.',
+        'focusin on option1 at select. open: true.',
+        'focusin on option1 at wrapper. open: true.',
+        'pointerup on select at select. open: true.',
+        'pointerup on select at wrapper. open: true.',
+        'mouseup on select at select. open: true.',
+        'mouseup on select at wrapper. open: true.',
+        'click on select at select. open: true.',
+        'click on select at wrapper. open: true.'
       ],'after showing, events from test_driver.click');
 
       // Press arrow-down, and preventDefault
@@ -71,18 +83,24 @@
       await test_driver.send_keys(document.activeElement, keys.ArrowDown);
       assert_equals(select.selectedOptions[0].innerText,'one');
       assert_events([
-        'keydown on option1 at select', 'keydown on option1 at wrapper',
-        'keyup on option1 at select', 'keyup on option1 at wrapper'
+        'keydown on option1 at select. open: true. focused: option1.',
+        'keydown on option1 at wrapper. open: true. focused: option1.',
+        'keyup on option1 at select. open: true. focused: option1.',
+        'keyup on option1 at wrapper. open: true. focused: option1.'
       ],'arrow down, with preventDefault');
 
       // Press arrow-down, no preventDefault
       await test_driver.send_keys(document.activeElement, keys.ArrowDown);
       assert_equals(select.selectedOptions[0].innerText,'one','selection does not follow focus');
       assert_events([
-        'keydown on option1 at select', 'keydown on option1 at wrapper',
-        'focusout on option1 at select', 'focusout on option1 at wrapper',
-        'focusin on option2 at select', 'focusin on option2 at wrapper',
-        'keyup on option2 at select', 'keyup on option2 at wrapper'
+        'keydown on option1 at select. open: true. focused: option1.',
+        'keydown on option1 at wrapper. open: true. focused: option1.',
+        'focusout on option1 at select. open: true.',
+        'focusout on option1 at wrapper. open: true.',
+        'focusin on option2 at select. open: true.',
+        'focusin on option2 at wrapper. open: true.',
+        'keyup on option2 at select. open: true. focused: option2.',
+        'keyup on option2 at wrapper. open: true. focused: option2.'
       ],'arrow down, no preventDefault');
 
       // Press escape, and preventDefault
@@ -90,18 +108,24 @@
       await test_driver.send_keys(document.activeElement, keys.Escape);
       assert_true(select.matches(':open'));
       assert_events([
-        'keydown on option2 at select', 'keydown on option2 at wrapper',
-        'keyup on option2 at select', 'keyup on option2 at wrapper'
+        'keydown on option2 at select. open: true. focused: option2.',
+        'keydown on option2 at wrapper. open: true. focused: option2.',
+        'keyup on option2 at select. open: true. focused: option2.',
+        'keyup on option2 at wrapper. open: true. focused: option2.'
       ],'escape, with preventDefault');
 
       // Press escape, no preventDefault
       await test_driver.send_keys(document.activeElement, keys.Escape);
       assert_false(select.matches(':open'),'select should be closed escape no preventDefault');
       assert_events([
-        'keydown on option2 at select', 'keydown on option2 at wrapper',
-        'focusout on option2 at select', 'focusout on option2 at wrapper',
-        'focusin on select at select', 'focusin on select at wrapper',
-        'keyup on select at select', 'keyup on select at wrapper'
+        'keydown on option2 at select. open: true. focused: option2.',
+        'keydown on option2 at wrapper. open: true. focused: option2.',
+        'focusout on option2 at select. open: false.',
+        'focusout on option2 at wrapper. open: false.',
+        'focusin on select at select. open: false.',
+        'focusin on select at wrapper. open: false.',
+        'keyup on select at select. open: false. focused: select.',
+        'keyup on select at wrapper. open: false. focused: select.'
       ],'escape, no preventDefault');
 
       // Re-open the picker and hit arrow-down again.
@@ -118,8 +142,10 @@
       assert_true(select.matches(':open'));
       assert_equals(select.value,'one','value has not changed');
       assert_events([
-        'keydown on option2 at select', 'keydown on option2 at wrapper',
-        'keyup on option2 at select', 'keyup on option2 at wrapper'
+        'keydown on option2 at select. open: true. focused: option2.',
+        'keydown on option2 at wrapper. open: true. focused: option2.',
+        'keyup on option2 at select. open: true. focused: option2.',
+        'keyup on option2 at wrapper. open: true. focused: option2.'
       ],'enter, with preventDefault');
 
       // Press enter to select an option, no preventDefault
@@ -127,11 +153,18 @@
       assert_false(select.matches(':open'),'select should be closed enter no preventDefault');
       assert_equals(select.value,'two');
       assert_events([
-        'keydown on option2 at select', 'keydown on option2 at wrapper',
-        'input on select at select', 'input on select at wrapper', 'change on select at select',
-        'change on select at wrapper', 'focusout on option2 at select', 'focusout on option2 at wrapper',
-        'focusin on select at select', 'focusin on select at wrapper',
-        'keyup on select at select', 'keyup on select at wrapper'
+        'keydown on option2 at select. open: true. focused: option2.',
+        'keydown on option2 at wrapper. open: true. focused: option2.',
+        'input on select at select. open: true.',
+        'input on select at wrapper. open: true.',
+        'change on select at select. open: true.',
+        'change on select at wrapper. open: true.',
+        'focusout on option2 at select. open: false.',
+        'focusout on option2 at wrapper. open: false.',
+        'focusin on select at select. open: false.',
+        'focusin on select at wrapper. open: false.',
+        'keyup on select at select. open: false. focused: select.',
+        'keyup on select at wrapper. open: false. focused: select.'
       ],'enter, no preventDefault');
 
       // Re-open the picker.
@@ -149,13 +182,20 @@
         .send();
       assert_true(select.matches(':open'),'click should be cancelled');
       assert_events([
-        'pointerdown on option1 at select', 'pointerdown on option1 at wrapper',
-        'mousedown on option1 at select', 'mousedown on option1 at wrapper',
-        'focusout on option2 at select', 'focusout on option2 at wrapper',
-        'focusin on option1 at select', 'focusin on option1 at wrapper',
-        'pointerup on option1 at select', 'pointerup on option1 at wrapper',
-        'mouseup on option1 at select', 'mouseup on option1 at wrapper',
-        'click on option1 at select', 'click on option1 at wrapper'
+        'pointerdown on option1 at select. open: true.',
+        'pointerdown on option1 at wrapper. open: true.',
+        'mousedown on option1 at select. open: true.',
+        'mousedown on option1 at wrapper. open: true.',
+        'focusout on option2 at select. open: true.',
+        'focusout on option2 at wrapper. open: true.',
+        'focusin on option1 at select. open: true.',
+        'focusin on option1 at wrapper. open: true.',
+        'pointerup on option1 at select. open: true.',
+        'pointerup on option1 at wrapper. open: true.',
+        'mouseup on option1 at select. open: true.',
+        'mouseup on option1 at wrapper. open: true.',
+        'click on option1 at select. open: true.',
+        'click on option1 at wrapper. open: true.'
       ],'click option, with preventDefault');
 
       // Click on an option, no preventDefault
@@ -167,15 +207,24 @@
         .send();
       assert_false(select.matches(':open'),'select should be closed click option no preventDefault');
       assert_events([
-        'pointerdown on option1 at select', 'pointerdown on option1 at wrapper',
-        'mousedown on option1 at select', 'mousedown on option1 at wrapper',
-        'pointerup on option1 at select', 'pointerup on option1 at wrapper',
-        'mouseup on option1 at select', 'mouseup on option1 at wrapper',
-        'input on select at select', 'input on select at wrapper',
-        'change on select at select', 'change on select at wrapper',
-        'focusout on option1 at select', 'focusout on option1 at wrapper',
-        'focusin on select at select', 'focusin on select at wrapper',
-        'click on option1 at select', 'click on option1 at wrapper'
+        'pointerdown on option1 at select. open: true.',
+        'pointerdown on option1 at wrapper. open: true.',
+        'mousedown on option1 at select. open: true.',
+        'mousedown on option1 at wrapper. open: true.',
+        'pointerup on option1 at select. open: true.',
+        'pointerup on option1 at wrapper. open: true.',
+        'mouseup on option1 at select. open: true.',
+        'mouseup on option1 at wrapper. open: true.',
+        'input on select at select. open: true.',
+        'input on select at wrapper. open: true.',
+        'change on select at select. open: true.',
+        'change on select at wrapper. open: true.',
+        'focusout on option1 at select. open: false.',
+        'focusout on option1 at wrapper. open: false.',
+        'focusin on select at select. open: false.',
+        'focusin on select at wrapper. open: false.',
+        'click on option1 at select. open: false.',
+        'click on option1 at wrapper. open: false.'
       ],'click option, no preventDefault');
     },`Events, ${wrapper.dataset.description}`);
   });

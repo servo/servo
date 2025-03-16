@@ -13,15 +13,14 @@
     await setupShardedServerState();
     const expectedCookieAndValue1 = "auth_cookie=abcdef0123";
     const expectedCookieAndAttributes1 = `${expectedCookieAndValue1};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
-    addCookieAndSessionCleanup(t, expectedCookieAndAttributes1);
     const expectedCookieAndValue2 = "other_cookie=ghijkl4567";
     const expectedCookieAndAttributes2 = `${expectedCookieAndValue2};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
-    addCookieAndSessionCleanup(t, expectedCookieAndAttributes2);
+    addCookieAndSessionCleanup(t);
 
     // Prompt starting a session, and wait until registration completes.
     const login_response = await fetch('login.py');
     assert_equals(login_response.status, 200);
-    assert_true(await waitForCookie(expectedCookieAndValue1));
+    await waitForCookie(expectedCookieAndValue1, /*expectCookie=*/true);
 
     // Confirm that a request has the cookie set.
     const auth_response = await fetch('verify_authenticated.py');

@@ -12,8 +12,7 @@
   promise_test(async t => {
     await setupShardedServerState();
     const expectedCookieAndValue = "auth_cookie=abcdef0123";
-    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
-    addCookieAndSessionCleanup(t, expectedCookieAndAttributes);
+    addCookieAndSessionCleanup(t);
 
     // Configure server send back an authorization header for registration.
     configureServer({ authorizationValue: "authcode" });
@@ -22,7 +21,7 @@
     // The server will confirm that the authorization is sent in registration.
     const login_response = await fetch('login.py');
     assert_equals(login_response.status, 200);
-    assert_true(await waitForCookie(expectedCookieAndValue));
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
 
     // Confirm that registration succeeded (cookie was set).
     const auth_response = await fetch('verify_authenticated.py');

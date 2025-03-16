@@ -8,14 +8,23 @@
   <meta name="assert" content="When the lang attribute is the empty string, use the unknown language." />
   <script type="text/javascript">
     function runTest() {
-      var canvas = document.getElementById('canvas1');
-      var ctx = canvas.getContext('2d');
+      let test_font = new FontFace(
+        // Lato-Medium is a font with language specific ligatures.
+        "Lato-Medium",
+        "url(/css/css-fonts/support/fonts/Lato-Medium.ttf)"
+      );
 
-      // An empty lang string should produce the same result as no language
-      // attribute at all, on the canvas element or document element.
-      ctx.font = '25px serif';
-      ctx.lang = '';
-      ctx.fillText('今骨直', 5, 50);
+      test_font.load().then((font) => {
+        document.fonts.add(font);
+        var canvas = document.getElementById('canvas1');
+        var ctx = canvas.getContext('2d');
+
+        // An empty lang string should produce the same result as no language
+        // attribute at all, on the canvas element or document element.
+        ctx.font = '25px Lato-Medium';
+        ctx.lang = '';
+        ctx.fillText('fi', 5, 50);
+      });
     }
   </script>
   <body onload="runTest()">
