@@ -24,6 +24,7 @@ pub mod error;
 pub mod inheritance;
 pub mod iterable;
 pub mod like;
+pub mod record;
 pub mod reflector;
 pub mod root;
 pub mod script_runtime;
@@ -51,3 +52,5 @@ pub mod codegen {
 // Since they are used in derive macros,
 // it is useful that they are accessible at the root of the crate.
 pub(crate) use js::gc::Traceable as JSTraceable;
+
+pub(crate) use crate::trace::CustomTraceable;

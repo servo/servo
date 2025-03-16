@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 
 use crossbeam_channel::Sender;
 use html5ever::interface::{Tracer as HtmlTracer, TreeSink};
-use html5ever::tokenizer::{Tokenizer, TokenSink};
+use html5ever::tokenizer::{TokenSink, Tokenizer};
 use html5ever::tree_builder::TreeBuilder;
 use indexmap::IndexMap;
 use js::glue::CallObjectTracer;
@@ -18,9 +18,9 @@ use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
 use style::author_styles::AuthorStyles;
 use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
+use tendril::TendrilSink;
 use tendril::fmt::UTF8;
 use tendril::stream::LossyDecoder;
-use tendril::TendrilSink;
 #[cfg(feature = "webxr")]
 use webxr_api::{Finger, Hand};
 use xml5ever::interface::TreeSink as XmlTreeSink;
