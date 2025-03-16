@@ -155,6 +155,7 @@ impl FragmentTree {
                     }
                 },
                 Fragment::Positioning(fragment) => fragment.borrow().rect.cast_unit(),
+                Fragment::Text(text_fragment) => text_fragment.borrow().rect,
                 _ => return None,
             };
 
