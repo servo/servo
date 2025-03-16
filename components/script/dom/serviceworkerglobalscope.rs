@@ -443,7 +443,8 @@ impl ServiceWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = enter_realm(scope);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                if let Ok(ports) = structuredclone::read(scope.upcast(), data, message.handle_mut())
+                if let Ok(ports) =
+                    structuredclone::read(scope.upcast(), *data, message.handle_mut())
                 {
                     ExtendableMessageEvent::dispatch_jsval(
                         target,
