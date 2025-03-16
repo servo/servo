@@ -466,6 +466,7 @@ pub(crate) mod paintrenderingcontext2d;
 pub(crate) mod paintsize;
 pub(crate) mod paintworkletglobalscope;
 pub(crate) mod pannernode;
+pub(crate) mod path2d;
 pub(crate) mod performance;
 #[allow(dead_code)]
 pub(crate) mod performanceentry;

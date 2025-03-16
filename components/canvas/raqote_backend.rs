@@ -813,6 +813,32 @@ impl GenericPathBuilder for PathBuilder {
         });
     }
 
+    fn svg_arc(
+        &mut self,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        large_arc: bool,
+        sweep: bool,
+        end_point: Point2D<f32>,
+    ) {
+        let Some(start) = self.get_current_point() else {
+            return;
+        };
+
+        let arc = lyon_geom::SvgArc {
+            from: start,
+            to: end_point,
+            radii: lyon_geom::vector(radius_x, radius_y),
+            x_rotation: lyon_geom::Angle::degrees(rotation_angle),
+            flags: lyon_geom::ArcFlags { large_arc, sweep },
+        };
+
+        arc.for_each_quadratic_bezier(&mut |q| {
+            self.quadratic_curve_to(&q.ctrl, &q.to);
+        });
+    }
+
     fn get_current_point(&mut self) -> Option<Point2D<f32>> {
         let path = self.finish();
         self.0 = Some(path.as_raqote().clone().into());

@@ -215,6 +215,9 @@ def uncomment(line):
 
 
 def is_apache_licensed(header):
+    if "SPDX-License-Identifier: Apache-2.0 OR MIT" in header:
+        return True
+
     if APACHE in header:
         return any(c in header for c in COPYRIGHT)
 
