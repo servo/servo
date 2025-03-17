@@ -457,7 +457,7 @@ impl Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#potentially-scrollable
-    fn is_potentially_scrollable_body(&self, can_gc: CanGc) -> bool {
+    pub(crate) fn is_potentially_scrollable_body(&self, can_gc: CanGc) -> bool {
         let node = self.upcast::<Node>();
         debug_assert!(
             node.owner_doc().GetBody().as_deref() == self.downcast::<HTMLElement>(),

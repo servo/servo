@@ -204,6 +204,11 @@ partial interface Document {
 
 Document includes DocumentOrShadowRoot;
 
+// https://drafts.csswg.org/cssom-view/#extensions-to-the-document-interface
+partial interface Document {
+  readonly attribute Element? scrollingElement;
+};
+
 // https://w3c.github.io/selection-api/#dom-document
 partial interface Document {
   Selection? getSelection();
