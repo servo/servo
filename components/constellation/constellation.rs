@@ -113,7 +113,7 @@ use constellation_traits::{
     AnimationTickType, CompositorHitTestResult, ConstellationMsg as FromCompositorMsg, LogEntry,
     PaintMetricEvent, ScrollState, TraversalDirection, WindowSizeData, WindowSizeType,
 };
-use crossbeam_channel::{Receiver, Sender, select, unbounded};
+use crossbeam_channel::{Receiver, Select, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg,
@@ -171,6 +171,7 @@ use crate::browsingcontext::{
 };
 use crate::event_loop::EventLoop;
 use crate::pipeline::{InitialPipelineState, Pipeline};
+use crate::process_manager::ProcessManager;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{
     JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
@@ -472,6 +473,9 @@ pub struct Constellation<STF, SWF> {
 
     /// User content manager
     user_content_manager: UserContentManager,
+
+    /// The process manager.
+    process_manager: ProcessManager,
 }
 
 /// State needed to construct a constellation.
@@ -740,6 +744,7 @@ where
                     active_media_session: None,
                     rippy_data,
                     user_content_manager: state.user_content_manager,
+                    process_manager: ProcessManager::new(),
                 };
 
                 constellation.run();
@@ -1004,6 +1009,12 @@ where
             );
         }
 
+        if let Some((lifeline_receiver, process)) = pipeline.lifeline {
+            let crossbeam_receiver =
+                route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(lifeline_receiver);
+            self.process_manager.add(crossbeam_receiver, process);
+        }
+
         assert!(!self.pipelines.contains_key(&pipeline_id));
         self.pipelines.insert(pipeline_id, pipeline.pipeline);
     }
@@ -1122,6 +1133,7 @@ where
             BackgroundHangMonitor(HangMonitorAlert),
             Compositor(FromCompositorMsg),
             FromSWManager(SWManagerMsg),
+            RemoveProcess(usize),
         }
         // Get one incoming request.
         // This is one of the few places where the compositor is
@@ -1134,26 +1146,49 @@ where
         // produces undefined behaviour, resulting in the destructor
         // being called. If this happens, there's not much we can do
         // other than panic.
+        let mut sel = Select::new();
+        sel.recv(&self.namespace_receiver);
+        sel.recv(&self.script_receiver);
+        sel.recv(&self.background_hang_monitor_receiver);
+        sel.recv(&self.compositor_receiver);
+        sel.recv(&self.swmanager_receiver);
+
+        self.process_manager.register(&mut sel);
+
         let request = {
+            let oper = sel.select();
+            let index = oper.index();
+
             #[cfg(feature = "tracing")]
             let _span =
                 tracing::trace_span!("handle_request::select", servo_profiling = true).entered();
-            select! {
-                recv(self.namespace_receiver) -> msg => {
-                    msg.expect("Unexpected script channel panic in constellation").map(Request::PipelineNamespace)
-                }
-                recv(self.script_receiver) -> msg => {
-                    msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
-                }
-                recv(self.background_hang_monitor_receiver) -> msg => {
-                    msg.expect("Unexpected BHM channel panic in constellation").map(Request::BackgroundHangMonitor)
-                }
-                recv(self.compositor_receiver) -> msg => {
-                    Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")))
-                }
-                recv(self.swmanager_receiver) -> msg => {
-                    msg.expect("Unexpected SW channel panic in constellation").map(Request::FromSWManager)
-                }
+            match index {
+                0 => oper
+                    .recv(&self.namespace_receiver)
+                    .expect("Unexpected script channel panic in constellation")
+                    .map(Request::PipelineNamespace),
+                1 => oper
+                    .recv(&self.script_receiver)
+                    .expect("Unexpected script channel panic in constellation")
+                    .map(Request::Script),
+                2 => oper
+                    .recv(&self.background_hang_monitor_receiver)
+                    .expect("Unexpected BHM channel panic in constellation")
+                    .map(Request::BackgroundHangMonitor),
+                3 => Ok(Request::Compositor(
+                    oper.recv(&self.compositor_receiver)
+                        .expect("Unexpected compositor channel panic in constellation"),
+                )),
+                4 => oper
+                    .recv(&self.swmanager_receiver)
+                    .expect("Unexpected SW channel panic in constellation")
+                    .map(Request::FromSWManager),
+                _ => {
+                    // This can only be a error reading on a closed lifeline receiver.
+                    let process_index = index - 5;
+                    let _ = oper.recv(self.process_manager.receiver_at(process_index));
+                    Ok(Request::RemoveProcess(process_index))
+                },
             }
         };
 
@@ -1176,6 +1211,7 @@ where
             Request::FromSWManager(message) => {
                 self.handle_request_from_swmanager(message);
             },
+            Request::RemoveProcess(index) => self.process_manager.remove(index),
         }
     }
 
@@ -2396,13 +2432,24 @@ where
                     own_sender: own_sender.clone(),
                     receiver,
                 };
-                let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin);
 
                 if opts::get().multiprocess {
-                    if content.spawn_multiprocess().is_err() {
+                    let (sender, receiver) =
+                        ipc::channel().expect("Failed to create lifeline channel for sw");
+                    let content =
+                        ServiceWorkerUnprivilegedContent::new(sw_senders, origin, Some(sender));
+
+                    if let Ok(process) = content.spawn_multiprocess() {
+                        let crossbeam_receiver =
+                            route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
+                                receiver,
+                            );
+                        self.process_manager.add(crossbeam_receiver, process);
+                    } else {
                         return warn!("Failed to spawn process for SW manager.");
                     }
                 } else {
+                    let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin, None);
                     content.start::<SWF>();
                 }
                 entry.insert(own_sender)

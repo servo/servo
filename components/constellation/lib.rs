@@ -12,6 +12,7 @@ mod constellation;
 mod event_loop;
 mod logging;
 mod pipeline;
+mod process_manager;
 mod sandboxing;
 mod serviceworker;
 mod session_history;
