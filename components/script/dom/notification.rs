@@ -253,9 +253,7 @@ impl Notification {
 
     /// <https://notifications.spec.whatwg.org/#notification-show-steps>
     fn show(&self) {
-        // step 3: set shown to false
-        let _shown = false;
-
+        // TODO: step 3: set shown to false
         // TODO: step 4: Let oldNotification be the notification in the list of notifications
         //               whose tag is not the empty string and is notification’s tag,
         //               and whose origin is same origin with notification’s origin,
