@@ -889,7 +889,8 @@ impl ReadableByteStreamController {
 
                 // Perform ! ReadableByteStreamControllerError(controller, e).
                 rooted!(in(*cx) let mut error = UndefinedValue());
-                e.clone().to_jsval(cx, &self.global(), error.handle_mut(), can_gc);
+                e.clone()
+                    .to_jsval(cx, &self.global(), error.handle_mut(), can_gc);
                 self.error(error.handle(), can_gc);
 
                 // Throw e.
