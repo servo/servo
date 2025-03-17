@@ -20,7 +20,6 @@ use atomic_refcell::AtomicRefCell;
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
-use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use euclid::Size2D;
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
@@ -120,7 +119,7 @@ pub enum LayoutElementType {
 
 pub enum HTMLCanvasDataSource {
     WebGL(ImageKey),
-    Image((ImageKey, CanvasId, IpcSender<CanvasMsg>)),
+    Image(ImageKey),
     WebGPU(ImageKey),
     /// transparent black
     Empty,

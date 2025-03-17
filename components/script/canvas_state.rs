@@ -221,6 +221,18 @@ impl CanvasState {
             .unwrap()
     }
 
+    /// Updates WR image and blocks on completion
+    pub(crate) fn update_rendering(&self) {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_renderer
+            .send(CanvasMsg::Canvas2d(
+                Canvas2dMsg::UpdateImage(sender),
+                self.canvas_id,
+            ))
+            .unwrap();
+        receiver.recv().unwrap();
+    }
+
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
     pub(crate) fn set_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.reset_to_initial_state();
