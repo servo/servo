@@ -798,7 +798,7 @@ dependencies = [
  "range",
  "raqote",
  "servo_arc",
- "style",
+ "stylo",
  "surfman",
  "unicode-script",
  "webrender",
@@ -823,7 +823,7 @@ dependencies = [
  "serde_bytes",
  "servo_config",
  "servo_malloc_size_of",
- "style",
+ "stylo",
  "webrender_api",
  "webxr-api",
 ]
@@ -1065,7 +1065,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -1100,7 +1100,7 @@ dependencies = [
  "script_traits",
  "servo_config",
  "servo_geometry",
- "style_traits",
+ "stylo_traits",
  "surfman",
  "tracing",
  "webrender",
@@ -1124,7 +1124,7 @@ dependencies = [
  "script_traits",
  "servo_url",
  "strum_macros",
- "style_traits",
+ "stylo_traits",
  "webrender_api",
  "webrender_traits",
 ]
@@ -1169,7 +1169,7 @@ dependencies = [
  "servo_config",
  "servo_rand",
  "servo_url",
- "style_traits",
+ "stylo_traits",
  "tracing",
  "webgpu",
  "webrender",
@@ -1907,7 +1907,7 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "strum_macros",
- "style_traits",
+ "stylo_traits",
  "url",
  "webdriver",
  "webrender_api",
@@ -2190,7 +2190,7 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "smallvec",
- "style",
+ "stylo",
  "stylo_atoms",
  "tracing",
  "truetype",
@@ -4175,8 +4175,8 @@ dependencies = [
  "servo_config",
  "servo_geometry",
  "servo_url",
- "style",
- "style_traits",
+ "stylo",
+ "stylo_traits",
  "taffy",
  "tracing",
  "unicode-bidi",
@@ -4214,9 +4214,9 @@ dependencies = [
  "servo_config",
  "servo_malloc_size_of",
  "servo_url",
- "style",
- "style_traits",
+ "stylo",
  "stylo_atoms",
+ "stylo_traits",
  "tracing",
  "url",
  "webrender_api",
@@ -4290,7 +4290,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -4361,8 +4361,8 @@ dependencies = [
  "servo_config",
  "servo_geometry",
  "servo_url",
- "style",
- "style_traits",
+ "stylo",
+ "stylo_traits",
  "surfman",
  "tracing",
  "url",
@@ -4465,23 +4465,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62bb907fe88d54d8d9ce32a3cceab4218ed2f6b7d35617cafe9adf84e43919cb"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "malloc_size_of"
-version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
-dependencies = [
- "app_units",
- "cssparser",
- "euclid",
- "selectors",
- "servo_arc",
- "smallbitvec",
- "smallvec",
- "string_cache",
- "thin-vec",
- "void",
 ]
 
 [[package]]
@@ -6324,7 +6307,6 @@ dependencies = [
  "keyboard-types",
  "libc",
  "log",
- "malloc_size_of",
  "malloc_size_of_derive",
  "media",
  "metrics",
@@ -6361,10 +6343,11 @@ dependencies = [
  "smallvec",
  "strum",
  "strum_macros",
- "style",
- "style_traits",
+ "stylo",
  "stylo_atoms",
  "stylo_dom",
+ "stylo_malloc_size_of",
+ "stylo_traits",
  "swapper",
  "tempfile",
  "tendril",
@@ -6408,7 +6391,7 @@ dependencies = [
  "servo_config",
  "servo_malloc_size_of",
  "smallvec",
- "style",
+ "stylo",
  "stylo_atoms",
  "tendril",
  "webxr-api",
@@ -6442,8 +6425,8 @@ dependencies = [
  "servo_arc",
  "servo_malloc_size_of",
  "servo_url",
- "style",
- "style_traits",
+ "stylo",
+ "stylo_traits",
  "webrender_api",
  "webrender_traits",
 ]
@@ -6488,8 +6471,8 @@ dependencies = [
  "servo_url",
  "strum",
  "strum_macros",
- "style_traits",
  "stylo_atoms",
+ "stylo_traits",
  "uuid",
  "webdriver",
  "webgpu",
@@ -6514,7 +6497,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.26.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
 dependencies = [
  "bitflags 2.9.0",
  "cssparser",
@@ -6799,7 +6782,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -6850,14 +6833,14 @@ dependencies = [
  "indexmap",
  "ipc-channel",
  "keyboard-types",
- "malloc_size_of",
  "markup5ever",
  "servo_allocator",
  "servo_arc",
  "smallvec",
  "string_cache",
- "style",
+ "stylo",
  "stylo_dom",
+ "stylo_malloc_size_of",
  "thin-vec",
  "tokio",
  "url",
@@ -7229,9 +7212,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "style"
+name = "style_tests"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
+dependencies = [
+ "app_units",
+ "cssparser",
+ "euclid",
+ "html5ever",
+ "rayon",
+ "selectors",
+ "serde_json",
+ "servo_arc",
+ "stylo",
+ "stylo_atoms",
+ "stylo_traits",
+ "url",
+]
+
+[[package]]
+name = "stylo"
+version = "0.0.1"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -7249,7 +7250,6 @@ dependencies = [
  "itoa",
  "lazy_static",
  "log",
- "malloc_size_of",
  "malloc_size_of_derive",
  "markup5ever",
  "matches",
@@ -7270,12 +7270,13 @@ dependencies = [
  "smallvec",
  "static_assertions",
  "string_cache",
- "style_derive",
- "style_traits",
  "stylo_atoms",
  "stylo_config",
+ "stylo_derive",
  "stylo_dom",
+ "stylo_malloc_size_of",
  "stylo_static_prefs",
+ "stylo_traits",
  "thin-vec",
  "to_shmem",
  "to_shmem_derive",
@@ -7287,9 +7288,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "style_derive"
+name = "stylo_atoms"
+version = "0.1.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+dependencies = [
+ "string_cache",
+ "string_cache_codegen",
+]
+
+[[package]]
+name = "stylo_config"
+version = "0.1.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+
+[[package]]
+name = "stylo_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7299,71 +7314,56 @@ dependencies = [
 ]
 
 [[package]]
-name = "style_tests"
-version = "0.0.1"
-dependencies = [
- "app_units",
- "cssparser",
- "euclid",
- "html5ever",
- "rayon",
- "selectors",
- "serde_json",
- "servo_arc",
- "style",
- "style_traits",
- "stylo_atoms",
- "url",
-]
-
-[[package]]
-name = "style_traits"
-version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
-dependencies = [
- "app_units",
- "bitflags 2.9.0",
- "cssparser",
- "euclid",
- "malloc_size_of",
- "malloc_size_of_derive",
- "selectors",
- "serde",
- "servo_arc",
- "stylo_atoms",
- "thin-vec",
- "to_shmem",
- "to_shmem_derive",
- "url",
-]
-
-[[package]]
-name = "stylo_atoms"
-version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
-dependencies = [
- "string_cache",
- "string_cache_codegen",
-]
-
-[[package]]
-name = "stylo_config"
-version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
-
-[[package]]
 name = "stylo_dom"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
 dependencies = [
  "bitflags 2.9.0",
- "malloc_size_of",
+ "stylo_malloc_size_of",
+]
+
+[[package]]
+name = "stylo_malloc_size_of"
+version = "0.0.1"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+dependencies = [
+ "app_units",
+ "cssparser",
+ "euclid",
+ "selectors",
+ "servo_arc",
+ "smallbitvec",
+ "smallvec",
+ "string_cache",
+ "thin-vec",
+ "void",
 ]
 
 [[package]]
 name = "stylo_static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+
+[[package]]
+name = "stylo_traits"
+version = "0.0.1"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+dependencies = [
+ "app_units",
+ "bitflags 2.9.0",
+ "cssparser",
+ "euclid",
+ "malloc_size_of_derive",
+ "selectors",
+ "serde",
+ "servo_arc",
+ "stylo_atoms",
+ "stylo_malloc_size_of",
+ "thin-vec",
+ "to_shmem",
+ "to_shmem_derive",
+ "url",
+]
 
 [[package]]
 name = "subtle"
@@ -7730,7 +7730,7 @@ dependencies = [
 [[package]]
 name = "to_shmem"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -7743,7 +7743,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#6aa5733a36de47b6f22879ee664266a1d59877d4"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -8522,7 +8522,7 @@ dependencies = [
  "serde_json",
  "servo_config",
  "servo_url",
- "style_traits",
+ "stylo_traits",
  "uuid",
  "webdriver",
 ]
@@ -8638,7 +8638,7 @@ dependencies = [
  "serde",
  "servo-media",
  "servo_geometry",
- "style",
+ "stylo",
  "surfman",
  "webrender_api",
 ]
@@ -8819,7 +8819,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
