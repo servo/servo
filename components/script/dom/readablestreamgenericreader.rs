@@ -103,6 +103,7 @@ pub(crate) trait ReadableStreamGenericReader {
                     cx,
                     &stream.global(),
                     error.handle_mut(),
+                    can_gc,
                 );
 
                 self.set_closed_promise(Promise::new_rejected(

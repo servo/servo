@@ -225,7 +225,7 @@ impl Promise {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut v = UndefinedValue());
-        error.to_jsval(cx, &self.global(), v.handle_mut());
+        error.to_jsval(cx, &self.global(), v.handle_mut(), can_gc);
         self.reject(cx, v.handle(), can_gc);
     }
 

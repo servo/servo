@@ -552,7 +552,7 @@ impl ReadableStreamDefaultController {
             // TODO: check if `self.global()` is the right globalscope.
             error
                 .clone()
-                .to_jsval(cx, &self.global(), rval.handle_mut());
+                .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
             let promise = Promise::new(&global, can_gc);
             promise.reject_native(&rval.handle(), can_gc);
             promise
@@ -589,7 +589,7 @@ impl ReadableStreamDefaultController {
             // TODO: check if `self.global()` is the right globalscope.
             error
                 .clone()
-                .to_jsval(cx, &self.global(), rval.handle_mut());
+                .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
             let promise = Promise::new(&global, can_gc);
             promise.reject_native(&rval.handle(), can_gc);
             promise

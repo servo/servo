@@ -178,6 +178,7 @@ impl ReadableStreamBYOBReader {
             cx,
             &self.global(),
             error.handle_mut(),
+            can_gc,
         );
 
         // Perform ! ReadableStreamBYOBReaderErrorReadIntoRequests(reader, e).

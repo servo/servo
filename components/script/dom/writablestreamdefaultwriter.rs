@@ -363,7 +363,7 @@ impl WritableStreamDefaultWriter {
 
         // Root the js val of the error.
         rooted!(in(*cx) let mut error = UndefinedValue());
-        released_error.to_jsval(cx, global, error.handle_mut());
+        released_error.to_jsval(cx, global, error.handle_mut(), can_gc);
 
         // Perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, releasedError).
         self.ensure_ready_promise_rejected(global, error.handle(), can_gc);

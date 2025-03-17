@@ -275,18 +275,18 @@ pub(crate) fn throw_constructor_without_new(cx: SafeJSContext, name: &str) {
 }
 
 pub(crate) trait ErrorToJsval {
-    fn to_jsval(self, cx: SafeJSContext, global: &GlobalScope, rval: MutableHandleValue);
+    fn to_jsval(self, cx: SafeJSContext, global: &GlobalScope, rval: MutableHandleValue, can_gc: CanGc);
 }
 
 impl ErrorToJsval for Error {
     /// Convert this error value to a JS value, consuming it in the process.
     #[allow(clippy::wrong_self_convention)]
-    fn to_jsval(self, cx: SafeJSContext, global: &GlobalScope, rval: MutableHandleValue) {
+    fn to_jsval(self, cx: SafeJSContext, global: &GlobalScope, rval: MutableHandleValue, can_gc: CanGc) {
         match self {
             Error::JSFailed => (),
             _ => unsafe { assert!(!JS_IsExceptionPending(*cx)) },
         }
-        throw_dom_exception(cx, global, self, CanGc::note());
+        throw_dom_exception(cx, global, self, can_gc);
         unsafe {
             assert!(JS_IsExceptionPending(*cx));
             assert!(JS_GetPendingException(*cx, rval));

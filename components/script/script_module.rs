@@ -78,7 +78,7 @@ use crate::task::TaskBox;
 
 fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
-    Error::Type(string).to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut());
+    Error::Type(string).to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut(), CanGc::note());
 
     RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
 }
