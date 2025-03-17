@@ -417,6 +417,7 @@ impl ReadableByteStreamController {
                             cx,
                             &self.global(),
                             error.handle_mut(),
+                            can_gc,
                         );
 
                         // Perform ! ReadableByteStreamControllerError(controller, e).
@@ -449,7 +450,7 @@ impl ReadableByteStreamController {
                 rooted!(in(*cx) let mut rval = UndefinedValue());
                 error
                     .clone()
-                    .to_jsval(cx, &self.global(), rval.handle_mut());
+                    .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
                 read_into_request.error_steps(rval.handle(), can_gc);
 
                 // Return.
@@ -888,7 +889,8 @@ impl ReadableByteStreamController {
 
                 // Perform ! ReadableByteStreamControllerError(controller, e).
                 rooted!(in(*cx) let mut error = UndefinedValue());
-                e.clone().to_jsval(cx, &self.global(), error.handle_mut());
+                e.clone()
+                    .to_jsval(cx, &self.global(), error.handle_mut(), can_gc);
                 self.error(error.handle(), can_gc);
 
                 // Throw e.
@@ -1451,7 +1453,7 @@ impl ReadableByteStreamController {
             let error = Error::Type("can not clone array buffer".to_owned());
             error
                 .clone()
-                .to_jsval(cx, &self.global(), rval.handle_mut());
+                .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
             self.error(rval.handle(), can_gc);
 
             // Return cloneResult.
@@ -1622,7 +1624,7 @@ impl ReadableByteStreamController {
                 // TODO: check if `self.global()` is the right globalscope.
                 error
                     .clone()
-                    .to_jsval(cx, &self.global(), rval.handle_mut());
+                    .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
                 let promise = Promise::new(&global, can_gc);
                 promise.reject_native(&rval.handle(), can_gc);
                 promise
@@ -1809,7 +1811,7 @@ impl ReadableByteStreamController {
             // TODO: check if `self.global()` is the right globalscope.
             error
                 .clone()
-                .to_jsval(cx, &self.global(), rval.handle_mut());
+                .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
             let promise = Promise::new(&global, can_gc);
             promise.reject_native(&rval.handle(), can_gc);
             promise
@@ -1890,7 +1892,7 @@ impl ReadableByteStreamController {
                     rooted!(in(*cx) let mut rval = UndefinedValue());
                     error
                         .clone()
-                        .to_jsval(cx, &self.global(), rval.handle_mut());
+                        .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
                     read_request.error_steps(rval.handle(), can_gc);
 
                     // Return.

@@ -451,7 +451,7 @@ impl ReadableStream {
     pub(crate) fn error_native(&self, error: Error, can_gc: CanGc) {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error_val = UndefinedValue());
-        error.to_jsval(cx, &self.global(), error_val.handle_mut());
+        error.to_jsval(cx, &self.global(), error_val.handle_mut(), can_gc);
         self.error(error_val.handle(), can_gc);
     }
 
