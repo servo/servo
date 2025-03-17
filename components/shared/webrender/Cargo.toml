@@ -29,7 +29,7 @@ webrender_api = { workspace = true }
 serde = { workspace = true }
 servo_geometry = { path = "../../geometry" }
 servo-media = { workspace = true }
-style = { workspace = true }
+stylo = { workspace = true }
 surfman = { workspace = true, features = ["sm-x11"] }
 raw-window-handle = { version = "0.6" }
 dpi = { version = "0.1" }

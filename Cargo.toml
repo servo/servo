@@ -124,7 +124,7 @@ serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
-servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-03-15", features = ["servo"] }
+servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
 stylo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
 smallbitvec = "2.6.0"
 smallvec = "1.14"
@@ -133,11 +133,11 @@ string_cache = "0.8"
 string_cache_codegen = "0.5"
 strum = "0.26"
 strum_macros = "0.26"
-style = { git = "https://github.com/servo/stylo", branch = "2025-03-15", features = ["servo"], package = "stylo" }
+stylo = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
 stylo_config = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
 stylo_dom = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
-style_malloc_size_of = { package = "stylo_malloc_size_of", git = "https://github.com/servo/stylo", branch = "2025-03-15", features = ["servo"] }
-style_traits = { git = "https://github.com/servo/stylo", branch = "2025-03-15", features = ["servo"], package = "stylo_traits" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
+stylo_traits = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
 surfman = { git = "https://github.com/servo/surfman", rev = "f7688b4585f9e0b5d4bf8ee8e4a91e82349610b1", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
@@ -217,11 +217,11 @@ codegen-units = 1
 # selectors = { path = "../stylo/selectors" }
 # servo_arc = { path = "../stylo/servo_arc" }
 # stylo_atoms = { path = "../stylo/stylo_atoms" }
-# style = { path = "../stylo/style", package = "stylo" }
+# stylo = { path = "../stylo/style" }
 # stylo_config = { path = "../stylo/stylo_config" }
 # stylo_dom = { path = "../stylo/stylo_dom" }
-# style_malloc_size_of = { path = "../stylo/malloc_size_of", package = "stylo_malloc_size_of" }
-# style_traits = { path = "../stylo/style_traits", package = "stylo_traits" }
+# stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
+# stylo_traits = { path = "../stylo/style_traits" }
 #
 # Or for WebRender:
 #

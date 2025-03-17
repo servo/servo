@@ -18,6 +18,7 @@ webgl_backtrace = []
 base = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
+glow = { workspace = true }
 ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
@@ -25,7 +26,6 @@ pixels = { path = "../../pixels" }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 servo_config = { path = "../../config" }
-glow = { workspace = true }
-style = { workspace = true }
+stylo = { workspace = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"] }

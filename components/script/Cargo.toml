@@ -111,13 +111,13 @@ servo_geometry = { path = "../geometry" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
-style_malloc_size_of = { workspace = true }
+stylo_malloc_size_of = { workspace = true }
 glow = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
-style = { workspace = true }
+stylo = { workspace = true }
 stylo_dom = { workspace = true }
-style_traits = { workspace = true }
+stylo_traits = { workspace = true }
 swapper = "0.1"
 tempfile = "3"
 tendril = { version = "0.4.1", features = ["encoding_rs"] }

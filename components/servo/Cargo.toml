@@ -98,8 +98,8 @@ servo-media-gstreamer = { workspace = true, optional = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
-style = { workspace = true }
-style_traits = { workspace = true }
+stylo = { workspace = true }
+stylo_traits = { workspace = true }
 surfman = { workspace = true }
 tracing = { workspace = true, optional = true }
 url = { workspace = true }
