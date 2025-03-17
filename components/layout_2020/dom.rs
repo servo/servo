@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::marker::PhantomData;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use base::id::{BrowsingContextId, PipelineId};
@@ -155,9 +155,7 @@ where
         let canvas_data = node.canvas_data()?;
         let source = match canvas_data.source {
             HTMLCanvasDataSource::WebGL(texture_id) => CanvasSource::WebGL(texture_id),
-            HTMLCanvasDataSource::Image((image_key, canvas_id, ipc_sender)) => {
-                CanvasSource::Image((image_key, canvas_id, Arc::new(Mutex::new(ipc_sender))))
-            },
+            HTMLCanvasDataSource::Image(image_key) => CanvasSource::Image(image_key),
             HTMLCanvasDataSource::WebGPU(image_key) => CanvasSource::WebGPU(image_key),
             HTMLCanvasDataSource::Empty => CanvasSource::Empty,
         };

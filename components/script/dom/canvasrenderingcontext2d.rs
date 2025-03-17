@@ -116,11 +116,7 @@ impl CanvasRenderingContext2D {
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
     fn canvas_data_source(self) -> HTMLCanvasDataSource {
         let canvas_state = &self.unsafe_get().canvas_state;
-        HTMLCanvasDataSource::Image((
-            canvas_state.image_key(),
-            canvas_state.get_canvas_id(),
-            canvas_state.get_ipc_renderer().clone(),
-        ))
+        HTMLCanvasDataSource::Image(canvas_state.image_key())
     }
 }
 
@@ -133,6 +129,10 @@ impl CanvasContext for CanvasRenderingContext2D {
 
     fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
         self.canvas.clone()
+    }
+
+    fn update_rendering(&self) {
+        self.canvas_state.update_rendering();
     }
 
     fn resize(&self) {

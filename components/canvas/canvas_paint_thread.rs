@@ -79,12 +79,6 @@ impl<'a> CanvasPaintThread<'a> {
                                         canvas_paint_thread.canvas(canvas_id).send_pixels(chan);
                                     },
                                 },
-                                Ok(CanvasMsg::FromLayout(message, canvas_id)) => match message {
-                                    FromLayoutMsg::UpdateImage(sender) => {
-                                        canvas_paint_thread.canvas(canvas_id).update_image_rendering();
-                                        sender.send(()).unwrap();
-                                    },
-                                },
                                 Err(e) => {
                                     warn!("Error on CanvasPaintThread receive ({})", e);
                                 },
@@ -255,6 +249,10 @@ impl<'a> CanvasPaintThread<'a> {
             },
             Canvas2dMsg::SetTextBaseline(text_baseline) => {
                 self.canvas(canvas_id).set_text_baseline(text_baseline)
+            },
+            Canvas2dMsg::UpdateImage(sender) => {
+                self.canvas(canvas_id).update_image_rendering();
+                sender.send(()).unwrap();
             },
         }
     }
