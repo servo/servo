@@ -387,7 +387,7 @@ impl PipeTo {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        // An early return is necessary if we are shutting down, 
+        // An early return is necessary if we are shutting down,
         // because in that case the source can already have been set to none.
         if self.shutting_down.get() {
             return;
@@ -430,7 +430,7 @@ impl PipeTo {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        // An early return is necessary if we are shutting down, 
+        // An early return is necessary if we are shutting down,
         // because in that case the destination can already have been set to none.
         if self.shutting_down.get() {
             return;
@@ -473,7 +473,7 @@ impl PipeTo {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        // An early return is necessary if we are shutting down, 
+        // An early return is necessary if we are shutting down,
         // because in that case the source can already have been set to none.
         if self.shutting_down.get() {
             return;
@@ -512,7 +512,7 @@ impl PipeTo {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        // An early return is necessary if we are shutting down, 
+        // An early return is necessary if we are shutting down,
         // because in that case the destination can already have been set to none.
         if self.shutting_down.get() {
             return;
