@@ -20,7 +20,7 @@ use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
-use log::{debug, warn};
+use log::{debug, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
@@ -496,7 +496,7 @@ where
     let mut string_buffer: String = String::new();
     match file.read_to_string(&mut string_buffer) {
         Err(why) => panic!("couldn't read from {}: {}", display, why),
-        Ok(_) => debug!("successfully read from {}", display),
+        Ok(_) => trace!("successfully read from {}", display),
     }
 
     match serde_json::from_str(&string_buffer) {
@@ -523,7 +523,7 @@ where
 
     match file.write_all(json_encoded.as_bytes()) {
         Err(why) => panic!("couldn't write to {}: {}", display, why),
-        Ok(_) => debug!("successfully wrote to {}", display),
+        Ok(_) => trace!("successfully wrote to {}", display),
     }
 }
 
