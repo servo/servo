@@ -7,7 +7,6 @@ use std::iter::FromIterator;
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use tower_service::Service;
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{HistoryStateId, PipelineId};
@@ -66,6 +65,7 @@ use tokio::sync::mpsc::{
     unbounded_channel,
 };
 use tokio_stream::wrappers::ReceiverStream;
+use tower_service::Service;
 
 use crate::async_runtime::HANDLE;
 use crate::connector::{CertificateErrorOverrideManager, Connector};
@@ -103,8 +103,7 @@ pub struct HttpState {
     pub http_cache_state: HttpCacheState,
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
-    pub client: Box<dyn Service<Uri>>,
-    //Client<Connector, crate::connector::BoxedBody>,
+    pub client: Client<hyper_http_proxy::ProxyConnector<Connector>, crate::connector::BoxedBody>,
     pub override_manager: CertificateErrorOverrideManager,
     pub embedder_proxy: Mutex<EmbedderProxy>,
 }
@@ -517,7 +516,7 @@ impl BodySink {
 
 #[allow(clippy::too_many_arguments)]
 async fn obtain_response(
-    client: &Client<Connector, crate::connector::BoxedBody>,
+    client: &Client<hyper_http_proxy::ProxyConnector<Connector>, crate::connector::BoxedBody>,
     url: &ServoUrl,
     method: &Method,
     request_headers: &mut HeaderMap,

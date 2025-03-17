@@ -148,6 +148,7 @@ fn get_preferences(opts_matches: &Matches, config_dir: &Option<PathBuf>) -> Pref
         };
 
     let mut preferences = Preferences::default();
+    preferences.network_proxy_uri = String::from("http://127.0.0.1:3128");
     apply_preferences(&mut preferences, user_prefs_hash);
     for pref_file_path in opts_matches.opt_strs("prefs-file").iter() {
         apply_preferences(&mut preferences, read_prefs_file(pref_file_path))

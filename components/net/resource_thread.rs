@@ -39,6 +39,7 @@ use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use url::Url;
 
 use crate::async_runtime::HANDLE;
 use crate::connector::{
@@ -78,6 +79,7 @@ pub fn new_resource_threads(
     config_dir: Option<PathBuf>,
     certificate_path: Option<String>,
     ignore_certificate_errors: bool,
+    http_proxy_uri: Option<hyper::Uri>,
     protocols: Arc<ProtocolRegistry>,
 ) -> (ResourceThreads, ResourceThreads) {
     let ca_certificates = match certificate_path {
@@ -99,6 +101,7 @@ pub fn new_resource_threads(
         config_dir.clone(),
         ca_certificates,
         ignore_certificate_errors,
+        http_proxy_uri,
         protocols,
     );
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
@@ -118,6 +121,7 @@ pub fn new_core_resource_thread(
     config_dir: Option<PathBuf>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
+    http_proxy_uri: Option<hyper::Uri>,
     protocols: Arc<ProtocolRegistry>,
 ) -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
@@ -150,6 +154,7 @@ pub fn new_core_resource_thread(
                         private_setup_port,
                         report_port,
                         protocols,
+                        http_proxy_uri,
                         embedder_proxy,
                     )
                 },
@@ -174,6 +179,7 @@ fn create_http_states(
     config_dir: Option<&Path>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
+    http_proxy_uri: Option<hyper::Uri>,
     embedder_proxy: EmbedderProxy,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::from_servo_preload();
@@ -194,11 +200,14 @@ fn create_http_states(
         history_states: RwLock::new(HashMap::new()),
         http_cache: RwLock::new(http_cache),
         http_cache_state: Mutex::new(HashMap::new()),
-        client: create_http_client(create_tls_config(
-            ca_certificates.clone(),
-            ignore_certificate_errors,
-            override_manager.clone(),
-        )),
+        client: create_http_client(
+            http_proxy_uri.clone(),
+            create_tls_config(
+                ca_certificates.clone(),
+                ignore_certificate_errors,
+                override_manager.clone(),
+            ),
+        ),
         override_manager,
         embedder_proxy: Mutex::new(embedder_proxy.clone()),
     };
@@ -211,11 +220,14 @@ fn create_http_states(
         history_states: RwLock::new(HashMap::new()),
         http_cache: RwLock::new(HttpCache::default()),
         http_cache_state: Mutex::new(HashMap::new()),
-        client: create_http_client(create_tls_config(
-            ca_certificates,
-            ignore_certificate_errors,
-            override_manager.clone(),
-        )),
+        client: create_http_client(
+            http_proxy_uri,
+            create_tls_config(
+                ca_certificates,
+                ignore_certificate_errors,
+                override_manager.clone(),
+            ),
+        ),
         override_manager,
         embedder_proxy: Mutex::new(embedder_proxy),
     };
@@ -231,12 +243,14 @@ impl ResourceChannelManager {
         private_receiver: IpcReceiver<CoreResourceMsg>,
         memory_reporter: IpcReceiver<ReportsChan>,
         protocols: Arc<ProtocolRegistry>,
+        http_proxy_uri: Option<hyper::Uri>,
         embedder_proxy: EmbedderProxy,
     ) {
         let (public_http_state, private_http_state) = create_http_states(
             self.config_dir.as_deref(),
             self.ca_certificates.clone(),
             self.ignore_certificate_errors,
+            http_proxy_uri,
             embedder_proxy,
         );
 

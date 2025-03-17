@@ -46,6 +46,8 @@ use net_traits::request::{
 };
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{CookieSource, FetchTaskTarget, NetworkError, ReferrerPolicy};
+#[cfg(test)]
+use servo_config::prefs;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use url::Url;
 
@@ -120,6 +122,8 @@ fn create_request_body_with_content(content: Vec<u8>) -> RequestBody {
 
 #[test]
 fn test_check_default_headers_loaded_in_every_request() {
+    let proxy_string = "http://proxy.example.com".to_string();
+    prefs::write().network_proxy_uri = proxy_string;
     let expected_headers = Arc::new(Mutex::new(None));
     let expected_headers_clone = expected_headers.clone();
     let handler = move |request: HyperRequest<Incoming>,
@@ -1830,4 +1834,45 @@ fn test_prompt_credentials_user_input_incorrect_mode() {
     server.close();
 
     assert!(response.internal_response.is_none());
+}
+
+#[test]
+fn test_set_proxy_headers() {
+    let expected_headers = Arc::new(Mutex::new(None));
+    let expected_headers_clone = expected_headers.clone();
+    let handler = move |request: HyperRequest<Incoming>,
+                        _: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+        assert_eq!(
+            request.headers().clone(),
+            expected_headers_clone.lock().unwrap().take().unwrap()
+        );
+    };
+    let (server, url) = make_server(handler);
+
+    let mut headers = HeaderMap::new();
+
+    headers.insert(header::FORWARDED, HeaderValue::from_static("PROXY"));
+
+    *expected_headers.lock().unwrap() = Some(headers.clone());
+
+    // Testing for method.GET
+    let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .destination(Destination::Document)
+        .origin(url.clone().origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .build();
+
+    println!("{:?}", &expected_headers);
+    let response = dbg!(fetch(request, None));
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
+
+    panic!("NYI");
 }

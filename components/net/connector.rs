@@ -4,25 +4,26 @@
 
 use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
+use std::error::Error;
 use std::sync::{Arc, Mutex};
 
 use futures::Future;
 use futures::task::{Context, Poll};
 use http::uri::{Authority, Uri as Destination};
 use http_body_util::combinators::BoxBody;
+use hyper::Response;
 use hyper::body::Bytes;
 use hyper::rt::Executor;
-use hyper::Response;
 use hyper_rustls::HttpsConnector as HyperRustlsHttpsConnector;
 use hyper_util::client::legacy::Client;
-use std::error::Error;
-use hyper_util::client::legacy::connect::Connect;
-use hyper_util::client::legacy::connect::HttpConnector as HyperHttpConnector;
+use hyper_util::client::legacy::connect::{Connect, HttpConnector as HyperHttpConnector};
 use log::warn;
 use rustls::client::WebPkiServerVerifier;
 use rustls::{ClientConfig, RootCertStore};
 use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
+use servo_config::pref;
 use tower_service::Service;
+use url::Url;
 
 use crate::async_runtime::HANDLE;
 use crate::hosts::replace_host;
@@ -271,29 +272,31 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
 
 pub type BoxedBody = BoxBody<Bytes, hyper::Error>;
 
-pub fn create_http_client(tls_config: TlsConfig) -> Box<impl Service<Uri>> {
+pub fn create_http_client(
+    http_proxy_uri: Option<hyper::Uri>,
+    tls_config: TlsConfig,
+) -> Client<hyper_http_proxy::ProxyConnector<Connector>, BoxedBody> {
     let base_connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
         .enable_http1()
         .enable_http2()
         .wrap_connector(ServoHttpConnector::new());
-    if !servo.preference.network_proxy_uri.is_empty() {
-        let proxy_uri = servo
-            .preference
-            .network_proxy_uri
-            .parse()
-            .expect("Wrong Proxy");
-            let mut proxy = hyper_http_proxy::Proxy::new(hyper_http_proxy::Intercept::All, proxy_uri);
-        let proxy_connector =
-            hyper_http_proxy::ProxyConnector::from_proxy(base_connector, proxy).unwrap();
-
-        Box::new(Client::builder(TokioExecutor {})
-            .http1_title_case_headers(true)
-            .build(proxy_connector))
+    let (uri, intercept) = if let Some(proxy_uri) = http_proxy_uri {
+        //panic!("CONFIG WORKS");
+        (proxy_uri, hyper_http_proxy::Intercept::All)
     } else {
-        Box::new(Client::builder(TokioExecutor {})
-            .http1_title_case_headers(true)
-            .build(base_connector))
-    }
+        //panic!("WE DO HTTP");
+        (
+            hyper::Uri::from_static("www.example.com"),
+            hyper_http_proxy::Intercept::None,
+        )
+    };
+    let proxy = hyper_http_proxy::Proxy::new(intercept, uri);
+    let proxy_connector =
+        hyper_http_proxy::ProxyConnector::from_proxy(base_connector, proxy).unwrap();
+
+    Client::builder(TokioExecutor {})
+        .http1_title_case_headers(true)
+        .build(proxy_connector)
 }

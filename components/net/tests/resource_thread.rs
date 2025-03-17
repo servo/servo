@@ -32,6 +32,7 @@ fn test_exit() {
         None,
         CACertificates::Default,
         false, /* ignore_certificate_errors */
+        None,
         std::sync::Arc::new(ProtocolRegistry::default()),
     );
     resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();

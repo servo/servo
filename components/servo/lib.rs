@@ -581,8 +581,9 @@ impl Servo {
     }
 
     fn send_animating_changed_messages(&self) {
-        let animating = self.compositor.borrow().webxr_running() ||
-            self.webviews
+        let animating = self.compositor.borrow().webxr_running()
+            || self
+                .webviews
                 .borrow()
                 .values()
                 .filter_map(WebView::from_weak_handle)
@@ -1040,6 +1041,7 @@ fn create_constellation(
         config_dir,
         opts.certificate_path.clone(),
         opts.ignore_certificate_errors,
+        pref!(network_proxy_uri).parse().ok(),
         Arc::new(protocols),
     );
 

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::{RwLock, RwLockReadGuard};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use serde::{Deserialize, Serialize};
 use servo_config_macro::ServoPreferences;
@@ -15,6 +15,11 @@ static PREFERENCES: RwLock<Preferences> = RwLock::new(Preferences::const_default
 /// Get the current set of global preferences for Servo.
 pub fn get() -> RwLockReadGuard<'static, Preferences> {
     PREFERENCES.read().unwrap()
+}
+
+/// Write to the current preferences
+pub fn write() -> RwLockWriteGuard<'static, Preferences> {
+    PREFERENCES.write().unwrap()
 }
 
 pub fn set(preferences: Preferences) {
