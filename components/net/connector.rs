@@ -12,8 +12,11 @@ use http::uri::{Authority, Uri as Destination};
 use http_body_util::combinators::BoxBody;
 use hyper::body::Bytes;
 use hyper::rt::Executor;
+use hyper::Response;
 use hyper_rustls::HttpsConnector as HyperRustlsHttpsConnector;
 use hyper_util::client::legacy::Client;
+use std::error::Error;
+use hyper_util::client::legacy::connect::Connect;
 use hyper_util::client::legacy::connect::HttpConnector as HyperHttpConnector;
 use log::warn;
 use rustls::client::WebPkiServerVerifier;
@@ -268,15 +271,29 @@ impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverr
 
 pub type BoxedBody = BoxBody<Bytes, hyper::Error>;
 
-pub fn create_http_client(tls_config: TlsConfig) -> Client<Connector, BoxedBody> {
-    let connector = hyper_rustls::HttpsConnectorBuilder::new()
+pub fn create_http_client(tls_config: TlsConfig) -> Box<impl Service<Uri>> {
+    let base_connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
         .enable_http1()
         .enable_http2()
         .wrap_connector(ServoHttpConnector::new());
+    if !servo.preference.network_proxy_uri.is_empty() {
+        let proxy_uri = servo
+            .preference
+            .network_proxy_uri
+            .parse()
+            .expect("Wrong Proxy");
+            let mut proxy = hyper_http_proxy::Proxy::new(hyper_http_proxy::Intercept::All, proxy_uri);
+        let proxy_connector =
+            hyper_http_proxy::ProxyConnector::from_proxy(base_connector, proxy).unwrap();
 
-    Client::builder(TokioExecutor {})
-        .http1_title_case_headers(true)
-        .build(connector)
+        Box::new(Client::builder(TokioExecutor {})
+            .http1_title_case_headers(true)
+            .build(proxy_connector))
+    } else {
+        Box::new(Client::builder(TokioExecutor {})
+            .http1_title_case_headers(true)
+            .build(base_connector))
+    }
 }

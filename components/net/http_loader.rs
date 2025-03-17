@@ -7,6 +7,7 @@ use std::iter::FromIterator;
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use tower_service::Service;
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{HistoryStateId, PipelineId};
@@ -102,7 +103,8 @@ pub struct HttpState {
     pub http_cache_state: HttpCacheState,
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
-    pub client: Client<Connector, crate::connector::BoxedBody>,
+    pub client: Box<dyn Service<Uri>>,
+    //Client<Connector, crate::connector::BoxedBody>,
     pub override_manager: CertificateErrorOverrideManager,
     pub embedder_proxy: Mutex<EmbedderProxy>,
 }

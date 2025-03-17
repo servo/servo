@@ -218,6 +218,8 @@ pub struct Preferences {
     pub network_http_cache_disabled: bool,
     pub network_local_directory_listing_enabled: bool,
     pub network_mime_sniff: bool,
+    /// Proxy uri
+    pub network_proxy_uri: String,
     pub session_history_max_length: i64,
     /// The background color of shell's viewport. This will be used by OpenGL's `glClearColor`.
     pub shell_background_color_rgba: [f64; 4],
@@ -389,6 +391,7 @@ impl Preferences {
             network_http_cache_disabled: false,
             network_local_directory_listing_enabled: true,
             network_mime_sniff: false,
+            network_proxy_uri: String::new(),
             session_history_max_length: 20,
             shell_background_color_rgba: [1.0, 1.0, 1.0, 1.0],
             threadpools_async_runtime_workers_max: 6,
