@@ -35,11 +35,12 @@ use js::jsapi::{
     JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
     JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
     JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks,
-    JSContext as RawJSContext, JSFunction, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
-    JSSecurityCallbacks, JSTracer, JobQueue, MimeType, PromiseRejectionHandlingState,
-    PromiseUserInputEventHandlingState, RuntimeCode, SetDOMCallbacks, SetGCSliceCallback,
-    SetHostCleanupFinalizationRegistryCallback, SetJobQueue, SetPreserveWrapperCallbacks,
-    SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
+    JSAutoRealm, JSContext as RawJSContext, JSFunction, JSGCParamKey, JSGCStatus,
+    JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer, JobQueue, MimeType,
+    PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, RuntimeCode,
+    SetDOMCallbacks, SetGCSliceCallback, SetHostCleanupFinalizationRegistryCallback, SetJobQueue,
+    SetPreserveWrapperCallbacks, SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback,
+    StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
@@ -62,6 +63,7 @@ use crate::body::BodyMixin;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
     get_dom_class, private_from_object, root_from_handleobject,
 };
@@ -80,6 +82,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::dom::response::Response;
+use crate::dom::window::Window;
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_module::EnsureModuleHooksInitialized;
@@ -378,22 +381,34 @@ unsafe extern "C" fn cleanup_finalization_registry(
 
     if !global.get_has_finalization_callback_queued() {
         let global_handle = Trusted::new(&*global);
+
+        // https://html.spec.whatwg.org/multipage/#hostenqueuefinalizationregistrycleanupjob
+        // 2. Queue a global task on the JavaScript engine task source given global
         global
             .task_manager()
-            .finalization_task_source()
+            .javascript_engine_task_source()
             .queue_unconditionally(task!(run_cleanup_callbacks: move || {
                 let cx = GlobalScope::get_cx();
+                let global = global_handle.root();
+                // 2.2 Check if we can run script
+                if let Some(window) = global.downcast::<Window>() {
+                    if !window.Document().is_fully_active() {
+                        return;
+                    }
+                }
+
                 rooted!(in(*cx) let mut undef = UndefinedValue());
                 let callbacks = LiveDOMReferences::get_finalization_callbacks();
 
                 for callback in callbacks {
+                    let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
                     rooted!(in(*cx) let mut rcb = callback.get());
                     JS_CallFunction(*cx, RustHandleObject::null(),
                         rcb.handle(),
                         &HandleValueArray::empty(),
                         undef.handle_mut());
                 }
-                global_handle.root().set_has_finalization_callback_queued(false);
+                global.set_has_finalization_callback_queued(false);
             }));
         global.set_has_finalization_callback_queued(true);
     }
