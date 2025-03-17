@@ -432,7 +432,7 @@ impl IntersectionObserver {
                     // context of the target or observer. <https://github.com/w3c/IntersectionObserver/issues/456>
                     document
                         .window()
-                        .top_level_window_proxy()
+                        .webview_window_proxy()
                         .and_then(|window_proxy| window_proxy.document())
                 } else if let Some(ElementOrDocument::Document(document)) = &self.root {
                     Some(document.clone())
