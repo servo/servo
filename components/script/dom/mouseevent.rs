@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use js::rust::HandleObject;
 use servo_config::pref;
+use webrender_traits::CompositorHitTestResult;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding;
@@ -260,6 +261,51 @@ impl MouseEvent {
 
     pub(crate) fn point_in_target(&self) -> Option<Point2D<f32>> {
         self.point_in_target.get()
+    }
+
+    /// Create a [MouseEvent] triggered by the embedder
+    pub(crate) fn for_platform_mouse_event(
+        event: embedder_traits::MouseButtonEvent,
+        pressed_mouse_buttons: u16,
+        window: &Window,
+        hit_test_result: &CompositorHitTestResult,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
+        let mouse_event_type_string = match event.action {
+            embedder_traits::MouseButtonAction::Click => "click",
+            embedder_traits::MouseButtonAction::Up => "mouseup",
+            embedder_traits::MouseButtonAction::Down => "mousedown",
+        };
+
+        let client_x = hit_test_result.point_in_viewport.x as i32;
+        let client_y = hit_test_result.point_in_viewport.y as i32;
+        let click_count = 1;
+        let mouse_event = MouseEvent::new(
+            window,
+            mouse_event_type_string.into(),
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            Some(window),
+            click_count,
+            client_x,
+            client_y,
+            client_x,
+            client_y, // TODO: Get real screen coordinates?
+            false,
+            false,
+            false,
+            false,
+            event.button.into(),
+            pressed_mouse_buttons,
+            None,
+            Some(hit_test_result.point_relative_to_item),
+            can_gc,
+        );
+
+        mouse_event.upcast::<Event>().set_trusted(true);
+        mouse_event.upcast::<Event>().set_composed(true);
+
+        mouse_event
     }
 }
 

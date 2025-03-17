@@ -1284,14 +1284,9 @@ impl Document {
             return;
         };
 
-        let mouse_event_type_string = match event.action {
-            MouseButtonAction::Click => "click".to_owned(),
-            MouseButtonAction::Up => "mouseup".to_owned(),
-            MouseButtonAction::Down => "mousedown".to_owned(),
-        };
         debug!(
-            "{}: at {:?}",
-            mouse_event_type_string, hit_test_result.point_in_viewport
+            "{:?}: at {:?}",
+            event.action, hit_test_result.point_in_viewport
         );
 
         let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
@@ -1304,7 +1299,7 @@ impl Document {
         };
 
         let node = el.upcast::<Node>();
-        debug!("{} on {:?}", mouse_event_type_string, node.debug_str());
+        debug!("{:?} on {:?}", event.action, node.debug_str());
         // Prevent click event if form control element is disabled.
         if let MouseButtonAction::Click = event.action {
             // The click event is filtered by the disabled state.
@@ -1316,35 +1311,14 @@ impl Document {
             self.request_focus(Some(&*el), FocusType::Element, can_gc);
         }
 
-        // https://w3c.github.io/uievents/#event-type-click
-        let client_x = hit_test_result.point_in_viewport.x as i32;
-        let client_y = hit_test_result.point_in_viewport.y as i32;
-        let click_count = 1;
-        let dom_event = MouseEvent::new(
-            &self.window,
-            DOMString::from(mouse_event_type_string),
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
-            Some(&self.window),
-            click_count,
-            client_x,
-            client_y,
-            client_x,
-            client_y, // TODO: Get real screen coordinates?
-            false,
-            false,
-            false,
-            false,
-            event.button.into(),
+        let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
+            event,
             pressed_mouse_buttons,
-            None,
-            Some(hit_test_result.point_relative_to_item),
+            &self.window,
+            &hit_test_result,
             can_gc,
-        );
-        let dom_event = dom_event.upcast::<Event>();
+        ));
 
-        // https://w3c.github.io/uievents/#trusted-events
-        dom_event.set_trusted(true);
         // https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
         let activatable = el.as_maybe_activatable();
         match event.action {
