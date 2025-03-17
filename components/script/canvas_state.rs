@@ -54,7 +54,7 @@ use crate::dom::element::{Element, cors_setting_for_element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
-use crate::dom::node::{Node, NodeDamage, NodeTraits};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
@@ -620,7 +620,7 @@ impl CanvasState {
 
     pub(crate) fn mark_as_dirty(&self, canvas: Option<&HTMLCanvasElement>) {
         if let Some(canvas) = canvas {
-            canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            canvas.mark_as_dirty();
         }
     }
 
