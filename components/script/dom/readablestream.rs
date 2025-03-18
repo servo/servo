@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
+use std::collections::VecDeque;
 use std::ptr::{self};
 use std::rc::Rc;
-use std::collections::VecDeque;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -532,7 +532,7 @@ impl PipeTo {
             rooted!(in(*cx) let mut dest_closed = UndefinedValue());
             let error =
                 Error::Type("Destination is closed or has closed queued or in flight".to_string());
-            error.to_jsval(cx, global, dest_closed.handle_mut());
+            error.to_jsval(cx, global, dest_closed.handle_mut(), can_gc);
             self.shutdown_error.set(dest_closed.get());
 
             // If preventCancel is false,
