@@ -45,10 +45,14 @@ mod platform {
     /// Passing a non-heap allocated pointer to this function results in undefined behavior.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
         #[cfg(target_vendor = "apple")]
-        return libc::malloc_size(ptr);
+        unsafe {
+            return libc::malloc_size(ptr);
+        }
 
         #[cfg(not(target_vendor = "apple"))]
-        return libc::malloc_usable_size(ptr as *mut _);
+        unsafe {
+            return libc::malloc_usable_size(ptr as *mut _);
+        }
     }
 
     pub mod libc_compat {
@@ -70,12 +74,14 @@ mod platform {
     ///
     /// Passing a non-heap allocated pointer to this function results in undefined behavior.
     pub unsafe extern "C" fn usable_size(mut ptr: *const c_void) -> usize {
-        let heap = GetProcessHeap();
+        unsafe {
+            let heap = GetProcessHeap();
 
-        if HeapValidate(heap, 0, ptr) == FALSE {
-            ptr = *(ptr as *const *const c_void).offset(-1)
+            if HeapValidate(heap, 0, ptr) == FALSE {
+                ptr = *(ptr as *const *const c_void).offset(-1)
+            }
+
+            HeapSize(heap, 0, ptr) as usize
         }
-
-        HeapSize(heap, 0, ptr) as usize
     }
 }

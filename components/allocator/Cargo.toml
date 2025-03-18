@@ -23,6 +23,3 @@ windows-sys = { workspace = true, features = ["Win32_System_Memory"] }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
 libc = { workspace = true }
-
-[lints.rust]
-unsafe_op_in_unsafe_fn = { level = "allow" }
