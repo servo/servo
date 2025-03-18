@@ -289,6 +289,13 @@ class MachCommands(CommandBase):
         print("Running WPT tests...")
         passed = wpt.run_tests() and passed
 
+        print("Running devtools parser tests...")
+        result = subprocess.run(["etc/devtools_parser.py", "--json", "--use", "etc/devtools_parser_test.pcap"], check=True, capture_output=True)
+        expected = open("etc/devtools_parser_test.json", "rb").read()
+        actual = result.stdout
+        assert actual == expected, f"Incorrect output!\nExpected: {repr(expected)}\nActual:   {repr(actual)}"
+        print("OK")
+
         if all or tests:
             print("Running WebIDL tests...")
 
