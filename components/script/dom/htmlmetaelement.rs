@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::LazyLock;
 use std::time::Duration;
@@ -128,10 +129,32 @@ impl HTMLMetaElement {
     /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
     fn parse_viewport_attribute(&self) {
         let element = self.upcast::<Element>();
-        dbg!("DebugSG", element.);
+        let mut description = ViewportDescription::new();
+        dbg!("DebugSG", element);
         if let Some(ref content) = element.get_attribute(&ns!(), &local_name!("content")) {
-            dbg!("DebugSG", content.value())
+            let content = content.value();
+            dbg!("DebugSG", &content);
+            if !content.is_empty() {
+                // Parse key-value pairs from the content string
+                let parsed_values = content
+                    .split(',')
+                    .filter_map(|pair| {
+                        let mut parts = pair.split('=').map(str::trim);
+                        if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
+                            Some((key.to_string(), value.to_string()))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<HashMap<String, String>>();
+
+                ViewportDescription::process_viewport_key_value_pair(
+                    &mut description,
+                    parsed_values,
+                );
+            }
         }
+        dbg!("DebugSG ", description);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
