@@ -159,6 +159,7 @@ use crate::dom::htmlmetaelement::RefreshRedirectDue;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmltitleelement::HTMLTitleElement;
+use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
@@ -520,6 +521,18 @@ pub(crate) struct Document {
     inherited_insecure_requests_policy: Cell<Option<InsecureRequestsPolicy>>,
     /// <https://w3c.github.io/IntersectionObserver/#document-intersectionobservertaskqueued>
     intersection_observer_task_queued: Cell<bool>,
+    /// Active intersection observers that should be processed by this document in
+    /// the update intersection observation steps.
+    /// <https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps>
+    /// > Let observer list be a list of all IntersectionObservers whose root is in the DOM tree of document.
+    /// > For the top-level browsing context, this includes implicit root observers.
+    ///
+    /// Details of which document that should process an observers is discussed further at
+    /// <https://github.com/w3c/IntersectionObserver/issues/525>.
+    ///
+    /// The lifetime of an intersection observer is specified at
+    /// <https://github.com/w3c/IntersectionObserver/issues/525>.
+    intersection_observers: DomRefCell<Vec<Dom<IntersectionObserver>>>,
 }
 
 #[allow(non_snake_case)]
@@ -3421,6 +3434,104 @@ impl Document {
         // implement the Permissions Policy specification.
         true
     }
+
+    /// Add an [`IntersectionObserver`] to the [`Document`], to be processed in the [`Document`]'s event loop.
+    /// <https://github.com/w3c/IntersectionObserver/issues/525>
+    pub(crate) fn add_intersection_observer(&self, intersection_observer: &IntersectionObserver) {
+        self.intersection_observers
+            .borrow_mut()
+            .push(Dom::from_ref(intersection_observer));
+    }
+
+    /// Remove an [`IntersectionObserver`] from [`Document`], ommiting it from the event loop.
+    /// An observer without any target, ideally should be removed to be conformant with
+    /// <https://w3c.github.io/IntersectionObserver/#lifetime>.
+    pub(crate) fn remove_intersection_observer(
+        &self,
+        intersection_observer: &IntersectionObserver,
+    ) {
+        self.intersection_observers
+            .borrow_mut()
+            .retain(|observer| *observer != intersection_observer)
+    }
+
+    /// <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
+    pub(crate) fn update_intersection_observer_steps(
+        &self,
+        time: CrossProcessInstant,
+        can_gc: CanGc,
+    ) {
+        // Step 1-2
+        for intersection_observer in &*self.intersection_observers.borrow() {
+            self.update_single_intersection_observer_steps(intersection_observer, time, can_gc);
+        }
+    }
+
+    /// Step 2.1-2.2 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
+    fn update_single_intersection_observer_steps(
+        &self,
+        intersection_observer: &IntersectionObserver,
+        time: CrossProcessInstant,
+        can_gc: CanGc,
+    ) {
+        // Step 1
+        // > Let rootBounds be observer’s root intersection rectangle.
+        let root_bounds = intersection_observer.root_intersection_rectangle(self);
+
+        // Step 2
+        // > For each target in observer’s internal [[ObservationTargets]] slot,
+        // > processed in the same order that observe() was called on each target:
+        intersection_observer.update_intersection_observations_steps(
+            self,
+            time,
+            root_bounds,
+            can_gc,
+        );
+    }
+
+    /// <https://w3c.github.io/IntersectionObserver/#notify-intersection-observers-algo>
+    pub(crate) fn notify_intersection_observers(&self, can_gc: CanGc) {
+        // Step 1
+        // > Set document’s IntersectionObserverTaskQueued flag to false.
+        self.intersection_observer_task_queued.set(false);
+
+        // Step 2
+        // > Let notify list be a list of all IntersectionObservers whose root is in the DOM tree of document.
+        // We will copy the observers because callback could modify the current list.
+        // It will rooted to prevent GC in the iteration.
+        rooted_vec!(let notify_list <- self.intersection_observers.clone().take().into_iter());
+
+        // Step 3
+        // > For each IntersectionObserver object observer in notify list, run these steps:
+        for intersection_observer in notify_list.iter() {
+            // Step 3.1-3.5
+            intersection_observer.invoke_callback_if_necessary(can_gc);
+        }
+    }
+
+    /// <https://w3c.github.io/IntersectionObserver/#queue-intersection-observer-task>
+    pub(crate) fn queue_an_intersection_observer_task(&self) {
+        // Step 1
+        // > If document’s IntersectionObserverTaskQueued flag is set to true, return.
+        if self.intersection_observer_task_queued.get() {
+            return;
+        }
+
+        // Step 2
+        // > Set document’s IntersectionObserverTaskQueued flag to true.
+        self.intersection_observer_task_queued.set(true);
+
+        // Step 3
+        // > Queue a task on the IntersectionObserver task source associated with
+        // > the document's event loop to notify intersection observers.
+        let document = Trusted::new(self);
+        self.owner_global()
+            .task_manager()
+            .intersection_observer_task_source()
+            .queue(task!(notify_intersection_observers: move || {
+                document.root().notify_intersection_observers(CanGc::note());
+            }));
+    }
 }
 
 fn is_character_value_key(key: &Key) -> bool {
@@ -3720,6 +3831,7 @@ impl Document {
             allow_declarative_shadow_roots: Cell::new(allow_declarative_shadow_roots),
             inherited_insecure_requests_policy: Cell::new(inherited_insecure_requests_policy),
             intersection_observer_task_queued: Cell::new(false),
+            intersection_observers: Default::default(),
         }
     }
 
