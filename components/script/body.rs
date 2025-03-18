@@ -21,7 +21,6 @@ use script_traits::serializable::BlobImpl;
 use url::form_urlencoded;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::Blob_Binding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
@@ -590,149 +589,26 @@ pub(crate) enum FetchedData {
     JSException(RootedTraceableBox<Heap<JSVal>>),
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-struct ConsumeBodyPromiseRejectionHandler {
-    #[ignore_malloc_size_of = "Rc are hard"]
-    result_promise: Rc<Promise>,
-}
-
-impl Callback for ConsumeBodyPromiseRejectionHandler {
-    /// Continuing Step 4 of <https://fetch.spec.whatwg.org/#concept-body-consume-body>
-    /// Step 3 of <https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream>,
-    // the rejection steps.
-    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
-        self.result_promise.reject(cx, v, can_gc);
-    }
-}
-
-impl js::gc::Rootable for ConsumeBodyPromiseHandler {}
-
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-/// The promise handler used to consume the body,
 /// <https://fetch.spec.whatwg.org/#concept-body-consume-body>
-struct ConsumeBodyPromiseHandler {
-    #[ignore_malloc_size_of = "Rc are hard"]
-    result_promise: Rc<Promise>,
-    stream: Option<Dom<ReadableStream>>,
-    body_type: DomRefCell<Option<BodyType>>,
-    mime_type: DomRefCell<Option<Vec<u8>>>,
-    bytes: DomRefCell<Option<Vec<u8>>>,
-}
-
-impl ConsumeBodyPromiseHandler {
-    /// Step 5 of <https://fetch.spec.whatwg.org/#concept-body-consume-body>
-    fn resolve_result_promise(&self, cx: JSContext, can_gc: CanGc) {
-        let body_type = self.body_type.borrow_mut().take().unwrap();
-        let mime_type = self.mime_type.borrow_mut().take().unwrap();
-        let body = self.bytes.borrow_mut().take().unwrap();
-
-        let pkg_data_results = run_package_data_algorithm(cx, body, body_type, mime_type, can_gc);
-
-        match pkg_data_results {
-            Ok(results) => {
-                match results {
-                    FetchedData::Text(s) => {
-                        self.result_promise.resolve_native(&USVString(s), can_gc)
-                    },
-                    FetchedData::Json(j) => self.result_promise.resolve_native(&j, can_gc),
-                    FetchedData::BlobData(b) => self.result_promise.resolve_native(&b, can_gc),
-                    FetchedData::FormData(f) => self.result_promise.resolve_native(&f, can_gc),
-                    FetchedData::Bytes(b) => self.result_promise.resolve_native(&b, can_gc),
-                    FetchedData::ArrayBuffer(a) => self.result_promise.resolve_native(&a, can_gc),
-                    FetchedData::JSException(e) => {
-                        self.result_promise.reject_native(&e.handle(), can_gc)
-                    },
-                };
-            },
-            Err(err) => self.result_promise.reject_error(err, can_gc),
-        }
-    }
-}
-
-impl Callback for ConsumeBodyPromiseHandler {
-    /// Continuing Step 4 of <https://fetch.spec.whatwg.org/#concept-body-consume-body>
-    /// Step 3 of <https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream>.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm, can_gc: CanGc) {
-        let stream = self
-            .stream
-            .as_ref()
-            .expect("ConsumeBodyPromiseHandler has no stream in callback.");
-
-        let is_done = match get_read_promise_done(cx, &v, can_gc) {
-            Ok(is_done) => is_done,
-            Err(err) => {
-                stream.stop_reading(can_gc);
-                // When read is fulfilled with a value that doesn't matches with neither of the above patterns.
-                return self.result_promise.reject_error(err, can_gc);
-            },
-        };
-
-        if is_done {
-            // When read is fulfilled with an object whose done property is true.
-            self.resolve_result_promise(cx, can_gc);
-        } else {
-            let chunk = match get_read_promise_bytes(cx, &v, can_gc) {
-                Ok(chunk) => chunk,
-                Err(err) => {
-                    stream.stop_reading(can_gc);
-                    // When read is fulfilled with a value that matches with neither of the above patterns
-                    return self.result_promise.reject_error(err, can_gc);
-                },
-            };
-
-            let mut bytes = self
-                .bytes
-                .borrow_mut()
-                .take()
-                .expect("No bytes for ConsumeBodyPromiseHandler.");
-
-            // Append the value property to bytes.
-            bytes.extend_from_slice(&chunk);
-
-            let global = stream.global();
-
-            // Run the above step again.
-            let read_promise = stream.read_a_chunk(can_gc);
-
-            let promise_handler = Box::new(ConsumeBodyPromiseHandler {
-                result_promise: self.result_promise.clone(),
-                stream: self.stream.clone(),
-                body_type: DomRefCell::new(self.body_type.borrow_mut().take()),
-                mime_type: DomRefCell::new(self.mime_type.borrow_mut().take()),
-                bytes: DomRefCell::new(Some(bytes)),
-            });
-
-            let rejection_handler = Box::new(ConsumeBodyPromiseRejectionHandler {
-                result_promise: self.result_promise.clone(),
-            });
-
-            let handler = PromiseNativeHandler::new(
-                &global,
-                Some(promise_handler),
-                Some(rejection_handler),
-                can_gc,
-            );
-
-            let realm = enter_realm(&*global);
-            let comp = InRealm::Entered(&realm);
-            read_promise.append_native_handler(&handler, comp, can_gc);
-        }
-    }
-}
-
-// https://fetch.spec.whatwg.org/#concept-body-consume-body
+/// <https://fetch.spec.whatwg.org/#body-fully-read>
+/// A combination of parts of both algorithms,
+/// `body-fully-read` can be fully implemented, and separated, later,
+/// see #36049.
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     object: &T,
     body_type: BodyType,
+    realm: InRealm,
     can_gc: CanGc,
 ) -> Rc<Promise> {
-    let in_realm_proof = AlreadyInRealm::assert();
-    let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+    let global = object.global();
+    let cx = GlobalScope::get_cx();
 
-    // Step 1
+    // Let promise be a new promise.
+    // Note: re-ordered so we can return the promise below.
+    let promise = Promise::new_in_current_realm(realm, can_gc);
+
+    // If object is unusable, then return a promise rejected with a TypeError.
     if object.is_disturbed() || object.is_locked() {
         promise.reject_error(
             Error::Type("The body's stream is disturbed or locked".to_string()),
@@ -741,74 +617,101 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
         return promise;
     }
 
-    consume_body_with_promise(
-        object,
-        body_type,
-        promise.clone(),
-        InRealm::Already(&in_realm_proof),
+    let stream = match object.body() {
+        Some(stream) => stream,
+        None => {
+            // If object’s body is null, then run successSteps with an empty byte sequence.
+            resolve_result_promise(
+                body_type,
+                &promise,
+                object.get_mime_type(can_gc),
+                Vec::with_capacity(0),
+                cx,
+                can_gc,
+            );
+            return promise;
+        },
+    };
+
+    // Note: from `fully_read`.
+    // Let reader be the result of getting a reader for body’s stream.
+    // If that threw an exception,
+    // then run errorSteps with that exception and return.
+    let reader = match stream.acquire_default_reader(can_gc) {
+        Ok(r) => r,
+        Err(e) => {
+            promise.reject_error(e, can_gc);
+            return promise;
+        },
+    };
+
+    // Let errorSteps given error be to reject promise with error.
+    let error_promise = promise.clone();
+
+    // Let successSteps given a byte sequence data be to resolve promise
+    // with the result of running convertBytesToJSValue with data.
+    // If that threw an exception, then run errorSteps with that exception.
+    let mime_type = object.get_mime_type(can_gc);
+    let success_promise = promise.clone();
+
+    // Read all bytes from reader, given successSteps and errorSteps.
+    // Note: spec uses an intermediary concept of `fully_read`,
+    // which seems useful when invoking fetch from other places.
+    // TODO: #36049
+    reader.read_all_bytes(
+        cx,
+        &global,
+        Rc::new(move |bytes: &[u8]| {
+            resolve_result_promise(
+                body_type,
+                &success_promise,
+                mime_type.clone(),
+                bytes.to_vec(),
+                cx,
+                can_gc,
+            );
+        }),
+        Rc::new(move |cx, v| {
+            error_promise.reject(cx, v, can_gc);
+        }),
+        realm,
         can_gc,
     );
 
     promise
 }
 
-// https://fetch.spec.whatwg.org/#concept-body-consume-body
-fn consume_body_with_promise<T: BodyMixin + DomObject>(
-    object: &T,
+/// The success steps of
+/// <https://fetch.spec.whatwg.org/#concept-body-consume-body>.
+fn resolve_result_promise(
     body_type: BodyType,
-    promise: Rc<Promise>,
-    comp: InRealm,
+    promise: &Promise,
+    mime_type: Vec<u8>,
+    body: Vec<u8>,
+    cx: JSContext,
     can_gc: CanGc,
 ) {
-    let global = object.global();
+    let pkg_data_results = run_package_data_algorithm(cx, body, body_type, mime_type, can_gc);
 
-    // Step 2.
-    let stream = match object.body() {
-        Some(stream) => stream,
-        None => ReadableStream::new_from_bytes(&global, Vec::with_capacity(0), can_gc)
-            .expect("ReadableStream::new_from_bytes should not fail with an empty Vec<u8>"),
-    };
-
-    // Step 3.
-    if stream.acquire_default_reader(can_gc).is_err() {
-        return promise.reject_error(
-            Error::Type("The response's stream is disturbed or locked".to_string()),
-            can_gc,
-        );
+    match pkg_data_results {
+        Ok(results) => {
+            match results {
+                FetchedData::Text(s) => promise.resolve_native(&USVString(s), can_gc),
+                FetchedData::Json(j) => promise.resolve_native(&j, can_gc),
+                FetchedData::BlobData(b) => promise.resolve_native(&b, can_gc),
+                FetchedData::FormData(f) => promise.resolve_native(&f, can_gc),
+                FetchedData::Bytes(b) => promise.resolve_native(&b, can_gc),
+                FetchedData::ArrayBuffer(a) => promise.resolve_native(&a, can_gc),
+                FetchedData::JSException(e) => promise.reject_native(&e.handle(), can_gc),
+            };
+        },
+        Err(err) => promise.reject_error(err, can_gc),
     }
-
-    // Step 4, read all the bytes.
-    // Starts here, continues in the promise handler.
-
-    // Step 1 of
-    // https://fetch.spec.whatwg.org/#concept-read-all-bytes-from-readablestream
-    let read_promise = stream.read_a_chunk(can_gc);
-
-    let cx = GlobalScope::get_cx();
-    rooted!(in(*cx) let mut promise_handler = Some(ConsumeBodyPromiseHandler {
-        result_promise: promise.clone(),
-        stream: Some(Dom::from_ref(&stream)),
-        body_type: DomRefCell::new(Some(body_type)),
-        mime_type: DomRefCell::new(Some(object.get_mime_type(can_gc))),
-        // Step 2.
-        bytes: DomRefCell::new(Some(vec![])),
-    }));
-
-    let rejection_handler = Box::new(ConsumeBodyPromiseRejectionHandler {
-        result_promise: promise,
-    });
-
-    let handler = PromiseNativeHandler::new(
-        &object.global(),
-        promise_handler.take().map(|h| Box::new(h) as Box<_>),
-        Some(rejection_handler),
-        can_gc,
-    );
-    // We are already in a realm and a script.
-    read_promise.append_native_handler(&handler, comp, can_gc);
 }
 
-// https://fetch.spec.whatwg.org/#concept-body-package-data
+/// The algorithm that takes a byte sequence
+/// and returns a JavaScript value or throws an exception of
+/// <https://fetch.spec.whatwg.org/#concept-body-consume-body>.
 fn run_package_data_algorithm(
     cx: JSContext,
     bytes: Vec<u8>,
@@ -829,6 +732,7 @@ fn run_package_data_algorithm(
     }
 }
 
+/// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A4>
 fn run_text_data_algorithm(bytes: Vec<u8>) -> Fallible<FetchedData> {
     Ok(FetchedData::Text(
         String::from_utf8_lossy(&bytes).into_owned(),
@@ -836,6 +740,7 @@ fn run_text_data_algorithm(bytes: Vec<u8>) -> Fallible<FetchedData> {
 }
 
 #[allow(unsafe_code)]
+/// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A3>
 fn run_json_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
     // The JSON spec allows implementations to either ignore UTF-8 BOM or treat it as an error.
     // `JS_ParseJSON` treats this as an error, so it is necessary for us to strip it if present.
@@ -862,6 +767,7 @@ fn run_json_data_algorithm(cx: JSContext, bytes: Vec<u8>) -> Fallible<FetchedDat
     }
 }
 
+/// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A0>
 fn run_blob_data_algorithm(
     root: &GlobalScope,
     bytes: Vec<u8>,
@@ -881,6 +787,7 @@ fn run_blob_data_algorithm(
     Ok(FetchedData::BlobData(blob))
 }
 
+/// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A2>
 fn run_form_data_algorithm(
     root: &GlobalScope,
     bytes: Vec<u8>,
@@ -907,6 +814,7 @@ fn run_form_data_algorithm(
     Err(Error::Type("Inappropriate MIME-type for Body".to_string()))
 }
 
+/// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A1>
 fn run_bytes_data_algorithm(cx: JSContext, bytes: Vec<u8>, can_gc: CanGc) -> Fallible<FetchedData> {
     rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
@@ -917,6 +825,7 @@ fn run_bytes_data_algorithm(cx: JSContext, bytes: Vec<u8>, can_gc: CanGc) -> Fal
     Ok(FetchedData::Bytes(rooted_heap))
 }
 
+/// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body>
 pub(crate) fn run_array_buffer_data_algorithm(
     cx: JSContext,
     bytes: Vec<u8>,
