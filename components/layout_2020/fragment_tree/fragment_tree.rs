@@ -17,11 +17,13 @@ use webrender_api::units::LayoutPixel;
 use webrender_api::{ExternalScrollId, units};
 use webrender_traits::display_list::AxesScrollSensitivity;
 
-use super::{ContainingBlockManager, Fragment, Tag};
+use super::{
+    ContainingBlockInfoContext, ContainingBlockInfoData, ContainingBlockManager,
+    ContainingBlockQueryInfo, Fragment, FragmentTreeQueryContext, Tag,
+};
 use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
-use crate::fragment_tree::ContainingBlockQueryInfo;
-use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalVec};
+use crate::geom::{PhysicalPoint, PhysicalRect};
 
 pub struct FragmentTree {
     /// Fragments at the top-level of the tree.
@@ -99,42 +101,25 @@ impl FragmentTree {
         });
     }
 
-    pub(crate) fn find_v2<T>(
+    pub(crate) fn find_v2(
         &self,
-        pipeline_id: PipelineId,
-        scroll_offsets: &HashMap<ExternalScrollId, Vector2D<f32, LayoutPixel>, RandomState>,
-        mut process_func: impl FnMut(&Fragment, usize, &ContainingBlockQueryInfo) -> Option<T>,
-    ) -> Option<T> {
-        let scroll_offset = scroll_offsets
-            .get(&pipeline_id.root_scroll_id())
-            .map(|offset| PhysicalVec::new(Au::from_f32_px(offset.x), Au::from_f32_px(offset.y)))
-            .unwrap_or_default();
-
-        let initial_containing_block_info = ContainingBlockQueryInfo {
-            rect: self.initial_containing_block,
-            scroll_offset,
-        };
-        let fixed_initial_containing_block_info = ContainingBlockQueryInfo {
-            rect: self.initial_containing_block,
-            scroll_offset: Vector2D::zero(),
-        };
-
-        let info = ContainingBlockManager {
-            for_non_absolute_descendants: &initial_containing_block_info,
-            for_absolute_descendants: Some(&initial_containing_block_info),
-            for_absolute_and_fixed_descendants: &fixed_initial_containing_block_info,
-        };
-
-        self.root_fragments.iter().find_map(|child| {
-            child.find_v2(pipeline_id, scroll_offsets, &info, 0, &mut process_func)
-        })
+        find_context: &ContainingBlockInfoContext,
+        process_func: &mut impl FnMut(
+            &Fragment,
+            &ContainingBlockInfoContext,
+        ) -> Option<ContainingBlockQueryInfo>,
+    ) -> Option<ContainingBlockQueryInfo> {
+        self.root_fragments
+            .iter()
+            .find_map(|child| child.find_v2(find_context, process_func))
     }
 
     /// Get the vector of rectangles that surrounds the fragments of the node with the given address.
     /// This function answers the `getClientRects()` query and the union of the rectangles answers
     /// the `getBoundingClientRect()` query.
     ///
-    /// TODO: This function is supposed to handle CSS Transform, but that isn't happening at all.
+    /// TODO: The `getClientRects()` query is supposed to consider result from Webrender display list,
+    ///       but that isn't happening, except for scroll offset.
     pub fn get_content_boxes_for_node(
         &self,
         requested_node: OpaqueNode,
@@ -143,31 +128,43 @@ impl FragmentTree {
     ) -> Vec<Rect<Au>> {
         let mut content_boxes = Vec::new();
         let tag_to_find = Tag::new(requested_node);
-        self.find_v2(
-            pipeline_id,
+
+        let context_additional_data = ContainingBlockInfoData {
             scroll_offsets,
-            |fragment, _, containing_block| {
-                if fragment.tag() != Some(tag_to_find) {
-                    return None::<()>;
-                }
+            pipeline_id,
+        };
 
-                let fragment_relative_rect = match fragment {
-                    Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                        fragment.borrow().border_rect()
-                    },
-                    Fragment::Positioning(fragment) => fragment.borrow().rect,
-                    Fragment::Text(fragment) => fragment.borrow().rect,
-                    Fragment::AbsoluteOrFixedPositioned(_) |
-                    Fragment::Image(_) |
-                    Fragment::IFrame(_) => return None,
-                };
+        FragmentTreeQueryContext::for_fragment_tree_and_then(
+            self,
+            context_additional_data,
+            |find_context| {
+                self.find_v2(find_context, &mut |fragment, find_context| {
+                    if fragment.tag() != Some(tag_to_find) {
+                        return None;
+                    }
+                    let containing_block = find_context.get_payload(fragment);
 
-                let rect = containing_block.transform_rect_relative_to_self(fragment_relative_rect);
+                    let fragment_relative_rect = match fragment {
+                        Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                            fragment.borrow().border_rect()
+                        },
+                        Fragment::Positioning(fragment) => fragment.borrow().rect,
+                        Fragment::Text(fragment) => fragment.borrow().rect,
+                        Fragment::AbsoluteOrFixedPositioned(_) |
+                        Fragment::Image(_) |
+                        Fragment::IFrame(_) => return None,
+                    };
 
-                content_boxes.push(rect.to_untyped());
-                None::<()>
+                    let rect = fragment_relative_rect.translate(
+                        containing_block.rect.origin.to_vector() + containing_block.scroll_offset,
+                    );
+
+                    content_boxes.push(rect.to_untyped());
+                    None
+                })
             },
         );
+
         content_boxes
     }
 
