@@ -153,6 +153,6 @@ impl XRRenderStateMethods<crate::DomTypeHolder> for XRRenderState {
         // TODO: cache this array?
         let layers = self.layers.borrow();
         let layers: Vec<&XRLayer> = layers.iter().map(|x| &**x).collect();
-        to_frozen_array(&layers[..], cx, retval)
+        to_frozen_array(&layers[..], cx, retval, CanGc::note())
     }
 }

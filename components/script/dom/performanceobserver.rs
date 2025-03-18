@@ -144,7 +144,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
     fn SupportedEntryTypes(cx: JSContext, global: &GlobalScope, retval: MutableHandleValue) {
         // While this is exposed through a method of PerformanceObserver,
         // it is specified as associated with the global scope.
-        global.supported_performance_entry_types(cx, retval)
+        global.supported_performance_entry_types(cx, retval, CanGc::note())
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver-observe()

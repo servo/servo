@@ -96,7 +96,7 @@ impl ResizeObserverEntryMethods<crate::DomTypeHolder> for ResizeObserverEntry {
             .iter()
             .map(|size| DomRoot::from_ref(&**size))
             .collect();
-        to_frozen_array(sizes.as_slice(), cx, retval)
+        to_frozen_array(sizes.as_slice(), cx, retval, CanGc::note());
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-contentboxsize>
@@ -106,7 +106,7 @@ impl ResizeObserverEntryMethods<crate::DomTypeHolder> for ResizeObserverEntry {
             .iter()
             .map(|size| DomRoot::from_ref(&**size))
             .collect();
-        to_frozen_array(sizes.as_slice(), cx, retval);
+        to_frozen_array(sizes.as_slice(), cx, retval, CanGc::note());
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-devicepixelcontentboxsize>
@@ -116,6 +116,6 @@ impl ResizeObserverEntryMethods<crate::DomTypeHolder> for ResizeObserverEntry {
             .iter()
             .map(|size| DomRoot::from_ref(&**size))
             .collect();
-        to_frozen_array(sizes.as_slice(), cx, retval);
+        to_frozen_array(sizes.as_slice(), cx, retval, CanGc::note());
     }
 }

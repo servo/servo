@@ -217,6 +217,7 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
             },
             cx,
             retval,
+            CanGc::note(),
         );
     }
 }

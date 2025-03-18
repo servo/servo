@@ -391,11 +391,11 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         }
 
         // step 3: Return the result of create a frozen array from frozenActions.
-        to_frozen_array(frozen_actions.as_slice(), cx, retval);
+        to_frozen_array(frozen_actions.as_slice(), cx, retval, CanGc::note());
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-vibrate>
     fn Vibrate(&self, cx: SafeJSContext, retval: MutableHandleValue) {
-        to_frozen_array(self.vibration_pattern.as_slice(), cx, retval);
+        to_frozen_array(self.vibration_pattern.as_slice(), cx, retval, CanGc::note());
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-timestamp>
     fn Timestamp(&self) -> u64 {

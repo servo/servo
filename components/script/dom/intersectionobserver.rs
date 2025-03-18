@@ -692,7 +692,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-thresholds>
     fn Thresholds(&self, context: JSContext, retval: MutableHandleValue) {
-        to_frozen_array(&self.thresholds.borrow(), context, retval);
+        to_frozen_array(&self.thresholds.borrow(), context, retval, CanGc::note());
     }
 
     /// > A number indicating the minimum delay in milliseconds between notifications from

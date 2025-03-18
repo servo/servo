@@ -313,6 +313,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
             },
             cx,
             retval,
+            CanGc::note(),
         );
     }
 
