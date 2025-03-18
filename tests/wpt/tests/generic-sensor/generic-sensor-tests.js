@@ -36,6 +36,12 @@ function runGenericSensorTests(sensorData, readingData) {
     }, name, properties);
   }
 
+  promise_setup(async () => {
+    // Ensure window's document has focus so that the global under test can
+    // receive data.
+    await test_driver.click(document.documentElement);
+  });
+
   sensor_test(async t => {
     await test_driver.set_permission({name: permissionName}, 'denied');
 
@@ -614,7 +620,7 @@ function runGenericSensorTests(sensorData, readingData) {
  immediately accessible to all sensors.`);
 
   //  Re-enable after https://github.com/w3c/sensors/issues/361 is fixed.
-  //  test(() => {
+  //  promise_test(async () => {
   //     assert_throws_dom("NotSupportedError",
   //         () => { new sensorType({invalid: 1}) });
   //     assert_throws_dom("NotSupportedError",
@@ -626,7 +632,7 @@ function runGenericSensorTests(sensorData, readingData) {
   //  }, `${sensorName}: throw 'NotSupportedError' for an unsupported sensor\
   // option.`);
 
-  test(() => {
+  promise_test(async () => {
     const invalidFreqs = ['invalid', NaN, Infinity, -Infinity, {}];
     invalidFreqs.map(freq => {
       assert_throws_js(

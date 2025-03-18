@@ -27,17 +27,11 @@ promise_test(async t => {
   // Creating the translator with user activation succeeds.
   await createTranslator(languagePair);
 
-  // Creating it should have switched it to readily.
-  const capabilities = await ai.translator.capabilities();
-  const {sourceLanguage, targetLanguage} = languagePair;
-  assert_equals(
-      capabilities.languagePairAvailable(sourceLanguage, targetLanguage),
-      'readily');
-
+  // Creating it should have switched it to available.
   const availability = await ai.translator.availability(languagePair);
   assert_equals(availability, 'available');
 
-  // Now that it is readily, we should no longer need user activation.
+  // Now that it is available, we should no longer need user activation.
   await ai.translator.create(languagePair);
 }, 'AITranslator.create() requires user activation when availability is "downloadable.');
 
@@ -131,8 +125,10 @@ promise_test(async t => {
 
   // Must have at least 2 progress events, one for 0 and one for 1.
   assert_greater_than_equal(progressEvents.length, 2);
+
+  // 0 should be the first event and 1 should be the last event.
   assert_equals(progressEvents.at(0).loaded, 0);
-  assert_equals(progressEvents.at(1).loaded, 1);
+  assert_equals(progressEvents.at(-1).loaded, 1);
 
   // All progress events must have a total of 1.
   for (const progressEvent of progressEvents) {

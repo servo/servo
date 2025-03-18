@@ -23,7 +23,26 @@ async_test(function(t) {
     }
   });
   v.src = '';
-}, 'video error event');
+}, 'video error event with load()');
+
+async_test(function(t) {
+  var v = document.createElement('video');
+  var events = [];
+  v.onloadstart = v.onerror = v.onsuspend = t.step_func(function(e) {
+    events.push(e.type);
+    if (events.length == 1) {
+      // Wait for a usable resource to check that no 'error' event is pending.
+      v.src = '/media/sound_0.mp3';
+    } else if (events.length == 3) {
+      // 'suspend' is queued "if the user agent intends to not attempt to
+      // fetch the resource", "when a media element's download has been
+      // suspended", or "once the entire media resource has been fetched".
+      assert_array_equals(events, ['loadstart', 'loadstart', 'suspend']);
+      t.done();
+    }
+  });
+  v.src = '';
+}, 'video error event with src resource');
 
 async_test(function(t) {
   var v = document.createElement('video');

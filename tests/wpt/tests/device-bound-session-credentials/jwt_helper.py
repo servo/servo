@@ -47,7 +47,7 @@ def jwk_to_pem(jwk_data):
     return pem_public_key
 
 def verify_rs256_signature(encoded_header, encoded_payload, signature, public_key):
-    message = (encoded_header + '.' + encoded_payload).encode('utf-8')
+    message = (f'{encoded_header}.{encoded_payload}').encode('utf-8')
     signature_bytes = decode_base64(signature)
     # This will throw an exception if verification fails.
     public_key.verify(

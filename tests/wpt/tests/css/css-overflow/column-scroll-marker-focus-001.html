@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<title>Tab focus and ::colum::scroll-marker</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-next-focus">
+<style>
+  body {
+    margin: 0;
+  }
+  #container {
+    scroll-marker-group: before;
+    overflow: hidden;
+    columns: 9;
+    column-fill: auto;
+    column-rule: solid;
+    height: 100px;
+    line-height: 20px;
+  }
+  #container::scroll-marker-group {
+    display: flex;
+    height: 20px;
+    background: hotpink;
+  }
+  #container::column::scroll-marker {
+    content: "";
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+    background: blue;
+  }
+  #container::column::scroll-marker:focus {
+    background: cyan;
+  }
+</style>
+<div id="container">
+  <!-- Column #0 -->
+  <div style="height:100px;">Nothing</div>
+
+  <!-- Column #1 -->
+  <div tabindex="0" id="c1first">line</div>
+  <div tabindex="0" id="c1second" style="height:180px;">line</div>
+
+  <!-- Column #2 only has a resumed block (#c1second). -->
+
+  <!-- Column #3 -->
+  <div tabindex="0" id="inlineBlock" style="display:inline-block; box-sizing:border-box; width:100%; height:90px; border:solid;"></div>
+
+  <!-- Column #4 -->
+  <div>
+    <div style="display:flex; flex-flow:wrap row-reverse;">
+      <div tabindex="0" id="flex1" style="width:30%; height:100px;">A</div>
+      <div tabindex="0" id="flex2" style="width:30%;">B</div>
+      <div tabindex="0" id="flex3" style="width:30%;">C</div>
+
+      <!-- Column #5 -->
+      <div tabindex="0" id="flex4" style="width:30%;">D</div>
+      <div tabindex="0" id="flex5" style="width:30%;">E</div>
+      <div tabindex="0" id="flex6" style="width:30%;">F</div>
+    </div>
+  </div>
+  <div style="display:table;">
+    <div style="display:table-caption; height:70px; background:cyan;">caption</div>
+
+    <!-- Column #6 -->
+    <div tabindex="0" id="tfoot" style="display:table-footer-group;">footer</div>
+    <div tabindex="0" id="thead" style="display:table-header-group;">header</div>
+    <div tabindex="0" id="tbody" style="display:table-row-group;">body</div>
+  </div>
+  <div style="position:relative;">
+    <div style="height:50px; background:black;"></div>
+
+    <!-- Column #7 -->
+    <div tabindex="0" id="c6Abs" style="position:absolute; left:50px;">abs</div>
+    <div tabindex="0" id="c6Block" style="width:50px;">block</div>
+    <div style="height:80px; background:black;"></div>
+
+    <!-- Column #8 -->
+    <div tabindex="0" id="c7Block" style="width:50px;">block</div>
+    <div tabindex="0" id="c7Abs" style="position:absolute; margin-top:-20px; left:50px;">abs</div>
+  </div>
+</div>
+
+<div tabindex="0" id="after">after</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+  async function activateMarker(idx) {
+    await new test_driver.Actions()
+      .pointerMove(5 + idx*25, 5)
+      .pointerDown()
+      .pointerUp()
+      .send();
+  }
+
+  async function focusNext() {
+    // https://w3c.github.io/webdriver/#keyboard-actions
+    const kTab = '\uE004';
+
+    await new test_driver.Actions()
+      .keyDown(kTab)
+      .keyUp(kTab)
+      .send();
+  }
+
+  promise_test(async t => {
+    await activateMarker(4);
+    await focusNext();
+    assert_equals(document.activeElement, flex1);
+    await focusNext();
+    assert_equals(document.activeElement, flex2);
+    await focusNext();
+    assert_equals(document.activeElement, flex3);
+    await focusNext();
+    assert_equals(document.activeElement, flex4);
+  }, "Column 4");
+
+  promise_test(async t => {
+    await activateMarker(3);
+    await focusNext();
+    assert_equals(document.activeElement, inlineBlock);
+    await focusNext();
+    assert_equals(document.activeElement, flex1);
+  }, "Column #3");
+
+  // TODO(https://github.com/w3c/csswg-drafts/issues/11882): Figure out how to
+  // treat columns with no elements, and test it here. Column #2 has no start
+  // elements.
+  promise_test(async t => {
+    // At the very least, we should not crash. :)
+    await activateMarker(2);
+    await focusNext();
+  }, "Column #2");
+
+  promise_test(async t => {
+    await activateMarker(1);
+    await focusNext();
+    assert_equals(document.activeElement, c1first);
+    await focusNext();
+    assert_equals(document.activeElement, c1second);
+    await focusNext();
+    assert_equals(document.activeElement, inlineBlock);
+  }, "Column #1");
+
+  promise_test(async t => {
+    // Column #0 has nothing focusable. The next column has something.
+    await activateMarker(0);
+    await focusNext();
+    assert_equals(document.activeElement, c1first);
+  }, "Column #0");
+
+  promise_test(async t => {
+    await activateMarker(8);
+    await focusNext();
+    assert_equals(document.activeElement, c7Block);
+    await focusNext();
+    assert_equals(document.activeElement, c7Abs);
+    await focusNext();
+    assert_equals(document.activeElement, after);
+  }, "Column #8");
+
+  promise_test(async t => {
+    await activateMarker(7);
+    await focusNext();
+    assert_equals(document.activeElement, c6Abs);
+    await focusNext();
+    assert_equals(document.activeElement, c6Block);
+    await focusNext();
+    assert_equals(document.activeElement, c7Block);
+  }, "Column 7");
+
+  promise_test(async t => {
+    await activateMarker(6);
+    await focusNext();
+    assert_equals(document.activeElement, tfoot);
+    await focusNext();
+    assert_equals(document.activeElement, thead);
+    await focusNext();
+    assert_equals(document.activeElement, tbody);
+    await focusNext();
+    assert_equals(document.activeElement, c6Abs);
+  }, "Column 6");
+
+  promise_test(async t => {
+    await activateMarker(5);
+    await focusNext();
+    assert_equals(document.activeElement, flex4);
+    await focusNext();
+    assert_equals(document.activeElement, flex5);
+    await focusNext();
+    assert_equals(document.activeElement, flex6);
+    await focusNext();
+    assert_equals(document.activeElement, tfoot);
+  }, "Column 5");
+</script>

@@ -16,11 +16,11 @@
 
     promise_test(async (test) => {
         await test_driver.bless("user activation");
-        try {
-            await navigator.credentials.get(makeGetOptions("openid4vp"));
-        } catch (e) {
-            assert_unreached();
-        }
+        await promise_rejects_js(
+            test,
+            TypeError,
+            navigator.credentials.get(makeGetOptions([]))
+        );
     }, "Permissions-Policy header digital-credentials-get=(self) allows the top-level document.");
 
     promise_test(async (test) => {

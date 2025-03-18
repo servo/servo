@@ -1,0 +1,2 @@
+Strict-Transport-Security: max-age=60
+Access-Control-Allow-Origin: *

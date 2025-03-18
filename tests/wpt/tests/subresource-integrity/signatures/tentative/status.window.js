@@ -47,7 +47,7 @@ const kRequestsWithValidSignature = [
     signatureInput: `signature=("unencoded-digest";sf "@status");keyid="${kValidKeys['rfc']}";tag="sri"`
   },
 
-  // `@path` then `unencoded-digest`, with the following signature base:
+  // `@status` then `unencoded-digest`, with the following signature base:
   //
   // ```
   // "@status": 200

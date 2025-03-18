@@ -3,7 +3,6 @@
 <title>DBSC registration sends back Sec-Session-Challenge</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/common/get-host-info.sub.js"></script>
 <script src="helper.js" type="module"></script>
 
 <script type="module">
@@ -12,26 +11,26 @@
   promise_test(async t => {
     await setupShardedServerState();
     const expectedCookieAndValue = "auth_cookie=abcdef0123";
-    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
-    addCookieAndSessionCleanup(t, expectedCookieAndAttributes);
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
 
     // Configure server to send back a challenge during registration.
     configureServer({ registrationSendsChallenge: true });
 
     // Prompt starting a session, and wait until registration completes.
-    const login_response = await fetch('login.py');
-    assert_equals(login_response.status, 200);
-    assert_true(await waitForCookie(expectedCookieAndValue));
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
 
     // Confirm that a request has the cookie set.
-    const auth_response = await fetch('verify_authenticated.py');
-    assert_equals(auth_response.status, 200);
+    const authResponse = await fetch('verify_authenticated.py');
+    assert_equals(authResponse.status, 200);
 
     // Confirm that expiring the cookie still leads to a request with the cookie set (refresh occurs).
     expireCookie(expectedCookieAndAttributes);
     assert_false(documentHasCookie(expectedCookieAndValue));
-    const auth_response_after_expiry = await fetch('verify_authenticated.py');
-    assert_equals(auth_response_after_expiry.status, 200);
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+    assert_equals(authResponseAfterExpiry.status, 200);
     assert_true(documentHasCookie(expectedCookieAndValue));
 }, "Registration can send back Sec-Session-Challenge");
 </script>

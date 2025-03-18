@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Attempt to set scroll-marker-group on inline</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/381444307">
+<style>
+  #test {
+    overflow: auto;
+    scroll-marker-group: after;
+  }
+  #test::scroll-marker-group {
+    display: block;
+  }
+</style>
+<span id="test"></span>

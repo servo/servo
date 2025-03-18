@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>Crash Test: @layer statement sandwiched between namespaces</title>
+<link rel="help" href="https://issues.chromium.org/issues/402248410">
+<style>
+  @namespace "hello";
+  @layer feh;
+  @namespace "world";
+</style>

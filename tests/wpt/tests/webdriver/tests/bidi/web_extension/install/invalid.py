@@ -1,8 +1,6 @@
 import pytest
 import webdriver.bidi.error as error
 
-from tests.support.helpers import get_extension_path
-
 pytestmark = pytest.mark.asyncio
 
 

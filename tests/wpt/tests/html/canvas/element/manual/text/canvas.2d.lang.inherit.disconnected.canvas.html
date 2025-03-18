@@ -8,12 +8,12 @@
     href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
   <meta name="assert" content="Verify that a disconnected canvas uses the canvas lang."/>
   <style>
-    #canvas-zh-CN {
+    #canvas-tr {
       position: absolute;
       top: 10px;
       left: 10px;
     }
-    #canvas-ja {
+    #canvas-en {
       position: absolute;
       top: 120px;
       left: 10px;
@@ -29,15 +29,24 @@
         canvas.setAttribute('lang', language);
         var ctx = canvas.getContext('2d');
 
-        // The default for direction is inherit
-        ctx.font = '25px serif';
-        ctx.fillText('今骨直', 5, 50);
+        // The default for lang is inherit
+        ctx.font = '25px Lato-Medium';
+        ctx.fillText('fi', 5, 50);
 
         document.body.appendChild(canvas);
       }
 
-      drawText('zh-CN');
-      drawText('ja');
+      let test_font = new FontFace(
+        // Lato-Medium is a font with language specific ligatures.
+        "Lato-Medium",
+        "url(/fonts/Lato-Medium.ttf)"
+      );
+
+      test_font.load().then((font) => {
+        document.fonts.add(font);
+        drawText('tr');
+        drawText('en');
+      });
     </script>
   </body>
 </html>

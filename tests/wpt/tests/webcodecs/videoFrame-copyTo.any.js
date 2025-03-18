@@ -310,3 +310,58 @@ promise_test(async t => {
   const data = new Uint8Array(12);
   await promise_rejects_js(t, TypeError, frame.copyTo(data, options));
 }, 'Test invalid rect.');
+
+promise_test(async t => {
+  let init = {
+    format: 'I420',
+    timestamp: 1234,
+    codedWidth: 8,
+    codedHeight: 16,
+    visibleRect: {
+      x: 2,
+      y: 2,
+      width: 4,
+      height: 8,
+    },
+    colorSpace: {
+      primaries: 'smpte170m',
+      transfer: 'smpte170m',
+      matrix: 'smpte170m',
+      fullRange: false,
+    }
+  };
+
+  // Define YUV values for BT.601 red.
+  const redY = 76;
+  const redU = 84;
+  const redV = 255;
+
+  const ySize = init.codedWidth * init.codedHeight;
+  const uvSize = ySize / 4;
+  let data = new Uint8Array(ySize + 2 * uvSize);
+  fillYUV(data, init.codedWidth, init.codedHeight, init.visibleRect, redY, redU,
+          redV);
+
+  let frame = new VideoFrame(data, init);
+  assert_equals(frame.codedWidth, init.visibleRect.width);
+  assert_equals(frame.codedHeight, init.visibleRect.height);
+  assert_equals(frame.visibleRect.x, 0);
+  assert_equals(frame.visibleRect.y, 0);
+  assert_equals(frame.visibleRect.width, init.visibleRect.width);
+  assert_equals(frame.visibleRect.height, init.visibleRect.height);
+  assert_equals(frame.displayWidth, init.visibleRect.width);
+  assert_equals(frame.displayHeight, init.visibleRect.height);
+
+  let options = {rect: frame.visibleRect};
+  let copied_data = new Uint8Array(frame.allocationSize(options));
+  await frame.copyTo(copied_data, options);
+
+  // We could write a bunch of code to carefully slice out the visible region
+  // of `data`, but it's simpler and works better with testharness.js operators
+  // to just create a fresh packed version for direct comparison.
+  let packed_data = new Uint8Array(frame.allocationSize(options));
+  fillYUV(packed_data, frame.codedWidth, frame.codedHeight, frame.visibleRect,
+          redY, redU, redV);
+
+  assert_array_equals(copied_data, packed_data, `Copied frame data incorrect.`);
+}, 'copyTo from byte data with non-default visibleRect');

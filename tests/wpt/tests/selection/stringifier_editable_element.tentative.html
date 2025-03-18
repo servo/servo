@@ -1,0 +1,187 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Selection: stringifier for editable elements</title>
+<!--
+There are two open issues about how this should behave
+https://github.com/w3c/selection-api/issues/83
+https://github.com/w3c/selection-api/issues/7
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<body>
+  <input id="dummyInput"></input>
+
+  <input id="textInput" value="This is a text">
+  <textarea id="textArea" rows="5" cols="40">
+
+  Line one
+  Line two
+
+  </textarea>
+
+  <button id="button">Button</button>
+  <a id="anchor">Anchor</a>
+  <span id="text">Text</span>
+</body>
+<script>
+
+function reset() {
+  window.getSelection().empty();
+  dummyInput.focus();
+}
+
+window.onload = () => {
+  test(() => {
+    reset();
+    textInput.select();
+
+    assert_equals(document.activeElement, textInput);
+    assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "This is a text");
+  }, "select the entire input should result all the content");
+
+  test(() => {
+    reset();
+    textInput.select();
+    dummyInput.focus();
+
+    assert_equals(document.activeElement, dummyInput);
+    assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "");
+  }, "toString() should return empty when the focus is not on the editable content");
+
+  test(() => {
+    reset();
+
+    textInput.selectionStart = 3;
+    textInput.selectionEnd = 7;
+
+    assert_equals(document.activeElement, dummyInput);
+    assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "");
+
+    textInput.focus();
+    assert_equals(document.activeElement, textInput);
+    assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "s is");
+  }, "toString() works with selectionStart and selectionEnd for input");
+
+  test(() => {
+    reset();
+
+    textArea.select();
+
+    assert_equals(document.activeElement, textArea);
+    assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "\n  Line one\n  Line two\n\n  ");
+  }, "select the entire textarea should result all the content");
+
+  test(() => {
+    reset();
+
+    textArea.selectionStart = 3;
+    textArea.selectionEnd = 12;
+
+    assert_equals(document.activeElement, dummyInput);
+    assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "");
+
+    textArea.focus();
+    assert_equals(document.activeElement, textArea);
+    assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "Line one\n");
+  }, "toString() works with selectionStart and selectionEnd for textarea");
+
+  test(() => {
+    reset();
+    textInput.select();
+
+    button.focus();
+
+    assert_equals(document.activeElement, button);
+
+    assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "This is a text");
+  }, "toString() works even if a click just occured on a button");
+
+  promise_test((t) => {
+    reset();
+    textInput.select();
+    return new Promise(r => {
+      anchor.addEventListener("click", function() {
+        assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "This is a text");
+        r();
+      }, {once: true});
+
+      anchor.click();
+    });
+  }, "toString() works for programatically calling .click() on anchor (without href)");
+
+  promise_test((t) => {
+    reset();
+    textInput.select();
+    return new Promise(r => {
+      anchor.addEventListener("click", function() {
+        assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "");
+        r();
+      }, {once : true});
+
+      test_driver.click(anchor);
+    });
+  }, "toString() doesn't work for actual clicking the anchor (without href)");
+
+  promise_test((t) => {
+    reset();
+    textInput.select();
+    anchor.href = "#";
+    return new Promise(r => {
+      anchor.addEventListener("click", function() {
+        assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "This is a text");
+        r();
+      }, {once: true});
+
+      anchor.click(); // anchor has href now
+    });
+  }, "toString() works for programatically calling .click() on anchor (with href)");
+
+  promise_test((t) => {
+    reset();
+    textInput.select();
+    return new Promise(r => {
+      anchor.addEventListener("click", function() {
+        assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "This is a text");
+        r();
+      }, {once : true});
+
+      test_driver.click(anchor); // anchor has href now
+    });
+  }, "toString() also works for actual clicking the anchor (with href)");
+
+  promise_test((t) => {
+    reset();
+    textInput.select();
+
+    return new Promise(async r => {
+      anchor.addEventListener("click", function() {
+        assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "");
+        r();
+      }, {once : true});
+
+      await test_driver.click(text);
+      test_driver.click(anchor);
+    });
+  }, "Click on a text prior to toString() moves the seleciton");
+
+  promise_test((t) => {
+    reset();
+    textInput.select();
+
+    text.style = "user-select: none";
+    return new Promise(async r => {
+      anchor.addEventListener("click", function() {
+        assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "This is a text");
+        r();
+      }, {once : true});
+
+      await test_driver.click(text);
+      test_driver.click(anchor);
+    });
+  }, "Click on a `user-select:none` text prior to toString() doesn't move the seleciton");
+};
+</script>
+</html>

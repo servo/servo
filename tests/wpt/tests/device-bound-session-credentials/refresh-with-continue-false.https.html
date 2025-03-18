@@ -3,7 +3,6 @@
 <title>DBSC session ended with continue:false</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/common/get-host-info.sub.js"></script>
 <script src="helper.js" type="module"></script>
 
 <script type="module">
@@ -12,26 +11,26 @@
   promise_test(async t => {
     await setupShardedServerState();
     const expectedCookieAndValue = "auth_cookie=abcdef0123";
-    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${get_host_info().ORIGINAL_HOST};Path=/device-bound-session-credentials`;
-    addCookieAndSessionCleanup(t, expectedCookieAndAttributes);
+    const expectedCookieAndAttributes = `${expectedCookieAndValue};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
 
     // Configure server to end the session upon refresh.
     configureServer({ shouldRefreshEndSession: true });
 
     // Prompt starting a session, and wait until registration completes.
-    const login_response = await fetch('login.py');
-    assert_equals(login_response.status, 200);
-    assert_true(await waitForCookie(expectedCookieAndValue));
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/true);
 
     // Confirm that a request has the cookie set.
-    const auth_response = await fetch('verify_authenticated.py');
-    assert_equals(auth_response.status, 200);
+    const authResponse = await fetch('verify_authenticated.py');
+    assert_equals(authResponse.status, 200);
 
     // Expire the cookie. The server will end the session on attempted refresh.
     expireCookie(expectedCookieAndAttributes);
     assert_false(documentHasCookie(expectedCookieAndValue));
-    const auth_response_after_expiry = await fetch('verify_authenticated.py');
-    assert_equals(auth_response_after_expiry.status, 401);
+    const authResponseAfterExpiry = await fetch('verify_authenticated.py');
+    assert_equals(authResponseAfterExpiry.status, 401);
     assert_false(documentHasCookie(expectedCookieAndValue));
   }, "A session ended with continue:false does not refresh cookies");
 </script>

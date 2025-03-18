@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/#calculate-intersection-rect-algo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+@keyframes clippath {
+  0% {
+    clip-path: inset(30%);
+  }
+  100% {
+    clip-path: inset(40%);
+  }
+}
+body { margin: 0 }
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#target {
+  position: absolute;
+  top: 0px;
+  background-color: green;
+  width: 100px;
+  height: 100px;
+}
+#container {
+  margin: 20px;
+  position: relative;
+  padding: 8px;
+  width: 0px;
+  height: 0px;
+}
+.animation {
+  animation: clippath 100s steps(2, jump-end);
+}
+</style>
+
+<div id="container">
+  <div id="target"></div>
+</div>
+
+<script>
+var vw = document.documentElement.clientWidth;
+var vh = document.documentElement.clientHeight;
+
+var target = undefined;
+var container = undefined;
+var observer = undefined;
+var entries = [];
+
+// See crbug.com/40690885. In principle, this test should not need this,
+// however browser support of updating intersection obsevers in response
+// to animations (and in particular, clip-paths) is spotty. Forcing a
+// fresh listener allows the test to guard against regression of
+// crbug.com/394244260, and test that resolution of clip rects with
+// animations isn't particularly broken in some way.
+async function forceReset() {
+  if(observer) { observer.disconnect(); }
+  observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  }, {
+    root: container
+  });
+  observer.observe(target);
+  await waitForNotification();
+}
+
+promise_test(async function(t) {
+  target = document.getElementById("target");
+  container = document.getElementById("container");
+  await forceReset();
+
+  // See intersection-observer-test-utils.js for the meaning of these values.
+  checkLastEntry(
+    entries,
+    0,
+    [28, 128, 20, 120, 28, 36, 20, 36, 20, 36, 20, 36, true],
+  );
+  target.className = "animation";
+  await forceReset();
+
+  checkLastEntry(
+    entries,
+    1,
+    [28, 128, 20, 120, 0, 0, 0, 0, 20, 36, 20, 36, false],
+  );
+  target.className = "";
+  await forceReset();
+
+  checkLastEntry(
+    entries,
+    2,
+    [28, 128, 20, 120, 28, 36, 20, 36, 20, 36, 20, 36, true],
+  );
+});
+</script>
