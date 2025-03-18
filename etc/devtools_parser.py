@@ -135,22 +135,34 @@ def process_data(out, port):
 
 
 # Pretty prints the json message
-def parse_message(msg):
+def parse_message(msg, *, json_output=False):
     time, sender, i, data = msg
     from_servo = sender == "Servo"
 
     colored_sender = colored(sender, 'black', 'on_yellow' if from_servo else 'on_magenta', attrs=['bold'])
-    print(f"\n{colored_sender} - {colored(i, 'blue')} - {colored(time, 'dark_grey')}")
+    if not json_output:
+        print(f"\n{colored_sender} - {colored(i, 'blue')} - {colored(time, 'dark_grey')}")
 
     try:
         content = json.loads(data)
-        if from_servo and "from" in content:
-            print(colored(f"Actor: {content['from']}", 'yellow'))
-        print(json.dumps(content, sort_keys=True, indent=4))
+        if json_output:
+            if "to" in content:
+                # This is a request
+                print(json.dumps({"_to": content["to"], "message": content}, sort_keys=True))
+            elif "from" in content:
+                # This is a response
+                print(json.dumps({"_from": content["from"], "message": content}, sort_keys=True))
+            else:
+                assert False, "Message is neither a request nor a response"
+        else:
+            if from_servo and "from" in content:
+                print(colored(f"Actor: {content['from']}", 'yellow'))
+            print(json.dumps(content, sort_keys=True, indent=4))
     except json.JSONDecodeError:
         print(f"Warning: Couldn't decode json\n{data}")
 
-    print()
+    if not json_output:
+        print()
 
 
 if __name__ == "__main__":
@@ -159,6 +171,7 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--port", default="1234", help="the port where the devtools client is running")
     parser.add_argument("-f", "--filter", help="search for the string on the messages")
     parser.add_argument("-r", "--range", help="only parse messages from n to m, with the form of n:m")
+    parser.add_argument("--json", action="store_true", help="output in newline-delimited JSON (NDJSON)")
 
     actions = parser.add_mutually_exclusive_group(required=True)
     actions.add_argument("-s", "--scan", help="scan and save the output to a file")
@@ -183,4 +196,4 @@ if __name__ == "__main__":
     for msg in data[int(min):int(max) + 1]:
         # Filter the messages if specified
         if not args.filter or args.filter.lower() in msg[3].lower():
-            parse_message(msg)
+            parse_message(msg, json_output=args.json)
