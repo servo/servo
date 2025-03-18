@@ -40,6 +40,7 @@
 import json
 import re
 import signal
+import sys
 from argparse import ArgumentParser
 from subprocess import Popen, PIPE
 try:
@@ -49,7 +50,6 @@ except ImportError:
         return text
 
 fields = ["frame.time", "tcp.srcport", "tcp.payload"]
-pattern = r"(\d+:){"
 
 
 # Use tshark to capture network traffic and save the result in a
@@ -101,37 +101,55 @@ def read_data(file):
 def process_data(out, port):
     out = [line.split("\t") for line in out.split("\n")]
 
-    # Process fields
-    data = []
+    sends = []
     for line in out:
         if len(line) != 3:
             continue
-
         curr_time, curr_port, curr_data = line
+        if len(curr_data) == 0:
+            continue
+        if len(sends) > 0 and sends[-1][1] == curr_port:
+            sends[-1][2] += bytearray.fromhex(curr_data)
+        else:
+            sends.append([curr_time, curr_port, bytearray.fromhex(curr_data)])
 
+    records = []
+    scunge = {}
+    for curr_time, curr_port, rest in sends:
+        rest = scunge.pop(curr_port, b"") + rest
+        while rest != b"":
+            try:
+                length, new_rest = rest.split(b":", 1)  # Can raise ValueError
+                length = int(length)
+                if len(new_rest) < length:
+                    raise ValueError("Incomplete message (for now)")
+                rest = new_rest
+            except ValueError:
+                print(f"[WARNING] Incomplete message detected (will try to reassemble): {repr(rest)}", file=sys.stderr)
+                scunge[curr_port] = rest
+                break
+            length = int(length)
+            message = rest[:length]
+            rest = rest[length:]
+            try:
+                records.append([curr_time, curr_port, message.decode()])
+            except UnicodeError:
+                continue
+
+    # Process fields
+    result = []
+    for line in records:
+        if len(line) != 3:
+            continue
+        curr_time, curr_port, text = line
         # Time
         curr_time = curr_time.split(" ")[-2].split(".")[0]
         # Port
         curr_port = "Servo" if curr_port == port else "Firefox"
         # Data
-        if not curr_data:
-            continue
-        try:
-            dec = bytearray.fromhex(curr_data).decode()
-        except UnicodeError:
-            continue
+        result.append([curr_time, curr_port, len(result), text])
 
-        indices = [m.span() for m in re.finditer(pattern, dec)]
-        indices.append((len(dec), -1))
-        prev = 0
-
-        for min, max in indices:
-            if min > 0:
-                text = dec[prev - 1:min]
-                data.append([curr_time, curr_port, len(data), text])
-            prev = max
-
-    return data
+    return result
 
 
 # Pretty prints the json message
