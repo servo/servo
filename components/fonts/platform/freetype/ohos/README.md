@@ -24,8 +24,16 @@ Filenames - should be searched across all folders in fontdir array;
 Font Full Names - **{Family name}** + [**{Supported language}**] + **{Font Style}** Is not really usefull for matching and CSS purposes. Ideally you should mmap font file and search for name table in TTF/TTC, then extract PostScript name from there and use it for font matching
 
 #### generic
-Describes what font families should be used as generic font families ([CSS-FONTS-4](https://www.w3.org/TR/css-fonts-4/#generic-family-name-syntax));
-Most important information for web engine is **family name** and set of **aliases**
+Describes what font families should be used as generic font families on OS level ([CSS-FONTS-4](https://www.w3.org/TR/css-fonts-4/#generic-family-name-syntax));
+Most important information for web engine is **family name** and set of **aliases** (ui-serif, ui-sans-serif, ui-monospace, ui-rounded).
+Also it contains set of hints and adjustments for font rendering systems in case they can not natively support **dynamic fonts** and parse information from font tables
+
+#### fallback
+Describes what font families specifies usage of segmented font families that OS provides (what font face should be used for specific language and script of the content) ([CSS-FONTS-4](https://www.w3.org/TR/css-fonts-4/#generic-family-name-syntax));
+Most important information for web engine is association of **language** and **script** to  **script-specific family name**.
+It could provide some unconditional fallbacks like:
+***"": "Noto Sans"***.
+Such fallbacks should be treated as **GenericFamily::None** by servo engine
 Also it contains set of hints and adjustments for font rendering systems in case they can not natively support **dynamic fonts** and parse information from font tables
 
 

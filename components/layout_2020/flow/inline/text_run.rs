@@ -415,7 +415,7 @@ impl TextRun {
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
     ) -> Vec<(TextRunSegment, FontRef)> {
-        let font_group = font_context.font_group(self.parent_style.clone_font());
+        let mut font_group = font_context.font_group(self.parent_style.clone_font(), None);
         let mut current: Option<(TextRunSegment, FontRef)> = None;
         let mut results = Vec::new();
 
@@ -435,6 +435,8 @@ impl TextRun {
             // at the bottom of the list.
             let script = Script::from(character);
             let bidi_level = bidi_info.levels[current_byte_index];
+            font_group =
+                font_context.font_group(self.parent_style.clone_font(), Some(script as u8));
             let current_font = current.as_ref().and_then(|(text_run_segment, font)| {
                 if text_run_segment.bidi_level == bidi_level && text_run_segment.script == script {
                     Some(font.clone())
@@ -582,7 +584,7 @@ pub(super) fn get_font_for_first_font_for_style(
     font_context: &FontContext,
 ) -> Option<FontRef> {
     let font = font_context
-        .font_group(style.clone_font())
+        .font_group(style.clone_font(), None)
         .write()
         .first(font_context);
     if font.is_none() {

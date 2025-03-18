@@ -9,12 +9,12 @@ use std::path::PathBuf;
 use std::string::String;
 use std::vec::Vec;
 
-use unicode_script::Script;
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use unicode_script::Script;
 
 use super::font_list::enumerate_font_files;
+use super::iso15924_to_unicode_script::iso15924_to_unicode_script;
 
 static FONT_CONFIG_PATH: &str = "/etc/fontconfig.json";
 
@@ -31,8 +31,9 @@ static FONT_CONFIG_PATH: &str = "/etc/fontconfig.json";
        },
    ]
    We get modified fontconfig file and entry of generic font alias contains several
-   simmilar PostScript names to font-weight associations
+   PostScript names to font-weight associations instead of one association.
    We will take first one and report about error in the fontconfig.js
+
    Example of correct alias bellow:
    "alias": [
        {
@@ -111,15 +112,27 @@ pub(super) struct FallbackEntryOHOS {
 }
 
 /// Representation of OpenHarmony fontconfig.json
-/// in Rust structure
+/// in Rust structure. We don't have clear requirements for object
+/// definition inside this structure. Just remember, even if there is
+/// some links to CSS specifications here, it doesn't mean that object
+/// inside structure should follow CSS spec. This just convenient rust
+/// representation of some OpenHarmony specific objects.
 #[derive(Debug, Deserialize, Serialize)]
 pub(super) struct FontconfigOHOS {
+    /// Array that contains all folders where we should search fonts
+    /// on OpenHarmony OS.
     pub fontdir: Vec<String>,
+    /// Fonts that should be used as generic on HarmonyOS
+    /// <https://www.w3.org/TR/css-fonts-4/#generic-family-name-syntax>
+    /// (we extract ui-serif, ui-sans-serif, ui-monospace, ui-rounded)
     pub generic: Vec<GenericFontFamilyOHOS>,
+    /// Information that provides default font fallbacks (first fonts in
+    /// installed font list in CSS notation that we should try if we was unable
+    /// to match family with all family names specified by user)
     pub fallback: Vec<(String, Vec<FallbackEntryOHOS>)>,
+    /// Table that provides association between font-family and font file.
     pub font_file_map: Vec<(String, String)>,
 }
-
 
 impl LangScriptKey {
     fn new() -> Self {
@@ -197,18 +210,24 @@ fn convert_lang_script(lang_script: &str) -> Option<LangScriptKey> {
         }
     }
     if lang_str_candidate.is_none() {
-        return None
+        return None;
     }
     if script_str_candidate.is_none() {
-        return None
+        return None;
     }
     let script_str = script_str_candidate.unwrap();
-    let script_candidate = Script::from_short_name(script_str);
+    let script_candidate = iso15924_to_unicode_script(script_str);
     match (lang_str_candidate, script_candidate) {
         (Some(lang_str), Some(script)) => {
             return Some(LangScriptKey {
                 lang: lang_str.to_string(),
-                script: script as u8
+                script: script as u8,
+            });
+        },
+        (Some(lang_str), None) => {
+            return Some(LangScriptKey {
+                lang: lang_str.to_string(),
+                script: Script::Unknown as u8,
             });
         },
         (_, _) => (),
@@ -502,7 +521,8 @@ fn convert_fallback_array_entry_value(obj_entry: &serde_json::Value) -> Option<F
                         let script_specific_family_name_candidate = convert_string_value(serde_val);
                         match (lang_script_candidate, script_specific_family_name_candidate) {
                             (Some(lang_script_key), Some(script_specific_family_name)) => {
-                                lang_script_to_family = (lang_script_key, script_specific_family_name);
+                                lang_script_to_family =
+                                    (lang_script_key, script_specific_family_name);
                             },
                             (_, _) => return None,
                         }
@@ -673,8 +693,8 @@ fn convert_and_verify_font_file_map(
     // for Rust language. I have not considered the fact that actual object may have 2 identical keys
     // because in original JSON this is the entries of 2 different JSON_OBJECTS
 
-    // In that particular case we can either have symlink in final HashMap or actual file;
-    // If some software down the line couldn't handle symlinks, then we must fix it.
+    // TODO(symlinks): Remember that I included symlinks in enumerate_font_files()
+    // If some software down the line couldn't handle symlinks, then we must fix it by rollback.
     let mut result = Vec::<(String, String)>::new();
     match serde_val {
         Value::Array(array) => {
@@ -708,8 +728,8 @@ fn convert_and_verify_font_file_map(
         .collect();
 
     let correctly_defined_fonts = config_font_names_set.intersection(&found_device_fonts_names_set);
+    let unspecified_fonts = found_device_fonts_names_set.difference(&config_font_names_set);
     if log::log_enabled!(log::Level::Debug) {
-        let unspecified_fonts = found_device_fonts_names_set.difference(&config_font_names_set);
         let errors_in_config = config_font_names_set.difference(&found_device_fonts_names_set);
 
         if unspecified_fonts.clone().count() != 0 {
@@ -720,10 +740,12 @@ fn convert_and_verify_font_file_map(
                 Please check the contents of fontdir folder stated in config!
                 If there is symlinks you can ignore this warning.
                 If you just placed some additional fonts into folder, please specify them in fontconfig.json!
+
+                In servo engine this fonts would be considered as installed fonts.
             "#
             );
 
-            for font in unspecified_fonts {
+            for font in unspecified_fonts.clone() {
                 log::warn!("{}", font);
             }
         }
@@ -742,6 +764,10 @@ fn convert_and_verify_font_file_map(
     }
 
     let correct_subset: HashSet<String> = correctly_defined_fonts
+        .map(|entry| -> String { entry.to_string() })
+        .collect();
+
+    let unspecified_subset: HashSet<String> = unspecified_fonts
         .map(|entry| -> String { entry.to_string() })
         .collect();
 
@@ -764,6 +790,11 @@ fn convert_and_verify_font_file_map(
             }
         })
         .collect();
+
+    // TODO(ddesyatkin) create special procedure for unspecified fonts
+    // We must parse the files and extract info about family names, scripts, unicode ranges
+    // for FONT_LIST. Some asynchronous IPC is required here.
+    // results.extend()
 
     if log::log_enabled!(log::Level::Debug) {
         // log::debug!("OHOS fontconfig provides following correctly specified fonts:");

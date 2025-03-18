@@ -539,9 +539,9 @@ impl<'a> CanvasData<'a> {
             return;
         };
 
-        let font_group = self
-            .font_context
-            .font_group_with_size(font_style.clone(), Au::from_f64_px(size));
+        let font_group =
+            self.font_context
+                .font_group_with_size(font_style.clone(), Au::from_f64_px(size), None);
         let mut font_group = font_group.write();
         let Some(first_font) = font_group.first(&self.font_context) else {
             warn!("Could not render canvas text, because there was no first font.");
@@ -625,7 +625,7 @@ impl<'a> CanvasData<'a> {
             return TextMetrics::default();
         };
 
-        let font_group = self.font_context.font_group(font_style.clone());
+        let font_group = self.font_context.font_group(font_style.clone(), None);
         let mut font_group = font_group.write();
         let font = font_group
             .first(&self.font_context)

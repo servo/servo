@@ -6,7 +6,10 @@ use std::collections::HashSet;
 
 use unicode_script::Script;
 
-use crate::platform::font_list::{FallbackAssociations, PlatformFontDescriptorOHOS, FontAlias, FontFamily};
+use super::FallbackOptionsKey;
+use crate::platform::font_list::{
+    FallbackAssociations, FontAlias, FontFamily, PlatformFontDescriptorOHOS,
+};
 use crate::platform::freetype::ohos::json::{
     FallbackEntryOHOS, FontconfigOHOS, GenericFontFamilyOHOS,
 };
@@ -17,11 +20,11 @@ use crate::platform::freetype::ohos::json::{
 */
 
 fn get_generic_family_font_file_path_from_ohos_fontconfig<'a>(
-    family_name: &'a str,
+    full_family_name: &'a str,
     config: &'a FontconfigOHOS,
 ) -> Option<&'a str> {
     let font_full_name_to_filepath = &config.font_file_map;
-    let mut family_name_key = family_name.to_string();
+    let mut family_name_key = full_family_name.to_string();
 
     // Awfull performance. Rewrite this.
     if let Some(res) = font_full_name_to_filepath
@@ -30,9 +33,11 @@ fn get_generic_family_font_file_path_from_ohos_fontconfig<'a>(
     {
         return Some(&res.1);
     } else {
-        log::warn!("Was unable to find font file with canonicalized naming");
-        log::warn!("Will try regular variant");
-        family_name_key = family_name.to_string() + " Regular";
+        if log::log_enabled!(log::Level::Debug) {
+            log::warn!("Was unable to find font file with canonicalized naming");
+            log::warn!("Will try regular variant");
+        }
+        family_name_key = full_family_name.to_string() + " Regular";
         if let Some(res) = font_full_name_to_filepath
             .iter()
             .find(|entry| family_name_key == entry.0)
@@ -46,7 +51,7 @@ fn get_generic_family_font_file_path_from_ohos_fontconfig<'a>(
                     Check OHOS fontconfig verification code!
                     family name: {}
                     "#,
-                    family_name
+                    full_family_name
                 );
             }
         }
@@ -55,13 +60,13 @@ fn get_generic_family_font_file_path_from_ohos_fontconfig<'a>(
 }
 
 fn get_all_family_font_file_paths_from_ohos_fontconfig<'a>(
-    family_name: &'a str,
+    full_family_name: &'a str,
     config: &'a FontconfigOHOS,
 ) -> Vec<&'a str> {
     let mut result = Vec::<&'a str>::new();
     let font_full_name_to_filepath = &config.font_file_map;
     for (font_full_name, font_file_path) in font_full_name_to_filepath.iter() {
-        if font_full_name.contains(family_name) {
+        if font_full_name.contains(full_family_name) {
             result.push(font_file_path)
         }
     }
@@ -86,7 +91,7 @@ fn get_family_weight_from_font_variations_entry(variation: &[(String, i32); 2]) 
     None
 }
 
-fn process_generic_family_from_ohos_config(
+fn process_generic_entry_from_ohos_config(
     generic_font_family: &GenericFontFamilyOHOS,
     config: &FontconfigOHOS,
 ) -> Option<(FontFamily, Vec<FontAlias>)> {
@@ -105,12 +110,14 @@ fn process_generic_family_from_ohos_config(
         family_fonts.push(PlatformFontDescriptorOHOS {
             filepath: filepath.clone(),
             weight,
+            script: Script::Common as u8,
             ..Default::default()
         });
     }
     if font_variations.is_empty() {
         family_fonts.push(PlatformFontDescriptorOHOS {
             filepath: filepath.clone(),
+            script: Script::Common as u8,
             ..Default::default()
         });
     }
@@ -125,11 +132,20 @@ fn process_generic_family_from_ohos_config(
         .iter()
         .map(|(alias, weight)| {
             let effective_weight: Option<i32> = match *weight {
+                // CSS weight is allowed from 1 to 999
                 0 => None,
                 _ => Some(*weight),
             };
+            // Convert system-alias notation. To CSS alias.
+            let resulting_alias = match alias.as_str() {
+                "serif" => "ui-serif",
+                "sans-serif" => "ui-sans-serif",
+                "monospace" => "ui-monospace",
+                "rounded" => "ui-rounded",
+                _ => alias,
+            };
             FontAlias {
-                from: alias.to_string(),
+                from: resulting_alias.to_string(),
                 to: family_name.to_string(),
                 weight: effective_weight,
             }
@@ -144,9 +160,8 @@ pub fn generic_font_families_from_ohos_fontconfig(
 ) -> (Vec<FontFamily>, Vec<FontAlias>) {
     let mut result_fonts = Vec::<FontFamily>::new();
     let mut result_aliases = Vec::<FontAlias>::new();
-    for generic_font_family in &config.generic {
-        // _fallback_name now ohos fontconfig has only one fallback strategy.
-        let candidate = process_generic_family_from_ohos_config(generic_font_family, config);
+    for generic_entry in &config.generic {
+        let candidate = process_generic_entry_from_ohos_config(generic_entry, config);
         if let Some((generic_family, generic_family_aliases)) = candidate {
             result_fonts.push(generic_family);
             result_aliases.extend(generic_family_aliases);
@@ -186,7 +201,7 @@ fn process_fallback_list_from_ohos_config(
     config: &FontconfigOHOS,
 ) -> (Vec<FontFamily>, FallbackAssociations) {
     let mut result_fonts = Vec::<FontFamily>::new();
-    let result_fallback_associations = FallbackAssociations::new();
+    let mut result_fallback_associations = FallbackAssociations::new();
     let mut processed_filepaths = HashSet::<String>::new();
 
     for fallback_font in fallback_list {
@@ -219,8 +234,10 @@ fn process_fallback_list_from_ohos_config(
             continue;
         }
 
+        let original_family_filepaths = res.clone();
+
         // Filter paths from all generic (system) families that we was able to process before
-        let filepaths: Vec<&str> = res
+        let filtered_filepaths: Vec<&str> = res
             .into_iter()
             .filter_map(|filepath| {
                 if processed_filepaths.contains(filepath) {
@@ -229,13 +246,30 @@ fn process_fallback_list_from_ohos_config(
                 Some(filepath)
             })
             .collect();
-        // let key = FallbackOptionsKey::new_from_lang_script_str(&lang_script);
 
-        for filepath in filepaths {
+        let key = FallbackOptionsKey::new_from_script_u8_repr(lang_script_key.script);
+
+        if filtered_filepaths.is_empty() {
+            // If all filepaths was filtered it means that currently we process part of segmented font
+            // And it became the part of the GenericFontFamily list. We must properly mark the script within
+            // font family though.
+            if let Some(ref mut generic_family) = generic_family_candidate {
+                result_fallback_associations
+                    .add_value_to_set_on_key(key, generic_family.name.clone());
+                generic_family.fonts.iter_mut().for_each(|font| {
+                    if original_family_filepaths.contains(&font.filepath.as_str()) {
+                        font.script = lang_script_key.script;
+                    }
+                });
+            }
+            continue;
+        }
+
+        for filepath in filtered_filepaths {
             if font_variations.is_empty() {
                 family_fonts.push(PlatformFontDescriptorOHOS {
                     filepath: filepath.to_string(),
-                    script: Some(lang_script_key.script as u8),
+                    script: lang_script_key.script,
                     ..Default::default()
                 });
             }
@@ -245,7 +279,7 @@ fn process_fallback_list_from_ohos_config(
                 family_fonts.push(PlatformFontDescriptorOHOS {
                     filepath: filepath.to_string(),
                     weight,
-                    script: Some(lang_script_key.script as u8),
+                    script: lang_script_key.script,
                     ..Default::default()
                 });
             }
@@ -254,6 +288,7 @@ fn process_fallback_list_from_ohos_config(
         // Add fallback fonts that corresponds to generic font family into
         // existing font family.
         if let Some(ref mut generic_family) = generic_family_candidate {
+            result_fallback_associations.add_value_to_set_on_key(key, generic_family.name.clone());
             generic_family.fonts.extend(family_fonts.clone());
             continue;
         }
@@ -264,8 +299,25 @@ fn process_fallback_list_from_ohos_config(
 
         // So we should add it to generic system families cause only they are visible through
         // default_system_generic_font_family function
-        if lang_script_key.lang == "" &&
-            lang_script_key.script == (Script::Unknown as u8) {
+        if lang_script_key.lang == "" && lang_script_key.script == (Script::Unknown as u8) {
+            result_fallback_associations
+                .add_value_to_set_on_key(key, font_family_with_script.to_string());
+
+            // Cycle bellow is kinda hardcode for now...
+            // https://www.unicode.org/reports/tr24/#Assignment_Script_Values
+            // But by default most characters will have script Common.
+            // So we will set it here. If OpenHarmony provides another more precise script
+            // Then it will be overwritten in cycle above.
+            // TODO(ddesyatkin)
+            // It seems currently processing depends on order of entries in json
+            // FIX IT!
+            family_fonts.iter_mut().for_each(|font| {
+                font.script = Script::Common as u8;
+            });
+
+            // This insertion into generic font family makes it dependent...
+            // Probably i need to introduce second traversal to fix particular Scripts
+            // in segmented fonts.. Instead of current procedure
             generic_families.push(FontFamily {
                 name: font_family_with_script.to_string(),
                 fonts: family_fonts.clone(),
@@ -275,6 +327,8 @@ fn process_fallback_list_from_ohos_config(
 
         // If we was unable to find family in generic families, create new (currently unused)
         // fallback font family.
+        result_fallback_associations
+            .add_value_to_set_on_key(key, font_family_with_script.to_string());
         result_fonts.push(FontFamily {
             name: font_family_with_script.to_string(),
             fonts: family_fonts,

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
-use std::{iter, str};
+use std::{iter, str, thread, time};
 
 use app_units::Au;
 use bitflags::bitflags;
@@ -21,14 +21,14 @@ use smallvec::SmallVec;
 use style::computed_values::font_variant_caps;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
-    FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
+    FamilyName, FontFamily, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey};
 
 use crate::platform::font::{FontTable, PlatformFont};
-pub use crate::platform::font_list::fallback_font_families;
+pub use crate::platform::font_list::available_system_installed_fonts;
 use crate::{
     ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
     FontIdentifier, FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods, GlyphData,
@@ -199,6 +199,7 @@ pub struct FontDescriptor {
     pub style: FontStyle,
     pub variant: font_variant_caps::T,
     pub pt_size: Au,
+    pub script: u8,
 }
 
 impl Eq for FontDescriptor {}
@@ -209,6 +210,7 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
             weight: style.font_weight,
             stretch: style.font_stretch,
             style: style.font_style,
+            script: Script::Unknown as u8,
             variant: style.font_variant_caps,
             pt_size: Au::from_f32_px(style.font_size.computed_size().px()),
         }
@@ -525,6 +527,21 @@ impl Font {
         self.glyph_index(codepoint).is_some()
     }
 
+    pub fn has_valid_glyph_for(&self, codepoint: char) -> bool {
+        // Here we should check agains invalid glyph symbol also???
+        let replacement_glyph_id = self.glyph_index('�');
+        let glyph_id = self.glyph_index(codepoint);
+        if glyph_id.is_some() && replacement_glyph_id.is_none() {
+            return true;
+        }
+
+        if glyph_id.is_some() && glyph_id.ne(&replacement_glyph_id) {
+            return true;
+        }
+
+        false
+    }
+
     pub fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
         self.handle.glyph_h_kerning(first_glyph, second_glyph)
     }
@@ -585,6 +602,7 @@ impl FontGroup {
         }
     }
 
+    // TODO(ddesyatkin): Update doc comments bellow
     /// Finds the first font, or else the first fallback font, which contains a glyph for
     /// `codepoint`. If no such font is found, returns the first available font or fallback font
     /// (which will cause a "glyph not found" character to be rendered). If no font at all can be
@@ -615,6 +633,12 @@ impl FontGroup {
             Some(font)
         };
 
+        // log::warn!("Start to search first available font");
+        // if let Some(font) = self.first(font_context) {
+        //     log::warn!("Search of first available font\nReturned {:?}", font.template);
+        //     return font_or_synthesized_small_caps(font);
+        // }
+
         let font_has_glyph_and_presentation = |font: &FontRef| {
             // Do not select this font if it goes against our emoji preference.
             match options.presentation_preference {
@@ -626,43 +650,109 @@ impl FontGroup {
                 },
                 _ => {},
             }
-            font.has_glyph_for(options.character)
+            // For the first fallbacks we must search only for valid glyphs. Replacement character is
+            // not sufficient for us. Match again replacement character is last resort!
+            // font.has_glyph_for(options.character)
+            font.has_valid_glyph_for(options.character)
         };
 
-        let char_in_template =
-            |template: FontTemplateRef| {
-                template.char_in_unicode_range(options.character) &
-                template.char_belongs_to_template_script(options.character)
-            };
+        let char_in_template = |template: FontTemplateRef| {
+            let res: bool = template.char_in_unicode_range(options.character) &&
+                template.char_belongs_to_template_script(options.character);
+            thread::sleep(time::Duration::from_millis(1));
+            log::warn!(
+                "ddesyatkin {} {} {:?}",
+                options.character,
+                res,
+                template.identifier()
+            );
+            res
+        };
 
+        // https://www.w3.org/TR/css-fonts-4/#font-style-matching
+        // 1) Using the computed font property values for a given element, the user agent starts with the first family
+        // name specified by the font-family property.
+        //
+        // 2) If the family name is a generic family keyword, the user agent looks up the appropriate font family name
+        // to be used. User agents may choose the generic font family to use based on the language of the containing
+        // element or the Unicode range of the character.
+        //
+        // 3. For other family names, the user agent attempts to find the family name among fonts defined via
+        // @font-face rules and then among available installed fonts (this may include font aliases), matching
+        // names with a § 5.1 Localized name matching as outlined in the section above. If the font resources defined
+        // for a given face in an @font-face rule are either not available or contain invalid font data, then the face
+        // should be treated as not present in the family. If no faces are present for a family defined via @font-face
+        // rules, the family should be treated as missing; matching a platform font with the same name must not occur
+        // in this case.
+
+        // If family_descriptor.scope then this function will do all 3 first steps by default
+        // Is it fine?
         if let Some(font) = self.find(
             font_context,
             char_in_template,
             font_has_glyph_and_presentation,
         ) {
+            log::warn!(
+                "ddesyatkin Found font within current font group! codepoint: {}",
+                options.character
+            );
+            log::warn!("ddesyatkin Returning {:?}", font.template);
             return font_or_synthesized_small_caps(font);
         }
 
+        // This step is Optimization and is not specified in
+        // https://www.w3.org/TR/css-fonts-4/#font-style-matching
+        // If font was not found in current font group, we try first previously used font from
+        // IFC segmentation. example: we have 2 different fonts for english and chinese
+        // "hello! 你好! hello!": In that case we will first resolve the font for "hello!"
+        // according to (https://drafts.csswg.org/css-fonts/#font-style-matching),
+        // then we will resolve font for "你好!" according to (https://drafts.csswg.org/css-fonts/#font-style-matching)
+        // but then before we will start full procedure we will try font that we resolved for first "hello"
         if let Some(ref first_fallback) = first_fallback {
             if char_in_template(first_fallback.template.clone()) &&
                 font_has_glyph_and_presentation(first_fallback)
             {
+                log::warn!(
+                    "ddesyatkin First fallback of current font group is able to display symbol! codepoint: {}",
+                    options.character
+                );
+                log::warn!("ddesyatkin Returning {:?}", first_fallback.template);
                 return font_or_synthesized_small_caps(first_fallback.clone());
             }
         }
 
-        if let Some(font) = self.find_fallback(
+        // https://www.w3.org/TR/css-fonts-4/#font-style-matching
+        // 7. If there are no more font families to be evaluated and no matching face has been found,
+        // then the user agent performs an installed font fallback procedure to find the best match for
+        // the character to be rendered. The result of this procedure can vary across user agents.
+
+        // procedure should be the same as before. But we don't care about overconstrained predicates
+        // and we should perform search not in available_system_installed_fonts but in
+        // available_user_installed_fonts
+        log::warn!("ddesyatkin Find fallback font!: {}", options.character);
+        if let Some(font) = self.find_within_available_installed_fonts(
             font_context,
             options,
             char_in_template,
             font_has_glyph_and_presentation,
         ) {
+            log::warn!(
+                "ddesyatkin Found fallback font from os provided list! codepoint: {}",
+                options.character
+            );
+            log::warn!("ddesyatkin Returning {:?}", font.template);
             return font_or_synthesized_small_caps(font);
         }
 
-        self.first(font_context)
+        // https://www.w3.org/TR/css-fonts-4/#font-style-matching
+        // 8. If a particular character cannot be displayed using any font, the user agent should indicate
+        // by some means that a character is not being displayed, displaying either a symbolic representation
+        // of the missing glyph (e.g. using a Last Resort Font) or using the missing character glyph from a
+        // default font.
+        self.last_resort_font(font_context)
     }
 
+    // TODO(ddesyatkin): Update doc comments bellow
     /// Find the first available font in the group, or the first available fallback font.
     pub fn first(&mut self, font_context: &FontContext) -> Option<FontRef> {
         // From https://drafts.csswg.org/css-fonts/#first-available-font:
@@ -676,7 +766,7 @@ impl FontGroup {
         let font_predicate = |_: &FontRef| true;
         self.find(font_context, space_in_template, font_predicate)
             .or_else(|| {
-                self.find_fallback(
+                self.find_within_available_installed_fonts(
                     font_context,
                     FallbackFontSelectionOptions::default(),
                     space_in_template,
@@ -702,6 +792,14 @@ impl FontGroup {
         self.families
             .iter_mut()
             .filter_map(|font_group_family| {
+                // MUST be any here
+                // In that case we will traverse Web Fonts and Local Fonts as specified in
+                // https://www.w3.org/TR/css-fonts-4/#font-style-matching
+                assert_eq!(
+                    font_group_family.family_descriptor.scope,
+                    FontSearchScope::Any
+                );
+
                 font_group_family.find(
                     &font_descriptor,
                     font_context,
@@ -712,11 +810,12 @@ impl FontGroup {
             .next()
     }
 
+    // TODO(ddesyatkin): Update doc comments bellow
     /// Attempts to find a suitable fallback font which matches the given `template_predicate` and
-    /// `font_predicate`. The default family (i.e. "serif") will be tried first, followed by
-    /// platform-specific family names. If a `codepoint` is provided, then its Unicode block may be
+    /// `font_predicate`. Platform-specific family names will be tried here.
+    /// If a `codepoint` is provided, then its Unicode block may be
     /// used to refine the list of family names which will be tried.
-    fn find_fallback<TemplatePredicate, FontPredicate>(
+    fn find_within_available_installed_fonts<TemplatePredicate, FontPredicate>(
         &mut self,
         font_context: &FontContext,
         options: FallbackFontSelectionOptions,
@@ -727,24 +826,72 @@ impl FontGroup {
         TemplatePredicate: Fn(FontTemplateRef) -> bool,
         FontPredicate: Fn(&FontRef) -> bool,
     {
-        iter::once(FontFamilyDescriptor::default())
-            .chain(
-                fallback_font_families(options)
-                    .into_iter()
-                    .map(|family_name| {
-                        let family = SingleFontFamily::FamilyName(FamilyName {
-                            name: family_name.into(),
-                            syntax: FontFamilyNameSyntax::Quoted,
-                        });
-                        FontFamilyDescriptor::new(family, FontSearchScope::Local)
-                    }),
-            )
+        available_system_installed_fonts(options)
+            .into_iter()
+            .map(|family_name| {
+                let family = SingleFontFamily::FamilyName(FamilyName {
+                    name: family_name.into(),
+                    syntax: FontFamilyNameSyntax::Quoted,
+                });
+                FontFamilyDescriptor::new(family, FontSearchScope::Local)
+            })
             .filter_map(|family_descriptor| {
-                FontGroupFamily {
+                let mut new_font_group_family = FontGroupFamily {
                     family_descriptor,
                     members: None,
-                }
-                .find(
+                };
+                // We should create new FontGroupFamily;
+                // Also cause script can change we must create new font_descriptor
+                // Should we cache newly created font group family somehow???
+                // self.families.push(new_font_group_family); ????
+                // If we find symbol here we must push it into font group.
+                let mut font_descriptor = self.descriptor.clone();
+                let script = Script::from(options.character) as u8;
+                font_descriptor.script = script;
+                // find call on top of new family with FontSearchScope::Any
+                // will automatically preload
+                new_font_group_family.find(
+                    &font_descriptor,
+                    font_context,
+                    &template_predicate,
+                    &font_predicate,
+                )
+            })
+            .next()
+    }
+
+    pub fn last_resort_font(&mut self, font_context: &FontContext) -> Option<FontRef> {
+        let template_predicate = |_: FontTemplateRef| true;
+        let font_predicate = |_: &FontRef| true;
+
+        // Code bellow is boilerplate. Servo community must have a discussion
+        // on how to ship last resort font for all platforms!
+        // For now just use default font.
+        // https://github.com/unicode-org/last-resort-font/releases
+        // That is the only font file that servo should ship within itself
+        // Probably this should be shadowed by feature flag for embedded developers
+        // LastResort-Regular.ttf - 8.6 Mb
+        // LastResortHE-Regular.ttf - 551 KB
+
+        // let family = SingleFontFamily::FamilyName(FamilyName {
+        //     name: "Last Resort".into(),
+        //     syntax: FontFamilyNameSyntax::Quoted,
+        // });
+        // let scope = FontSearchScope::Local;
+        // let font_family_descriptor = FontFamilyDescriptor {
+        //     family,
+        //     scope
+        // };
+        // iter::once(font_family_descriptor)
+        //     .chain(iter::once(FontFamilyDescriptor::default()))
+
+        iter::once(FontFamilyDescriptor::default())
+            .filter_map(|family_descriptor| {
+                let mut new_font_group = FontGroupFamily {
+                    family_descriptor,
+                    members: None,
+                };
+                new_font_group.find(
                     &self.descriptor,
                     font_context,
                     &template_predicate,
@@ -808,8 +955,11 @@ impl FontGroupFamily {
                     member.font = font_context.font(member.template.clone(), font_descriptor);
                     member.loaded = true;
                 }
-                if matches!(&member.font, Some(font) if font_predicate(font)) {
-                    return member.font.clone();
+
+                if let Some(ref font) = member.font {
+                    if font_predicate(font) {
+                        return member.font.clone();
+                    }
                 }
 
                 None
@@ -879,6 +1029,11 @@ pub fn get_and_reset_text_shaping_performance_counter() -> usize {
 pub enum FontSearchScope {
     /// All fonts will be searched, including those specified via `@font-face` rules.
     Any,
+
+    /// Search only the fonts defined by `@font-face` rules. We need it to satisfy
+    /// requirements of the 3-rd step of font-style-matching
+    /// <https://drafts.csswg.org/css-fonts/#font-style-matching>
+    Web,
 
     /// Only local system fonts will be searched.
     Local,

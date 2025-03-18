@@ -30,6 +30,7 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::{CssRule, DocumentStyleSheet, FontFaceRule, StylesheetInDocument};
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
+use unicode_script::Script;
 use url::Url;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 use webrender_traits::CrossProcessCompositorApi;
@@ -138,9 +139,13 @@ impl FontContext {
     /// Returns a `FontGroup` representing fonts which can be used for layout, given the `style`.
     /// Font groups are cached, so subsequent calls with the same `style` will return a reference
     /// to an existing `FontGroup`.
-    pub fn font_group(&self, style: ServoArc<FontStyleStruct>) -> Arc<RwLock<FontGroup>> {
+    pub fn font_group(
+        &self,
+        style: ServoArc<FontStyleStruct>,
+        script: Option<u8>,
+    ) -> Arc<RwLock<FontGroup>> {
         let font_size = style.font_size.computed_size().into();
-        self.font_group_with_size(style, font_size)
+        self.font_group_with_size(style, font_size, script)
     }
 
     /// Like [`Self::font_group`], but overriding the size found in the [`FontStyleStruct`] with the given size
@@ -149,7 +154,9 @@ impl FontContext {
         &self,
         style: ServoArc<FontStyleStruct>,
         size: Au,
+        script: Option<u8>,
     ) -> Arc<RwLock<FontGroup>> {
+        let script = script.unwrap_or(Script::Unknown as u8);
         let cache_key = FontGroupCacheKey { size, style };
         if let Some(font_group) = self.resolved_font_groups.read().get(&cache_key) {
             return font_group.clone();
@@ -157,6 +164,7 @@ impl FontContext {
 
         let mut descriptor = FontDescriptor::from(&*cache_key.style);
         descriptor.pt_size = size;
+        descriptor.script = script;
 
         let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style, descriptor)));
         self.resolved_font_groups
@@ -229,12 +237,13 @@ impl FontContext {
         font
     }
 
-    fn matching_web_font_templates(
+    pub fn matching_web_font_templates(
         &self,
         descriptor_to_match: &FontDescriptor,
         family_descriptor: &FontFamilyDescriptor,
     ) -> Option<Vec<FontTemplateRef>> {
-        if family_descriptor.scope != FontSearchScope::Any {
+        if family_descriptor.scope == FontSearchScope::Local {
+            // Both other procedures are fine for us.
             return None;
         }
 
@@ -257,13 +266,22 @@ impl FontContext {
         descriptor_to_match: &FontDescriptor,
         family_descriptor: &FontFamilyDescriptor,
     ) -> Vec<FontTemplateRef> {
-        self.matching_web_font_templates(descriptor_to_match, family_descriptor)
-            .unwrap_or_else(|| {
-                self.system_font_service_proxy.find_matching_font_templates(
-                    Some(descriptor_to_match),
-                    &family_descriptor.family,
-                )
-            })
+        match family_descriptor.scope {
+            FontSearchScope::Any => self
+                .matching_web_font_templates(descriptor_to_match, family_descriptor)
+                .unwrap_or_else(|| {
+                    self.system_font_service_proxy.find_matching_font_templates(
+                        Some(descriptor_to_match),
+                        &family_descriptor.family,
+                    )
+                }),
+            FontSearchScope::Local => self
+                .system_font_service_proxy
+                .find_matching_font_templates(Some(descriptor_to_match), &family_descriptor.family),
+            FontSearchScope::Web => self
+                .matching_web_font_templates(descriptor_to_match, family_descriptor)
+                .unwrap_or_else(|| Vec::<FontTemplateRef>::new()),
+        }
     }
 
     /// Create a `Font` for use in layout calculations, from a `FontTemplateData` returned by the

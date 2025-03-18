@@ -12,8 +12,8 @@ use unicode_script::Script;
 
 use crate::EmojiPresentationPreference;
 use crate::platform::font_list::{
-    FallbackAssociations, FallbackOptionsKey, PlatformFontDescriptorOHOS, FontAlias, FontFamily, FontWidth,
-    OHOS_FONTS_DIR, enumerate_font_files,
+    FallbackAssociations, FallbackOptionsKey, FontAlias, FontFamily, FontWidth, OHOS_FONTS_DIR,
+    PlatformFontDescriptorOHOS, enumerate_font_files,
 };
 
 fn detect_hos_font_style(font_modifiers: &[&str]) -> Option<String> {
@@ -163,7 +163,8 @@ pub fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
             weight,
             style,
             width,
-            script: None,
+            language: None,
+            script: Script::Unknown as u8,
             unicode_range: None,
         };
         Some((family_name, font))
@@ -207,6 +208,7 @@ pub fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
         let font = PlatformFontDescriptorOHOS {
             filepath: file_path.to_str()?.to_string(),
             weight,
+            script: Script::Unknown as u8,
             ..Default::default()
         };
         Some((family_name, font))
@@ -254,6 +256,7 @@ pub fn generate_default_fallback_font_families() -> Vec<FontFamily> {
             name: item.0.into(),
             fonts: vec![PlatformFontDescriptorOHOS {
                 filepath: item.1.into(),
+                script: Script::Unknown as u8,
                 ..Default::default()
             }],
         })
@@ -393,6 +396,7 @@ pub fn generate_hardcoded_font_families() -> Vec<FontFamily> {
             name: "HMOS Color Emoji".to_string(),
             fonts: vec![PlatformFontDescriptorOHOS {
                 filepath: generate_default_font_absolute_path("HMOSColorEmojiCompat.ttf"),
+                script: Script::Unknown as u8,
                 ..Default::default()
             }],
         },
@@ -400,6 +404,7 @@ pub fn generate_hardcoded_font_families() -> Vec<FontFamily> {
             name: "HMOS Color Emoji Flags".to_string(),
             fonts: vec![PlatformFontDescriptorOHOS {
                 filepath: generate_default_font_absolute_path("HMOSColorEmojiFlags.ttf"),
+                script: Script::Unknown as u8,
                 ..Default::default()
             }],
         },

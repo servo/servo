@@ -145,6 +145,7 @@ struct SimpleFamily {
 impl SimpleFamily {
     /// Find a font in this family that matches a given descriptor.
     fn find_for_descriptor(&self, descriptor_to_match: &FontDescriptor) -> Option<FontTemplateRef> {
+        log::warn!("ddesyatkin Searching in simple family!");
         let want_bold = descriptor_to_match.weight >= FontWeight::BOLD_THRESHOLD;
         let want_italic = descriptor_to_match.style != FontStyle::NORMAL;
 
@@ -211,6 +212,7 @@ impl FontTemplates {
         &self,
         descriptor_to_match: Option<&FontDescriptor>,
     ) -> Vec<FontTemplateRef> {
+        log::warn!("ddesyatkin Searching in all templates!");
         let Some(descriptor_to_match) = descriptor_to_match else {
             return self.templates.clone();
         };
