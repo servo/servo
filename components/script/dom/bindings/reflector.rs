@@ -28,7 +28,7 @@ where
 }
 
 /// Creates a reflector for a new DOM object with an optional prototype object and returns ownership to the reflector.
-/// 
+///
 /// # Arguments
 /// * `obj` - The DOM object to create a reflector for
 /// * `global` - The global scope that owns this object
@@ -38,7 +38,7 @@ where
 /// # Safety
 /// T::WRAP is an unsafe function pointer that:
 /// 1. Takes the JSContext from the global scope
-/// 2. Takes the global scope itself 
+/// 2. Takes the global scope itself
 /// 3. Takes an optional prototype object
 /// 4. Takes ownership of the DOM object
 /// 5. Takes a flag indicating if GC is allowed
