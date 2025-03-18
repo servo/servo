@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Copy of Stylo Gecko's [`style::values::specified::gecko::IntersectionObserverRootMargin`] implementation.
-//! TODO(stevennovaryo): when stylo's IntersectionObserverMargin is up, make a thin wrapper and remove copied codes
+//! TODO(#35907): make a thin wrapper and remove copied codes
 
 use std::fmt;
 

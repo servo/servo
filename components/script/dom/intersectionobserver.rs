@@ -58,7 +58,7 @@ pub(crate) struct IntersectionObserver {
     reflector_: Reflector,
 
     /// [`Document`] that should process this observer's observation steps.
-    /// For Chrome and Firefox, it is the current document on construction.
+    /// Following Chrome and Firefox, it is the current document on construction.
     /// <https://github.com/w3c/IntersectionObserver/issues/525>
     owner_doc: Dom<Document>,
 

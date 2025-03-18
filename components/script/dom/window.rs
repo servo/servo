@@ -2221,7 +2221,7 @@ impl Window {
         )
     }
 
-    // query content box without considering any reflow
+    // Query content box without considering any reflow
     pub(crate) fn content_box_query_unchecked(&self, node: &Node) -> Option<UntypedRect<Au>> {
         self.layout.borrow().query_content_box(node.to_opaque())
     }
