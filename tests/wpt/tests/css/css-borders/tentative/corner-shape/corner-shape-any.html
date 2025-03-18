@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4: 'corner-shape' parametric rendering</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="match" href="corner-shape-any-ref.html">
+<meta name="variant" content="?corner-shape=squircle&border-radius=50%">
+<meta name="variant" content="?corner-shape=squircle&border-top-left-radius=30%">
+<meta name="variant" content="?corner-shape=squircle&border-top-right-radius=30px">
+<meta name="variant" content="?corner-shape=straight&border-bottom-leftradius=5px">
+<meta name="variant" content="?corner-shape=superellipse(5.2)&border-radius=40%">
+<meta name="variant" content="?corner-top-left-shape=scoop&corner-top-right-shape=scoop&border-radius=50%">
+<meta name="variant" content="?corner-shape=superellipse(8)&border-top-right-radius=33px">
+<meta name="variant" content="?corner-top-right-shape=superellipse(0.1)&border-top-right-radius=50px">
+<meta name="variant" content="?corner-bottom-left-shape=bevel&border-bottom-left-radius=30px">
+<meta name="variant" content="?corner-bottom-right-shape=superellipse(1.9)&border-bottom-right-radius=50%">
+<meta name="fuzzy" content="maxDifference=0-180;totalPixels=0-520">
+<style>
+  #target {
+    width: 200px;
+    height: 100px;
+    box-sizing: border-box;
+    background: green;
+  }
+</style>
+<div id="target"></div>
+<script>
+  const target = document.getElementById("target");
+  const params = new URLSearchParams(location.search);
+  for (const [k, v] of params) {
+    target.style[k] = v;
+  }
+</script>

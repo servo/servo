@@ -1,19 +1,13 @@
 <!DOCTYPE html>
-<html>
-
-<head>
-  <meta charset="utf-8">
-  <title>CSS Color 4: System color consistency</title>
-  <link rel="author" title="Jan Keitel" href="mailto:jkeitel@google.com">
-  <link rel="help" href="https://www.w3.org/TR/css-color-4/#css-system-colors">
-  <meta name="assert" content="computed style of form elements is consistent with definition of system colors">
-  <script src="/resources/testharness.js"></script>
-  <script src="/resources/testharnessreport.js"></script>
-  <script src="/css/support/computed-testcommon.js"></script>
-</head>
-
-<body>
-  <div style="display: none">
+<meta charset="utf-8">
+<title>CSS Color 4: System color consistency</title>
+<link rel="author" title="Jan Keitel" href="mailto:jkeitel@google.com">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#css-system-colors">
+<meta name="assert" content="computed style of form elements is consistent with definition of system colors">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div style="display: none">
   <div id="target"></div>
   <!-- Reference elements -->
   <!-- Buttons -->
@@ -31,41 +25,55 @@
   <mark id="mark">Marked text</mark>
   <!-- Link -->
   <a href="#" id="link">Link</a>
-  </div>
+  <div id="canvas" style="color: CanvasText; background-color: Canvas">Canvas Colors</mark>
+</div>
+<script>
+  function test_not_canvas(color, colorScheme) {
+    test(function() {
+      let target = document.getElementById("target");
+      target.style.color = color;
 
-  <script>
-    ['light', 'dark'].forEach(colorScheme => {
-      document.documentElement.style.colorScheme = colorScheme;
+      let canvas = document.getElementById("canvas");
+      assert_not_equals(getComputedStyle(target).color, getComputedStyle(canvas).backgroundColor, `${color} should not match Canvas`);
+    }, `${color} should not match Canvas in ${colorScheme} mode`);
+  }
 
-      // Buttons
-      for (let element of document.getElementById("buttons").children) {
-        style = document.defaultView.getComputedStyle(element);
-        test_computed_value('color', 'ButtonBorder', style.getPropertyValue('border-color'), `resolves to the same color as the border-color of a ${element.name} (${colorScheme})`);
-        test_computed_value('color', 'ButtonFace', style.getPropertyValue('background-color'), `resolves to the same color as the background-color of a ${element.name} (${colorScheme})`);
-        test_computed_value('color', 'ButtonText', style.getPropertyValue('color'), `resolves to the same color as text on a ${element.name} (${colorScheme})`);
-      }
+  ['light', 'dark'].forEach(colorScheme => {
+    document.documentElement.style.colorScheme = colorScheme;
 
-      // CanvasText
-      style = document.defaultView.getComputedStyle(document.getElementsByTagName('html')[0]);
-      test_computed_value('color', 'CanvasText', style.getPropertyValue('color'), `has the same color as the color of the html element (${colorScheme})`);
+    // Buttons
+    for (let element of document.getElementById("buttons").children) {
+      style = getComputedStyle(element);
+      test_computed_value('color', 'ButtonBorder', style.getPropertyValue('border-color'), `resolves to the same color as the border-color of a ${element.name} (${colorScheme})`);
+      test_computed_value('color', 'ButtonFace', style.getPropertyValue('background-color'), `resolves to the same color as the background-color of a ${element.name} (${colorScheme})`);
+      test_computed_value('color', 'ButtonText', style.getPropertyValue('color'), `resolves to the same color as text on a ${element.name} (${colorScheme})`);
+    }
 
-      // Field and FieldText
-      for (let element of document.getElementById("fields").children) {
-        style = document.defaultView.getComputedStyle(element);
-        test_computed_value('color', 'Field', style.getPropertyValue('background-color'), `resolves to the same color as the background-color of a ${element.name} (${colorScheme})`);
-        test_computed_value('color', 'FieldText', style.getPropertyValue('color'), `resolves to the same color as text on a ${element.name} (${colorScheme})`);
-      }
+    // CanvasText
+    style = getComputedStyle(document.getElementsByTagName('html')[0]);
+    test_computed_value('color', 'CanvasText', style.getPropertyValue('color'), `has the same color as the color of the html element (${colorScheme})`);
 
-      // Mark and MarkText
-      style = document.defaultView.getComputedStyle(document.getElementById('mark'));
-      test_computed_value('color', 'Mark', style.getPropertyValue('background-color'), `has the same color as the background-color of a mark element (${colorScheme})`);
-      test_computed_value('color', 'MarkText', style.getPropertyValue('color'), `has the same color as the color of a mark element (${colorScheme})`);
+    // Field and FieldText
+    for (let element of document.getElementById("fields").children) {
+      style = getComputedStyle(element);
+      test_computed_value('color', 'Field', style.getPropertyValue('background-color'), `resolves to the same color as the background-color of a ${element.name} (${colorScheme})`);
+      test_computed_value('color', 'FieldText', style.getPropertyValue('color'), `resolves to the same color as text on a ${element.name} (${colorScheme})`);
+    }
 
-      // LinkText
-      style = document.defaultView.getComputedStyle(document.getElementById('link'));
-      test_computed_value('color', 'LinkText', style.getPropertyValue('color'), `has the same color as the color of an anchor element (${colorScheme})`);
-    });
-  </script>
-</body>
+    // Mark and MarkText
+    style = getComputedStyle(document.getElementById('mark'));
+    test_computed_value('color', 'Mark', style.getPropertyValue('background-color'), `has the same color as the background-color of a mark element (${colorScheme})`);
+    test_computed_value('color', 'MarkText', style.getPropertyValue('color'), `has the same color as the color of a mark element (${colorScheme})`);
 
-</html>
+    // LinkText
+    style = getComputedStyle(document.getElementById('link'));
+    test_computed_value('color', 'LinkText', style.getPropertyValue('color'), `has the same color as the color of an anchor element (${colorScheme})`);
+
+    // These colors are only text colors and do not have corresponding
+    // backgrounds, so they should not match the canvas background (as
+    // otherwise they'd be invisible)
+    test_not_canvas("LinkText", colorScheme);
+    test_not_canvas("ActiveText", colorScheme);
+    test_not_canvas("VisitedText", colorScheme);
+  });
+</script>

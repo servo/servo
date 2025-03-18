@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Images Module Level 4: parsing invalid gradients with color interpolation methods</title>
 <link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
+<link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
 <link rel="help" href="https://drafts.csswg.org/css-images-4/#gradients">
 <link rel="help" href="https://drafts.csswg.org/css-color-4/#color-interpolation-method">
 <meta name="assert" content="gradients supports the addition of color-interpolation-method to the grammar">
@@ -41,6 +42,19 @@ function test_each_interpolation_method(gradientFunction) {
 test_each_interpolation_method("linear-gradient")
 test_each_interpolation_method("radial-gradient")
 test_each_interpolation_method("conic-gradient")
+
+// lacking of color-space after `in`
+test_invalid_value(`background-image`, `linear-gradient(in, black, transparent)`)
+test_invalid_value(`background-image`, `linear-gradient(45deg in, black, transparent)`)
+test_invalid_value(`background-image`, `linear-gradient(in 45deg, black, transparent)`)
+test_invalid_value(`background-image`, `linear-gradient(in to right, black, transparent)`)
+test_invalid_value(`background-image`, `radial-gradient(closest-side in, black, transparent)`)
+test_invalid_value(`background-image`, `conic-gradient(in from 90deg, black, transparent)`)
+// lacking of `hue` keyword
+test_invalid_value(`background-image`, `linear-gradient(90deg in hsl longer, black, transparent)`)
+test_invalid_value(`background-image`, `linear-gradient(90deg in hsl shorter, black)`)
+test_invalid_value(`background-image`, `linear-gradient(to right in hsl increasing, black, transparent)`)
+test_invalid_value(`background-image`, `linear-gradient(to right in hsl decreasing, black, transparent)`)
 </script>
 </body>
 </html>

@@ -1330,6 +1330,15 @@
         "0xffff": "uffff",
     };
 
+    const formatEscapeMap = {
+        "\\": "\\\\",
+        '"': '\\"'
+    };
+    for (const p in replacements) {
+        formatEscapeMap[String.fromCharCode(p)] = "\\" + replacements[p];
+    }
+    const formatEscapePattern = new RegExp(`[${Object.keys(formatEscapeMap).map(k => k === "\\" ? "\\\\" : k).join("")}]`, "g");
+
     /**
      * Convert a value to a nice, human-readable string
      *
@@ -1380,12 +1389,7 @@
 
         switch (typeof val) {
         case "string":
-            val = val.replace(/\\/g, "\\\\");
-            for (var p in replacements) {
-                var replace = "\\" + replacements[p];
-                val = val.replace(RegExp(String.fromCharCode(p), "g"), replace);
-            }
-            return '"' + val.replace(/"/g, '\\"') + '"';
+            return '"' + val.replace(formatEscapePattern, match => formatEscapeMap[match]) + '"';
         case "boolean":
         case "undefined":
             return String(val);

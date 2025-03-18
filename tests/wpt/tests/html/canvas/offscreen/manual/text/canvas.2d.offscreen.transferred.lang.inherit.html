@@ -7,12 +7,12 @@
   <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
   <meta name="assert" content="An offscreen transferred from a canvas element inherits the canvas language." />
   <style>
-    #canvas-zh-CN {
+    #canvas-tr {
       position: absolute;
       top: 10px;
       left: 10px;
     }
-    #canvas-ja {
+    #canvas-en {
       position: absolute;
       top: 120px;
       left: 10px;
@@ -24,19 +24,28 @@
       var ctx = canvas.transferControlToOffscreen().getContext('2d');
 
       // The default for lang is inherit
-      ctx.font = '25px serif';
-      ctx.fillText('今骨直', 5, 50);
+      ctx.font = '25px Lato-Medium';
+      ctx.fillText('fi', 5, 50);
     }
     function runTest() {
-      drawText('zh-CN');
-      drawText('ja');
+      let test_font = new FontFace(
+        // Lato-Medium is a font with language specific ligatures.
+        "Lato-Medium",
+        "url(/fonts/Lato-Medium.ttf)"
+      );
+
+      test_font.load().then((font) => {
+        document.fonts.add(font);
+        drawText('tr');
+        drawText('en');
+      });
     }
   </script>
   <body onload="runTest()">
-    <canvas lang="zh-CN" id="canvas-zh-CN" width="300" height="100">
+    <canvas lang="tr" id="canvas-tr" width="300" height="100">
       Browser does not support HTML5 Canvas.
     </canvas>
-    <canvas lang="ja" id="canvas-ja" width="300" height="100">
+    <canvas lang="en" id="canvas-en" width="300" height="100">
       Browser does not support HTML5 Canvas.
     </canvas>
   </body>

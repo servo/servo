@@ -27,8 +27,8 @@ insertFromPaste</textarea>
     await utils.sendCopyShortcutKey();
     await utils.sendPasteShortcutKey();
     // Event data should now be set with the second line of the text
-    assert_equals(selectedData, "\nat the start should set the event.data with the selected part for inputType");
-    assert_equals(eventData, selectedData);
+    assert_equals(selectedData.replace(/\r\n/g, "\n"), "\nat the start should set the event.data with the selected part for inputType");
+    assert_equals(eventData, selectedData.replace(/\r\n/g, "\n"));
   }, "Input event data for inputType insertFromPaste should be set");
 </script>
 </body>

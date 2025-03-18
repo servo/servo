@@ -8,7 +8,7 @@
 
 'use strict';
 
-test(() => {
+promise_test(async () => {
   const iframe = document.createElement('iframe');
   document.body.appendChild(iframe);
   const frame_window = iframe.contentWindow;

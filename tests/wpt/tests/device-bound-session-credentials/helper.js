@@ -2,33 +2,41 @@ export function documentHasCookie(cookieAndValue) {
   return document.cookie.split(';').some(item => item.includes(cookieAndValue));
 }
 
-export function waitForCookie(cookieAndValue) {
+export async function waitForCookie(cookieAndValue, expectCookie) {
   const startTime = Date.now();
-  return new Promise(resolve => {
+  const hasCookie = await new Promise(resolve => {
     const interval = setInterval(() => {
       if (documentHasCookie(cookieAndValue)) {
         clearInterval(interval);
         resolve(true);
       }
-      if (Date.now() - startTime >= 1000) {
+      if (!expectCookie && Date.now() - startTime >= 1000) {
         clearInterval(interval);
         resolve(false);
       }
     }, 100);
   });
+  assert_equals(hasCookie, expectCookie);
 }
 
 export function expireCookie(cookieAndAttributes) {
   document.cookie =
-      cookieAndAttributes + '; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+      `${cookieAndAttributes}; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
 }
 
-export function addCookieAndSessionCleanup(test, cookieAndAttributes) {
+export function addCookieAndSessionCleanup(test) {
   // Clean up any set cookies once the test completes.
   test.add_cleanup(async () => {
     const response = await fetch('end_session_via_clear_site_data.py');
     assert_equals(response.status, 200);
-    expireCookie(cookieAndAttributes);
+  });
+}
+
+export async function postJson(url, obj) {
+  return await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(obj),
   });
 }
 
@@ -55,4 +63,10 @@ export async function setupShardedServerState(testId) {
   const testIdCookie =
       document.cookie.split(';').filter(item => item.includes('test_id'))[0];
   return testIdCookie.split('=')[1];
+}
+
+export async function pullServerState() {
+  const response = await fetch('pull_server_state.py');
+  assert_equals(response.status, 200);
+  return await response.json();
 }

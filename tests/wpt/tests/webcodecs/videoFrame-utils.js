@@ -116,3 +116,31 @@ function verifyTimestampRequiredToConstructFrame(imageSource) {
   let validFrame = new VideoFrame(imageSource, {timestamp: 0});
   validFrame.close();
 }
+
+// Fills a visible region within `data` with the given YUV values.
+function fillYUV(data, codedWidth, codedHeight, visibleRect, v_y, v_u, v_v) {
+  for (let y = 0; y < codedHeight; y++) {
+    for (let x = 0; x < codedWidth; x++) {
+      data[y * codedWidth + x] =
+          (x >= visibleRect.x && y < visibleRect.y + visibleRect.height) ? v_y
+                                                                         : 0;
+    }
+  }
+  const uvWidth = codedWidth / 2;
+  const uvHeight = codedHeight / 2;
+  const uvPlaneSize = uvWidth * uvHeight;
+  const uvOffset = codedWidth * codedHeight;
+  const uvX = visibleRect.x / 2;
+  const uvMaxY = (visibleRect.y + visibleRect.height) / 2;
+  for (let y = 0; y < uvHeight; y++) {
+    for (let x = 0; x < uvWidth; x++) {
+      if (x >= uvX && y < uvMaxY) {
+        data[uvOffset + y * uvWidth + x] = v_u;
+        data[uvOffset + uvPlaneSize + y * uvWidth + x] = v_v;
+      } else {
+        data[uvOffset + y * uvWidth + x] =
+            data[uvOffset + uvPlaneSize + y * uvWidth + x] = 128;
+      }
+    }
+  }
+}

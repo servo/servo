@@ -1,0 +1,103 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <title>Scripts injected via `eval` are not allowed with `trusted-types-eval` when `require-trusted-types-for 'script'` is report only.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+
+    <!-- CSP served: script-src 'nonce-dummy' 'trusted-types-eval' -->
+    <!-- Report Only CSP served: require-trusted-types-for 'script' -->
+</head>
+
+<body>
+    <h1>Scripts injected via `eval` are not allowed with `trusted-types-eval` when `require-trusted-types-for 'script'` is report only.</h1>
+    <div id='log'></div>
+
+    <script nonce='dummy'>
+        trustedTypes.createPolicy('default', { createScript: s => s });
+        var evalScriptRan = false;
+        var indirectEvalScriptRan = false;
+        var functionScriptRan = false;
+        var setTimeoutScriptRan = false;
+
+        async_test(function(t) {
+            var eventHandler = t.step_func_done(function(e) {
+                assert_false(evalScriptRan);
+                assert_equals(e.effectiveDirective, 'script-src');
+                assert_equals(e.blockedURI, 'eval');
+            });
+            window.addEventListener('securitypolicyviolation', eventHandler);
+            t.add_cleanup(() => {
+                window.removeEventListener('securitypolicyviolation', eventHandler);
+            });
+
+            assert_throws_js(Error,
+                function() {
+                    try {
+                        eval("evalScriptRan = true;");
+                    } catch (e) {
+                        throw new Error();
+                    }
+                });
+        }, "Scripts injected via direct `eval` are not allowed with `trusted-types-eval` when `require-trusted-types-for 'script'` is report only.");
+
+        async_test(function(t) {
+            var eventHandler = t.step_func_done(function(e) {
+                assert_false(indirectEvalScriptRan);
+                assert_equals(e.effectiveDirective, 'script-src');
+                assert_equals(e.blockedURI, 'eval');
+            });
+            window.addEventListener('securitypolicyviolation', eventHandler);
+            t.add_cleanup(() => {
+                window.removeEventListener('securitypolicyviolation', eventHandler);
+            });
+
+            assert_throws_js(Error,
+                function() {
+                    try {
+                        eval?.("indirectEvalScriptRan = true;");
+                    } catch (e) {
+                        throw new Error();
+                    }
+                });
+        }, "Scripts injected via indirect `eval` are not allowed with `trusted-types-eval` when `require-trusted-types-for 'script'` is report only.");
+
+        async_test(function(t) {
+            var eventHandler = t.step_func_done(function(e) {
+                assert_false(functionScriptRan);
+                assert_equals(e.effectiveDirective, 'script-src');
+                assert_equals(e.blockedURI, 'eval');
+            });
+            window.addEventListener('securitypolicyviolation', eventHandler);
+            t.add_cleanup(() => {
+                window.removeEventListener('securitypolicyviolation', eventHandler);
+            });
+
+            assert_throws_js(Error,
+                function() {
+                    try {
+                        new Function("functionScriptRan = true;")();
+                    } catch (e) {
+                        throw new Error();
+                    }
+                });
+        }, "Scripts injected via `new Function` are not allowed with `trusted-types-eval` when `require-trusted-types-for 'script'` is report only.");
+
+        async_test(function(t) {
+            var eventHandler = t.step_func_done(function(e) {
+                assert_false(setTimeoutScriptRan);
+                assert_equals(e.effectiveDirective, 'script-src');
+                assert_equals(e.blockedURI, 'eval');
+            });
+            window.addEventListener('securitypolicyviolation', eventHandler);
+            t.add_cleanup(() => {
+                window.removeEventListener('securitypolicyviolation', eventHandler);
+            });
+
+            setTimeout("setTimeoutScriptRan = true;", 0);
+        }, "Scripts injected via `setTimeout` are not allowed with `trusted-types-eval` when `require-trusted-types-for 'script'` is report only.");
+    </script>
+</body>
+
+</html>

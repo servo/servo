@@ -695,7 +695,6 @@ TESTHARNESS-IN-OTHER-TYPE: css/css-text/white-space/pre-line-br-with-whitespace-
 TESTHARNESS-IN-OTHER-TYPE: css/css-text/white-space/pre-with-whitespace-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/css-writing-modes/bidi-inline-fragment-crash.html
 TESTHARNESS-IN-OTHER-TYPE: dom/svg-insert-crash.html
-TESTHARNESS-IN-OTHER-TYPE: editing/run/first-letter-crossing-engine-boundary-crash.html
 TESTHARNESS-IN-OTHER-TYPE: html/canvas/element/manual/wide-gamut-canvas/imagedata-no-color-settings-crash.html
 TESTHARNESS-IN-OTHER-TYPE: html/semantics/embedded-content/the-object-element/block-object-with-ruby-crash.html
 TESTHARNESS-IN-OTHER-TYPE: html/semantics/forms/the-input-element/time-datalist-crash.html

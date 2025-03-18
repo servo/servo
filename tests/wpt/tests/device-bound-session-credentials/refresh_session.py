@@ -4,11 +4,12 @@ jwt_helper = importlib.import_module('device-bound-session-credentials.jwt_helpe
 session_manager = importlib.import_module('device-bound-session-credentials.session_manager')
 
 def main(request, response):
+    test_session_manager = session_manager.find_for_request(request)
+    test_session_manager.set_has_called_refresh(True)
     session_id_header = request.headers.get("Sec-Session-Id")
     if session_id_header == None:
         return (400, response.headers, "")
-    session_id = session_id_header.decode('utf-8')
-    test_session_manager = session_manager.find_for_request(request)
+    session_id = int(session_id_header.decode('utf-8'))
 
     if test_session_manager.get_should_refresh_end_session():
         response_body = {
@@ -21,16 +22,18 @@ def main(request, response):
     if session_key == None:
         return (400, response.headers, "")
 
-    challenge = "refresh_challenge_value"
-    if request.headers.get("Sec-Session-Response") == None:
-        return (401, [('Sec-Session-Challenge', '"' + challenge + '";id="' + session_id + '"')], "")
+    if test_session_manager.get_refresh_sends_challenge():
+        challenge = "refresh_challenge_value"
+        if request.headers.get("Sec-Session-Response") == None:
+            return (401, [('Sec-Session-Challenge', f'"{challenge}";id="{session_id}"')], "")
 
-    jwt_header, jwt_payload, verified = jwt_helper.decode_jwt(request.headers.get("Sec-Session-Response").decode('utf-8'), session_key)
+        jwt_header, jwt_payload, verified = jwt_helper.decode_jwt(request.headers.get("Sec-Session-Response").decode('utf-8'), session_key)
 
-    if test_session_manager.get_send_challenge_early():
-        challenge = "early_challenge"
+        early_challenge = test_session_manager.get_early_challenge(session_id)
+        if early_challenge is not None:
+            challenge = early_challenge
 
-    if not verified or jwt_payload.get("jti") != challenge:
-        return (400, response.headers, "")
+        if not verified or jwt_payload.get("jti") != challenge:
+            return (400, response.headers, "")
 
     return test_session_manager.get_session_instructions_response(session_id, request)

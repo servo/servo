@@ -3,10 +3,18 @@
 // (https://github.com/w3c/webref)
 // Source: WebTransport (https://w3c.github.io/webtransport/)
 
+[Exposed=(Window,Worker), SecureContext, Transferable]
+interface WebTransportDatagramsWritable : WritableStream {
+  attribute WebTransportSendGroup? sendGroup;
+  attribute long long sendOrder;
+};
+
 [Exposed=(Window,Worker), SecureContext]
 interface WebTransportDatagramDuplexStream {
+  WebTransportDatagramsWritable createWritable(
+      optional WebTransportSendOptions options = {});
   readonly attribute ReadableStream readable;
-  readonly attribute WritableStream writable;
+  readonly attribute WebTransportDatagramsWritable writable;
 
   readonly attribute unsigned long maxDatagramSize;
   attribute unrestricted double? incomingMaxAge;
@@ -79,9 +87,12 @@ dictionary WebTransportCloseInfo {
   USVString reason = "";
 };
 
-dictionary WebTransportSendStreamOptions {
+dictionary WebTransportSendOptions {
   WebTransportSendGroup? sendGroup = null;
   long long sendOrder = 0;
+};
+
+dictionary WebTransportSendStreamOptions : WebTransportSendOptions {
   boolean waitUntilAvailable = false;
 };
 

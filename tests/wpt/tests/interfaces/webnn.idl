@@ -286,6 +286,21 @@ partial dictionary MLOpSupportLimits {
   MLConv2dSupportLimits convTranspose2d;
 };
 
+dictionary MLCumulativeSumOptions : MLOperatorOptions {
+  boolean exclusive = false;
+  boolean reversed = false;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand cumulativeSum(MLOperand input,
+                          unsigned long axis,
+                          optional MLCumulativeSumOptions options = {});
+};
+
+partial dictionary MLOpSupportLimits {
+  MLSingleInputSupportLimits cumulativeSum;
+};
+
 partial interface MLGraphBuilder {
   MLOperand add(MLOperand a, MLOperand b, optional MLOperatorOptions options = {});
   MLOperand sub(MLOperand a, MLOperand b, optional MLOperatorOptions options = {});
@@ -310,6 +325,9 @@ partial interface MLGraphBuilder {
   MLOperand equal(MLOperand a,
                   MLOperand b,
                   optional MLOperatorOptions options = {});
+  MLOperand notEqual(MLOperand a,
+                     MLOperand b,
+                     optional MLOperatorOptions options = {});
   MLOperand greater(MLOperand a,
                     MLOperand b,
                     optional MLOperatorOptions options = {});
@@ -323,6 +341,15 @@ partial interface MLGraphBuilder {
                           MLOperand b,
                           optional MLOperatorOptions options = {});
   MLOperand logicalNot(MLOperand a, optional MLOperatorOptions options = {});
+  MLOperand logicalAnd(MLOperand a,
+                       MLOperand b,
+                       optional MLOperatorOptions options = {});
+  MLOperand logicalOr(MLOperand a,
+                      MLOperand b,
+                      optional MLOperatorOptions options = {});
+  MLOperand logicalXor(MLOperand a,
+                       MLOperand b,
+                       optional MLOperatorOptions options = {});
 };
 
 dictionary MLLogicalNotSupportLimits {
@@ -332,11 +359,15 @@ dictionary MLLogicalNotSupportLimits {
 
 partial dictionary MLOpSupportLimits {
   MLBinarySupportLimits equal;
+  MLBinarySupportLimits notEqual;
   MLBinarySupportLimits greater;
   MLBinarySupportLimits greaterOrEqual;
   MLBinarySupportLimits lesser;
   MLBinarySupportLimits lesserOrEqual;
   MLLogicalNotSupportLimits logicalNot;
+  MLBinarySupportLimits logicalAnd;
+  MLBinarySupportLimits logicalOr;
+  MLBinarySupportLimits logicalXor;
 };
 
 partial interface MLGraphBuilder {
@@ -351,6 +382,7 @@ partial interface MLGraphBuilder {
   MLOperand neg(MLOperand input, optional MLOperatorOptions options = {});
   MLOperand reciprocal(MLOperand input, optional MLOperatorOptions options = {});
   MLOperand sin(MLOperand input, optional MLOperatorOptions options = {});
+  MLOperand sign(MLOperand input, optional MLOperatorOptions options = {});
   MLOperand sqrt(MLOperand input, optional MLOperatorOptions options = {});
   MLOperand tan(MLOperand input, optional MLOperatorOptions options = {});
 };
@@ -367,8 +399,38 @@ partial dictionary MLOpSupportLimits {
   MLSingleInputSupportLimits neg;
   MLSingleInputSupportLimits reciprocal;
   MLSingleInputSupportLimits sin;
+  MLSingleInputSupportLimits sign;
   MLSingleInputSupportLimits sqrt;
   MLSingleInputSupportLimits tan;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand dequantizeLinear(MLOperand input,
+                             MLOperand scale,
+                             MLOperand zeroPoint,
+                             optional MLOperatorOptions options = {});
+};
+
+dictionary MLQuantizationSupportLimits {
+  MLSupportLimits input;
+  MLSupportLimits scale;
+  MLSupportLimits zeroPoint;
+  MLSupportLimits output;
+};
+
+partial dictionary MLOpSupportLimits {
+  MLQuantizationSupportLimits dequantizeLinear;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand quantizeLinear(MLOperand input,
+                           MLOperand scale,
+                           MLOperand zeroPoint,
+                           optional MLOperatorOptions options = {});
+};
+
+partial dictionary MLOpSupportLimits {
+  MLQuantizationSupportLimits quantizeLinear;
 };
 
 dictionary MLEluOptions : MLOperatorOptions {
@@ -411,6 +473,26 @@ dictionary MLGatherSupportLimits {
 
 partial dictionary MLOpSupportLimits {
   MLGatherSupportLimits gather;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand gatherElements(MLOperand input,
+                           MLOperand indices,
+                           optional MLGatherOptions options = {});
+};
+
+partial dictionary MLOpSupportLimits {
+  MLGatherSupportLimits gatherElements;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand gatherND(MLOperand input,
+                     MLOperand indices,
+                     optional MLOperatorOptions options = {});
+};
+
+partial dictionary MLOpSupportLimits {
+  MLGatherSupportLimits gatherND;
 };
 
 partial interface MLGraphBuilder {
@@ -830,6 +912,51 @@ partial dictionary MLOpSupportLimits {
   MLSingleInputSupportLimits reshape;
 };
 
+dictionary MLReverseOptions : MLOperatorOptions {
+  sequence<[EnforceRange] unsigned long> axes;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand reverse(MLOperand input, optional MLReverseOptions options = {});
+};
+
+partial dictionary MLOpSupportLimits {
+  MLSingleInputSupportLimits reverse;
+};
+
+dictionary MLScatterOptions : MLOperatorOptions {
+  [EnforceRange] unsigned long axis = 0;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand scatterElements(MLOperand input,
+                            MLOperand indices,
+                            MLOperand updates,
+                            optional MLScatterOptions options = {});
+};
+
+dictionary MLScatterSupportLimits {
+  MLSupportLimits input;
+  MLSupportLimits indices;
+  MLSupportLimits updates;
+  MLSupportLimits output;
+};
+
+partial dictionary MLOpSupportLimits {
+  MLScatterSupportLimits scatterElements;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand scatterND(MLOperand input,
+                      MLOperand indices,
+                      MLOperand updates,
+                      optional MLOperatorOptions options = {});
+};
+
+partial dictionary MLOpSupportLimits {
+  MLScatterSupportLimits scatterND;
+};
+
 partial interface MLGraphBuilder {
   MLOperand sigmoid(MLOperand input, optional MLOperatorOptions options = {});
 };
@@ -838,14 +965,18 @@ partial dictionary MLOpSupportLimits {
   MLSingleInputSupportLimits sigmoid;
 };
 
+dictionary MLSliceOptions : MLOperatorOptions {
+  sequence<[EnforceRange] unsigned long> strides;
+};
+
 partial interface MLGraphBuilder {
   MLOperand slice(MLOperand input,
                   sequence<[EnforceRange] unsigned long> starts,
                   sequence<[EnforceRange] unsigned long> sizes,
-                  optional MLOperatorOptions options = {});
+                  optional MLSliceOptions options = {});
 };
 
-partial  dictionary MLOpSupportLimits {
+partial dictionary MLOpSupportLimits {
   MLSingleInputSupportLimits slice;
 };
 
@@ -901,6 +1032,16 @@ partial interface MLGraphBuilder {
 
 partial dictionary MLOpSupportLimits {
   MLSingleInputSupportLimits tanh;
+};
+
+partial interface MLGraphBuilder {
+  MLOperand tile(MLOperand input,
+                 sequence<unsigned long> repetitions,
+                 optional MLOperatorOptions options = {});
+};
+
+partial dictionary MLOpSupportLimits {
+  MLSingleInputSupportLimits tile;
 };
 
 dictionary MLTransposeOptions : MLOperatorOptions {

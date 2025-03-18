@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script type="module">
+  // Check HSTS upgrades only apply to top-level (outermost) frame navigations.
+  // Note that this test must be run on an insecure origin because it relies on
+  // insecure iframes being loadable. If it's instead run on a secure origin
+  // then mixed content blocking will prevent HSTS from working.
+
+  // 0) Confirm that insecure iframes can be loaded.
+  // 1) Pin the alt hostname to the HSTS via hsts.html
+  // 2) Attempt to load an iframe via http. This should fail because
+  //    http://{{hosts[alt][]}}:{{ports[https][0]}} is an invalid origin *and*
+  //    HSTS should not upgrade the iframe navigation to https.
+  // 3) Open a new window and navigate it to the same http origin. This should
+  //    successfully be upgraded to https, load, and then postMessage its origin.
+
+  promise_test(async() => {
+
+    function onMessageWithTimeout(name) {
+      return new Promise((resolve, reject) => {
+
+      const timeoutID = step_timeout(() => {
+        reject(new Error("Timeout: Didn't receive message for " + name));
+        onmessage = null;
+      }, 3000);
+
+      onmessage = (event) => {
+        clearTimeout(timeoutID);
+        resolve(event);
+      };
+    });
+    };
+
+    // Step 0.
+    const iframeLoadable = document.createElement('iframe');
+    const iframeLoadablePromise = onMessageWithTimeout("Step 0");
+
+    iframeLoadable.src = "http://{{hosts[][]}}:{{ports[http][0]}}/hsts/resources/hsts.html";
+    document.body.appendChild(iframeLoadable);
+    await iframeLoadablePromise;
+
+    // Step 1.
+    // Add HSTS pin for domain.
+    await fetch("https://{{hosts[alt][]}}:{{ports[https][0]}}/hsts/resources/hsts.html?as-fetch");
+
+    // Step 2.
+    // Note: HTTP, not HTTPS:
+    const hstsIframe = document.createElement('iframe');
+    const hstsIframePromise = onMessageWithTimeout("Step 2")
+    .then(resolve => assert_false(true, "HSTS iframe unexpectedly loaded"),
+                                  reject => {/*frame didn't load, as expected */});
+
+    hstsIframe.src = "http://{{hosts[alt][]}}:{{ports[https][0]}}/hsts/resources/hsts.html";
+    document.body.appendChild(hstsIframe);
+    await hstsIframePromise;
+
+    // Step 3.
+    const hstsWindowPromise = onMessageWithTimeout("Step 3")
+    .then((event) =>
+      assert_equals(event.data.origin,
+                    "https://{{hosts[alt][]}}:{{ports[https][0]}}"));
+
+    const w = window.open("http://{{hosts[alt][]}}:{{ports[https][0]}}/hsts/resources/post-origin-to-opener.html", "_blank");
+    if(!w) {
+      assert_false(true, "Window didn't open. Is there a popup blocker?");
+    }
+
+    await hstsWindowPromise;
+}, "HSTS only navigates top-level");
+
+</script>
+</body>
+</html>

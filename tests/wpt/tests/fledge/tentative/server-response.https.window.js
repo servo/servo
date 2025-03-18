@@ -22,6 +22,7 @@
 // META: variant=?55-58
 // META: variant=?59-62
 // META: variant=?63-66
+// META: variant=?67-70
 
 // These tests focus on the serverResponse field in AuctionConfig, e.g.
 // auctions involving bidding and auction services.
@@ -556,12 +557,10 @@ subsetTest(promise_test, async test => {
       test, /*expectSuccess=*/ true, msg => {msg.isChaff = false});
 }, 'Basic B&A auction - response marked as non-chaff');
 
-// Disabled while spec clarifying expected behavior is in-progress.
-//
-// subsetTest(promise_test, async test => {
-//   await BA.testWithMutatedServerResponse(
-//       test, /*expectSuccess=*/ true, msg => {msg.isChaff = 'yes'});
-// }, 'Basic B&A auction - response marked as chaff incorrectly');
+subsetTest(promise_test, async test => {
+  await BA.testWithMutatedServerResponse(
+      test, /*expectSuccess=*/ false, msg => {msg.isChaff = 'yes'});
+}, 'Basic B&A auction - response marked as chaff incorrectly');
 
 subsetTest(promise_test, async test => {
   await BA.testWithMutatedServerResponse(
@@ -569,12 +568,10 @@ subsetTest(promise_test, async test => {
       msg => {msg.topLevelSeller = 'https://example.org/'});
 }, 'Basic B&A auction - incorrectly includes topLevelSeller');
 
-// Disabled while spec clarifying expected behavior is in-progress.
-//
-// subsetTest(promise_test, async test => {
-//   await BA.testWithMutatedServerResponse(
-//       test, /*expectSuccess=*/ true, msg => {msg.topLevelSeller = 1});
-// }, 'Basic B&A auction - non-string top-level seller ignored');
+subsetTest(promise_test, async test => {
+  await BA.testWithMutatedServerResponse(
+      test, /*expectSuccess=*/ false, msg => {msg.topLevelSeller = 1});
+}, 'Basic B&A auction - non-string top-level seller invalid');
 
 subsetTest(promise_test, async test => {
   await BA.testWithMutatedServerResponse(
@@ -582,12 +579,10 @@ subsetTest(promise_test, async test => {
       msg => {msg.topLevelSeller = 'http://example.org/'});
 }, 'Basic B&A auction - http:// topLevelSeller is bad, too');
 
-// Disabled while spec clarifying expected behavior is in-progress.
-//
-// subsetTest(promise_test, async test => {
-//   await BA.testWithMutatedServerResponse(
-//       test, /*expectSuccess=*/ true, msg => {msg.bid = '10 cents'});
-// }, 'Basic B&A auction - non-number bid is ignored');
+subsetTest(promise_test, async test => {
+  await BA.testWithMutatedServerResponse(
+      test, /*expectSuccess=*/ false, msg => {msg.bid = '10 cents'});
+}, 'Basic B&A auction - non-number bid is invalid');
 
 subsetTest(promise_test, async test => {
   await BA.testWithMutatedServerResponse(

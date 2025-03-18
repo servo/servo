@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Gradient analogous missing components carry forward logic tests</title>
+    <link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+    <link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+    <style>
+        .test {
+            margin: 10px 50px;
+            width: 200px;
+            height: 50px;
+            border: 1px solid black;
+            --color: lime;
+        }
+
+        .test1 {
+            background: linear-gradient(to right, var(--color));
+        }
+        .test2 {
+            background: linear-gradient(to right in srgb, var(--color));
+        }
+        .test3 {
+            background: linear-gradient(to right in oklab, var(--color));
+        }
+        .test4 {
+            background: linear-gradient(to right in display-p3, var(--color));
+        }
+    </style>
+</head>
+<body>
+    <p>They should be equivalent to `background: color-mix(in srgb, color(srgb none 1 none), lime)`</p>
+    <div class="test test1">This should be a lime background.</div>
+    <div class="test test2">This should be a lime background.</div>
+    <div class="test test3">This should be a lime background.</div>
+    <div class="test test4">This should be a lime background.</div>
+</body>
+</html>
