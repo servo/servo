@@ -302,7 +302,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-ports>
-    fn Ports(&self, cx: JSContext, retval: MutableHandleValue) {
+    fn Ports(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         self.frozen_ports.get_or_init(
             || {
                 self.ports
@@ -313,7 +313,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
             },
             cx,
             retval,
-            CanGc::note(),
+            can_gc,
         );
     }
 

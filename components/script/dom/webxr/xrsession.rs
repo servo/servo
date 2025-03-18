@@ -1006,10 +1006,10 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-enabledfeatures>
-    fn EnabledFeatures(&self, cx: JSContext, retval: MutableHandleValue) {
+    fn EnabledFeatures(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         let session = self.session.borrow();
         let features = session.granted_features();
-        to_frozen_array(features, cx, retval, CanGc::note())
+        to_frozen_array(features, cx, retval, can_gc)
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-issystemkeyboardsupported>

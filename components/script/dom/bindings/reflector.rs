@@ -27,23 +27,6 @@ where
     unsafe { T::WRAP(D::GlobalScope::get_cx(), global_scope, None, obj, can_gc) }
 }
 
-/// Creates a reflector for a new DOM object with an optional prototype object and returns ownership to the reflector.
-///
-/// # Arguments
-/// * `obj` - The DOM object to create a reflector for
-/// * `global` - The global scope that owns this object
-/// * `proto` - Optional prototype object to use for the reflector
-/// * `can_gc` - Whether garbage collection is allowed during wrapping
-///
-/// # Safety
-/// T::WRAP is an unsafe function pointer that:
-/// 1. Takes the JSContext from the global scope
-/// 2. Takes the global scope itself
-/// 3. Takes an optional prototype object
-/// 4. Takes ownership of the DOM object
-/// 5. Takes a flag indicating if GC is allowed
-/// 6. Creates a JS reflector for the DOM object with the given prototype
-/// 7. Returns a DomRoot containing the wrapped object
 pub(crate) fn reflect_dom_object_with_proto<D, T, U>(
     obj: Box<T>,
     global: &U,

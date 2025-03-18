@@ -69,13 +69,13 @@ impl SpecificCSSRule for CSSLayerStatementRule {
 
 impl CSSLayerStatementRuleMethods<crate::DomTypeHolder> for CSSLayerStatementRule {
     /// <https://drafts.csswg.org/css-cascade-5/#dom-csslayerstatementrule-namelist>
-    fn NameList(&self, cx: SafeJSContext, retval: MutableHandleValue) {
+    fn NameList(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
         let names: Vec<DOMString> = self
             .layerstatementrule
             .names
             .iter()
             .map(|name| DOMString::from_string(name.to_css_string()))
             .collect();
-        to_frozen_array(names.as_slice(), cx, retval, CanGc::note())
+        to_frozen_array(names.as_slice(), cx, retval, can_gc)
     }
 }
