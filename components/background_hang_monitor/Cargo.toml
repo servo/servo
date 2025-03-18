@@ -32,6 +32,3 @@ mach2 = { version = "0.4", optional = true }
 [target.'cfg(all(target_os = "linux", not(any(target_arch = "arm", target_arch = "aarch64", target_env = "ohos", target_env = "musl"))))'.dependencies]
 nix = { workspace = true, features = ["signal"], optional = true }
 unwind-sys = { version = "0.1.4", optional = true }
-
-[lints.rust]
-unsafe_op_in_unsafe_fn = { level = "allow" }

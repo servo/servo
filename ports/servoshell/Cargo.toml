@@ -131,6 +131,3 @@ sig = "1.0"
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi"] }
 libservo = { path = "../../components/servo", features = ["no-wgl"] }
-
-[lints.rust]
-unsafe_op_in_unsafe_fn = { level = "allow" }
