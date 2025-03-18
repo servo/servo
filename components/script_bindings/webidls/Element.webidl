@@ -90,10 +90,10 @@ interface Element : Node {
 
 dictionary ShadowRootInit {
   required ShadowRootMode mode;
-  // boolean delegatesFocus = false;
+  boolean delegatesFocus = false;
   SlotAssignmentMode slotAssignment = "named";
   boolean clonable = false;
-  // boolean serializable = false;
+  boolean serializable = false;
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface
