@@ -25,6 +25,11 @@ use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
 
 use crate::resource_thread::CoreResourceThreadPool;
 
+// We bake in rippy.png as a fallback, in case the embedder does not provide
+// a rippy resource. this version is 253 bytes large, don't exchange it against
+// something in higher resolution.
+const FALLBACK_RIPPY: &[u8] = include_bytes!("../../resources/rippy.png");
+
 //
 // TODO(gw): Remaining work on image cache:
 //     * Make use of the prefetch support in various parts of the code.
@@ -45,7 +50,9 @@ fn decode_bytes_sync(key: LoadKey, bytes: &[u8], cors: CorsStatus) -> DecoderMsg
 }
 
 fn get_placeholder_image(compositor_api: &CrossProcessCompositorApi, data: &[u8]) -> Arc<Image> {
-    let mut image = load_from_memory(data, CorsStatus::Unsafe).unwrap();
+    let mut image = load_from_memory(data, CorsStatus::Unsafe)
+        .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe))
+        .expect("load fallback image failed");
     set_webrender_image_key(compositor_api, &mut image);
     Arc::new(image)
 }
