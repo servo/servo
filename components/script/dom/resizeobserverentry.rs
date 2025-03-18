@@ -110,7 +110,12 @@ impl ResizeObserverEntryMethods<crate::DomTypeHolder> for ResizeObserverEntry {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-devicepixelcontentboxsize>
-    fn DevicePixelContentBoxSize(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
+    fn DevicePixelContentBoxSize(
+        &self,
+        cx: SafeJSContext,
+        can_gc: CanGc,
+        retval: MutableHandleValue,
+    ) {
         let sizes: Vec<DomRoot<ResizeObserverSize>> = self
             .device_pixel_content_box_size
             .iter()
