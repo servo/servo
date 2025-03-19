@@ -730,12 +730,6 @@ impl<T: Clone> Size<T> {
     }
 
     #[inline]
-    pub(crate) fn to_auto_or(&self) -> AutoOr<T> {
-        self.to_numeric()
-            .map_or(AutoOr::Auto, AutoOr::LengthPercentage)
-    }
-
-    #[inline]
     pub fn map<U>(&self, f: impl FnOnce(T) -> U) -> Size<U> {
         match self {
             Size::Initial => Size::Initial,

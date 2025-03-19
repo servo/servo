@@ -21,7 +21,7 @@ use style::properties::longhands::flex_direction::computed_value::T as FlexDirec
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::values::computed::LengthPercentage;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
-use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrNormal};
+use style::values::generics::length::LengthPercentageOrNormal;
 use style::values::specified::align::AlignFlags;
 
 use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2};
@@ -2203,17 +2203,17 @@ impl FlexItemBox {
             style.writing_mode.is_horizontal(),
             flex_axis,
         );
+        let main_axis = if cross_axis_is_item_block_axis {
+            Direction::Inline
+        } else {
+            Direction::Block
+        };
 
         let ContentBoxSizesAndPBM {
             content_box_sizes,
             pbm,
             depends_on_block_constraints,
         } = content_box_sizes_and_pbm;
-
-        let content_box_size = content_box_sizes.map(|size| size.preferred);
-        // TODO(#32853): handle size keywords.
-        let content_min_box_size = content_box_sizes.map(|size| size.min.to_auto_or());
-        let content_max_box_size = content_box_sizes.map(|size| size.max.to_numeric());
 
         let preferred_aspect_ratio = self
             .independent_formatting_context
@@ -2229,90 +2229,177 @@ impl FlexItemBox {
         } + margin_auto_is_zero.sum_by_axis();
         let auto_cross_size_stretches_to_container_size =
             config.item_with_auto_cross_size_stretches_to_container_size(style, &margin);
-
-        let flex_relative_content_box_size = flex_axis.vec2_to_flex_relative(content_box_size);
-        let flex_relative_content_max_size = flex_axis.vec2_to_flex_relative(content_max_box_size);
-        let flex_relative_content_min_size = flex_axis.vec2_to_flex_relative(content_min_box_size);
-        let containing_block_size = flex_axis.vec2_to_flex_relative(containing_block.size);
-        let flex_relative_content_min_size = FlexRelativeVec2 {
-            main: flex_relative_content_min_size.main.auto_is(|| {
-                self.automatic_min_size(
-                    layout_context,
-                    containing_block_size,
-                    cross_axis_is_item_block_axis,
-                    flex_relative_content_box_size,
-                    flex_relative_content_min_size,
-                    flex_relative_content_max_size,
-                    preferred_aspect_ratio,
-                    &pbm_auto_is_zero,
-                    auto_cross_size_stretches_to_container_size,
-                    |item| {
-                        let min_size_auto_is_zero = content_min_box_size.auto_is(Au::zero);
-
-                        item.layout_for_block_content_size(
-                            flex_context_getter(),
-                            pbm,
-                            content_box_size,
-                            min_size_auto_is_zero,
-                            content_max_box_size,
-                            preferred_aspect_ratio,
-                            auto_cross_size_stretches_to_container_size,
-                            IntrinsicSizingMode::Size,
-                        )
-                    },
-                )
-            }),
-            cross: flex_relative_content_min_size.cross.auto_is(Au::zero),
+        let (content_main_sizes, content_cross_sizes) = match flex_axis {
+            FlexAxis::Row => (&content_box_sizes.inline, &content_box_sizes.block),
+            FlexAxis::Column => (&content_box_sizes.block, &content_box_sizes.inline),
         };
-        let align_self = AlignItems(config.resolve_align_self_for_child(style));
-        let (flex_base_size, flex_base_size_is_definite) = self.flex_base_size(
-            layout_context,
-            containing_block_size,
-            cross_axis_is_item_block_axis,
-            flex_relative_content_box_size,
-            flex_relative_content_min_size,
-            flex_relative_content_max_size,
-            preferred_aspect_ratio,
-            padding_border,
-            &pbm_auto_is_zero,
-            auto_cross_size_stretches_to_container_size,
-            |item| {
-                let min_size = flex_axis.vec2_to_flow_relative(flex_relative_content_min_size);
-                item.layout_for_block_content_size(
+        let containing_block_size = flex_axis.vec2_to_flex_relative(containing_block.size);
+        let stretch_size = FlexRelativeVec2 {
+            main: containing_block_size
+                .main
+                .map(|v| Au::zero().max(v - pbm_auto_is_zero.main)),
+            cross: containing_block_size
+                .cross
+                .map(|v| Au::zero().max(v - pbm_auto_is_zero.cross)),
+        };
+
+        // <https://drafts.csswg.org/css-flexbox/#definite-sizes>
+        // > If a single-line flex container has a definite cross size, the automatic preferred
+        // > outer cross size of any stretched flex items is the flex container’s inner cross size
+        // > (clamped to the flex item’s min and max cross size) and is considered definite.
+        let (preferred_cross_size, min_cross_size, max_cross_size) = content_cross_sizes
+            .resolve_each_extrinsic(
+                if auto_cross_size_stretches_to_container_size {
+                    Size::Stretch
+                } else {
+                    Size::FitContent
+                },
+                Au::zero(),
+                stretch_size.cross,
+            );
+        let cross_size = SizeConstraint::new(preferred_cross_size, min_cross_size, max_cross_size);
+
+        // <https://drafts.csswg.org/css-flexbox/#transferred-size-suggestion>
+        // > If the item has a preferred aspect ratio and its preferred cross size is definite, then the
+        // > transferred size suggestion is that size (clamped by its minimum and maximum cross sizes if they
+        // > are definite), converted through the aspect ratio. It is otherwise undefined.
+        let transferred_size_suggestion =
+            LazyCell::new(|| match (preferred_aspect_ratio, cross_size) {
+                (Some(ratio), SizeConstraint::Definite(cross_size)) => {
+                    Some(ratio.compute_dependent_size(main_axis, cross_size))
+                },
+                _ => None,
+            });
+
+        // <https://drafts.csswg.org/css-flexbox/#algo-main-item>
+        let flex_base_size_is_definite = Cell::new(true);
+        let main_content_sizes = LazyCell::new(|| {
+            let flex_item = &self.independent_formatting_context;
+            // > B: If the flex item has ...
+            // >   - a preferred aspect ratio,
+            // >   - a used flex basis of content, and
+            // >   - a definite cross size,
+            // > then the flex base size is calculated from its used cross size and the flex item’s aspect ratio.
+            if let Some(transferred_size_suggestion) = *transferred_size_suggestion {
+                return transferred_size_suggestion.into();
+            }
+
+            flex_base_size_is_definite.set(false);
+
+            // FIXME: implement cases C, D.
+
+            // > E. Otherwise, size the item into the available space using its used flex basis in place of
+            // > its main size, treating a value of content as max-content. If a cross size is needed to
+            // > determine the main size (e.g. when the flex item’s main size is in its block axis, or when
+            // > it has a preferred aspect ratio) and the flex item’s cross size is auto and not definite,
+            // > in this calculation use fit-content as the flex item’s cross size. The flex base size is
+            // > the item’s resulting main size.
+            if cross_axis_is_item_block_axis {
+                // The main axis is the inline axis, so we can get the content size from the normal
+                // preferred widths calculation.
+                let constraint_space =
+                    ConstraintSpace::new(cross_size, style.writing_mode, preferred_aspect_ratio);
+                let content_sizes = flex_item
+                    .inline_content_sizes(layout_context, &constraint_space)
+                    .sizes;
+                if let Some(ratio) = preferred_aspect_ratio {
+                    let transferred_min = ratio.compute_dependent_size(main_axis, min_cross_size);
+                    let transferred_max =
+                        max_cross_size.map(|v| ratio.compute_dependent_size(main_axis, v));
+                    content_sizes
+                        .map(|size| size.clamp_between_extremums(transferred_min, transferred_max))
+                } else {
+                    content_sizes
+                }
+            } else {
+                self.layout_for_block_content_size(
                     flex_context_getter(),
                     pbm,
-                    content_box_size,
-                    min_size,
-                    content_max_box_size,
+                    content_box_sizes.map(|size| size.preferred),
+                    // TODO(#32853): handle size keywords.
+                    content_box_sizes.map(|size| size.min.to_numeric().unwrap_or_default()),
+                    content_box_sizes.map(|size| size.max.to_numeric()),
                     preferred_aspect_ratio,
                     auto_cross_size_stretches_to_container_size,
                     IntrinsicSizingMode::Size,
                 )
-            },
-        );
+                .into()
+            }
+        });
 
-        let hypothetical_main_size = flex_base_size.clamp_between_extremums(
-            flex_relative_content_min_size.main,
-            flex_relative_content_max_size.main,
+        let flex_base_size = self
+            .flex_basis(
+                containing_block_size.main,
+                content_main_sizes.preferred,
+                padding_border.main,
+            )
+            .resolve_for_preferred(Size::MaxContent, stretch_size.main, &main_content_sizes);
+        let flex_base_size_is_definite = flex_base_size_is_definite.take();
+
+        let content_max_main_size = content_main_sizes
+            .max
+            .resolve_for_max(stretch_size.main, &main_content_sizes);
+
+        let get_automatic_minimum_size = || {
+            // This is an implementation of <https://drafts.csswg.org/css-flexbox/#min-size-auto>.
+            if style.establishes_scroll_container(self.base_fragment_info().flags) {
+                return Au::zero();
+            }
+
+            // > **specified size suggestion**
+            // > If the item’s preferred main size is definite and not automatic, then the specified
+            // > size suggestion is that size. It is otherwise undefined.
+            let specified_size_suggestion = content_main_sizes
+                .preferred
+                .maybe_resolve_extrinsic(stretch_size.main);
+
+            let is_replaced = self.independent_formatting_context.is_replaced();
+
+            // > **content size suggestion**
+            // > The content size suggestion is the min-content size in the main axis, clamped, if it has a
+            // > preferred aspect ratio, by any definite minimum and maximum cross sizes converted through the
+            // > aspect ratio.
+            let content_size_suggestion = match preferred_aspect_ratio {
+                Some(ratio) => main_content_sizes.min_content.clamp_between_extremums(
+                    ratio.compute_dependent_size(main_axis, min_cross_size),
+                    max_cross_size.map(|l| ratio.compute_dependent_size(main_axis, l)),
+                ),
+                None => main_content_sizes.min_content,
+            };
+
+            // > The content-based minimum size of a flex item is the smaller of its specified size
+            // > suggestion and its content size suggestion if its specified size suggestion exists;
+            // > otherwise, the smaller of its transferred size suggestion and its content size
+            // > suggestion if the element is replaced and its transferred size suggestion exists;
+            // > otherwise its content size suggestion. In all cases, the size is clamped by the maximum
+            // > main size if it’s definite.
+            match (specified_size_suggestion, *transferred_size_suggestion) {
+                (Some(specified), _) => specified.min(content_size_suggestion),
+                (_, Some(transferred)) if is_replaced => transferred.min(content_size_suggestion),
+                _ => content_size_suggestion,
+            }
+            .clamp_below_max(content_max_main_size)
+        };
+        let content_min_main_size = content_main_sizes.min.resolve_for_min(
+            get_automatic_minimum_size,
+            stretch_size.main,
+            &main_content_sizes,
         );
-        let margin: FlexRelativeSides<AuOrAuto> = config.sides_to_flex_relative(pbm.margin);
 
         FlexItem {
             box_: self,
-            content_cross_sizes: match flex_axis {
-                FlexAxis::Row => content_box_sizes.block.clone(),
-                FlexAxis::Column => content_box_sizes.inline.clone(),
-            },
+            content_cross_sizes: content_cross_sizes.clone(),
             padding,
             border,
-            margin,
+            margin: config.sides_to_flex_relative(pbm.margin),
             pbm_auto_is_zero,
             flex_base_size,
             flex_base_size_is_definite,
-            hypothetical_main_size,
-            content_min_main_size: flex_relative_content_min_size.main,
-            content_max_main_size: flex_relative_content_max_size.main,
-            align_self,
+            hypothetical_main_size: flex_base_size
+                .clamp_between_extremums(content_min_main_size, content_max_main_size),
+            content_min_main_size,
+            content_max_main_size,
+            align_self: AlignItems(config.resolve_align_self_for_child(style)),
             depends_on_block_constraints: *depends_on_block_constraints,
             preferred_aspect_ratio,
             auto_cross_size_stretches_to_container_size,
@@ -2494,109 +2581,6 @@ impl FlexItemBox {
         }
     }
 
-    /// This is an implementation of <https://drafts.csswg.org/css-flexbox/#min-size-auto>.
-    #[allow(clippy::too_many_arguments)]
-    fn automatic_min_size(
-        &self,
-        layout_context: &LayoutContext,
-        containing_block_size: FlexRelativeVec2<Option<Au>>,
-        cross_axis_is_item_block_axis: bool,
-        content_box_size: FlexRelativeVec2<Size<Au>>,
-        min_size: FlexRelativeVec2<GenericLengthPercentageOrAuto<Au>>,
-        max_size: FlexRelativeVec2<Option<Au>>,
-        preferred_aspect_ratio: Option<AspectRatio>,
-        pbm_auto_is_zero: &FlexRelativeVec2<Au>,
-        auto_cross_size_stretches_to_container_size: bool,
-        block_content_size_callback: impl FnOnce(&FlexItemBox) -> Au,
-    ) -> Au {
-        // FIXME(stshine): Consider more situations when auto min size is not needed.
-        let style = &self.independent_formatting_context.style();
-        if style.establishes_scroll_container(self.base_fragment_info().flags) {
-            return Au::zero();
-        }
-
-        // > **specified size suggestion**
-        // > If the item’s preferred main size is definite and not automatic, then the specified
-        // > size suggestion is that size. It is otherwise undefined.
-        let specified_size_suggestion = content_box_size.main.maybe_resolve_extrinsic(
-            containing_block_size
-                .main
-                .map(|v| v - pbm_auto_is_zero.main),
-        );
-
-        let is_replaced = self.independent_formatting_context.is_replaced();
-        let main_axis = if cross_axis_is_item_block_axis {
-            Direction::Inline
-        } else {
-            Direction::Block
-        };
-
-        let cross_stretch_size = containing_block_size
-            .cross
-            .map(|v| v - pbm_auto_is_zero.cross);
-        let cross_size = SizeConstraint::new(
-            if content_box_size.cross.is_initial() && auto_cross_size_stretches_to_container_size {
-                cross_stretch_size
-            } else {
-                content_box_size
-                    .cross
-                    .maybe_resolve_extrinsic(cross_stretch_size)
-            },
-            min_size.cross.auto_is(Au::zero),
-            max_size.cross,
-        );
-
-        // > **transferred size suggestion**
-        // > If the item has a preferred aspect ratio and its preferred cross size is definite, then the
-        // > transferred size suggestion is that size (clamped by its minimum and maximum cross sizes if they
-        // > are definite), converted through the aspect ratio. It is otherwise undefined.
-        let transferred_size_suggestion = match (preferred_aspect_ratio, cross_size) {
-            (Some(ratio), SizeConstraint::Definite(cross_size)) => {
-                Some(ratio.compute_dependent_size(main_axis, cross_size))
-            },
-            _ => None,
-        };
-
-        // > **content size suggestion**
-        // > The content size suggestion is the min-content size in the main axis, clamped, if it has a
-        // > preferred aspect ratio, by any definite minimum and maximum cross sizes converted through the
-        // > aspect ratio.
-        let main_content_size = if cross_axis_is_item_block_axis {
-            let writing_mode = style.writing_mode;
-            let constraint_space =
-                ConstraintSpace::new(cross_size, writing_mode, preferred_aspect_ratio);
-            self.independent_formatting_context
-                .inline_content_sizes(layout_context, &constraint_space)
-                .sizes
-                .min_content
-        } else {
-            block_content_size_callback(self)
-        };
-        let content_size_suggestion = preferred_aspect_ratio
-            .map(|ratio| {
-                main_content_size.clamp_between_extremums(
-                    ratio.compute_dependent_size(main_axis, min_size.cross.auto_is(Au::zero)),
-                    max_size
-                        .cross
-                        .map(|l| ratio.compute_dependent_size(main_axis, l)),
-                )
-            })
-            .unwrap_or(main_content_size);
-
-        // > The content-based minimum size of a flex item is the smaller of its specified size
-        // > suggestion and its content size suggestion if its specified size suggestion exists;
-        // > otherwise, the smaller of its transferred size suggestion and its content size
-        // > suggestion if the element is replaced and its transferred size suggestion exists;
-        // > otherwise its content size suggestion. In all cases, the size is clamped by the maximum
-        // > main size if it’s definite.
-        match (specified_size_suggestion, transferred_size_suggestion) {
-            (Some(specified), _) => specified.min(content_size_suggestion),
-            (_, Some(transferred)) if is_replaced => transferred.min(content_size_suggestion),
-            _ => content_size_suggestion,
-        }
-        .clamp_below_max(max_size.main)
-    }
-
     /// <https://drafts.csswg.org/css-flexbox-1/#flex-basis-property>
     /// Returns the used value of the `flex-basis` property, after resolving percentages,
     /// resolving `auto`, and taking `box-sizing` into account.
@@ -2646,114 +2630,6 @@ impl FlexItemBox {
                 },
             },
         }
-    }
-
-    /// <https://drafts.csswg.org/css-flexbox/#algo-main-item>
-    #[allow(clippy::too_many_arguments)]
-    fn flex_base_size(
-        &self,
-        layout_context: &LayoutContext,
-        container_definite_inner_size: FlexRelativeVec2<Option<Au>>,
-        cross_axis_is_item_block_axis: bool,
-        content_box_size: FlexRelativeVec2<Size<Au>>,
-        content_min_box_size: FlexRelativeVec2<Au>,
-        content_max_box_size: FlexRelativeVec2<Option<Au>>,
-        preferred_aspect_ratio: Option<AspectRatio>,
-        padding_border_sums: FlexRelativeVec2<Au>,
-        pbm_auto_is_zero: &FlexRelativeVec2<Au>,
-        auto_cross_size_stretches_to_container_size: bool,
-        block_content_size_callback: impl FnOnce(&FlexItemBox) -> Au,
-    ) -> (Au, bool) {
-        let used_flex_basis = self.flex_basis(
-            container_definite_inner_size.main,
-            content_box_size.main,
-            padding_border_sums.main,
-        );
-
-        let mut flex_base_size_is_definite = true;
-
-        let content_size = LazyCell::new(|| {
-            let flex_item = &self.independent_formatting_context;
-            let main_axis = if cross_axis_is_item_block_axis {
-                Direction::Inline
-            } else {
-                Direction::Block
-            };
-
-            // > If a single-line flex container has a definite cross size, the automatic preferred
-            // > outer cross size of any stretched flex items is the flex container’s inner cross size
-            // > (clamped to the flex item’s min and max cross size) and is considered definite.
-            let cross_stretch_size = container_definite_inner_size
-                .cross
-                .map(|v| v - pbm_auto_is_zero.cross);
-            let cross_size = SizeConstraint::new(
-                if content_box_size.cross.is_initial() &&
-                    auto_cross_size_stretches_to_container_size
-                {
-                    cross_stretch_size
-                } else {
-                    content_box_size
-                        .cross
-                        .maybe_resolve_extrinsic(cross_stretch_size)
-                },
-                content_min_box_size.cross,
-                content_max_box_size.cross,
-            );
-
-            // > B: If the flex item has ...
-            // >   - a preferred aspect ratio,
-            // >   - a used flex basis of content, and
-            // >   - a definite cross size,
-            // > then the flex base size is calculated from its used cross size and the flex item’s aspect ratio.
-            if let (Some(ratio), SizeConstraint::Definite(cross_size)) =
-                (preferred_aspect_ratio, cross_size)
-            {
-                return ratio.compute_dependent_size(main_axis, cross_size).into();
-            }
-
-            flex_base_size_is_definite = false;
-
-            // FIXME: implement cases C, D.
-
-            // > E. Otherwise, size the item into the available space using its used flex basis in place of
-            // > its main size, treating a value of content as max-content. If a cross size is needed to
-            // > determine the main size (e.g. when the flex item’s main size is in its block axis, or when
-            // > it has a preferred aspect ratio) and the flex item’s cross size is auto and not definite,
-            // > in this calculation use fit-content as the flex item’s cross size. The flex base size is
-            // > the item’s resulting main size.
-            if cross_axis_is_item_block_axis {
-                // The main axis is the inline axis, so we can get the content size from the normal
-                // preferred widths calculation.
-                let constraint_space = ConstraintSpace::new(
-                    cross_size,
-                    flex_item.style().writing_mode,
-                    preferred_aspect_ratio,
-                );
-                let content_sizes = flex_item
-                    .inline_content_sizes(layout_context, &constraint_space)
-                    .sizes;
-                if let Some(ratio) = preferred_aspect_ratio {
-                    let transferred_min =
-                        ratio.compute_dependent_size(main_axis, content_min_box_size.cross);
-                    let transferred_max = content_max_box_size
-                        .cross
-                        .map(|v| ratio.compute_dependent_size(main_axis, v));
-                    content_sizes
-                        .map(|size| size.clamp_between_extremums(transferred_min, transferred_max))
-                } else {
-                    content_sizes
-                }
-            } else {
-                block_content_size_callback(self).into()
-            }
-        });
-
-        let stretch_size = container_definite_inner_size
-            .main
-            .map(|container_size| Au::zero().max(container_size - pbm_auto_is_zero.main));
-        let flex_base_size =
-            used_flex_basis.resolve_for_preferred(Size::MaxContent, stretch_size, &content_size);
-        (flex_base_size, flex_base_size_is_definite)
     }
 
     #[allow(clippy::too_many_arguments)]
