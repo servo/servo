@@ -590,56 +590,70 @@ pub enum LoadStatus {
     Complete,
 }
 
-/// <https://notifications.spec.whatwg.org/#notifications>
+/// Data that could be used to display a desktop notification to the end user
+/// when the [Notification API](<https://notifications.spec.whatwg.org/#notifications>) is called.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Notification {
-    /// <https://notifications.spec.whatwg.org/#concept-title>
+    /// Title of the notification.
     pub title: String,
-    /// <https://notifications.spec.whatwg.org/#body>
+    /// Body string of the notification.
     pub body: String,
-    /// <https://notifications.spec.whatwg.org/#tag>
+    /// An identifier tag for the notification. Notification with the same tag
+    /// can be replaced by another to avoid users' screen being filled up with similar notifications.
     pub tag: String,
-    /// <https://notifications.spec.whatwg.org/#concept-direction>
+    /// Direction of the notification. Includes the text direction and
+    /// actions' relative order if actions are displayed side by side.
+    ///
+    /// <https://notifications.spec.whatwg.org/#direction>
     pub dir: NotificationDirection,
-    /// <https://notifications.spec.whatwg.org/#concept-language>
+    /// The language used in the notification's title, body, and the title of each its actions. [RFC 5646](https://datatracker.ietf.org/doc/html/rfc5646)
     pub lang: String,
-    /// <https://notifications.spec.whatwg.org/#require-interaction-preference-flag>
+    /// A boolean value indicates the notification should remain readily available
+    /// until the end user activates or dismisses the notification.
     pub require_interaction: bool,
-    /// <https://notifications.spec.whatwg.org/#silent-preference-flag>
+    /// When `true`, indicates no sounds or vibrations should be made. When `None`,
+    /// the device's default settings should be respected.
     pub silent: Option<bool>,
-    /// <https://notifications.spec.whatwg.org/#icon-url>
+    /// The URL of an icon. The icon will be displayed as part of the notification.
     pub icon_url: Option<ServoUrl>,
-    /// <https://notifications.spec.whatwg.org/#icon-resource>
+    /// Icon's raw image data and metadata.
     pub icon_resource: Option<Arc<Image>>,
-    /// <https://notifications.spec.whatwg.org/#badge-url>
+    /// The URL of a badge. The badge is used when there is no enough space to display the notification,
+    /// such as on a mobile device's notification bar.
     pub badge_url: Option<ServoUrl>,
-    /// <https://notifications.spec.whatwg.org/#badge-resource>
+    /// Badge's raw image data and metadata.
     pub badge_resource: Option<Arc<Image>>,
-    /// <https://notifications.spec.whatwg.org/#image-url>
+    /// The URL of an image. The image will be displayed as part of the notification.
     pub image_url: Option<ServoUrl>,
-    /// <https://notifications.spec.whatwg.org/#image-resource>
+    /// Image's raw image data and metadata.
     pub image_resource: Option<Arc<Image>>,
-    /// <https://notifications.spec.whatwg.org/#actions>
+    /// Actions available for users to choose from for interacting with the notification.
     pub actions: Vec<NotificationAction>,
 }
 
-/// <https://notifications.spec.whatwg.org/#actions>
+/// Actions available for users to choose from for interacting with the notification.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct NotificationAction {
-    /// <https://notifications.spec.whatwg.org/#action-name>
+    /// A string that identifies the action.
     pub name: String,
-    /// <https://notifications.spec.whatwg.org/#action-title>
+    /// The title string of the action to be shown to the user.
     pub title: String,
-    /// <https://notifications.spec.whatwg.org/#action-icon-url>
+    /// The URL of an icon. The icon will be displayed with the action.
     pub icon_url: Option<ServoUrl>,
-    /// <https://notifications.spec.whatwg.org/#action-icon-resource>
+    /// Icon's raw image data and metadata.
     pub icon_resource: Option<Arc<Image>>,
 }
 
+/// Direction of the notification. Includes the text direction and
+/// actions' relative order if actions are displayed side by side.
+///
 /// <https://notifications.spec.whatwg.org/#direction>
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum NotificationDirection {
+    /// Follows default browser language setting.
     Auto,
+    /// Left to right
     Ltr,
+    /// Right to left
     Rtl,
 }
