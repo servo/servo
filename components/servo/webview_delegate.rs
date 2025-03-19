@@ -8,8 +8,9 @@ use base::id::PipelineId;
 use constellation_traits::ConstellationMsg;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
-    GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, PermissionFeature,
-    SimpleDialog, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
+    PermissionFeature, SimpleDialog, WebResourceRequest, WebResourceResponse,
+    WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
@@ -462,6 +463,9 @@ pub trait WebViewDelegate {
     /// For loads not associated with a [`WebView`], such as those for service workers, Servo
     /// will call [`crate::ServoDelegate::load_web_resource`].
     fn load_web_resource(&self, _webview: WebView, _load: WebResourceLoad) {}
+
+    /// Request to display a notification.
+    fn show_notification(&self, _webview: WebView, _notification: Notification) {}
 }
 
 pub(crate) struct DefaultWebViewDelegate;

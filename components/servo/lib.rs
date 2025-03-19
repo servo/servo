@@ -985,6 +985,12 @@ impl Servo {
                     );
                 }
             },
+            EmbedderMsg::ShowNotification(webview_id, notification) => {
+                match webview_id.and_then(|webview_id| self.get_webview_handle(webview_id)) {
+                    Some(webview) => webview.delegate().show_notification(webview, notification),
+                    None => self.delegate().show_notification(notification),
+                }
+            },
         }
     }
 }
