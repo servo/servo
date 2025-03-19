@@ -94,10 +94,13 @@ impl AbstractRangeMethods<crate::DomTypeHolder> for AbstractRange {
     }
 }
 
+/// <https://dom.spec.whatwg.org/#concept-range-bp>
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct BoundaryPoint {
+    /// <https://dom.spec.whatwg.org/#boundary-point-node>
     node: MutDom<Node>,
+    /// <https://dom.spec.whatwg.org/#concept-range-bp-offset>
     offset: Cell<u32>,
 }
 
