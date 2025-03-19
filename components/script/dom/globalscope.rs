@@ -2908,6 +2908,7 @@ impl GlobalScope {
         &self,
         cx: SafeJSContext,
         retval: MutableHandleValue,
+        can_gc: CanGc,
     ) {
         self.frozen_supported_performance_entry_types.get_or_init(
             || {
@@ -2918,6 +2919,7 @@ impl GlobalScope {
             },
             cx,
             retval,
+            can_gc,
         );
     }
 
