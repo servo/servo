@@ -11,9 +11,6 @@ on:
       wpt-args:
         required: true
         type: string
-      wpt-layout:
-        required: true
-        type: string
       unit-tests:
         required: true
         type: boolean
@@ -43,7 +40,6 @@ jobs:
     secrets: inherit
     with:
       profile: ${{ inputs.profile }}
-      wpt-layout: ${{ inputs.wpt-layout }}
       unit-tests: ${{ inputs.unit-tests }}
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}
@@ -56,7 +52,6 @@ jobs:
     secrets: inherit
     with:
       profile: ${{ inputs.profile }}
-      wpt-layout: ${{ inputs.wpt-layout }}
       unit-tests: ${{ inputs.unit-tests }}
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}
