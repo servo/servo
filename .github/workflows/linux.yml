@@ -14,9 +14,6 @@ on:
         required: false
         default: false
         type: boolean
-      wpt-layout:
-        required: false
-        type: string
       unit-tests:
         required: false
         default: false
@@ -55,10 +52,6 @@ on:
         default: false
         required: false
         type: boolean
-      wpt-layout:
-        required: false
-        type: choice
-        options: ["none", "2020", "all"]
       unit-tests:
         required: false
         default: false
@@ -216,7 +209,6 @@ jobs:
           path: target.tar.gz
 
   wpt-2020:
-    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
     name: Linux WPT
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
@@ -224,7 +216,6 @@ jobs:
       wpt-args: ${{ inputs.wpt-args }}
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
-      wpt-layout: "layout-2020"
     secrets: inherit
 
   bencher:
