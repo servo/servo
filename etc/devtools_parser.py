@@ -38,7 +38,6 @@
 # ./devtools_parser.py --use cap.pcap --port 1234 --filter watcher --range 10:30
 
 import json
-import re
 import signal
 import sys
 from argparse import ArgumentParser
