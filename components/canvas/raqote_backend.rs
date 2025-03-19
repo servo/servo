@@ -630,7 +630,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         self.set_transform(matrix);
     }
     fn snapshot(&self) -> SourceSurface {
-        SourceSurface::Raqote(self.snapshot_data_owned())
+        SourceSurface::Raqote(self.snapshot_data().to_vec())
     }
     fn stroke(
         &mut self,
@@ -694,20 +694,9 @@ impl GenericDrawTarget for raqote::DrawTarget {
         );
     }
     #[allow(unsafe_code)]
-    fn snapshot_data(&self, f: &dyn Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
+    fn snapshot_data(&self) -> &[u8] {
         let v = self.get_data();
-        f(
-            unsafe {
-                std::slice::from_raw_parts(v.as_ptr() as *const u8, std::mem::size_of_val(v))
-            },
-        )
-    }
-    #[allow(unsafe_code)]
-    fn snapshot_data_owned(&self) -> Vec<u8> {
-        let v = self.get_data();
-        unsafe {
-            std::slice::from_raw_parts(v.as_ptr() as *const u8, std::mem::size_of_val(v)).into()
-        }
+        unsafe { std::slice::from_raw_parts(v.as_ptr() as *const u8, std::mem::size_of_val(v)) }
     }
 }
 

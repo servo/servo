@@ -1,0 +1,19 @@
+[package]
+name = "snapshot"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "snapshot"
+path = "lib.rs"
+
+
+[dependencies]
+euclid = { workspace = true }
+ipc-channel = { workspace = true }
+serde = { workspace = true }
+pixels = { path = "../../pixels" }

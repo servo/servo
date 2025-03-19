@@ -7,8 +7,9 @@ use std::cell::RefCell;
 
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self};
 use script_layout_interface::HTMLCanvasDataSource;
+use snapshot::Snapshot;
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPU, WebGPUContextId, WebGPURequest,
     WebGPUTexture,
@@ -277,10 +278,10 @@ impl CanvasContext for GPUCanvasContext {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#ref-for-abstract-opdef-get-a-copy-of-the-image-contents-of-a-context%E2%91%A5>
-    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
+    fn get_image_data(&self) -> Option<Snapshot> {
         // 1. Return a copy of the image contents of context.
         Some(if self.drawing_buffer.borrow().cleared {
-            IpcSharedMemory::from_byte(0, self.size().area() as usize * 4)
+            Snapshot::cleared(self.size())
         } else {
             let (sender, receiver) = ipc::channel().unwrap();
             self.channel
@@ -290,7 +291,7 @@ impl CanvasContext for GPUCanvasContext {
                     sender,
                 })
                 .unwrap();
-            receiver.recv().unwrap()
+            receiver.recv().unwrap().to_owned()
         })
     }
 
