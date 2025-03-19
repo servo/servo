@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>CSS Transitions Test: Removing transition and changing transform applies change immediately</title>
+<meta name="assert" content="When a transition is removed and a transform is changed after a previous transition completes, the change is immediate.">
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#starting">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+promise_test(async t => {
+  const div = addDiv(t, {
+    style: 'transition: transform 1s;'
+  });
+
+  // flush initial state
+  getComputedStyle(div).transform;
+  div.style.transform = 'translateY(100px)';
+
+  // Wait for transition to complete
+  await new Promise(resolve => {
+    div.addEventListener('transitionend', resolve, { once: true });
+  });
+
+  // Verify the transform after first transition
+  const afterFirst = getComputedStyle(div).transform;
+  assert_not_equals(afterFirst, 'none', 'Transform should be translated after first transition');
+
+  // Set transform back to 0 and remove transition
+  div.style.transform = 'translateY(0)';
+  div.style.transition = '';
+
+  // Force layout update to ensure style computation
+  const afterSecond = getComputedStyle(div).transform;
+  // Check transform is immediately updated
+  assert_true(
+    afterSecond === 'none' || afterSecond === 'matrix(1, 0, 0, 1, 0, 0)' || afterSecond === "translateY(0px)",
+    'Transform should reset to identity immediately'
+  );
+
+}, 'Removing transition and changing transform applies change immediately');
+</script>
+
+</body>
+</html>
