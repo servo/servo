@@ -20,8 +20,6 @@ import logging
 from dataclasses import dataclass
 from enum import Enum, auto
 
-# CHANGE: Removed Layout class entirely as it's no longer needed
-
 
 class Workflow(str, Enum):
     LINUX = "linux"
@@ -36,7 +34,6 @@ class Workflow(str, Enum):
 class JobConfig(object):
     name: str
     workflow: Workflow = Workflow.LINUX
-    # CHANGE: Changed wpt_layout from Layout enum to boolean wpt
     wpt: bool = False
     profile: str = "release"
     unit_tests: bool = False
@@ -54,7 +51,6 @@ class JobConfig(object):
             if getattr(self, field) != getattr(other, field):
                 return False
 
-        # CHANGE: Updated to use boolean OR instead of Layout bitwise operations
         self.wpt |= other.wpt
         self.unit_tests |= other.unit_tests
         self.build_libservo |= other.build_libservo
@@ -80,7 +76,6 @@ class JobConfig(object):
             modifier.append("Unit Tests")
         if self.build_libservo:
             modifier.append("Build libservo")
-        # CHANGE: Updated condition to use boolean wpt
         if self.wpt:
             modifier.append("WPT")
         if self.bencher:
@@ -104,7 +99,6 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("OpenHarmony", Workflow.OHOS)
     elif any(word in s for word in ["webgpu"]):
         return JobConfig("WebGPU CTS", Workflow.LINUX,
-                         # CHANGE: Updated to use boolean wpt instead of Layout.layout2020
                          wpt=True,  # reftests are mode for new layout
                          wpt_args="_webgpu",  # run only webgpu cts
                          profile="production",  # WebGPU works to slow with debug assert
@@ -127,8 +121,6 @@ def handle_modifier(config: JobConfig, s: str) -> Optional[JobConfig]:
         config.profile = "production"
     if "bencher" in s:
         config.bencher = True
-    # CHANGE: Simplified WPT handling to just set wpt to True
-    # CHANGE: Removed distinction between "wpt-2020" and "wpt"
     elif "wpt" in s:
         config.wpt = True
     config.update_name()
@@ -139,7 +131,6 @@ class Encoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, (Config, JobConfig)):
             return o.__dict__
-        # CHANGE: Removed special handling for Layout enum
         return json.JSONEncoder.default(self, o)
 
 
@@ -164,7 +155,6 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                # CHANGE: Updated "linux-wpt-2020" to "linux-wpt"
                 words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
                 words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
                 continue  # skip over keyword
@@ -212,7 +202,6 @@ class TestParser(unittest.TestCase):
                                   'unit_tests': True,
                                   'build_libservo': False,
                                   'workflow': 'linux',
-                                  # CHANGE: Updated "wpt_layout" to "wpt" in test
                                   'wpt': False,
                                   'wpt_args': ''
                               }]
@@ -224,7 +213,6 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "Linux (Unit Tests, WPT, Bencher)",
                                   "workflow": "linux",
-                                  # CHANGE: Updated "wpt_layout" to "wpt" in test
                                   "wpt": True,
                                   "profile": "release",
                                   "unit_tests": True,
@@ -235,7 +223,6 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "MacOS (Unit Tests)",
                                   "workflow": "macos",
-                                  # CHANGE: Updated "wpt_layout": "none" to "wpt": False
                                   "wpt": False,
                                   "profile": "release",
                                   "unit_tests": True,
@@ -246,7 +233,6 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "Windows (Unit Tests)",
                                   "workflow": "windows",
-                                  # CHANGE: Updated "wpt_layout": "none" to "wpt": False
                                   "wpt": False,
                                   "profile": "release",
                                   "unit_tests": True,
@@ -257,7 +243,6 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "Android",
                                   "workflow": "android",
-                                  # CHANGE: Updated "wpt_layout": "none" to "wpt": False
                                   "wpt": False,
                                   "profile": "release",
                                   "unit_tests": False,
@@ -268,7 +253,6 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "OpenHarmony",
                                   "workflow": "ohos",
-                                  # CHANGE: Updated "wpt_layout": "none" to "wpt": False
                                   "wpt": False,
                                   "profile": "release",
                                   "unit_tests": False,
@@ -279,7 +263,6 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "Lint",
                                   "workflow": "lint",
-                                  # CHANGE: Updated "wpt_layout": "none" to "wpt": False
                                   "wpt": False,
                                   "profile": "release",
                                   "unit_tests": False,
@@ -289,7 +272,6 @@ class TestParser(unittest.TestCase):
                               ]})
 
     def test_job_merging(self):
-        # CHANGE: Updated test from "linux-wpt-2020" to "linux-wpt"
         self.assertDictEqual(json.loads(Config("linux-wpt").to_json()),
                              {'fail_fast': False,
                               'matrix': [{
@@ -299,7 +281,6 @@ class TestParser(unittest.TestCase):
                                   'unit_tests': False,
                                   'build_libservo': False,
                                   'workflow': 'linux',
-                                  # CHANGE: Updated "wpt_layout": "all" to "wpt": True
                                   'wpt': True,
                                   'wpt_args': ''
                               }]
@@ -310,13 +291,11 @@ class TestParser(unittest.TestCase):
         self.assertTrue(a.merge(b), "Should merge jobs that have different unit test configurations.")
         self.assertEqual(a, JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True))
 
-        # CHANGE: Updated references to "linux-wpt-2020" to "linux-wpt"
         a = handle_preset("linux-unit-tests")
         a = handle_modifier(a, "linux-unit-tests")
         b = handle_preset("linux-wpt")
         b = handle_modifier(b, "linux-wpt")
         self.assertTrue(a.merge(b), "Should merge jobs that have different unit test configurations.")
-        # CHANGE: Updated to use wpt=True instead of wpt_layout=Layout.layout2020
         self.assertEqual(a, JobConfig("Linux (Unit Tests, WPT)", Workflow.LINUX,
                                       unit_tests=True, wpt=True))
 
