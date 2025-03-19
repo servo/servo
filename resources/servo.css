@@ -124,18 +124,14 @@ img {
   overflow-clip-margin: 0 !important;
 }
 
-input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]),
-textarea {
+input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]) {
   cursor: text;
   overflow: hidden !important;
-  -servo-overflow-clip-box: content-box;
-}
-
-input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]) {
   white-space: pre;
 }
 
 textarea {
+  cursor: text;
   overflow: auto;
 }
 
