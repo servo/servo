@@ -12,10 +12,6 @@ feature-depth = 1
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
 ignore = [
-    # This has been yanked, but upgrading to the next version breaks some WPT tests.
-    # It needs investigation.
-    "url@2.5.3",
-
     # The crate `paste` is no longer maintained.
     "RUSTSEC-2024-0436",
 ]
