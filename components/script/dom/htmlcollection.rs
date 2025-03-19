@@ -73,6 +73,7 @@ impl HTMLCollection {
     pub(crate) fn new_inherited(
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
+        can_gc: CanGc,
     ) -> HTMLCollection {
         HTMLCollection {
             reflector_: Reflector::new(),
@@ -87,7 +88,7 @@ impl HTMLCollection {
     }
 
     /// Returns a collection which is always empty.
-    pub(crate) fn always_empty(window: &Window, root: &Node) -> DomRoot<Self> {
+    pub(crate) fn always_empty(window: &Window, root: &Node, can_gc: CanGc) -> DomRoot<Self> {
         #[derive(JSTraceable)]
         struct NoFilter;
         impl CollectionFilter for NoFilter {
@@ -106,7 +107,11 @@ impl HTMLCollection {
         filter: Box<dyn CollectionFilter + 'static>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(root, filter)), window, can_gc)
+        reflect_dom_object(
+            Box::new(Self::new_inherited(root, filter, can_gc)),
+            window,
+            can_gc,
+        )
     }
 
     /// Create a new  [`HTMLCollection`] that just filters element using a static function.
@@ -114,6 +119,7 @@ impl HTMLCollection {
         window: &Window,
         root: &Node,
         filter_function: fn(&Element, &Node) -> bool,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         #[derive(JSTraceable, MallocSizeOf)]
         pub(crate) struct StaticFunctionFilter(
@@ -219,9 +225,9 @@ impl HTMLCollection {
         match elem.prefix().as_ref() {
             None => elem.local_name() == qualified_name,
             Some(prefix) => {
-                qualified_name.starts_with(&**prefix) &&
-                    qualified_name.find(':') == Some(prefix.len()) &&
-                    qualified_name.ends_with(&**elem.local_name())
+                qualified_name.starts_with(&**prefix)
+                    && qualified_name.find(':') == Some(prefix.len())
+                    && qualified_name.ends_with(&**elem.local_name())
             },
         }
     }
@@ -250,9 +256,9 @@ impl HTMLCollection {
         }
         impl CollectionFilter for TagNameNSFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                ((self.qname.ns == namespace_url!("*")) || (self.qname.ns == *elem.namespace())) &&
-                    ((self.qname.local == local_name!("*")) ||
-                        (self.qname.local == *elem.local_name()))
+                ((self.qname.ns == namespace_url!("*")) || (self.qname.ns == *elem.namespace()))
+                    && ((self.qname.local == local_name!("*"))
+                        || (self.qname.local == *elem.local_name()))
             }
         }
         let filter = TagNameNSFilter { qname };
@@ -292,7 +298,7 @@ impl HTMLCollection {
         }
 
         if classes.is_empty() {
-            return HTMLCollection::always_empty(window, root);
+            return HTMLCollection::always_empty(window, root, can_gc);
         }
 
         let filter = ClassNameFilter { classes };
@@ -300,9 +306,12 @@ impl HTMLCollection {
     }
 
     pub(crate) fn children(window: &Window, root: &Node) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(window, root, |element, root| {
-            root.is_parent_of(element.upcast())
-        })
+        HTMLCollection::new_with_filter_fn(
+            window,
+            root,
+            |element, root| root.is_parent_of(element.upcast()),
+            can_gc,
+        )
     }
 
     pub(crate) fn elements_iter_after<'a>(
@@ -405,8 +414,8 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
 
         // Step 2.
         self.elements_iter().find(|elem| {
-            elem.get_id().is_some_and(|id| id == key) ||
-                (elem.namespace() == &ns!(html) && elem.get_name().is_some_and(|id| id == key))
+            elem.get_id().is_some_and(|id| id == key)
+                || (elem.namespace() == &ns!(html) && elem.get_name().is_some_and(|id| id == key))
         })
     }
 
