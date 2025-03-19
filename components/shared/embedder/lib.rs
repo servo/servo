@@ -150,7 +150,7 @@ pub enum SimpleDialog {
     },
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct AuthenticationResponse {
     /// Username for http request authentication
     pub username: String,
@@ -208,7 +208,7 @@ impl Default for PromptResponse {
 }
 
 /// A response to a request to allow or deny an action.
-#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum AllowOrDeny {
     Allow,
     Deny,
