@@ -25,8 +25,9 @@ use crate::protocol::JsonPacketStream;
 #[serde(rename_all = "camelCase")]
 pub struct TabDescriptorActorMsg {
     actor: String,
+    /// This correspond to webview_id
     #[serde(rename = "browserId")]
-    webview_id: u32,
+    browser_id: u32,
     #[serde(rename = "browsingContextID")]
     browsing_context_id: u32,
     is_zombie_tab: bool,
@@ -39,8 +40,8 @@ pub struct TabDescriptorActorMsg {
 }
 
 impl TabDescriptorActorMsg {
-    pub fn webview_id(&self) -> u32 {
-        self.webview_id
+    pub fn browser_id(&self) -> u32 {
+        self.browser_id
     }
 }
 
@@ -141,7 +142,7 @@ impl TabDescriptorActor {
 
     pub fn encodable(&self, registry: &ActorRegistry, selected: bool) -> TabDescriptorActorMsg {
         let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-        let webview_id = ctx_actor.webview_id.0.index.0.get();
+        let browser_id = ctx_actor.browser_id.0.index.0.get();
         let browsing_context_id = ctx_actor.browsing_context_id.index.0.get();
         let outer_window_id = ctx_actor.active_pipeline.get().index.0.get();
         let title = ctx_actor.title.borrow().clone();
@@ -149,7 +150,7 @@ impl TabDescriptorActor {
 
         TabDescriptorActorMsg {
             actor: self.name(),
-            webview_id,
+            browser_id,
             browsing_context_id,
             is_zombie_tab: false,
             outer_window_id,

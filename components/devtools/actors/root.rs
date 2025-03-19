@@ -238,11 +238,11 @@ impl Actor for RootActor {
             },
 
             "getTab" => {
-                let Some(serde_json::Value::Number(webview_id)) = msg.get("browserId") else {
+                let Some(serde_json::Value::Number(browser_id)) = msg.get("browserId") else {
                     return Ok(ActorMessageStatus::Ignored);
                 };
 
-                let browser_id = webview_id.as_u64().unwrap();
+                let browser_id = browser_id.as_u64().unwrap();
                 let Some(tab) = self.get_tab_msg_by_browser_id(registry, browser_id as u32) else {
                     return Ok(ActorMessageStatus::Ignored);
                 };
@@ -310,6 +310,6 @@ impl RootActor {
                     .find::<TabDescriptorActor>(target)
                     .encodable(registry, true)
             })
-            .find(|tab| tab.webview_id() == browser_id)
+            .find(|tab| tab.browser_id() == browser_id)
     }
 }
