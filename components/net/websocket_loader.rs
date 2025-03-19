@@ -43,7 +43,7 @@ use crate::async_runtime::HANDLE;
 use crate::connector::{CACertificates, TlsConfig, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::fetch::methods::{
-    should_request_be_blocked_by_csp, should_request_be_blocked_due_to_a_bad_port,
+    should_request_be_blocked_by_csp, should_request_be_blocked_due_to_a_bad_port, FetchContext,
 };
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
@@ -447,6 +447,7 @@ pub fn init(
     http_state: Arc<HttpState>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
+    _context: FetchContext,
 ) {
     let resource_event_sender2 = resource_event_sender.clone();
     if let Err(e) = connect(
