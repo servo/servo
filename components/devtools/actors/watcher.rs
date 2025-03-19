@@ -259,10 +259,9 @@ impl Actor for WatcherActor {
                 ActorMessageStatus::Processed
             },
             "getParentBrowsingContextID" => {
-                let browsing_context_id = target.browsing_context_id.index.0.get();
                 let msg = GetParentBrowsingContextIDReply {
                     from: self.name(),
-                    browsing_context_id,
+                    browsing_context_id: target.browsing_context_id.value(),
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

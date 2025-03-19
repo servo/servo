@@ -310,6 +310,6 @@ impl RootActor {
                     .find::<TabDescriptorActor>(target)
                     .encodable(registry, true)
             })
-            .find(|tab| tab.id() == browser_id)
+            .find(|tab| tab.browser_id() == browser_id)
     }
 }
