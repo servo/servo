@@ -14,7 +14,7 @@ pub enum ServoError {
     /// to start.
     DevtoolsFailedToStart,
     /// Failed to send response to delegate request.
-    ResponseSend(bincode::Error),
+    ResponseFailedToSend(bincode::Error),
 }
 
 pub trait ServoDelegate {

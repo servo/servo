@@ -16,7 +16,7 @@ pub(crate) struct ServoErrorSender {
 
 impl ServoErrorSender {
     pub(crate) fn raise_response_send_error(&self, error: bincode::Error) {
-        if let Err(error) = self.sender.send(ServoError::ResponseSend(error)) {
+        if let Err(error) = self.sender.send(ServoError::ResponseFailedToSend(error)) {
             warn!("Failed to send Servo error: {error:?}");
         }
     }
@@ -43,6 +43,7 @@ impl ServoErrorChannel {
             sender: self.sender.clone(),
         }
     }
+
     pub(crate) fn try_recv(&self) -> Option<ServoError> {
         match self.receiver.try_recv() {
             Ok(result) => Some(result),
