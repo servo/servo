@@ -98,11 +98,18 @@ def read_data(file):
 
 
 # Transform the raw output of wireshark into a more manageable one
-def process_data(out, port):
-    out = [line.split("\t") for line in out.split("\n")]
+def process_data(input, port):
+    # Split the input into lines.
+    # `input` = newline-terminated lines of tab-delimited tshark(1) output
+    lines = [line.split("\t") for line in input.split("\n")]
 
+    # Remove empty lines and empty sends, and decode hex to bytes.
+    # `lines` = [[date, port, hex-encoded data]], e.g.
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", "3133"]`
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", "393a"]`
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", "7b..."]`
     sends = []
-    for line in out:
+    for line in lines:
         if len(line) != 3:
             continue
         curr_time, curr_port, curr_data = line
@@ -113,8 +120,16 @@ def process_data(out, port):
         else:
             sends.append([curr_time, curr_port, bytearray.fromhex(curr_data)])
 
+    # Split and merge consecutive sends with the same port, to yield exactly one record per message.
+    # Message records are of the form `length:{...}`, where `length` is an integer in ASCII decimal.
+    # Incomplete messages are deferred until they are complete.
+    # `sends` = [[date, port, record data]], e.g.
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", b"13"]`
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", b"9:"]`
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", b"{..."]`
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", b"...}"]`
     records = []
-    scunge = {}
+    scunge = {}  # Map from port to incomplete message data
     for curr_time, curr_port, rest in sends:
         rest = scunge.pop(curr_port, b"") + rest
         while rest != b"":
@@ -123,12 +138,15 @@ def process_data(out, port):
                 length = int(length)
                 if len(new_rest) < length:
                     raise ValueError("Incomplete message (for now)")
+                # If we found a `length:` prefix and we have enough data to satisfy it,
+                # cut off the prefix so `rest` is just `{...}length:{...}length:{...}`.
                 rest = new_rest
             except ValueError:
                 print(f"[WARNING] Incomplete message detected (will try to reassemble): {repr(rest)}", file=sys.stderr)
                 scunge[curr_port] = rest
+                # Wait for more data from later sends, potentially after sends with the other port.
                 break
-            length = int(length)
+            # Cut off the message so `rest` is just `length:{...}length:{...}`.
             message = rest[:length]
             rest = rest[length:]
             try:
@@ -136,7 +154,9 @@ def process_data(out, port):
             except UnicodeError:
                 continue
 
-    # Process fields
+    # Process message records.
+    # `records` = [[date, port, message text]], e.g.
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", "{...}"]`
     result = []
     for line in records:
         if len(line) != 3:
@@ -149,6 +169,8 @@ def process_data(out, port):
         # Data
         result.append([curr_time, curr_port, len(result), text])
 
+    # `result` = [[date, endpoint, index, message text]], e.g.
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "Servo", 0, "{...}"]`
     return result
 
 
