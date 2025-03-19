@@ -2,18 +2,36 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashSet;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use content_security_policy::Destination;
 use dom_struct::dom_struct;
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
+use net_traits::http_status::HttpStatus;
+use net_traits::image_cache::{
+    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponder, ImageResponse,
+    PendingImageId, PendingImageResponse, UsePlaceholder,
+};
+use net_traits::request::{RequestBuilder, RequestId};
+use net_traits::{
+    FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ResourceFetchTiming,
+    ResourceTimingType,
+};
+use pixels::Image;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
-use super::bindings::refcounted::TrustedPromise;
+use super::bindings::cell::DomRefCell;
+use super::bindings::refcounted::{Trusted, TrustedPromise};
 use super::bindings::reflector::DomGlobal;
+use super::performanceresourcetiming::InitiatorType;
 use super::permissionstatus::PermissionStatus;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::{
@@ -38,6 +56,8 @@ use crate::dom::permissions::{PermissionAlgorithm, Permissions, descriptor_permi
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::fetch::create_a_potential_cors_request;
+use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 // TODO: Service Worker API (persistent notification)
@@ -83,7 +103,21 @@ pub(crate) struct Notification {
     require_interaction: bool,
     /// <https://notifications.spec.whatwg.org/#actions>
     actions: Vec<Action>,
-    // TODO: image resource, icon resource, and badge resource
+    /// Pending image, icon, badge, action icon resource request's id
+    #[no_trace] // RequestId is not traceable
+    pending_request_ids: DomRefCell<HashSet<RequestId>>,
+    /// <https://notifications.spec.whatwg.org/#image-resource>
+    #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
+    image_resource: DomRefCell<Option<Arc<Image>>>,
+    /// <https://notifications.spec.whatwg.org/#icon-resource>
+    #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
+    icon_resource: DomRefCell<Option<Arc<Image>>>,
+    /// <https://notifications.spec.whatwg.org/#badge-resource>
+    #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
+    badge_resource: DomRefCell<Option<Arc<Image>>>,
 }
 
 impl Notification {
@@ -176,6 +210,7 @@ impl Notification {
         let max_actions = Notification::MaxActions(global);
         for action in options.actions.iter().take(max_actions as usize) {
             actions.push(Action {
+                id: Uuid::new_v4().simple().to_string(),
                 name: action.action.clone(),
                 title: action.title.clone(),
                 // If entry["icon"] exists, then parse it using baseURL, and if that does not return failure
@@ -185,6 +220,7 @@ impl Notification {
                         .map(|url| USVString::from(url.to_string()))
                         .ok()
                 }),
+                icon_resource: DomRefCell::new(None),
             });
         }
 
@@ -208,6 +244,37 @@ impl Notification {
             tag,
             require_interaction,
             actions,
+            pending_request_ids: DomRefCell::new(HashSet::new()),
+            image_resource: DomRefCell::new(None),
+            icon_resource: DomRefCell::new(None),
+            badge_resource: DomRefCell::new(None),
+        }
+    }
+
+    /// <https://notifications.spec.whatwg.org/#notification-show-steps>
+    fn show(&self) {
+        // TODO: step 3: set shown to false
+        // TODO: step 4: Let oldNotification be the notification in the list of notifications
+        //               whose tag is not the empty string and is notification’s tag,
+        //               and whose origin is same origin with notification’s origin,
+        //               if any, and null otherwise.
+        // TODO: step 5: If oldNotification is non-null, then:
+        // TODO: step 6: If shown is false, then:
+        // TODO:   step 6.1: Append notification to the list of notifications.
+        // TODO:   step 6.2: Display notification on the device
+        // TODO: Add EmbedderMsg::ShowNotification(...) event
+        // TODO: step 7: If shown is false or oldNotification is non-null,
+        //               and notification’s renotify preference is true,
+        //               then run the alert steps for notification.
+
+        // step 8: If notification is a non-persistent notification,
+        //               then queue a task to fire an event named show on
+        //               the Notification object representing notification.
+        if self.serviceworker_registration.is_none() {
+            self.global()
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue_simple_event(self.upcast(), atom!("show"));
         }
     }
 }
@@ -251,7 +318,10 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
             // TODO: abort steps
         }
         // TODO: step 5.2: Run the notification show steps for notification
-        // https://notifications.spec.whatwg.org/#notification-show-steps
+        // <https://notifications.spec.whatwg.org/#notification-show-steps>
+        // step 1: Run the fetch steps for notification.
+        // following steps are processed in show_steps after all resources are fetched
+        notification.fetch_resources_and_show_when_ready();
 
         Ok(notification)
     }
@@ -371,7 +441,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         retval.set(self.data.get());
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-actions>
-    fn Actions(&self, cx: SafeJSContext, retval: MutableHandleValue) {
+    fn Actions(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
         // step 1: Let frozenActions be an empty list of type NotificationAction.
         let mut frozen_actions: Vec<NotificationAction> = Vec::new();
 
@@ -391,11 +461,11 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         }
 
         // step 3: Return the result of create a frozen array from frozenActions.
-        to_frozen_array(frozen_actions.as_slice(), cx, retval);
+        to_frozen_array(frozen_actions.as_slice(), cx, retval, can_gc);
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-vibrate>
-    fn Vibrate(&self, cx: SafeJSContext, retval: MutableHandleValue) {
-        to_frozen_array(self.vibration_pattern.as_slice(), cx, retval);
+    fn Vibrate(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
+        to_frozen_array(self.vibration_pattern.as_slice(), cx, retval, can_gc);
     }
     /// <https://notifications.spec.whatwg.org/#dom-notification-timestamp>
     fn Timestamp(&self) -> u64 {
@@ -418,13 +488,17 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 /// <https://notifications.spec.whatwg.org/#actions>
 #[derive(JSTraceable, MallocSizeOf)]
 struct Action {
+    id: String,
     /// <https://notifications.spec.whatwg.org/#action-name>
     name: DOMString,
     /// <https://notifications.spec.whatwg.org/#action-title>
     title: DOMString,
     /// <https://notifications.spec.whatwg.org/#action-icon-url>
     icon_url: Option<USVString>,
-    // TODO: icon_resource <https://notifications.spec.whatwg.org/#action-icon-resource>
+    /// <https://notifications.spec.whatwg.org/#action-icon-resource>
+    #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
+    icon_resource: DomRefCell<Option<Arc<Image>>>,
 }
 
 /// <https://notifications.spec.whatwg.org/#create-a-notification-with-a-settings-object>
@@ -558,5 +632,333 @@ fn request_notification_permission(global: &GlobalScope, can_gc: CanGc) -> Notif
         PermissionState::Denied => NotificationPermission::Denied,
         // Should only receive "Granted" or "Denied" from the permission request
         PermissionState::Prompt => NotificationPermission::Default,
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+enum ResourceType {
+    Image,
+    Icon,
+    Badge,
+    ActionIcon(String), // action id
+}
+
+struct ResourceFetchListener {
+    /// The ID of the pending image cache for this request.
+    pending_image_id: PendingImageId,
+    /// A reference to the global image cache.
+    image_cache: Arc<dyn ImageCache>,
+    /// The notification instance which makes this request.
+    notification: Trusted<Notification>,
+    /// Request status that indicates whether this request failed, and the reason.
+    status: Result<(), NetworkError>,
+    /// Resource URL of this request.
+    url: ServoUrl,
+    /// Timing data for this resource.
+    resource_timing: ResourceFetchTiming,
+}
+
+impl FetchResponseListener for ResourceFetchListener {
+    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_eof(&mut self, _: RequestId) {}
+
+    fn process_response(
+        &mut self,
+        request_id: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
+        self.image_cache.notify_pending_response(
+            self.pending_image_id,
+            FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
+        );
+
+        let metadata = metadata.ok().map(|meta| match meta {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+        });
+
+        let status = metadata
+            .as_ref()
+            .map(|m| m.status.clone())
+            .unwrap_or_else(HttpStatus::new_error);
+
+        self.status = {
+            if status.is_success() {
+                Ok(())
+            } else if status.is_error() {
+                Err(NetworkError::Internal(
+                    "No http status code received".to_owned(),
+                ))
+            } else {
+                Err(NetworkError::Internal(format!(
+                    "HTTP error code {}",
+                    status.code()
+                )))
+            }
+        };
+    }
+
+    fn process_response_chunk(&mut self, request_id: RequestId, payload: Vec<u8>) {
+        if self.status.is_ok() {
+            self.image_cache.notify_pending_response(
+                self.pending_image_id,
+                FetchResponseMsg::ProcessResponseChunk(request_id, payload),
+            );
+        }
+    }
+
+    fn process_response_eof(
+        &mut self,
+        request_id: RequestId,
+        response: Result<ResourceFetchTiming, NetworkError>,
+    ) {
+        self.image_cache.notify_pending_response(
+            self.pending_image_id,
+            FetchResponseMsg::ProcessResponseEOF(request_id, response),
+        );
+    }
+
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
+        &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self, CanGc::note())
+    }
+}
+
+impl ResourceTimingListener for ResourceFetchListener {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (InitiatorType::Other, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.notification.root().global()
+    }
+}
+
+impl PreInvoke for ResourceFetchListener {
+    fn should_invoke(&self) -> bool {
+        true
+    }
+}
+
+impl Notification {
+    fn build_resource_request(&self, url: &ServoUrl) -> RequestBuilder {
+        let global = &self.global();
+        create_a_potential_cors_request(
+            None,
+            url.clone(),
+            Destination::Image,
+            None, // TODO: check CORS
+            None,
+            global.get_referrer(),
+            global.insecure_requests_policy(),
+        )
+        .origin(global.origin().immutable().clone())
+        .pipeline_id(Some(global.pipeline_id()))
+    }
+
+    /// <https://notifications.spec.whatwg.org/#fetch-steps>
+    fn fetch_resources_and_show_when_ready(&self) {
+        let mut pending_requests: Vec<(RequestBuilder, ResourceType)> = vec![];
+        if let Some(image_url) = &self.image {
+            if let Ok(url) = ServoUrl::parse(image_url) {
+                let request = self.build_resource_request(&url);
+                self.pending_request_ids.borrow_mut().insert(request.id);
+                pending_requests.push((request, ResourceType::Image));
+            }
+        }
+        if let Some(icon_url) = &self.icon {
+            if let Ok(url) = ServoUrl::parse(icon_url) {
+                let request = self.build_resource_request(&url);
+                self.pending_request_ids.borrow_mut().insert(request.id);
+                pending_requests.push((request, ResourceType::Icon));
+            }
+        }
+        if let Some(badge_url) = &self.badge {
+            if let Ok(url) = ServoUrl::parse(badge_url) {
+                let request = self.build_resource_request(&url);
+                self.pending_request_ids.borrow_mut().insert(request.id);
+                pending_requests.push((request, ResourceType::Badge));
+            }
+        }
+        for action in self.actions.iter() {
+            if let Some(icon_url) = &action.icon_url {
+                if let Ok(url) = ServoUrl::parse(icon_url) {
+                    let request = self.build_resource_request(&url);
+                    self.pending_request_ids.borrow_mut().insert(request.id);
+                    pending_requests.push((request, ResourceType::ActionIcon(action.id.clone())));
+                }
+            }
+        }
+
+        for (request, resource_type) in pending_requests {
+            self.fetch_and_show_when_ready(request, resource_type);
+        }
+    }
+
+    fn fetch_and_show_when_ready(&self, request: RequestBuilder, resource_type: ResourceType) {
+        let global: &GlobalScope = &self.global();
+        let request_id = request.id;
+
+        let cache_result = global.image_cache().get_cached_image_status(
+            request.url.clone(),
+            global.origin().immutable().clone(),
+            None, // TODO: check CORS
+            UsePlaceholder::No,
+        );
+        match cache_result {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
+                image, ..
+            }) => {
+                self.set_resource_and_show_when_ready(request_id, &resource_type, Some(image));
+            },
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(
+                _,
+                pending_image_id,
+            )) => {
+                self.register_image_cache_callback(
+                    request_id,
+                    pending_image_id,
+                    resource_type.clone(),
+                );
+            },
+            ImageCacheResult::Pending(pending_image_id) => {
+                self.register_image_cache_callback(
+                    request_id,
+                    pending_image_id,
+                    resource_type.clone(),
+                );
+            },
+            ImageCacheResult::ReadyForRequest(pending_image_id) => {
+                self.register_image_cache_callback(
+                    request_id,
+                    pending_image_id,
+                    resource_type.clone(),
+                );
+                self.fetch(pending_image_id, request, global);
+            },
+            ImageCacheResult::LoadError => {
+                self.set_resource_and_show_when_ready(request_id, &resource_type, None);
+            },
+        };
+    }
+
+    fn register_image_cache_callback(
+        &self,
+        request_id: RequestId,
+        pending_image_id: PendingImageId,
+        resource_type: ResourceType,
+    ) {
+        let (sender, receiver) =
+            ipc::channel::<PendingImageResponse>().expect("ipc channel failure");
+
+        let global: &GlobalScope = &self.global();
+
+        let trusted_this = Trusted::new(self);
+        let resource_type = resource_type.clone();
+        let task_source = global.task_manager().networking_task_source().to_sendable();
+
+        ROUTER.add_typed_route(
+            receiver,
+            Box::new(move |response| {
+                let trusted_this = trusted_this.clone();
+                let resource_type = resource_type.clone();
+                task_source.queue(task!(handle_response: move || {
+                    let this = trusted_this.root();
+                    if let Ok(response) = response {
+                        this.handle_image_cache_response(request_id, response.response, resource_type);
+                    } else {
+                        this.handle_image_cache_response(request_id, ImageResponse::None, resource_type);
+                    }
+                }));
+            }),
+        );
+
+        global.image_cache().add_listener(ImageResponder::new(
+            sender,
+            global.pipeline_id(),
+            pending_image_id,
+        ));
+    }
+
+    fn handle_image_cache_response(
+        &self,
+        request_id: RequestId,
+        response: ImageResponse,
+        resource_type: ResourceType,
+    ) {
+        match response {
+            ImageResponse::Loaded(image, _) => {
+                self.set_resource_and_show_when_ready(request_id, &resource_type, Some(image));
+            },
+            ImageResponse::PlaceholderLoaded(image, _) => {
+                self.set_resource_and_show_when_ready(request_id, &resource_type, Some(image));
+            },
+            ImageResponse::None => {
+                self.set_resource_and_show_when_ready(request_id, &resource_type, None);
+            },
+            _ => (),
+        };
+    }
+
+    fn set_resource_and_show_when_ready(
+        &self,
+        request_id: RequestId,
+        resource_type: &ResourceType,
+        image: Option<Arc<Image>>,
+    ) {
+        match resource_type {
+            ResourceType::Image => {
+                *self.image_resource.borrow_mut() = image;
+            },
+            ResourceType::Icon => {
+                *self.icon_resource.borrow_mut() = image;
+            },
+            ResourceType::Badge => {
+                *self.badge_resource.borrow_mut() = image;
+            },
+            ResourceType::ActionIcon(id) => {
+                if let Some(action) = self.actions.iter().find(|&action| *action.id == *id) {
+                    *action.icon_resource.borrow_mut() = image;
+                }
+            },
+        }
+
+        let mut pending_requests_id = self.pending_request_ids.borrow_mut();
+        pending_requests_id.remove(&request_id);
+
+        // <https://notifications.spec.whatwg.org/#notification-show-steps>
+        // step 2: Wait for any fetches to complete and notification’s resources to be set
+        if pending_requests_id.is_empty() {
+            self.show();
+        }
+    }
+
+    fn fetch(
+        &self,
+        pending_image_id: PendingImageId,
+        request: RequestBuilder,
+        global: &GlobalScope,
+    ) {
+        let context = Arc::new(Mutex::new(ResourceFetchListener {
+            pending_image_id,
+            image_cache: global.image_cache(),
+            notification: Trusted::new(self),
+            url: request.url.clone(),
+            status: Ok(()),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
+        }));
+
+        global.fetch(
+            request,
+            context,
+            global.task_manager().networking_task_source().into(),
+        );
     }
 }

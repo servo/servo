@@ -19,6 +19,7 @@
 
 mod clipboard_delegate;
 mod proxies;
+mod responders;
 mod servo_delegate;
 mod webview;
 mod webview_delegate;
@@ -118,6 +119,7 @@ pub use {
 pub use {bluetooth, bluetooth_traits};
 
 use crate::proxies::ConstellationProxy;
+use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
 pub use crate::webview_delegate::{
@@ -205,6 +207,7 @@ pub struct Servo {
     /// When accessed, `Servo` will be reponsible for cleaning up the invalid `Weak`
     /// references.
     webviews: RefCell<HashMap<WebViewId, Weak<RefCell<WebViewInner>>>>,
+    servo_errors: ServoErrorChannel,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
@@ -536,6 +539,7 @@ impl Servo {
             embedder_receiver,
             shutdown_state,
             webviews: Default::default(),
+            servo_errors: ServoErrorChannel::default(),
             _js_engine_setup: js_engine_setup,
         }
     }
@@ -585,6 +589,7 @@ impl Servo {
 
         self.compositor.borrow_mut().perform_updates();
         self.send_new_frame_ready_messages();
+        self.handle_delegate_errors();
         self.clean_up_destroyed_webview_handles();
 
         if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
@@ -606,6 +611,12 @@ impl Servo {
             .filter_map(WebView::from_weak_handle)
         {
             webview.delegate().notify_new_frame_ready(webview);
+        }
+    }
+
+    fn handle_delegate_errors(&self) {
+        while let Some(error) = self.servo_errors.try_recv() {
+            self.delegate().notify_error(self, error);
         }
     }
 
@@ -758,7 +769,11 @@ impl Servo {
             },
             EmbedderMsg::AllowUnload(webview_id, response_sender) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let request = AllowOrDenyRequest::new(response_sender, AllowOrDeny::Allow);
+                    let request = AllowOrDenyRequest::new(
+                        response_sender,
+                        AllowOrDeny::Allow,
+                        self.servo_errors.sender(),
+                    );
                     webview.delegate().request_unload(webview, request);
                 }
             },
@@ -824,12 +839,24 @@ impl Servo {
                 web_resource_request,
                 response_sender,
             ) => {
-                let web_resource_load = WebResourceLoad::new(web_resource_request, response_sender);
-                match webview_id.and_then(|webview_id| self.get_webview_handle(webview_id)) {
-                    Some(webview) => webview
+                if let Some(webview) =
+                    webview_id.and_then(|webview_id| self.get_webview_handle(webview_id))
+                {
+                    let web_resource_load = WebResourceLoad::new(
+                        web_resource_request,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    webview
                         .delegate()
-                        .load_web_resource(webview, web_resource_load),
-                    None => self.delegate().load_web_resource(web_resource_load),
+                        .load_web_resource(webview, web_resource_load);
+                } else {
+                    let web_resource_load = WebResourceLoad::new(
+                        web_resource_request,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    self.delegate().load_web_resource(web_resource_load);
                 }
             },
             EmbedderMsg::Panic(webview_id, reason, backtrace) => {
@@ -864,9 +891,13 @@ impl Servo {
                 }
             },
             EmbedderMsg::RequestAuthentication(webview_id, url, for_proxy, response_sender) => {
-                let authentication_request =
-                    AuthenticationRequest::new(url.into_url(), for_proxy, response_sender);
                 if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let authentication_request = AuthenticationRequest::new(
+                        url.into_url(),
+                        for_proxy,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
                     webview
                         .delegate()
                         .request_authentication(webview, authentication_request);
@@ -879,6 +910,7 @@ impl Servo {
                         allow_deny_request: AllowOrDenyRequest::new(
                             response_sender,
                             AllowOrDeny::Deny,
+                            self.servo_errors.sender(),
                         ),
                     };
                     webview
@@ -921,7 +953,11 @@ impl Servo {
             EmbedderMsg::RequestDevtoolsConnection(response_sender) => {
                 self.delegate().request_devtools_connection(
                     self,
-                    AllowOrDenyRequest::new(response_sender, AllowOrDeny::Deny),
+                    AllowOrDenyRequest::new(
+                        response_sender,
+                        AllowOrDeny::Deny,
+                        self.servo_errors.sender(),
+                    ),
                 );
             },
             EmbedderMsg::PlayGamepadHapticEffect(

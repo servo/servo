@@ -186,6 +186,8 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             pipeline_id: global.pipeline_id(),
         };
 
+        let webview_id = global.webview_id().expect("global must have a webview id");
+
         let browsing_context = global
             .downcast::<Window>()
             .map(|w| w.window_proxy().browsing_context_id())
@@ -207,7 +209,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                     is_top_level_global: false,
                 };
                 let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                    (browsing_context, pipeline_id, Some(worker_id)),
+                    (browsing_context, pipeline_id, Some(worker_id), webview_id),
                     devtools_sender.clone(),
                     page_info,
                 ));

@@ -51,7 +51,7 @@ impl DataTransferItemList {
         )
     }
 
-    pub(crate) fn frozen_types(&self, cx: JSContext, retval: MutableHandleValue) {
+    pub(crate) fn frozen_types(&self, cx: JSContext, retval: MutableHandleValue, can_gc: CanGc) {
         self.frozen_types.get_or_init(
             || {
                 self.data_store
@@ -61,6 +61,7 @@ impl DataTransferItemList {
             },
             cx,
             retval,
+            can_gc,
         );
     }
 
