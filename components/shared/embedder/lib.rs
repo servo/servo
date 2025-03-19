@@ -8,6 +8,7 @@ mod webdriver;
 
 use std::fmt::{Debug, Error, Formatter};
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
@@ -17,6 +18,7 @@ pub use keyboard_types::{KeyboardEvent, Modifiers};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
+use pixels::Image;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
@@ -320,6 +322,8 @@ pub enum EmbedderMsg {
     /// Required because the constellation can have pending calls to make
     /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
     ShutdownComplete,
+    /// Request to display a notification.
+    ShowNotification(Option<WebViewId>, Notification),
 }
 
 impl Debug for EmbedderMsg {
@@ -584,4 +588,58 @@ pub enum LoadStatus {
     /// `document.readyState` == `complete`.
     /// See <https://developer.mozilla.org/en-US/docs/Web/API/Document/readyState>
     Complete,
+}
+
+/// <https://notifications.spec.whatwg.org/#notifications>
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Notification {
+    /// <https://notifications.spec.whatwg.org/#concept-title>
+    pub title: String,
+    /// <https://notifications.spec.whatwg.org/#body>
+    pub body: String,
+    /// <https://notifications.spec.whatwg.org/#tag>
+    pub tag: String,
+    /// <https://notifications.spec.whatwg.org/#concept-direction>
+    pub dir: NotificationDirection,
+    /// <https://notifications.spec.whatwg.org/#concept-language>
+    pub lang: String,
+    /// <https://notifications.spec.whatwg.org/#require-interaction-preference-flag>
+    pub require_interaction: bool,
+    /// <https://notifications.spec.whatwg.org/#silent-preference-flag>
+    pub silent: Option<bool>,
+    /// <https://notifications.spec.whatwg.org/#icon-url>
+    pub icon_url: Option<ServoUrl>,
+    /// <https://notifications.spec.whatwg.org/#icon-resource>
+    pub icon_resource: Option<Arc<Image>>,
+    /// <https://notifications.spec.whatwg.org/#badge-url>
+    pub badge_url: Option<ServoUrl>,
+    /// <https://notifications.spec.whatwg.org/#badge-resource>
+    pub badge_resource: Option<Arc<Image>>,
+    /// <https://notifications.spec.whatwg.org/#image-url>
+    pub image_url: Option<ServoUrl>,
+    /// <https://notifications.spec.whatwg.org/#image-resource>
+    pub image_resource: Option<Arc<Image>>,
+    /// <https://notifications.spec.whatwg.org/#actions>
+    pub actions: Vec<NotificationAction>,
+}
+
+/// <https://notifications.spec.whatwg.org/#actions>
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct NotificationAction {
+    /// <https://notifications.spec.whatwg.org/#action-name>
+    pub name: String,
+    /// <https://notifications.spec.whatwg.org/#action-title>
+    pub title: String,
+    /// <https://notifications.spec.whatwg.org/#action-icon-url>
+    pub icon_url: Option<ServoUrl>,
+    /// <https://notifications.spec.whatwg.org/#action-icon-resource>
+    pub icon_resource: Option<Arc<Image>>,
+}
+
+/// <https://notifications.spec.whatwg.org/#direction>
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum NotificationDirection {
+    Auto,
+    Ltr,
+    Rtl,
 }
