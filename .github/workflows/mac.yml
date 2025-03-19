@@ -11,9 +11,9 @@ on:
         default: ""
         required: false
         type: string
-      wpt-layout:
+      wpt:
         required: false
-        type: string
+        type: boolean
       unit-tests:
         required: false
         default: false
@@ -48,10 +48,9 @@ on:
         default: ""
         required: false
         type: string
-      wpt-layout:
+      wpt:
         required: false
-        type: choice
-        options: ["none", "2020", "all"]
+        type: boolean
       unit-tests:
         required: false
         default: false
