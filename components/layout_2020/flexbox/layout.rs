@@ -2599,11 +2599,8 @@ impl FlexItemBox {
                             BoxSizing::BorderBox => length - main_padding_border_sum,
                         }
                     };
-                    size.maybe_map(|v| {
-                        v.maybe_to_used_value(container_definite_main_size)
-                            .map(apply_box_sizing)
-                    })
-                    .unwrap_or_default()
+                    size.resolve_percentages_for_preferred(container_definite_main_size)
+                        .map(apply_box_sizing)
                 },
             },
         }

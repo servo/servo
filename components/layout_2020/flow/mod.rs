@@ -2144,9 +2144,11 @@ impl<'container> PlacementState<'container> {
 
 fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &ContainingBlock) -> bool {
     match size {
-        StyleSize::Auto | StyleSize::MinContent | StyleSize::MaxContent | StyleSize::FitContent => {
-            true
-        },
+        StyleSize::Auto |
+        StyleSize::MinContent |
+        StyleSize::MaxContent |
+        StyleSize::FitContent |
+        StyleSize::FitContentFunction(_) => true,
         StyleSize::Stretch => {
             // TODO: Should this return true when the containing block has a definite size of 0px?
             !containing_block.size.block.is_definite()
