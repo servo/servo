@@ -40,6 +40,7 @@
 import json
 import re
 import signal
+import sys
 from argparse import ArgumentParser
 from subprocess import Popen, PIPE
 try:
@@ -133,24 +134,88 @@ def process_data(out, port):
 
     return data
 
+paths = []
+actor_request_type_queues = {}
+actor_name_map = {}
+new_actor_name_counts = {}
 
 # Pretty prints the json message
-def parse_message(msg):
+def parse_message(msg, *, json_output=False):
     time, sender, i, data = msg
     from_servo = sender == "Servo"
 
     colored_sender = colored(sender, 'black', 'on_yellow' if from_servo else 'on_magenta', attrs=['bold'])
-    print(f"\n{colored_sender} - {colored(i, 'blue')} - {colored(time, 'dark_grey')}")
+    if not json_output:
+        print(f"\n{colored_sender} - {colored(i, 'blue')} - {colored(time, 'dark_grey')}")
 
     try:
         content = json.loads(data)
-        if from_servo and "from" in content:
-            print(colored(f"Actor: {content['from']}", 'yellow'))
-        print(json.dumps(content, sort_keys=True, indent=4))
+        if json_output:
+            # print(content, file=sys.stderr)
+            if "to" in content:
+                # This is a request
+                content["to"] = actor_name_map[content["to"]]
+                print(json.dumps({"_to": content["to"], "message": content}, sort_keys=True))
+                actor_request_type_queues.setdefault(content["to"], []).append(content["type"])
+            elif "from" in content:
+                # This is a response
+                is_first_message = (i == 0)
+                if is_first_message:
+                    # This is the first message, the initial message from the root actor
+                    assert actor_request_type_queues == {}
+                    actor_name_map[content["from"]] = "root"
+                    content["from"] = actor_name_map[content["from"]]
+                    request_type = None
+                elif "type" in content:
+                    # This is a spontaneous message from the server
+                    content["from"] = actor_name_map[content["from"]]
+                    request_type = content["type"]
+                else:
+                    # This is a response from the server
+                    content["from"] = actor_name_map[content["from"]]
+                    request_type = actor_request_type_queues[content["from"]].pop(0)
+                actor_names = find_actor_names(content, actor=content["from"], request_type=request_type)
+                for actor, request_type, path in actor_names:
+                    new_actor_name = f"{actor}:{request_type}:{path}"
+                print(json.dumps({"_from": content["from"], "message": content}, sort_keys=True))
+            else:
+                assert False, "Message is neither a request nor a response"
+        else:
+            if from_servo and "from" in content:
+                print(colored(f"Actor: {content['from']}", 'yellow'))
+            print(json.dumps(content, sort_keys=True, indent=4))
     except json.JSONDecodeError:
         print(f"Warning: Couldn't decode json\n{data}")
 
-    print()
+    if not json_output:
+        print()
+
+
+def find_actor_names(value, *, actor, request_type, path=None):
+    result = []
+    if isinstance(value, dict):
+        items = value.items()
+    elif isinstance(value, list):
+        items = enumerate(value)
+    else:
+        assert False
+    for item_key, item_value in items:
+        if isinstance(item_key, int):
+            current_path=(path or []) + ["[]"]
+        else:
+            assert isinstance(item_key, str)
+            current_path=(path or []) + [item_key]
+        if isinstance(item_value, str) and item_value.startswith("server1.conn"):
+            if item_value not in actor_name_map:
+                result.append((actor, request_type, ".".join(current_path)))
+                new_actor_name_prefix = f"{actor}:{request_type}:{".".join(current_path)}"
+                actor_name_map[item_value] = f"{new_actor_name_prefix}#{new_actor_name_counts.setdefault(new_actor_name_prefix, 0)}"
+                print(f"{item_value} -> {actor_name_map[item_value]}", file=sys.stderr)
+                new_actor_name_counts[new_actor_name_prefix] += 1
+            value[item_key] = actor_name_map[item_value]
+        elif isinstance(item_value, (dict, list)):
+            result += find_actor_names(item_value, actor=actor, request_type=request_type, path=current_path)
+    return result
 
 
 if __name__ == "__main__":
@@ -159,6 +224,7 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--port", default="1234", help="the port where the devtools client is running")
     parser.add_argument("-f", "--filter", help="search for the string on the messages")
     parser.add_argument("-r", "--range", help="only parse messages from n to m, with the form of n:m")
+    parser.add_argument("--json", action="store_true", help="output in newline-delimited JSON (NDJSON)")
 
     actions = parser.add_mutually_exclusive_group(required=True)
     actions.add_argument("-s", "--scan", help="scan and save the output to a file")
@@ -183,4 +249,4 @@ if __name__ == "__main__":
     for msg in data[int(min):int(max) + 1]:
         # Filter the messages if specified
         if not args.filter or args.filter.lower() in msg[3].lower():
-            parse_message(msg)
+            parse_message(msg, json_output=args.json)
