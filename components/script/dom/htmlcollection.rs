@@ -319,6 +319,7 @@ impl HTMLCollection {
         after: &'a Node,
     ) -> impl Iterator<Item = DomRoot<Element>> + 'a {
         // Iterate forwards from a node.
+        // Iterate forward from a node
         after
             .following_nodes(&self.root)
             .filter_map(DomRoot::downcast)
