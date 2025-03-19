@@ -33,7 +33,7 @@ use net_traits::image_cache::{ImageCache, PendingImageId};
 use profile_traits::mem::Report;
 use profile_traits::time;
 use script_traits::{
-    InitialScriptState, LoadData, Painter, ScriptThreadMessage, ScrollState, UntrustedNodeAddress,
+    InitialScriptState, LoadData, Painter, ScriptThreadMessage, UntrustedNodeAddress,
     WindowSizeData,
 };
 use serde::{Deserialize, Serialize};
@@ -53,7 +53,7 @@ use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
 use style_traits::CSSPixel;
 use webrender_api::ImageKey;
-use webrender_traits::CrossProcessCompositorApi;
+use webrender_traits::{CrossProcessCompositorApi, ScrollState};
 
 pub type GenericLayoutData = dyn Any + Send + Sync;
 
@@ -243,7 +243,7 @@ pub trait Layout {
     );
 
     /// Set the scroll states of this layout after a compositor scroll.
-    fn set_scroll_states(&mut self, scroll_states: &[ScrollState]);
+    fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]);
 
     /// Set the paint time for a specific epoch.
     fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: CrossProcessInstant);

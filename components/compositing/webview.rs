@@ -16,13 +16,13 @@ use embedder_traits::{
 use euclid::{Point2D, Scale, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
-use script_traits::{AnimationState, ScriptThreadMessage, ScrollState, TouchEventResult};
+use script_traits::{AnimationState, ScriptThreadMessage, TouchEventResult};
 use webrender::Transaction;
 use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{
     ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
-use webrender_traits::CompositorHitTestResult;
+use webrender_traits::{CompositorHitTestResult, ScrollState};
 
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};

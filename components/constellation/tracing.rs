@@ -86,6 +86,7 @@ mod from_compositor {
                 Self::ExitFullScreen(_) => target!("ExitFullScreen"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
+                Self::SetScrollStates(..) => target!("SetScrollStates"),
             }
         }
     }
