@@ -336,12 +336,18 @@ impl ResourceChannelManager {
                 FetchChannels::WebSocket {
                     event_sender,
                     action_receiver,
-                } => self.resource_manager.websocket_connect(
+                } => {
+                    let cancellation_listener =
+                        self.get_or_create_cancellation_listener(request_builder.id);
+                    self.resource_manager.websocket_connect(
                     request_builder,
                     event_sender,
                     action_receiver,
                     http_state,
-                ),
+                    protocols,
+                    cancellation_listener,
+                    )
+                },
                 FetchChannels::Prefetch => self.resource_manager.fetch(
                     request_builder,
                     None,
@@ -826,7 +832,58 @@ impl CoreResourceManager {
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
+        protocols: Arc<ProtocolRegistry>,
+        cancellation_listener: Arc<CancellationListener>,
     ) {
+        let http_state = http_state.clone();
+        let dc = self.devtools_sender.clone();
+        let filemanager = self.filemanager.clone();
+        let request_interceptor = self.request_interceptor.clone();
+
+        let timing_type = match request.destination {
+            Destination::Document => ResourceTimingType::Navigation,
+            _ => ResourceTimingType::Resource,
+        };
+
+        let url = request.url.clone();
+
+        // In the case of a valid blob URL, acquiring a token granting access to a file,
+        // regardless if the URL is revoked after token acquisition.
+        //
+        // TODO: to make more tests pass, acquire this token earlier,
+        // probably in a separate message flow.
+        //
+        // In such a setup, the token would not be acquired here,
+        // but could instead be contained in the actual CoreResourceMsg::Fetch message.
+        //
+        // See https://github.com/servo/servo/issues/25226
+        let (file_token, _) = match url.scheme() {
+            "blob" => {
+                if let Ok((id, _)) = parse_blob_url(&url) {
+                    (self.filemanager.get_token_for_file(&id), Some(id))
+                } else {
+                    (FileTokenCheck::ShouldFail, None)
+                }
+            },
+            _ => (FileTokenCheck::NotRequired, None),
+        };
+
+        // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
+        // todo load context / mimesniff in fetch
+        // todo referrer policy?
+        // todo service worker stuff
+        let context = FetchContext {
+            state: http_state.clone(),
+            user_agent: servo_config::pref!(user_agent),
+            devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
+            filemanager: Arc::new(Mutex::new(filemanager)),
+            file_token,
+            request_interceptor: Arc::new(Mutex::new(request_interceptor)),
+            cancellation_listener,
+            timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(timing_type))),
+            protocols,
+        };
+
         websocket_loader::init(
             request,
             event_sender,
@@ -834,6 +891,7 @@ impl CoreResourceManager {
             http_state.clone(),
             self.ca_certificates.clone(),
             self.ignore_certificate_errors,
+            context,
         );
     }
 }
