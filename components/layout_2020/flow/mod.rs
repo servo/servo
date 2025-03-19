@@ -2144,11 +2144,13 @@ impl<'container> PlacementState<'container> {
 
 fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &ContainingBlock) -> bool {
     match size {
-        StyleSize::Auto |
-        StyleSize::MinContent |
-        StyleSize::MaxContent |
-        StyleSize::FitContent |
-        StyleSize::Stretch => true,
+        StyleSize::Auto | StyleSize::MinContent | StyleSize::MaxContent | StyleSize::FitContent => {
+            true
+        },
+        StyleSize::Stretch => {
+            // TODO: Should this return true when the containing block has a definite size of 0px?
+            !containing_block.size.block.is_definite()
+        },
         StyleSize::LengthPercentage(lp) => {
             // TODO: Should this resolve definite percentages? Blink does it, Gecko and WebKit don't.
             lp.is_definitely_zero() ||
