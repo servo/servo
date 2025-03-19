@@ -142,14 +142,17 @@ impl From<StorageKey> for BlobId {
         let index =
             BlobIndex(NonZeroU32::new(storage_key.index).expect("Deserialized blob index is zero"));
 
-        BlobId::with_namespace_id_and_index(namespace_id, index)
+        BlobId {
+            namespace_id,
+            index,
+        }
     }
 }
 
 impl IntoStorageKey for BlobId {
     fn into_storage_key(self) -> StorageKey {
-        let BlobIndex(index) = self.index();
-        StorageKey::new(self.namespace_id(), index)
+        let BlobIndex(index) = self.index;
+        StorageKey::new(self.namespace_id, index)
     }
 }
 
