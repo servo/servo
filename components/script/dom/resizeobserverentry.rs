@@ -90,32 +90,37 @@ impl ResizeObserverEntryMethods<crate::DomTypeHolder> for ResizeObserverEntry {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-borderboxsize>
-    fn BorderBoxSize(&self, cx: SafeJSContext, retval: MutableHandleValue) {
+    fn BorderBoxSize(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
         let sizes: Vec<DomRoot<ResizeObserverSize>> = self
             .border_box_size
             .iter()
             .map(|size| DomRoot::from_ref(&**size))
             .collect();
-        to_frozen_array(sizes.as_slice(), cx, retval)
+        to_frozen_array(sizes.as_slice(), cx, retval, can_gc);
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-contentboxsize>
-    fn ContentBoxSize(&self, cx: SafeJSContext, retval: MutableHandleValue) {
+    fn ContentBoxSize(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
         let sizes: Vec<DomRoot<ResizeObserverSize>> = self
             .content_box_size
             .iter()
             .map(|size| DomRoot::from_ref(&**size))
             .collect();
-        to_frozen_array(sizes.as_slice(), cx, retval);
+        to_frozen_array(sizes.as_slice(), cx, retval, can_gc);
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-devicepixelcontentboxsize>
-    fn DevicePixelContentBoxSize(&self, cx: SafeJSContext, retval: MutableHandleValue) {
+    fn DevicePixelContentBoxSize(
+        &self,
+        cx: SafeJSContext,
+        can_gc: CanGc,
+        retval: MutableHandleValue,
+    ) {
         let sizes: Vec<DomRoot<ResizeObserverSize>> = self
             .device_pixel_content_box_size
             .iter()
             .map(|size| DomRoot::from_ref(&**size))
             .collect();
-        to_frozen_array(sizes.as_slice(), cx, retval);
+        to_frozen_array(sizes.as_slice(), cx, retval, can_gc);
     }
 }
