@@ -1069,6 +1069,8 @@ impl ScriptThread {
         let window = document.window();
         let _realm = enter_realm(document.window());
         for event in document.take_pending_input_events().into_iter() {
+            document.update_active_keyboard_modifiers(event.active_keyboard_modifiers);
+
             match event.event {
                 InputEvent::MouseButton(mouse_button_event) => {
                     document.handle_mouse_button_event(
