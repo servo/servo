@@ -214,14 +214,14 @@ codegen-units = 1
 # Or for Stylo:
 #
 # [patch."https://github.com/servo/stylo"]
-# selectors = { path = "../stylo/selectors" }
-# servo_arc = { path = "../stylo/servo_arc" }
-# stylo_atoms = { path = "../stylo/stylo_atoms" }
-# style = { path = "../stylo/style", package = "stylo" }
-# stylo_config = { path = "../stylo/stylo_config" }
-# stylo_dom = { path = "../stylo/stylo_dom" }
-# style_malloc_size_of = { path = "../stylo/malloc_size_of", package = "stylo_malloc_size_of" }
-# style_traits = { path = "../stylo/style_traits", package = "stylo_traits" }
+ # selectors = { path = "../stylo/selectors" } 
+ # servo_arc = { path = "../stylo/servo_arc" } 
+ # stylo_atoms = { path = "../stylo/stylo_atoms" } 
+ # stylo = { path = "../stylo/style" } 
+ # stylo_config = { path = "../stylo/stylo_config" } 
+ # stylo_dom = { path = "../stylo/stylo_dom" } 
+ # stylo_malloc_size_of = { path = "../stylo/malloc_size_of" } 
+ # stylo_traits = { path = "../stylo/style_traits" }
 #
 # Or for WebRender:
 #
