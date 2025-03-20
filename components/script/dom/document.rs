@@ -689,9 +689,9 @@ impl Document {
     }
 
     pub(crate) fn is_xhtml_document(&self) -> bool {
-        self.content_type.type_() == mime::APPLICATION &&
-            self.content_type.subtype().as_str() == "xhtml" &&
-            self.content_type.suffix() == Some(mime::XML)
+        self.content_type.type_() == mime::APPLICATION
+            && self.content_type.subtype().as_str() == "xhtml"
+            && self.content_type.suffix() == Some(mime::XML)
     }
 
     pub(crate) fn set_https_state(&self, https_state: HttpsState) {
@@ -1468,8 +1468,8 @@ impl Document {
             let line = click_pos - last_pos;
             let dist = (line.dot(line) as f64).sqrt();
 
-            if now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
-                dist < DBL_CLICK_DIST_THRESHOLD as f64
+            if now.duration_since(last_time) < DBL_CLICK_TIMEOUT
+                && dist < DBL_CLICK_DIST_THRESHOLD as f64
             {
                 // A double click has occurred if this click is within a certain time and dist. of previous click.
                 let click_count = 2;
@@ -2136,10 +2136,10 @@ impl Document {
         let mut cancel_state = event.get_cancel_state();
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
-        if keyboard_event.state == KeyState::Down &&
-            is_character_value_key(&(keyboard_event.key)) &&
-            !keyboard_event.is_composing &&
-            cancel_state != EventDefault::Prevented
+        if keyboard_event.state == KeyState::Down
+            && is_character_value_key(&(keyboard_event.key))
+            && !keyboard_event.is_composing
+            && cancel_state != EventDefault::Prevented
         {
             // https://w3c.github.io/uievents/#keypress-event-order
             let event = KeyboardEvent::new(
@@ -2173,8 +2173,8 @@ impl Document {
             // however *when* we do it is up to us.
             // Here, we're dispatching it after the key event so the script has a chance to cancel it
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-            if (keyboard_event.key == Key::Enter || keyboard_event.code == Code::Space) &&
-                keyboard_event.state == KeyState::Up
+            if (keyboard_event.key == Key::Enter || keyboard_event.code == Code::Space)
+                && keyboard_event.state == KeyState::Up
             {
                 if let Some(elem) = target.downcast::<Element>() {
                     elem.upcast::<Node>()
@@ -2708,9 +2708,9 @@ impl Document {
         // and this method will panic.
         // The underlying problem might actually be that layout exits while it should be kept alive.
         // See https://github.com/servo/servo/issues/22507
-        let not_ready_for_load = self.loader.borrow().is_blocked() ||
-            !self.is_fully_active() ||
-            is_in_delaying_load_events_mode;
+        let not_ready_for_load = self.loader.borrow().is_blocked()
+            || !self.is_fully_active()
+            || is_in_delaying_load_events_mode;
 
         if not_ready_for_load {
             // Step 6.
@@ -3839,8 +3839,8 @@ impl Document {
     pub(crate) fn insecure_requests_policy(&self) -> InsecureRequestsPolicy {
         if let Some(csp_list) = self.get_csp_list() {
             for policy in &csp_list.0 {
-                if policy.contains_a_directive_whose_name_is("upgrade-insecure-requests") &&
-                    policy.disposition == PolicyDisposition::Enforce
+                if policy.contains_a_directive_whose_name_is("upgrade-insecure-requests")
+                    && policy.disposition == PolicyDisposition::Enforce
                 {
                     return InsecureRequestsPolicy::Upgrade;
                 }
@@ -4898,8 +4898,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         if let Some(entry) = self.tag_map.borrow_mut().get(&qualified_name) {
             return DomRoot::from_ref(entry);
         }
-        let result =
-            HTMLCollection::by_qualified_name(&self.window, self.upcast(), qualified_name.clone());
+        let result = HTMLCollection::by_qualified_name(
+            &self.window,
+            &self.upcast(),
+            qualified_name.clone(),
+            self.can_gc,
+        );
         self.tag_map
             .borrow_mut()
             .insert(qualified_name, Dom::from_ref(&*result));
@@ -4911,6 +4915,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         &self,
         maybe_ns: Option<DOMString>,
         tag_name: DOMString,
+        // can_gc: CanGc,
     ) -> DomRoot<HTMLCollection> {
         let ns = namespace_from_domstring(maybe_ns);
         let local = LocalName::from(tag_name);
@@ -4918,7 +4923,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         if let Some(collection) = self.tagns_map.borrow().get(&qname) {
             return DomRoot::from_ref(collection);
         }
-        let result = HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname.clone());
+        let result = HTMLCollection::by_qual_tag_name(
+            &self.window,
+            &self.upcast(),
+            qname.clone(),
+            self.can_gc,
+        );
         self.tagns_map
             .borrow_mut()
             .insert(qname, Dom::from_ref(&*result));
@@ -4931,8 +4941,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         if let Some(collection) = self.classes_map.borrow().get(&class_atoms) {
             return DomRoot::from_ref(collection);
         }
-        let result =
-            HTMLCollection::by_atomic_class_name(&self.window, self.upcast(), class_atoms.clone());
+        let result = HTMLCollection::by_atomic_class_name(
+            &self.window,
+            &self.upcast(),
+            class_atoms.clone(),
+            self.can_gc,
+        );
         self.classes_map
             .borrow_mut()
             .insert(class_atoms, Dom::from_ref(&*result));
@@ -5367,8 +5381,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         let node = new_body.upcast::<Node>();
         match node.type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement))
+            | NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLFrameSetElement,
             )) => {},
             _ => return Err(Error::HierarchyRequest),
@@ -5408,18 +5422,24 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-images
     fn Images(&self) -> DomRoot<HTMLCollection> {
         self.images.or_init(|| {
-            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
-                element.is::<HTMLImageElement>()
-            })
+            HTMLCollection::new_with_filter_fn(
+                &self.window,
+                self.upcast(),
+                |element, _| element.is::<HTMLImageElement>(),
+                self.can_gc,
+            )
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-embeds
     fn Embeds(&self) -> DomRoot<HTMLCollection> {
         self.embeds.or_init(|| {
-            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
-                element.is::<HTMLEmbedElement>()
-            })
+            HTMLCollection::new_with_filter_fn(
+                &self.window,
+                self.upcast(),
+                |element, _| element.is::<HTMLEmbedElement>(),
+                self.can_gc,
+            )
         })
     }
 
@@ -5431,37 +5451,53 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-links
     fn Links(&self) -> DomRoot<HTMLCollection> {
         self.links.or_init(|| {
-            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
-                (element.is::<HTMLAnchorElement>() || element.is::<HTMLAreaElement>()) &&
-                    element.has_attribute(&local_name!("href"))
-            })
+            HTMLCollection::new_with_filter_fn(
+                &self.window,
+                self.upcast(),
+                |element, _| {
+                    (element.is::<HTMLAnchorElement>() || element.is::<HTMLAreaElement>())
+                        && element.has_attribute(&local_name!("href"))
+                },
+                self.can_gc,
+            )
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-forms
     fn Forms(&self) -> DomRoot<HTMLCollection> {
         self.forms.or_init(|| {
-            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
-                element.is::<HTMLFormElement>()
-            })
+            HTMLCollection::new_with_filter_fn(
+                &self.window,
+                self.upcast(),
+                |element, _| element.is::<HTMLFormElement>(),
+                self.can_gc,
+            )
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-scripts
     fn Scripts(&self) -> DomRoot<HTMLCollection> {
         self.scripts.or_init(|| {
-            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
-                element.is::<HTMLScriptElement>()
-            })
+            HTMLCollection::new_with_filter_fn(
+                &self.window,
+                self.upcast(),
+                |element, _| element.is::<HTMLScriptElement>(),
+                self.can_gc,
+            )
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-anchors
     fn Anchors(&self) -> DomRoot<HTMLCollection> {
         self.anchors.or_init(|| {
-            HTMLCollection::new_with_filter_fn(&self.window, self.upcast(), |element, _| {
-                element.is::<HTMLAnchorElement>() && element.has_attribute(&local_name!("href"))
-            })
+            HTMLCollection::new_with_filter_fn(
+                &self.window,
+                self.upcast(),
+                |element, _| {
+                    element.is::<HTMLAnchorElement>() && element.has_attribute(&local_name!("href"))
+                },
+                self.can_gc,
+            )
         })
     }
 
@@ -5482,7 +5518,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> DomRoot<HTMLCollection> {
-        HTMLCollection::children(&self.window, self.upcast())
+        HTMLCollection::children(&self.window, self.upcast(), self.can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
@@ -5660,8 +5696,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                         elem.get_name().as_ref() == Some(&self.name)
                     },
                     HTMLElementTypeId::HTMLImageElement => elem.get_name().is_some_and(|name| {
-                        name == *self.name ||
-                            !name.is_empty() && elem.get_id().as_ref() == Some(&self.name)
+                        name == *self.name
+                            || !name.is_empty() && elem.get_id().as_ref() == Some(&self.name)
                     }),
                     // TODO handle <embed> and <object>; these depend on whether the element is
                     // “exposed”, a concept that doesn’t fully make sense until embed/object
@@ -5674,6 +5710,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             self.window(),
             self.upcast(),
             Box::new(DocumentNamedGetter { name }),
+            self.can_gc,
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }
@@ -5953,8 +5990,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 // Either there is no parser, which means the parsing ended;
                 // or script nesting level is 0, which means the method was
                 // called from outside a parser-executed script.
-                if self.is_prompting_or_unloading() ||
-                    self.ignore_destructive_writes_counter.get() > 0
+                if self.is_prompting_or_unloading()
+                    || self.ignore_destructive_writes_counter.get() > 0
                 {
                     // Step 4.
                     return Ok(());
@@ -6300,9 +6337,9 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
         _ => return false,
     };
     match type_ {
-        HTMLElementTypeId::HTMLFormElement |
-        HTMLElementTypeId::HTMLIFrameElement |
-        HTMLElementTypeId::HTMLImageElement => true,
+        HTMLElementTypeId::HTMLFormElement
+        | HTMLElementTypeId::HTMLIFrameElement
+        | HTMLElementTypeId::HTMLImageElement => true,
         // TODO handle <embed> and <object>; these depend on whether the element is
         // “exposed”, a concept that doesn’t fully make sense until embed/object
         // behaviour is actually implemented
