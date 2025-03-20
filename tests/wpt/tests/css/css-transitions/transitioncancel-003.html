@@ -17,13 +17,13 @@
 <script>
 promise_test(async t => {
   const div = addDiv(t, {
-    style: 'transition: transform 2s;'
+    style: 'transition: width 2s; width: 0px;'
   });
 
   // flush initial state
-  getComputedStyle(div).transform;
+  getComputedStyle(div).width;
   // Start first transition to 100px
-  div.style.transform = 'translateY(100px)';
+  div.style.width = '100px';
   // Wait until transition is 25% done (500ms)
   await new Promise(resolve => {
     div.addEventListener('transitionrun', () => {
@@ -32,28 +32,27 @@ promise_test(async t => {
   });
 
   // MID-TRANSITION CHANGE: Switch to 0s duration + 500ms delay
-  div.style.transition = 'transform 0s 500ms';
+  div.style.transition = 'width 0s 500ms';
 
-  // Trigger new transform change mid-transition
+  // Trigger new width change mid-transition
   const interruptTime = performance.now();
-  div.style.transform = 'translateY(0)';
+  div.style.width = '0px';
 
-  await new Promise(r => div.addEventListener('transitionend', r, {once: true}));
+  await waitForTransitionEnd(div);
 
   // Second transition (500ms delay + 0s duration)
-    assert_approx_equals(
+  assert_approx_equals(
     performance.now() - interruptTime, 500, 50,
     'Second transition should complete after ~500ms delay'
   );
 
   // Final computed style
-  assert_true(
-    getComputedStyle(div).transform === 'none' ||
-    getComputedStyle(div).transform === 'matrix(1, 0, 0, 1, 0, 0)' ||
-    getComputedStyle(div).transform === 'translateY(0px)',
-    'Final transform should be reset to 0'
+  assert_equals(
+    getComputedStyle(div).width ,
+    '0px',
+    'Final width should be 0px'
   );
-}, 'Mid-transition transition property change affects subsequent transforms');
+}, 'Mid-transition transition changes affect subsequent transitions');
 </script>
 
 </body>

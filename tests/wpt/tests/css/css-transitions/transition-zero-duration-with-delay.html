@@ -17,37 +17,39 @@
 <script>
 promise_test(async t => {
   const div = addDiv(t, {
-    style: 'transition: transform 0.1s;'
+    style: 'transition: width 0.1s; width: 0px;'
   });
 
   // flush initial state
-  getComputedStyle(div).transform;
+  getComputedStyle(div).width;
   // First transition to 100px
-  div.style.transform = 'translateY(100px)';
-  await new Promise(r => div.addEventListener('transitionend', r, {once: true}));
+  div.style.width = '100px';
+  await waitForTransitionEnd(div);
 
   // Change transition to 0s duration with 300ms delay
-  div.style.transition = 'transform 0s linear 0.3s';
+  div.style.transition = 'width 0s linear 0.3s';
 
-  // Set transform back to 0
+  // Set width back to 0
   const startTime = performance.now();
-  div.style.transform = 'translateY(0)';
+  div.style.width = '0px';
   // Immediate check - should NOT have changed yet
-  const computedStart = getComputedStyle(div).transform;
-  assert_true(
-    computedStart === 'matrix(1, 0, 0, 1, 0, 100)' || computedStart === "translateY(100px)",
-    'Transform should remain at 100px initially'
+  const computedStart = getComputedStyle(div).width;
+  assert_equals(
+    computedStart,
+    '100px',
+    'Width should remain at 100px initially'
   );
   // Wait for transitionend (should trigger after 300ms delay)
-  await new Promise(r => div.addEventListener('transitionend', r, {once: true}));
+  await waitForTransitionEnd(div);
 
   // Verify final state
-  const finalTransform = getComputedStyle(div).transform;
+  const finalWidth = getComputedStyle(div).width;
   const elapsed = performance.now() - startTime;
 
-  assert_true(
-    finalTransform === 'none' || finalTransform === 'matrix(1, 0, 0, 1, 0, 0)' || finalTransform === 'translateY(0px)',
-    'Transform should reset to 0 after delay'
+  assert_equals(
+    finalWidth,
+    '0px',
+    'Width should reset to 0 after delay'
   );
 
   assert_approx_equals(
