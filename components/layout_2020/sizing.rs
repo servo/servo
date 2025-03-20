@@ -191,6 +191,10 @@ pub(crate) fn outer_inline(
                 content_size.sizes.max_content,
                 content_size.depends_on_block_constraints,
             ),
+            Size::FitContentFunction(size) => {
+                let size = content_size.sizes.shrink_to_fit(size);
+                (size, size, content_size.depends_on_block_constraints)
+            },
             Size::Stretch => return stretch_values,
         })
     };
