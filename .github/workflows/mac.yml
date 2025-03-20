@@ -11,6 +11,9 @@ on:
         default: ""
         required: false
         type: string
+      wpt-layout:
+        required: false
+        type: string
       unit-tests:
         required: false
         default: false
@@ -45,6 +48,10 @@ on:
         default: ""
         required: false
         type: string
+      wpt-layout:
+        required: false
+        type: choice
+        options: ["none", "2020", "all"]
       unit-tests:
         required: false
         default: false
@@ -199,11 +206,13 @@ jobs:
           path: target.tar.gz
 
   wpt-2020:
+    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
     name: MacOS WPT
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
       profile: ${{ inputs.profile }}
+      wpt-layout: "layout-2020"
       wpt-args: ${{ inputs.wpt-args }}
     secrets: inherit
 
