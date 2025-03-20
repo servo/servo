@@ -38,7 +38,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
-use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -622,33 +621,33 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-text
-    fn Text(&self, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Text, realm, can_gc)
+    fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::Text, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-blob
-    fn Blob(&self, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Blob, realm, can_gc)
+    fn Blob(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::Blob, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-formdata
-    fn FormData(&self, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::FormData, realm, can_gc)
+    fn FormData(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::FormData, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-json
-    fn Json(&self, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::Json, realm, can_gc)
+    fn Json(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::Json, can_gc)
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
-    fn ArrayBuffer(&self, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        consume_body(self, BodyType::ArrayBuffer, realm, can_gc)
+    fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
+        consume_body(self, BodyType::ArrayBuffer, can_gc)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-bytes>
-    fn Bytes(&self, realm: InRealm, can_gc: CanGc) -> std::rc::Rc<Promise> {
-        consume_body(self, BodyType::Bytes, realm, can_gc)
+    fn Bytes(&self, can_gc: CanGc) -> std::rc::Rc<Promise> {
+        consume_body(self, BodyType::Bytes, can_gc)
     }
 }
 
