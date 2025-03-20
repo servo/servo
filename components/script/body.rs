@@ -598,15 +598,18 @@ pub(crate) enum FetchedData {
 pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     object: &T,
     body_type: BodyType,
-    realm: InRealm,
     can_gc: CanGc,
 ) -> Rc<Promise> {
     let global = object.global();
     let cx = GlobalScope::get_cx();
 
+    // Enter the realm of the object whose body is being consumed.
+    let realm = enter_realm(&*global);
+    let comp = InRealm::Entered(&realm);
+
     // Let promise be a new promise.
     // Note: re-ordered so we can return the promise below.
-    let promise = Promise::new_in_current_realm(realm, can_gc);
+    let promise = Promise::new_in_current_realm(comp, can_gc);
 
     // If object is unusable, then return a promise rejected with a TypeError.
     if object.is_disturbed() || object.is_locked() {
@@ -674,7 +677,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
         Rc::new(move |cx, v| {
             error_promise.reject(cx, v, can_gc);
         }),
-        realm,
+        comp,
         can_gc,
     );
 
