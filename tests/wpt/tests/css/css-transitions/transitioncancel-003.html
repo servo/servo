@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>CSS Transitions Test: Changing transition properties mid-transition</title>
+<meta name="assert" content="When transition properties are changed mid-transition, the original transition completes and new transition parameters apply to subsequent changes">
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#starting">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+promise_test(async t => {
+  const div = addDiv(t, {
+    style: 'transition: transform 2s;'
+  });
+
+  // flush initial state
+  getComputedStyle(div).transform;
+  // Start first transition to 100px
+  div.style.transform = 'translateY(100px)';
+  // Wait until transition is 25% done (500ms)
+  await new Promise(resolve => {
+    div.addEventListener('transitionrun', () => {
+      step_timeout(resolve, 500);
+    }, { once: true });
+  });
+
+  // MID-TRANSITION CHANGE: Switch to 0s duration + 500ms delay
+  div.style.transition = 'transform 0s 500ms';
+
+  // Trigger new transform change mid-transition
+  const interruptTime = performance.now();
+  div.style.transform = 'translateY(0)';
+
+  await new Promise(r => div.addEventListener('transitionend', r, {once: true}));
+
+  // Second transition (500ms delay + 0s duration)
+    assert_approx_equals(
+    performance.now() - interruptTime, 500, 50,
+    'Second transition should complete after ~500ms delay'
+  );
+
+  // Final computed style
+  assert_true(
+    getComputedStyle(div).transform === 'none' ||
+    getComputedStyle(div).transform === 'matrix(1, 0, 0, 1, 0, 0)' ||
+    getComputedStyle(div).transform === 'translateY(0px)',
+    'Final transform should be reset to 0'
+  );
+}, 'Mid-transition transition property change affects subsequent transforms');
+</script>
+
+</body>
+</html>
