@@ -460,7 +460,7 @@ impl Element {
     // https://drafts.csswg.org/cssom-view/#potentially-scrollable
     pub(crate) fn is_potentially_scrollable_body(
         &self,
-        clip_as_hidden: bool,
+        treat_overflow_clip_on_parent_as_hidden: bool,
         can_gc: CanGc,
     ) -> bool {
         let node = self.upcast::<Node>();
@@ -483,9 +483,9 @@ impl Element {
                 let mut overflow_x = style.get_box().clone_overflow_x();
                 let mut overflow_y = style.get_box().clone_overflow_y();
 
-                // This fulfills 'treat parent element overflow:clip as overflow:hidden' stipulation
-                // from document.scrollingElement specification.
-                if clip_as_hidden {
+                // This fulfills the 'treat parent element overflow:clip as overflow:hidden' stipulation
+                // from the document.scrollingElement specification.
+                if treat_overflow_clip_on_parent_as_hidden {
                     if overflow_x == Overflow::Clip {
                         overflow_x = Overflow::Hidden;
                     }
