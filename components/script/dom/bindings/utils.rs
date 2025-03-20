@@ -123,6 +123,7 @@ pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
     convertibles: &[T],
     cx: SafeJSContext,
     rval: MutableHandleValue,
+    _can_gc: CanGc,
 ) {
     unsafe { convertibles.to_jsval(*cx, rval) };
 

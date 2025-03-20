@@ -172,7 +172,7 @@ pub(crate) fn outer_inline(
         };
         get_content_size(&constraint_space)
     });
-    let resolve_non_initial = |inline_size| {
+    let resolve_non_initial = |inline_size, stretch_values| {
         Some(match inline_size {
             Size::Initial => return None,
             Size::Numeric(numeric) => (numeric, numeric, false),
@@ -186,24 +186,25 @@ pub(crate) fn outer_inline(
                 content_size.sizes.max_content,
                 content_size.depends_on_block_constraints,
             ),
-            Size::Stretch | Size::FitContent => (
+            Size::FitContent => (
                 content_size.sizes.min_content,
                 content_size.sizes.max_content,
                 content_size.depends_on_block_constraints,
             ),
+            Size::Stretch => return stretch_values,
         })
     };
     let (mut preferred_min_content, preferred_max_content, preferred_depends_on_block_constraints) =
-        resolve_non_initial(content_box_sizes.inline.preferred)
-            .unwrap_or_else(|| resolve_non_initial(Size::FitContent).unwrap());
+        resolve_non_initial(content_box_sizes.inline.preferred, None)
+            .unwrap_or_else(|| resolve_non_initial(Size::FitContent, None).unwrap());
     let (mut min_min_content, mut min_max_content, mut min_depends_on_block_constraints) =
-        resolve_non_initial(content_box_sizes.inline.min).unwrap_or((
-            auto_minimum.inline,
-            auto_minimum.inline,
-            false,
-        ));
+        resolve_non_initial(
+            content_box_sizes.inline.min,
+            Some((Au::zero(), Au::zero(), false)),
+        )
+        .unwrap_or((auto_minimum.inline, auto_minimum.inline, false));
     let (mut max_min_content, max_max_content, max_depends_on_block_constraints) =
-        resolve_non_initial(content_box_sizes.inline.max)
+        resolve_non_initial(content_box_sizes.inline.max, None)
             .map(|(min_content, max_content, depends_on_block_constraints)| {
                 (
                     Some(min_content),

@@ -17,6 +17,7 @@ use serde::Serialize;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
+use crate::responders::ServoErrorSender;
 use crate::{ConstellationProxy, WebView};
 
 /// A request to navigate a [`WebView`] or one of its inner frames. This can be handled
@@ -95,6 +96,8 @@ impl<T: Serialize> Drop for IpcResponder<T> {
                 .default_response
                 .take()
                 .expect("Guaranteed by inherent impl");
+            // Don’t notify embedder about send errors for the default response,
+            // since they didn’t send anything and probably don’t care.
             let _ = self.response_sender.send(response);
         }
     }
@@ -122,22 +125,30 @@ impl PermissionRequest {
     }
 }
 
-pub struct AllowOrDenyRequest(IpcResponder<AllowOrDeny>);
+pub struct AllowOrDenyRequest(IpcResponder<AllowOrDeny>, ServoErrorSender);
 
 impl AllowOrDenyRequest {
     pub(crate) fn new(
         response_sender: IpcSender<AllowOrDeny>,
         default_response: AllowOrDeny,
+        error_sender: ServoErrorSender,
     ) -> Self {
-        Self(IpcResponder::new(response_sender, default_response))
+        Self(
+            IpcResponder::new(response_sender, default_response),
+            error_sender,
+        )
     }
 
     pub fn allow(mut self) {
-        let _ = self.0.send(AllowOrDeny::Allow);
+        if let Err(error) = self.0.send(AllowOrDeny::Allow) {
+            self.1.raise_response_send_error(error);
+        }
     }
 
     pub fn deny(mut self) {
-        let _ = self.0.send(AllowOrDeny::Deny);
+        if let Err(error) = self.0.send(AllowOrDeny::Deny) {
+            self.1.raise_response_send_error(error);
+        }
     }
 }
 
@@ -148,6 +159,7 @@ pub struct AuthenticationRequest {
     pub(crate) url: Url,
     pub(crate) for_proxy: bool,
     pub(crate) responder: IpcResponder<Option<AuthenticationResponse>>,
+    pub(crate) error_sender: ServoErrorSender,
 }
 
 impl AuthenticationRequest {
@@ -155,11 +167,13 @@ impl AuthenticationRequest {
         url: Url,
         for_proxy: bool,
         response_sender: IpcSender<Option<AuthenticationResponse>>,
+        error_sender: ServoErrorSender,
     ) -> Self {
         Self {
             url,
             for_proxy,
             responder: IpcResponder::new(response_sender, None),
+            error_sender,
         }
     }
 
@@ -173,9 +187,12 @@ impl AuthenticationRequest {
     }
     /// Respond to the [`AuthenticationRequest`] with the given username and password.
     pub fn authenticate(mut self, username: String, password: String) {
-        let _ = self
+        if let Err(error) = self
             .responder
-            .send(Some(AuthenticationResponse { username, password }));
+            .send(Some(AuthenticationResponse { username, password }))
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
     }
 }
 
@@ -185,16 +202,19 @@ impl AuthenticationRequest {
 pub struct WebResourceLoad {
     pub request: WebResourceRequest,
     pub(crate) responder: IpcResponder<WebResourceResponseMsg>,
+    pub(crate) error_sender: ServoErrorSender,
 }
 
 impl WebResourceLoad {
     pub(crate) fn new(
         web_resource_request: WebResourceRequest,
         response_sender: IpcSender<WebResourceResponseMsg>,
+        error_sender: ServoErrorSender,
     ) -> Self {
         Self {
             request: web_resource_request,
             responder: IpcResponder::new(response_sender, WebResourceResponseMsg::DoNotIntercept),
+            error_sender,
         }
     }
 
@@ -205,11 +225,14 @@ impl WebResourceLoad {
     /// Intercept this [`WebResourceLoad`] and control the response via the returned
     /// [`InterceptedWebResourceLoad`].
     pub fn intercept(mut self, response: WebResourceResponse) -> InterceptedWebResourceLoad {
-        let _ = self.responder.send(WebResourceResponseMsg::Start(response));
+        if let Err(error) = self.responder.send(WebResourceResponseMsg::Start(response)) {
+            self.error_sender.raise_response_send_error(error);
+        }
         InterceptedWebResourceLoad {
             request: self.request.clone(),
             response_sender: self.responder.into_inner(),
             finished: false,
+            error_sender: self.error_sender,
         }
     }
 }
@@ -223,28 +246,38 @@ pub struct InterceptedWebResourceLoad {
     pub request: WebResourceRequest,
     pub(crate) response_sender: IpcSender<WebResourceResponseMsg>,
     pub(crate) finished: bool,
+    pub(crate) error_sender: ServoErrorSender,
 }
 
 impl InterceptedWebResourceLoad {
     /// Send a chunk of response body data. It's possible to make subsequent calls to
     /// this method when streaming body data.
     pub fn send_body_data(&self, data: Vec<u8>) {
-        let _ = self
+        if let Err(error) = self
             .response_sender
-            .send(WebResourceResponseMsg::SendBodyData(data));
+            .send(WebResourceResponseMsg::SendBodyData(data))
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
     }
     /// Finish this [`InterceptedWebResourceLoad`] and complete the response.
     pub fn finish(mut self) {
-        let _ = self
+        if let Err(error) = self
             .response_sender
-            .send(WebResourceResponseMsg::FinishLoad);
+            .send(WebResourceResponseMsg::FinishLoad)
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
         self.finished = true;
     }
     /// Cancel this [`InterceptedWebResourceLoad`], which will trigger a network error.
     pub fn cancel(mut self) {
-        let _ = self
+        if let Err(error) = self
             .response_sender
-            .send(WebResourceResponseMsg::CancelLoad);
+            .send(WebResourceResponseMsg::CancelLoad)
+        {
+            self.error_sender.raise_response_send_error(error);
+        }
         self.finished = true;
     }
 }
@@ -252,9 +285,12 @@ impl InterceptedWebResourceLoad {
 impl Drop for InterceptedWebResourceLoad {
     fn drop(&mut self) {
         if !self.finished {
-            let _ = self
+            if let Err(error) = self
                 .response_sender
-                .send(WebResourceResponseMsg::FinishLoad);
+                .send(WebResourceResponseMsg::FinishLoad)
+            {
+                self.error_sender.raise_response_send_error(error);
+            }
         }
     }
 }
@@ -430,3 +466,200 @@ pub trait WebViewDelegate {
 
 pub(crate) struct DefaultWebViewDelegate;
 impl WebViewDelegate for DefaultWebViewDelegate {}
+
+#[test]
+fn test_allow_deny_request() {
+    use ipc_channel::ipc;
+
+    use crate::ServoErrorChannel;
+
+    for default_response in [AllowOrDeny::Allow, AllowOrDeny::Deny] {
+        // Explicit allow yields allow and nothing else
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+        request.allow();
+        assert_eq!(receiver.try_recv().ok(), Some(AllowOrDeny::Allow));
+        assert_eq!(receiver.try_recv().ok(), None);
+        assert!(errors.try_recv().is_none());
+
+        // Explicit deny yields deny and nothing else
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+        request.deny();
+        assert_eq!(receiver.try_recv().ok(), Some(AllowOrDeny::Deny));
+        assert_eq!(receiver.try_recv().ok(), None);
+        assert!(errors.try_recv().is_none());
+
+        // No response yields default response and nothing else
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+        drop(request);
+        assert_eq!(receiver.try_recv().ok(), Some(default_response));
+        assert_eq!(receiver.try_recv().ok(), None);
+        assert!(errors.try_recv().is_none());
+
+        // Explicit allow when receiver disconnected yields error
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+        drop(receiver);
+        request.allow();
+        assert!(errors.try_recv().is_some());
+
+        // Explicit deny when receiver disconnected yields error
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+        drop(receiver);
+        request.deny();
+        assert!(errors.try_recv().is_some());
+
+        // No response when receiver disconnected yields no error
+        let errors = ServoErrorChannel::default();
+        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+        let request = AllowOrDenyRequest::new(sender, default_response, errors.sender());
+        drop(receiver);
+        drop(request);
+        assert!(errors.try_recv().is_none());
+    }
+}
+
+#[test]
+fn test_authentication_request() {
+    use ipc_channel::ipc;
+
+    use crate::ServoErrorChannel;
+
+    let url = Url::parse("https://example.com").expect("Guaranteed by argument");
+
+    // Explicit response yields that response and nothing else
+    let errors = ServoErrorChannel::default();
+    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
+    request.authenticate("diffie".to_owned(), "hunter2".to_owned());
+    assert_eq!(
+        receiver.try_recv().ok(),
+        Some(Some(AuthenticationResponse {
+            username: "diffie".to_owned(),
+            password: "hunter2".to_owned(),
+        }))
+    );
+    assert_eq!(receiver.try_recv().ok(), None);
+    assert!(errors.try_recv().is_none());
+
+    // No response yields None response and nothing else
+    let errors = ServoErrorChannel::default();
+    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
+    drop(request);
+    assert_eq!(receiver.try_recv().ok(), Some(None));
+    assert_eq!(receiver.try_recv().ok(), None);
+    assert!(errors.try_recv().is_none());
+
+    // Explicit response when receiver disconnected yields error
+    let errors = ServoErrorChannel::default();
+    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
+    drop(receiver);
+    request.authenticate("diffie".to_owned(), "hunter2".to_owned());
+    assert!(errors.try_recv().is_some());
+
+    // No response when receiver disconnected yields no error
+    let errors = ServoErrorChannel::default();
+    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let request = AuthenticationRequest::new(url.clone(), false, sender, errors.sender());
+    drop(receiver);
+    drop(request);
+    assert!(errors.try_recv().is_none());
+}
+
+#[test]
+fn test_web_resource_load() {
+    use http::{HeaderMap, Method, StatusCode};
+    use ipc_channel::ipc;
+
+    use crate::ServoErrorChannel;
+
+    let web_resource_request = || WebResourceRequest {
+        method: Method::GET,
+        headers: HeaderMap::default(),
+        url: Url::parse("https://example.com").expect("Guaranteed by argument"),
+        is_for_main_frame: false,
+        is_redirect: false,
+    };
+    let web_resource_response = || {
+        WebResourceResponse::new(Url::parse("https://diffie.test").expect("Guaranteed by argument"))
+            .status_code(StatusCode::IM_A_TEAPOT)
+    };
+
+    // Explicit intercept with explicit cancel yields Start and Cancel and nothing else
+    let errors = ServoErrorChannel::default();
+    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+    request.intercept(web_resource_response()).cancel();
+    assert!(matches!(
+        receiver.try_recv(),
+        Ok(WebResourceResponseMsg::Start(_))
+    ));
+    assert!(matches!(
+        receiver.try_recv(),
+        Ok(WebResourceResponseMsg::CancelLoad)
+    ));
+    assert!(matches!(receiver.try_recv(), Err(_)));
+    assert!(errors.try_recv().is_none());
+
+    // Explicit intercept with no further action yields Start and FinishLoad and nothing else
+    let errors = ServoErrorChannel::default();
+    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+    drop(request.intercept(web_resource_response()));
+    assert!(matches!(
+        receiver.try_recv(),
+        Ok(WebResourceResponseMsg::Start(_))
+    ));
+    assert!(matches!(
+        receiver.try_recv(),
+        Ok(WebResourceResponseMsg::FinishLoad)
+    ));
+    assert!(matches!(receiver.try_recv(), Err(_)));
+    assert!(errors.try_recv().is_none());
+
+    // No response yields DoNotIntercept and nothing else
+    let errors = ServoErrorChannel::default();
+    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+    drop(request);
+    assert!(matches!(
+        receiver.try_recv(),
+        Ok(WebResourceResponseMsg::DoNotIntercept)
+    ));
+    assert!(matches!(receiver.try_recv(), Err(_)));
+    assert!(errors.try_recv().is_none());
+
+    // Explicit intercept with explicit cancel when receiver disconnected yields error
+    let errors = ServoErrorChannel::default();
+    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+    drop(receiver);
+    request.intercept(web_resource_response()).cancel();
+    assert!(errors.try_recv().is_some());
+
+    // Explicit intercept with no further action when receiver disconnected yields error
+    let errors = ServoErrorChannel::default();
+    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+    drop(receiver);
+    drop(request.intercept(web_resource_response()));
+    assert!(errors.try_recv().is_some());
+
+    // No response when receiver disconnected yields no error
+    let errors = ServoErrorChannel::default();
+    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel");
+    let request = WebResourceLoad::new(web_resource_request(), sender, errors.sender());
+    drop(receiver);
+    drop(request);
+    assert!(errors.try_recv().is_none());
+}

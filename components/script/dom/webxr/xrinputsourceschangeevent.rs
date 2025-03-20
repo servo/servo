@@ -88,9 +88,9 @@ impl XRInputSourcesChangeEvent {
         let _ac = enter_realm(global);
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut frozen_val: JSVal);
-        to_frozen_array(added, cx, frozen_val.handle_mut());
+        to_frozen_array(added, cx, frozen_val.handle_mut(), can_gc);
         changeevent.added.set(*frozen_val);
-        to_frozen_array(removed, cx, frozen_val.handle_mut());
+        to_frozen_array(removed, cx, frozen_val.handle_mut(), can_gc);
         changeevent.removed.set(*frozen_val);
         changeevent
     }

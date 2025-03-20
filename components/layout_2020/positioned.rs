@@ -26,7 +26,8 @@ use crate::fragment_tree::{
 };
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2,
-    PhysicalPoint, PhysicalRect, PhysicalVec, Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
+    PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec, Size, Sizes, ToLogical,
+    ToLogicalWithContainingBlock,
 };
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
@@ -272,6 +273,7 @@ impl PositioningContext {
                 &mut laid_out_child_fragments,
                 &mut self.for_nearest_containing_block_for_all_descendants,
                 &containing_block,
+                new_fragment.padding,
             );
             hoisted_boxes = take_hoisted_boxes_pending_layout(self);
         }
@@ -354,6 +356,7 @@ impl PositioningContext {
                 fragments,
                 &mut self.for_nearest_containing_block_for_all_descendants,
                 initial_containing_block,
+                Default::default(),
             )
         }
     }
@@ -415,6 +418,7 @@ impl HoistedAbsolutelyPositionedBox {
         fragments: &mut Vec<Fragment>,
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
+        containing_block_padding: PhysicalSides<Au>,
     ) {
         if layout_context.use_rayon {
             let mut new_fragments = Vec::new();
@@ -428,6 +432,7 @@ impl HoistedAbsolutelyPositionedBox {
                         layout_context,
                         &mut new_hoisted_boxes,
                         containing_block,
+                        containing_block_padding,
                     );
 
                     hoisted_box.fragment.borrow_mut().fragment =
@@ -445,6 +450,7 @@ impl HoistedAbsolutelyPositionedBox {
                     layout_context,
                     for_nearest_containing_block_for_all_descendants,
                     containing_block,
+                    containing_block_padding,
                 );
 
                 box_.fragment.borrow_mut().fragment = Some(Fragment::Box(new_fragment.clone()));
@@ -458,6 +464,7 @@ impl HoistedAbsolutelyPositionedBox {
         layout_context: &LayoutContext,
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
+        containing_block_padding: PhysicalSides<Au>,
     ) -> ArcRefCell<BoxFragment> {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
@@ -473,11 +480,16 @@ impl HoistedAbsolutelyPositionedBox {
         } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
         let containing_block = &containing_block.into();
         let is_table = layout_style.is_table();
-
         let shared_fragment = self.fragment.borrow();
-        let static_position_rect = shared_fragment
+
+        // The static position rect was calculated assuming that the containing block would be
+        // established by the content box of some ancestor, but the actual containing block is
+        // established by the padding box. So we need to add the padding of that ancestor.
+        let mut static_position_rect = shared_fragment
             .static_position_rect
-            .to_logical(containing_block);
+            .outer_rect(-containing_block_padding);
+        static_position_rect.size = static_position_rect.size.max(PhysicalSize::zero());
+        let static_position_rect = static_position_rect.to_logical(containing_block);
 
         let box_offset = style.box_offsets(containing_block.style.writing_mode);
 

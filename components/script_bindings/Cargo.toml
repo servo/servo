@@ -39,7 +39,7 @@ servo_arc = { workspace = true }
 smallvec = { workspace = true }
 stylo_atoms = { workspace = true }
 servo_config = { path = "../config" }
-style = { workspace = true }
+stylo = { workspace = true }
 tendril = { version = "0.4.1", features = ["encoding_rs"] }
 webxr-api = { workspace = true, optional = true }
 xml5ever = { workspace = true }

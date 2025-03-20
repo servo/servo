@@ -1162,6 +1162,10 @@ impl ScriptThread {
         // as well as those for which a rendering update would be unnecessary,
         // but this isn't happening here.
 
+        // TODO(#31242): the filtering of docs is extended to not exclude the ones that
+        // has pending initial observation targets
+        // https://w3c.github.io/IntersectionObserver/#pending-initial-observation
+
         // If we aren't explicitly running rAFs, this update wasn't requested by the compositor,
         // and we are running animations, then wait until the compositor tells us it is time to
         // update the rendering via a TickAllAnimations message.
@@ -1259,8 +1263,11 @@ impl ScriptThread {
             // TODO: Perform pending transition operations from
             // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
 
-            // TODO(#31021): Run the update intersection observations steps from
-            // https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps
+            // > 19. For each doc of docs, run the update intersection observations steps for doc,
+            // > passing in the relative high resolution time given now and
+            // > doc's relevant global object as the timestamp. [INTERSECTIONOBSERVER]
+            // TODO(stevennovaryo): The time attribute should be relative to the time origin of the global object
+            document.update_intersection_observer_steps(CrossProcessInstant::now(), can_gc);
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
 
@@ -3241,7 +3248,12 @@ impl ScriptThread {
             document.Title(),
             final_url.clone(),
             is_top_level_global,
-            (incomplete.browsing_context_id, incomplete.pipeline_id, None),
+            (
+                incomplete.browsing_context_id,
+                incomplete.pipeline_id,
+                None,
+                incomplete.webview_id,
+            ),
         );
 
         document.set_https_state(metadata.https_state);
@@ -3271,7 +3283,12 @@ impl ScriptThread {
         title: DOMString,
         url: ServoUrl,
         is_top_level_global: bool,
-        (bc, p, w): (BrowsingContextId, PipelineId, Option<WorkerId>),
+        (browsing_context_id, pipeline_id, worker_id, webview_id): (
+            BrowsingContextId,
+            PipelineId,
+            Option<WorkerId>,
+            WebViewId,
+        ),
     ) {
         if let Some(ref chan) = self.senders.devtools_server_sender {
             let page_info = DevtoolsPageInfo {
@@ -3280,14 +3297,17 @@ impl ScriptThread {
                 is_top_level_global,
             };
             chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                (bc, p, w),
+                (browsing_context_id, pipeline_id, worker_id, webview_id),
                 self.senders.devtools_client_to_script_thread_sender.clone(),
                 page_info.clone(),
             ))
             .unwrap();
 
-            let state = NavigationState::Stop(p, page_info);
-            let _ = chan.send(ScriptToDevtoolsControlMsg::Navigate(bc, state));
+            let state = NavigationState::Stop(pipeline_id, page_info);
+            let _ = chan.send(ScriptToDevtoolsControlMsg::Navigate(
+                browsing_context_id,
+                state,
+            ));
         }
     }
 

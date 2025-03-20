@@ -869,6 +869,10 @@ impl Node {
         self.bounding_content_box(can_gc).unwrap_or_else(Rect::zero)
     }
 
+    pub(crate) fn bounding_content_box_no_reflow(&self) -> Option<Rect<Au>> {
+        self.owner_window().content_box_query_unchecked(self)
+    }
+
     pub(crate) fn content_boxes(&self, can_gc: CanGc) -> Vec<Rect<Au>> {
         self.owner_window().content_boxes_query(self, can_gc)
     }
@@ -2727,13 +2731,16 @@ impl Node {
                     copy_elem.attach_shadow(
                         IsUserAgentWidget::No,
                         shadow_root.Mode(),
-                        true,
+                        shadow_root.Clonable(),
+                        shadow_root.Serializable(),
+                        shadow_root.DelegatesFocus(),
                         shadow_root.SlotAssignment(),
                         can_gc
                     )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
-                // TODO: Step 7.3 Set copy’s shadow root’s declarative to node’s shadow root’s declarative.
+                // Step 7.3 Set copy’s shadow root’s declarative to node’s shadow root’s declarative.
+                copy_shadow_root.set_declarative(shadow_root.is_declarative());
 
                 // Step 7.4 For each child child of node’s shadow root, in tree order: append the result of
                 // cloning child with document and the clone children flag set, to copy’s shadow root.

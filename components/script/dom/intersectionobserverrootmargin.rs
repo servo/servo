@@ -3,14 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Copy of Stylo Gecko's [`style::values::specified::gecko::IntersectionObserverRootMargin`] implementation.
-//! TODO: expose the object to servo as well in Stylo
+//! TODO(#35907): make a thin wrapper and remove copied codes
 
 use std::fmt;
 
+use app_units::Au;
 use cssparser::{Parser, Token, match_ignore_ascii_case};
+use euclid::default::{Rect, SideOffsets2D};
 use style::parser::{Parse, ParserContext};
 use style::values::computed::{self, Length, LengthPercentage};
-use style::values::generics::rect::Rect;
+use style::values::generics::rect::Rect as StyleRect;
 use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
@@ -44,7 +46,7 @@ fn parse_pixel_or_percent<'i>(
 ///
 /// <https://w3c.github.io/IntersectionObserver/#parse-a-root-margin>
 #[repr(transparent)]
-pub struct IntersectionObserverRootMargin(pub Rect<LengthPercentage>);
+pub struct IntersectionObserverRootMargin(pub StyleRect<LengthPercentage>);
 
 impl Parse for IntersectionObserverRootMargin {
     fn parse<'i>(
@@ -54,11 +56,11 @@ impl Parse for IntersectionObserverRootMargin {
         use style::Zero;
         if input.is_exhausted() {
             // If there are zero elements in tokens, set tokens to ["0px"].
-            return Ok(IntersectionObserverRootMargin(Rect::all(
+            return Ok(IntersectionObserverRootMargin(StyleRect::all(
                 LengthPercentage::zero(),
             )));
         }
-        let rect = Rect::parse_with(context, input, parse_pixel_or_percent)?;
+        let rect = StyleRect::parse_with(context, input, parse_pixel_or_percent)?;
         Ok(IntersectionObserverRootMargin(rect))
     }
 }
@@ -80,5 +82,22 @@ impl ToCss for IntersectionObserverRootMargin {
         writer.item(&rect.1)?;
         writer.item(&rect.2)?;
         writer.item(&rect.3)
+    }
+}
+
+// TODO(stevennovaryo): move this to the wrapper later
+impl IntersectionObserverRootMargin {
+    // Resolve to used values.
+    pub(crate) fn resolve_percentages_with_basis(
+        &self,
+        containing_block: Rect<Au>,
+    ) -> SideOffsets2D<Au> {
+        let inner = &self.0;
+        SideOffsets2D::new(
+            inner.0.to_used_value(containing_block.height()),
+            inner.1.to_used_value(containing_block.width()),
+            inner.2.to_used_value(containing_block.height()),
+            inner.3.to_used_value(containing_block.width()),
+        )
     }
 }
