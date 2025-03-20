@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>CSS Transitions Test: 0-duration transition with delay applies after delay</title>
+<meta name="assert" content="Transition with 0s duration and 0.3s delay applies property change after delay period">
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#starting">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+promise_test(async t => {
+  const div = addDiv(t, {
+    style: 'transition: transform 0.1s;'
+  });
+
+  // flush initial state
+  getComputedStyle(div).transform;
+  // First transition to 100px
+  div.style.transform = 'translateY(100px)';
+  await new Promise(r => div.addEventListener('transitionend', r, {once: true}));
+
+  // Change transition to 0s duration with 300ms delay
+  div.style.transition = 'transform 0s linear 0.3s';
+
+  // Set transform back to 0
+  const startTime = performance.now();
+  div.style.transform = 'translateY(0)';
+  // Immediate check - should NOT have changed yet
+  const computedStart = getComputedStyle(div).transform;
+  assert_true(
+    computedStart === 'matrix(1, 0, 0, 1, 0, 100)' || computedStart === "translateY(100px)",
+    'Transform should remain at 100px initially'
+  );
+  // Wait for transitionend (should trigger after 300ms delay)
+  await new Promise(r => div.addEventListener('transitionend', r, {once: true}));
+
+  // Verify final state
+  const finalTransform = getComputedStyle(div).transform;
+  const elapsed = performance.now() - startTime;
+
+  assert_true(
+    finalTransform === 'none' || finalTransform === 'matrix(1, 0, 0, 1, 0, 0)' || finalTransform === 'translateY(0px)',
+    'Transform should reset to 0 after delay'
+  );
+
+  assert_approx_equals(
+    elapsed, 300, 30,  // Allow 30ms tolerance
+    'Transition should complete after approximately 300ms'
+  );
+}, '0-duration transition with delay applies change after delay period');
+</script>
+
+</body>
+</html>
