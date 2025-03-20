@@ -53,12 +53,12 @@ impl HTMLDataListElement {
 
 impl HTMLDataListElementMethods<crate::DomTypeHolder> for HTMLDataListElement {
     // https://html.spec.whatwg.org/multipage/#dom-datalist-options
-    fn Options(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn Options(&self) -> DomRoot<HTMLCollection> {
         HTMLCollection::new_with_filter_fn(
             &self.owner_window(),
             self.upcast(),
             |element, _| element.is::<HTMLOptionElement>(),
-            can_gc,
+            CanGc::note(),
         )
     }
 }

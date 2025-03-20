@@ -87,7 +87,7 @@ impl HTMLFieldSetElement {
 
 impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-elements
-    fn Elements(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+    fn Elements(&self) -> DomRoot<HTMLCollection> {
         HTMLCollection::new_with_filter_fn(
             &self.owner_window(),
             self.upcast(),
@@ -96,7 +96,7 @@ impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
                     .downcast::<HTMLElement>()
                     .is_some_and(HTMLElement::is_listed_element)
             },
-            can_gc,
+            CanGc::note(),
         )
     }
 
@@ -190,10 +190,10 @@ impl VirtualMethods for HTMLFieldSetElement {
                         .traverse_preorder(ShadowIncluding::No)
                         .filter(|descendant| match descendant.type_id() {
                             NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                HTMLElementTypeId::HTMLButtonElement
-                                | HTMLElementTypeId::HTMLInputElement
-                                | HTMLElementTypeId::HTMLSelectElement
-                                | HTMLElementTypeId::HTMLTextAreaElement,
+                                HTMLElementTypeId::HTMLButtonElement |
+                                HTMLElementTypeId::HTMLInputElement |
+                                HTMLElementTypeId::HTMLSelectElement |
+                                HTMLElementTypeId::HTMLTextAreaElement,
                             )) => true,
                             NodeTypeId::Element(ElementTypeId::HTMLElement(
                                 HTMLElementTypeId::HTMLElement,
@@ -230,8 +230,8 @@ impl VirtualMethods for HTMLFieldSetElement {
                             element.check_disabled_attribute();
                             element.check_ancestors_disabled_state_for_form_control();
                             // Fire callback only if this has actually enabled the custom element
-                            if element.enabled_state()
-                                && element
+                            if element.enabled_state() &&
+                                element
                                     .downcast::<HTMLElement>()
                                     .is_some_and(|h| h.is_form_associated_custom_element())
                             {
