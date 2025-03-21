@@ -46,21 +46,6 @@ pub struct IFrameSizeMsg {
     pub type_: WindowSizeType,
 }
 
-/// Messages from the layout to the constellation.
-#[derive(Deserialize, IntoStaticStr, Serialize)]
-pub enum LayoutMsg {
-    /// Requests that the constellation inform the compositor that it needs to record
-    /// the time when the frame with the given ID (epoch) is painted.
-    PendingPaintMetric(WebViewId, PipelineId, Epoch),
-}
-
-impl fmt::Debug for LayoutMsg {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        let variant_string: &'static str = self.into();
-        write!(formatter, "LayoutMsg::{variant_string}")
-    }
-}
-
 /// Whether the default action for a touch event was prevented by web content
 #[derive(Debug, Deserialize, Serialize)]
 pub enum TouchEventResult {

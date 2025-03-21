@@ -305,6 +305,15 @@ pub struct CompositorDisplayListInfo {
     /// The `ScrollTreeNodeId` of the topmost scrolling frame of this info's scroll
     /// tree.
     pub root_scroll_node_id: ScrollTreeNodeId,
+
+    /// Contentful paint i.e. whether the display list contains items of type
+    /// text, image, non-white canvas or SVG). Used by metrics.
+    /// See <https://w3c.github.io/paint-timing/#first-contentful-paint>.
+    pub is_contentful: bool,
+
+    /// Whether the first layout or a subsequent (incremental) layout triggered this
+    /// display list creation.
+    pub first_reflow: bool,
 }
 
 impl CompositorDisplayListInfo {
@@ -316,6 +325,7 @@ impl CompositorDisplayListInfo {
         pipeline_id: PipelineId,
         epoch: Epoch,
         viewport_scroll_sensitivity: AxesScrollSensitivity,
+        first_reflow: bool,
     ) -> Self {
         let mut scroll_tree = ScrollTree::default();
         let root_reference_frame_id = scroll_tree.add_scroll_tree_node(
@@ -343,6 +353,8 @@ impl CompositorDisplayListInfo {
             scroll_tree,
             root_reference_frame_id,
             root_scroll_node_id,
+            is_contentful: false,
+            first_reflow,
         }
     }
 
