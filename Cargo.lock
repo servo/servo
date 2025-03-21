@@ -716,9 +716,9 @@ dependencies = [
 
 [[package]]
 name = "bytemuck_derive"
-version = "1.9.1"
+version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d35fadd3de6c82a550b136427123552b401efdab9859130f1cf485fbdea40af"
+checksum = "2ff22c2722516255d1823ce3cc4bc0b154dbc9364be5c905d6baa6eccbbc8774"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -845,9 +845,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.16"
+version = "1.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be714c154be609ec7f5dad223a33bf1482fff90472de28f7362806e6d4832b8c"
+checksum = "1fcb57c740ae1daf453ae85f16e37396f672b039e00d9d866e07ddb24e328e3a"
 dependencies = [
  "jobserver",
  "libc",
@@ -1065,7 +1065,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1401,8 +1401,9 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.34.1"
-source = "git+https://github.com/servo/rust-cssparser?rev=958a3f098acb92ddacdce18a7ef2c4a87ac3326f#958a3f098acb92ddacdce18a7ef2c4a87ac3326f"
+version = "0.35.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e901edd733a1472f944a45116df3f846f54d37e67e68640ac8bb69689aca2aa"
 dependencies = [
  "cssparser-macros",
  "dtoa-short",
@@ -1415,7 +1416,8 @@ dependencies = [
 [[package]]
 name = "cssparser-macros"
 version = "0.6.1"
-source = "git+https://github.com/servo/rust-cssparser?rev=958a3f098acb92ddacdce18a7ef2c4a87ac3326f#958a3f098acb92ddacdce18a7ef2c4a87ac3326f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13b588ba4ac1a99f7f2964d24b3d896ddc6bf847ee3855dbd4366f058cfcd331"
 dependencies = [
  "quote",
  "syn",
@@ -2011,7 +2013,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2537,7 +2539,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3997,7 +3999,7 @@ checksum = "e04d7f318608d35d4b61ddd75cbdaee86b023ebe2bd5a66ee0915f0bf93095a9"
 dependencies = [
  "hermit-abi 0.5.0",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4290,7 +4292,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -4607,17 +4609,6 @@ dependencies = [
  "script_traits",
  "servo_config",
  "servo_malloc_size_of",
- "servo_url",
-]
-
-[[package]]
-name = "metrics_tests"
-version = "0.0.1"
-dependencies = [
- "base",
- "ipc-channel",
- "metrics",
- "profile_traits",
  "servo_url",
 ]
 
@@ -5844,8 +5835,10 @@ dependencies = [
  "crossbeam-channel",
  "ipc-channel",
  "log",
+ "malloc_size_of_derive",
  "serde",
  "servo_config",
+ "servo_malloc_size_of",
  "signpost",
  "strum_macros",
  "time",
@@ -6177,7 +6170,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6498,7 +6491,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.26.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 dependencies = [
  "bitflags 2.9.0",
  "cssparser",
@@ -6783,7 +6776,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -7233,7 +7226,7 @@ dependencies = [
 [[package]]
 name = "stylo"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -7291,7 +7284,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -7300,12 +7293,12 @@ dependencies = [
 [[package]]
 name = "stylo_config"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 
 [[package]]
 name = "stylo_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7317,7 +7310,7 @@ dependencies = [
 [[package]]
 name = "stylo_dom"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 dependencies = [
  "bitflags 2.9.0",
  "stylo_malloc_size_of",
@@ -7326,7 +7319,7 @@ dependencies = [
 [[package]]
 name = "stylo_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 dependencies = [
  "app_units",
  "cssparser",
@@ -7343,12 +7336,12 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 
 [[package]]
 name = "stylo_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 dependencies = [
  "app_units",
  "bitflags 2.9.0",
@@ -7512,7 +7505,7 @@ dependencies = [
  "getrandom",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7731,7 +7724,7 @@ dependencies = [
 [[package]]
 name = "to_shmem"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -7744,7 +7737,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#df459eca2e8e71b5e85c7c20a64208f3410184e0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#4b44fbdb7f93c3f57eb99ad5f14cda5e82af4467"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -8820,7 +8813,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

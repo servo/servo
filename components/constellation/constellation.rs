@@ -109,7 +109,8 @@ use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use compositing_traits::{
-    CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg, SendableFrameTree,
+    CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg, PaintMetricEvent,
+    SendableFrameTree,
 };
 use crossbeam_channel::{Receiver, Sender, select, unbounded};
 use devtools_traits::{
@@ -141,8 +142,8 @@ use script_traits::{
     AnimationState, AnimationTickType, AuxiliaryWebViewCreationRequest,
     AuxiliaryWebViewCreationResponse, BroadcastMsg, ConstellationInputEvent,
     DiscardBrowsingContext, DocumentActivity, DocumentState, IFrameLoadInfo,
-    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
-    LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
+    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LoadData, LoadOrigin, LogEntry,
+    MessagePortMsg, NavigationHistoryBehavior, PortMessageTask, ProgressiveWebMetricType,
     SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg, ScriptThreadMessage,
     ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
     StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
@@ -160,7 +161,7 @@ use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
 use webrender::RenderApi;
 use webrender::RenderApiSender;
 use webrender_api::{DocumentId, ImageKey};
-use webrender_traits::{CompositorHitTestResult, WebrenderExternalImageRegistry};
+use webrender_traits::{CompositorHitTestResult, ScrollState, WebrenderExternalImageRegistry};
 
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
@@ -308,14 +309,6 @@ pub struct Constellation<STF, SWF> {
     /// of layout created for a [`Constellation`] and prevents a circular crate
     /// dependency between script and layout.
     layout_factory: Arc<dyn LayoutFactory>,
-
-    /// An IPC channel for layout to send messages to the constellation.
-    /// This is the layout's view of `layout_receiver`.
-    layout_sender: IpcSender<FromLayoutMsg>,
-
-    /// A channel for the constellation to receive messages from layout.
-    /// This is the constellation's view of `layout_sender`.
-    layout_receiver: Receiver<Result<FromLayoutMsg, IpcError>>,
 
     /// A channel for the constellation to receive messages from the compositor thread.
     compositor_receiver: Receiver<FromCompositorMsg>,
@@ -661,13 +654,6 @@ where
                         )
                     };
 
-                let (layout_ipc_sender, layout_ipc_receiver) =
-                    ipc::channel().expect("ipc channel failure");
-                let layout_receiver =
-                    route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
-                        layout_ipc_receiver,
-                    );
-
                 let swmanager_receiver =
                     route_ipc_receiver_to_new_crossbeam_receiver_preserving_errors(
                         swmanager_ipc_receiver,
@@ -693,11 +679,9 @@ where
                     background_hang_monitor_receiver,
                     background_monitor_register,
                     background_monitor_control_senders: background_hang_monitor_control_ipc_senders,
-                    layout_sender: layout_ipc_sender,
                     script_receiver,
                     compositor_receiver,
                     layout_factory,
-                    layout_receiver,
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy,
                     webviews: WebViewManager::default(),
@@ -967,7 +951,6 @@ where
             background_hang_monitor_to_constellation_chan: self
                 .background_hang_monitor_sender
                 .clone(),
-            layout_to_constellation_chan: self.layout_sender.clone(),
             layout_factory: self.layout_factory.clone(),
             compositor_proxy: self.compositor_proxy.clone(),
             devtools_sender: self.devtools_sender.clone(),
@@ -1132,7 +1115,6 @@ where
             Script((PipelineId, FromScriptMsg)),
             BackgroundHangMonitor(HangMonitorAlert),
             Compositor(FromCompositorMsg),
-            Layout(FromLayoutMsg),
             FromSWManager(SWManagerMsg),
         }
         // Get one incoming request.
@@ -1163,9 +1145,6 @@ where
                 recv(self.compositor_receiver) -> msg => {
                     Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")))
                 }
-                recv(self.layout_receiver) -> msg => {
-                    msg.expect("Unexpected layout channel panic in constellation").map(Request::Layout)
-                }
                 recv(self.swmanager_receiver) -> msg => {
                     msg.expect("Unexpected SW channel panic in constellation").map(Request::FromSWManager)
                 }
@@ -1187,9 +1166,6 @@ where
             },
             Request::BackgroundHangMonitor(message) => {
                 self.handle_request_from_background_hang_monitor(message);
-            },
-            Request::Layout(message) => {
-                self.handle_request_from_layout(message);
             },
             Request::FromSWManager(message) => {
                 self.handle_request_from_swmanager(message);
@@ -1405,6 +1381,12 @@ where
             },
             FromCompositorMsg::SetWebViewThrottled(webview_id, throttled) => {
                 self.set_webview_throttled(webview_id, throttled);
+            },
+            FromCompositorMsg::SetScrollStates(pipeline_id, scroll_states) => {
+                self.handle_set_scroll_states(pipeline_id, scroll_states)
+            },
+            FromCompositorMsg::PaintMetric(pipeline_id, paint_metric_event) => {
+                self.handle_paint_metric(pipeline_id, paint_metric_event);
             },
         }
     }
@@ -1974,19 +1956,6 @@ where
                 }
             },
             _ => warn!("Wrong message type in handle_wgpu_request"),
-        }
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
-        trace_layout_msg!(message, "{message:?}");
-        match message {
-            FromLayoutMsg::PendingPaintMetric(webview_id, pipeline_id, epoch) => {
-                self.handle_pending_paint_metric(webview_id, pipeline_id, epoch);
-            },
         }
     }
 
@@ -3396,24 +3365,6 @@ where
             }),
             window_size: self.window_size.initial_viewport,
         });
-    }
-
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_pending_paint_metric(
-        &self,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        epoch: Epoch,
-    ) {
-        self.compositor_proxy
-            .send(CompositorMsg::PendingPaintMetric(
-                webview_id,
-                pipeline_id,
-                epoch,
-            ))
     }
 
     #[cfg_attr(
@@ -5560,6 +5511,57 @@ where
             }
         } else {
             error!("Got a media session action but no active media session is registered");
+        }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
+    fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: Vec<ScrollState>) {
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            warn!("Discarding scroll offset update for unknown pipeline");
+            return;
+        };
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::SetScrollStates(
+                pipeline_id,
+                scroll_states,
+            ))
+        {
+            warn!("Could not send scroll offsets to pipeline: {pipeline_id:?}: {error:?}");
+        }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
+    fn handle_paint_metric(&mut self, pipeline_id: PipelineId, event: PaintMetricEvent) {
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            warn!("Discarding paint metric event for unknown pipeline");
+            return;
+        };
+        let (metric_type, metric_value, first_reflow) = match event {
+            PaintMetricEvent::FirstPaint(metric_value, first_reflow) => (
+                ProgressiveWebMetricType::FirstPaint,
+                metric_value,
+                first_reflow,
+            ),
+            PaintMetricEvent::FirstContentfulPaint(metric_value, first_reflow) => (
+                ProgressiveWebMetricType::FirstContentfulPaint,
+                metric_value,
+                first_reflow,
+            ),
+        };
+        if let Err(error) = pipeline.event_loop.send(ScriptThreadMessage::PaintMetric(
+            pipeline_id,
+            metric_type,
+            metric_value,
+            first_reflow,
+        )) {
+            warn!("Could not sent paint metric event to pipeline: {pipeline_id:?}: {error:?}");
         }
     }
 }

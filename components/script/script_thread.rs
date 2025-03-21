@@ -33,7 +33,6 @@ use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, HangAnnotation, MonitoredComponentId,
     MonitoredComponentType,
 };
-use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, WebViewId};
 use canvas_traits::webgl::WebGLPipeline;
@@ -60,7 +59,7 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use media::WindowGLContext;
-use metrics::{MAX_TASK_NS, PaintTimeMetrics};
+use metrics::MAX_TASK_NS;
 use mime::{self, Mime};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{Referrer, RequestId};
@@ -81,7 +80,7 @@ use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, NewLayoutInfo, Painter,
     ProgressiveWebMetricType, ScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
-    ScrollState, StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
+    StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
 };
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -93,7 +92,7 @@ use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
-use webrender_traits::{CompositorHitTestResult, CrossProcessCompositorApi};
+use webrender_traits::{CompositorHitTestResult, CrossProcessCompositorApi, ScrollState};
 
 use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;
@@ -128,8 +127,6 @@ use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
-use crate::dom::performanceentry::PerformanceEntry;
-use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -896,7 +893,6 @@ impl ScriptThread {
             bluetooth_sender: state.bluetooth_sender,
             constellation_sender: state.constellation_sender,
             pipeline_to_constellation_sender: state.pipeline_to_constellation_sender.sender.clone(),
-            layout_to_constellation_ipc_sender: state.layout_to_constellation_ipc_sender,
             image_cache_sender: ipc_image_cache_sender,
             time_profiler_sender: state.time_profiler_sender,
             memory_profiler_sender: state.memory_profiler_sender,
@@ -1849,9 +1845,18 @@ impl ScriptThread {
             ScriptThreadMessage::ExitPipeline(pipeline_id, discard_browsing_context) => {
                 self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context, can_gc)
             },
-            ScriptThreadMessage::PaintMetric(pipeline_id, metric_type, metric_value) => {
-                self.handle_paint_metric(pipeline_id, metric_type, metric_value, can_gc)
-            },
+            ScriptThreadMessage::PaintMetric(
+                pipeline_id,
+                metric_type,
+                metric_value,
+                first_reflow,
+            ) => self.handle_paint_metric(
+                pipeline_id,
+                metric_type,
+                metric_value,
+                first_reflow,
+                can_gc,
+            ),
             ScriptThreadMessage::MediaSessionAction(pipeline_id, action) => {
                 self.handle_media_session_action(pipeline_id, action, can_gc)
             },
@@ -1870,15 +1875,12 @@ impl ScriptThread {
                 panic!("should have handled {:?} already", msg)
             },
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
-                self.handle_set_scroll_states_msg(pipeline_id, scroll_states)
-            },
-            ScriptThreadMessage::SetEpochPaintTime(pipeline_id, epoch, time) => {
-                self.handle_set_epoch_paint_time(pipeline_id, epoch, time)
+                self.handle_set_scroll_states_offsets(pipeline_id, scroll_states)
             },
         }
     }
 
-    fn handle_set_scroll_states_msg(
+    fn handle_set_scroll_states_offsets(
         &self,
         pipeline_id: PipelineId,
         scroll_states: Vec<ScrollState>,
@@ -1892,7 +1894,7 @@ impl ScriptThread {
             ScriptThreadEventCategory::SetScrollState,
             Some(pipeline_id),
             || {
-                window.layout_mut().set_scroll_states(&scroll_states);
+                window.layout_mut().set_scroll_offsets(&scroll_states);
 
                 let mut scroll_offsets = HashMap::new();
                 for scroll_state in scroll_states.into_iter() {
@@ -1908,19 +1910,6 @@ impl ScriptThread {
                 window.set_scroll_offsets(scroll_offsets)
             },
         )
-    }
-
-    fn handle_set_epoch_paint_time(
-        &self,
-        pipeline_id: PipelineId,
-        epoch: Epoch,
-        time: CrossProcessInstant,
-    ) {
-        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
-            warn!("Received set epoch paint time message for closed pipeline {pipeline_id}.");
-            return;
-        };
-        window.layout_mut().set_epoch_paint_time(epoch, time);
     }
 
     #[cfg(feature = "webgpu")]
@@ -3056,16 +3045,6 @@ impl ScriptThread {
             pipeline_id: incomplete.pipeline_id,
         };
 
-        let paint_time_metrics = PaintTimeMetrics::new(
-            incomplete.webview_id,
-            incomplete.pipeline_id,
-            self.senders.time_profiler_sender.clone(),
-            self.senders.layout_to_constellation_ipc_sender.clone(),
-            self.senders.constellation_sender.clone(),
-            final_url.clone(),
-            incomplete.navigation_start,
-        );
-
         let font_context = Arc::new(FontContext::new(
             self.system_font_service.clone(),
             self.compositor_api.clone(),
@@ -3082,7 +3061,6 @@ impl ScriptThread {
             font_context: font_context.clone(),
             time_profiler_chan: self.senders.time_profiler_sender.clone(),
             compositor_api: self.compositor_api.clone(),
-            paint_time_metrics,
             window_size: incomplete.window_size,
         };
 
@@ -3619,19 +3597,16 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         metric_type: ProgressiveWebMetricType,
         metric_value: CrossProcessInstant,
+        first_reflow: bool,
         can_gc: CanGc,
     ) {
-        let window = self.documents.borrow().find_window(pipeline_id);
-        if let Some(window) = window {
-            let entry = PerformancePaintTiming::new(
-                window.as_global_scope(),
-                metric_type,
-                metric_value,
-                can_gc,
-            );
-            window
-                .Performance()
-                .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
+        match self.documents.borrow().find_document(pipeline_id) {
+            Some(document) => {
+                document.handle_paint_metric(metric_type, metric_value, first_reflow, can_gc)
+            },
+            None => warn!(
+                "Received paint metric ({metric_type:?}) for unknown document: {pipeline_id:?}"
+            ),
         }
     }
 

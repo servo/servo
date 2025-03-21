@@ -18,7 +18,6 @@ use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::Epoch;
-use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use euclid::Size2D;
@@ -28,12 +27,11 @@ use fonts::{FontContext, SystemFontServiceProxy};
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
-use metrics::PaintTimeMetrics;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use profile_traits::mem::Report;
 use profile_traits::time;
 use script_traits::{
-    InitialScriptState, LoadData, Painter, ScriptThreadMessage, ScrollState, UntrustedNodeAddress,
+    InitialScriptState, LoadData, Painter, ScriptThreadMessage, UntrustedNodeAddress,
     WindowSizeData,
 };
 use serde::{Deserialize, Serialize};
@@ -53,7 +51,7 @@ use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
 use style_traits::CSSPixel;
 use webrender_api::ImageKey;
-use webrender_traits::CrossProcessCompositorApi;
+use webrender_traits::{CrossProcessCompositorApi, ScrollState};
 
 pub type GenericLayoutData = dyn Any + Send + Sync;
 
@@ -189,7 +187,6 @@ pub struct LayoutConfig {
     pub font_context: Arc<FontContext>,
     pub time_profiler_chan: time::ProfilerChan,
     pub compositor_api: CrossProcessCompositorApi,
-    pub paint_time_metrics: PaintTimeMetrics,
     pub window_size: WindowSizeData,
 }
 
@@ -243,10 +240,7 @@ pub trait Layout {
     );
 
     /// Set the scroll states of this layout after a compositor scroll.
-    fn set_scroll_states(&mut self, scroll_states: &[ScrollState]);
-
-    /// Set the paint time for a specific epoch.
-    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: CrossProcessInstant);
+    fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]);
 
     fn query_content_box(&self, node: OpaqueNode) -> Option<Rect<Au>>;
     fn query_content_boxes(&self, node: OpaqueNode) -> Vec<Rect<Au>>;

@@ -36,10 +36,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue};
 use keyboard_types::{Code, Key, KeyState};
-use metrics::{
-    InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
-    ProgressiveWebMetric,
-};
+use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use mime::{self, Mime};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -51,10 +48,11 @@ use net_traits::{FetchResponseListener, IpcSend, ReferrerPolicy};
 use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
-use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
+use profile_traits::time::TimerMetadataFrameType;
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{
-    AnimationState, AnimationTickType, ConstellationInputEvent, DocumentActivity, ScriptMsg,
+    AnimationState, AnimationTickType, ConstellationInputEvent, DocumentActivity,
+    ProgressiveWebMetricType, ScriptMsg,
 };
 use servo_arc::Arc;
 use servo_config::pref;
@@ -78,6 +76,7 @@ use webrender_traits::CompositorHitTestResult;
 
 use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use super::clipboardevent::ClipboardEventType;
+use super::performancepainttiming::PerformancePaintTiming;
 use crate::DomTypes;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
@@ -432,7 +431,7 @@ pub(crate) struct Document {
     /// See <https://html.spec.whatwg.org/multipage/#form-owner>
     form_id_listener_map: DomRefCell<HashMapTracedValues<Atom, HashSet<Dom<Element>>>>,
     #[no_trace]
-    interactive_time: DomRefCell<InteractiveMetrics>,
+    interactive_time: DomRefCell<ProgressiveWebMetrics>,
     #[no_trace]
     tti_window: DomRefCell<InteractiveWindow>,
     /// RAII canceller for Fetch
@@ -3010,7 +3009,7 @@ impl Document {
         // html parsing has finished - set dom content loaded
         self.interactive_time
             .borrow()
-            .maybe_set_tti(self, InteractiveFlag::DOMContentLoaded);
+            .maybe_set_tti(InteractiveFlag::DOMContentLoaded);
 
         // Step 4.2.
         // TODO: client message queue.
@@ -3095,7 +3094,7 @@ impl Document {
             .set_navigation_start(navigation_start);
     }
 
-    pub(crate) fn get_interactive_metrics(&self) -> Ref<InteractiveMetrics> {
+    pub(crate) fn get_interactive_metrics(&self) -> Ref<ProgressiveWebMetrics> {
         self.interactive_time.borrow()
     }
 
@@ -3149,10 +3148,10 @@ impl Document {
             return;
         }
         if self.tti_window.borrow().needs_check() {
-            self.get_interactive_metrics().maybe_set_tti(
-                self,
-                InteractiveFlag::TimeToInteractive(self.tti_window.borrow().get_start()),
-            );
+            self.get_interactive_metrics()
+                .maybe_set_tti(InteractiveFlag::TimeToInteractive(
+                    self.tti_window.borrow().get_start(),
+                ));
         }
     }
 
@@ -3532,6 +3531,37 @@ impl Document {
                 document.root().notify_intersection_observers(CanGc::note());
             }));
     }
+
+    pub(crate) fn handle_paint_metric(
+        &self,
+        metric_type: ProgressiveWebMetricType,
+        metric_value: CrossProcessInstant,
+        first_reflow: bool,
+        can_gc: CanGc,
+    ) {
+        let metrics = self.interactive_time.borrow();
+        match metric_type {
+            ProgressiveWebMetricType::FirstPaint => {
+                metrics.set_first_paint(metric_value, first_reflow)
+            },
+            ProgressiveWebMetricType::FirstContentfulPaint => {
+                metrics.set_first_contentful_paint(metric_value, first_reflow)
+            },
+            ProgressiveWebMetricType::TimeToInteractive => {
+                unreachable!("Unexpected non-paint metric.")
+            },
+        }
+
+        let entry = PerformancePaintTiming::new(
+            self.window.as_global_scope(),
+            metric_type,
+            metric_value,
+            can_gc,
+        );
+        self.window
+            .Performance()
+            .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
+    }
 }
 
 fn is_character_value_key(key: &Key) -> bool {
@@ -3688,8 +3718,15 @@ impl Document {
             (DocumentReadyState::Complete, true)
         };
 
-        let interactive_time =
-            InteractiveMetrics::new(window.time_profiler_chan().clone(), url.clone());
+        let frame_type = match window.is_top_level() {
+            true => TimerMetadataFrameType::RootWindow,
+            false => TimerMetadataFrameType::IFrame,
+        };
+        let interactive_time = ProgressiveWebMetrics::new(
+            window.time_profiler_chan().clone(),
+            url.clone(),
+            frame_type,
+        );
 
         let content_type = content_type.unwrap_or_else(|| {
             match is_html_document {
@@ -4701,16 +4738,6 @@ impl Document {
 
     pub fn set_allow_declarative_shadow_roots(&self, value: bool) {
         self.allow_declarative_shadow_roots.set(value)
-    }
-}
-
-impl ProfilerMetadataFactory for Document {
-    fn new_metadata(&self) -> Option<TimerMetadata> {
-        Some(TimerMetadata {
-            url: String::from(self.url().as_str()),
-            iframe: TimerMetadataFrameType::RootWindow,
-            incremental: TimerMetadataReflowType::Incremental,
-        })
     }
 }
 

@@ -102,6 +102,7 @@ impl DisplayList {
         pipeline_id: wr::PipelineId,
         epoch: wr::Epoch,
         viewport_scroll_sensitivity: AxesScrollSensitivity,
+        first_reflow: bool,
     ) -> Self {
         Self {
             wr: wr::DisplayListBuilder::new(pipeline_id),
@@ -111,6 +112,7 @@ impl DisplayList {
                 pipeline_id,
                 epoch,
                 viewport_scroll_sensitivity,
+                first_reflow,
             ),
             spatial_tree_count: 0,
         }
@@ -161,11 +163,6 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// The [DisplayList] used to collect display list items and metadata.
     pub display_list: &'a mut DisplayList,
-
-    /// Contentful paint i.e. whether the display list contains items of type
-    /// text, image, non-white canvas or SVG). Used by metrics.
-    /// See <https://w3c.github.io/paint-timing/#first-contentful-paint>.
-    is_contentful: bool,
 }
 
 impl DisplayList {
@@ -175,7 +172,7 @@ impl DisplayList {
         context: &LayoutContext,
         fragment_tree: &FragmentTree,
         root_stacking_context: &StackingContext,
-    ) -> bool {
+    ) {
         #[cfg(feature = "tracing")]
         let _span = tracing::trace_span!("display_list::build", servo_profiling = true).entered();
         let mut builder = DisplayListBuilder {
@@ -183,18 +180,20 @@ impl DisplayList {
             current_reference_frame_scroll_node_id: self.compositor_info.root_reference_frame_id,
             current_clip_chain_id: ClipChainId::INVALID,
             element_for_canvas_background: fragment_tree.canvas_background.from_element,
-            is_contentful: false,
             context,
             display_list: self,
         };
         fragment_tree.build_display_list(&mut builder, root_stacking_context);
-        builder.is_contentful
     }
 }
 
 impl DisplayListBuilder<'_> {
     fn wr(&mut self) -> &mut wr::DisplayListBuilder {
         &mut self.display_list.wr
+    }
+
+    fn mark_is_contentful(&mut self) {
+        self.display_list.compositor_info.is_contentful = true;
     }
 
     fn common_properties(
@@ -282,7 +281,7 @@ impl Fragment {
                 let image = image.borrow();
                 match image.style.get_inherited_box().visibility {
                     Visibility::Visible => {
-                        builder.is_contentful = true;
+                        builder.mark_is_contentful();
 
                         let image_rendering = image
                             .style
@@ -318,7 +317,7 @@ impl Fragment {
                 let iframe = iframe.borrow();
                 match iframe.style.get_inherited_box().visibility {
                     Visibility::Visible => {
-                        builder.is_contentful = true;
+                        builder.mark_is_contentful();
                         let rect = iframe.rect.translate(containing_block.origin.to_vector());
 
                         let common = builder.common_properties(rect.to_webrender(), &iframe.style);
@@ -384,7 +383,7 @@ impl Fragment {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
 
-        builder.is_contentful = true;
+        builder.mark_is_contentful();
 
         let rect = fragment.rect.translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin;

@@ -19,7 +19,6 @@ use std::fmt;
 use std::sync::Arc;
 
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
-use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
@@ -33,7 +32,7 @@ use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::input_events::InputEvent;
 use embedder_traits::{MediaSessionActionType, Theme, WebDriverScriptCommand};
-use euclid::{Rect, Scale, Size2D, UnknownUnit, Vector2D};
+use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use http::{HeaderMap, Method};
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -56,17 +55,16 @@ use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;
-use webrender_api::units::{DevicePixel, LayoutPixel};
-use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
+use webrender_api::units::DevicePixel;
+use webrender_api::{DocumentId, ImageKey};
 use webrender_traits::{
-    CompositorHitTestResult, CrossProcessCompositorApi,
+    CompositorHitTestResult, CrossProcessCompositorApi, ScrollState,
     UntrustedNodeAddress as WebRenderUntrustedNodeAddress,
 };
 
 pub use crate::script_msg::{
-    DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, LayoutMsg,
-    LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg,
-    TouchEventResult,
+    DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, LogEntry,
+    SWManagerMsg, SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg, TouchEventResult,
 };
 use crate::serializable::BlobImpl;
 use crate::transferable::MessagePortImpl;
@@ -395,7 +393,12 @@ pub enum ScriptThreadMessage {
     /// Reload the given page.
     Reload(PipelineId),
     /// Notifies the script thread about a new recorded paint metric.
-    PaintMetric(PipelineId, ProgressiveWebMetricType, CrossProcessInstant),
+    PaintMetric(
+        PipelineId,
+        ProgressiveWebMetricType,
+        CrossProcessInstant,
+        bool, /* first_reflow */
+    ),
     /// Notifies the media session about a user requested media session action.
     MediaSessionAction(PipelineId, MediaSessionActionType),
     /// Notifies script thread that WebGPU server has started
@@ -404,8 +407,6 @@ pub enum ScriptThreadMessage {
     /// The compositor scrolled and is updating the scroll states of the nodes in the given
     /// pipeline via the Constellation.
     SetScrollStates(PipelineId, Vec<ScrollState>),
-    /// Send the paint time for a specific epoch.
-    SetEpochPaintTime(PipelineId, Epoch, CrossProcessInstant),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
@@ -476,8 +477,6 @@ pub struct InitialScriptState {
     pub pipeline_to_constellation_sender: ScriptToConstellationChan,
     /// A handle to register script-(and associated layout-)threads for hang monitoring.
     pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-    /// A sender layout to communicate to the constellation.
-    pub layout_to_constellation_ipc_sender: IpcSender<LayoutMsg>,
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
@@ -591,15 +590,6 @@ bitflags! {
         /// Trigger restyles for CSS Animations and Transitions.
         const CSS_ANIMATIONS_AND_TRANSITIONS = 0b010;
     }
-}
-
-/// The scroll state of a stacking context.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct ScrollState {
-    /// The ID of the scroll root.
-    pub scroll_id: ExternalScrollId,
-    /// The scrolling offset of this stacking context.
-    pub scroll_offset: Vector2D<f32, LayoutPixel>,
 }
 
 /// Data about the window size.

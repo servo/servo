@@ -224,7 +224,6 @@ jobs:
       wpt-args: ${{ inputs.wpt-args }}
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
-      wpt-layout: "layout-2020"
     secrets: inherit
 
   bencher:
