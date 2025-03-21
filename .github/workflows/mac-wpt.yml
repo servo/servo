@@ -10,9 +10,6 @@ on:
       profile:
         required: true
         type: string
-      wpt-layout:
-        required: true
-        type: string
 
 env:
   RUST_BACKTRACE: 1
