@@ -37,6 +37,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, WebViewId};
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
+use constellation_traits::{CompositorHitTestResult, ScrollState, WindowSizeData, WindowSizeType};
 use crossbeam_channel::unbounded;
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
@@ -80,7 +81,7 @@ use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, NewLayoutInfo, Painter,
     ProgressiveWebMetricType, ScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
-    StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
+    StructuredSerializedData, UpdatePipelineIdReason,
 };
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -92,7 +93,7 @@ use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
-use webrender_traits::{CompositorHitTestResult, CrossProcessCompositorApi, ScrollState};
+use webrender_traits::CrossProcessCompositorApi;
 
 use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;

@@ -6,8 +6,8 @@ use std::cell::Cell;
 use std::cmp::Ordering;
 
 use base::id::HistoryStateId;
+use constellation_traits::TraversalDirection;
 use dom_struct::dom_struct;
-use embedder_traits::TraversalDirection;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};

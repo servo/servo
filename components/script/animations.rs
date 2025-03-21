@@ -7,10 +7,11 @@
 use std::cell::Cell;
 
 use base::id::PipelineId;
+use constellation_traits::UntrustedNodeAddress;
 use cssparser::ToCss;
 use fxhash::{FxHashMap, FxHashSet};
 use libc::c_void;
-use script_traits::{AnimationState as AnimationsPresentState, ScriptMsg, UntrustedNodeAddress};
+use script_traits::{AnimationState as AnimationsPresentState, ScriptMsg};
 use serde::{Deserialize, Serialize};
 use style::animation::{
     Animation, AnimationSetKey, AnimationState, DocumentAnimationSet, ElementAnimationSet,

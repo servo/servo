@@ -46,7 +46,7 @@ mod from_compositor {
         };
     }
 
-    impl LogTarget for compositing_traits::ConstellationMsg {
+    impl LogTarget for constellation_traits::ConstellationMsg {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::Exit => target!("Exit"),

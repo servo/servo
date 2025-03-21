@@ -19,6 +19,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
+use constellation_traits::{AnimationTickType, CompositorHitTestResult};
 use content_security_policy::{self as csp, CspList, PolicyDisposition};
 use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
@@ -50,10 +51,7 @@ use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
-use script_traits::{
-    AnimationState, AnimationTickType, ConstellationInputEvent, DocumentActivity,
-    ProgressiveWebMetricType, ScriptMsg,
-};
+use script_traits::{AnimationState, ConstellationInputEvent, DocumentActivity, ScriptMsg};
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_media::{ClientContextId, ServoMedia};
@@ -72,7 +70,6 @@ use uuid::Uuid;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
-use webrender_traits::CompositorHitTestResult;
 
 use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use super::clipboardevent::ClipboardEventType;

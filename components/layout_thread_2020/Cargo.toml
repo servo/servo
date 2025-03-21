@@ -17,6 +17,7 @@ tracing = ["dep:tracing", "layout/tracing"]
 [dependencies]
 app_units = { workspace = true }
 base = { workspace = true }
+constellation_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }

@@ -8,7 +8,8 @@ use std::collections::hash_map::{Entry, Keys, Values, ValuesMut};
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
-use compositing_traits::{ConstellationMsg, SendableFrameTree};
+use compositing_traits::SendableFrameTree;
+use constellation_traits::{CompositorHitTestResult, ConstellationMsg, ScrollState};
 use embedder_traits::{
     InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, ShutdownState,
     TouchEvent, TouchEventType, TouchId,
@@ -22,7 +23,6 @@ use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector
 use webrender_api::{
     ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
-use webrender_traits::{CompositorHitTestResult, ScrollState};
 
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};

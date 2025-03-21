@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
+use constellation_traits::WindowSizeData;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
@@ -14,7 +15,7 @@ use profile_traits::ipc as ProfiledIpc;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
-    NavigationHistoryBehavior, NewLayoutInfo, ScriptMsg, UpdatePipelineIdReason, WindowSizeData,
+    NavigationHistoryBehavior, NewLayoutInfo, ScriptMsg, UpdatePipelineIdReason,
 };
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
