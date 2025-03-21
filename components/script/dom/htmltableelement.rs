@@ -47,9 +47,10 @@ struct TableRowFilter {
 
 impl CollectionFilter for TableRowFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        elem.is::<HTMLTableRowElement>() &&
-            (root.is_parent_of(elem.upcast()) ||
-                self.sections
+        elem.is::<HTMLTableRowElement>()
+            && (root.is_parent_of(elem.upcast())
+                || self
+                    .sections
                     .iter()
                     .any(|section| section.is_parent_of(elem.upcast())))
     }
@@ -305,9 +306,9 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                 &self.owner_window(),
                 self.upcast(),
                 |element, root| {
-                    element.is::<HTMLTableSectionElement>() &&
-                        element.local_name() == &local_name!("tbody") &&
-                        element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+                    element.is::<HTMLTableSectionElement>()
+                        && element.local_name() == &local_name!("tbody")
+                        && element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
                 CanGc::note(),
             )
@@ -315,13 +316,13 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
-    fn CreateTBody(&self) -> DomRoot<HTMLTableSectionElement> {
+    fn CreateTBody(&self, can_gc: CanGc) -> DomRoot<HTMLTableSectionElement> {
         let tbody = HTMLTableSectionElement::new(
             local_name!("tbody"),
             None,
             &self.owner_document(),
             None,
-            CanGc::note(),
+            can_gc,
         );
         let node = self.upcast::<Node>();
         let last_tbody = node
@@ -336,7 +337,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-insertrow
-    fn InsertRow(&self, index: i32) -> Fallible<DomRoot<HTMLTableRowElement>> {
+    fn InsertRow(&self, index: i32, can_gc: CanGc) -> Fallible<DomRoot<HTMLTableRowElement>> {
         let rows = self.Rows();
         let number_of_row_elements = rows.Length();
 
@@ -367,7 +368,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                     .AppendChild(new_row.upcast::<Node>())
                     .expect("InsertRow failed to append first row.");
             } else {
-                let tbody = self.CreateTBody();
+                let tbody = self.CreateTBody(CanGc::note());
                 node.AppendChild(tbody.upcast())
                     .expect("InsertRow failed to append new tbody.");
 

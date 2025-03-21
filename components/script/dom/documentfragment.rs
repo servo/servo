@@ -77,9 +77,8 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> DomRoot<HTMLCollection> {
-        let can_gc = CanGc::note();
         let window = self.owner_window();
-        HTMLCollection::children(&window, self.upcast(), can_gc)
+        HTMLCollection::children(&window, self.upcast(), CanGc::note())
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid

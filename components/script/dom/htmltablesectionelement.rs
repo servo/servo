@@ -76,7 +76,7 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
-    fn InsertRow(&self, index: i32) -> Fallible<DomRoot<HTMLElement>> {
+    fn InsertRow(&self, index: i32, can_gc: CanGc) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
         node.insert_cell_or_row(
             index,
