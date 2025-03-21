@@ -68,8 +68,8 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
             &self.owner_window(),
             self.upcast(),
             |element, root| {
-                element.is::<HTMLTableRowElement>() &&
-                    element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+                element.is::<HTMLTableRowElement>()
+                    && element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
             },
             CanGc::note(),
         )
