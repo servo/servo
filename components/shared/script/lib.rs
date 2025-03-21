@@ -37,6 +37,7 @@ use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use http::{HeaderMap, Method};
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use keyboard_types::Modifiers;
 use libc::c_void;
 use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
@@ -446,6 +447,8 @@ pub struct ConstellationInputEvent {
     /// The pressed mouse button state of the constellation when this input
     /// event was triggered.
     pub pressed_mouse_buttons: u16,
+    /// The currently active keyboard modifiers.
+    pub active_keyboard_modifiers: Modifiers,
     /// The [`InputEvent`] itself.
     pub event: InputEvent,
 }

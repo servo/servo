@@ -342,30 +342,45 @@ pub(crate) fn follow_hyperlink(
     relations: LinkRelations,
     hyperlink_suffix: Option<String>,
 ) {
-    // Step 1. If subject cannot navigate, then return.
+    // Step 1: If subject cannot navigate, then return.
     if subject.cannot_navigate() {
         return;
     }
-    // Step 2, done in Step 7.
 
+    // Step 2: Let targetAttributeValue be the empty string.
+    // This is done below.
+
+    // Step 3: If subject is an a or area element, then set targetAttributeValue to the
+    //         result of getting an element's target given subject.
+    //
+    // Also allow the user to open links in a new WebView by pressing either the meta or
+    // control key (depending on the platform).
     let document = subject.owner_document();
-    let window = document.window();
-
-    // Step 3: source browsing context.
-    let source = document.browsing_context().unwrap();
-
-    // Step 4-5: target attribute.
     let target_attribute_value =
         if subject.is::<HTMLAreaElement>() || subject.is::<HTMLAnchorElement>() {
-            get_element_target(subject)
+            if document.alternate_action_keyboard_modifier_active() {
+                Some("_blank".into())
+            } else {
+                get_element_target(subject)
+            }
         } else {
             None
         };
 
-    // Step 6.
+    // Step 4: Let urlRecord be the result of encoding-parsing a URL given subject's href
+    //         attribute value, relative to subject's node document.
+    // Step 5: If urlRecord is failure, then return.
+    // TODO: Implement this.
+
+    // Step 6: Let noopener be the result of getting an element's noopener with subject,
+    //         urlRecord, and targetAttributeValue.
     let noopener = relations.get_element_noopener(target_attribute_value.as_ref());
 
-    // Step 7.
+    // Step 7: Let targetNavigable be the first return value of applying the rules for
+    //         choosing a navigable given targetAttributeValue, subject's node navigable, and
+    //         noopener.
+    let window = document.window();
+    let source = document.browsing_context().unwrap();
     let (maybe_chosen, history_handling) = match target_attribute_value {
         Some(name) => {
             let (maybe_chosen, new) = source.choose_browsing_context(name, noopener);
@@ -379,7 +394,7 @@ pub(crate) fn follow_hyperlink(
         None => (Some(window.window_proxy()), NavigationHistoryBehavior::Push),
     };
 
-    // Step 8.
+    // Step 8: If targetNavigable is null, then return.
     let chosen = match maybe_chosen {
         Some(proxy) => proxy,
         None => return,
@@ -387,17 +402,13 @@ pub(crate) fn follow_hyperlink(
 
     if let Some(target_document) = chosen.document() {
         let target_window = target_document.window();
-        // Step 9, dis-owning target's opener, if necessary
-        // will have been done as part of Step 7 above
-        // in choose_browsing_context/create_auxiliary_browsing_context.
-
-        // Step 10, 11. TODO: if parsing the URL failed, navigate to error page.
+        // Step 9: Let urlString be the result of applying the URL serializer to urlRecord.
+        // TODO: Implement this.
 
         let attribute = subject.get_attribute(&ns!(), &local_name!("href")).unwrap();
         let mut href = attribute.Value();
 
-        // Step 11: append a hyperlink suffix.
-        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28925
+        // Step 10: If hyperlinkSuffix is non-null, then append it to urlString.
         if let Some(suffix) = hyperlink_suffix {
             href.push_str(&suffix);
         }
@@ -405,17 +416,20 @@ pub(crate) fn follow_hyperlink(
             return;
         };
 
-        // Step 12.
+        // Step 11: Let referrerPolicy be the current state of subject's referrerpolicy content attribute.
         let referrer_policy = referrer_policy_for_element(subject);
 
-        // Step 13
+        // Step 12: If subject's link types includes the noreferrer keyword, then set
+        //          referrerPolicy to "no-referrer".
         let referrer = if relations.contains(LinkRelations::NO_REFERRER) {
             Referrer::NoReferrer
         } else {
             target_window.as_global_scope().get_referrer()
         };
 
-        // Step 14
+        // Step 13: Navigate targetNavigable to urlString using subject's node document,
+        //          with referrerPolicy set to referrerPolicy, userInvolvement set to
+        //          userInvolvement, and sourceElement set to subject.
         let pipeline_id = target_window.as_global_scope().pipeline_id();
         let secure = target_window.as_global_scope().is_secure_context();
         let load_data = LoadData::new(
