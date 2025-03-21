@@ -15,7 +15,7 @@ use ipc_channel::ipc::IpcSender;
 use script_traits::{AnimationTickType, LogEntry, WindowSizeData, WindowSizeType};
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
-use webrender_traits::CompositorHitTestResult;
+use webrender_traits::{CompositorHitTestResult, ScrollState};
 
 /// Messages to the constellation.
 #[derive(IntoStaticStr)]
@@ -69,6 +69,9 @@ pub enum ConstellationMsg {
     MediaSessionAction(MediaSessionActionType),
     /// Set whether to use less resources, by stopping animations and running timers at a heavily limited rate.
     SetWebViewThrottled(WebViewId, bool),
+    /// The Servo renderer scrolled and is updating the scroll states of the nodes in the
+    /// given pipeline via the constellation.
+    SetScrollStates(PipelineId, Vec<ScrollState>),
 }
 
 impl fmt::Debug for ConstellationMsg {

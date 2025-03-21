@@ -33,7 +33,7 @@ use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::input_events::InputEvent;
 use embedder_traits::{MediaSessionActionType, Theme, WebDriverScriptCommand};
-use euclid::{Rect, Scale, Size2D, UnknownUnit, Vector2D};
+use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use http::{HeaderMap, Method};
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -56,10 +56,10 @@ use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;
-use webrender_api::units::{DevicePixel, LayoutPixel};
-use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
+use webrender_api::units::DevicePixel;
+use webrender_api::{DocumentId, ImageKey};
 use webrender_traits::{
-    CompositorHitTestResult, CrossProcessCompositorApi,
+    CompositorHitTestResult, CrossProcessCompositorApi, ScrollState,
     UntrustedNodeAddress as WebRenderUntrustedNodeAddress,
 };
 
@@ -591,15 +591,6 @@ bitflags! {
         /// Trigger restyles for CSS Animations and Transitions.
         const CSS_ANIMATIONS_AND_TRANSITIONS = 0b010;
     }
-}
-
-/// The scroll state of a stacking context.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct ScrollState {
-    /// The ID of the scroll root.
-    pub scroll_id: ExternalScrollId,
-    /// The scrolling offset of this stacking context.
-    pub scroll_offset: Vector2D<f32, LayoutPixel>,
 }
 
 /// Data about the window size.
