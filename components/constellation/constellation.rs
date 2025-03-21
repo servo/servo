@@ -160,7 +160,7 @@ use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
 use webrender::RenderApi;
 use webrender::RenderApiSender;
 use webrender_api::{DocumentId, ImageKey};
-use webrender_traits::{CompositorHitTestResult, WebrenderExternalImageRegistry};
+use webrender_traits::{CompositorHitTestResult, ScrollState, WebrenderExternalImageRegistry};
 
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
@@ -1405,6 +1405,9 @@ where
             },
             FromCompositorMsg::SetWebViewThrottled(webview_id, throttled) => {
                 self.set_webview_throttled(webview_id, throttled);
+            },
+            FromCompositorMsg::SetScrollStates(pipeline_id, scroll_states) => {
+                self.handle_set_scroll_states(pipeline_id, scroll_states)
             },
         }
     }
@@ -5560,6 +5563,26 @@ where
             }
         } else {
             error!("Got a media session action but no active media session is registered");
+        }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
+    fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: Vec<ScrollState>) {
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            warn!("Discarding scroll offset update for unknown pipeline");
+            return;
+        };
+        if let Err(error) = pipeline
+            .event_loop
+            .send(ScriptThreadMessage::SetScrollStates(
+                pipeline_id,
+                scroll_states,
+            ))
+        {
+            warn!("Could not send scroll offsets to pipeline: {pipeline_id:?}: {error:?}");
         }
     }
 }

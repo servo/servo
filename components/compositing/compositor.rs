@@ -30,7 +30,7 @@ use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
-use pixels::{CorsStatus, Image, PixelFormat};
+use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
 use script_traits::{
@@ -1454,7 +1454,12 @@ impl IOCompositor {
                 width: image.width(),
                 height: image.height(),
                 format: PixelFormat::RGBA8,
-                bytes: ipc::IpcSharedMemory::from_bytes(&image),
+                frames: vec![ImageFrame {
+                    delay: None,
+                    bytes: ipc::IpcSharedMemory::from_bytes(&image),
+                    width: image.width(),
+                    height: image.height(),
+                }],
                 id: None,
                 cors_status: CorsStatus::Safe,
             }))

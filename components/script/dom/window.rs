@@ -61,8 +61,7 @@ use script_layout_interface::{
 };
 use script_traits::{
     DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptMsg, ScriptThreadMessage,
-    ScriptToConstellationChan, ScrollState, StructuredSerializedData, WindowSizeData,
-    WindowSizeType,
+    ScriptToConstellationChan, StructuredSerializedData, WindowSizeData, WindowSizeType,
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
@@ -84,7 +83,7 @@ use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
-use webrender_traits::CrossProcessCompositorApi;
+use webrender_traits::{CrossProcessCompositorApi, ScrollState};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;

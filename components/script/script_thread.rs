@@ -81,7 +81,7 @@ use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, NewLayoutInfo, Painter,
     ProgressiveWebMetricType, ScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
-    ScrollState, StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
+    StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
 };
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -93,7 +93,7 @@ use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
-use webrender_traits::{CompositorHitTestResult, CrossProcessCompositorApi};
+use webrender_traits::{CompositorHitTestResult, CrossProcessCompositorApi, ScrollState};
 
 use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;
@@ -1870,7 +1870,7 @@ impl ScriptThread {
                 panic!("should have handled {:?} already", msg)
             },
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
-                self.handle_set_scroll_states_msg(pipeline_id, scroll_states)
+                self.handle_set_scroll_states_offsets(pipeline_id, scroll_states)
             },
             ScriptThreadMessage::SetEpochPaintTime(pipeline_id, epoch, time) => {
                 self.handle_set_epoch_paint_time(pipeline_id, epoch, time)
@@ -1878,7 +1878,7 @@ impl ScriptThread {
         }
     }
 
-    fn handle_set_scroll_states_msg(
+    fn handle_set_scroll_states_offsets(
         &self,
         pipeline_id: PipelineId,
         scroll_states: Vec<ScrollState>,
@@ -1892,7 +1892,7 @@ impl ScriptThread {
             ScriptThreadEventCategory::SetScrollState,
             Some(pipeline_id),
             || {
-                window.layout_mut().set_scroll_states(&scroll_states);
+                window.layout_mut().set_scroll_offsets(&scroll_states);
 
                 let mut scroll_offsets = HashMap::new();
                 for scroll_state in scroll_states.into_iter() {
