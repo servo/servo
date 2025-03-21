@@ -1876,16 +1876,12 @@ impl ScriptThread {
                 panic!("should have handled {:?} already", msg)
             },
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
-                self.handle_set_scroll_states_offsets(pipeline_id, scroll_states)
+                self.handle_set_scroll_states(pipeline_id, scroll_states)
             },
         }
     }
 
-    fn handle_set_scroll_states_offsets(
-        &self,
-        pipeline_id: PipelineId,
-        scroll_states: Vec<ScrollState>,
-    ) {
+    fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: Vec<ScrollState>) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             warn!("Received scroll states for closed pipeline {pipeline_id}");
             return;

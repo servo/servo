@@ -108,10 +108,10 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
-use compositing_traits::{CompositorMsg, CompositorProxy, PaintMetricEvent, SendableFrameTree};
+use compositing_traits::{CompositorMsg, CompositorProxy, SendableFrameTree};
 use constellation_traits::{
     AnimationTickType, CompositorHitTestResult, ConstellationMsg as FromCompositorMsg, LogEntry,
-    ScrollState, TraversalDirection, WindowSizeData, WindowSizeType,
+    PaintMetricEvent, ScrollState, TraversalDirection, WindowSizeData, WindowSizeType,
 };
 use crossbeam_channel::{Receiver, Sender, select, unbounded};
 use devtools_traits::{
@@ -142,9 +142,9 @@ use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
     AnimationState, AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse,
     BroadcastMsg, ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
-    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job,
-    LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, MessagePortMsg, NavigationHistoryBehavior,
-    PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
+    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LoadData,
+    LoadOrigin, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
+    ProgressiveWebMetricType, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
     ScriptThreadMessage, ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
     StructuredSerializedData, UpdatePipelineIdReason,
 };

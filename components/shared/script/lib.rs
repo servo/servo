@@ -60,8 +60,8 @@ use webrender_api::{DocumentId, ImageKey};
 use webrender_traits::CrossProcessCompositorApi;
 
 pub use crate::script_msg::{
-    DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, LayoutMsg,
-    SWManagerMsg, SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg, TouchEventResult,
+    DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg,
+    SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg, TouchEventResult,
 };
 use crate::serializable::BlobImpl;
 use crate::transferable::MessagePortImpl;

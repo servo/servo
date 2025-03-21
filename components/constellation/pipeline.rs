@@ -35,8 +35,8 @@ use net_traits::image_cache::ImageCache;
 use profile_traits::{mem as profile_mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
-    AnimationState, DiscardBrowsingContext, DocumentActivity, InitialScriptState, LayoutMsg,
-    LoadData, NewLayoutInfo, SWManagerMsg, ScriptThreadMessage, ScriptToConstellationChan,
+    AnimationState, DiscardBrowsingContext, DocumentActivity, InitialScriptState, LoadData,
+    NewLayoutInfo, SWManagerMsg, ScriptThreadMessage, ScriptToConstellationChan,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
@@ -422,7 +422,6 @@ impl Pipeline {
         CompositionPipeline {
             id: self.id,
             webview_id: self.webview_id,
-            script_chan: self.event_loop.sender(),
         }
     }
 

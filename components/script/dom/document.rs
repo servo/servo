@@ -51,7 +51,9 @@ use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
-use script_traits::{AnimationState, ConstellationInputEvent, DocumentActivity, ScriptMsg};
+use script_traits::{
+    AnimationState, ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType, ScriptMsg,
+};
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_media::{ClientContextId, ServoMedia};

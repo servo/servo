@@ -18,12 +18,11 @@ use base::id::{PipelineId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use bitflags::bitflags;
 use compositing_traits::{
-    CompositionPipeline, CompositorMsg, CompositorReceiver, PaintMetricEvent,
-    SendableFrameTree,
+    CompositionPipeline, CompositorMsg, CompositorReceiver, SendableFrameTree,
 };
 use constellation_traits::{
-    AnimationTickType, CompositorHitTestResult, ConstellationMsg, UntrustedNodeAddress,
-    WindowSizeData, WindowSizeType,
+    AnimationTickType, CompositorHitTestResult, ConstellationMsg, PaintMetricEvent,
+    UntrustedNodeAddress, WindowSizeData, WindowSizeType,
 };
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;

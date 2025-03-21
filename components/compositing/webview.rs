@@ -17,7 +17,7 @@ use embedder_traits::{
 use euclid::{Point2D, Scale, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
-use script_traits::{AnimationState, ScriptThreadMessage, TouchEventResult};
+use script_traits::{AnimationState, TouchEventResult};
 use webrender::Transaction;
 use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{
@@ -158,10 +158,14 @@ impl WebView {
             }
         });
 
-        if let Some(pipeline) = details.pipeline.as_ref() {
-            let message = ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states);
-            let _ = pipeline.script_chan.send(message);
-        }
+        let _ = self
+            .global
+            .borrow()
+            .constellation_sender
+            .send(ConstellationMsg::SetScrollStates(
+                pipeline_id,
+                scroll_states,
+            ));
     }
 
     pub(crate) fn set_frame_tree_on_pipeline_details(
