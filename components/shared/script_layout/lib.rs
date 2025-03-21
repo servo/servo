@@ -438,6 +438,8 @@ pub struct ReflowRequest {
     pub animations: DocumentAnimationSet,
     /// The theme for the window
     pub theme: PrefersColorScheme,
+    /// The node highlighted by the devtools, if any
+    pub highlighted_dom_node: Option<OpaqueNode>,
 }
 
 /// A pending restyle.
