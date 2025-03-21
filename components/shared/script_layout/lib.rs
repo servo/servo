@@ -20,6 +20,7 @@ use atomic_refcell::AtomicRefCell;
 use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use constellation_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use euclid::Size2D;
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
@@ -30,10 +31,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use profile_traits::mem::Report;
 use profile_traits::time;
-use script_traits::{
-    InitialScriptState, LoadData, Painter, ScriptThreadMessage, UntrustedNodeAddress,
-    WindowSizeData,
-};
+use script_traits::{InitialScriptState, LoadData, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -51,7 +49,7 @@ use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
 use style_traits::CSSPixel;
 use webrender_api::ImageKey;
-use webrender_traits::{CrossProcessCompositorApi, ScrollState};
+use webrender_traits::CrossProcessCompositorApi;
 
 pub type GenericLayoutData = dyn Any + Send + Sync;
 

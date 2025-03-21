@@ -21,6 +21,7 @@ base = { workspace = true }
 bitflags = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
+constellation_traits = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }

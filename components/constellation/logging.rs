@@ -12,11 +12,11 @@ use std::thread;
 
 use backtrace::Backtrace;
 use base::id::WebViewId;
-use compositing_traits::ConstellationMsg as FromCompositorMsg;
+use constellation_traits::{ConstellationMsg as FromCompositorMsg, LogEntry};
 use crossbeam_channel::Sender;
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use parking_lot::ReentrantMutex;
-use script_traits::{LogEntry, ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
+use script_traits::{ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
 
 /// A logger directed at the constellation from content processes
 /// #[derive(Clone)]

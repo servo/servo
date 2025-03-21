@@ -108,9 +108,10 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
-use compositing_traits::{
-    CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg, PaintMetricEvent,
-    SendableFrameTree,
+use compositing_traits::{CompositorMsg, CompositorProxy, SendableFrameTree};
+use constellation_traits::{
+    AnimationTickType, CompositorHitTestResult, ConstellationMsg as FromCompositorMsg, LogEntry,
+    PaintMetricEvent, ScrollState, TraversalDirection, WindowSizeData, WindowSizeType,
 };
 use crossbeam_channel::{Receiver, Sender, select, unbounded};
 use devtools_traits::{
@@ -121,7 +122,7 @@ use embedder_traits::resources::{self, Resource};
 use embedder_traits::{
     Cursor, EmbedderMsg, EmbedderProxy, ImeEvent, InputEvent, MediaSessionActionType,
     MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
-    Theme, TraversalDirection, WebDriverCommandMsg, WebDriverLoadStatus,
+    Theme, WebDriverCommandMsg, WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -139,14 +140,13 @@ use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
 use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
-    AnimationState, AnimationTickType, AuxiliaryWebViewCreationRequest,
-    AuxiliaryWebViewCreationResponse, BroadcastMsg, ConstellationInputEvent,
-    DiscardBrowsingContext, DocumentActivity, DocumentState, IFrameLoadInfo,
-    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LoadData, LoadOrigin, LogEntry,
-    MessagePortMsg, NavigationHistoryBehavior, PortMessageTask, ProgressiveWebMetricType,
-    SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg, ScriptThreadMessage,
-    ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, UpdatePipelineIdReason, WindowSizeData, WindowSizeType,
+    AnimationState, AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse,
+    BroadcastMsg, ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
+    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LoadData,
+    LoadOrigin, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
+    ProgressiveWebMetricType, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
+    ScriptThreadMessage, ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    StructuredSerializedData, UpdatePipelineIdReason,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -161,7 +161,7 @@ use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
 use webrender::RenderApi;
 use webrender::RenderApiSender;
 use webrender_api::{DocumentId, ImageKey};
-use webrender_traits::{CompositorHitTestResult, ScrollState, WebrenderExternalImageRegistry};
+use webrender_traits::WebrenderExternalImageRegistry;
 
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,

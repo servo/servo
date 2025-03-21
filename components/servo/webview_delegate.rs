@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 
 use base::id::PipelineId;
-use compositing_traits::ConstellationMsg;
+use constellation_traits::ConstellationMsg;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, PermissionFeature,

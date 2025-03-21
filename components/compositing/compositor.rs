@@ -18,8 +18,11 @@ use base::id::{PipelineId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use bitflags::bitflags;
 use compositing_traits::{
-    CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg, PaintMetricEvent,
-    SendableFrameTree,
+    CompositionPipeline, CompositorMsg, CompositorReceiver, SendableFrameTree,
+};
+use constellation_traits::{
+    AnimationTickType, CompositorHitTestResult, ConstellationMsg, PaintMetricEvent,
+    UntrustedNodeAddress, WindowSizeData, WindowSizeType,
 };
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
@@ -34,7 +37,7 @@ use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
-use script_traits::{AnimationState, AnimationTickType, WindowSizeData, WindowSizeType};
+use script_traits::AnimationState;
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
@@ -52,9 +55,7 @@ use webrender_api::{
 };
 use webrender_traits::display_list::{HitTestInfo, ScrollTree};
 use webrender_traits::rendering_context::RenderingContext;
-use webrender_traits::{
-    CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, UntrustedNodeAddress,
-};
+use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate};
 
 use crate::InitialCompositorState;
 use crate::webview::{UnknownWebView, WebView, WebViewManager};
