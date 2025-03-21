@@ -12,6 +12,7 @@
 mod script_msg;
 pub mod serializable;
 pub mod transferable;
+pub mod viewport;
 
 use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};

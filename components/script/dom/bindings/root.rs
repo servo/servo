@@ -251,7 +251,7 @@ pub(crate) fn assert_in_layout() {
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[derive(JSTraceable)]
+#[derive(JSTraceable, Debug)]
 pub(crate) struct MutNullableDom<T: DomObject> {
     ptr: UnsafeCell<Option<Dom<T>>>,
 }
