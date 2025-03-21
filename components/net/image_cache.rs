@@ -55,14 +55,15 @@ fn set_webrender_image_key(compositor_api: &CrossProcessCompositorApi, image: &m
         return;
     }
     let mut bytes = Vec::new();
+    let frame_bytes = image.bytes();
     let is_opaque = match image.format {
         PixelFormat::BGRA8 => {
-            bytes.extend_from_slice(&image.bytes);
+            bytes.extend_from_slice(&frame_bytes);
             pixels::rgba8_premultiply_inplace(bytes.as_mut_slice())
         },
         PixelFormat::RGB8 => {
-            bytes.reserve(image.bytes.len() / 3 * 4);
-            for bgr in image.bytes.chunks(3) {
+            bytes.reserve(frame_bytes.len() / 3 * 4);
+            for bgr in frame_bytes.chunks(3) {
                 bytes.extend_from_slice(&[bgr[2], bgr[1], bgr[0], 0xff]);
             }
 
