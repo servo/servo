@@ -14,13 +14,14 @@ use std::sync::{Arc, Mutex};
 use base::id::{PipelineId, WebViewId};
 use display_list::{CompositorDisplayListInfo, ScrollTreeNodeId};
 use embedder_traits::Cursor;
+use euclid::Vector2D;
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use libc::c_void;
 use log::warn;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
-use webrender_api::units::{DevicePoint, LayoutPoint, TexelRect};
+use webrender_api::units::{DevicePoint, LayoutPixel, LayoutPoint, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
     ExternalImageHandler, ExternalImageId, ExternalImageSource, ExternalScrollId,
@@ -529,4 +530,13 @@ pub struct CompositorHitTestResult {
 
     /// The scroll tree node associated with this hit test item.
     pub scroll_tree_node: ScrollTreeNodeId,
+}
+
+/// The scroll state of a stacking context.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct ScrollState {
+    /// The ID of the scroll root.
+    pub scroll_id: ExternalScrollId,
+    /// The scrolling offset of this stacking context.
+    pub scroll_offset: Vector2D<f32, LayoutPixel>,
 }

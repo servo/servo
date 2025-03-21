@@ -51,8 +51,8 @@ use script_layout_interface::{
     ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
 use script_traits::{
-    DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage, ScrollState,
-    UntrustedNodeAddress, WindowSizeData,
+    DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage, UntrustedNodeAddress,
+    WindowSizeData,
 };
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::{self, DebugOptions};
@@ -90,7 +90,7 @@ use stylo_atoms::Atom;
 use url::Url;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{ExternalScrollId, HitTestFlags, units};
-use webrender_traits::CrossProcessCompositorApi;
+use webrender_traits::{CrossProcessCompositorApi, ScrollState};
 
 // This mutex is necessary due to syncronisation issues between two different types of thread-local storage
 // which manifest themselves when the layout thread tries to layout iframes in parallel with the main page
@@ -456,7 +456,7 @@ impl Layout for LayoutThread {
     ) {
     }
 
-    fn set_scroll_states(&mut self, scroll_states: &[ScrollState]) {
+    fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]) {
         *self.scroll_offsets.borrow_mut() = scroll_states
             .iter()
             .map(|scroll_state| (scroll_state.scroll_id, scroll_state.scroll_offset))
