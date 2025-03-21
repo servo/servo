@@ -16,7 +16,6 @@ use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
-use servo::webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use servo::webxr::openxr::{AppInfo, OpenXrDiscovery};
 use servo::{EventLoopWaker, Servo};
@@ -114,6 +113,7 @@ impl App {
         self.suspended.set(false);
         let (_, window) = self.windows.iter().next().unwrap();
 
+        #[cfg(feature = "webxr")]
         let xr_discovery = if pref!(dom_webxr_openxr_enabled) && !headless {
             #[cfg(target_os = "windows")]
             let openxr = {
@@ -126,10 +126,14 @@ impl App {
             openxr
         } else if pref!(dom_webxr_glwindow_enabled) && !headless {
             let window = window.new_glwindow(event_loop.unwrap());
-            Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(window)))
+            Some(XrDiscovery::GlWindow(
+                servo::webxr::glwindow::GlWindowDiscovery::new(window),
+            ))
         } else {
             None
         };
+        #[cfg(not(feature = "webxr"))]
+        let xr_discovery = None;
 
         // Implements embedder methods, used by libservo and constellation.
         let embedder = Box::new(EmbedderCallbacks::new(self.waker.clone(), xr_discovery));
