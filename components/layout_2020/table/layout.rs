@@ -1161,7 +1161,7 @@ impl<'a> TableLayout<'a> {
                 self.cell_measures[row_index][column_index]
                     .block
                     .content_sizes
-                    .max_assign(layout.layout.content_block_size.into());
+                    .max_assign(layout.outer_block_size().into());
             }
         }
     }
