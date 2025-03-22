@@ -5,13 +5,14 @@
 use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
-use app_units::Au;
+use app_units::{AU_PER_PX, Au};
 use base::WebRenderEpochToU16;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::UsePlaceholder;
+use range::Range as ServoRange;
 use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -72,6 +73,7 @@ pub struct WebRenderImageInfo {
 // webrender's `ItemTag` is private.
 type ItemTag = (u64, u16);
 type HitInfo = Option<ItemTag>;
+const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
 
 /// Where the information that's used to build display lists is stored. This
 /// includes both a [wr::DisplayListBuilder] for building up WebRender-specific
@@ -392,6 +394,7 @@ impl Fragment {
             &fragment.glyphs,
             baseline_origin,
             fragment.justification_adjustment,
+            !fragment.has_selection(),
         );
         if glyphs.is_empty() {
             return;
@@ -428,7 +431,6 @@ impl Fragment {
             );
         }
 
-        // Underline.
         if fragment
             .text_decoration_line
             .contains(TextDecorationLine::UNDERLINE)
@@ -439,7 +441,6 @@ impl Fragment {
             self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
         }
 
-        // Overline.
         if fragment
             .text_decoration_line
             .contains(TextDecorationLine::OVERLINE)
@@ -449,7 +450,68 @@ impl Fragment {
             self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
         }
 
-        // Text.
+        // TODO: This caret/text selection implementation currently does not account for vertical text
+        // and RTL text properly.
+        if let Some(range) = fragment.selection_range {
+            let baseline_origin = rect.origin;
+            if !range.is_empty() {
+                let start = glyphs_advance_by_index(
+                    &fragment.glyphs,
+                    range.begin(),
+                    baseline_origin,
+                    fragment.justification_adjustment,
+                );
+
+                let end = glyphs_advance_by_index(
+                    &fragment.glyphs,
+                    range.end(),
+                    baseline_origin,
+                    fragment.justification_adjustment,
+                );
+
+                let selection_rect = LayoutRect::new(
+                    Point2D::new(start.x.to_f32_px(), containing_block.min_y().to_f32_px()),
+                    Point2D::new(end.x.to_f32_px(), containing_block.max_y().to_f32_px()),
+                );
+                if let Some(selection_color) = fragment
+                    .selected_style
+                    .clone_background_color()
+                    .as_absolute()
+                {
+                    let selection_common =
+                        builder.common_properties(selection_rect, &fragment.parent_style);
+                    builder.wr().push_rect(
+                        &selection_common,
+                        selection_rect,
+                        rgba(*selection_color),
+                    );
+                }
+            } else {
+                let insertion_point = glyphs_advance_by_index(
+                    &fragment.glyphs,
+                    range.begin(),
+                    baseline_origin,
+                    fragment.justification_adjustment,
+                );
+
+                let insertion_point_rect = LayoutRect::new(
+                    Point2D::new(
+                        insertion_point.x.to_f32_px(),
+                        containing_block.min_y().to_f32_px(),
+                    ),
+                    Point2D::new(
+                        insertion_point.x.to_f32_px() + INSERTION_POINT_LOGICAL_WIDTH.to_f32_px(),
+                        containing_block.max_y().to_f32_px(),
+                    ),
+                );
+                let insertion_point_common =
+                    builder.common_properties(insertion_point_rect, &fragment.parent_style);
+                builder
+                    .wr()
+                    .push_rect(&insertion_point_common, insertion_point_rect, rgba(color));
+            }
+        }
+
         builder.wr().push_text(
             &common,
             rect.to_webrender(),
@@ -459,7 +521,6 @@ impl Fragment {
             None,
         );
 
-        // Line-through.
         if fragment
             .text_decoration_line
             .contains(TextDecorationLine::LINE_THROUGH)
@@ -1182,6 +1243,7 @@ fn glyphs(
     glyph_runs: &[Arc<GlyphStore>],
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
+    ignore_whitespace: bool,
 ) -> Vec<wr::GlyphInstance> {
     use fonts_traits::ByteIndex;
     use range::Range;
@@ -1189,7 +1251,7 @@ fn glyphs(
     let mut glyphs = vec![];
     for run in glyph_runs {
         for glyph in run.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), run.len())) {
-            if !run.is_whitespace() {
+            if !run.is_whitespace() || !ignore_whitespace {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let point = units::LayoutPoint::new(
                     baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
@@ -1209,6 +1271,30 @@ fn glyphs(
         }
     }
     glyphs
+}
+
+fn glyphs_advance_by_index(
+    glyph_runs: &[Arc<GlyphStore>],
+    index: fonts_traits::ByteIndex,
+    baseline_origin: PhysicalPoint<Au>,
+    justification_adjustment: Au,
+) -> PhysicalPoint<Au> {
+    let mut point = baseline_origin;
+    for run in glyph_runs {
+        let total_advance = if index <= run.len() {
+            run.advance_for_byte_range(
+                &ServoRange::new(fonts::ByteIndex(0), index),
+                justification_adjustment,
+            )
+        } else {
+            run.advance_for_byte_range(
+                &ServoRange::new(fonts::ByteIndex(0), run.len()),
+                justification_adjustment,
+            )
+        };
+        point.x += total_advance;
+    }
+    point
 }
 
 fn cursor(kind: CursorKind, auto_cursor: Cursor) -> Cursor {
