@@ -5,11 +5,11 @@
 use std::cell::Cell;
 use std::default::Default;
 
+use constellation_traits::CompositorHitTestResult;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use js::rust::HandleObject;
 use servo_config::pref;
-use webrender_traits::CompositorHitTestResult;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding;

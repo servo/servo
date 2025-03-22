@@ -18,7 +18,7 @@ use net_traits::FetchResponseMsg;
 use net_traits::image_cache::PendingImageResponse;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
-use script_traits::{LayoutMsg, Painter, ScriptMsg, ScriptThreadMessage};
+use script_traits::{Painter, ScriptMsg, ScriptThreadMessage};
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
@@ -88,7 +88,6 @@ impl MixedMessage {
                 #[cfg(feature = "webgpu")]
                 ScriptThreadMessage::SetWebGPUPort(..) => None,
                 ScriptThreadMessage::SetScrollStates(id, ..) => Some(*id),
-                ScriptThreadMessage::SetEpochPaintTime(id, ..) => Some(*id),
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
@@ -317,10 +316,6 @@ pub(crate) struct ScriptThreadSenders {
     /// particular pipelines.
     #[no_trace]
     pub(crate) pipeline_to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
-
-    /// A sender for layout to communicate to the constellation.
-    #[no_trace]
-    pub(crate) layout_to_constellation_ipc_sender: IpcSender<LayoutMsg>,
 
     /// The shared [`IpcSender`] which is sent to the `ImageCache` when requesting an image. The
     /// messages on this channel are routed to crossbeam [`Sender`] on the router thread, which

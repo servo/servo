@@ -211,7 +211,6 @@ jobs:
     uses: ./.github/workflows/mac-wpt.yml
     with:
       profile: ${{ inputs.profile }}
-      wpt-layout: "layout-2020"
       wpt-args: ${{ inputs.wpt-args }}
     secrets: inherit
 

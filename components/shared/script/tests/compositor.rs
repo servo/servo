@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::ScrollTreeNodeId;
 use euclid::Size2D;
 use webrender_api::units::LayoutVector2D;
 use webrender_api::{ExternalScrollId, PipelineId, ScrollLocation, SpatialId};
 use webrender_traits::display_list::{
-    AxesScrollSensitivity, ScrollSensitivity, ScrollTree, ScrollTreeNodeId, ScrollableNodeInfo,
+    AxesScrollSensitivity, ScrollSensitivity, ScrollTree, ScrollableNodeInfo,
 };
 
 fn add_mock_scroll_node(tree: &mut ScrollTree) -> ScrollTreeNodeId {

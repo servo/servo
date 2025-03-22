@@ -6,10 +6,11 @@ use std::cell::Cell;
 use std::default::Default;
 
 use base::id::BrowsingContextId;
+use constellation_traits::{WindowSizeData, WindowSizeType};
 use euclid::{Scale, Size2D};
 use fnv::FnvHashMap;
 use script_layout_interface::IFrameSizes;
-use script_traits::{IFrameSizeMsg, WindowSizeData, WindowSizeType};
+use script_traits::IFrameSizeMsg;
 use style_traits::CSSPixel;
 use webrender_api::units::DevicePixel;
 

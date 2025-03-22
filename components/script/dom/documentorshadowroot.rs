@@ -4,9 +4,9 @@
 
 use std::fmt;
 
+use constellation_traits::UntrustedNodeAddress;
 use euclid::default::Point2D;
 use script_layout_interface::{NodesFromPointQueryType, QueryMsg};
-use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;

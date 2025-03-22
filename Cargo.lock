@@ -845,9 +845,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.16"
+version = "1.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be714c154be609ec7f5dad223a33bf1482fff90472de28f7362806e6d4832b8c"
+checksum = "1fcb57c740ae1daf453ae85f16e37396f672b039e00d9d866e07ddb24e328e3a"
 dependencies = [
  "jobserver",
  "libc",
@@ -1065,7 +1065,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1085,6 +1085,7 @@ dependencies = [
  "base",
  "bitflags 2.9.0",
  "compositing_traits",
+ "constellation_traits",
  "crossbeam-channel",
  "dpi",
  "embedder_traits",
@@ -1118,11 +1119,9 @@ dependencies = [
  "embedder_traits",
  "euclid",
  "ipc-channel",
- "keyboard-types",
  "log",
  "pixels",
  "script_traits",
- "servo_url",
  "strum_macros",
  "stylo_traits",
  "webrender_api",
@@ -1149,6 +1148,7 @@ dependencies = [
  "bluetooth_traits",
  "canvas_traits",
  "compositing_traits",
+ "constellation_traits",
  "crossbeam-channel",
  "devtools_traits",
  "embedder_traits",
@@ -1176,6 +1176,24 @@ dependencies = [
  "webrender_api",
  "webrender_traits",
  "webxr-api",
+]
+
+[[package]]
+name = "constellation_traits"
+version = "0.0.1"
+dependencies = [
+ "base",
+ "bitflags 2.9.0",
+ "embedder_traits",
+ "euclid",
+ "ipc-channel",
+ "malloc_size_of_derive",
+ "serde",
+ "servo_malloc_size_of",
+ "servo_url",
+ "strum_macros",
+ "stylo_traits",
+ "webrender_api",
 ]
 
 [[package]]
@@ -2013,7 +2031,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2539,7 +2557,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3999,7 +4017,7 @@ checksum = "e04d7f318608d35d4b61ddd75cbdaee86b023ebe2bd5a66ee0915f0bf93095a9"
 dependencies = [
  "hermit-abi 0.5.0",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4195,6 +4213,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "base",
+ "constellation_traits",
  "embedder_traits",
  "euclid",
  "fnv",
@@ -4292,7 +4311,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -4328,6 +4347,7 @@ dependencies = [
  "compositing",
  "compositing_traits",
  "constellation",
+ "constellation_traits",
  "crossbeam-channel",
  "devtools",
  "devtools_traits",
@@ -4609,17 +4629,6 @@ dependencies = [
  "script_traits",
  "servo_config",
  "servo_malloc_size_of",
- "servo_url",
-]
-
-[[package]]
-name = "metrics_tests"
-version = "0.0.1"
-dependencies = [
- "base",
- "ipc-channel",
- "metrics",
- "profile_traits",
  "servo_url",
 ]
 
@@ -5846,8 +5855,10 @@ dependencies = [
  "crossbeam-channel",
  "ipc-channel",
  "log",
+ "malloc_size_of_derive",
  "serde",
  "servo_config",
+ "servo_malloc_size_of",
  "signpost",
  "strum_macros",
  "time",
@@ -6179,7 +6190,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6280,6 +6291,7 @@ dependencies = [
  "cbc",
  "chrono",
  "cipher",
+ "constellation_traits",
  "content-security-policy",
  "cookie 0.18.1",
  "crossbeam-channel",
@@ -6409,6 +6421,7 @@ dependencies = [
  "atomic_refcell",
  "base",
  "canvas_traits",
+ "constellation_traits",
  "euclid",
  "fnv",
  "fonts",
@@ -6453,6 +6466,7 @@ dependencies = [
  "bitflags 2.9.0",
  "bluetooth_traits",
  "canvas_traits",
+ "constellation_traits",
  "cookie 0.18.1",
  "crossbeam-channel",
  "devtools_traits",
@@ -7514,7 +7528,7 @@ dependencies = [
  "getrandom",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -8508,7 +8522,7 @@ version = "0.0.1"
 dependencies = [
  "base",
  "base64 0.22.1",
- "compositing_traits",
+ "constellation_traits",
  "cookie 0.18.1",
  "crossbeam-channel",
  "embedder_traits",
@@ -8628,6 +8642,7 @@ name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
  "base",
+ "constellation_traits",
  "dpi",
  "embedder_traits",
  "euclid",
@@ -8822,7 +8837,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
