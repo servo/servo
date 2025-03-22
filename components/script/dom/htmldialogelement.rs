@@ -13,6 +13,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{Node, NodeTraits};
@@ -123,5 +124,37 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
             .task_manager()
             .dom_manipulation_task_source()
             .queue_simple_event(target, atom!("close"));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-dialog-requestclose>
+    fn RequestClose(&self, return_value: Option<DOMString>, can_gc: CanGc) {
+        let element = self.upcast::<Element>();
+        let target = self.upcast::<EventTarget>();
+
+        // 1. If this does not have an open attribute, then return.
+        if !element.has_attribute(&local_name!("open")) {
+            return;
+        }
+
+        // TODO: 2. Assert: this's close watcher is not null.
+        // 3. Set dialog's enable close watcher for requestClose() to true.
+        // 4. If returnValue is not given, then set it to null.
+        // 5. Set this's request close return value to returnValue.
+        // 6. Request to close dialog's close watcher with false.
+        // 7. Set dialog's enable close watcher for requestClose() to false.
+        // ADHOC: This implementation doesn't follow the steps above, but has the same observable behavior.
+        let window = self.owner_window();
+        let event = Event::new(
+            window.upcast(),
+            atom!("cancel"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::Cancelable,
+            can_gc,
+        );
+        let event_status = event.fire(target, can_gc);
+
+        if event_status == EventStatus::NotCanceled {
+            self.Close(return_value);
+        }
     }
 }
