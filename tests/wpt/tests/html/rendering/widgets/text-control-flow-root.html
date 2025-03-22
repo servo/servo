@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>display inside of text control should always be flow-root</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#form-controls">
+<link rel=match href="text-control-flow-root-ref.html">
+
+<input id="input1" style="display: inline;">
+<br>
+<input style="display: inline; transform: scale(0.5);">
+<br>
+aaa<input style="display: inline;">aaa
+<br>
+<textarea style="display: inline;"></textarea>
+<br>
+<textarea style="display: inline; transform: scale(0.5);"></textarea>
+<br>
+aa<textarea style="display: inline; transform: scale(0.5);">aa</textarea>aa

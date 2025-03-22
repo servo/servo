@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>text control with `display: inline` must not have 0 client width</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#form-controls">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input id="input" style="display: inline;">
+<textarea id="textarea" style="display: inline;"></textarea>
+
+<script>
+test(() => {
+  assert_greater_than(document.querySelector("#input").clientWidth, 0);
+}, "Input with `display: inline` should have positive client width");
+
+test(() => {
+  assert_greater_than(document.querySelector("#textarea").clientWidth, 0);
+}, "Textarea with `display: inline` should have positive client width");
+</script>

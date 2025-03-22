@@ -30,7 +30,7 @@ use style::values::specified::{Overflow, WillChangeBits, box_ as stylo};
 use webrender_api as wr;
 use webrender_api::units::LayoutTransform;
 
-use crate::dom_traversal::Contents;
+use crate::dom_traversal::{Contents, NonReplacedContents};
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalSides,
@@ -82,6 +82,22 @@ impl DisplayGeneratingBox {
                 inside: DisplayInside::Flow {
                     is_list_item: false,
                 },
+            }
+        } else if matches!(
+            contents,
+            Contents::NonReplaced(NonReplacedContents::OfTextControl)
+        ) {
+            // If it's an input or textarea, make sure the display-inside is flow-root.
+            // <https://html.spec.whatwg.org/multipage/#form-controls>
+            if let DisplayGeneratingBox::OutsideInside { outside, .. } = self {
+                DisplayGeneratingBox::OutsideInside {
+                    outside: *outside,
+                    inside: DisplayInside::FlowRoot {
+                        is_list_item: false,
+                    },
+                }
+            } else {
+                *self
             }
         } else {
             *self
@@ -334,6 +350,7 @@ pub(crate) trait ComputedValuesExt {
         &self,
         writing_mode: WritingMode,
     ) -> bool;
+    fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool;
 }
 
 impl ComputedValuesExt for ComputedValues {
@@ -483,6 +500,12 @@ impl ComputedValuesExt for ComputedValues {
         LogicalSides::from_physical(&self.physical_margin(), containing_block_writing_mode)
     }
 
+    fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool {
+        self.get_box().display.is_inline_flow() &&
+            !fragment_flags
+                .intersects(FragmentFlags::IS_REPLACED | FragmentFlags::IS_TEXT_CONTROL)
+    }
+
     /// Returns true if this is a transformable element.
     fn is_transformable(&self, fragment_flags: FragmentFlags) -> bool {
         // "A transformable element is an element in one of these categories:
@@ -494,8 +517,7 @@ impl ComputedValuesExt for ComputedValues {
         //     elements."
         // <https://drafts.csswg.org/css-transforms/#transformable-element>
         // TODO: check for all cases listed in the above spec.
-        !self.get_box().display.is_inline_flow() ||
-            fragment_flags.contains(FragmentFlags::IS_REPLACED)
+        !self.is_inline_box(fragment_flags)
     }
 
     /// Returns true if this style has a transform, or perspective property set and

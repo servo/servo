@@ -75,31 +75,33 @@ impl From<BaseFragmentInfo> for BaseFragment {
 bitflags! {
     /// Flags used to track various information about a DOM node during layout.
     #[derive(Clone, Copy, Debug)]
-    pub(crate) struct FragmentFlags: u8 {
+    pub(crate) struct FragmentFlags: u16 {
         /// Whether or not the node that created this fragment is a `<body>` element on an HTML document.
         const IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT = 1 << 0;
         /// Whether or not the node that created this Fragment is a `<br>` element.
         const IS_BR_ELEMENT = 1 << 1;
+        /// Whether or not the node that created this Fragment is a `<input>` or `<textarea>` element.
+        const IS_TEXT_CONTROL = 1 << 2;
         /// Whether or not this Fragment is a flex item or a grid item.
-        const IS_FLEX_OR_GRID_ITEM = 1 << 2;
+        const IS_FLEX_OR_GRID_ITEM = 1 << 3;
         /// Whether or not this Fragment was created to contain a replaced element or is
         /// a replaced element.
-        const IS_REPLACED = 1 << 3;
+        const IS_REPLACED = 1 << 4;
         /// Whether or not the node that created was a `<table>`, `<th>` or
         /// `<td>` element. Note that this does *not* include elements with
         /// `display: table` or `display: table-cell`.
-        const IS_TABLE_TH_OR_TD_ELEMENT = 1 << 4;
+        const IS_TABLE_TH_OR_TD_ELEMENT = 1 << 5;
         /// Whether or not this Fragment was created to contain a list item marker
         /// with a used value of `list-style-position: outside`.
-        const IS_OUTSIDE_LIST_ITEM_MARKER = 1 << 5;
+        const IS_OUTSIDE_LIST_ITEM_MARKER = 1 << 6;
         /// Avoid painting the borders, backgrounds, and drop shadow for this fragment, this is used
         /// for empty table cells when 'empty-cells' is 'hide' and also table wrappers.  This flag
         /// doesn't avoid hit-testing nor does it prevent the painting outlines.
-        const DO_NOT_PAINT = 1 << 6;
+        const DO_NOT_PAINT = 1 << 7;
         /// Whether or not the size of this fragment depends on the block size of its container
         /// and the fragment can be a flex item. This flag is used to cache items during flex
         /// layout.
-        const SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM = 1 << 7;
+        const SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM = 1 << 8;
     }
 }
 
