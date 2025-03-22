@@ -2592,7 +2592,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
     fn GetElementsByTagName(&self, localname: DOMString) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::by_qualified_name(&window, self.upcast(), LocalName::from(&*localname))
+        HTMLCollection::by_qualified_name(
+            &window,
+            self.upcast(),
+            LocalName::from(&*localname),
+            CanGc::note(),
+        )
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
@@ -2602,13 +2607,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         localname: DOMString,
     ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::by_tag_name_ns(&window, self.upcast(), localname, maybe_ns)
+        HTMLCollection::by_tag_name_ns(&window, self.upcast(), localname, maybe_ns, CanGc::note())
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
     fn GetElementsByClassName(&self, classes: DOMString) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::by_class_name(&window, self.upcast(), classes)
+        HTMLCollection::by_class_name(&window, self.upcast(), classes, CanGc::note())
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
@@ -3071,7 +3076,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::children(&window, self.upcast())
+        HTMLCollection::children(&window, self.upcast(), CanGc::note())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
