@@ -2005,6 +2005,7 @@ impl Document {
             TouchEventType::Move => "touchmove",
             TouchEventType::Up => "touchend",
             TouchEventType::Cancel => "touchcancel",
+            TouchEventType::ContextMenu => "contextmenu",
         };
 
         let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
@@ -2018,6 +2019,12 @@ impl Document {
 
         let target = DomRoot::upcast::<EventTarget>(el);
         let window = &*self.window;
+
+        // if touch type is contextmenu, only show context menu, and no callbacks.
+        if let TouchEventType::ContextMenu = event.event_type {
+            self.maybe_show_context_menu(&target, 0, hit_test_result.point_in_viewport, can_gc);
+            return TouchEventResult::Forwarded;
+        }
 
         let client_x = Finite::wrap(hit_test_result.point_in_viewport.x as f64);
         let client_y = Finite::wrap(hit_test_result.point_in_viewport.y as f64);
@@ -2062,6 +2069,9 @@ impl Document {
                     },
                     None => warn!("Got a touchend event for a non-active touch point"),
                 }
+            },
+            TouchEventType::ContextMenu => {
+                unreachable!("ContextMenu")
             },
         }
 
