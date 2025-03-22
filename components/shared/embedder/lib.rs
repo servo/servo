@@ -220,6 +220,27 @@ pub enum AllowOrDeny {
     Deny,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+
+pub struct SelectElementOption {
+    /// A unique identifier for the option that can be used to select it.
+    pub id: usize,
+    /// The label that should be used to display the option to the user.
+    pub label: String,
+    /// Whether or not the option is selectable
+    pub is_disabled: bool,
+}
+
+/// Represents the contents of either an `<option>` or an `<optgroup>` element
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum SelectElementOptionOrOptgroup {
+    Option(SelectElementOption),
+    Optgroup {
+        label: String,
+        options: Vec<SelectElementOption>,
+    },
+}
+
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
@@ -326,6 +347,16 @@ pub enum EmbedderMsg {
     /// Required because the constellation can have pending calls to make
     /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
     ShutdownComplete,
+    /// Indicates that the user has activated a `<select>` element.
+    ///
+    /// The embedder should respond with the new state of the `<select>` element.
+    ShowSelectElementMenu(
+        WebViewId,
+        Vec<SelectElementOptionOrOptgroup>,
+        Option<usize>,
+        DeviceIntRect,
+        IpcSender<Option<usize>>,
+    ),
 }
 
 impl Debug for EmbedderMsg {
@@ -581,4 +612,10 @@ pub enum LoadStatus {
     /// `document.readyState` == `complete`.
     /// See <https://developer.mozilla.org/en-US/docs/Web/API/Document/readyState>
     Complete,
+}
+
+impl From<SelectElementOption> for SelectElementOptionOrOptgroup {
+    fn from(value: SelectElementOption) -> Self {
+        Self::Option(value)
+    }
 }
