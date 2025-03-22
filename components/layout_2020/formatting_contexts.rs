@@ -12,11 +12,10 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
-use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags, SpecificLayoutInfo,
+use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
+use crate::layout_box_base::{
+    CacheableLayoutResult, CacheableLayoutResultAndInputs, LayoutBoxBase,
 };
-use crate::geom::LogicalSides;
-use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContents;
 use crate::sizing::{self, ComputeInlineContentSizes, InlineContentSizesResult};
@@ -66,35 +65,6 @@ impl Baselines {
             last: self.last.map(|last| last + block_offset),
         }
     }
-}
-
-pub(crate) struct IndependentLayout {
-    pub fragments: Vec<Fragment>,
-
-    /// <https://drafts.csswg.org/css2/visudet.html#root-height>
-    pub content_block_size: Au,
-
-    /// If a table has collapsed columns, it can become smaller than what the parent
-    /// formatting context decided. This is the resulting inline content size.
-    /// This is None for non-table layouts and for tables without collapsed columns.
-    pub content_inline_size_for_table: Option<Au>,
-
-    /// The offset of the last inflow baseline of this layout in the content area, if
-    /// there was one. This is used to propagate baselines to the ancestors of `display:
-    /// inline-block`.
-    pub baselines: Baselines,
-
-    /// Whether or not this layout depends on the containing block size.
-    pub depends_on_block_constraints: bool,
-
-    /// Additional information of this layout that could be used by Javascripts and devtools.
-    pub specific_layout_info: Option<SpecificLayoutInfo>,
-}
-
-pub(crate) struct IndependentLayoutResult {
-    pub fragment: BoxFragment,
-    pub baselines: Option<Baselines>,
-    pub pbm_sums: LogicalSides<Au>,
 }
 
 impl IndependentFormattingContext {
@@ -255,17 +225,20 @@ impl IndependentNonReplacedContents {
         positioning_context: &mut PositioningContext,
         containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
-    ) -> IndependentLayout {
+        depends_on_block_constraints: bool,
+    ) -> CacheableLayoutResult {
         match self {
             IndependentNonReplacedContents::Flow(bfc) => bfc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
+                depends_on_block_constraints,
             ),
             IndependentNonReplacedContents::Flex(fc) => fc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
+                depends_on_block_constraints,
             ),
             IndependentNonReplacedContents::Grid(fc) => fc.layout(
                 layout_context,
@@ -278,8 +251,68 @@ impl IndependentNonReplacedContents {
                 positioning_context,
                 containing_block_for_children,
                 containing_block,
+                depends_on_block_constraints,
             ),
         }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "IndependentNonReplacedContents::layout_with_caching",
+            skip_all,
+            fields(servo_profiling = true),
+            level = "trace",
+        )
+    )]
+    pub fn layout_with_caching(
+        &self,
+        layout_context: &LayoutContext,
+        positioning_context: &mut PositioningContext,
+        containing_block_for_children: &ContainingBlock,
+        containing_block: &ContainingBlock,
+        base: &LayoutBoxBase,
+        depends_on_block_constraints: bool,
+    ) -> CacheableLayoutResult {
+        if let Some(cache) = base.cached_layout_result.borrow().as_ref() {
+            if cache.containing_block_for_children_size.inline ==
+                containing_block_for_children.size.inline &&
+                (cache.containing_block_for_children_size.block ==
+                    containing_block_for_children.size.block ||
+                    !(cache.result.depends_on_block_constraints ||
+                        depends_on_block_constraints))
+            {
+                positioning_context.append(cache.positioning_context.clone());
+                return cache.result.clone();
+            }
+            #[cfg(feature = "tracing")]
+            tracing::debug!(
+                name: "NonReplaced cache miss",
+                cached = ?cache.containing_block_for_children_size,
+                required = ?containing_block_for_children.size,
+            );
+        }
+
+        let mut child_positioning_context = PositioningContext::new_for_subtree(
+            positioning_context.collects_for_nearest_positioned_ancestor(),
+        );
+
+        let result = self.layout(
+            layout_context,
+            &mut child_positioning_context,
+            containing_block_for_children,
+            containing_block,
+            depends_on_block_constraints,
+        );
+
+        *base.cached_layout_result.borrow_mut() = Some(CacheableLayoutResultAndInputs {
+            result: result.clone(),
+            positioning_context: child_positioning_context.clone(),
+            containing_block_for_children_size: containing_block_for_children.size.clone(),
+        });
+        positioning_context.append(child_positioning_context);
+
+        result
     }
 
     #[inline]

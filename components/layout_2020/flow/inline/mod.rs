@@ -109,15 +109,17 @@ use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
 use xi_unicode::linebreak_property;
 
-use super::IndependentFormattingContextContents;
 use super::float::{Clear, PlacementAmongFloats};
+use super::{
+    CacheableLayoutResult, IndependentFloatOrAtomicLayoutResult,
+    IndependentFormattingContextContents,
+};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
+use crate::flow::CollapsibleWithParentStartMargin;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
-use crate::flow::{CollapsibleWithParentStartMargin, FlowLayout};
 use crate::formatting_contexts::{
-    Baselines, IndependentFormattingContext, IndependentLayoutResult,
-    IndependentNonReplacedContents,
+    Baselines, IndependentFormattingContext, IndependentNonReplacedContents,
 };
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
@@ -1585,7 +1587,7 @@ impl InlineFormattingContext {
         containing_block: &ContainingBlock,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
-    ) -> FlowLayout {
+    ) -> CacheableLayoutResult {
         let first_line_inline_start = if self.has_first_formatted_line {
             containing_block
                 .style
@@ -1697,12 +1699,14 @@ impl InlineFormattingContext {
             content_block_size == Au::zero() &&
             collapsible_with_parent_start_margin.0;
 
-        FlowLayout {
+        CacheableLayoutResult {
             fragments: layout.fragments,
             content_block_size,
             collapsible_margins_in_children,
             baselines: layout.baselines,
             depends_on_block_constraints: layout.depends_on_block_constraints,
+            content_inline_size_for_table: None,
+            specific_layout_info: None,
         }
     }
 
@@ -1922,7 +1926,7 @@ impl IndependentFormattingContext {
         // We need to know the inline size of the atomic before deciding whether to do the line break.
         let mut child_positioning_context = PositioningContext::new_for_style(self.style())
             .unwrap_or_else(|| PositioningContext::new_for_subtree(true));
-        let IndependentLayoutResult {
+        let IndependentFloatOrAtomicLayoutResult {
             mut fragment,
             baselines,
             pbm_sums,

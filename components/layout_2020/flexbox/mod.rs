@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use geom::{FlexAxis, MainStartCrossStart};
 use servo_arc::Arc as ServoArc;
 use style::logical_geometry::WritingMode;
@@ -13,15 +12,15 @@ use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::values::computed::{AlignContent, JustifyContent};
 use style::values::specified::align::AlignFlags;
 
+use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::construct_modern::{ModernContainerBuilder, ModernItemKind};
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
-use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
+use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
-use crate::{ContainingBlock, PropagatedBoxTreeData};
+use crate::positioned::AbsolutelyPositionedBox;
 
 mod geom;
 mod layout;
@@ -146,7 +145,6 @@ pub(crate) enum FlexLevelBox {
 
 pub(crate) struct FlexItemBox {
     independent_formatting_context: IndependentFormattingContext,
-    block_content_size_cache: ArcRefCell<Option<CachedBlockSizeContribution>>,
 }
 
 impl std::fmt::Debug for FlexItemBox {
@@ -159,7 +157,6 @@ impl FlexItemBox {
     fn new(independent_formatting_context: IndependentFormattingContext) -> Self {
         Self {
             independent_formatting_context,
-            block_content_size_cache: Default::default(),
         }
     }
 
@@ -169,21 +166,5 @@ impl FlexItemBox {
 
     fn base_fragment_info(&self) -> BaseFragmentInfo {
         self.independent_formatting_context.base_fragment_info()
-    }
-}
-
-struct CachedBlockSizeContribution {
-    containing_block_inline_size: Au,
-    layout: IndependentLayout,
-    positioning_context: PositioningContext,
-}
-
-impl CachedBlockSizeContribution {
-    fn compatible_with_item_as_containing_block(
-        &self,
-        item_as_containing_block: &ContainingBlock,
-    ) -> bool {
-        item_as_containing_block.size.inline == self.containing_block_inline_size &&
-            !item_as_containing_block.size.block.is_definite()
     }
 }

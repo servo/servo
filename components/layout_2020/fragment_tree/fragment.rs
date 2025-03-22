@@ -45,6 +45,7 @@ pub(crate) enum Fragment {
     IFrame(ArcRefCell<IFrameFragment>),
 }
 
+#[derive(Clone)]
 pub(crate) struct CollapsedBlockMargins {
     pub collapsed_through: bool,
     pub start: CollapsedMargin,
