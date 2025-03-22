@@ -7566,7 +7566,7 @@ class CGConcreteBindingRoot(CGThing):
         cgthings += [CGGeneric(
             f"pub(crate) type {t.identifier.name} = "
             f"{originalBinding}::{t.identifier.name}"
-            f"{'::<crate::DomTypeHolder>' if containsDomInterface(t.innerType) else ''};"
+            f"{'::<crate::DomTypeHolder>' if containsDomInterface(t.innerType) or t.innerType.isPromise() else ''};"
         ) for t in typedefs]
 
         cgthings += [CGGeneric(
@@ -7682,7 +7682,7 @@ class CGBindingRoot(CGThing):
                 # Allow using the typedef's name for accessing variants.
                 typeDefinition = f"pub(crate) use self::{type.replace('<D>', '')} as {name};"
             else:
-                generic = "<D>" if containsDomInterface(t.innerType) else ""
+                generic = "<D>" if containsDomInterface(t.innerType) or t.innerType.isPromise() else ""
                 replacedType = type.replace("D::", "<D as DomTypes>::")
                 typeDefinition = f"pub(crate) type {name}{generic} = {replacedType};"
 

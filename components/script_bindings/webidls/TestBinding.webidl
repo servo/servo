@@ -10,6 +10,7 @@ typedef (DOMString or URL or Blob) TestTypedef;
 typedef (DOMString or URL or Blob)? TestTypedefNullableUnion;
 typedef DOMString TestTypedefString;
 typedef Blob TestTypedefInterface;
+typedef Promise<DOMString> TestTypedefPromise;
 
 dictionary TestDictionary {
   required boolean requiredValue;
