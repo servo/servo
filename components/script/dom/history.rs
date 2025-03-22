@@ -123,8 +123,7 @@ impl History {
             Some(data) => {
                 let data = StructuredSerializedData {
                     serialized: data,
-                    ports: None,
-                    blobs: None,
+                    ..Default::default()
                 };
                 rooted!(in(*GlobalScope::get_cx()) let mut state = UndefinedValue());
                 if structuredclone::read(self.window.as_global_scope(), data, state.handle_mut())

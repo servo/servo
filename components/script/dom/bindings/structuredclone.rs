@@ -9,7 +9,7 @@ use std::num::NonZeroU32;
 use std::os::raw;
 use std::ptr;
 
-use base::id::{BlobId, MessagePortId, PipelineNamespaceId};
+use base::id::{BlobId, DomPointId, MessagePortId, PipelineNamespaceId};
 use js::glue::{
     CopyJSStructuredCloneData, DeleteJSAutoStructuredCloneBuffer, GetLengthOfJSStructuredCloneData,
     NewJSAutoStructuredCloneBuffer, WriteBytesToJSStructuredCloneData,
@@ -24,7 +24,7 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use script_bindings::conversions::IDLInterface;
-use script_traits::serializable::BlobImpl;
+use script_traits::serializable::{BlobImpl, DomPoint};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
     Serializable as SerializableInterface, StructuredSerializedData,
@@ -38,6 +38,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
 use crate::dom::bindings::transferable::{ExtractComponents, IdFromComponents, Transferable};
 use crate::dom::blob::Blob;
+use crate::dom::dompoint::DOMPoint;
+use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
@@ -54,6 +56,8 @@ pub(super) enum StructuredCloneTags {
     DomBlob = 0xFFFF8001,
     MessagePort = 0xFFFF8002,
     Principals = 0xFFFF8003,
+    DomPointReadOnly = 0xFFFF8004,
+    DomPoint = 0xFFFF8005,
     Max = 0xFFFFFFFF,
 }
 
@@ -61,6 +65,8 @@ impl From<SerializableInterface> for StructuredCloneTags {
     fn from(v: SerializableInterface) -> Self {
         match v {
             SerializableInterface::Blob => StructuredCloneTags::DomBlob,
+            SerializableInterface::DomPointReadOnly => StructuredCloneTags::DomPointReadOnly,
+            SerializableInterface::DomPoint => StructuredCloneTags::DomPoint,
         }
     }
 }
@@ -83,6 +89,8 @@ fn reader_for_type(
 ) -> *mut JSObject {
     match val {
         SerializableInterface::Blob => read_object::<Blob>,
+        SerializableInterface::DomPointReadOnly => read_object::<DOMPointReadOnly>,
+        SerializableInterface::DomPoint => read_object::<DOMPoint>,
     }
 }
 
@@ -214,6 +222,8 @@ type SerializeOperation = unsafe fn(
 fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
     match val {
         SerializableInterface::Blob => try_serialize::<Blob>,
+        SerializableInterface::DomPointReadOnly => try_serialize::<DOMPointReadOnly>,
+        SerializableInterface::DomPoint => try_serialize::<DOMPoint>,
     }
 }
 
@@ -465,6 +475,9 @@ pub(crate) enum StructuredData<'a> {
 pub(crate) struct StructuredDataReader {
     /// A map of deserialized blobs, stored temporarily here to keep them rooted.
     pub(crate) blobs: Option<HashMap<StorageKey, DomRoot<Blob>>>,
+    /// A map of deserialized points, stored temporarily here to keep them rooted.
+    pub(crate) points_read_only: Option<HashMap<StorageKey, DomRoot<DOMPointReadOnly>>>,
+    pub(crate) dom_points: Option<HashMap<StorageKey, DomRoot<DOMPoint>>>,
     /// A vec of transfer-received DOM ports,
     /// to be made available to script through a message event.
     pub(crate) message_ports: Option<Vec<DomRoot<MessagePort>>>,
@@ -476,12 +489,17 @@ pub(crate) struct StructuredDataReader {
     /// used as part of the "deserialize" steps of blobs,
     /// to produce the DOM blobs stored in `blobs` above.
     pub(crate) blob_impls: Option<HashMap<BlobId, BlobImpl>>,
+    /// A map of serialized points.
+    pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
 }
 
 /// A data holder for transferred and serialized objects.
+#[derive(Default)]
 pub(crate) struct StructuredDataWriter {
     /// Transferred ports.
     pub(crate) ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
+    /// Serialized points.
+    pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// Serialized blobs.
     pub(crate) blobs: Option<HashMap<BlobId, BlobImpl>>,
 }
@@ -497,10 +515,7 @@ pub(crate) fn write(
         if let Some(transfer) = transfer {
             transfer.to_jsval(*cx, val.handle_mut());
         }
-        let mut sc_writer = StructuredDataWriter {
-            ports: None,
-            blobs: None,
-        };
+        let mut sc_writer = StructuredDataWriter::default();
         let sc_writer_ptr = &mut sc_writer as *mut _;
 
         let scbuf = NewJSAutoStructuredCloneBuffer(
@@ -537,6 +552,7 @@ pub(crate) fn write(
         let data = StructuredSerializedData {
             serialized: data,
             ports: sc_writer.ports.take(),
+            points: sc_writer.points.take(),
             blobs: sc_writer.blobs.take(),
         };
 
@@ -556,8 +572,11 @@ pub(crate) fn read(
     let mut sc_reader = StructuredDataReader {
         blobs: None,
         message_ports: None,
+        points_read_only: None,
+        dom_points: None,
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),
+        points: data.points.take(),
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {

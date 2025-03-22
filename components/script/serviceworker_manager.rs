@@ -64,7 +64,7 @@ impl ServiceWorker {
     fn forward_dom_message(&self, msg: DOMMessage) {
         let DOMMessage { origin, data } = msg;
         let _ = self.sender.send(ServiceWorkerScriptMsg::CommonWorker(
-            WorkerScriptMsg::DOMMessage { origin, data },
+            WorkerScriptMsg::DOMMessage { origin, data: Box::new(data) },
         ));
     }
 
