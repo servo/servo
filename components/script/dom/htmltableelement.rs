@@ -309,6 +309,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                         element.local_name() == &local_name!("tbody") &&
                         element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
+                CanGc::note(),
             )
         })
     }
@@ -348,7 +349,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             None,
             &self.owner_document(),
             None,
-            can_gc,
+            CanGc::note(),
         );
         let node = self.upcast::<Node>();
 
@@ -366,7 +367,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                     .AppendChild(new_row.upcast::<Node>())
                     .expect("InsertRow failed to append first row.");
             } else {
-                let tbody = self.CreateTBody(can_gc);
+                let tbody = self.CreateTBody(CanGc::note());
                 node.AppendChild(tbody.upcast())
                     .expect("InsertRow failed to append new tbody.");
 
