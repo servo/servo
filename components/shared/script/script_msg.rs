@@ -11,10 +11,9 @@ use base::id::{
     MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use constellation_traits::{LogEntry, TraversalDirection};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{
-    EmbedderMsg, MediaSessionEvent, TouchEventType, TouchSequenceId, TraversalDirection,
-};
+use embedder_traits::{EmbedderMsg, MediaSessionEvent, TouchEventType, TouchSequenceId};
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -53,19 +52,6 @@ pub enum TouchEventResult {
     DefaultAllowed(TouchSequenceId, TouchEventType),
     /// Prevented by web content
     DefaultPrevented(TouchSequenceId, TouchEventType),
-}
-
-/// A log entry reported to the constellation
-/// We don't report all log entries, just serious ones.
-/// We need a separate type for this because `LogLevel` isn't serializable.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum LogEntry {
-    /// Panic, with a reason and backtrace
-    Panic(String, String),
-    /// Error, with a reason
-    Error(String),
-    /// warning, with a reason
-    Warn(String),
 }
 
 /// Messages from the script to the constellation.

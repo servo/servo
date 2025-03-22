@@ -24,10 +24,12 @@ use base::id::{
     BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
     WebViewId,
 };
-use bitflags::bitflags;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use constellation_traits::{
+    AnimationTickType, CompositorHitTestResult, ScrollState, WindowSizeData, WindowSizeType,
+};
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::input_events::InputEvent;
@@ -36,9 +38,7 @@ use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use http::{HeaderMap, Method};
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use libc::c_void;
 use log::warn;
-use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::image_cache::ImageCache;
@@ -47,7 +47,7 @@ use net_traits::storage_thread::StorageType;
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use pixels::PixelFormat;
 use profile_traits::{mem, time as profile_time};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use strum::{EnumIter, IntoEnumIterator};
 use strum_macros::IntoStaticStr;
@@ -57,60 +57,14 @@ use stylo_atoms::Atom;
 use webgpu::WebGPUMsg;
 use webrender_api::units::DevicePixel;
 use webrender_api::{DocumentId, ImageKey};
-use webrender_traits::{
-    CompositorHitTestResult, CrossProcessCompositorApi, ScrollState,
-    UntrustedNodeAddress as WebRenderUntrustedNodeAddress,
-};
+use webrender_traits::CrossProcessCompositorApi;
 
 pub use crate::script_msg::{
-    DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, LogEntry,
-    SWManagerMsg, SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg, TouchEventResult,
+    DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg,
+    SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg, TouchEventResult,
 };
 use crate::serializable::BlobImpl;
 use crate::transferable::MessagePortImpl;
-
-/// The address of a node. Layout sends these back. They must be validated via
-/// `from_untrusted_node_address` before they can be used, because we do not trust layout.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct UntrustedNodeAddress(pub *const c_void);
-
-malloc_size_of_is_0!(UntrustedNodeAddress);
-
-#[allow(unsafe_code)]
-unsafe impl Send for UntrustedNodeAddress {}
-
-impl From<WebRenderUntrustedNodeAddress> for UntrustedNodeAddress {
-    fn from(o: WebRenderUntrustedNodeAddress) -> Self {
-        UntrustedNodeAddress(o.0)
-    }
-}
-
-impl From<style_traits::dom::OpaqueNode> for UntrustedNodeAddress {
-    fn from(o: style_traits::dom::OpaqueNode) -> Self {
-        UntrustedNodeAddress(o.0 as *const c_void)
-    }
-}
-
-impl Serialize for UntrustedNodeAddress {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        (self.0 as usize).serialize(s)
-    }
-}
-
-impl<'de> Deserialize<'de> for UntrustedNodeAddress {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
-        let value: usize = Deserialize::deserialize(d)?;
-        Ok(UntrustedNodeAddress::from_id(value))
-    }
-}
-
-impl UntrustedNodeAddress {
-    /// Creates an `UntrustedNodeAddress` from the given pointer address value.
-    #[inline]
-    pub fn from_id(id: usize) -> UntrustedNodeAddress {
-        UntrustedNodeAddress(id as *const c_void)
-    }
-}
 
 /// The origin where a given load was initiated.
 /// Useful for origin checks, for example before evaluation a JS URL.
@@ -579,37 +533,6 @@ pub struct IFrameLoadInfoWithData {
     pub sandbox: IFrameSandboxState,
     /// The initial viewport size for this iframe.
     pub window_size: WindowSizeData,
-}
-
-bitflags! {
-    #[derive(Debug, Default, Deserialize, Serialize)]
-    /// Specifies if rAF should be triggered and/or CSS Animations and Transitions.
-    pub struct AnimationTickType: u8 {
-        /// Trigger a call to requestAnimationFrame.
-        const REQUEST_ANIMATION_FRAME = 0b001;
-        /// Trigger restyles for CSS Animations and Transitions.
-        const CSS_ANIMATIONS_AND_TRANSITIONS = 0b010;
-    }
-}
-
-/// Data about the window size.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub struct WindowSizeData {
-    /// The size of the initial layout viewport, before parsing an
-    /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
-    pub initial_viewport: Size2D<f32, CSSPixel>,
-
-    /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
-}
-
-/// The type of window size change.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub enum WindowSizeType {
-    /// Initial load.
-    Initial,
-    /// Window resize.
-    Resize,
 }
 
 /// Resources required by workerglobalscopes

@@ -4,6 +4,7 @@
 
 //! Defines data structures which are consumed by the Compositor.
 
+use base::id::ScrollTreeNodeId;
 use embedder_traits::Cursor;
 use serde::{Deserialize, Serialize};
 use style::values::specified::Overflow;
@@ -52,18 +53,6 @@ pub struct HitTestInfo {
 
     /// The id of the [ScrollTree] associated with this hit test item.
     pub scroll_tree_node: ScrollTreeNodeId,
-}
-
-/// An id for a ScrollTreeNode in the ScrollTree. This contains both the index
-/// to the node in the tree's array of nodes as well as the corresponding SpatialId
-/// for the SpatialNode in the WebRender display list.
-#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize)]
-pub struct ScrollTreeNodeId {
-    /// The index of this scroll tree node in the tree's array of nodes.
-    pub index: usize,
-
-    /// The WebRender spatial id of this scroll tree node.
-    pub spatial_id: SpatialId,
 }
 
 /// Data stored for nodes in the [ScrollTree] that actually scroll,

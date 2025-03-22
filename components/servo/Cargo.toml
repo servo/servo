@@ -66,6 +66,7 @@ cfg-if = { workspace = true }
 compositing = { path = "../compositing" }
 compositing_traits = { workspace = true }
 constellation = { path = "../constellation" }
+constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools = { path = "../devtools" }
 devtools_traits = { workspace = true }

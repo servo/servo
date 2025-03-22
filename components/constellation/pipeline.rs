@@ -20,6 +20,7 @@ use base::id::{
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
+use constellation_traits::WindowSizeData;
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
@@ -35,7 +36,7 @@ use profile_traits::{mem as profile_mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
     AnimationState, DiscardBrowsingContext, DocumentActivity, InitialScriptState, LoadData,
-    NewLayoutInfo, SWManagerMsg, ScriptThreadMessage, ScriptToConstellationChan, WindowSizeData,
+    NewLayoutInfo, SWManagerMsg, ScriptThreadMessage, ScriptToConstellationChan,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};

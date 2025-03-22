@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use base::id::ScrollTreeNodeId;
 use style::values::computed::basic_shape::{BasicShape, ClipPath};
 use style::values::computed::length_percentage::NonNegativeLengthPercentage;
 use style::values::computed::position::Position;
@@ -10,7 +11,6 @@ use style::values::generics::basic_shape::{GenericShapeRadius, ShapeBox, ShapeGe
 use style::values::generics::position::GenericPositionOrAuto;
 use webrender_api::ClipChainId;
 use webrender_api::units::{LayoutRect, LayoutSideOffsets, LayoutSize};
-use webrender_traits::display_list::ScrollTreeNodeId;
 
 use super::{BuilderForBoxFragment, DisplayList, compute_margin_box_radius, normalize_radii};
 

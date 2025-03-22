@@ -17,6 +17,7 @@ use std::sync::{Arc, LazyLock};
 use app_units::Au;
 use base::Epoch;
 use base::id::{PipelineId, WebViewId};
+use constellation_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -48,10 +49,7 @@ use script_layout_interface::{
     Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
     ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
-use script_traits::{
-    DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage, UntrustedNodeAddress,
-    WindowSizeData,
-};
+use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::{self, DebugOptions};
 use servo_config::pref;
@@ -88,7 +86,7 @@ use stylo_atoms::Atom;
 use url::Url;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{ExternalScrollId, HitTestFlags, units};
-use webrender_traits::{CrossProcessCompositorApi, ScrollState};
+use webrender_traits::CrossProcessCompositorApi;
 
 // This mutex is necessary due to syncronisation issues between two different types of thread-local storage
 // which manifest themselves when the layout thread tries to layout iframes in parallel with the main page
@@ -292,7 +290,7 @@ impl Layout for LayoutThread {
             .compositor_api
             .hit_test(Some(self.id.into()), client_point, flags);
 
-        results.iter().map(|result| result.node.into()).collect()
+        results.iter().map(|result| result.node).collect()
     }
 
     #[cfg_attr(

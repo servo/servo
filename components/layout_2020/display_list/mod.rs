@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use base::WebRenderEpochToU16;
+use base::id::ScrollTreeNodeId;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit};
 use fonts::GlyphStore;
@@ -35,9 +36,7 @@ use webrender_api::{
     self as wr, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
     ImageRendering, NinePatchBorder, NinePatchBorderSource, units,
 };
-use webrender_traits::display_list::{
-    AxesScrollSensitivity, CompositorDisplayListInfo, ScrollTreeNodeId,
-};
+use webrender_traits::display_list::{AxesScrollSensitivity, CompositorDisplayListInfo};
 use wr::units::LayoutVector2D;
 
 use crate::context::LayoutContext;

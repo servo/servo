@@ -2,14 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Communication with the compositor thread.
-
-mod constellation_msg;
+//! The interface to the `compositing` crate.
 
 use std::fmt::{Debug, Error, Formatter};
 
 use base::id::{PipelineId, WebViewId};
-pub use constellation_msg::{ConstellationMsg, PaintMetricEvent};
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::{EventLoopWaker, MouseButton, MouseButtonAction};
 use euclid::Rect;
