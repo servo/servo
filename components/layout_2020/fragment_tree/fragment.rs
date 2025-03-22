@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use app_units::Au;
+use atomic_refcell::AtomicRef;
 use base::id::PipelineId;
 use base::print_tree::PrintTree;
 use fonts::{FontMetrics, GlyphStore};
@@ -15,8 +16,8 @@ use style::values::specified::text::TextDecorationLine;
 use webrender_api::{FontInstanceKey, ImageKey};
 
 use super::{
-    BaseFragment, BoxFragment, ContainingBlockManager, HoistedSharedFragment, PositioningFragment,
-    Tag,
+    BaseFragment, BoxFragment, ContainingBlockInfoContext, ContainingBlockManager,
+    ContainingBlockQueryInfo, HoistedSharedFragment, PositioningFragment, Tag,
 };
 use crate::cell::ArcRefCell;
 use crate::geom::{LogicalSides, PhysicalRect};
@@ -156,6 +157,22 @@ impl Fragment {
         }
     }
 
+    pub(crate) fn children(&self) -> Option<AtomicRef<Vec<Fragment>>> {
+        match self {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                Some(AtomicRef::map(fragment.borrow(), |fragment| {
+                    &fragment.children
+                }))
+            },
+            Fragment::Positioning(fragment) => {
+                Some(AtomicRef::map(fragment.borrow(), |fragment| {
+                    &fragment.children
+                }))
+            },
+            _ => None,
+        }
+    }
+
     pub(crate) fn find<T>(
         &self,
         manager: &ContainingBlockManager<PhysicalRect<Au>>,
@@ -206,6 +223,31 @@ impl Fragment {
             },
             _ => None,
         }
+    }
+
+    // Child find but we are considering scrollOffset. This will be the first step of
+    // implementing a find element architecture that support mapping of coordinate space.
+    pub(crate) fn find_v2(
+        &self,
+        find_context: &ContainingBlockInfoContext,
+        process_func: &mut impl FnMut(
+            &Fragment,
+            &ContainingBlockInfoContext,
+        ) -> Option<ContainingBlockQueryInfo>,
+    ) -> Option<ContainingBlockQueryInfo> {
+        if let Some(result) = process_func(self, find_context) {
+            return Some(result);
+        }
+
+        find_context.precompute_state_and_then(self, |new_context| {
+            self.children().and_then(|children| {
+                children
+                    .iter()
+                    .find_map(|child| child.find_v2(new_context, process_func))
+            })
+        });
+
+        None
     }
 }
 
