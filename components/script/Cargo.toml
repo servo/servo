@@ -45,6 +45,7 @@ bincode = { workspace = true }
 bitflags = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
+constellation_traits = { workspace = true }
 cbc = { workspace = true }
 cipher = { workspace = true }
 chrono = { workspace = true }

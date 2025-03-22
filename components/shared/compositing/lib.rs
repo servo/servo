@@ -2,21 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Communication with the compositor thread.
-
-mod constellation_msg;
+//! The interface to the `compositing` crate.
 
 use std::fmt::{Debug, Error, Formatter};
 
 use base::id::{PipelineId, WebViewId};
-pub use constellation_msg::{ConstellationMsg, PaintMetricEvent};
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::{EventLoopWaker, MouseButton, MouseButtonAction};
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::Image;
-use script_traits::{AnimationState, ScriptThreadMessage, TouchEventResult};
+use script_traits::{AnimationState, TouchEventResult};
 use strum_macros::IntoStaticStr;
 use style_traits::CSSPixel;
 use webrender_api::DocumentId;
@@ -105,7 +102,6 @@ pub struct SendableFrameTree {
 pub struct CompositionPipeline {
     pub id: PipelineId,
     pub webview_id: WebViewId,
-    pub script_chan: IpcSender<ScriptThreadMessage>,
 }
 
 impl Debug for CompositorMsg {

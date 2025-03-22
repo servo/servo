@@ -8,7 +8,8 @@ use std::collections::hash_map::{Entry, Keys, Values, ValuesMut};
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
-use compositing_traits::{ConstellationMsg, SendableFrameTree};
+use compositing_traits::SendableFrameTree;
+use constellation_traits::{CompositorHitTestResult, ConstellationMsg, ScrollState};
 use embedder_traits::{
     InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, ShutdownState,
     TouchEvent, TouchEventType, TouchId,
@@ -16,13 +17,12 @@ use embedder_traits::{
 use euclid::{Point2D, Scale, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
-use script_traits::{AnimationState, ScriptThreadMessage, TouchEventResult};
+use script_traits::{AnimationState, TouchEventResult};
 use webrender::Transaction;
 use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{
     ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
-use webrender_traits::{CompositorHitTestResult, ScrollState};
 
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};
@@ -158,10 +158,14 @@ impl WebView {
             }
         });
 
-        if let Some(pipeline) = details.pipeline.as_ref() {
-            let message = ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states);
-            let _ = pipeline.script_chan.send(message);
-        }
+        let _ = self
+            .global
+            .borrow()
+            .constellation_sender
+            .send(ConstellationMsg::SetScrollStates(
+                pipeline_id,
+                scroll_states,
+            ));
     }
 
     pub(crate) fn set_frame_tree_on_pipeline_details(

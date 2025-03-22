@@ -1085,6 +1085,7 @@ dependencies = [
  "base",
  "bitflags 2.9.0",
  "compositing_traits",
+ "constellation_traits",
  "crossbeam-channel",
  "dpi",
  "embedder_traits",
@@ -1118,11 +1119,9 @@ dependencies = [
  "embedder_traits",
  "euclid",
  "ipc-channel",
- "keyboard-types",
  "log",
  "pixels",
  "script_traits",
- "servo_url",
  "strum_macros",
  "stylo_traits",
  "webrender_api",
@@ -1149,6 +1148,7 @@ dependencies = [
  "bluetooth_traits",
  "canvas_traits",
  "compositing_traits",
+ "constellation_traits",
  "crossbeam-channel",
  "devtools_traits",
  "embedder_traits",
@@ -1176,6 +1176,24 @@ dependencies = [
  "webrender_api",
  "webrender_traits",
  "webxr-api",
+]
+
+[[package]]
+name = "constellation_traits"
+version = "0.0.1"
+dependencies = [
+ "base",
+ "bitflags 2.9.0",
+ "embedder_traits",
+ "euclid",
+ "ipc-channel",
+ "malloc_size_of_derive",
+ "serde",
+ "servo_malloc_size_of",
+ "servo_url",
+ "strum_macros",
+ "stylo_traits",
+ "webrender_api",
 ]
 
 [[package]]
@@ -4195,6 +4213,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "base",
+ "constellation_traits",
  "embedder_traits",
  "euclid",
  "fnv",
@@ -4328,6 +4347,7 @@ dependencies = [
  "compositing",
  "compositing_traits",
  "constellation",
+ "constellation_traits",
  "crossbeam-channel",
  "devtools",
  "devtools_traits",
@@ -6271,6 +6291,7 @@ dependencies = [
  "cbc",
  "chrono",
  "cipher",
+ "constellation_traits",
  "content-security-policy",
  "cookie 0.18.1",
  "crossbeam-channel",
@@ -6400,6 +6421,7 @@ dependencies = [
  "atomic_refcell",
  "base",
  "canvas_traits",
+ "constellation_traits",
  "euclid",
  "fnv",
  "fonts",
@@ -6444,6 +6466,7 @@ dependencies = [
  "bitflags 2.9.0",
  "bluetooth_traits",
  "canvas_traits",
+ "constellation_traits",
  "cookie 0.18.1",
  "crossbeam-channel",
  "devtools_traits",
@@ -8499,7 +8522,7 @@ version = "0.0.1"
 dependencies = [
  "base",
  "base64 0.22.1",
- "compositing_traits",
+ "constellation_traits",
  "cookie 0.18.1",
  "crossbeam-channel",
  "embedder_traits",
@@ -8619,6 +8642,7 @@ name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
  "base",
+ "constellation_traits",
  "dpi",
  "embedder_traits",
  "euclid",

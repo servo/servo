@@ -45,7 +45,7 @@ use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
 use compositing::windowing::{EmbedderMethods, WindowMethods};
 use compositing::{IOCompositor, InitialCompositorState};
-use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg};
+use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -59,6 +59,7 @@ use constellation::{
     Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState,
     UnprivilegedContent,
 };
+use constellation_traits::{ConstellationMsg, WindowSizeData};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
@@ -85,7 +86,7 @@ use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::{mem, time};
 use script::{JSEngineSetup, ServiceWorkerManager};
-use script_traits::{ScriptToConstellationChan, WindowSizeData};
+use script_traits::ScriptToConstellationChan;
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
