@@ -477,24 +477,6 @@ impl HTMLInputElement {
         textinput.set_content(value);
     }
 
-    fn does_readonly_apply(&self) -> bool {
-        matches!(
-            self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Email |
-                InputType::Password |
-                InputType::Date |
-                InputType::Month |
-                InputType::Week |
-                InputType::Time |
-                InputType::DatetimeLocal |
-                InputType::Number
-        )
-    }
-
     fn does_minmaxlength_apply(&self) -> bool {
         matches!(
             self.input_type(),
@@ -2753,7 +2735,7 @@ impl Validatable for HTMLInputElement {
             InputType::Hidden | InputType::Button | InputType::Reset => false,
             _ => {
                 !(self.upcast::<Element>().disabled_state() ||
-                    (self.ReadOnly() && self.does_readonly_apply()) ||
+                    self.ReadOnly() ||
                     is_barred_by_datalist_ancestor(self.upcast()))
             },
         }
