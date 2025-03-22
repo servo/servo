@@ -450,7 +450,7 @@ impl DevtoolsInstance {
 
     fn handle_network_event(
         &mut self,
-        mut connections: Vec<TcpStream>,
+        connections: Vec<TcpStream>,
         pipeline_id: PipelineId,
         request_id: String,
         network_event: NetworkEvent,

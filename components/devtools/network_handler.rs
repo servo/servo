@@ -51,7 +51,7 @@ struct SecurityInfoUpdateMsg {
     state: String,
 }
 
-pub fn handle_network_event(
+pub(crate) fn handle_network_event(
     actors: Arc<Mutex<ActorRegistry>>,
     console_actor_name: String,
     netevent_actor_name: String,
