@@ -1,10 +1,16 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::net::TcpStream;
+use std::sync::{Arc, Mutex};
+
+use devtools_traits::NetworkEvent;
+use serde::Serialize;
+
 use crate::actor::ActorRegistry;
 use crate::actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
 use crate::protocol::JsonPacketStream;
-use devtools_traits::NetworkEvent;
-use serde::Serialize;
-use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
