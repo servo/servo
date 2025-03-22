@@ -149,10 +149,10 @@ impl XRRenderStateMethods<crate::DomTypeHolder> for XRRenderState {
     }
 
     /// <https://immersive-web.github.io/layers/#dom-xrrenderstate-layers>
-    fn Layers(&self, cx: JSContext, retval: MutableHandleValue) {
+    fn Layers(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         // TODO: cache this array?
         let layers = self.layers.borrow();
         let layers: Vec<&XRLayer> = layers.iter().map(|x| &**x).collect();
-        to_frozen_array(&layers[..], cx, retval)
+        to_frozen_array(&layers[..], cx, retval, can_gc)
     }
 }

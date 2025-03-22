@@ -691,8 +691,8 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// > constructor, or the sequence is empty, the value of this attribute will be `[0]`.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-thresholds>
-    fn Thresholds(&self, context: JSContext, retval: MutableHandleValue) {
-        to_frozen_array(&self.thresholds.borrow(), context, retval);
+    fn Thresholds(&self, context: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+        to_frozen_array(&self.thresholds.borrow(), context, retval, can_gc);
     }
 
     /// > A number indicating the minimum delay in milliseconds between notifications from

@@ -15,6 +15,9 @@ use std::{cmp, fmt, iter};
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
 use bitflags::bitflags;
+use constellation_traits::{
+    UntrustedNodeAddress, UntrustedNodeAddress as CompositorUntrustedNodeAddress,
+};
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D, Vector2D};
@@ -28,7 +31,7 @@ use script_layout_interface::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
     SVGSVGData, StyleData, TrustedNodeAddress,
 };
-use script_traits::{DocumentActivity, UntrustedNodeAddress};
+use script_traits::DocumentActivity;
 use selectors::matching::{
     MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags,
     matches_selector_list,
@@ -44,7 +47,6 @@ use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
-use webrender_traits::UntrustedNodeAddress as CompositorUntrustedNodeAddress;
 use xml5ever::serialize as xml_serialize;
 
 use super::globalscope::GlobalScope;
@@ -2731,13 +2733,16 @@ impl Node {
                     copy_elem.attach_shadow(
                         IsUserAgentWidget::No,
                         shadow_root.Mode(),
-                        true,
+                        shadow_root.Clonable(),
+                        shadow_root.Serializable(),
+                        shadow_root.DelegatesFocus(),
                         shadow_root.SlotAssignment(),
                         can_gc
                     )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
-                // TODO: Step 7.3 Set copy’s shadow root’s declarative to node’s shadow root’s declarative.
+                // Step 7.3 Set copy’s shadow root’s declarative to node’s shadow root’s declarative.
+                copy_shadow_root.set_declarative(shadow_root.is_declarative());
 
                 // Step 7.4 For each child child of node’s shadow root, in tree order: append the result of
                 // cloning child with document and the clone children flag set, to copy’s shadow root.

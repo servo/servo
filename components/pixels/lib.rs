@@ -3,10 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::fmt;
+use std::io::Cursor;
+use std::time::Duration;
+use std::{cmp, fmt, vec};
 
 use euclid::default::{Point2D, Rect, Size2D};
-use image::ImageFormat;
+use image::codecs::gif::GifDecoder;
+use image::{AnimationDecoder as _, ImageFormat};
 use ipc_channel::ipc::IpcSharedMemory;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -120,11 +123,33 @@ pub struct Image {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
-    pub bytes: IpcSharedMemory,
     #[ignore_malloc_size_of = "Defined in webrender_api"]
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
+    pub frames: Vec<ImageFrame>,
+}
+
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+pub struct ImageFrame {
+    pub delay: Option<Duration>,
+    #[ignore_malloc_size_of = "Defined in ipc-channel"]
+    pub bytes: IpcSharedMemory,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl Image {
+    pub fn should_animate(&self) -> bool {
+        self.frames.len() > 1
+    }
+
+    pub fn bytes(&self) -> IpcSharedMemory {
+        self.frames
+            .first()
+            .expect("Should have at least one frame")
+            .bytes
+            .clone()
+    }
 }
 
 impl fmt::Debug for Image {
@@ -157,22 +182,31 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
             debug!("{}", msg);
             None
         },
-        Ok(_) => match image::load_from_memory(buffer) {
-            Ok(image) => {
-                let mut rgba = image.into_rgba8();
-                rgba8_byte_swap_colors_inplace(&mut rgba);
-                Some(Image {
-                    width: rgba.width(),
-                    height: rgba.height(),
-                    format: PixelFormat::BGRA8,
-                    bytes: IpcSharedMemory::from_bytes(&rgba),
-                    id: None,
-                    cors_status,
-                })
-            },
-            Err(e) => {
-                debug!("Image decoding error: {:?}", e);
-                None
+        Ok(format) => match format {
+            ImageFormat::Gif => decode_gif(buffer, cors_status),
+            _ => match image::load_from_memory(buffer) {
+                Ok(image) => {
+                    let mut rgba = image.into_rgba8();
+                    rgba8_byte_swap_colors_inplace(&mut rgba);
+                    let frame = ImageFrame {
+                        delay: None,
+                        bytes: IpcSharedMemory::from_bytes(&rgba),
+                        width: rgba.width(),
+                        height: rgba.height(),
+                    };
+                    Some(Image {
+                        width: rgba.width(),
+                        height: rgba.height(),
+                        format: PixelFormat::BGRA8,
+                        frames: vec![frame],
+                        id: None,
+                        cors_status,
+                    })
+                },
+                Err(e) => {
+                    debug!("Image decoding error: {:?}", e);
+                    None
+                },
             },
         },
     }
@@ -255,6 +289,57 @@ fn is_webp(buffer: &[u8]) -> bool {
     // > of the whole file is at most 4 GiB minus 2 bytes.
     let len: usize = u32::from_le_bytes(size) as usize;
     buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
+}
+
+fn decode_gif(buffer: &[u8], cors_status: CorsStatus) -> Option<Image> {
+    let Ok(decoded_gif) = GifDecoder::new(Cursor::new(buffer)) else {
+        return None;
+    };
+    let mut width = 0;
+    let mut height = 0;
+
+    // This uses `map_while`, because the first non-decodable frame seems to
+    // send the frame iterator into an infinite loop. See
+    // <https://github.com/image-rs/image/issues/2442>.
+    let frames: Vec<ImageFrame> = decoded_gif
+        .into_frames()
+        .map_while(|decoded_frame| {
+            let mut frame = match decoded_frame {
+                Ok(decoded_frame) => decoded_frame,
+                Err(error) => {
+                    debug!("decode GIF frame error: {error}");
+                    return None;
+                },
+            };
+            rgba8_byte_swap_colors_inplace(frame.buffer_mut());
+
+            let frame = ImageFrame {
+                bytes: IpcSharedMemory::from_bytes(frame.buffer()),
+                delay: Some(Duration::from(frame.delay())),
+                width: frame.buffer().width(),
+                height: frame.buffer().height(),
+            };
+
+            // The image size should be at least as large as the largest frame.
+            width = cmp::max(width, frame.width);
+            height = cmp::max(height, frame.height);
+            Some(frame)
+        })
+        .collect();
+
+    if frames.is_empty() {
+        debug!("Animated Image decoding error");
+        None
+    } else {
+        Some(Image {
+            width,
+            height,
+            cors_status,
+            frames,
+            id: None,
+            format: PixelFormat::BGRA8,
+        })
+    }
 }
 
 #[cfg(test)]

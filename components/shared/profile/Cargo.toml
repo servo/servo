@@ -19,6 +19,8 @@ base = { workspace = true }
 crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 serde = { workspace = true }
 servo_config = { path = "../../config" }
 signpost = { git = "https://github.com/pcwalton/signpost.git" }

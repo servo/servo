@@ -19,13 +19,12 @@ use std::{env, fmt, mem, process, thread};
 use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
-use compositing_traits::ConstellationMsg;
+use constellation_traits::{ConstellationMsg, TraversalDirection};
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
-    TraversalDirection, WebDriverCommandMsg, WebDriverCookieError, WebDriverFrameId,
-    WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
-    WebDriverScriptCommand,
+    WebDriverCommandMsg, WebDriverCookieError, WebDriverFrameId, WebDriverJSError,
+    WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::{Rect, Size2D};
 use http::method::Method;
@@ -1677,7 +1676,7 @@ impl Handler {
             "Unexpected screenshot pixel format"
         );
 
-        let rgb = RgbaImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
+        let rgb = RgbaImage::from_raw(img.width, img.height, img.bytes().to_vec()).unwrap();
         let mut png_data = Cursor::new(Vec::new());
         DynamicImage::ImageRgba8(rgb)
             .write_to(&mut png_data, ImageFormat::Png)

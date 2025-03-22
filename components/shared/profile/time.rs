@@ -5,6 +5,7 @@
 use base::cross_process_instant::CrossProcessInstant;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use strum_macros::IntoStaticStr;
@@ -188,7 +189,7 @@ impl ProfilerCategory {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum TimerMetadataFrameType {
     RootWindow,
     IFrame,

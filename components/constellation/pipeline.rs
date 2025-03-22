@@ -20,6 +20,7 @@ use base::id::{
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
+use constellation_traits::WindowSizeData;
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
@@ -34,9 +35,8 @@ use net_traits::image_cache::ImageCache;
 use profile_traits::{mem as profile_mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
-    AnimationState, DiscardBrowsingContext, DocumentActivity, InitialScriptState, LayoutMsg,
-    LoadData, NewLayoutInfo, SWManagerMsg, ScriptThreadMessage, ScriptToConstellationChan,
-    WindowSizeData,
+    AnimationState, DiscardBrowsingContext, DocumentActivity, InitialScriptState, LoadData,
+    NewLayoutInfo, SWManagerMsg, ScriptThreadMessage, ScriptToConstellationChan,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
@@ -132,9 +132,6 @@ pub struct InitialPipelineState {
 
     /// A channel for the background hang monitor to send messages to the constellation.
     pub background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
-
-    /// A channel for the layout to send messages to the constellation.
-    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
     /// A fatory for creating layouts to be used by the ScriptThread.
     pub layout_factory: Arc<dyn LayoutFactory>,
@@ -279,7 +276,6 @@ impl Pipeline {
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
                     window_size: state.window_size,
-                    layout_to_constellation_chan: state.layout_to_constellation_chan,
                     script_chan: script_chan.clone(),
                     load_data: state.load_data.clone(),
                     script_port,
@@ -481,7 +477,6 @@ pub struct UnprivilegedPipelineContent {
     script_to_constellation_chan: ScriptToConstellationChan,
     background_hang_monitor_to_constellation_chan: IpcSender<HangMonitorAlert>,
     bhm_control_port: Option<IpcReceiver<BackgroundHangMonitorControlMsg>>,
-    layout_to_constellation_chan: IpcSender<LayoutMsg>,
     devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     #[cfg(feature = "bluetooth")]
     bluetooth_thread: IpcSender<BluetoothRequest>,
@@ -533,7 +528,6 @@ impl UnprivilegedPipelineContent {
                 constellation_receiver: self.script_port,
                 pipeline_to_constellation_sender: self.script_to_constellation_chan.clone(),
                 background_hang_monitor_register: background_hang_monitor_register.clone(),
-                layout_to_constellation_ipc_sender: self.layout_to_constellation_chan.clone(),
                 #[cfg(feature = "bluetooth")]
                 bluetooth_sender: self.bluetooth_thread,
                 resource_threads: self.resource_threads,

@@ -1898,6 +1898,8 @@ impl HTMLMediaElement {
                 IsUserAgentWidget::Yes,
                 ShadowRootMode::Closed,
                 false,
+                false,
+                false,
                 SlotAssignmentMode::Manual,
                 can_gc,
             )

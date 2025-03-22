@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Types used by the embedding layer and/or exposed to the API. This crate is responsible for
+//! defining types that cross the process boundary from the embedding/rendering layer all the way
+//! to script, thus it should have very minimal dependencies on other parts of Servo. If a type
+//! is not exposed in the API or doesn't involve messages sent to the embedding/libservo layer, it
+//! is probably a better fit for the `constellation_traits` crate.
+
 pub mod input_events;
 pub mod resources;
 mod webdriver;
@@ -524,15 +530,6 @@ impl WebResourceResponse {
         self.status_message = status_message;
         self
     }
-}
-
-/// The direction of a history traversal
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub enum TraversalDirection {
-    /// Travel forward the given number of documents.
-    Forward(usize),
-    /// Travel backward the given number of documents.
-    Back(usize),
 }
 
 /// The type of platform theme.

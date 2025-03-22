@@ -85,9 +85,9 @@ impl XRBoundedReferenceSpaceMethods<crate::DomTypeHolder> for XRBoundedReference
                 })
                 .collect();
 
-            to_frozen_array(&points, cx, retval)
+            to_frozen_array(&points, cx, retval, can_gc)
         } else {
-            to_frozen_array::<DomRoot<DOMPointReadOnly>>(&[], cx, retval)
+            to_frozen_array::<DomRoot<DOMPointReadOnly>>(&[], cx, retval, can_gc)
         }
     }
 }

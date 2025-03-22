@@ -7,13 +7,13 @@ use std::sync::atomic::Ordering;
 use std::{fmt, slice};
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
+use constellation_traits::UntrustedNodeAddress;
 use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
 use js::jsapi::JSObject;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{LayoutNodeType, StyleData};
-use script_traits::UntrustedNodeAddress;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, VisitedHandlingMode};

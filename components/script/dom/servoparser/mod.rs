@@ -1423,8 +1423,8 @@ impl TreeSink for Sink {
         // has a shadowrootserializable attribute; otherwise false.
         let mut shadow_root_mode = ShadowRootMode::Open;
         let mut clonable = false;
-        let mut _delegatesfocus = false;
-        let mut _serializable = false;
+        let mut delegatesfocus = false;
+        let mut serializable = false;
 
         let attrs: Vec<ElementAttribute> = attrs
             .clone()
@@ -1448,10 +1448,10 @@ impl TreeSink for Sink {
                     clonable = true;
                 },
                 local_name!("shadowrootdelegatesfocus") => {
-                    _delegatesfocus = true;
+                    delegatesfocus = true;
                 },
                 local_name!("shadowrootserializable") => {
-                    _serializable = true;
+                    serializable = true;
                 },
                 _ => {},
             });
@@ -1462,6 +1462,8 @@ impl TreeSink for Sink {
             IsUserAgentWidget::No,
             shadow_root_mode,
             clonable,
+            serializable,
+            delegatesfocus,
             SlotAssignmentMode::Manual,
             CanGc::note(),
         ) {

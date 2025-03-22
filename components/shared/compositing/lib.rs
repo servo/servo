@@ -2,15 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Communication with the compositor thread.
-
-mod constellation_msg;
+//! The interface to the `compositing` crate.
 
 use std::fmt::{Debug, Error, Formatter};
 
-use base::Epoch;
 use base::id::{PipelineId, WebViewId};
-pub use constellation_msg::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::{EventLoopWaker, MouseButton, MouseButtonAction};
 use euclid::Rect;
@@ -84,10 +80,6 @@ pub enum CompositorMsg {
     // sends a reply on the IpcSender, the constellation knows it's safe to
     // tear down the other threads associated with this pipeline.
     PipelineExited(WebViewId, PipelineId, IpcSender<()>),
-    /// Indicates to the compositor that it needs to record the time when the frame with
-    /// the given ID (epoch) is painted and report it to the layout of the given
-    /// WebViewId and PipelienId.
-    PendingPaintMetric(WebViewId, PipelineId, Epoch),
     /// The load of a page has completed
     LoadComplete(WebViewId),
     /// WebDriver mouse button event

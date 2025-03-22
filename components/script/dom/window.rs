@@ -21,6 +21,7 @@ use base64::Engine;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
+use constellation_traits::{ScrollState, WindowSizeData, WindowSizeType};
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
@@ -61,8 +62,7 @@ use script_layout_interface::{
 };
 use script_traits::{
     DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptMsg, ScriptThreadMessage,
-    ScriptToConstellationChan, ScrollState, StructuredSerializedData, WindowSizeData,
-    WindowSizeType,
+    ScriptToConstellationChan, StructuredSerializedData,
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;

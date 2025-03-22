@@ -82,6 +82,12 @@ pub(crate) struct ShadowRoot {
 
     /// <https://dom.spec.whatwg.org/#shadowroot-declarative>
     declarative: Cell<bool>,
+
+    /// <https://dom.spec.whatwg.org/#shadowroot-serializable>
+    serializable: Cell<bool>,
+
+    /// <https://dom.spec.whatwg.org/#shadowroot-delegates-focus>
+    delegates_focus: Cell<bool>,
 }
 
 impl ShadowRoot {
@@ -117,6 +123,8 @@ impl ShadowRoot {
             slots: Default::default(),
             is_user_agent_widget: is_user_agent_widget == IsUserAgentWidget::Yes,
             declarative: Cell::new(false),
+            serializable: Cell::new(false),
+            delegates_focus: Cell::new(false),
         }
     }
 
@@ -284,6 +292,22 @@ impl ShadowRoot {
     pub(crate) fn set_declarative(&self, declarative: bool) {
         self.declarative.set(declarative);
     }
+
+    pub(crate) fn is_declarative(&self) -> bool {
+        self.declarative.get()
+    }
+
+    pub(crate) fn shadow_root_mode(&self) -> ShadowRootMode {
+        self.mode
+    }
+
+    pub(crate) fn set_serializable(&self, serializable: bool) {
+        self.serializable.set(serializable);
+    }
+
+    pub(crate) fn set_delegates_focus(&self, delegates_focus: bool) {
+        self.delegates_focus.set(delegates_focus);
+    }
 }
 
 impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
@@ -349,9 +373,19 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         self.mode
     }
 
+    /// <https://dom.spec.whatwg.org/#dom-delegates-focus>
+    fn DelegatesFocus(&self) -> bool {
+        self.delegates_focus.get()
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-clonable>
     fn Clonable(&self) -> bool {
         self.clonable
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-serializable>
+    fn Serializable(&self) -> bool {
+        self.serializable.get()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-host>

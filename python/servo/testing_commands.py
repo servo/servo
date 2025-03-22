@@ -166,6 +166,7 @@ class MachCommands(CommandBase):
             "hyper_serde",
             "layout_2020",
             "libservo",
+            "metrics",
             "net",
             "net_traits",
             "pixels",

@@ -39,7 +39,6 @@ mod from_constellation {
                 Self::SetThrottled(..) => target!("SetThrottled"),
                 Self::NewWebRenderFrameReady(..) => target!("NewWebRenderFrameReady"),
                 Self::PipelineExited(..) => target!("PipelineExited"),
-                Self::PendingPaintMetric(..) => target!("PendingPaintMetric"),
                 Self::LoadComplete(..) => target!("LoadComplete"),
                 Self::WebDriverMouseButtonEvent(..) => target!("WebDriverMouseButtonEvent"),
                 Self::WebDriverMouseMoveEvent(..) => target!("WebDriverMouseMoveEvent"),

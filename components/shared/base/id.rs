@@ -16,7 +16,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
+use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId, SpatialId};
 
 /// Asserts the size of a type at compile time.
 macro_rules! size_of_test {
@@ -442,3 +442,15 @@ pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
 };
 
 pub const TEST_WEBVIEW_ID: WebViewId = WebViewId(TEST_BROWSING_CONTEXT_ID);
+
+/// An id for a ScrollTreeNode in the ScrollTree. This contains both the index
+/// to the node in the tree's array of nodes as well as the corresponding SpatialId
+/// for the SpatialNode in the WebRender display list.
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct ScrollTreeNodeId {
+    /// The index of this scroll tree node in the tree's array of nodes.
+    pub index: usize,
+
+    /// The WebRender spatial id of this scroll tree node.
+    pub spatial_id: SpatialId,
+}
