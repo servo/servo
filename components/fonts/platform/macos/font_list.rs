@@ -101,7 +101,9 @@ where
 /// Get the list of fallback fonts given an optional codepoint. This is
 /// based on `gfxPlatformMac::GetCommonFallbackFonts()` in Gecko from
 /// <https://searchfox.org/mozilla-central/source/gfx/thebes/gfxPlatformMac.cpp>.
-pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+pub fn available_system_installed_fonts(
+    options: FallbackFontSelectionOptions,
+) -> Vec<&'static str> {
     let mut families = Vec::new();
     if options.presentation_preference == EmojiPresentationPreference::Emoji {
         families.push("Apple Color Emoji");
@@ -225,4 +227,9 @@ pub fn default_system_generic_font_family(generic: GenericFontFamily) -> Lowerca
         GenericFontFamily::SystemUi => "Menlo",
     }
     .into()
+}
+
+pub fn get_list_of_installed_fonts() -> Vec<LowercaseFontFamilyName> {
+    // Placeholder; Write correct implementation here:
+    Vec::<LowercaseFontFamilyName>::new();
 }

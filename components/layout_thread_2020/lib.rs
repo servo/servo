@@ -1122,9 +1122,9 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
         _retrieve_math_scales: bool,
     ) -> FontMetrics {
         let font_context = &self.0;
-        let font_group = self
-            .0
-            .font_group_with_size(ServoArc::new(font.clone()), base_size.into());
+        let font_group =
+            self.0
+                .font_group_with_size(ServoArc::new(font.clone()), base_size.into(), None);
 
         let Some(first_font_metrics) = font_group
             .write()

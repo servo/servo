@@ -33,6 +33,7 @@ use crate::font_template::{FontTemplate, FontTemplateRef};
 use crate::platform::LocalFontIdentifier;
 use crate::platform::font_list::{
     default_system_generic_font_family, for_each_available_family, for_each_variation,
+    get_list_of_installed_fonts,
 };
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
@@ -242,8 +243,17 @@ impl SystemFontService {
     ) -> Vec<FontTemplateRef> {
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
+        let mut result = Vec::<FontTemplateRef>::new();
+
+        // This function is responsible for font matching algorithms, by providing vector of
+        // templates that would be used for font style matching against
+        // web-fonts, local generic fonts, and fonts that is installed in the OS
+        // https://www.w3.org/TR/css-fonts-4/#font-style-matching
+
+        // This block should be responsible for steps 1 and 2;
         let family_name = self.family_name_for_single_font_family(family);
-        self.local_families
+        let candidate = self
+            .local_families
             .families
             .get_mut(&family_name)
             .map(|font_templates| {
@@ -254,8 +264,33 @@ impl SystemFontService {
                 }
 
                 font_templates.find_for_descriptor(descriptor_to_match)
-            })
-            .unwrap_or_default()
+            });
+
+        if let Some(generic_or_specified_family) = candidate {
+            result.extend(generic_or_specified_family);
+        }
+
+        // This block should be responsible for step 3
+        // provide lists of all installed fonts together with known
+        // font aliases;
+        let os_installed_fonts = get_list_of_installed_fonts();
+        for family_name in os_installed_fonts {
+            result.extend(
+                self.local_families
+                    .families
+                    .get_mut(&family_name)
+                    .map(|font_templates| {
+                        if font_templates.templates.is_empty() {
+                            for_each_variation(&family_name, |font_template| {
+                                font_templates.add_template(font_template);
+                            });
+                        }
+                        font_templates.find_for_descriptor(descriptor_to_match)
+                    })
+                    .unwrap_or_default(),
+            );
+        }
+        result
     }
 
     #[cfg_attr(

@@ -142,7 +142,9 @@ where
 }
 
 // Based on gfxPlatformGtk::GetCommonFallbackFonts() in Gecko
-pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+pub fn available_system_installed_fonts(
+    options: FallbackFontSelectionOptions,
+) -> Vec<&'static str> {
     let mut families = Vec::new();
     if options.presentation_preference == EmojiPresentationPreference::Emoji {
         families.push("Noto Color Emoji");
@@ -231,6 +233,11 @@ pub fn default_system_generic_font_family(generic: GenericFontFamily) -> Lowerca
         GenericFontFamily::SystemUi => "Noto Sans",
     }
     .into()
+}
+
+pub fn get_list_of_installed_fonts() -> Vec<LowercaseFontFamilyName> {
+    // Placeholder; Write correct implementation here:
+    Vec::<LowercaseFontFamilyName>::new();
 }
 
 fn font_style_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontStyle> {

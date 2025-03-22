@@ -13,6 +13,7 @@ use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
 use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::font::FontWeight;
+use unicode_script::Script;
 
 use crate::font::FontDescriptor;
 use crate::system_font_service::{
@@ -31,6 +32,8 @@ pub struct FontTemplateDescriptor {
     pub weight: (FontWeight, FontWeight),
     pub stretch: (FontStretch, FontStretch),
     pub style: (FontStyle, FontStyle),
+    // We must allways set script Unknown
+    pub script: u8,
     #[ignore_malloc_size_of = "MallocSizeOf does not yet support RangeInclusive"]
     pub unicode_range: Option<Vec<RangeInclusive<u32>>>,
 }
@@ -52,6 +55,7 @@ impl FontTemplateDescriptor {
             weight: (weight, weight),
             stretch: (stretch, stretch),
             style: (style, style),
+            script: Script::Unknown as u8,
             unicode_range: None,
         }
     }
@@ -63,7 +67,7 @@ impl FontTemplateDescriptor {
     }
 
     /// Returns a score indicating how far apart visually the two font descriptors are. This is
-    /// used for implmenting the CSS Font Matching algorithm:
+    /// used for implmenting step 4 of the CSS Font Matching algorithm:
     /// <https://drafts.csswg.org/css-fonts/#font-matching-algorithm>.
     ///
     /// The smaller the score, the better the fonts match. 0 indicates an exact match. This must
@@ -73,6 +77,11 @@ impl FontTemplateDescriptor {
         let stretch_distance = target.stretch.match_distance(&self.stretch);
         let style_distance = target.style.match_distance(&self.style);
         let weight_distance = target.weight.match_distance(&self.weight);
+        let script_distance: f32 = if target.script == self.script {
+            0.0
+        } else {
+            1.0
+        };
 
         // Sanity-check that the distances are within the expected range
         // (update if implementation of the distance functions is changed).
@@ -88,11 +97,13 @@ impl FontTemplateDescriptor {
         //
         // Also relevant for font selection is the emoji presentation preference, but this
         // is handled later when filtering fonts based on the glyphs they contain.
+        const SCRIPT_FACTOR: f32 = 1.0e12;
         const STRETCH_FACTOR: f32 = 1.0e8;
         const STYLE_FACTOR: f32 = 1.0e4;
         const WEIGHT_FACTOR: f32 = 1.0e0;
 
-        stretch_distance * STRETCH_FACTOR +
+        script_distance * SCRIPT_FACTOR +
+            stretch_distance * STRETCH_FACTOR +
             style_distance * STYLE_FACTOR +
             weight_distance * WEIGHT_FACTOR
     }
@@ -204,6 +215,9 @@ pub trait FontTemplateRefMethods {
     /// Whether or not this character is in the unicode ranges specified in
     /// this temlates `@font-face` definition, if any.
     fn char_in_unicode_range(&self, character: char) -> bool;
+    /// Whether or not this character is in the unicode ranges specified in
+    /// this temlates `@font-face` definition, if any.
+    fn char_belongs_to_template_script(&self, character: char) -> bool;
 }
 
 impl FontTemplateRefMethods for FontTemplateRef {
@@ -230,6 +244,15 @@ impl FontTemplateRefMethods for FontTemplateRef {
             .unicode_range
             .as_ref()
             .is_none_or(|ranges| ranges.iter().any(|range| range.contains(&character)))
+    }
+
+    fn char_belongs_to_template_script(&self, character: char) -> bool {
+        let script = self.borrow().descriptor.script;
+        if script == (Script::Unknown as u8) {
+            return true;
+        };
+
+        script == (Script::from(character) as u8)
     }
 }
 

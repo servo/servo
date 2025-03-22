@@ -19,7 +19,7 @@ mod font_context {
         FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,
         FontIdentifier, FontSearchScope, FontTemplate, FontTemplates, LocalFontIdentifier,
         PlatformFontMethods, SystemFontServiceMessage, SystemFontServiceProxy,
-        SystemFontServiceProxySender, fallback_font_families,
+        SystemFontServiceProxySender, available_system_installed_fonts,
     };
     use ipc_channel::ipc::{self, IpcReceiver};
     use net_traits::ResourceThreads;
@@ -163,7 +163,8 @@ mod font_context {
                 families.insert("CSSTest ASCII".to_owned(), csstest_ascii);
                 families.insert("CSSTest Basic".to_owned(), csstest_basic);
                 families.insert(
-                    fallback_font_families(FallbackFontSelectionOptions::default())[0].to_owned(),
+                    available_system_installed_fonts(FallbackFontSelectionOptions::default())[0]
+                        .to_owned(),
                     fallback,
                 );
             }
@@ -356,6 +357,7 @@ mod font_context {
             stretch: FontStretch::hundred(),
             style: FontStyle::normal(),
             variant: FontVariantCaps::Normal,
+            script: Script::Unknown as u8,
             pt_size: Au(10),
         };
 

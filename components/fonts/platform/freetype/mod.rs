@@ -29,6 +29,8 @@ pub use self::android::font_list;
 #[cfg(any(target_env = "ohos", ohos_mock))]
 mod ohos {
     pub mod font_list;
+    mod iso15924_to_unicode_script;
+    mod json;
 }
 #[cfg(any(target_env = "ohos", ohos_mock))]
 pub use self::ohos::font_list;
