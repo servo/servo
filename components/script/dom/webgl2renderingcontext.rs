@@ -903,7 +903,6 @@ impl WebGL2RenderingContext {
 impl CanvasContext for WebGL2RenderingContext {
     type ID = WebGLContextId;
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Crown is wrong here #35570
     fn context_id(&self) -> Self::ID {
         self.base.context_id()
     }

@@ -127,7 +127,6 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, CanvasRenderingContex
 impl CanvasContext for CanvasRenderingContext2D {
     type ID = CanvasId;
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Crown is wrong here #35570
     fn context_id(&self) -> Self::ID {
         self.canvas_state.get_canvas_id()
     }
