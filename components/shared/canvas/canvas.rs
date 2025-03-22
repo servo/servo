@@ -25,7 +25,6 @@ pub struct CanvasId(pub u64);
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
-    FromLayout(FromLayoutMsg, CanvasId),
     FromScript(FromScriptMsg, CanvasId),
     Recreate(Option<Size2D<u64>>, CanvasId),
     Close(CanvasId),
@@ -74,10 +73,6 @@ pub enum Canvas2dMsg {
     SetFont(FontStyleStruct),
     SetTextAlign(TextAlign),
     SetTextBaseline(TextBaseline),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum FromLayoutMsg {
     UpdateImage(IpcSender<()>),
 }
 

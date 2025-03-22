@@ -17,6 +17,7 @@ use std::time::{Duration, Instant};
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
+use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
 use content_security_policy::{self as csp, CspList, PolicyDisposition};
@@ -75,6 +76,7 @@ use webrender_api::units::DeviceIntRect;
 use webrender_traits::CompositorHitTestResult;
 
 use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
+use super::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use super::clipboardevent::ClipboardEventType;
 use super::performancepainttiming::PerformancePaintTiming;
 use crate::DomTypes;
@@ -467,6 +469,8 @@ pub(crate) struct Document {
     /// where `id` needs to match any of the registered ShadowRoots
     /// hosting the media controls UI.
     media_controls: DomRefCell<HashMap<String, Dom<ShadowRoot>>>,
+    /// List of all context 2d IDs that need flushing.
+    dirty_2d_contexts: DomRefCell<HashMapTracedValues<CanvasId, Dom<CanvasRenderingContext2D>>>,
     /// List of all WebGL context IDs that need flushing.
     dirty_webgl_contexts:
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
@@ -3296,6 +3300,21 @@ impl Document {
         receiver.recv().unwrap();
     }
 
+    pub(crate) fn add_dirty_2d_canvas(&self, context: &CanvasRenderingContext2D) {
+        self.dirty_2d_contexts
+            .borrow_mut()
+            .entry(context.context_id())
+            .or_insert_with(|| Dom::from_ref(context));
+    }
+
+    pub(crate) fn flush_dirty_2d_canvases(&self) {
+        self.dirty_2d_contexts
+            .borrow_mut()
+            .drain()
+            .filter(|(_, context)| context.onscreen())
+            .for_each(|(_, context)| context.update_rendering());
+    }
+
     #[cfg(feature = "webgpu")]
     pub(crate) fn webgpu_contexts(&self) -> WebGPUContextsMap {
         self.webgpu_contexts.clone()
@@ -3845,6 +3864,7 @@ impl Document {
             shadow_roots: DomRefCell::new(HashSet::new()),
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
+            dirty_2d_contexts: DomRefCell::new(HashMapTracedValues::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMapTracedValues::new()),
             #[cfg(feature = "webgpu")]
             webgpu_contexts: Rc::new(RefCell::new(HashMapTracedValues::new())),
