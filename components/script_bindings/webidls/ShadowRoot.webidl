@@ -26,7 +26,7 @@ ShadowRoot includes DocumentOrShadowRoot;
 // https://html.spec.whatwg.org/multipage/#dom-parsing-and-serialization
 partial interface ShadowRoot {
   // [CEReactions] undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
-  // DOMString getHTML(optional GetHTMLOptions options = {});
+  DOMString getHTML(optional GetHTMLOptions options = {});
 
   // [CEReactions] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
   [CEReactions] attribute [LegacyNullToEmptyString] DOMString innerHTML;

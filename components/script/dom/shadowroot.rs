@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
 use dom_struct::dom_struct;
+use html5ever::serialize::TraversalScope;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
 use style::dom::TElement;
@@ -17,6 +18,7 @@ use stylo_atoms::Atom;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::GetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
@@ -405,11 +407,24 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         })
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-gethtml>
+    fn GetHTML(&self, options: &GetHTMLOptions, can_gc: CanGc) -> DOMString {
+        // > ShadowRoot's getHTML(options) method steps are to return the result of HTML fragment serialization
+        // >  algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
+        self.upcast::<Node>().html_serialize(
+            TraversalScope::ChildrenOnly(None),
+            options.serializableShadowRoots,
+            options.shadowRoots.clone(),
+            can_gc,
+        )
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
-    fn InnerHTML(&self) -> DOMString {
+    fn InnerHTML(&self, can_gc: CanGc) -> DOMString {
         // ShadowRoot's innerHTML getter steps are to return the result of running fragment serializing
         // algorithm steps with this and true.
-        self.upcast::<Node>().fragment_serialization_algorithm(true)
+        self.upcast::<Node>()
+            .fragment_serialization_algorithm(true, can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
