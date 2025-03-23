@@ -14,7 +14,6 @@ use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::codecs::webp::WebPEncoder;
 use image::{ColorType, ImageEncoder};
-use ipc_channel::ipc::IpcSharedMemory;
 #[cfg(feature = "webgpu")]
 use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
@@ -25,6 +24,7 @@ use script_traits::ScriptMsg;
 use script_traits::serializable::BlobImpl;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
+use snapshot::Snapshot;
 use style::attr::AttrValue;
 
 use crate::canvas_context::CanvasContext as _;
@@ -360,15 +360,15 @@ impl HTMLCanvasElement {
         self.Height() != 0 && self.Width() != 0
     }
 
-    pub(crate) fn fetch_all_data(&self) -> Option<(Option<IpcSharedMemory>, Size2D<u32>)> {
+    pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
         let size = self.get_size();
 
         if size.width == 0 || size.height == 0 {
             return None;
         }
 
-        let data = match self.context.borrow().as_ref() {
-            Some(CanvasContext::Context2d(context)) => context.get_image_data_as_shared_memory(),
+        match self.context.borrow().as_ref() {
+            Some(CanvasContext::Context2d(context)) => context.get_image_data(),
             Some(CanvasContext::WebGL(_context)) => {
                 // TODO: add a method in WebGLRenderingContext to get the pixels.
                 return None;
@@ -378,12 +378,10 @@ impl HTMLCanvasElement {
                 return None;
             },
             #[cfg(feature = "webgpu")]
-            Some(CanvasContext::WebGPU(context)) => context.get_image_data_as_shared_memory(),
-            Some(CanvasContext::Placeholder(context)) => return context.fetch_all_data(),
+            Some(CanvasContext::WebGPU(context)) => context.get_image_data(),
+            Some(CanvasContext::Placeholder(context)) => return context.get_image_data(),
             None => None,
-        };
-
-        Some((data, size))
+        }
     }
 
     fn get_content(&self) -> Option<Vec<u8>> {
@@ -395,9 +393,10 @@ impl HTMLCanvasElement {
             Some(CanvasContext::WebGPU(ref context)) => context.get_image_data(),
             Some(CanvasContext::Placeholder(_)) | None => {
                 // Each pixel is fully-transparent black.
-                Some(vec![0; (self.Width() * self.Height() * 4) as usize])
+                Some(Snapshot::cleared(self.get_size().cast()))
             },
         }
+        .map(|s| s.to_vec())
     }
 
     fn maybe_quality(quality: HandleValue) -> Option<f64> {

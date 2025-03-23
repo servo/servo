@@ -23,6 +23,7 @@ use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::pref;
+use snapshot::Snapshot;
 use url::Host;
 
 use crate::canvas_context::CanvasContext;
@@ -548,7 +549,7 @@ impl WebGL2RenderingContext {
             return
         );
 
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.base.send_command(WebGLCommand::ReadPixels(
             src_rect, format, pixel_type, sender,
         ));
@@ -915,11 +916,7 @@ impl CanvasContext for WebGL2RenderingContext {
         self.base.resize();
     }
 
-    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
-        self.base.get_image_data_as_shared_memory()
-    }
-
-    fn get_image_data(&self) -> Option<Vec<u8>> {
+    fn get_image_data(&self) -> Option<Snapshot> {
         self.base.get_image_data()
     }
 
