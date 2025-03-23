@@ -244,7 +244,7 @@ impl NodeInfoToProtocol for NodeInfo {
             causes_overflow: false,
             container_type: None,
             display_name: self.node_name.clone().to_lowercase(),
-            display_type: Some("block".into()),
+            display_type: self.display,
             inline_text_child,
             is_after_pseudo_element: false,
             is_anonymous: false,

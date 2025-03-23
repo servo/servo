@@ -22,8 +22,8 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
     FilteredMetadata, NetworkError, ResourceFetchTiming, ResourceTimingType,
 };
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{

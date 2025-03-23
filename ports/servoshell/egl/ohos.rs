@@ -41,10 +41,6 @@ use super::host_trait::HostTrait;
 mod resources;
 mod simpleservo;
 
-// Can be removed once <https://github.com/ohos-rs/ohos-rs/pull/105> is merged / released.
-#[link(name = "ace_napi.z")]
-extern "C" {}
-
 #[napi(object)]
 #[derive(Debug)]
 pub struct InitOpts {
@@ -53,6 +49,7 @@ pub struct InitOpts {
     pub os_full_name: String,
     /// Path to application data bundled with the servo app, e.g. web-pages.
     pub resource_dir: String,
+    pub cache_dir: String,
     pub display_density: f64,
     pub commandline_args: String,
 }
@@ -217,7 +214,7 @@ unsafe extern "C" fn on_vsync_cb(
 
 static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window: *mut c_void) {
     info!("on_surface_created_cb");
 

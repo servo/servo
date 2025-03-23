@@ -164,8 +164,9 @@ class MachCommands(CommandBase):
             "constellation",
             "fonts",
             "hyper_serde",
-            "layout_2013",
             "layout_2020",
+            "libservo",
+            "metrics",
             "net",
             "net_traits",
             "pixels",
@@ -173,7 +174,7 @@ class MachCommands(CommandBase):
             "selectors",
             "servo_config",
             "servoshell",
-            "style_config",
+            "stylo_config",
             "webrender_traits",
         ]
         if not packages:
@@ -577,168 +578,6 @@ class MachCommands(CommandBase):
             with open(bmf_output, 'w', encoding='utf-8') as f:
                 json.dump(output, f, indent=4)
 
-
-def create_parser_create():
-    import argparse
-    p = argparse.ArgumentParser()
-    p.add_argument("--no-editor", action="store_true",
-                   help="Don't try to open the test in an editor")
-    p.add_argument("-e", "--editor", action="store", help="Editor to use")
-    p.add_argument("--no-run", action="store_true",
-                   help="Don't try to update the wpt manifest or open the test in a browser")
-    p.add_argument('--release', action="store_true",
-                   help="Run with a release build of servo")
-    p.add_argument("--long-timeout", action="store_true",
-                   help="Test should be given a long timeout (typically 60s rather than 10s,"
-                   "but varies depending on environment)")
-    p.add_argument("--overwrite", action="store_true",
-                   help="Allow overwriting an existing test file")
-    p.add_argument("-r", "--reftest", action="store_true",
-                   help="Create a reftest rather than a testharness (js) test"),
-    p.add_argument("-ref", "--reference", dest="ref", help="Path to the reference file")
-    p.add_argument("--mismatch", action="store_true",
-                   help="Create a mismatch reftest")
-    p.add_argument("--wait", action="store_true",
-                   help="Create a reftest that waits until takeScreenshot() is called")
-    p.add_argument("path", action="store", help="Path to the test file")
-    return p
-
-
-@CommandProvider
-class WebPlatformTestsCreator(CommandBase):
-    template_prefix = """<!doctype html>
-%(documentElement)s<meta charset="utf-8">
-"""
-    template_long_timeout = "<meta name=timeout content=long>\n"
-
-    template_body_th = """<title></title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script>
-
-</script>
-"""
-
-    template_body_reftest = """<title></title>
-<link rel="%(match)s" href="%(ref)s">
-"""
-
-    template_body_reftest_wait = """<script src="/common/reftest-wait.js"></script>
-"""
-
-    def make_test_file_url(self, absolute_file_path):
-        # Make the path relative to the project top-level directory so that
-        # we can more easily find the right test directory.
-        file_path = os.path.relpath(absolute_file_path, PROJECT_TOPLEVEL_PATH)
-
-        if file_path.startswith(WEB_PLATFORM_TESTS_PATH):
-            url = file_path[len(WEB_PLATFORM_TESTS_PATH):]
-        elif file_path.startswith(SERVO_TESTS_PATH):
-            url = "/mozilla" + file_path[len(SERVO_TESTS_PATH):]
-        else:  # This test file isn't in any known test directory.
-            return None
-
-        return url.replace(os.path.sep, "/")
-
-    def make_test_and_reference_urls(self, test_path, reference_path):
-        test_path = os.path.normpath(os.path.abspath(test_path))
-        test_url = self.make_test_file_url(test_path)
-        if test_url is None:
-            return (None, None)
-
-        if reference_path is None:
-            return (test_url, '')
-        reference_path = os.path.normpath(os.path.abspath(reference_path))
-
-        # If the reference is in the same directory, the URL can just be the
-        # name of the refernce file itself.
-        reference_path_parts = os.path.split(reference_path)
-        if reference_path_parts[0] == os.path.split(test_path)[0]:
-            return (test_url, reference_path_parts[1])
-        return (test_url, self.make_test_file_url(reference_path))
-
-    @Command("create-wpt",
-             category="testing",
-             parser=create_parser_create)
-    def run_create(self, **kwargs):
-        import subprocess
-
-        test_path = kwargs["path"]
-        reference_path = kwargs["ref"]
-
-        if reference_path:
-            kwargs["reftest"] = True
-
-        (test_url, reference_url) = self.make_test_and_reference_urls(
-            test_path, reference_path)
-
-        if test_url is None:
-            print("""Test path %s is not in wpt directories:
-tests/wpt/tests for tests that may be shared
-tests/wpt/mozilla/tests for Servo-only tests""" % test_path)
-            return 1
-
-        if reference_url is None:
-            print("""Reference path %s is not in wpt directories:
-tests/wpt/tests for tests that may be shared
-tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
-            return 1
-
-        if os.path.exists(test_path) and not kwargs["overwrite"]:
-            print("Test path already exists, pass --overwrite to replace")
-            return 1
-
-        if kwargs["mismatch"] and not kwargs["reftest"]:
-            print("--mismatch only makes sense for a reftest")
-            return 1
-
-        if kwargs["wait"] and not kwargs["reftest"]:
-            print("--wait only makes sense for a reftest")
-            return 1
-
-        args = {"documentElement": "<html class=\"reftest-wait\">\n" if kwargs["wait"] else ""}
-        template = self.template_prefix % args
-        if kwargs["long_timeout"]:
-            template += self.template_long_timeout
-
-        if kwargs["reftest"]:
-            args = {"match": "match" if not kwargs["mismatch"] else "mismatch",
-                    "ref": reference_url}
-            template += self.template_body_reftest % args
-            if kwargs["wait"]:
-                template += self.template_body_reftest_wait
-        else:
-            template += self.template_body_th
-        with open(test_path, "w") as f:
-            f.write(template)
-
-        if kwargs["no_editor"]:
-            editor = None
-        elif kwargs["editor"]:
-            editor = kwargs["editor"]
-        elif "VISUAL" in os.environ:
-            editor = os.environ["VISUAL"]
-        elif "EDITOR" in os.environ:
-            editor = os.environ["EDITOR"]
-        else:
-            editor = None
-
-        if editor:
-            proc = subprocess.Popen("%s %s" % (editor, test_path), shell=True)
-
-        if not kwargs["no_run"]:
-            p = wpt.create_parser()
-            args = []
-            if kwargs["release"]:
-                args.append("--release")
-            args.append(test_path)
-            wpt_kwargs = vars(p.parse_args(args))
-            self.context.commands.dispatch("test-wpt", self.context, **wpt_kwargs)
-            self.context.commands.dispatch("update-manifest", self.context)
-
-        if editor:
-            proc.wait()
-
     @Command('update-net-cookies',
              description='Update the net unit tests with cookie tests from http-state',
              category='testing')
@@ -889,3 +728,29 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
             if result != 0:
                 print("Could not clean up try commit. Sorry! Please try to reset to the previous commit.")
             return result
+
+
+def create_parser_create():
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("--no-editor", action="store_true",
+                   help="Don't try to open the test in an editor")
+    p.add_argument("-e", "--editor", action="store", help="Editor to use")
+    p.add_argument("--no-run", action="store_true",
+                   help="Don't try to update the wpt manifest or open the test in a browser")
+    p.add_argument('--release', action="store_true",
+                   help="Run with a release build of servo")
+    p.add_argument("--long-timeout", action="store_true",
+                   help="Test should be given a long timeout (typically 60s rather than 10s,"
+                   "but varies depending on environment)")
+    p.add_argument("--overwrite", action="store_true",
+                   help="Allow overwriting an existing test file")
+    p.add_argument("-r", "--reftest", action="store_true",
+                   help="Create a reftest rather than a testharness (js) test"),
+    p.add_argument("-ref", "--reference", dest="ref", help="Path to the reference file")
+    p.add_argument("--mismatch", action="store_true",
+                   help="Create a mismatch reftest")
+    p.add_argument("--wait", action="store_true",
+                   help="Create a reftest that waits until takeScreenshot() is called")
+    p.add_argument("path", action="store", help="Path to the test file")
+    return p

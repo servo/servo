@@ -16,16 +16,15 @@ use std::net::{SocketAddr, SocketAddrV4};
 use std::time::Duration;
 use std::{env, fmt, mem, process, thread};
 
-use base::id::{BrowsingContextId, TopLevelBrowsingContextId};
+use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
-use compositing_traits::ConstellationMsg;
+use constellation_traits::{ConstellationMsg, TraversalDirection};
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
-    TraversalDirection, WebDriverCommandMsg, WebDriverCookieError, WebDriverFrameId,
-    WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
-    WebDriverScriptCommand,
+    WebDriverCommandMsg, WebDriverCookieError, WebDriverFrameId, WebDriverJSError,
+    WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::{Rect, Size2D};
 use http::method::Method;
@@ -125,9 +124,9 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
 pub struct WebDriverSession {
     id: Uuid,
     browsing_context_id: BrowsingContextId,
-    top_level_browsing_context_id: TopLevelBrowsingContextId,
+    webview_id: WebViewId,
 
-    window_handles: HashMap<TopLevelBrowsingContextId, String>,
+    window_handles: HashMap<WebViewId, String>,
 
     /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
     /// specifies that the script should run indefinitely.
@@ -153,18 +152,15 @@ pub struct WebDriverSession {
 }
 
 impl WebDriverSession {
-    pub fn new(
-        browsing_context_id: BrowsingContextId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) -> WebDriverSession {
+    pub fn new(browsing_context_id: BrowsingContextId, webview_id: WebViewId) -> WebDriverSession {
         let mut window_handles = HashMap::new();
         let handle = Uuid::new_v4().to_string();
-        window_handles.insert(top_level_browsing_context_id, handle);
+        window_handles.insert(webview_id, handle);
 
         WebDriverSession {
             id: Uuid::new_v4(),
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
 
             window_handles,
 
@@ -422,7 +418,7 @@ impl Handler {
         }
     }
 
-    fn focus_top_level_browsing_context_id(&self) -> WebDriverResult<TopLevelBrowsingContextId> {
+    fn focus_webview_id(&self) -> WebDriverResult<WebViewId> {
         debug!("Getting focused context.");
         let interval = 20;
         let iterations = 30_000 / interval;
@@ -483,12 +479,9 @@ impl Handler {
         if self.session.is_none() {
             match processed_capabilities {
                 Some(mut processed) => {
-                    let top_level_browsing_context_id =
-                        self.focus_top_level_browsing_context_id()?;
-                    let browsing_context_id =
-                        BrowsingContextId::from(top_level_browsing_context_id);
-                    let mut session =
-                        WebDriverSession::new(browsing_context_id, top_level_browsing_context_id);
+                    let webview_id = self.focus_webview_id()?;
+                    let browsing_context_id = BrowsingContextId::from(webview_id);
+                    let mut session = WebDriverSession::new(browsing_context_id, webview_id);
 
                     match processed.get("pageLoadStrategy") {
                         Some(strategy) => session.page_loading_strategy = strategy.to_string(),
@@ -638,8 +631,7 @@ impl Handler {
     }
 
     fn top_level_script_command(&self, cmd_msg: WebDriverScriptCommand) -> WebDriverResult<()> {
-        let browsing_context_id =
-            BrowsingContextId::from(self.session()?.top_level_browsing_context_id);
+        let browsing_context_id = BrowsingContextId::from(self.session()?.webview_id);
         let msg = ConstellationMsg::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(
             browsing_context_id,
             cmd_msg,
@@ -659,13 +651,10 @@ impl Handler {
             },
         };
 
-        let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
+        let webview_id = self.session()?.webview_id;
 
-        let cmd_msg = WebDriverCommandMsg::LoadUrl(
-            top_level_browsing_context_id,
-            url,
-            self.load_status_sender.clone(),
-        );
+        let cmd_msg =
+            WebDriverCommandMsg::LoadUrl(webview_id, url, self.load_status_sender.clone());
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
@@ -699,8 +688,8 @@ impl Handler {
 
     fn handle_window_size(&self) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
-        let cmd_msg = WebDriverCommandMsg::GetWindowSize(top_level_browsing_context_id, sender);
+        let webview_id = self.session()?.webview_id;
+        let cmd_msg = WebDriverCommandMsg::GetWindowSize(webview_id, sender);
 
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
@@ -731,12 +720,8 @@ impl Handler {
         let width = params.width.unwrap_or(0);
         let height = params.height.unwrap_or(0);
         let size = Size2D::new(width as u32, height as u32);
-        let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
-        let cmd_msg = WebDriverCommandMsg::SetWindowSize(
-            top_level_browsing_context_id,
-            size.to_i32(),
-            sender.clone(),
-        );
+        let webview_id = self.session()?.webview_id;
+        let cmd_msg = WebDriverCommandMsg::SetWindowSize(webview_id, size.to_i32(), sender.clone());
 
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
@@ -748,7 +733,7 @@ impl Handler {
             // On timeout, we send a GetWindowSize message to the constellation,
             // which will give the current window size.
             thread::sleep(Duration::from_millis(timeout as u64));
-            let cmd_msg = WebDriverCommandMsg::GetWindowSize(top_level_browsing_context_id, sender);
+            let cmd_msg = WebDriverCommandMsg::GetWindowSize(webview_id, sender);
             constellation_chan
                 .send(ConstellationMsg::WebDriverCommand(cmd_msg))
                 .unwrap();
@@ -797,28 +782,25 @@ impl Handler {
     }
 
     fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
-        let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
+        let webview_id = self.session()?.webview_id;
         let direction = TraversalDirection::Back(1);
-        let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
+        let msg = ConstellationMsg::TraverseHistory(webview_id, direction);
         self.constellation_chan.send(msg).unwrap();
         Ok(WebDriverResponse::Void)
     }
 
     fn handle_go_forward(&self) -> WebDriverResult<WebDriverResponse> {
-        let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
+        let webview_id = self.session()?.webview_id;
         let direction = TraversalDirection::Forward(1);
-        let msg = ConstellationMsg::TraverseHistory(top_level_browsing_context_id, direction);
+        let msg = ConstellationMsg::TraverseHistory(webview_id, direction);
         self.constellation_chan.send(msg).unwrap();
         Ok(WebDriverResponse::Void)
     }
 
     fn handle_refresh(&self) -> WebDriverResult<WebDriverResponse> {
-        let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
+        let webview_id = self.session()?.webview_id;
 
-        let cmd_msg = WebDriverCommandMsg::Refresh(
-            top_level_browsing_context_id,
-            self.load_status_sender.clone(),
-        );
+        let cmd_msg = WebDriverCommandMsg::Refresh(webview_id, self.load_status_sender.clone());
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
@@ -839,10 +821,7 @@ impl Handler {
 
     fn handle_window_handle(&self) -> WebDriverResult<WebDriverResponse> {
         let session = self.session.as_ref().unwrap();
-        match session
-            .window_handles
-            .get(&session.top_level_browsing_context_id)
-        {
+        match session.window_handles.get(&session.webview_id) {
             Some(handle) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(handle)?,
             ))),
@@ -910,23 +889,20 @@ impl Handler {
     fn handle_close_window(&mut self) -> WebDriverResult<WebDriverResponse> {
         {
             let session = self.session_mut().unwrap();
-            session
-                .window_handles
-                .remove(&session.top_level_browsing_context_id);
-            let cmd_msg = WebDriverCommandMsg::CloseWebView(session.top_level_browsing_context_id);
+            session.window_handles.remove(&session.webview_id);
+            let cmd_msg = WebDriverCommandMsg::CloseWebView(session.webview_id);
             self.constellation_chan
                 .send(ConstellationMsg::WebDriverCommand(cmd_msg))
                 .unwrap();
         }
 
-        let top_level_browsing_context_id = self.focus_top_level_browsing_context_id()?;
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let session = self.session_mut().unwrap();
-        session.top_level_browsing_context_id = top_level_browsing_context_id;
-        session.browsing_context_id = browsing_context_id;
-
         Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(
-            session.window_handles.values().cloned().collect(),
+            self.session()
+                .unwrap()
+                .window_handles
+                .values()
+                .cloned()
+                .collect(),
         )))
     }
 
@@ -938,7 +914,7 @@ impl Handler {
 
         let session = self.session().unwrap();
         let cmd_msg = WebDriverCommandMsg::NewWebView(
-            session.top_level_browsing_context_id,
+            session.webview_id,
             sender,
             self.load_status_sender.clone(),
         );
@@ -946,20 +922,18 @@ impl Handler {
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
 
-        if let Ok(new_top_level_browsing_context_id) = receiver.recv() {
+        let mut handle = self.session.as_ref().unwrap().id.to_string();
+        if let Ok(new_webview_id) = receiver.recv() {
             let session = self.session_mut().unwrap();
-            session.top_level_browsing_context_id = new_top_level_browsing_context_id;
-            session.browsing_context_id =
-                BrowsingContextId::from(new_top_level_browsing_context_id);
+            session.webview_id = new_webview_id;
+            session.browsing_context_id = BrowsingContextId::from(new_webview_id);
             let new_handle = Uuid::new_v4().to_string();
-            session
-                .window_handles
-                .insert(new_top_level_browsing_context_id, new_handle);
+            handle = new_handle.clone();
+            session.window_handles.insert(new_webview_id, new_handle);
         }
 
         let _ = self.wait_for_load();
 
-        let handle = self.session.as_ref().unwrap().id.to_string();
         Ok(WebDriverResponse::NewWindow(NewWindowResponse {
             handle,
             typ: "tab".to_string(),
@@ -974,8 +948,7 @@ impl Handler {
         let frame_id = match parameters.id {
             FrameId::Top => {
                 let session = self.session_mut()?;
-                session.browsing_context_id =
-                    BrowsingContextId::from(session.top_level_browsing_context_id);
+                session.browsing_context_id = BrowsingContextId::from(session.webview_id);
                 return Ok(WebDriverResponse::Void);
             },
             FrameId::Short(ref x) => WebDriverFrameId::Short(*x),
@@ -998,16 +971,16 @@ impl Handler {
         if session.id.to_string() == parameters.handle {
             // There's only one main window, so there's nothing to do here.
             Ok(WebDriverResponse::Void)
-        } else if let Some((top_level_browsing_context_id, _)) = session
+        } else if let Some((webview_id, _)) = session
             .window_handles
             .iter()
             .find(|(_k, v)| **v == parameters.handle)
         {
-            let top_level_browsing_context_id = *top_level_browsing_context_id;
-            session.top_level_browsing_context_id = top_level_browsing_context_id;
-            session.browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+            let webview_id = *webview_id;
+            session.webview_id = webview_id;
+            session.browsing_context_id = BrowsingContextId::from(webview_id);
 
-            let msg = ConstellationMsg::FocusWebView(top_level_browsing_context_id);
+            let msg = ConstellationMsg::FocusWebView(webview_id);
             self.constellation_chan.send(msg).unwrap();
             Ok(WebDriverResponse::Void)
         } else {
@@ -1484,7 +1457,7 @@ impl Handler {
         // new Function() and then takes the resulting function and executes
         // it with a vec of arguments.
         let script = format!(
-            "(function() {{ {} }})({})",
+            "(function() {{ {}\n }})({})",
             func_body,
             args_string.join(", ")
         );
@@ -1493,7 +1466,9 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteScript(script, sender);
         self.browsing_context_script_command(command)?;
-        let result = receiver.recv().unwrap();
+        let result = receiver
+            .recv()
+            .unwrap_or(Err(WebDriverJSError::BrowsingContextNotFound));
         self.postprocess_js_result(result)
     }
 
@@ -1517,7 +1492,7 @@ impl Handler {
             "".into()
         };
         let script = format!(
-            "{} (function() {{ {} }})({})",
+            "{} (function() {{ {}\n }})({})",
             timeout_script,
             func_body,
             args_string.join(", "),
@@ -1527,7 +1502,9 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
         self.browsing_context_script_command(command)?;
-        let result = receiver.recv().unwrap();
+        let result = receiver
+            .recv()
+            .unwrap_or(Err(WebDriverJSError::BrowsingContextNotFound));
         self.postprocess_js_result(result)
     }
 
@@ -1540,7 +1517,7 @@ impl Handler {
                 serde_json::to_value(SendableWebDriverJSValue(value))?,
             ))),
             Err(WebDriverJSError::BrowsingContextNotFound) => Err(WebDriverError::new(
-                ErrorStatus::JavascriptError,
+                ErrorStatus::NoSuchWindow,
                 "Pipeline id not found in browsing context",
             )),
             Err(WebDriverJSError::JSError) => Err(WebDriverError::new(
@@ -1668,11 +1645,8 @@ impl Handler {
         for _ in 0..iterations {
             let (sender, receiver) = ipc::channel().unwrap();
 
-            let cmd_msg = WebDriverCommandMsg::TakeScreenshot(
-                self.session()?.top_level_browsing_context_id,
-                rect,
-                sender,
-            );
+            let cmd_msg =
+                WebDriverCommandMsg::TakeScreenshot(self.session()?.webview_id, rect, sender);
             self.constellation_chan
                 .send(ConstellationMsg::WebDriverCommand(cmd_msg))
                 .unwrap();
@@ -1702,7 +1676,7 @@ impl Handler {
             "Unexpected screenshot pixel format"
         );
 
-        let rgb = RgbaImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
+        let rgb = RgbaImage::from_raw(img.width, img.height, img.bytes().to_vec()).unwrap();
         let mut png_data = Cursor::new(Vec::new());
         DynamicImage::ImageRgba8(rgb)
             .write_to(&mut png_data, ImageFormat::Png)
@@ -1911,7 +1885,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
 
 fn webdriver_value_to_js_argument(v: &Value) -> String {
     match v {
-        Value::String(ref s) => format!("\"{}\"", s),
+        Value::String(s) => format!("\"{}\"", s),
         Value::Null => "null".to_string(),
         Value::Bool(b) => b.to_string(),
         Value::Number(n) => n.to_string(),

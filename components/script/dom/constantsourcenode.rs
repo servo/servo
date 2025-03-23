@@ -10,6 +10,7 @@ use servo_media::audio::constant_source_node::ConstantSourceNodeOptions as Servo
 use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
+use crate::conversions::Convert;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
@@ -38,8 +39,9 @@ impl ConstantSourceNode {
         can_gc: CanGc,
     ) -> Fallible<ConstantSourceNode> {
         let node_options = Default::default();
+        let offset = *options.offset;
         let source_node = AudioScheduledSourceNode::new_inherited(
-            AudioNodeInit::ConstantSourceNode(options.into()),
+            AudioNodeInit::ConstantSourceNode(options.convert()),
             context,
             node_options, /* 2, MAX, Speakers */
             0,            /* inputs */
@@ -53,7 +55,7 @@ impl ConstantSourceNode {
             AudioNodeType::ConstantSourceNode,
             ParamType::Offset,
             AutomationRate::A_rate,
-            *options.offset,
+            offset,
             f32::MIN,
             f32::MAX,
             can_gc,
@@ -110,10 +112,10 @@ impl ConstantSourceNodeMethods<crate::DomTypeHolder> for ConstantSourceNode {
     }
 }
 
-impl<'a> From<&'a ConstantSourceOptions> for ServoMediaConstantSourceOptions {
-    fn from(options: &'a ConstantSourceOptions) -> Self {
-        Self {
-            offset: *options.offset,
+impl Convert<ServoMediaConstantSourceOptions> for ConstantSourceOptions {
+    fn convert(self) -> ServoMediaConstantSourceOptions {
+        ServoMediaConstantSourceOptions {
+            offset: *self.offset,
         }
     }
 }

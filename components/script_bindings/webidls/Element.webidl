@@ -90,10 +90,10 @@ interface Element : Node {
 
 dictionary ShadowRootInit {
   required ShadowRootMode mode;
-  // boolean delegatesFocus = false;
+  boolean delegatesFocus = false;
   SlotAssignmentMode slotAssignment = "named";
   boolean clonable = false;
-  // boolean serializable = false;
+  boolean serializable = false;
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface
@@ -122,6 +122,8 @@ partial interface Element {
 
 // https://w3c.github.io/DOM-Parsing/#extensions-to-the-element-interface
 partial interface Element {
+  [CEReactions] undefined setHTMLUnsafe(DOMString html);
+
   [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString innerHTML;
   [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString outerHTML;
 };

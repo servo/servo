@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::time::{Duration, Instant};
 use std::{cmp, thread};
 
-use compositing_traits::ConstellationMsg;
+use constellation_traits::ConstellationMsg;
 use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
@@ -279,7 +279,7 @@ impl Handler {
 
         let button = (action.button as u16).into();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            session.top_level_browsing_context_id,
+            session.webview_id,
             MouseButtonAction::Down,
             button,
             pointer_input_state.x as f32,
@@ -326,7 +326,7 @@ impl Handler {
 
         let button = (action.button as u16).into();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-            session.top_level_browsing_context_id,
+            session.webview_id,
             MouseButtonAction::Up,
             button,
             pointer_input_state.x as f32,
@@ -372,27 +372,21 @@ impl Handler {
             PointerOrigin::Pointer => (start_x + x_offset, start_y + y_offset),
             PointerOrigin::Element(ref x) => {
                 let (sender, receiver) = ipc::channel().unwrap();
-                self.top_level_script_command(WebDriverScriptCommand::GetElementInViewCenterPoint(
-                    x.to_string(),
-                    sender,
-                ))
+                self.browsing_context_script_command(
+                    WebDriverScriptCommand::GetElementInViewCenterPoint(x.to_string(), sender),
+                )
                 .unwrap();
 
-                match receiver.recv().unwrap() {
-                    Ok(point) => match point {
-                        Some(point) => point,
-                        None => return Err(ErrorStatus::UnknownError),
-                    },
-                    Err(_) => return Err(ErrorStatus::UnknownError),
-                }
+                let Some(point) = receiver.recv().unwrap()? else {
+                    return Err(ErrorStatus::UnknownError);
+                };
+                point
             },
         };
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd_msg = WebDriverCommandMsg::GetWindowSize(
-            self.session.as_ref().unwrap().top_level_browsing_context_id,
-            sender,
-        );
+        let cmd_msg =
+            WebDriverCommandMsg::GetWindowSize(self.session.as_ref().unwrap().webview_id, sender);
         self.constellation_chan
             .send(ConstellationMsg::WebDriverCommand(cmd_msg))
             .unwrap();
@@ -471,11 +465,8 @@ impl Handler {
             // Step 7
             if x != current_x || y != current_y {
                 // Step 7.2
-                let cmd_msg = WebDriverCommandMsg::MouseMoveAction(
-                    session.top_level_browsing_context_id,
-                    x as f32,
-                    y as f32,
-                );
+                let cmd_msg =
+                    WebDriverCommandMsg::MouseMoveAction(session.webview_id, x as f32, y as f32);
                 self.constellation_chan
                     .send(ConstellationMsg::WebDriverCommand(cmd_msg))
                     .unwrap();

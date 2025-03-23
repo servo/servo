@@ -13,6 +13,6 @@
         meta.content = referrer_policy;
         document.head.append(meta);
       }
-      new Executor(document.prerendering ? uuid : discard_uuid).execute();
+      new Executor(document.prerendering ? uuid : discard_uuid);
   </script>
 </head>

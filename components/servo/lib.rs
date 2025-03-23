@@ -19,6 +19,7 @@
 
 mod clipboard_delegate;
 mod proxies;
+mod responders;
 mod servo_delegate;
 mod webview;
 mod webview_delegate;
@@ -32,8 +33,8 @@ use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-pub use base::id::TopLevelBrowsingContextId;
-use base::id::{PipelineNamespace, PipelineNamespaceId, WebViewId};
+pub use base::id::WebViewId;
+use base::id::{PipelineNamespace, PipelineNamespaceId};
 #[cfg(feature = "bluetooth")]
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
@@ -44,7 +45,7 @@ use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
 use compositing::windowing::{EmbedderMethods, WindowMethods};
 use compositing::{IOCompositor, InitialCompositorState};
-use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg};
+use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -58,6 +59,7 @@ use constellation::{
     Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState,
     UnprivilegedContent,
 };
+use constellation_traits::{ConstellationMsg, WindowSizeData};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
@@ -77,8 +79,6 @@ use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 pub use keyboard_types::*;
-#[cfg(feature = "layout_2013")]
-pub use layout_thread_2013;
 use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
@@ -86,8 +86,7 @@ use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::{mem, time};
 use script::{JSEngineSetup, ServiceWorkerManager};
-use script_layout_interface::LayoutFactory;
-use script_traits::{ScriptToConstellationChan, WindowSizeData};
+use script_traits::ScriptToConstellationChan;
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
@@ -121,6 +120,7 @@ pub use {
 pub use {bluetooth, bluetooth_traits};
 
 use crate::proxies::ConstellationProxy;
+use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
 pub use crate::webview_delegate::{
@@ -208,6 +208,7 @@ pub struct Servo {
     /// When accessed, `Servo` will be reponsible for cleaning up the invalid `Weak`
     /// references.
     webviews: RefCell<HashMap<WebViewId, Weak<RefCell<WebViewInner>>>>,
+    servo_errors: ServoErrorChannel,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
@@ -312,7 +313,7 @@ impl Servo {
         }
         debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
 
-        // Reserving a namespace to create TopLevelBrowsingContextId.
+        // Reserving a namespace to create WebViewId.
         PipelineNamespace::install(PipelineNamespaceId(0));
 
         // Get both endpoints of a special channel for communication between
@@ -539,6 +540,7 @@ impl Servo {
             embedder_receiver,
             shutdown_state,
             webviews: Default::default(),
+            servo_errors: ServoErrorChannel::default(),
             _js_engine_setup: js_engine_setup,
         }
     }
@@ -588,6 +590,7 @@ impl Servo {
 
         self.compositor.borrow_mut().perform_updates();
         self.send_new_frame_ready_messages();
+        self.handle_delegate_errors();
         self.clean_up_destroyed_webview_handles();
 
         if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
@@ -609,6 +612,12 @@ impl Servo {
             .filter_map(WebView::from_weak_handle)
         {
             webview.delegate().notify_new_frame_ready(webview);
+        }
+    }
+
+    fn handle_delegate_errors(&self) {
+        while let Some(error) = self.servo_errors.try_recv() {
+            self.delegate().notify_error(self, error);
         }
     }
 
@@ -761,7 +770,11 @@ impl Servo {
             },
             EmbedderMsg::AllowUnload(webview_id, response_sender) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let request = AllowOrDenyRequest::new(response_sender, AllowOrDeny::Allow);
+                    let request = AllowOrDenyRequest::new(
+                        response_sender,
+                        AllowOrDeny::Allow,
+                        self.servo_errors.sender(),
+                    );
                     webview.delegate().request_unload(webview, request);
                 }
             },
@@ -827,12 +840,24 @@ impl Servo {
                 web_resource_request,
                 response_sender,
             ) => {
-                let web_resource_load = WebResourceLoad::new(web_resource_request, response_sender);
-                match webview_id.and_then(|webview_id| self.get_webview_handle(webview_id)) {
-                    Some(webview) => webview
+                if let Some(webview) =
+                    webview_id.and_then(|webview_id| self.get_webview_handle(webview_id))
+                {
+                    let web_resource_load = WebResourceLoad::new(
+                        web_resource_request,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    webview
                         .delegate()
-                        .load_web_resource(webview, web_resource_load),
-                    None => self.delegate().load_web_resource(web_resource_load),
+                        .load_web_resource(webview, web_resource_load);
+                } else {
+                    let web_resource_load = WebResourceLoad::new(
+                        web_resource_request,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    self.delegate().load_web_resource(web_resource_load);
                 }
             },
             EmbedderMsg::Panic(webview_id, reason, backtrace) => {
@@ -867,9 +892,13 @@ impl Servo {
                 }
             },
             EmbedderMsg::RequestAuthentication(webview_id, url, for_proxy, response_sender) => {
-                let authentication_request =
-                    AuthenticationRequest::new(url.into_url(), for_proxy, response_sender);
                 if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let authentication_request = AuthenticationRequest::new(
+                        url.into_url(),
+                        for_proxy,
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
                     webview
                         .delegate()
                         .request_authentication(webview, authentication_request);
@@ -882,6 +911,7 @@ impl Servo {
                         allow_deny_request: AllowOrDenyRequest::new(
                             response_sender,
                             AllowOrDeny::Deny,
+                            self.servo_errors.sender(),
                         ),
                     };
                     webview
@@ -924,7 +954,11 @@ impl Servo {
             EmbedderMsg::RequestDevtoolsConnection(response_sender) => {
                 self.delegate().request_devtools_connection(
                     self,
-                    AllowOrDenyRequest::new(response_sender, AllowOrDeny::Deny),
+                    AllowOrDenyRequest::new(
+                        response_sender,
+                        AllowOrDeny::Deny,
+                        self.servo_errors.sender(),
+                    ),
                 );
             },
             EmbedderMsg::PlayGamepadHapticEffect(
@@ -994,22 +1028,6 @@ fn create_compositor_channel(
     );
 
     (compositor_proxy, CompositorReceiver { receiver })
-}
-
-fn get_layout_factory(legacy_layout: bool) -> Arc<dyn LayoutFactory> {
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "layout_2013")] {
-            if legacy_layout {
-                return Arc::new(layout_thread_2013::LayoutFactoryImpl());
-            }
-        } else {
-            if legacy_layout {
-                panic!("Runtime option `legacy_layout` was enabled, but the `layout_2013` \
-                feature was not enabled at compile time! ");
-           }
-        }
-    }
-    Arc::new(layout_thread_2020::LayoutFactoryImpl())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1083,7 +1101,7 @@ fn create_constellation(
         wgpu_image_map,
     };
 
-    let layout_factory: Arc<dyn LayoutFactory> = get_layout_factory(opts::get().legacy_layout);
+    let layout_factory = Arc::new(layout_thread_2020::LayoutFactoryImpl());
 
     Constellation::<script::ScriptThread, script::ServiceWorkerManager>::start(
         initial_state,
@@ -1161,8 +1179,7 @@ pub fn run_content_process(token: String) {
             set_logger(content.script_to_constellation_chan().clone());
 
             let background_hang_monitor_register = content.register_with_background_hang_monitor();
-            let layout_factory: Arc<dyn LayoutFactory> =
-                get_layout_factory(opts::get().legacy_layout);
+            let layout_factory = Arc::new(layout_thread_2020::LayoutFactoryImpl());
 
             content.start_all::<script::ScriptThread>(
                 true,

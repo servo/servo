@@ -4,8 +4,8 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, namespace_url, ns};
-use servo_atoms::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
+use stylo_atoms::Atom;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;

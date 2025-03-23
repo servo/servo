@@ -10,6 +10,7 @@ use std::default::Default;
 
 use base::id::PipelineId;
 use crossbeam_channel::{self, Receiver, Sender};
+use strum::VariantArray;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::worker::TrustedWorkerAddress;
@@ -211,8 +212,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         self.process_incoming_tasks(first_msg, &fully_active);
         let mut throttled = self.throttled.borrow_mut();
         let mut throttled_length: usize = throttled.values().map(|queue| queue.len()).sum();
-        let task_source_names = TaskSourceName::all();
-        let mut task_source_cycler = task_source_names.iter().cycle();
+        let mut task_source_cycler = TaskSourceName::VARIANTS.iter().cycle();
         // "being busy", is defined as having more than x tasks for this loop's iteration.
         // As long as we're not busy, and there are throttled tasks left:
         loop {

@@ -859,8 +859,6 @@ class WebDriverRun(TimedRunner):
             self.result_flag.set()
 
 
-# TODO(web-platform-tests/wpt#13183): Add testdriver support to the other
-# executors.
 class TestDriverExecutorMixin:
     def __init__(self, script_resume: str):
         self.script_resume = script_resume
@@ -935,7 +933,7 @@ class TestDriverExecutorMixin:
             # https://github.com/w3c/webdriver/issues/1308
             if not isinstance(test_driver_message, list) or len(test_driver_message) != 3:
                 try:
-                    is_alive = self.is_alive()
+                    is_alive = protocol.is_alive()
                 except webdriver_error.WebDriverException:
                     is_alive = False
                 if not is_alive:
@@ -989,9 +987,6 @@ class WebDriverTestharnessExecutor(TestharnessExecutor, TestDriverExecutorMixin)
 
         self.close_after_done = close_after_done
         self.cleanup_after_test = cleanup_after_test
-
-    def is_alive(self):
-        return self.protocol.is_alive()
 
     def on_environment_change(self, new_environment):
         if new_environment["protocol"] != self.last_environment["protocol"]:
@@ -1089,9 +1084,6 @@ class WebDriverRefTestExecutor(RefTestExecutor, TestDriverExecutorMixin):
 
     def reset(self):
         self.implementation.reset()
-
-    def is_alive(self):
-        return self.protocol.is_alive()
 
     def do_test(self, test):
         width_offset, height_offset = self.protocol.webdriver.execute_script(

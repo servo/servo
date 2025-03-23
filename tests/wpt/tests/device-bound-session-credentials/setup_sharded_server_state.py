@@ -9,4 +9,4 @@ def main(request, response):
     if test_id is None:
         test_id = session_manager.initialize_test()
 
-    return (200, [("Set-Cookie", "test_id=" + test_id)], "")
+    return (200, [("Set-Cookie", f"test_id={test_id}")], "")

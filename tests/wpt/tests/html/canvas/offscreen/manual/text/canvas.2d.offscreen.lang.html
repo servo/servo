@@ -7,12 +7,12 @@
   <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
   <meta name="assert" content="An offscreen canvas respects the lang text attribute." />
   <style>
-    #canvas-zh-CN {
+    #canvas-tr {
       position: absolute;
       top: 10px;
       left: 10px;
     }
-    #canvas-ja {
+    #canvas-en {
       position: absolute;
       top: 120px;
       left: 10px;
@@ -26,23 +26,33 @@
       var offscreen = new OffscreenCanvas(300, 100);
       var offscreen_ctx = offscreen.getContext('2d');
 
-      offscreen_ctx.font = '25px serif';
+      offscreen_ctx.font = '25px Lato-Medium';
       offscreen_ctx.lang = language;
-      offscreen_ctx.fillText('今骨直', 5, 50);
+      offscreen_ctx.fillText('fi', 5, 50);
 
       const bitmap = offscreen.transferToImageBitmap();
       bitmap_ctx.transferFromImageBitmap(bitmap);
     }
+
     function runTest() {
-      drawText('zh-CN');
-      drawText('ja');
+      let test_font = new FontFace(
+        // Lato-Medium is a font with language specific ligatures.
+        "Lato-Medium",
+        "url(/fonts/Lato-Medium.ttf)"
+      );
+
+      test_font.load().then((font) => {
+        document.fonts.add(font);
+        drawText('tr');
+        drawText('en');
+      });
     }
   </script>
   <body onload="runTest()">
-    <canvas id="canvas-zh-CN" width="300" height="100">
+    <canvas id="canvas-tr" width="300" height="100">
       Browser does not support HTML5 Canvas.
     </canvas>
-    <canvas id="canvas-ja" width="300" height="100">
+    <canvas id="canvas-en" width="300" height="100">
       Browser does not support HTML5 Canvas.
     </canvas>
   </body>

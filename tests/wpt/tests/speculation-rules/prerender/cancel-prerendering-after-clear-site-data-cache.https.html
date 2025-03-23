@@ -41,7 +41,7 @@ promise_test(async t => {
   new_window = window.open("../../clear-site-data/support/clear-site-data-cache.py?" + cache_helper + "response=single_html&cache&clear_first=all");
   await gotMessage;
 
-  // Because Clear-Site-Header response header is sent, the existing prerender
+  // Because Clear-Site-Data response header is sent, the existing prerender
   // is expected to be canceled.
   // And the navigation is expected to create another page instead of activation.
   referrerRC.navigateTo(prerenderedRC.url);

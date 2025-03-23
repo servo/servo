@@ -30,17 +30,6 @@ macro_rules! trace_script_msg {
     };
 }
 
-/// Log an event from layout at trace level.
-/// - To disable tracing: RUST_LOG='constellation<layout@=off'
-/// - To enable tracing: RUST_LOG='constellation<layout@'
-macro_rules! trace_layout_msg {
-    // This macro only exists to put the docs in the same file as the target prefix,
-    // so the macro definition is always the same.
-    ($event:expr, $($rest:tt)+) => {
-        ::log::trace!(target: $crate::tracing::LogTarget::log_target(&$event), $($rest)+)
-    };
-}
-
 /// Get the log target for an event, as a static string.
 pub(crate) trait LogTarget {
     fn log_target(&self) -> &'static str;
@@ -57,12 +46,10 @@ mod from_compositor {
         };
     }
 
-    impl LogTarget for compositing_traits::ConstellationMsg {
+    impl LogTarget for constellation_traits::ConstellationMsg {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::Exit => target!("Exit"),
-                Self::GetBrowsingContext(..) => target!("GetBrowsingContext"),
-                Self::GetPipeline(..) => target!("GetPipeline"),
                 Self::GetFocusTopLevelBrowsingContext(..) => {
                     target!("GetFocusTopLevelBrowsingContext")
                 },
@@ -88,6 +75,8 @@ mod from_compositor {
                 Self::ExitFullScreen(_) => target!("ExitFullScreen"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
+                Self::SetScrollStates(..) => target!("SetScrollStates"),
+                Self::PaintMetric(..) => target!("PaintMetric"),
             }
         }
     }
@@ -246,24 +235,6 @@ mod from_script {
                 Self::PlayGamepadHapticEffect(..) => target_variant!("PlayGamepadHapticEffect"),
                 Self::StopGamepadHapticEffect(..) => target_variant!("StopGamepadHapticEffect"),
                 Self::ShutdownComplete => target_variant!("ShutdownComplete"),
-            }
-        }
-    }
-}
-
-mod from_layout {
-    use super::LogTarget;
-
-    macro_rules! target {
-        ($($name:literal)+) => {
-            concat!("constellation<layout@", $($name),+)
-        };
-    }
-
-    impl LogTarget for script_traits::LayoutMsg {
-        fn log_target(&self) -> &'static str {
-            match self {
-                Self::PendingPaintMetric(..) => target!("PendingPaintMetric"),
             }
         }
     }

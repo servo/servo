@@ -17,7 +17,7 @@ pressure_test(async (t) => {
   });
 
   const syncObserver = new SyncPressureObserver(t);
-  await syncObserver.observer().observe('cpu', {sampleInterval: 100});
+  await syncObserver.observer().observe('cpu');
 
   await update_virtual_pressure_source('cpu', 'critical');
   await syncObserver.waitForUpdate();
@@ -32,6 +32,30 @@ pressure_test(async (t) => {
   assert_equals(syncObserver.changes()[1][0].state, 'nominal');
 
   assert_equals(syncObserver.changes().length, 2);
-}, 'Changes that fail the "has change in data" test are discarded.');
+}, 'Changes that fail the "should dispatch" test are discarded.');
+
+pressure_test(async (t) => {
+  await create_virtual_pressure_source('cpu');
+  t.add_cleanup(async () => {
+    await remove_virtual_pressure_source('cpu');
+  });
+
+  const syncObserver = new SyncPressureObserver(t);
+  await syncObserver.observer().observe('cpu', {sampleInterval: 500});
+
+  await update_virtual_pressure_source('cpu', 'critical');
+  await syncObserver.waitForUpdate();
+  assert_equals(syncObserver.changes()[0][0].state, 'critical');
+
+  await update_virtual_pressure_source('cpu', 'critical');
+  await syncObserver.waitForUpdate();
+  assert_equals(syncObserver.changes()[1][0].state, 'critical');
+
+  await update_virtual_pressure_source('cpu', 'nominal');
+  await syncObserver.waitForUpdate();
+  assert_equals(syncObserver.changes()[2][0].state, 'nominal');
+
+  assert_equals(syncObserver.changes().length, 3);
+}, 'Updates should be received even when no state change, if sampleInterval is set.');
 
 mark_as_done();

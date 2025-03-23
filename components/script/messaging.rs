@@ -18,8 +18,8 @@ use net_traits::FetchResponseMsg;
 use net_traits::image_cache::PendingImageResponse;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
-use script_traits::{LayoutMsg, Painter, ScriptMsg, ScriptThreadMessage};
-use servo_atoms::Atom;
+use script_traits::{Painter, ScriptMsg, ScriptThreadMessage};
+use stylo_atoms::Atom;
 use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;
@@ -48,56 +48,55 @@ pub(crate) enum MixedMessage {
 impl MixedMessage {
     pub(crate) fn pipeline_id(&self) -> Option<PipelineId> {
         match self {
-            MixedMessage::FromConstellation(ref inner_msg) => match *inner_msg {
-                ScriptThreadMessage::StopDelayingLoadEventsMode(id) => Some(id),
-                ScriptThreadMessage::AttachLayout(ref new_layout_info) => new_layout_info
+            MixedMessage::FromConstellation(inner_msg) => match inner_msg {
+                ScriptThreadMessage::StopDelayingLoadEventsMode(id) => Some(*id),
+                ScriptThreadMessage::AttachLayout(new_layout_info) => new_layout_info
                     .parent_info
                     .or(Some(new_layout_info.new_pipeline_id)),
-                ScriptThreadMessage::Resize(id, ..) => Some(id),
-                ScriptThreadMessage::ThemeChange(id, ..) => Some(id),
-                ScriptThreadMessage::ResizeInactive(id, ..) => Some(id),
-                ScriptThreadMessage::UnloadDocument(id) => Some(id),
-                ScriptThreadMessage::ExitPipeline(id, ..) => Some(id),
+                ScriptThreadMessage::Resize(id, ..) => Some(*id),
+                ScriptThreadMessage::ThemeChange(id, ..) => Some(*id),
+                ScriptThreadMessage::ResizeInactive(id, ..) => Some(*id),
+                ScriptThreadMessage::UnloadDocument(id) => Some(*id),
+                ScriptThreadMessage::ExitPipeline(id, ..) => Some(*id),
                 ScriptThreadMessage::ExitScriptThread => None,
-                ScriptThreadMessage::SendInputEvent(id, ..) => Some(id),
-                ScriptThreadMessage::Viewport(id, ..) => Some(id),
-                ScriptThreadMessage::GetTitle(id) => Some(id),
-                ScriptThreadMessage::SetDocumentActivity(id, ..) => Some(id),
-                ScriptThreadMessage::SetThrottled(id, ..) => Some(id),
-                ScriptThreadMessage::SetThrottledInContainingIframe(id, ..) => Some(id),
-                ScriptThreadMessage::NavigateIframe(id, ..) => Some(id),
-                ScriptThreadMessage::PostMessage { target: id, .. } => Some(id),
-                ScriptThreadMessage::UpdatePipelineId(_, _, _, id, _) => Some(id),
-                ScriptThreadMessage::UpdateHistoryState(id, ..) => Some(id),
-                ScriptThreadMessage::RemoveHistoryStates(id, ..) => Some(id),
-                ScriptThreadMessage::FocusIFrame(id, ..) => Some(id),
-                ScriptThreadMessage::WebDriverScriptCommand(id, ..) => Some(id),
-                ScriptThreadMessage::TickAllAnimations(id, ..) => Some(id),
-                ScriptThreadMessage::WebFontLoaded(id, ..) => Some(id),
+                ScriptThreadMessage::SendInputEvent(id, ..) => Some(*id),
+                ScriptThreadMessage::Viewport(id, ..) => Some(*id),
+                ScriptThreadMessage::GetTitle(id) => Some(*id),
+                ScriptThreadMessage::SetDocumentActivity(id, ..) => Some(*id),
+                ScriptThreadMessage::SetThrottled(id, ..) => Some(*id),
+                ScriptThreadMessage::SetThrottledInContainingIframe(id, ..) => Some(*id),
+                ScriptThreadMessage::NavigateIframe(id, ..) => Some(*id),
+                ScriptThreadMessage::PostMessage { target: id, .. } => Some(*id),
+                ScriptThreadMessage::UpdatePipelineId(_, _, _, id, _) => Some(*id),
+                ScriptThreadMessage::UpdateHistoryState(id, ..) => Some(*id),
+                ScriptThreadMessage::RemoveHistoryStates(id, ..) => Some(*id),
+                ScriptThreadMessage::FocusIFrame(id, ..) => Some(*id),
+                ScriptThreadMessage::WebDriverScriptCommand(id, ..) => Some(*id),
+                ScriptThreadMessage::TickAllAnimations(id, ..) => Some(*id),
+                ScriptThreadMessage::WebFontLoaded(id, ..) => Some(*id),
                 ScriptThreadMessage::DispatchIFrameLoadEvent {
                     target: _,
                     parent: id,
                     child: _,
-                } => Some(id),
-                ScriptThreadMessage::DispatchStorageEvent(id, ..) => Some(id),
-                ScriptThreadMessage::ReportCSSError(id, ..) => Some(id),
-                ScriptThreadMessage::Reload(id, ..) => Some(id),
-                ScriptThreadMessage::PaintMetric(id, ..) => Some(id),
-                ScriptThreadMessage::ExitFullScreen(id, ..) => Some(id),
+                } => Some(*id),
+                ScriptThreadMessage::DispatchStorageEvent(id, ..) => Some(*id),
+                ScriptThreadMessage::ReportCSSError(id, ..) => Some(*id),
+                ScriptThreadMessage::Reload(id, ..) => Some(*id),
+                ScriptThreadMessage::PaintMetric(id, ..) => Some(*id),
+                ScriptThreadMessage::ExitFullScreen(id, ..) => Some(*id),
                 ScriptThreadMessage::MediaSessionAction(..) => None,
                 #[cfg(feature = "webgpu")]
                 ScriptThreadMessage::SetWebGPUPort(..) => None,
-                ScriptThreadMessage::SetScrollStates(id, ..) => Some(id),
-                ScriptThreadMessage::SetEpochPaintTime(id, ..) => Some(id),
+                ScriptThreadMessage::SetScrollStates(id, ..) => Some(*id),
             },
-            MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
+            MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
-                    pipeline_id
+                    *pipeline_id
                 },
                 MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
-                MainThreadScriptMsg::NavigationResponse { pipeline_id, .. } => Some(pipeline_id),
-                MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
-                MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
+                MainThreadScriptMsg::NavigationResponse { pipeline_id, .. } => Some(*pipeline_id),
+                MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(*pipeline_id),
+                MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(*pipeline_id),
                 MainThreadScriptMsg::Inactive => None,
                 MainThreadScriptMsg::WakeUp => None,
             },
@@ -318,10 +317,6 @@ pub(crate) struct ScriptThreadSenders {
     #[no_trace]
     pub(crate) pipeline_to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
 
-    /// A sender for layout to communicate to the constellation.
-    #[no_trace]
-    pub(crate) layout_to_constellation_ipc_sender: IpcSender<LayoutMsg>,
-
     /// The shared [`IpcSender`] which is sent to the `ImageCache` when requesting an image. The
     /// messages on this channel are routed to crossbeam [`Sender`] on the router thread, which
     /// in turn sends messages to [`ScriptThreadReceivers::image_cache_receiver`].
@@ -396,7 +391,7 @@ impl ScriptThreadReceivers {
                 }
                 #[cfg(not(feature = "webgpu"))]
                 {
-                    &crossbeam_channel::never::<()>()
+                    crossbeam_channel::never::<()>()
                 }
             }) -> msg => {
                 #[cfg(feature = "webgpu")]

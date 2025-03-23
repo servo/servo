@@ -21,7 +21,7 @@ use servo_arc::Arc as ServoArc;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
-use webrender_api::units::{DeviceIntSize, RectExt as RectExt_};
+use webrender_api::units::RectExt as RectExt_;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
 use webrender_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 
@@ -463,6 +463,10 @@ impl<'a> CanvasData<'a> {
             image_key,
             font_context,
         }
+    }
+
+    pub fn image_key(&self) -> ImageKey {
+        self.image_key
     }
 
     pub fn draw_image(
@@ -982,7 +986,7 @@ impl<'a> CanvasData<'a> {
     ) {
         self.ensure_path();
         let result = match self.path_state.as_ref() {
-            Some(PathState::UserSpacePath(ref path, ref transform)) => {
+            Some(PathState::UserSpacePath(path, transform)) => {
                 let target_transform = self.drawtarget.get_transform();
                 let path_transform = transform.as_ref().unwrap_or(&target_transform);
                 path.contains_point(x, y, path_transform)
@@ -1223,8 +1227,8 @@ impl<'a> CanvasData<'a> {
         // to move between device and user space.
         match self.path_state.as_mut() {
             None | Some(PathState::DeviceSpacePathBuilder(..)) => (),
-            Some(PathState::UserSpacePathBuilder(_, ref mut transform)) |
-            Some(PathState::UserSpacePath(_, ref mut transform)) => {
+            Some(PathState::UserSpacePathBuilder(_, transform)) |
+            Some(PathState::UserSpacePath(_, transform)) => {
                 if transform.is_none() {
                     *transform = Some(self.drawtarget.get_transform());
                 }
@@ -1249,7 +1253,7 @@ impl<'a> CanvasData<'a> {
             .create_drawtarget(Size2D::new(size.width, size.height));
         self.state = self.backend.recreate_paint_state(&self.state);
         self.saved_states.clear();
-        self.update_wr_image(size.cast().cast_unit());
+        self.update_image_rendering();
     }
 
     pub fn send_pixels(&mut self, chan: IpcSender<IpcSharedMemory>) {
@@ -1260,20 +1264,10 @@ impl<'a> CanvasData<'a> {
         });
     }
 
-    pub fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
-        let size = self.drawtarget.get_size();
-
-        self.update_wr_image(size.cast_unit());
-
-        let data = CanvasImageData {
-            image_key: self.image_key,
-        };
-        chan.send(data).unwrap();
-    }
-
-    fn update_wr_image(&mut self, size: DeviceIntSize) {
+    /// Update image in WebRender
+    pub fn update_image_rendering(&mut self) {
         let descriptor = ImageDescriptor {
-            size,
+            size: self.drawtarget.get_size().cast_unit(),
             stride: None,
             format: ImageFormat::BGRA8,
             offset: 0,

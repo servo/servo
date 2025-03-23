@@ -197,7 +197,8 @@ promise_setup(async () => {
   if (navigator.ml === undefined) {
     return;
   }
-  const deviceType = location.search.substring(1);
+  const deviceType = new URLSearchParams(location.search).get('device') ||
+      location.search.substring(1);
   context = await navigator.ml.createContext({deviceType: deviceType});
 }, {explicit_timeout: true});
 
@@ -584,8 +585,6 @@ function validateTwoInputsFromMultipleBuilders(operatorName) {
 
 function multi_builder_test(func, description) {
   promise_test(async t => {
-    const context = await navigator.ml.createContext();
-
     const builder = new MLGraphBuilder(context);
     const otherBuilder = new MLGraphBuilder(context);
 

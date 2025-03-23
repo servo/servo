@@ -34,6 +34,7 @@ use style::values::specified::color::Color;
 use style_traits::values::ToCss;
 use style_traits::{CssWriter, ParsingMode};
 use url::Url;
+use webrender_api::ImageKey;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
@@ -145,6 +146,8 @@ pub(crate) struct CanvasState {
     ipc_renderer: IpcSender<CanvasMsg>,
     #[no_trace]
     canvas_id: CanvasId,
+    #[no_trace]
+    image_key: ImageKey,
     state: DomRefCell<CanvasContextState>,
     origin_clean: Cell<bool>,
     #[ignore_malloc_size_of = "Arc"]
@@ -172,7 +175,7 @@ impl CanvasState {
         script_to_constellation_chan
             .send(ScriptMsg::CreateCanvasPaintThread(size, sender))
             .unwrap();
-        let (ipc_renderer, canvas_id) = receiver.recv().unwrap();
+        let (ipc_renderer, canvas_id, image_key) = receiver.recv().unwrap();
         debug!("Done.");
         // Worklets always receive a unique origin. This messes with fetching
         // cached images in the case of paint worklets, since the image cache
@@ -191,12 +194,17 @@ impl CanvasState {
             base_url: global.api_base_url(),
             missing_image_urls: DomRefCell::new(Vec::new()),
             saved_states: DomRefCell::new(Vec::new()),
+            image_key,
             origin,
         }
     }
 
     pub(crate) fn get_ipc_renderer(&self) -> &IpcSender<CanvasMsg> {
         &self.ipc_renderer
+    }
+
+    pub(crate) fn image_key(&self) -> ImageKey {
+        self.image_key
     }
 
     pub(crate) fn get_missing_image_urls(&self) -> &DomRefCell<Vec<ServoUrl>> {
@@ -284,7 +292,7 @@ impl CanvasState {
 
         let image_size = Size2D::new(img.width, img.height);
         let image_data = match img.format {
-            PixelFormat::BGRA8 => img.bytes.clone(),
+            PixelFormat::BGRA8 => img.bytes(),
             pixel_format => unimplemented!("unsupported pixel format ({:?})", pixel_format),
         };
 

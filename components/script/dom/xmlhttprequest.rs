@@ -32,8 +32,8 @@ use net_traits::{
 };
 use script_traits::DocumentActivity;
 use script_traits::serializable::BlobImpl;
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
+use stylo_atoms::Atom;
 use url::Position;
 
 use crate::body::{BodySource, Extractable, ExtractedBody, decode_to_utf16_with_bom_removal};
@@ -1345,7 +1345,7 @@ impl XMLHttpRequest {
         }
 
         // Return the correct ArrayBuffer
-        self.response_arraybuffer.get_buffer().ok()
+        self.response_arraybuffer.get_typed_array().ok()
     }
 
     /// <https://xhr.spec.whatwg.org/#document-response>
@@ -1441,7 +1441,12 @@ impl XMLHttpRequest {
         let json_text = decode_to_utf16_with_bom_removal(&bytes, UTF_8);
         // Step 5
         unsafe {
-            if !JS_ParseJSON(*cx, json_text.as_ptr(), json_text.len() as u32, rval) {
+            if !JS_ParseJSON(
+                *cx,
+                json_text.as_ptr(),
+                json_text.len() as u32,
+                rval.reborrow(),
+            ) {
                 JS_ClearPendingException(*cx);
                 return rval.set(NullValue());
             }
@@ -1507,6 +1512,7 @@ impl XMLHttpRequest {
             None,
             None,
             Default::default(),
+            false,
             false,
             Some(doc.insecure_requests_policy()),
             can_gc,

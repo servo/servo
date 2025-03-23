@@ -6,7 +6,7 @@
     <html:link rel="help"
           href="https://www.w3.org/TR/SVG2/pservers.html#LinearGradients"/>
     <html:link rel="match" href="reference/gradient-color-interpolation-ref.svg" />
-    <html:meta name="fuzzy" content="maxDifference=0-20;totalPixels=0-29200" />
+    <html:meta name="fuzzy" content="maxDifference=0-20;totalPixels=0-29400" />
   </g>
 
   <defs>

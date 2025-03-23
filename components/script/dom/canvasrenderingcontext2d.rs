@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{
-    Canvas2dMsg, CanvasId, CanvasImageData, CanvasMsg, FromLayoutMsg, FromScriptMsg,
-};
+use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg, FromScriptMsg};
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSharedMemory;
 use profile_traits::ipc;
+use script_layout_interface::HTMLCanvasDataSource;
 use servo_url::ServoUrl;
 
-use crate::canvas_context::CanvasContext;
+use crate::canvas_context::{CanvasContext, CanvasHelpers, LayoutCanvasRenderingContextHelpers};
 use crate::canvas_state::CanvasState;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
@@ -112,35 +111,22 @@ impl CanvasRenderingContext2D {
         );
         self.canvas_state.get_rect(self.canvas.size(), rect)
     }
-
-    pub(crate) fn send_data(&self, sender: IpcSender<CanvasImageData>) {
-        let msg = CanvasMsg::FromLayout(FromLayoutMsg::SendData(sender), self.get_canvas_id());
-        let _ = self.canvas_state.get_ipc_renderer().send(msg);
-    }
 }
 
-pub(crate) trait LayoutCanvasRenderingContext2DHelpers {
-    fn get_ipc_renderer(self) -> IpcSender<CanvasMsg>;
-    fn get_canvas_id(self) -> CanvasId;
-}
-
-impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
-    fn get_ipc_renderer(self) -> IpcSender<CanvasMsg> {
-        (self.unsafe_get()).canvas_state.get_ipc_renderer().clone()
-    }
-
-    fn get_canvas_id(self) -> CanvasId {
-        // FIXME(nox): This relies on the fact that CanvasState::get_canvas_id
-        // does nothing fancy but it would be easier to trust a
-        // LayoutDom<_>-like type that would wrap the &CanvasState.
-        self.unsafe_get().canvas_state.get_canvas_id()
+impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
+    fn canvas_data_source(self) -> HTMLCanvasDataSource {
+        let canvas_state = &self.unsafe_get().canvas_state;
+        HTMLCanvasDataSource::Image((
+            canvas_state.image_key(),
+            canvas_state.get_canvas_id(),
+            canvas_state.get_ipc_renderer().clone(),
+        ))
     }
 }
 
 impl CanvasContext for CanvasRenderingContext2D {
     type ID = CanvasId;
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Crown is wrong here #35570
     fn context_id(&self) -> Self::ID {
         self.canvas_state.get_canvas_id()
     }

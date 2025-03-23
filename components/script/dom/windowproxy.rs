@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::ptr;
 
-use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use dom_struct::dom_struct;
 use html5ever::local_name;
 use indexmap::map::IndexMap;
@@ -81,7 +81,7 @@ pub(crate) struct WindowProxy {
     /// The frame id of the top-level ancestor browsing context.
     /// In the case that this is a top-level window, this is our id.
     #[no_trace]
-    top_level_browsing_context_id: TopLevelBrowsingContextId,
+    webview_id: WebViewId,
 
     /// The name of the browsing context (sometimes, but not always,
     /// equal to the name of a container element)
@@ -128,7 +128,7 @@ pub(crate) struct WindowProxy {
 impl WindowProxy {
     fn new_inherited(
         browsing_context_id: BrowsingContextId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         currently_active: Option<PipelineId>,
         frame_element: Option<&Element>,
         parent: Option<&WindowProxy>,
@@ -141,7 +141,7 @@ impl WindowProxy {
         WindowProxy {
             reflector: Reflector::new(),
             browsing_context_id,
-            top_level_browsing_context_id,
+            webview_id,
             name: DomRefCell::new(name),
             currently_active: Cell::new(currently_active),
             discarded: Cell::new(false),
@@ -161,7 +161,7 @@ impl WindowProxy {
     pub(crate) fn new(
         window: &Window,
         browsing_context_id: BrowsingContextId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         frame_element: Option<&Element>,
         parent: Option<&WindowProxy>,
         opener: Option<BrowsingContextId>,
@@ -187,7 +187,7 @@ impl WindowProxy {
             let current = Some(window.global().pipeline_id());
             let window_proxy = Box::new(WindowProxy::new_inherited(
                 browsing_context_id,
-                top_level_browsing_context_id,
+                webview_id,
                 current,
                 frame_element,
                 parent,
@@ -221,7 +221,7 @@ impl WindowProxy {
     pub(crate) fn new_dissimilar_origin(
         global_to_clone_from: &GlobalScope,
         browsing_context_id: BrowsingContextId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
         parent: Option<&WindowProxy>,
         opener: Option<BrowsingContextId>,
         creator: CreatorBrowsingContextInfo,
@@ -234,7 +234,7 @@ impl WindowProxy {
             // Create a new browsing context.
             let window_proxy = Box::new(WindowProxy::new_inherited(
                 browsing_context_id,
-                top_level_browsing_context_id,
+                webview_id,
                 None,
                 None,
                 parent,
@@ -322,7 +322,7 @@ impl WindowProxy {
             parent_info: None,
             new_pipeline_id: response.new_pipeline_id,
             browsing_context_id: new_browsing_context_id,
-            top_level_browsing_context_id: response.new_webview_id,
+            webview_id: response.new_webview_id,
             opener: Some(self.browsing_context_id),
             load_data,
             window_size: window.window_size(),
@@ -585,8 +585,8 @@ impl WindowProxy {
         self.browsing_context_id
     }
 
-    pub(crate) fn top_level_browsing_context_id(&self) -> TopLevelBrowsingContextId {
-        self.top_level_browsing_context_id
+    pub(crate) fn webview_id(&self) -> WebViewId {
+        self.webview_id
     }
 
     pub(crate) fn frame_element(&self) -> Option<&Element> {

@@ -172,11 +172,11 @@ function test_invalid_fallback(syntax, value, fallback) {
         try {
             element.style = `${name}: ${value}; --x:var(${name},${fallback})`;
             let computedStyle = getComputedStyle(element);
-            assert_equals(computedStyle.getPropertyValue('--x'), '');
+            assert_equals(computedStyle.getPropertyValue('--x'), value);
         } finally {
             element.style = '';
         }
-    }, `Invalid fallback invalidates var()-reference [${syntax}, ${fallback}]`);
+    }, `Invalid fallback doesn't invalidate var()-reference [${syntax}, ${fallback}]`);
 }
 
 test_valid_fallback('<length>', '40px', '10px');

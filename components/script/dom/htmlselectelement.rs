@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
-use style_dom::ElementState;
+use stylo_dom::ElementState;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -114,7 +114,9 @@ impl HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-select-option-list
-    pub(crate) fn list_of_options(&self) -> impl Iterator<Item = DomRoot<HTMLOptionElement>> {
+    pub(crate) fn list_of_options(
+        &self,
+    ) -> impl Iterator<Item = DomRoot<HTMLOptionElement>> + use<'_> {
         self.upcast::<Node>().children().flat_map(|node| {
             if node.is::<HTMLOptionElement>() {
                 let node = DomRoot::downcast::<HTMLOptionElement>(node).unwrap();

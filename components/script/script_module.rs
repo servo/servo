@@ -27,8 +27,7 @@ use js::jsapi::{
     ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
-use js::rust::jsapi_wrapped::JS_GetPendingException;
-use js::rust::wrappers::JS_SetPendingException;
+use js::rust::wrappers::{JS_GetPendingException, JS_SetPendingException};
 use js::rust::{
     CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle,
     MutableHandleObject as RustMutableHandleObject, transform_str_to_source_text,
@@ -76,9 +75,9 @@ use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::task::TaskBox;
 
-fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
+fn gen_type_error(global: &GlobalScope, string: String, can_gc: CanGc) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
-    Error::Type(string).to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut());
+    Error::Type(string).to_jsval(GlobalScope::get_cx(), global, thrown.handle_mut(), can_gc);
 
     RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
 }
@@ -463,7 +462,7 @@ impl ModuleTree {
         options: ScriptFetchOptions,
         mut module_script: RustMutableHandleObject,
         inline: bool,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> Result<(), RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
@@ -488,7 +487,7 @@ impl ModuleTree {
                 warn!("fail to compile module script of {}", url);
 
                 rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, &mut exception.handle_mut()));
+                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 return Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
@@ -509,6 +508,7 @@ impl ModuleTree {
                 global,
                 module_script.handle().into_handle(),
                 url,
+                can_gc,
             )
             .map(|_| ())
         }
@@ -530,7 +530,7 @@ impl ModuleTree {
                 warn!("fail to link & instantiate module");
 
                 rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, &mut exception.handle_mut()));
+                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
@@ -576,7 +576,7 @@ impl ModuleTree {
                 warn!("fail to evaluate module");
 
                 rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, &mut exception.handle_mut()));
+                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
@@ -612,6 +612,7 @@ impl ModuleTree {
         global: &GlobalScope,
         module_object: HandleObject,
         base_url: &ServoUrl,
+        can_gc: CanGc,
     ) -> Result<IndexSet<ServoUrl>, RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
@@ -634,7 +635,7 @@ impl ModuleTree {
 
                 if url.is_err() {
                     let specifier_error =
-                        gen_type_error(global, "Wrong module specifier".to_owned());
+                        gen_type_error(global, "Wrong module specifier".to_owned(), can_gc);
 
                     return Err(specifier_error);
                 }
@@ -768,6 +769,7 @@ impl ModuleTree {
                     &global,
                     raw_record.handle(),
                     &self.url,
+                    can_gc,
                 ),
             }
         };
@@ -1045,7 +1047,7 @@ impl ModuleOwner {
         // Ensure any failures related to importing this dynamic module are immediately reported.
         match (network_error, existing_rethrow_error) {
             (Some(_), _) => unsafe {
-                let err = gen_type_error(&global, "Dynamic import failed".to_owned());
+                let err = gen_type_error(&global, "Dynamic import failed".to_owned(), can_gc);
                 JS_SetPendingException(*cx, err.handle(), ExceptionStackBehavior::Capture);
             },
             (None, Some(rethrow_error)) => unsafe {
@@ -1430,7 +1432,7 @@ fn fetch_an_import_module_script_graph(
 
     // Step 2.
     if url.is_err() {
-        let specifier_error = gen_type_error(global, "Wrong module specifier".to_owned());
+        let specifier_error = gen_type_error(global, "Wrong module specifier".to_owned(), can_gc);
         return Err(specifier_error);
     }
 

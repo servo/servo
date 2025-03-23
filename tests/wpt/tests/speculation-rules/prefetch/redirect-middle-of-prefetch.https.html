@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<meta name="variant" content="?origin=same-origin">
+<meta name="variant" content="?origin=cross-site-redirect">
+<meta name="variant" content="?origin=cross-site-initial">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<script src="resources/redirect-helper.sub.js"></script>
+
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+// Attempt to use the prefetched result in the middle of its redirects during
+// prefetch.
+// i.e. prefetch `prefetchInitialUrl` that is redirected to `prefetchFinalUrl`,
+// then navigate (either directly or via redirect) to `prefetchFinalUrl.
+
+// Prefetches should be completed before navigation starts, because otherwise
+// the prefetch's redirected URL is not known at the time of navigation.
+const prefetchTiming = 'redirect-received-before-navigation-start';
+
+promise_test(async t => {
+  const {agent,
+         prefetchInitialUrl,
+         prefetchFinalUrl,
+         redirectToPrefetchInitialUrl,
+         redirectToPrefetchFinalUrl} = await prepare(t, prefetchTiming);
+
+  await agent.forceSinglePrefetch(prefetchInitialUrl);
+  await agent.navigate(prefetchFinalUrl,
+                       {expectedDestinationUrl: prefetchFinalUrl});
+
+  assert_not_prefetched(await agent.getRequestHeaders(),
+      'Prefetched response should not be used by navigation.');
+}, 'Navigate to the final URL of the prefetch');
+
+promise_test(async t => {
+  const {agent,
+         prefetchInitialUrl,
+         prefetchFinalUrl,
+         redirectToPrefetchInitialUrl,
+         redirectToPrefetchFinalUrl} = await prepare(t, prefetchTiming);
+
+  await agent.forceSinglePrefetch(prefetchInitialUrl);
+  await agent.navigate(redirectToPrefetchFinalUrl,
+                       {expectedDestinationUrl: prefetchFinalUrl});
+
+  assert_not_prefetched(await agent.getRequestHeaders(),
+      'Prefetched response should not be used by navigation.');
+}, 'Navigation is redirected to the final URL of the prefetch');
+</script>

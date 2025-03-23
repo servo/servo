@@ -128,7 +128,6 @@ fn get_preferences(opts_matches: &Matches, config_dir: &Option<PathBuf>) -> Pref
 
     let user_prefs_path = config_dir
         .clone()
-        .or_else(default_config_dir)
         .map(|path| path.join("prefs.json"))
         .filter(|path| path.exists());
     let user_prefs_hash = user_prefs_path.map(read_prefs_file).unwrap_or_default();
@@ -180,7 +179,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let (app_name, args) = args.split_first().unwrap();
 
     let mut opts = Options::new();
-    opts.optflag("", "legacy-layout", "Use the legacy layout engine");
     opts.optopt(
         "o",
         "output",
@@ -349,6 +347,11 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "FILTER",
     );
 
+    opts.optflag(
+        "",
+        "enable-experimental-web-platform-features",
+        "Whether or not to enable experimental web platform features.",
+    );
     opts.optmulti(
         "",
         "pref",
@@ -383,7 +386,18 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         process::exit(0);
     };
 
-    let config_dir = opt_match.opt_str("config-dir").map(Into::into);
+    let config_dir = opt_match
+        .opt_str("config-dir")
+        .map(Into::into)
+        .or_else(default_config_dir)
+        .inspect(|path| {
+            if !path.exists() {
+                fs::create_dir_all(path).unwrap_or_else(|e| {
+                    error!("Failed to create config directory at {:?}: {:?}", path, e)
+                })
+            }
+        });
+
     let mut preferences = get_preferences(&opt_match, &config_dir);
 
     // If this is the content process, we'll receive the real options over IPC. So just fill in
@@ -531,17 +545,36 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         })
         .collect();
 
+    if opt_match.opt_present("enable-experimental-web-platform-features") {
+        vec![
+            "dom_fontface_enabled",
+            "dom_imagebitmap_enabled",
+            "dom_intersection_observer_enabled",
+            "dom_mouse_event_which_enabled",
+            "dom_notification_enabled",
+            "dom_offscreen_canvas_enabled",
+            "dom_permissions_enabled",
+            "dom_resize_observer_enabled",
+            "dom_serviceworker_enabled",
+            "dom_svg_enabled",
+            "dom_webgl2_enabled",
+            "dom_webgpu_enabled",
+            "dom_xpath_enabled",
+            "layout_columns_enabled",
+            "layout_container_queries_enabled",
+            "layout_grid_enabled",
+            "layout_writing_mode_enabled",
+        ]
+        .iter()
+        .for_each(|pref| preferences.set_value(pref, PrefValue::Bool(true)));
+    }
+
     // Handle all command-line preferences overrides.
     for pref in opt_match.opt_strs("pref") {
         let split: Vec<&str> = pref.splitn(2, '=').collect();
         let pref_name = split[0];
         let pref_value = PrefValue::from_booleanish_str(split.get(1).copied().unwrap_or("true"));
         preferences.set_value(pref_name, pref_value);
-    }
-
-    let legacy_layout = opt_match.opt_present("legacy-layout");
-    if legacy_layout {
-        preferences.layout_legacy_layout = true;
     }
 
     if let Some(layout_threads) = layout_threads {
@@ -600,7 +633,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let opts = Opts {
         debug: debug_options.clone(),
         wait_for_stable_image,
-        legacy_layout,
         time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         nonincremental_layout,

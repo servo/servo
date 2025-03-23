@@ -6,7 +6,6 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
@@ -30,7 +29,9 @@ use style::attr::AttrValue;
 
 use crate::canvas_context::CanvasContext as _;
 pub(crate) use crate::canvas_context::*;
+use crate::conversions::Convert;
 use crate::dom::attr::Attr;
+use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::{DomRefCell, Ref, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     BlobCallback, HTMLCanvasElementMethods, RenderingContext,
@@ -40,7 +41,6 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGL
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::import::module::ExceptionHandling;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
@@ -48,9 +48,7 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
-use crate::dom::canvasrenderingcontext2d::{
-    CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers,
-};
+use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 #[cfg(not(feature = "webgpu"))]
@@ -208,9 +206,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     fn data(self) -> HTMLCanvasData {
         let source = unsafe {
             match self.unsafe_get().context.borrow_for_layout().as_ref() {
-                Some(CanvasContext::Context2d(context)) => {
-                    HTMLCanvasDataSource::Image(context.to_layout().get_ipc_renderer())
-                },
+                Some(CanvasContext::Context2d(context)) => context.to_layout().canvas_data_source(),
                 Some(CanvasContext::WebGL(context)) => context.to_layout().canvas_data_source(),
                 Some(CanvasContext::WebGL2(context)) => context.to_layout().canvas_data_source(),
                 #[cfg(feature = "webgpu")]
@@ -229,20 +225,6 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
             source,
             width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
             height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
-            canvas_id: self.get_canvas_id_for_layout(),
-        }
-    }
-
-    #[allow(unsafe_code)]
-    fn get_canvas_id_for_layout(self) -> CanvasId {
-        let canvas = self.unsafe_get();
-        unsafe {
-            if let &Some(CanvasContext::Context2d(ref context)) = canvas.context.borrow_for_layout()
-            {
-                context.to_layout().get_canvas_id()
-            } else {
-                CanvasId(0)
-            }
         }
     }
 }
@@ -361,9 +343,9 @@ impl HTMLCanvasElement {
     fn get_gl_attributes(cx: JSContext, options: HandleValue) -> Option<GLContextAttributes> {
         unsafe {
             match WebGLContextAttributes::new(cx, options) {
-                Ok(ConversionResult::Success(ref attrs)) => Some(From::from(attrs)),
-                Ok(ConversionResult::Failure(ref error)) => {
-                    throw_type_error(*cx, error);
+                Ok(ConversionResult::Success(attrs)) => Some(attrs.convert()),
+                Ok(ConversionResult::Failure(error)) => {
+                    throw_type_error(*cx, &error);
                     None
                 },
                 _ => {
@@ -721,15 +703,15 @@ impl VirtualMethods for HTMLCanvasElement {
     }
 }
 
-impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
-    fn from(attrs: &'a WebGLContextAttributes) -> GLContextAttributes {
+impl Convert<GLContextAttributes> for WebGLContextAttributes {
+    fn convert(self) -> GLContextAttributes {
         GLContextAttributes {
-            alpha: attrs.alpha,
-            depth: attrs.depth,
-            stencil: attrs.stencil,
-            antialias: attrs.antialias,
-            premultiplied_alpha: attrs.premultipliedAlpha,
-            preserve_drawing_buffer: attrs.preserveDrawingBuffer,
+            alpha: self.alpha,
+            depth: self.depth,
+            stencil: self.stencil,
+            antialias: self.antialias,
+            premultiplied_alpha: self.premultipliedAlpha,
+            preserve_drawing_buffer: self.preserveDrawingBuffer,
         }
     }
 }

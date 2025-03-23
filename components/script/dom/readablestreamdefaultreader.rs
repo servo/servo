@@ -14,13 +14,13 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 
 use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::MutNullableDom;
+use super::readablebytestreamcontroller::ReadableByteStreamController;
 use super::types::ReadableStreamDefaultController;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
     ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,
 };
-use crate::dom::bindings::error::{Error, ErrorToJsval};
-use crate::dom::bindings::import::module::Fallible;
+use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -67,7 +67,7 @@ impl Callback for ReadLoopFulFillmentHandler {
                     .release(can_gc)
                     .expect("Releasing the reader should succeed");
                 rooted!(in(*cx) let mut v = UndefinedValue());
-                err.to_jsval(cx, &global, v.handle_mut());
+                err.to_jsval(cx, &global, v.handle_mut(), can_gc);
                 (self.failure_steps)(cx, v.handle());
                 return;
             },
@@ -87,7 +87,7 @@ impl Callback for ReadLoopFulFillmentHandler {
                 Err(err) => {
                     //  If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort these steps.
                     rooted!(in(*cx) let mut v = UndefinedValue());
-                    err.to_jsval(cx, &global, v.handle_mut());
+                    err.to_jsval(cx, &global, v.handle_mut(), can_gc);
                     (self.failure_steps)(cx, v.handle());
                     self.reader
                         .release(can_gc)
@@ -387,6 +387,7 @@ impl ReadableStreamDefaultReader {
             cx,
             &self.global(),
             error.handle_mut(),
+            can_gc,
         );
 
         // Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).
@@ -410,7 +411,7 @@ impl ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub(crate) fn read(&self, read_request: &ReadRequest, can_gc: CanGc) {
+    pub(crate) fn read(&self, cx: SafeJSContext, read_request: &ReadRequest, can_gc: CanGc) {
         // Let stream be reader.[[stream]].
 
         // Assert: stream is not undefined.
@@ -435,7 +436,7 @@ impl ReadableStreamDefaultReader {
             // Assert: stream.[[state]] is "readable".
             assert!(stream.is_readable());
             // Perform ! stream.[[controller]].[[PullSteps]](readRequest).
-            stream.perform_pull_steps(read_request, can_gc);
+            stream.perform_pull_steps(cx, read_request, can_gc);
         }
     }
 
@@ -505,6 +506,30 @@ impl ReadableStreamDefaultReader {
             can_gc,
         );
     }
+
+    /// step 3 of <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerprocessreadrequestsusingqueue>
+    pub(crate) fn process_read_requests(
+        &self,
+        cx: SafeJSContext,
+        controller: DomRoot<ReadableByteStreamController>,
+        can_gc: CanGc,
+    ) -> Fallible<()> {
+        // While reader.[[readRequests]] is not empty,
+        while !self.read_requests.borrow().is_empty() {
+            // If controller.[[queueTotalSize]] is 0, return.
+            if controller.get_queue_total_size() == 0.0 {
+                return Ok(());
+            }
+
+            // Let readRequest be reader.[[readRequests]][0].
+            // Remove entry from controller.[[queue]].
+            let read_request = self.remove_read_request();
+
+            // Perform ! ReadableByteStreamControllerFillReadRequestFromQueue(controller, readRequest).
+            controller.fill_read_request_from_queue(cx, &read_request, can_gc)?;
+        }
+        Ok(())
+    }
 }
 
 impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStreamDefaultReader {
@@ -525,14 +550,15 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
 
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     fn Read(&self, can_gc: CanGc) -> Rc<Promise> {
+        let cx = GlobalScope::get_cx();
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
-            let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut error = UndefinedValue());
             Error::Type("stream is undefined".to_owned()).to_jsval(
                 cx,
                 &self.global(),
                 error.handle_mut(),
+                can_gc,
             );
             return Promise::new_rejected(&self.global(), cx, error.handle(), can_gc);
         }
@@ -555,7 +581,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
         let read_request = ReadRequest::Read(promise.clone());
 
         // Perform ! ReadableStreamDefaultReaderRead(this, readRequest).
-        self.read(&read_request, can_gc);
+        self.read(cx, &read_request, can_gc);
 
         // Return promise.
         promise
@@ -579,7 +605,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn Cancel(&self, _cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
-        self.cancel(&self.global(), reason, can_gc)
+        self.generic_cancel(&self.global(), reason, can_gc)
     }
 }
 

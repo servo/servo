@@ -8,7 +8,7 @@ use std::fmt;
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use itertools::Itertools;
-use style_dom::ElementState;
+use stylo_dom::ElementState;
 
 use super::bindings::codegen::Bindings::ElementInternalsBinding::ValidityStateFlags;
 use crate::dom::bindings::cell::{DomRefCell, Ref};

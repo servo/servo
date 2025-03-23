@@ -10,11 +10,10 @@ use std::time::Duration;
 use base::id::WebViewId;
 use compositing::IOCompositor;
 use compositing::windowing::WebRenderDebugOption;
-use compositing_traits::ConstellationMsg;
+use constellation_traits::{ConstellationMsg, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, LoadStatus, MediaSessionActionType, Theme, TouchEventType,
-    TraversalDirection,
 };
 use url::Url;
 use webrender_api::ScrollLocation;

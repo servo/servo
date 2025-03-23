@@ -7,19 +7,18 @@ use std::sync::atomic::Ordering;
 use std::{fmt, slice};
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
+use constellation_traits::UntrustedNodeAddress;
 use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
 use js::jsapi::JSObject;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{LayoutNodeType, StyleData};
-use script_traits::UntrustedNodeAddress;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
-use servo_atoms::Atom;
 use style::CaseSensitivityExt;
 use style::animation::AnimationSetKey;
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -37,7 +36,8 @@ use style::shared_lock::Locked as StyleLocked;
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
 use style::values::computed::Display;
 use style::values::{AtomIdent, AtomString};
-use style_dom::ElementState;
+use stylo_atoms::Atom;
+use stylo_dom::ElementState;
 
 use crate::dom::attr::AttrHelpersForLayout;
 use crate::dom::bindings::inheritance::{

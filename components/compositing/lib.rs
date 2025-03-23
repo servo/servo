@@ -7,7 +7,8 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use compositing_traits::{CompositorProxy, CompositorReceiver, ConstellationMsg};
+use compositing_traits::{CompositorProxy, CompositorReceiver};
+use constellation_traits::ConstellationMsg;
 use crossbeam_channel::Sender;
 use embedder_traits::ShutdownState;
 use profile_traits::{mem, time};

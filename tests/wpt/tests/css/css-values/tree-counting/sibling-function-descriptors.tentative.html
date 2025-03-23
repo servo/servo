@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: sibling-index() and sibling-count() invalid in descriptors</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10982">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="test_sheet">
+  @page {
+    margin: 100px;
+    margin: calc(0px * sibling-index());
+  }
+  @page {
+    margin: 100px;
+    margin: calc(0px * sibling-count());
+  }
+  @font-face {
+    font-family: my-font;
+    font-weight: 300;
+    font-weight: calc(max(0 * sibling-index(), 400));
+  }
+  @font-face {
+    font-family: my-font;
+    font-weight: 300;
+    font-weight: calc(max(0 * sibling-count(), 400));
+  }
+</style>
+<script>
+  const rules = test_sheet.sheet.cssRules;
+
+  test(() => {
+    assert_equals(rules[0].style.margin, "100px");
+  }, "sibling-index() should not be allowed in @page properties");
+
+  test(() => {
+    assert_equals(rules[1].style.margin, "100px");
+  }, "sibling-count() should not be allowed in @page properties");
+
+  test(() => {
+    assert_equals(rules[2].style.fontWeight, "300");
+  }, "sibling-index() should not be allowed in @font-face descriptors");
+
+  test(() => {
+    assert_equals(rules[3].style.fontWeight, "300");
+  }, "sibling-count() should not be allowed in @font-face descriptors");
+</script>

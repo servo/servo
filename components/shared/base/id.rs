@@ -16,7 +16,7 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId};
+use webrender_api::{ExternalScrollId, PipelineId as WebRenderPipelineId, SpatialId};
 
 /// Asserts the size of a type at compile time.
 macro_rules! size_of_test {
@@ -275,61 +275,58 @@ impl fmt::Display for BrowsingContextGroupId {
     }
 }
 
-thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrowsingContextId>> =
+thread_local!(pub static WEBVIEW_ID: Cell<Option<WebViewId>> =
     const { Cell::new(None) });
 
 #[derive(
     Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
-pub struct TopLevelBrowsingContextId(pub BrowsingContextId);
-/// An alias to ID of top level browsing context. A web view is usually what people would treat as
-/// a normal web page.
-pub type WebViewId = TopLevelBrowsingContextId;
+pub struct WebViewId(pub BrowsingContextId);
 
-size_of_test!(TopLevelBrowsingContextId, 8);
-size_of_test!(Option<TopLevelBrowsingContextId>, 8);
+size_of_test!(WebViewId, 8);
+size_of_test!(Option<WebViewId>, 8);
 
-impl fmt::Debug for TopLevelBrowsingContextId {
+impl fmt::Debug for WebViewId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "TopLevel{:?}", self.0)
     }
 }
 
-impl fmt::Display for TopLevelBrowsingContextId {
+impl fmt::Display for WebViewId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "TopLevel{}", self.0)
     }
 }
 
-impl TopLevelBrowsingContextId {
-    pub fn new() -> TopLevelBrowsingContextId {
-        TopLevelBrowsingContextId(BrowsingContextId::new())
+impl WebViewId {
+    pub fn new() -> WebViewId {
+        WebViewId(BrowsingContextId::new())
     }
 
     /// Each script and layout thread should have the top-level browsing context id installed,
     /// since it is used by crash reporting.
-    pub fn install(id: TopLevelBrowsingContextId) {
-        TOP_LEVEL_BROWSING_CONTEXT_ID.with(|tls| tls.set(Some(id)))
+    pub fn install(id: WebViewId) {
+        WEBVIEW_ID.with(|tls| tls.set(Some(id)))
     }
 
-    pub fn installed() -> Option<TopLevelBrowsingContextId> {
-        TOP_LEVEL_BROWSING_CONTEXT_ID.with(|tls| tls.get())
+    pub fn installed() -> Option<WebViewId> {
+        WEBVIEW_ID.with(|tls| tls.get())
     }
 }
 
-impl From<TopLevelBrowsingContextId> for BrowsingContextId {
-    fn from(id: TopLevelBrowsingContextId) -> BrowsingContextId {
+impl From<WebViewId> for BrowsingContextId {
+    fn from(id: WebViewId) -> BrowsingContextId {
         id.0
     }
 }
 
-impl PartialEq<TopLevelBrowsingContextId> for BrowsingContextId {
-    fn eq(&self, rhs: &TopLevelBrowsingContextId) -> bool {
+impl PartialEq<WebViewId> for BrowsingContextId {
+    fn eq(&self, rhs: &WebViewId) -> bool {
         self.eq(&rhs.0)
     }
 }
 
-impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
+impl PartialEq<BrowsingContextId> for WebViewId {
     fn eq(&self, rhs: &BrowsingContextId) -> bool {
         self.0.eq(rhs)
     }
@@ -444,4 +441,16 @@ pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
     index: TEST_BROWSING_CONTEXT_INDEX,
 };
 
-pub const TEST_WEBVIEW_ID: WebViewId = TopLevelBrowsingContextId(TEST_BROWSING_CONTEXT_ID);
+pub const TEST_WEBVIEW_ID: WebViewId = WebViewId(TEST_BROWSING_CONTEXT_ID);
+
+/// An id for a ScrollTreeNode in the ScrollTree. This contains both the index
+/// to the node in the tree's array of nodes as well as the corresponding SpatialId
+/// for the SpatialNode in the WebRender display list.
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct ScrollTreeNodeId {
+    /// The index of this scroll tree node in the tree's array of nodes.
+    pub index: usize,
+
+    /// The WebRender spatial id of this scroll tree node.
+    pub spatial_id: SpatialId,
+}

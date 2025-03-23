@@ -58,7 +58,7 @@ on:
       wpt-layout:
         required: false
         type: choice
-        options: ["none", "2013", "2020", "all"]
+        options: ["none", "2020", "all"]
       unit-tests:
         required: false
         default: false
@@ -167,7 +167,7 @@ jobs:
 
       - name: Build (${{ inputs.profile }})
         run: |
-          ./mach build --use-crown --locked --${{ inputs.profile }} --features "layout_2013"
+          ./mach build --use-crown --locked --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
         run: xvfb-run ./mach smoketest --${{ inputs.profile  }}
@@ -224,19 +224,6 @@ jobs:
       wpt-args: ${{ inputs.wpt-args }}
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
-      wpt-layout: "layout-2020"
-    secrets: inherit
-
-  wpt-2013:
-    if: ${{ inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
-    name: Linux WPT (Legacy)
-    needs: ["build"]
-    uses: ./.github/workflows/linux-wpt.yml
-    with:
-      wpt-args: ${{ inputs.wpt-args }}
-      profile: ${{ inputs.profile }}
-      wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
-      wpt-layout: "layout-2013"
     secrets: inherit
 
   bencher:

@@ -34,11 +34,11 @@ struct HostCallbacks {
     jvm: JavaVM,
 }
 
-extern "C" {
+unsafe extern "C" {
     fn ANativeWindow_fromSurface(env: *mut jni::sys::JNIEnv, surface: jobject) -> *mut c_void;
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn android_main() {
     // FIXME(mukilan): this android_main is only present to stop
     // the java side 'System.loadLibrary('servoshell') call from
@@ -57,7 +57,7 @@ where
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
     env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -67,7 +67,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
         .unwrap_or_else(|_str| JObject::null().into())
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -147,7 +147,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     };
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_requestShutdown<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -156,7 +156,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_requestShutdown<'local>(
     call(&mut env, |s| s.request_shutdown());
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_deinit<'local>(
     _env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -165,7 +165,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_deinit<'local>(
     simpleservo::deinit();
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_resize<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -179,7 +179,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_resize<'local>(
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_performUpdates<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -191,7 +191,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_performUpdates<'local>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_loadUri<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -209,7 +209,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_loadUri<'local>(
     };
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_reload<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -218,7 +218,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_reload<'local>(
     call(&mut env, |s| s.reload());
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_stop<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -227,7 +227,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_stop<'local>(
     call(&mut env, |s| s.stop());
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_goBack<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -236,7 +236,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_goBack<'local>(
     call(&mut env, |s| s.go_back());
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_goForward<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
@@ -245,7 +245,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_goForward<'local>(
     call(&mut env, |s| s.go_forward());
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_scrollStart<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -258,7 +258,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_scrollStart<'local>(
     call(&mut env, |s| s.scroll_start(dx as f32, dy as f32, x, y));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_scrollEnd<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -271,7 +271,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_scrollEnd<'local>(
     call(&mut env, |s| s.scroll_end(dx as f32, dy as f32, x, y));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_scroll<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -284,7 +284,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_scroll<'local>(
     call(&mut env, |s| s.scroll(dx as f32, dy as f32, x, y));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_touchDown<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -296,7 +296,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_touchDown<'local>(
     call(&mut env, |s| s.touch_down(x, y, pointer_id));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_touchUp<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -308,7 +308,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_touchUp<'local>(
     call(&mut env, |s| s.touch_up(x, y, pointer_id));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_touchMove<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -320,7 +320,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_touchMove<'local>(
     call(&mut env, |s| s.touch_move(x, y, pointer_id));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_touchCancel<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -332,7 +332,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_touchCancel<'local>(
     call(&mut env, |s| s.touch_cancel(x, y, pointer_id));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomStart<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -344,7 +344,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomStart<'local>(
     call(&mut env, |s| s.pinchzoom_start(factor, x as u32, y as u32));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoom<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -356,7 +356,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoom<'local>(
     call(&mut env, |s| s.pinchzoom(factor, x as u32, y as u32));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomEnd<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -368,7 +368,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomEnd<'local>(
     call(&mut env, |s| s.pinchzoom_end(factor, x as u32, y as u32));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_click(
     mut env: JNIEnv,
     _: JClass,
@@ -379,7 +379,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_click(
     call(&mut env, |s| s.click(x, y));
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_pauseCompositor(
     mut env: JNIEnv,
     _: JClass<'_>,
@@ -388,7 +388,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_pauseCompositor(
     call(&mut env, |s| s.pause_compositor());
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_resumeCompositor<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -407,7 +407,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_resumeCompositor<'local>(
     });
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_org_servo_servoview_JNIServo_mediaSessionAction<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
@@ -689,7 +689,7 @@ impl HostTrait for HostCallbacks {
     fn on_panic(&self, _reason: String, _backtrace: Option<String>) {}
 }
 
-extern "C" {
+unsafe extern "C" {
     pub fn __android_log_write(prio: c_int, tag: *const c_char, text: *const c_char) -> c_int;
 }
 

@@ -4,6 +4,7 @@
 
 //! Defines data structures which are consumed by the Compositor.
 
+use base::id::ScrollTreeNodeId;
 use embedder_traits::Cursor;
 use serde::{Deserialize, Serialize};
 use style::values::specified::Overflow;
@@ -52,18 +53,6 @@ pub struct HitTestInfo {
 
     /// The id of the [ScrollTree] associated with this hit test item.
     pub scroll_tree_node: ScrollTreeNodeId,
-}
-
-/// An id for a ScrollTreeNode in the ScrollTree. This contains both the index
-/// to the node in the tree's array of nodes as well as the corresponding SpatialId
-/// for the SpatialNode in the WebRender display list.
-#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize)]
-pub struct ScrollTreeNodeId {
-    /// The index of this scroll tree node in the tree's array of nodes.
-    pub index: usize,
-
-    /// The WebRender spatial id of this scroll tree node.
-    pub spatial_id: SpatialId,
 }
 
 /// Data stored for nodes in the [ScrollTree] that actually scroll,
@@ -305,6 +294,15 @@ pub struct CompositorDisplayListInfo {
     /// The `ScrollTreeNodeId` of the topmost scrolling frame of this info's scroll
     /// tree.
     pub root_scroll_node_id: ScrollTreeNodeId,
+
+    /// Contentful paint i.e. whether the display list contains items of type
+    /// text, image, non-white canvas or SVG). Used by metrics.
+    /// See <https://w3c.github.io/paint-timing/#first-contentful-paint>.
+    pub is_contentful: bool,
+
+    /// Whether the first layout or a subsequent (incremental) layout triggered this
+    /// display list creation.
+    pub first_reflow: bool,
 }
 
 impl CompositorDisplayListInfo {
@@ -316,6 +314,7 @@ impl CompositorDisplayListInfo {
         pipeline_id: PipelineId,
         epoch: Epoch,
         viewport_scroll_sensitivity: AxesScrollSensitivity,
+        first_reflow: bool,
     ) -> Self {
         let mut scroll_tree = ScrollTree::default();
         let root_reference_frame_id = scroll_tree.add_scroll_tree_node(
@@ -343,6 +342,8 @@ impl CompositorDisplayListInfo {
             scroll_tree,
             root_reference_frame_id,
             root_scroll_node_id,
+            is_contentful: false,
+            first_reflow,
         }
     }
 

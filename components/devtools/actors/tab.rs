@@ -25,6 +25,8 @@ use crate::protocol::JsonPacketStream;
 #[serde(rename_all = "camelCase")]
 pub struct TabDescriptorActorMsg {
     actor: String,
+    /// This correspond to webview_id
+    #[serde(rename = "browserId")]
     browser_id: u32,
     #[serde(rename = "browsingContextID")]
     browsing_context_id: u32,
@@ -38,7 +40,7 @@ pub struct TabDescriptorActorMsg {
 }
 
 impl TabDescriptorActorMsg {
-    pub fn id(&self) -> u32 {
+    pub fn browser_id(&self) -> u32 {
         self.browser_id
     }
 }
@@ -65,6 +67,7 @@ struct GetWatcherReply {
 pub struct TabDescriptorActor {
     name: String,
     browsing_context_actor: String,
+    is_top_level_global: bool,
 }
 
 impl Actor for TabDescriptorActor {
@@ -125,6 +128,7 @@ impl TabDescriptorActor {
     pub(crate) fn new(
         actors: &mut ActorRegistry,
         browsing_context_actor: String,
+        is_top_level_global: bool,
     ) -> TabDescriptorActor {
         let name = actors.new_name("tab-description");
         let root = actors.find_mut::<RootActor>("root");
@@ -132,22 +136,24 @@ impl TabDescriptorActor {
         TabDescriptorActor {
             name,
             browsing_context_actor,
+            is_top_level_global,
         }
     }
 
     pub fn encodable(&self, registry: &ActorRegistry, selected: bool) -> TabDescriptorActorMsg {
         let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-        let browser_id = ctx_actor.active_pipeline.get().index.0.get();
+        let browser_id = ctx_actor.browser_id.0.index.0.get();
         let browsing_context_id = ctx_actor.browsing_context_id.index.0.get();
+        let outer_window_id = ctx_actor.active_pipeline.get().index.0.get();
         let title = ctx_actor.title.borrow().clone();
         let url = ctx_actor.url.borrow().clone();
 
         TabDescriptorActorMsg {
             actor: self.name(),
-            browsing_context_id,
             browser_id,
+            browsing_context_id,
             is_zombie_tab: false,
-            outer_window_id: browser_id,
+            outer_window_id,
             selected,
             title,
             traits: DescriptorTraits {
@@ -156,5 +162,9 @@ impl TabDescriptorActor {
             },
             url,
         }
+    }
+
+    pub(crate) fn is_top_level_global(&self) -> bool {
+        self.is_top_level_global
     }
 }

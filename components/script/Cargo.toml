@@ -27,6 +27,7 @@ webgpu = ["script_bindings/webgpu", "script_traits/webgpu"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
+unsafe_op_in_unsafe_fn = { level = "allow" }
 
 [dependencies]
 aes = { workspace = true }
@@ -44,6 +45,7 @@ bincode = { workspace = true }
 bitflags = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
+constellation_traits = { workspace = true }
 cbc = { workspace = true }
 cipher = { workspace = true }
 chrono = { workspace = true }
@@ -104,17 +106,19 @@ serde_json = { workspace = true }
 servo-media = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_arc = { workspace = true }
-servo_atoms = { workspace = true }
+stylo_atoms = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
-style_malloc_size_of = { workspace = true }
+stylo_malloc_size_of = { workspace = true }
 glow = { workspace = true }
-style = { workspace = true }
-style_dom = { workspace = true }
-style_traits = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+stylo = { workspace = true }
+stylo_dom = { workspace = true }
+stylo_traits = { workspace = true }
 swapper = "0.1"
 tempfile = "3"
 tendril = { version = "0.4.1", features = ["encoding_rs"] }

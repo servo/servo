@@ -11,12 +11,12 @@ use std::sync::Arc;
 use std::thread;
 
 use backtrace::Backtrace;
-use base::id::TopLevelBrowsingContextId;
-use compositing_traits::ConstellationMsg as FromCompositorMsg;
+use base::id::WebViewId;
+use constellation_traits::{ConstellationMsg as FromCompositorMsg, LogEntry};
 use crossbeam_channel::Sender;
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use parking_lot::ReentrantMutex;
-use script_traits::{LogEntry, ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
+use script_traits::{ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
 
 /// A logger directed at the constellation from content processes
 /// #[derive(Clone)]
@@ -87,7 +87,7 @@ impl Log for FromCompositorLogger {
 
     fn log(&self, record: &Record) {
         if let Some(entry) = log_entry(record) {
-            let top_level_id = TopLevelBrowsingContextId::installed();
+            let top_level_id = WebViewId::installed();
             let thread_name = thread::current().name().map(ToOwned::to_owned);
             let msg = FromCompositorMsg::LogEntry(top_level_id, thread_name, entry);
             let chan = self.constellation_chan.lock();

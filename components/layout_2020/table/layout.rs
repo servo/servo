@@ -35,8 +35,8 @@ use crate::fragment_tree::{
     PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{
-    LogicalRect, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
-    PhysicalVec, Size, SizeConstraint, ToLogical, ToLogicalWithContainingBlock,
+    LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
+    PhysicalSides, PhysicalVec, Size, SizeConstraint, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::positioned::{PositioningContext, PositioningContextLength, relative_adjustement};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
@@ -240,15 +240,11 @@ impl Zero for CellOrTrackMeasure {
 
 impl<'a> TableLayout<'a> {
     fn new(table: &'a Table) -> TableLayout<'a> {
-        // It's not clear whether `inline-size: stretch` allows fixed table mode or not,
-        // we align with Gecko and Blink.
-        // <https://github.com/w3c/csswg-drafts/issues/10937>.
-        let is_in_fixed_mode = table.style.get_table().clone_table_layout() ==
-            TableLayoutMode::Fixed &&
-            !matches!(
-                table.style.box_size(table.style.writing_mode).inline,
-                Size::Initial | Size::MaxContent
-            );
+        // The CSSWG resolved that only `inline-size: auto` can prevent fixed table mode.
+        // <https://github.com/w3c/csswg-drafts/issues/10937#issuecomment-2669150397>
+        let style = &table.style;
+        let is_in_fixed_mode = style.get_table().table_layout == TableLayoutMode::Fixed &&
+            !style.box_size(style.writing_mode).inline.is_initial();
         Self {
             table,
             pbm: PaddingBorderMargin::zero(),
@@ -1097,7 +1093,7 @@ impl<'a> TableLayout<'a> {
                     .par_iter()
                     .enumerate()
                     .map(|(column_index, slot)| {
-                        let TableSlot::Cell(ref cell) = slot else {
+                        let TableSlot::Cell(cell) = slot else {
                             return None;
                         };
 
@@ -1165,7 +1161,7 @@ impl<'a> TableLayout<'a> {
                 self.cell_measures[row_index][column_index]
                     .block
                     .content_sizes
-                    .max_assign(layout.layout.content_block_size.into());
+                    .max_assign(layout.outer_block_size().into());
             }
         }
     }
@@ -1503,6 +1499,11 @@ impl<'a> TableLayout<'a> {
             style: &self.table.style,
         };
 
+        // The parent of a caption is the table wrapper, which establishes an independent
+        // formatting context. Therefore, we don't ignore block margins when resolving a
+        // stretch block size. https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
+        let ignore_block_margins_for_stretch = LogicalSides1D::new(false, false);
+
         let mut box_fragment = context.layout_in_flow_block_level(
             layout_context,
             positioning_context
@@ -1510,6 +1511,7 @@ impl<'a> TableLayout<'a> {
                 .unwrap_or(parent_positioning_context),
             containing_block,
             None, /* sequential_layout_state */
+            ignore_block_margins_for_stretch,
         );
 
         if let Some(mut positioning_context) = positioning_context.take() {
@@ -2301,19 +2303,18 @@ impl<'a> RowFragmentLayout<'a> {
                 relative_adjustement(&self.row.style, containing_block_for_children);
         }
 
-        let (inline_size, block_size) =
-            if let Some(ref row_group_layout) = row_group_fragment_layout {
-                self.rect.start_corner -= row_group_layout.rect.start_corner;
-                (
-                    row_group_layout.rect.size.inline,
-                    SizeConstraint::Definite(row_group_layout.rect.size.block),
-                )
-            } else {
-                (
-                    containing_block_for_logical_conversion.size.inline,
-                    containing_block_for_logical_conversion.size.block,
-                )
-            };
+        let (inline_size, block_size) = if let Some(row_group_layout) = row_group_fragment_layout {
+            self.rect.start_corner -= row_group_layout.rect.start_corner;
+            (
+                row_group_layout.rect.size.inline,
+                SizeConstraint::Definite(row_group_layout.rect.size.block),
+            )
+        } else {
+            (
+                containing_block_for_logical_conversion.size.inline,
+                containing_block_for_logical_conversion.size.block,
+            )
+        };
 
         let row_group_containing_block = ContainingBlock {
             size: ContainingBlockSize {

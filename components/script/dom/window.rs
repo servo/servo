@@ -21,6 +21,7 @@ use base64::Engine;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
+use constellation_traits::{ScrollState, WindowSizeData, WindowSizeType};
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
@@ -61,12 +62,10 @@ use script_layout_interface::{
 };
 use script_traits::{
     DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptMsg, ScriptThreadMessage,
-    ScriptToConstellationChan, ScrollState, StructuredSerializedData, WindowSizeData,
-    WindowSizeType,
+    ScriptToConstellationChan, StructuredSerializedData,
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
-use servo_atoms::Atom;
 use servo_config::{opts, pref};
 use servo_geometry::{DeviceIndependentIntRect, MaxRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -81,6 +80,7 @@ use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::{CSSPixel, ParsingMode};
+use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
@@ -506,6 +506,13 @@ impl Window {
                 Some(window_proxy)
             }
         })
+    }
+
+    /// Returns the window proxy of the webview, which is the top-level ancestor browsing context.
+    /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
+    pub(crate) fn webview_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
+        self.undiscarded_window_proxy()
+            .and_then(|window_proxy| ScriptThread::find_window_proxy(window_proxy.webview_id().0))
     }
 
     #[cfg(feature = "bluetooth")]
@@ -2213,11 +2220,16 @@ impl Window {
         )
     }
 
+    // Query content box without considering any reflow
+    pub(crate) fn content_box_query_unchecked(&self, node: &Node) -> Option<UntypedRect<Au>> {
+        self.layout.borrow().query_content_box(node.to_opaque())
+    }
+
     pub(crate) fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBox, can_gc) {
             return None;
         }
-        self.layout.borrow().query_content_box(node.to_opaque())
+        self.content_box_query_unchecked(node)
     }
 
     pub(crate) fn content_boxes_query(&self, node: &Node, can_gc: CanGc) -> Vec<UntypedRect<Au>> {
@@ -3096,8 +3108,10 @@ fn is_named_element_with_id_attribute(elem: &Element) -> bool {
 }
 
 #[allow(unsafe_code)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 /// Helper for interactive debugging sessions in lldb/gdb.
 unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {
-    DumpJSStack(cx, true, false, false);
+    unsafe {
+        DumpJSStack(cx, true, false, false);
+    }
 }

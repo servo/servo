@@ -155,17 +155,14 @@ where
         let canvas_data = node.canvas_data()?;
         let source = match canvas_data.source {
             HTMLCanvasDataSource::WebGL(texture_id) => CanvasSource::WebGL(texture_id),
-            HTMLCanvasDataSource::Image(ipc_sender) => {
-                CanvasSource::Image(Arc::new(Mutex::new(ipc_sender)))
+            HTMLCanvasDataSource::Image((image_key, canvas_id, ipc_sender)) => {
+                CanvasSource::Image((image_key, canvas_id, Arc::new(Mutex::new(ipc_sender))))
             },
             HTMLCanvasDataSource::WebGPU(image_key) => CanvasSource::WebGPU(image_key),
             HTMLCanvasDataSource::Empty => CanvasSource::Empty,
         };
         Some((
-            CanvasInfo {
-                source,
-                canvas_id: canvas_data.canvas_id,
-            },
+            CanvasInfo { source },
             PhysicalSize::new(canvas_data.width.into(), canvas_data.height.into()),
         ))
     }
@@ -185,7 +182,7 @@ where
             return None;
         }
 
-        // TODO: This is the what the legacy layout system does, but really if Servo
+        // TODO: This is the what the legacy layout system did, but really if Servo
         // supports any `<object>` that's an image, it should support those with URLs
         // and `type` attributes with image mime types.
         let element = self.to_threadsafe().as_element()?;

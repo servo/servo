@@ -65,11 +65,11 @@ impl WebGLFramebufferAttachment {
     }
 
     fn root(&self) -> WebGLFramebufferAttachmentRoot {
-        match *self {
-            WebGLFramebufferAttachment::Renderbuffer(ref rb) => {
+        match self {
+            WebGLFramebufferAttachment::Renderbuffer(rb) => {
                 WebGLFramebufferAttachmentRoot::Renderbuffer(DomRoot::from_ref(rb))
             },
-            WebGLFramebufferAttachment::Texture { ref texture, .. } => {
+            WebGLFramebufferAttachment::Texture { texture, .. } => {
                 WebGLFramebufferAttachmentRoot::Texture(DomRoot::from_ref(texture))
             },
         }
@@ -78,7 +78,7 @@ impl WebGLFramebufferAttachment {
     fn detach(&self) {
         match self {
             WebGLFramebufferAttachment::Renderbuffer(rb) => rb.detach_from_framebuffer(),
-            WebGLFramebufferAttachment::Texture { ref texture, .. } => {
+            WebGLFramebufferAttachment::Texture { texture, .. } => {
                 texture.detach_from_framebuffer()
             },
         }
@@ -271,11 +271,11 @@ impl WebGLFramebuffer {
     ) -> Result<(), u32> {
         // Get the size of this attachment.
         let (format, size) = match attachment {
-            Some(WebGLFramebufferAttachment::Renderbuffer(ref att_rb)) => {
+            Some(WebGLFramebufferAttachment::Renderbuffer(att_rb)) => {
                 (Some(att_rb.internal_format()), att_rb.size())
             },
             Some(WebGLFramebufferAttachment::Texture {
-                texture: ref att_tex,
+                texture: att_tex,
                 level,
             }) => match att_tex.image_info_at_face(0, *level as u32) {
                 Some(info) => (

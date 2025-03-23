@@ -14,11 +14,15 @@ use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
+use base::id::{PipelineId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use bitflags::bitflags;
 use compositing_traits::{
-    CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg, SendableFrameTree,
+    CompositionPipeline, CompositorMsg, CompositorReceiver, SendableFrameTree,
+};
+use constellation_traits::{
+    AnimationTickType, CompositorHitTestResult, ConstellationMsg, PaintMetricEvent,
+    UntrustedNodeAddress, WindowSizeData, WindowSizeType,
 };
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
@@ -30,12 +34,10 @@ use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
-use pixels::{CorsStatus, Image, PixelFormat};
+use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
-use script_traits::{
-    AnimationState, AnimationTickType, ScriptThreadMessage, WindowSizeData, WindowSizeType,
-};
+use script_traits::AnimationState;
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
@@ -53,9 +55,7 @@ use webrender_api::{
 };
 use webrender_traits::display_list::{HitTestInfo, ScrollTree};
 use webrender_traits::rendering_context::RenderingContext;
-use webrender_traits::{
-    CompositorHitTestResult, CrossProcessCompositorMessage, ImageUpdate, UntrustedNodeAddress,
-};
+use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate};
 
 use crate::InitialCompositorState;
 use crate::webview::{UnknownWebView, WebView, WebViewManager};
@@ -127,6 +127,9 @@ pub struct ServoRenderer {
 
     /// Current mouse cursor.
     cursor: Cursor,
+
+    /// Current cursor position.
+    cursor_pos: DevicePoint,
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
@@ -172,9 +175,6 @@ pub struct IOCompositor {
     /// The coordinates of the native window, its view and the screen.
     embedder_coordinates: EmbedderCoordinates,
 
-    /// Current cursor position.
-    cursor_pos: DevicePoint,
-
     /// The number of frames pending to receive from WebRender.
     pending_frames: usize,
 
@@ -198,6 +198,21 @@ bitflags! {
         /// The window has been resized and will need to be synchronously repainted.
         const Resize = 1 << 3;
     }
+}
+
+/// The paint status of a particular pipeline in the Servo renderer. This is used to trigger metrics
+/// in script (via the constellation) when display lists are received.
+///
+/// See <https://w3c.github.io/paint-timing/#first-contentful-paint>.
+#[derive(PartialEq)]
+pub(crate) enum PaintMetricState {
+    /// The renderer is still waiting to process a display list which triggers this metric.
+    Waiting,
+    /// The renderer has processed the display list which will trigger this event, marked the Servo
+    /// instance ready to paint, and is waiting for the given epoch to actually be rendered.
+    Seen(WebRenderEpoch, bool /* first_reflow */),
+    /// The metric has been sent to the constellation and no more work needs to be done.
+    Sent,
 }
 
 pub(crate) struct PipelineDetails {
@@ -231,12 +246,11 @@ pub(crate) struct PipelineDetails {
     /// nodes in the compositor before forwarding new offsets to WebRender.
     pub scroll_tree: ScrollTree,
 
-    /// A per-pipeline queue of display lists that have not yet been rendered by WebRender. Layout
-    /// expects WebRender to paint each given epoch. Once the compositor paints a frame with that
-    /// epoch's display list, it will be removed from the queue and the paint time will be recorded
-    /// as a metric. In case new display lists come faster than painting a metric might never be
-    /// recorded.
-    pub pending_paint_metrics: Vec<Epoch>,
+    /// The paint metric status of the first paint.
+    pub first_paint_metric: PaintMetricState,
+
+    /// The paint metric status of the first contentful paint.
+    pub first_contentful_paint_metric: PaintMetricState,
 }
 
 impl PipelineDetails {
@@ -287,7 +301,8 @@ impl PipelineDetails {
             throttled: false,
             hit_test_items: Vec::new(),
             scroll_tree: ScrollTree::default(),
-            pending_paint_metrics: Vec::new(),
+            first_paint_metric: PaintMetricState::Waiting,
+            first_contentful_paint_metric: PaintMetricState::Waiting,
         }
     }
 
@@ -382,7 +397,9 @@ impl ServoRenderer {
             .send_transaction(self.webrender_document, transaction);
     }
 
-    pub(crate) fn update_cursor(&mut self, result: &CompositorHitTestResult) {
+    pub(crate) fn update_cursor(&mut self, pos: DevicePoint, result: &CompositorHitTestResult) {
+        self.cursor_pos = pos;
+
         let cursor = match result.cursor {
             Some(cursor) if cursor != self.cursor => cursor,
             _ => return,
@@ -429,6 +446,7 @@ impl IOCompositor {
                 webxr_main_thread: state.webxr_main_thread,
                 convert_mouse_to_touch,
                 cursor: Cursor::None,
+                cursor_pos: DevicePoint::new(0.0, 0.0),
             })),
             webviews: WebViewManager::default(),
             embedder_coordinates: window.get_coordinates(),
@@ -443,7 +461,6 @@ impl IOCompositor {
             ready_to_save_state: ReadyState::Unknown,
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
-            cursor_pos: DevicePoint::new(0.0, 0.0),
             pending_frames: 0,
             last_animation_tick: Instant::now(),
         };
@@ -542,8 +559,8 @@ impl IOCompositor {
                 self.set_frame_tree_for_webview(&frame_tree);
             },
 
-            CompositorMsg::RemoveWebView(top_level_browsing_context_id) => {
-                self.remove_webview(top_level_browsing_context_id);
+            CompositorMsg::RemoveWebView(webview_id) => {
+                self.remove_webview(webview_id);
             },
 
             CompositorMsg::TouchEventProcessed(webview_id, result) => {
@@ -598,15 +615,16 @@ impl IOCompositor {
 
             CompositorMsg::NewWebRenderFrameReady(_document_id, recomposite_needed) => {
                 self.pending_frames -= 1;
+                let point: DevicePoint = self.global.borrow().cursor_pos;
 
                 if recomposite_needed {
                     let details_for_pipeline = |pipeline_id| self.details_for_pipeline(pipeline_id);
                     let result = self
                         .global
                         .borrow()
-                        .hit_test_at_point(self.cursor_pos, details_for_pipeline);
+                        .hit_test_at_point(point, details_for_pipeline);
                     if let Some(result) = result {
-                        self.global.borrow_mut().update_cursor(&result);
+                        self.global.borrow_mut().update_cursor(point, &result);
                     }
                 }
 
@@ -643,12 +661,6 @@ impl IOCompositor {
                     return;
                 };
                 webview.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
-            },
-
-            CompositorMsg::PendingPaintMetric(webview_id, pipeline_id, epoch) => {
-                if let Some(webview) = self.webviews.get_mut(webview_id) {
-                    webview.add_pending_paint_metric(pipeline_id, epoch);
-                }
             },
 
             CompositorMsg::CrossProcess(cross_proces_message) => {
@@ -767,6 +779,18 @@ impl IOCompositor {
                 details.most_recent_display_list_epoch = Some(display_list_info.epoch);
                 details.hit_test_items = display_list_info.hit_test_info;
                 details.install_new_scroll_tree(display_list_info.scroll_tree);
+
+                let epoch = display_list_info.epoch;
+                let first_reflow = display_list_info.first_reflow;
+                if details.first_paint_metric == PaintMetricState::Waiting {
+                    details.first_paint_metric = PaintMetricState::Seen(epoch, first_reflow);
+                }
+                if details.first_contentful_paint_metric == PaintMetricState::Waiting &&
+                    display_list_info.is_contentful
+                {
+                    details.first_contentful_paint_metric =
+                        PaintMetricState::Seen(epoch, first_reflow);
+                }
 
                 let mut transaction = Transaction::new();
                 transaction
@@ -1097,7 +1121,7 @@ impl IOCompositor {
     fn set_frame_tree_for_webview(&mut self, frame_tree: &SendableFrameTree) {
         debug!("{}: Setting frame tree for webview", frame_tree.pipeline.id);
 
-        let webview_id = frame_tree.pipeline.top_level_browsing_context_id;
+        let webview_id = frame_tree.pipeline.webview_id;
         let Some(webview) = self.webviews.get_mut(webview_id) else {
             warn!(
                 "Attempted to set frame tree on unknown WebView (perhaps closed?): {webview_id:?}"
@@ -1119,7 +1143,7 @@ impl IOCompositor {
         self.send_root_pipeline_display_list();
     }
 
-    pub fn move_resize_webview(&mut self, webview_id: TopLevelBrowsingContextId, rect: DeviceRect) {
+    pub fn move_resize_webview(&mut self, webview_id: WebViewId, rect: DeviceRect) {
         debug!("{webview_id}: Moving and/or resizing webview; rect={rect:?}");
         let rect_changed;
         let size_changed;
@@ -1203,14 +1227,14 @@ impl IOCompositor {
     fn send_window_size_message_for_top_level_browser_context(
         &self,
         rect: DeviceRect,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        webview_id: WebViewId,
     ) {
         // The device pixel ratio used by the style system should include the scale from page pixels
         // to device pixels, but not including any pinch zoom.
         let device_pixel_ratio = self.device_pixels_per_page_pixel_not_including_page_zoom();
         let initial_viewport = rect.size().to_f32() / device_pixel_ratio;
         let msg = ConstellationMsg::WindowSize(
-            top_level_browsing_context_id,
+            webview_id,
             WindowSizeData {
                 device_pixel_ratio,
                 initial_viewport,
@@ -1320,11 +1344,8 @@ impl IOCompositor {
     }
 
     fn update_after_zoom_or_hidpi_change(&mut self) {
-        for (top_level_browsing_context_id, webview) in self.webviews.painting_order() {
-            self.send_window_size_message_for_top_level_browser_context(
-                webview.rect,
-                *top_level_browsing_context_id,
-            );
+        for (webview_id, webview) in self.webviews.painting_order() {
+            self.send_window_size_message_for_top_level_browser_context(webview.rect, *webview_id);
         }
 
         // Update the root transform in WebRender to reflect the new zoom.
@@ -1454,7 +1475,12 @@ impl IOCompositor {
                 width: image.width(),
                 height: image.height(),
                 format: PixelFormat::RGBA8,
-                bytes: ipc::IpcSharedMemory::from_bytes(&image),
+                frames: vec![ImageFrame {
+                    delay: None,
+                    bytes: ipc::IpcSharedMemory::from_bytes(&image),
+                    width: image.width(),
+                    height: image.height(),
+                }],
                 id: None,
                 cors_status: CorsStatus::Safe,
             }))
@@ -1524,16 +1550,8 @@ impl IOCompositor {
         let paint_time = CrossProcessInstant::now();
         let document_id = self.webrender_document();
         for webview_details in self.webviews.iter_mut() {
-            // For each pipeline, determine the current epoch and update paint timing if necessary.
             for (pipeline_id, pipeline) in webview_details.pipelines.iter_mut() {
-                if pipeline.pending_paint_metrics.is_empty() {
-                    continue;
-                }
-                let Some(composition_pipeline) = pipeline.pipeline.as_ref() else {
-                    continue;
-                };
-
-                let Some(WebRenderEpoch(current_epoch)) = self
+                let Some(current_epoch) = self
                     .webrender
                     .as_ref()
                     .and_then(|wr| wr.current_epoch(document_id, pipeline_id.into()))
@@ -1541,29 +1559,43 @@ impl IOCompositor {
                     continue;
                 };
 
-                let current_epoch = Epoch(current_epoch);
-                let Some(index) = pipeline
-                    .pending_paint_metrics
-                    .iter()
-                    .position(|epoch| *epoch == current_epoch)
-                else {
-                    continue;
-                };
+                match pipeline.first_paint_metric {
+                    // We need to check whether the current epoch is later, because
+                    // CrossProcessCompositorMessage::SendInitialTransaction sends an
+                    // empty display list to WebRender which can happen before we receive
+                    // the first "real" display list.
+                    PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
+                        assert!(epoch <= current_epoch);
+                        if let Err(error) = self.global.borrow().constellation_sender.send(
+                            ConstellationMsg::PaintMetric(
+                                *pipeline_id,
+                                PaintMetricEvent::FirstPaint(paint_time, first_reflow),
+                            ),
+                        ) {
+                            warn!(
+                                "Sending paint metric event to constellation failed ({error:?})."
+                            );
+                        }
+                        pipeline.first_paint_metric = PaintMetricState::Sent;
+                    },
+                    _ => {},
+                }
 
-                // Remove all epochs that were pending before the current epochs. They were not and will not,
-                // be painted.
-                pipeline.pending_paint_metrics.drain(0..index);
-
-                if let Err(error) =
-                    composition_pipeline
-                        .script_chan
-                        .send(ScriptThreadMessage::SetEpochPaintTime(
-                            *pipeline_id,
-                            current_epoch,
-                            paint_time,
-                        ))
-                {
-                    warn!("Sending RequestLayoutPaintMetric message to layout failed ({error:?}).");
+                match pipeline.first_contentful_paint_metric {
+                    PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
+                        if let Err(error) = self.global.borrow().constellation_sender.send(
+                            ConstellationMsg::PaintMetric(
+                                *pipeline_id,
+                                PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
+                            ),
+                        ) {
+                            warn!(
+                                "Sending paint metric event to constellation failed ({error:?})."
+                            );
+                        }
+                        pipeline.first_contentful_paint_metric = PaintMetricState::Sent;
+                    },
+                    _ => {},
                 }
             }
         }

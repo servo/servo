@@ -5,8 +5,10 @@
 use base::cross_process_instant::CrossProcessInstant;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
+use strum_macros::IntoStaticStr;
 use time::Duration;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -57,7 +59,9 @@ pub enum ProfilerMsg {
 
 /// Usage sites of variants marked “Rust tracing only” are not visible to rust-analyzer.
 #[repr(u32)]
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, IntoStaticStr, Ord, PartialEq, PartialOrd, Serialize,
+)]
 pub enum ProfilerCategory {
     /// The compositor is rasterising or presenting.
     ///
@@ -185,7 +189,7 @@ impl ProfilerCategory {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum TimerMetadataFrameType {
     RootWindow,
     IFrame,

@@ -10,37 +10,37 @@
 <div id="target"></div>
 
 <script>
-test_computed_value("dynamic-range-limit", "high");
-test_computed_value("dynamic-range-limit", "constrained-high");
+test_computed_value("dynamic-range-limit", "no-limit");
+test_computed_value("dynamic-range-limit", "constrained");
 test_computed_value("dynamic-range-limit", "standard");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 75%, high 25%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 25%, high 75%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(high 100%, standard 0%)",
-                                           "high");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(high 100%, high 0%)",
-                                           "high");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(high 25%, standard 25%, standard 25%, standard 25%)",
-                                           "dynamic-range-limit-mix(standard 75%, high 25%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(high 25%, standard 75%)",
-                                           "dynamic-range-limit-mix(standard 75%, high 25%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(high 100%, standard 100%)",
-                                           "dynamic-range-limit-mix(standard 50%, high 50%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(high 80%, standard 60%, constrained-high 60%)",
-                                           "dynamic-range-limit-mix(standard 30%, constrained-high 30%, high 40%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 25%, constrained-high 75%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(constrained-high 75%, standard 25%)",
-                                           "dynamic-range-limit-mix(standard 25%, constrained-high 75%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(constrained-high 25%, high 25%)",
-                                           "dynamic-range-limit-mix(constrained-high 50%, high 50%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 25%, constrained-high 50%, high 25%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 10%, constrained-high 20%, high 20%)",
-                                           "dynamic-range-limit-mix(standard 20%, constrained-high 40%, high 40%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(high 10%, standard 30%)",
-                                           "dynamic-range-limit-mix(standard 75%, high 25%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(dynamic-range-limit-mix(standard 10%, high 30%) 20%, standard 80%)",
-                                           "dynamic-range-limit-mix(standard 85%, high 15%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(dynamic-range-limit-mix(standard 25%, high 75%) 20%, dynamic-range-limit-mix(standard 25%, constrained-high 75%) 40%, dynamic-range-limit-mix(constrained-high 25%, high 75%) 40%)",
-                                           "dynamic-range-limit-mix(standard 15%, constrained-high 40%, high 45%)");
-test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(high 10%, dynamic-range-limit-mix(standard 25%, constrained-high 75%) 20%, dynamic-range-limit-mix(constrained-high 10%, high 30%) 20%)",
-                                           "dynamic-range-limit-mix(standard 10%, constrained-high 40%, high 50%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 75%, no-limit 25%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 25%, no-limit 75%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 100%, standard 0%)",
+                                           "no-limit");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 100%, no-limit 0%)",
+                                           "no-limit");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 25%, standard 25%, standard 25%, standard 25%)",
+                                           "dynamic-range-limit-mix(standard 75%, no-limit 25%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 25%, standard 75%)",
+                                           "dynamic-range-limit-mix(standard 75%, no-limit 25%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 100%, standard 100%)",
+                                           "dynamic-range-limit-mix(standard 50%, no-limit 50%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 80%, standard 60%, constrained 60%)",
+                                           "dynamic-range-limit-mix(standard 30%, constrained 30%, no-limit 40%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 25%, constrained 75%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(constrained 75%, standard 25%)",
+                                           "dynamic-range-limit-mix(standard 25%, constrained 75%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(constrained 25%, no-limit 25%)",
+                                           "dynamic-range-limit-mix(constrained 50%, no-limit 50%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 25%, constrained 50%, no-limit 25%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(standard 10%, constrained 20%, no-limit 20%)",
+                                           "dynamic-range-limit-mix(standard 20%, constrained 40%, no-limit 40%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 10%, standard 30%)",
+                                           "dynamic-range-limit-mix(standard 75%, no-limit 25%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(dynamic-range-limit-mix(standard 10%, no-limit 30%) 20%, standard 80%)",
+                                           "dynamic-range-limit-mix(standard 85%, no-limit 15%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(dynamic-range-limit-mix(standard 25%, no-limit 75%) 20%, dynamic-range-limit-mix(standard 25%, constrained 75%) 40%, dynamic-range-limit-mix(constrained 25%, no-limit 75%) 40%)",
+                                           "dynamic-range-limit-mix(standard 15%, constrained 40%, no-limit 45%)");
+test_computed_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 10%, dynamic-range-limit-mix(standard 25%, constrained 75%) 20%, dynamic-range-limit-mix(constrained 10%, no-limit 30%) 20%)",
+                                           "dynamic-range-limit-mix(standard 10%, constrained 40%, no-limit 50%)");
 </script>

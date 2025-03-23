@@ -9,7 +9,7 @@ use js::rust::MutableHandleValue;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::utils::to_frozen_array;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 #[derive(JSTraceable)]
 pub(crate) struct CachedFrozenArray {
@@ -28,6 +28,7 @@ impl CachedFrozenArray {
         f: F,
         cx: JSContext,
         mut retval: MutableHandleValue,
+        can_gc: CanGc,
     ) {
         if let Some(inner) = &*self.frozen_value.borrow() {
             retval.set(inner.get());
@@ -35,7 +36,7 @@ impl CachedFrozenArray {
         }
 
         let array = f();
-        to_frozen_array(array.as_slice(), cx, retval);
+        to_frozen_array(array.as_slice(), cx, retval.reborrow(), can_gc);
 
         // Safety: need to create the Heap value in its final memory location before setting it.
         *self.frozen_value.borrow_mut() = Some(Heap::default());

@@ -241,7 +241,7 @@ pub(crate) fn create_interface_prototype_object(
     regular_properties: &[Guard<&'static [JSPropertySpec]>],
     constants: &[Guard<&[ConstantSpec]>],
     unscopable_names: &[&CStr],
-    rval: MutableHandleObject,
+    mut rval: MutableHandleObject,
 ) {
     create_object(
         cx,
@@ -251,7 +251,7 @@ pub(crate) fn create_interface_prototype_object(
         regular_methods,
         regular_properties,
         constants,
-        rval,
+        rval.reborrow(),
     );
 
     if !unscopable_names.is_empty() {
@@ -289,7 +289,7 @@ pub(crate) fn create_noncallback_interface_object(
     name: &CStr,
     length: u32,
     legacy_window_alias_names: &[&CStr],
-    rval: MutableHandleObject,
+    mut rval: MutableHandleObject,
 ) {
     create_object(
         cx,
@@ -299,7 +299,7 @@ pub(crate) fn create_noncallback_interface_object(
         static_methods,
         static_properties,
         constants,
-        rval,
+        rval.reborrow(),
     );
     unsafe {
         assert!(JS_LinkConstructorAndPrototype(
@@ -694,7 +694,7 @@ pub(crate) fn get_desired_proto(
                 global.handle(),
                 ProtoOrIfaceIndex::ID(proto_id),
                 creator,
-                desired_proto,
+                desired_proto.reborrow(),
             );
             if desired_proto.is_null() {
                 return Err(());

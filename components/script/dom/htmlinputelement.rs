@@ -20,16 +20,16 @@ use js::jsapi::{
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
 };
 use js::jsval::UndefinedValue;
-use js::rust::jsapi_wrapped::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
+use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
-use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{split_commas, str_join};
-use style_dom::ElementState;
+use stylo_atoms::Atom;
+use stylo_dom::ElementState;
 use time::{Month, OffsetDateTime, Time};
 use unicode_bidi::{BidiClass, bidi_class};
 use url::Url;
@@ -57,7 +57,7 @@ use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::filelist::FileList;
+use crate::dom::filelist::{FileList, LayoutFileListHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
@@ -90,6 +90,7 @@ use crate::textinput::{
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
+const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-type>
 #[derive(Clone, Copy, Default, JSTraceable, PartialEq)]
@@ -474,24 +475,6 @@ impl HTMLInputElement {
         let mut value = textinput.single_line_content().clone();
         self.sanitize_value(&mut value);
         textinput.set_content(value);
-    }
-
-    fn does_readonly_apply(&self) -> bool {
-        matches!(
-            self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Email |
-                InputType::Password |
-                InputType::Date |
-                InputType::Month |
-                InputType::Week |
-                InputType::Time |
-                InputType::DatetimeLocal |
-                InputType::Number
-        )
     }
 
     fn does_minmaxlength_apply(&self) -> bool {
@@ -1037,6 +1020,9 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
                 .get_content()
         }
     }
+    fn get_filelist(self) -> Option<LayoutDom<'dom, FileList>> {
+        unsafe { self.unsafe_get().filelist.get_inner_as_layout() }
+    }
 
     fn placeholder(self) -> &'dom str {
         unsafe { self.unsafe_get().placeholder.borrow_for_layout() }
@@ -1070,8 +1056,27 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         }
 
         match self.input_type() {
-            InputType::Checkbox | InputType::Radio => "".into(),
-            InputType::File | InputType::Image => "".into(),
+            InputType::Checkbox | InputType::Radio | InputType::Image => "".into(),
+            InputType::File => {
+                let filelist = self.get_filelist();
+                match filelist {
+                    Some(filelist) => {
+                        let length = filelist.len();
+                        if length == 0 {
+                            return DEFAULT_FILE_INPUT_VALUE.into();
+                        }
+                        if length == 1 {
+                            match filelist.file_for_layout(0) {
+                                Some(file) => return file.name().to_string().into(),
+                                None => return DEFAULT_FILE_INPUT_VALUE.into(),
+                            }
+                        }
+
+                        format!("{} files", length).into()
+                    },
+                    None => DEFAULT_FILE_INPUT_VALUE.into(),
+                }
+            },
             InputType::Button => get_raw_attr_value(self, ""),
             InputType::Submit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),
             InputType::Reset => get_raw_attr_value(self, DEFAULT_RESET_VALUE),
@@ -2730,7 +2735,7 @@ impl Validatable for HTMLInputElement {
             InputType::Hidden | InputType::Button | InputType::Reset => false,
             _ => {
                 !(self.upcast::<Element>().disabled_state() ||
-                    (self.ReadOnly() && self.does_readonly_apply()) ||
+                    self.ReadOnly() ||
                     is_barred_by_datalist_ancestor(self.upcast()))
             },
         }
@@ -3005,7 +3010,7 @@ fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
             RegExpFlags {
                 flags_: RegExpFlag_Unicode,
             },
-            &mut exception.handle_mut(),
+            exception.handle_mut(),
         );
 
         if !valid {
@@ -3058,7 +3063,7 @@ fn matches_js_regex(cx: SafeJSContext, regex_obj: HandleObject, value: &str) -> 
             value.len(),
             &mut index,
             true,
-            &mut rval.handle_mut(),
+            rval.handle_mut(),
         );
 
         if ok {

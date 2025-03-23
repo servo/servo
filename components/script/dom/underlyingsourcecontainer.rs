@@ -12,8 +12,8 @@ use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValu
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
-use crate::dom::bindings::import::module::Error;
-use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
+use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
@@ -217,6 +217,14 @@ impl UnderlyingSourceContainer {
                 // Let startAlgorithm be an algorithm that returns undefined.
                 None
             },
+            _ => None,
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#dom-underlyingsource-autoallocatechunksize>
+    pub(crate) fn auto_allocate_chunk_size(&self) -> Option<u64> {
+        match &self.underlying_source_type {
+            UnderlyingSourceType::Js(source, _) => source.autoAllocateChunkSize,
             _ => None,
         }
     }

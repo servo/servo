@@ -42,7 +42,7 @@ use js::glue::GetProxyReservedSlot;
 use js::jsapi::{Heap, IsWindowProxy, JS_IsExceptionPending, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasProperty};
-use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use num_traits::Float;
 pub(crate) use script_bindings::conversions::*;
 
@@ -50,7 +50,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::bindings::utils::DOMClass;
 use crate::dom::filelist::FileList;
@@ -120,24 +119,6 @@ where
             ConversionResult::Failure(msg) => ConversionResult::Failure(msg),
         })
     }
-}
-
-/// Convert `id` to a `DOMString`. Returns `None` if `id` is not a string or
-/// integer.
-///
-/// Handling of invalid UTF-16 in strings depends on the relevant option.
-pub(crate) unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
-    let id_raw = *id;
-    if id_raw.is_string() {
-        let jsstr = std::ptr::NonNull::new(id_raw.to_string()).unwrap();
-        return Some(jsstring_to_str(cx, jsstr));
-    }
-
-    if id_raw.is_int() {
-        return Some(id_raw.to_int().to_string().into());
-    }
-
-    None
 }
 
 pub(crate) use script_bindings::conversions::is_dom_proxy;

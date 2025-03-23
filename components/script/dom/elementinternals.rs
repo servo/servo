@@ -23,6 +23,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::script_runtime::CanGc;
@@ -188,6 +189,22 @@ impl ElementInternals {
 }
 
 impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
+    /// <https://html.spec.whatwg.org/multipage/#dom-elementinternals-shadowroot>
+    fn GetShadowRoot(&self) -> Option<DomRoot<ShadowRoot>> {
+        // Step 1. Let target be this's target element.
+        // Step 2. If target is not a shadow host, then return null.
+        // Step 3. Let shadow be target's shadow root.
+        let shadow = self.target_element.upcast::<Element>().shadow_root()?;
+
+        // Step 4. If shadow's available to element internals is false, then return null.
+        if !shadow.is_available_to_element_internals() {
+            return None;
+        }
+
+        // Step 5. Return shadow.
+        Some(shadow)
+    }
+
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-setformvalue>
     fn SetFormValue(
         &self,

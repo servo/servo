@@ -7,14 +7,13 @@
 use std::cell::Cell;
 
 use html5ever::tokenizer::TokenizerResult;
-use js::jsapi::JSTracer;
+use script_bindings::trace::CustomTraceable;
 use servo_url::ServoUrl;
 use xml5ever::buffer_queue::BufferQueue;
 use xml5ever::tokenizer::XmlTokenizer;
-use xml5ever::tree_builder::{Tracer as XmlTracer, XmlTreeBuilder};
+use xml5ever::tree_builder::XmlTreeBuilder;
 
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
 use crate::dom::document::Document;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::node::Node;
@@ -57,27 +56,5 @@ impl Tokenizer {
 
     pub(crate) fn url(&self) -> &ServoUrl {
         &self.inner.sink.sink.base_url
-    }
-}
-
-#[allow(unsafe_code)]
-unsafe impl CustomTraceable for XmlTokenizer<XmlTreeBuilder<Dom<Node>, Sink>> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        struct Tracer(*mut JSTracer);
-        let tracer = Tracer(trc);
-
-        impl XmlTracer for Tracer {
-            type Handle = Dom<Node>;
-            #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-            fn trace_handle(&self, node: &Dom<Node>) {
-                unsafe {
-                    node.trace(self.0);
-                }
-            }
-        }
-
-        let tree_builder = &self.sink;
-        tree_builder.trace_handles(&tracer);
-        tree_builder.sink.trace(trc);
     }
 }

@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Types used by the embedding layer and/or exposed to the API. This crate is responsible for
+//! defining types that cross the process boundary from the embedding/rendering layer all the way
+//! to script, thus it should have very minimal dependencies on other parts of Servo. If a type
+//! is not exposed in the API or doesn't involve messages sent to the embedding/libservo layer, it
+//! is probably a better fit for the `constellation_traits` crate.
+
 pub mod input_events;
 pub mod resources;
 mod webdriver;
@@ -19,6 +25,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
+use strum_macros::IntoStaticStr;
 use url::Url;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 
@@ -149,7 +156,7 @@ pub enum SimpleDialog {
     },
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct AuthenticationResponse {
     /// Username for http request authentication
     pub username: String,
@@ -207,13 +214,13 @@ impl Default for PromptResponse {
 }
 
 /// A response to a request to allow or deny an action.
-#[derive(Clone, Copy, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum AllowOrDeny {
     Allow,
     Deny,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
     Status(WebViewId, Option<String>),
@@ -322,49 +329,9 @@ pub enum EmbedderMsg {
 }
 
 impl Debug for EmbedderMsg {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        match *self {
-            EmbedderMsg::Status(..) => write!(f, "Status"),
-            EmbedderMsg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
-            EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
-            EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
-            EmbedderMsg::ShowSimpleDialog(..) => write!(f, "ShowSimpleDialog"),
-            EmbedderMsg::RequestAuthentication(..) => write!(f, "RequestAuthentication"),
-            EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
-            EmbedderMsg::AllowNavigationRequest(..) => write!(f, "AllowNavigationRequest"),
-            EmbedderMsg::Keyboard(..) => write!(f, "Keyboard"),
-            EmbedderMsg::ClearClipboard(..) => write!(f, "ClearClipboard"),
-            EmbedderMsg::GetClipboardText(..) => write!(f, "GetClipboardText"),
-            EmbedderMsg::SetClipboardText(..) => write!(f, "SetClipboardText"),
-            EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
-            EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
-            EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
-            EmbedderMsg::NotifyFullscreenStateChanged(..) => {
-                write!(f, "NotifyFullscreenStateChanged")
-            },
-            EmbedderMsg::NotifyLoadStatusChanged(_, status) => {
-                write!(f, "NotifyLoadStatusChanged({status:?})")
-            },
-            EmbedderMsg::WebResourceRequested(..) => write!(f, "WebResourceRequested"),
-            EmbedderMsg::Panic(..) => write!(f, "Panic"),
-            EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
-            EmbedderMsg::SelectFiles(..) => write!(f, "SelectFiles"),
-            EmbedderMsg::PromptPermission(..) => write!(f, "PromptPermission"),
-            EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
-            EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
-            EmbedderMsg::AllowOpeningWebView(..) => write!(f, "AllowOpeningWebView"),
-            EmbedderMsg::WebViewClosed(..) => write!(f, "WebViewClosed"),
-            EmbedderMsg::WebViewFocused(..) => write!(f, "WebViewFocused"),
-            EmbedderMsg::WebViewBlurred => write!(f, "WebViewBlurred"),
-            EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
-            EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
-            EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
-            EmbedderMsg::RequestDevtoolsConnection(..) => write!(f, "RequestDevtoolsConnection"),
-            EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
-            EmbedderMsg::PlayGamepadHapticEffect(..) => write!(f, "PlayGamepadHapticEffect"),
-            EmbedderMsg::StopGamepadHapticEffect(..) => write!(f, "StopGamepadHapticEffect"),
-            EmbedderMsg::ShutdownComplete => write!(f, "ShutdownComplete"),
-        }
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
+        let string: &'static str = self.into();
+        write!(formatter, "{string}")
     }
 }
 
@@ -563,15 +530,6 @@ impl WebResourceResponse {
         self.status_message = status_message;
         self
     }
-}
-
-/// The direction of a history traversal
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub enum TraversalDirection {
-    /// Travel forward the given number of documents.
-    Forward(usize),
-    /// Travel backward the given number of documents.
-    Back(usize),
 }
 
 /// The type of platform theme.

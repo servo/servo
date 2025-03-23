@@ -15,11 +15,11 @@ use mime::{self, Mime};
 use net_traits::http_percent_encode;
 use net_traits::request::Referrer;
 use script_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
-use servo_atoms::Atom;
 use servo_rand::random;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
-use style_dom::ElementState;
+use stylo_atoms::Atom;
+use stylo_dom::ElementState;
 
 use super::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::body::Extractable;

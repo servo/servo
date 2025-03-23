@@ -1338,7 +1338,7 @@ impl GlobalScope {
     /// TODO: Also remove them if they do not have an event-listener.
     /// see <https://github.com/servo/servo/issues/25772>
     pub(crate) fn perform_a_broadcast_channel_garbage_collection_checkpoint(&self) {
-        let is_empty = if let BroadcastChannelState::Managed(router_id, ref mut channels) =
+        let is_empty = if let BroadcastChannelState::Managed(router_id, channels) =
             &mut *self.broadcast_channel_state.borrow_mut()
         {
             channels.retain(|name, ref mut channels| {
@@ -1552,7 +1552,7 @@ impl GlobalScope {
                 BlobTracker::Blob(weak) => weak.root().is_none(),
             };
             if garbage_collected && !blob_info.has_url {
-                if let BlobData::File(ref f) = blob_info.blob_impl.blob_data() {
+                if let BlobData::File(f) = blob_info.blob_impl.blob_data() {
                     self.decrement_file_ref(f.get_id());
                 }
                 false
@@ -1569,7 +1569,7 @@ impl GlobalScope {
             .borrow_mut()
             .drain()
             .for_each(|(_id, blob_info)| {
-                if let BlobData::File(ref f) = blob_info.blob_impl.blob_data() {
+                if let BlobData::File(f) = blob_info.blob_impl.blob_data() {
                     self.decrement_file_ref(f.get_id());
                 }
             });
@@ -1594,7 +1594,7 @@ impl GlobalScope {
                 .get(blob_id)
                 .expect("get_blob_bytes for an unknown blob.");
             match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
+                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
                 _ => None,
             }
         };
@@ -1615,7 +1615,7 @@ impl GlobalScope {
             .get(blob_id)
             .expect("get_blob_bytes_non_sliced called for a unknown blob.");
         match blob_info.blob_impl.blob_data() {
-            BlobData::File(ref f) => {
+            BlobData::File(f) => {
                 let (buffer, is_new_buffer) = match f.get_cache() {
                     Some(bytes) => (bytes, false),
                     None => {
@@ -1631,7 +1631,7 @@ impl GlobalScope {
 
                 Ok(buffer)
             },
-            BlobData::Memory(ref s) => Ok(s.clone()),
+            BlobData::Memory(s) => Ok(s.clone()),
             BlobData::Sliced(_, _) => panic!("This blob doesn't have a parent."),
         }
     }
@@ -1649,7 +1649,7 @@ impl GlobalScope {
                 .get(blob_id)
                 .expect("get_blob_bytes_or_file_id for an unknown blob.");
             match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
+                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
                 _ => None,
             }
         };
@@ -1679,11 +1679,11 @@ impl GlobalScope {
             .get(blob_id)
             .expect("get_blob_bytes_non_sliced_or_file_id called for a unknown blob.");
         match blob_info.blob_impl.blob_data() {
-            BlobData::File(ref f) => match f.get_cache() {
+            BlobData::File(f) => match f.get_cache() {
                 Some(bytes) => BlobResult::Bytes(bytes.clone()),
                 None => BlobResult::File(f.get_id(), f.get_size() as usize),
             },
-            BlobData::Memory(ref s) => BlobResult::Bytes(s.clone()),
+            BlobData::Memory(s) => BlobResult::Bytes(s.clone()),
             BlobData::Sliced(_, _) => panic!("This blob doesn't have a parent."),
         }
     }
@@ -1705,7 +1705,7 @@ impl GlobalScope {
                 .get(blob_id)
                 .expect("get_blob_size called for a unknown blob.");
             match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
+                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
                 _ => None,
             }
         };
@@ -1715,8 +1715,8 @@ impl GlobalScope {
                     .get(&parent_id)
                     .expect("Parent of blob whose size is unknown.");
                 let parent_size = match parent_info.blob_impl.blob_data() {
-                    BlobData::File(ref f) => f.get_size(),
-                    BlobData::Memory(ref v) => v.len() as u64,
+                    BlobData::File(f) => f.get_size(),
+                    BlobData::Memory(v) => v.len() as u64,
                     BlobData::Sliced(_, _) => panic!("Blob ancestry should be only one level."),
                 };
                 rel_pos.to_abs_range(parent_size as usize).len() as u64
@@ -1726,8 +1726,8 @@ impl GlobalScope {
                     .get(blob_id)
                     .expect("Blob whose size is unknown.");
                 match blob_info.blob_impl.blob_data() {
-                    BlobData::File(ref f) => f.get_size(),
-                    BlobData::Memory(ref v) => v.len() as u64,
+                    BlobData::File(f) => f.get_size(),
+                    BlobData::Memory(v) => v.len() as u64,
                     BlobData::Sliced(_, _) => {
                         panic!("It was previously checked that this blob does not have a parent.")
                     },
@@ -1747,7 +1747,7 @@ impl GlobalScope {
             blob_info.has_url = true;
 
             match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
+                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
                 _ => None,
             }
         };
@@ -1758,8 +1758,8 @@ impl GlobalScope {
                     .expect("Parent of blob whose url is requested is unknown.");
                 let parent_file_id = self.promote(parent_info, /* set_valid is */ false);
                 let parent_size = match parent_info.blob_impl.blob_data() {
-                    BlobData::File(ref f) => f.get_size(),
-                    BlobData::Memory(ref v) => v.len() as u64,
+                    BlobData::File(f) => f.get_size(),
+                    BlobData::Memory(v) => v.len() as u64,
                     BlobData::Sliced(_, _) => panic!("Blob ancestry should be only one level."),
                 };
                 let parent_size = rel_pos.to_abs_range(parent_size as usize).len() as u64;
@@ -1827,7 +1827,7 @@ impl GlobalScope {
             BlobData::Sliced(_, _) => {
                 panic!("Sliced blobs should use create_sliced_url_id instead of promote.");
             },
-            BlobData::File(ref f) => {
+            BlobData::File(f) => {
                 if set_valid {
                     let origin = get_blob_origin(&global_url);
                     let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
@@ -1845,7 +1845,7 @@ impl GlobalScope {
                     return f.get_id();
                 }
             },
-            BlobData::Memory(ref mut bytes_in) => mem::swap(bytes_in, &mut bytes),
+            BlobData::Memory(bytes_in) => mem::swap(bytes_in, &mut bytes),
         };
 
         let origin = get_blob_origin(&global_url);
@@ -2908,6 +2908,7 @@ impl GlobalScope {
         &self,
         cx: SafeJSContext,
         retval: MutableHandleValue,
+        can_gc: CanGc,
     ) {
         self.frozen_supported_performance_entry_types.get_or_init(
             || {
@@ -2918,6 +2919,7 @@ impl GlobalScope {
             },
             cx,
             retval,
+            can_gc,
         );
     }
 

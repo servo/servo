@@ -18,9 +18,9 @@ use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::Epoch;
-use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use constellation_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use euclid::Size2D;
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
@@ -28,14 +28,10 @@ use fonts::{FontContext, SystemFontServiceProxy};
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
-use metrics::PaintTimeMetrics;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use profile_traits::mem::Report;
 use profile_traits::time;
-use script_traits::{
-    InitialScriptState, LoadData, Painter, ScriptThreadMessage, ScrollState, UntrustedNodeAddress,
-    WindowSizeData,
-};
+use script_traits::{InitialScriptState, LoadData, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -120,7 +116,7 @@ pub enum LayoutElementType {
 
 pub enum HTMLCanvasDataSource {
     WebGL(ImageKey),
-    Image(IpcSender<CanvasMsg>),
+    Image((ImageKey, CanvasId, IpcSender<CanvasMsg>)),
     WebGPU(ImageKey),
     /// transparent black
     Empty,
@@ -130,7 +126,6 @@ pub struct HTMLCanvasData {
     pub source: HTMLCanvasDataSource,
     pub width: u32,
     pub height: u32,
-    pub canvas_id: CanvasId,
 }
 
 pub struct SVGSVGData {
@@ -190,7 +185,6 @@ pub struct LayoutConfig {
     pub font_context: Arc<FontContext>,
     pub time_profiler_chan: time::ProfilerChan,
     pub compositor_api: CrossProcessCompositorApi,
-    pub paint_time_metrics: PaintTimeMetrics,
     pub window_size: WindowSizeData,
 }
 
@@ -244,10 +238,7 @@ pub trait Layout {
     );
 
     /// Set the scroll states of this layout after a compositor scroll.
-    fn set_scroll_states(&mut self, scroll_states: &[ScrollState]);
-
-    /// Set the paint time for a specific epoch.
-    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: CrossProcessInstant);
+    fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]);
 
     fn query_content_box(&self, node: OpaqueNode) -> Option<Rect<Au>>;
     fn query_content_boxes(&self, node: OpaqueNode) -> Vec<Rect<Au>>;

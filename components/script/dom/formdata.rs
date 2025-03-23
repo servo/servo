@@ -181,10 +181,8 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             .iter()
             .find(|(datum_name, _)| datum_name.0 == name.0)
             .map(|(_, datum)| match &datum.value {
-                FormDatumValue::String(ref s) => {
-                    FileOrUSVString::USVString(USVString(s.to_string()))
-                },
-                FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
+                FormDatumValue::String(s) => FileOrUSVString::USVString(USVString(s.to_string())),
+                FormDatumValue::File(b) => FileOrUSVString::File(DomRoot::from_ref(b)),
             })
     }
 
@@ -199,10 +197,10 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
                 }
 
                 Some(match &datum.value {
-                    FormDatumValue::String(ref s) => {
+                    FormDatumValue::String(s) => {
                         FileOrUSVString::USVString(USVString(s.to_string()))
                     },
-                    FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
+                    FormDatumValue::File(b) => FileOrUSVString::File(DomRoot::from_ref(b)),
                 })
             })
             .collect()
@@ -308,8 +306,8 @@ impl Iterable for FormData {
         let data = self.data.borrow();
         let datum = &data.get(n as usize).unwrap().1;
         match &datum.value {
-            FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
-            FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
+            FormDatumValue::String(s) => FileOrUSVString::USVString(USVString(s.to_string())),
+            FormDatumValue::File(b) => FileOrUSVString::File(DomRoot::from_ref(b)),
         }
     }
 

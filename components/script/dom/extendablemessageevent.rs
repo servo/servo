@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding::ExtendableEvent_Binding::ExtendableEventMethods;
 use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding;
@@ -207,7 +207,7 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
     }
 
     /// <https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports>
-    fn Ports(&self, cx: JSContext, retval: MutableHandleValue) {
+    fn Ports(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         self.frozen_ports.get_or_init(
             || {
                 self.ports
@@ -217,6 +217,7 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
             },
             cx,
             retval,
+            can_gc,
         );
     }
 }

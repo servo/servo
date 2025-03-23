@@ -213,7 +213,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
         );
 
         match &mut self.current_frame {
-            Some(ref mut current_frame)
+            Some(current_frame)
                 if current_frame.width == frame.get_width() &&
                     current_frame.height == frame.get_height() =>
             {
@@ -233,7 +233,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     updates.push(ImageUpdate::DeleteImage(old_image_key));
                 }
             },
-            Some(ref mut current_frame) => {
+            Some(current_frame) => {
                 self.old_frame = Some(current_frame.image_key);
 
                 let Some(new_image_key) = self.compositor_api.generate_image_key() else {
@@ -971,7 +971,7 @@ impl HTMLMediaElement {
                                 Some(ServoUrl::parse(&blob_url).expect("infallible"));
                             self.fetch_request(None, None);
                         },
-                        SrcObject::MediaStream(ref stream) => {
+                        SrcObject::MediaStream(stream) => {
                             let tracks = &*stream.get_tracks();
                             for (pos, track) in tracks.iter().enumerate() {
                                 if self
@@ -1788,7 +1788,7 @@ impl HTMLMediaElement {
                 // fetching where we left.
                 if let Some(ref current_fetch_context) = *self.current_fetch_context.borrow() {
                     match current_fetch_context.cancel_reason() {
-                        Some(ref reason) if *reason == CancelReason::Backoff => {
+                        Some(reason) if *reason == CancelReason::Backoff => {
                             // XXX(ferjm) Ideally we should just create a fetch request from
                             // where we left. But keeping track of the exact next byte that the
                             // media backend expects is not the easiest task, so I'm simply
@@ -1897,6 +1897,8 @@ impl HTMLMediaElement {
             .attach_shadow(
                 IsUserAgentWidget::Yes,
                 ShadowRootMode::Closed,
+                false,
+                false,
                 false,
                 SlotAssignmentMode::Manual,
                 can_gc,

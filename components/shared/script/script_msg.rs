@@ -8,14 +8,12 @@ use std::fmt;
 use base::Epoch;
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
-    MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId,
-    TopLevelBrowsingContextId, WebViewId,
+    MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use constellation_traits::{LogEntry, TraversalDirection};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{
-    EmbedderMsg, MediaSessionEvent, TouchEventType, TouchSequenceId, TraversalDirection,
-};
+use embedder_traits::{EmbedderMsg, MediaSessionEvent, TouchEventType, TouchSequenceId};
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -23,9 +21,11 @@ use net_traits::CoreResourceMsg;
 use net_traits::storage_thread::StorageType;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use strum_macros::IntoStaticStr;
 use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::{WebGPU, WebGPUResponse, wgc};
+use webrender_api::ImageKey;
 
 use crate::mem::MemoryReportResult;
 use crate::{
@@ -45,24 +45,6 @@ pub struct IFrameSizeMsg {
     pub type_: WindowSizeType,
 }
 
-/// Messages from the layout to the constellation.
-#[derive(Deserialize, Serialize)]
-pub enum LayoutMsg {
-    /// Requests that the constellation inform the compositor that it needs to record
-    /// the time when the frame with the given ID (epoch) is painted.
-    PendingPaintMetric(WebViewId, PipelineId, Epoch),
-}
-
-impl fmt::Debug for LayoutMsg {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use self::LayoutMsg::*;
-        let variant = match *self {
-            PendingPaintMetric(..) => "PendingPaintMetric",
-        };
-        write!(formatter, "LayoutMsg::{}", variant)
-    }
-}
-
 /// Whether the default action for a touch event was prevented by web content
 #[derive(Debug, Deserialize, Serialize)]
 pub enum TouchEventResult {
@@ -72,21 +54,8 @@ pub enum TouchEventResult {
     DefaultPrevented(TouchSequenceId, TouchEventType),
 }
 
-/// A log entry reported to the constellation
-/// We don't report all log entries, just serious ones.
-/// We need a separate type for this because `LogLevel` isn't serializable.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum LogEntry {
-    /// Panic, with a reason and backtrace
-    Panic(String, String),
-    /// Error, with a reason
-    Error(String),
-    /// warning, with a reason
-    Warn(String),
-}
-
 /// Messages from the script to the constellation.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptMsg {
     /// Request to complete the transfer of a set of ports to a router.
     CompleteMessagePortTransfer(MessagePortRouterId, Vec<MessagePortId>),
@@ -145,15 +114,12 @@ pub enum ScriptMsg {
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintThread(
         UntypedSize2D<u64>,
-        IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
+        IpcSender<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>,
     ),
     /// Notifies the constellation that this frame has received focus.
     Focus,
     /// Get the top-level browsing context info for a given browsing context.
-    GetTopForBrowsingContext(
-        BrowsingContextId,
-        IpcSender<Option<TopLevelBrowsingContextId>>,
-    ),
+    GetTopForBrowsingContext(BrowsingContextId, IpcSender<Option<WebViewId>>),
     /// Get the browsing context id of the browsing context in which pipeline is
     /// embedded and the parent pipeline id of that browsing context.
     GetBrowsingContextInfo(
@@ -255,65 +221,8 @@ pub enum ScriptMsg {
 
 impl fmt::Debug for ScriptMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use self::ScriptMsg::*;
-        let variant = match *self {
-            CompleteMessagePortTransfer(..) => "CompleteMessagePortTransfer",
-            MessagePortTransferResult(..) => "MessagePortTransferResult",
-            NewMessagePortRouter(..) => "NewMessagePortRouter",
-            RemoveMessagePortRouter(..) => "RemoveMessagePortRouter",
-            NewMessagePort(..) => "NewMessagePort",
-            RerouteMessagePort(..) => "RerouteMessagePort",
-            RemoveMessagePort(..) => "RemoveMessagePort",
-            MessagePortShipped(..) => "MessagePortShipped",
-            EntanglePorts(..) => "EntanglePorts",
-            NewBroadcastChannelRouter(..) => "NewBroadcastChannelRouter",
-            RemoveBroadcastChannelRouter(..) => "RemoveBroadcastChannelRouter",
-            RemoveBroadcastChannelNameInRouter(..) => "RemoveBroadcastChannelNameInRouter",
-            NewBroadcastChannelNameInRouter(..) => "NewBroadcastChannelNameInRouter",
-            ScheduleBroadcast(..) => "ScheduleBroadcast",
-            ForwardToEmbedder(..) => "ForwardToEmbedder",
-            BroadcastStorageEvent(..) => "BroadcastStorageEvent",
-            ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
-            CreateCanvasPaintThread(..) => "CreateCanvasPaintThread",
-            Focus => "Focus",
-            GetBrowsingContextInfo(..) => "GetBrowsingContextInfo",
-            GetTopForBrowsingContext(..) => "GetParentBrowsingContext",
-            GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",
-            LoadComplete => "LoadComplete",
-            LoadUrl(..) => "LoadUrl",
-            AbortLoadUrl => "AbortLoadUrl",
-            PostMessage { .. } => "PostMessage",
-            NavigatedToFragment(..) => "NavigatedToFragment",
-            TraverseHistory(..) => "TraverseHistory",
-            PushHistoryState(..) => "PushHistoryState",
-            ReplaceHistoryState(..) => "ReplaceHistoryState",
-            JointSessionHistoryLength(..) => "JointSessionHistoryLength",
-            RemoveIFrame(..) => "RemoveIFrame",
-            SetThrottledComplete(..) => "SetThrottledComplete",
-            ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
-            ScriptNewIFrame(..) => "ScriptNewIFrame",
-            CreateAuxiliaryWebView(..) => "ScriptNewAuxiliary",
-            ActivateDocument => "ActivateDocument",
-            SetDocumentState(..) => "SetDocumentState",
-            SetLayoutEpoch(..) => "SetLayoutEpoch",
-            SetFinalUrl(..) => "SetFinalUrl",
-            TouchEventProcessed(..) => "TouchEventProcessed",
-            LogEntry(..) => "LogEntry",
-            DiscardDocument => "DiscardDocument",
-            DiscardTopLevelBrowsingContext => "DiscardTopLevelBrowsingContext",
-            PipelineExited => "PipelineExited",
-            ForwardDOMMessage(..) => "ForwardDOMMessage",
-            ScheduleJob(..) => "ScheduleJob",
-            MediaSessionEvent(..) => "MediaSessionEvent",
-            #[cfg(feature = "webgpu")]
-            RequestAdapter(..) => "RequestAdapter",
-            #[cfg(feature = "webgpu")]
-            GetWebGPUChan(..) => "GetWebGPUChan",
-            TitleChanged(..) => "TitleChanged",
-            IFrameSizes(..) => "IFramSizes",
-            ReportMemory(..) => "ReportMemory",
-        };
-        write!(formatter, "ScriptMsg::{}", variant)
+        let variant_string: &'static str = self.into();
+        write!(formatter, "ScriptMsg::{variant_string}")
     }
 }
 

@@ -22,8 +22,10 @@ serde_json = { workspace = true }
 
 [dependencies]
 bitflags = { workspace = true }
+crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 html5ever = { workspace = true }
+indexmap = { workspace = true }
 js = { workspace = true }
 jstraceable_derive = { path = "../jstraceable_derive" }
 libc = { workspace = true }
@@ -31,15 +33,22 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 num-traits = { workspace = true }
+parking_lot = { workspace = true }
 regex = { workspace = true }
-servo_atoms = { workspace = true }
+servo_arc = { workspace = true }
+smallvec = { workspace = true }
+stylo_atoms = { workspace = true }
 servo_config = { path = "../config" }
-style = { workspace = true }
+stylo = { workspace = true }
+tendril = { version = "0.4.1", features = ["encoding_rs"] }
+webxr-api = { workspace = true, optional = true }
+xml5ever = { workspace = true }
 
 [features]
 bluetooth = []
 webgpu = []
-webxr = []
+webxr = ["webxr-api"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
+unsafe_op_in_unsafe_fn = { level = "allow" }

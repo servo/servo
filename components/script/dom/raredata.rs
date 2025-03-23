@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use euclid::default::Rect;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::customelementregistry::{

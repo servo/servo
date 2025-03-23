@@ -32,7 +32,6 @@ use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
@@ -57,7 +56,8 @@ use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
 use style::values::{AtomIdent, AtomString, CSSFloat, computed, specified};
 use style::{ArcSlice, CaseSensitivityExt, dom_apis, thread_state};
-use style_dom::ElementState;
+use stylo_atoms::Atom;
+use stylo_dom::ElementState;
 use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };
@@ -174,6 +174,7 @@ pub struct Element {
     attrs: DomRefCell<Vec<Dom<Attr>>>,
     #[no_trace]
     id_attribute: DomRefCell<Option<Atom>>,
+    /// <https://dom.spec.whatwg.org/#concept-element-is-value>
     #[no_trace]
     is: DomRefCell<Option<LocalName>>,
     #[ignore_malloc_size_of = "Arc"]
@@ -344,6 +345,7 @@ impl Element {
         *self.is.borrow_mut() = Some(is);
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-element-is-value>
     pub(crate) fn get_is(&self) -> Option<LocalName> {
         self.is.borrow().clone()
     }
@@ -367,6 +369,11 @@ impl Element {
             return rare_data.custom_element_state;
         }
         CustomElementState::Uncustomized
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-element-custom>
+    pub(crate) fn is_custom(&self) -> bool {
+        self.get_custom_element_state() == CustomElementState::Custom
     }
 
     pub(crate) fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {
@@ -501,24 +508,25 @@ impl Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn attach_shadow(
         &self,
         // TODO: remove is_ua_widget argument
         is_ua_widget: IsUserAgentWidget,
         mode: ShadowRootMode,
         clonable: bool,
+        serializable: bool,
+        delegates_focus: bool,
         slot_assignment_mode: SlotAssignmentMode,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ShadowRoot>> {
-        // Step 1.
-        // If element’s namespace is not the HTML namespace,
+        // Step 1. If element’s namespace is not the HTML namespace,
         // then throw a "NotSupportedError" DOMException.
         if self.namespace != ns!(html) {
             return Err(Error::NotSupported);
         }
 
-        // Step 2.
-        // If element’s local name is not a valid shadow host name,
+        // Step 2. If element’s local name is not a valid shadow host name,
         // then throw a "NotSupportedError" DOMException.
         if !is_valid_shadow_host_name(self.local_name()) {
             // UA shadow roots may be attached to anything
@@ -527,21 +535,80 @@ impl Element {
             }
         }
 
-        // TODO: Update the following steps to align with the newer spec.
-        // Step 3.
-        if self.is_shadow_host() {
-            return Err(Error::InvalidState);
+        // Step 3. If element’s local name is a valid custom element name,
+        // or element’s is value is non-null
+        if is_valid_custom_element_name(self.local_name()) || self.get_is().is_some() {
+            // Step 3.1. Let definition be the result of looking up a custom element definition
+            // given element’s node document, its namespace, its local name, and its is value.
+
+            let definition = self.get_custom_element_definition();
+            // Step 3.2. If definition is not null and definition’s disable shadow
+            //  is true, then throw a "NotSupportedError" DOMException.
+            if definition.is_some_and(|definition| definition.disable_shadow) {
+                return Err(Error::NotSupported);
+            }
         }
 
-        // Steps 4, 5 and 6.
+        // Step 4. If element is a shadow host:
+        // Step 4.1. Let currentShadowRoot be element’s shadow root.
+        if let Some(current_shadow_root) = self.shadow_root() {
+            // Step 4.2. If currentShadowRoot’s declarative is false
+            // or currentShadowRoot’s mode is not mode
+            // then throw a "NotSupportedError" DOMException.
+            if !current_shadow_root.is_declarative() ||
+                current_shadow_root.shadow_root_mode() != mode
+            {
+                return Err(Error::NotSupported);
+            }
+
+            // Step 4.3.1. Remove all of currentShadowRoot’s children, in tree order.
+            let node = self.upcast::<Node>();
+            for child in node.children() {
+                child.remove_self();
+            }
+
+            // Step 4.3.2. Set currentShadowRoot’s declarative to false.
+            current_shadow_root.set_declarative(false);
+
+            // Step 4.3.3. Return
+            return Ok(current_shadow_root);
+        }
+
+        // Step 5. Let shadow be a new shadow root whose node document
+        // is element’s node document, host is element, and mode is mode
+        //
+        // Step 8. Set shadow’s slot assignment to slotAssignment
+        //
+        // Step 10. Set shadow’s clonable to clonable
         let shadow_root = ShadowRoot::new(
             self,
             &self.node.owner_doc(),
             mode,
             slot_assignment_mode,
             clonable,
+            is_ua_widget,
             can_gc,
         );
+
+        // Step 6. Set shadow's delegates focus to delegatesFocus
+        shadow_root.set_delegates_focus(delegates_focus);
+
+        // Step 7. If element’s custom element state is "precustomized" or "custom",
+        // then set shadow’s available to element internals to true.
+        if matches!(
+            self.get_custom_element_state(),
+            CustomElementState::Precustomized | CustomElementState::Custom
+        ) {
+            shadow_root.set_available_to_element_internals(true);
+        }
+
+        // Step 9. Set shadow's declarative to false
+        shadow_root.set_declarative(false);
+
+        // Step 11. Set shadow's serializable to serializable
+        shadow_root.set_serializable(serializable);
+
+        // Step 12. Set element’s shadow root to shadow
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
@@ -635,15 +702,28 @@ impl Element {
         }))
     }
 
-    /// Add a new IntersectionObserverRegistration to the element.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn add_intersection_observer_registration(
+    pub(crate) fn get_intersection_observer_registration(
         &self,
-        registration: IntersectionObserverRegistration,
+        observer: &IntersectionObserver,
+    ) -> Option<Ref<IntersectionObserverRegistration>> {
+        if let Some(registrations) = self.registered_intersection_observers() {
+            registrations
+                .iter()
+                .position(|reg_obs| reg_obs.observer == observer)
+                .map(|index| Ref::map(registrations, |registrations| &registrations[index]))
+        } else {
+            None
+        }
+    }
+
+    /// Add a new IntersectionObserverRegistration with initial value to the element.
+    pub(crate) fn add_initial_intersection_observer_registration(
+        &self,
+        observer: &IntersectionObserver,
     ) {
         self.ensure_rare_data()
             .registered_intersection_observers
-            .push(registration);
+            .push(IntersectionObserverRegistration::new_initial(observer));
     }
 
     /// Removes a certain IntersectionObserver.
@@ -1567,7 +1647,7 @@ impl Element {
 
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
-        if self.get_custom_element_definition().is_some() {
+        if self.is_custom() {
             let value = DOMString::from(&**attr.value());
             let reaction = CallbackReaction::AttributeChanged(name, None, Some(value), namespace);
             ScriptThread::enqueue_callback_reaction(self, reaction, None);
@@ -1606,7 +1686,7 @@ impl Element {
             if *name == local_name!("id") || *name == local_name!("name") {
                 match maybe_attr {
                     None => true,
-                    Some(ref attr) => matches!(*attr.value(), AttrValue::Atom(_)),
+                    Some(attr) => matches!(*attr.value(), AttrValue::Atom(_)),
                 }
             } else {
                 true
@@ -1759,9 +1839,11 @@ impl Element {
 
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
-            let reaction =
-                CallbackReaction::AttributeChanged(name, Some(old_value), None, namespace);
-            ScriptThread::enqueue_callback_reaction(self, reaction, None);
+            if self.is_custom() {
+                let reaction =
+                    CallbackReaction::AttributeChanged(name, Some(old_value), None, namespace);
+                ScriptThread::enqueue_callback_reaction(self, reaction, None);
+            }
 
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
@@ -2056,7 +2138,7 @@ impl Element {
     ) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
         // TODO(#11995): XML case.
-        let new_children = ServoParser::parse_html_fragment(self, markup, can_gc);
+        let new_children = ServoParser::parse_html_fragment(self, markup, false, can_gc);
         // Step 3.
         // See https://github.com/w3c/DOM-Parsing/issues/61.
         let context_document = {
@@ -2440,7 +2522,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             }
 
             // Step 4.
-            if self.get_custom_element_definition().is_some() {
+            if self.is_custom() {
                 let old_name = old_attr.local_name().clone();
                 let old_value = DOMString::from(&**old_attr.value());
                 let new_value = DOMString::from(&**attr.value());
@@ -2837,6 +2919,39 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.client_rect(can_gc).size.height
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
+    fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+        // Step 2. Let target be this's template contents if this is a template element; otherwise this.
+        let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+            DomRoot::upcast(template.Content(can_gc))
+        } else {
+            DomRoot::from_ref(self.upcast())
+        };
+
+        // Step 3. Unsafely set HTML given target, this, and compliantHTML.
+        // Let newChildren be the result of the HTML fragment parsing algorithm.
+        let new_children = ServoParser::parse_html_fragment(self, html, true, can_gc);
+
+        let context_document = {
+            if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+                template.Content(can_gc).upcast::<Node>().owner_doc()
+            } else {
+                self.owner_document()
+            }
+        };
+
+        // Let fragment be a new DocumentFragment whose node document is contextElement's node document.
+        let frag = DocumentFragment::new(&context_document, can_gc);
+
+        // For each node in newChildren, append node to fragment.
+        for child in new_children {
+            frag.upcast::<Node>().AppendChild(&child).unwrap();
+        }
+
+        // Replace all with fragment within target.
+        Node::replace_all(Some(frag.upcast()), &target);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
     fn GetInnerHTML(&self) -> Fallible<DOMString> {
         let qname = QualName::new(
@@ -3168,6 +3283,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             IsUserAgentWidget::No,
             init.mode,
             init.clonable,
+            init.serializable,
+            init.delegatesFocus,
             init.slotAssignment,
             CanGc::note(),
         )?;

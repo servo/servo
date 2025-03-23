@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 
-use crate::dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper, MAX_CHANNEL_COUNT};
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::AudioDestinationNodeMethods;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Test: flex item with `max-width: min-content`</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-base-size">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#min-content">
+
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="`max-width: min-content` limits the flex item to 100px wide,
+  so the floats need to stack vertically and thus the flex base size is 100px.">
+
+<p>Test passes if there is a filled green square.</p>
+<div style="display: flex; flex-direction: column; width: 200px; height: 100px">
+  <div style="max-width: min-content; background: green">
+    <div style="float: left; width: 100px; height: 50px"></div>
+    <div style="float: left; width: 100px; height: 50px"></div>
+  </div>
+</div>

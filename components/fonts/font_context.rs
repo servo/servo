@@ -347,8 +347,8 @@ impl FontContext {
     }
 
     pub fn is_supported_web_font_source(source: &&Source) -> bool {
-        let url_source = match source {
-            Source::Url(ref url_source) => url_source,
+        let url_source = match &source {
+            Source::Url(url_source) => url_source,
             Source::Local(_) => return true,
         };
         let format_hint = match url_source.format_hint {

@@ -7,8 +7,8 @@ use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, QualName, local_name, namespace_url, ns};
-use servo_atoms::Atom;
 use style::str::split_html_space_chars;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::inheritance::Castable;

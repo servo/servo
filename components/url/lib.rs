@@ -18,7 +18,6 @@ use std::path::Path;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc;
-use to_shmem::{SharedMemoryBuilder, ToShmem};
 pub use url::Host;
 use url::{Position, Url};
 
@@ -37,14 +36,6 @@ pub enum UrlError {
 
 #[derive(Clone, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct ServoUrl(#[ignore_malloc_size_of = "Arc"] Arc<Url>);
-
-impl ToShmem for ServoUrl {
-    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
-        unimplemented!(
-            "If servo wants to share stylesheets across processes, ToShmem for Url must be implemented"
-        )
-    }
-}
 
 impl ServoUrl {
     pub fn from_url(url: Url) -> Self {

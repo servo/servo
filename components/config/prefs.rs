@@ -21,21 +21,20 @@ pub fn set(preferences: Preferences) {
     // Map between Stylo preference names and Servo preference names as the This should be
     // kept in sync with components/script/dom/bindings/codegen/run.py which generates the
     // DOM CSS style accessors.
-    style_config::set_bool("layout.unimplemented", preferences.layout_unimplemented);
-    style_config::set_i32("layout.threads", preferences.layout_threads as i32);
-    style_config::set_bool("layout.legacy_layout", preferences.layout_legacy_layout);
-    style_config::set_bool("layout.flexbox.enabled", preferences.layout_flexbox_enabled);
-    style_config::set_bool("layout.columns.enabled", preferences.layout_columns_enabled);
-    style_config::set_bool("layout.grid.enabled", preferences.layout_grid_enabled);
-    style_config::set_bool(
+    stylo_config::set_bool("layout.unimplemented", preferences.layout_unimplemented);
+    stylo_config::set_i32("layout.threads", preferences.layout_threads as i32);
+    stylo_config::set_bool("layout.flexbox.enabled", preferences.layout_flexbox_enabled);
+    stylo_config::set_bool("layout.columns.enabled", preferences.layout_columns_enabled);
+    stylo_config::set_bool("layout.grid.enabled", preferences.layout_grid_enabled);
+    stylo_config::set_bool(
         "layout.css.transition-behavior.enabled",
         preferences.layout_css_transition_behavior_enabled,
     );
-    style_config::set_bool(
+    stylo_config::set_bool(
         "layout.writing-mode.enabled",
         preferences.layout_writing_mode_enabled,
     );
-    style_config::set_bool(
+    stylo_config::set_bool(
         "layout.container-queries.enabled",
         preferences.layout_container_queries_enabled,
     );
@@ -147,6 +146,8 @@ pub struct Preferences {
     /// Whether or not subpixel antialiasing is enabled for text rendering.
     pub gfx_subpixel_text_antialiasing_enabled: bool,
     pub gfx_texture_swizzling_enabled: bool,
+    /// Whether or not the DOM inspector should show shadow roots of user-agent shadow trees
+    pub inspector_show_servo_internal_shadow_roots: bool,
     pub js_asmjs_enabled: bool,
     pub js_asyncstack: bool,
     pub js_baseline_interpreter_enabled: bool,
@@ -197,7 +198,6 @@ pub struct Preferences {
     pub layout_container_queries_enabled: bool,
     pub layout_css_transition_behavior_enabled: bool,
     pub layout_flexbox_enabled: bool,
-    pub layout_legacy_layout: bool,
     pub layout_threads: i64,
     pub layout_unimplemented: bool,
     pub layout_writing_mode_enabled: bool,
@@ -267,7 +267,7 @@ impl Preferences {
             dom_serviceworker_timeout_seconds: 60,
             dom_servo_helpers_enabled: false,
             dom_servoparser_async_html_tokenizer_enabled: false,
-            dom_shadowdom_enabled: false,
+            dom_shadowdom_enabled: true,
             dom_svg_enabled: false,
             dom_testable_crash_enabled: false,
             dom_testbinding_enabled: false,
@@ -316,6 +316,7 @@ impl Preferences {
             gfx_text_antialiasing_enabled: true,
             gfx_subpixel_text_antialiasing_enabled: true,
             gfx_texture_swizzling_enabled: true,
+            inspector_show_servo_internal_shadow_roots: false,
             js_asmjs_enabled: true,
             js_asyncstack: false,
             js_baseline_interpreter_enabled: true,
@@ -365,7 +366,6 @@ impl Preferences {
             layout_css_transition_behavior_enabled: true,
             layout_flexbox_enabled: true,
             layout_grid_enabled: false,
-            layout_legacy_layout: false,
             // TODO(mrobinson): This should likely be based on the number of processors.
             layout_threads: 3,
             layout_unimplemented: false,

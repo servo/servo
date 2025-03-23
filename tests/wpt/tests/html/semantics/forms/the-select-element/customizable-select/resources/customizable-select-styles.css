@@ -74,6 +74,10 @@
   min-block-size: max(24px, 1lh);
 }
 
+.customizable-select-button.disabled {
+  color: color-mix(in srgb, currentColor 50%, transparent);
+}
+
 .customizable-select-button.hover {
   background-color: color-mix(in lab, currentColor 10%, transparent);
 }

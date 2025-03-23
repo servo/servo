@@ -6,7 +6,8 @@ use std::fmt;
 
 use base::id::PipelineId;
 use malloc_size_of_derive::MallocSizeOf;
-use servo_atoms::Atom;
+use strum_macros::VariantArray;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
@@ -19,10 +20,7 @@ use crate::task_manager::TaskManager;
 /// The names of all task sources, used to differentiate TaskCancellers. Note: When adding a task
 /// source, update this enum. Note: The HistoryTraversalTaskSource is not part of this, because it
 /// doesn't implement TaskSource.
-///
-/// Note: When adding or removing a [`TaskSourceName`], be sure to also update the return value of
-/// [`TaskSourceName::all`].
-#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq, VariantArray)]
 pub(crate) enum TaskSourceName {
     Canvas,
     DOMManipulation,
@@ -42,6 +40,8 @@ pub(crate) enum TaskSourceName {
     Timer,
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepad-task-source>
     Gamepad,
+    /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-task-source>
+    IntersectionObserver,
 }
 
 impl From<TaskSourceName> for ScriptThreadEventCategory {
@@ -64,29 +64,8 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
             TaskSourceName::WebSocket => ScriptThreadEventCategory::WebSocketEvent,
             TaskSourceName::Timer => ScriptThreadEventCategory::TimerEvent,
             TaskSourceName::Gamepad => ScriptThreadEventCategory::InputEvent,
+            TaskSourceName::IntersectionObserver => ScriptThreadEventCategory::ScriptEvent,
         }
-    }
-}
-
-impl TaskSourceName {
-    pub(crate) fn all() -> &'static [TaskSourceName] {
-        &[
-            TaskSourceName::Canvas,
-            TaskSourceName::DOMManipulation,
-            TaskSourceName::FileReading,
-            TaskSourceName::FontLoading,
-            TaskSourceName::HistoryTraversal,
-            TaskSourceName::Networking,
-            TaskSourceName::PerformanceTimeline,
-            TaskSourceName::PortMessage,
-            TaskSourceName::UserInteraction,
-            TaskSourceName::RemoteEvent,
-            TaskSourceName::Rendering,
-            TaskSourceName::MediaElement,
-            TaskSourceName::WebSocket,
-            TaskSourceName::Timer,
-            TaskSourceName::Gamepad,
-        ]
     }
 }
 

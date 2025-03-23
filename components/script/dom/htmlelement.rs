@@ -11,7 +11,7 @@ use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use script_layout_interface::QueryMsg;
 use style::attr::AttrValue;
-use style_dom::ElementState;
+use stylo_dom::ElementState;
 
 use super::customelementregistry::CustomElementState;
 use crate::dom::activation::Activatable;
@@ -640,6 +640,14 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         internals.set_attached();
         Ok(internals)
     }
+
+    // FIXME: The nonce should be stored in an internal slot instead of an
+    // attribute (https://html.spec.whatwg.org/multipage/#cryptographicnonce)
+    // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
+    make_getter!(Nonce, "nonce");
+
+    // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
+    make_setter!(SetNonce, "nonce");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
     fn Autofocus(&self) -> bool {

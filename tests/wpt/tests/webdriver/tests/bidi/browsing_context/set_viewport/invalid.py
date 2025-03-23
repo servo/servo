@@ -6,7 +6,7 @@ import webdriver.bidi.error as error
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.mark.parametrize("value", [None, False, 42, {}, []])
+@pytest.mark.parametrize("value", [False, 42, {}, []])
 async def test_params_context_invalid_type(bidi_session, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.browsing_context.set_viewport(context=value, viewport={
@@ -88,4 +88,73 @@ async def test_params_devicePixelRatio_invalid_value(bidi_session, new_tab, devi
             context=new_tab["context"],
             device_pixel_ratio=device_pixel_ratio,
             viewport=None
+        )
+
+
+@pytest.mark.parametrize("value", [True, "foo", 42, {}])
+async def test_params_user_contexts_invalid_type(bidi_session, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.set_viewport(
+            user_contexts=value,
+            viewport={
+                "width": 100,
+                "height": 200,
+            }
+        )
+
+
+async def test_params_user_contexts_empty_list(bidi_session):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.set_viewport(
+            user_contexts=[],
+            viewport={
+                "width": 100,
+                "height": 200,
+            }
+        )
+
+
+@pytest.mark.parametrize("value", [None, False, 42, {}, []])
+async def test_params_user_contexts_entry_invalid_type(bidi_session, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.set_viewport(
+            user_contexts=[value],
+            viewport={
+                "width": 100,
+                "height": 200,
+            }
+        )
+
+
+@pytest.mark.parametrize("value", ["", "somestring"])
+async def test_params_user_contexts_entry_invalid_value(bidi_session, value):
+    with pytest.raises(error.NoSuchUserContextException):
+        await bidi_session.browsing_context.set_viewport(
+            user_contexts=[value],
+            viewport={
+                "width": 100,
+                "height": 200,
+            }
+        )
+
+
+async def test_params_both_user_contexts_and_context(bidi_session, top_context):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.set_viewport(
+            context=top_context["context"],
+            user_contexts=["default"],
+            viewport={
+                "width": 100,
+                "height": 200,
+            }
+        )
+
+
+async def test_params_no_user_contexts_and_context(bidi_session):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.set_viewport(
+            viewport={
+                "width": 100,
+                "height": 200,
+            }
         )

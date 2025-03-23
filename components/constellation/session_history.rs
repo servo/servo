@@ -5,7 +5,7 @@
 use std::cmp::PartialEq;
 use std::fmt;
 
-use base::id::{BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId};
+use base::id::{BrowsingContextId, HistoryStateId, PipelineId, WebViewId};
 use euclid::Size2D;
 use log::debug;
 use script_traits::LoadData;
@@ -58,8 +58,8 @@ impl JointSessionHistory {
         url: ServoUrl,
     ) {
         if let Some(SessionHistoryDiff::Pipeline {
-            ref mut new_history_state_id,
-            ref mut new_url,
+            new_history_state_id,
+            new_url,
             ..
         }) = self.past.iter_mut().find(|diff| match diff {
             SessionHistoryDiff::Pipeline {
@@ -73,8 +73,8 @@ impl JointSessionHistory {
         }
 
         if let Some(SessionHistoryDiff::Pipeline {
-            ref mut old_history_state_id,
-            ref mut old_url,
+            old_history_state_id,
+            old_url,
             ..
         }) = self.future.iter_mut().find(|diff| match diff {
             SessionHistoryDiff::Pipeline {
@@ -115,7 +115,7 @@ pub struct SessionHistoryChange {
     pub browsing_context_id: BrowsingContextId,
 
     /// The top-level browsing context ancestor.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub webview_id: WebViewId,
 
     /// The pipeline for the document being loaded.
     pub new_pipeline_id: PipelineId,

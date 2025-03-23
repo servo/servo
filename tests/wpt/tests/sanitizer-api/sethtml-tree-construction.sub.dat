@@ -304,34 +304,46 @@ TypeError
 
 #data
 <area href='javascript:evil.com'>
+#config
+{}
 #document
 | <area>
 
 #data
 <area href=' javascript:evil.com'>
+#config
+{}
 #document
 | <area>
 
 #data
 <area href='http:evil.com'>
+#config
+{}
 #document
 | <area>
 |   href="http:evil.com"
 
 #data
 <form action='javascript:evil.com'>Click.</form>
+#config
+{}
 #document
 | <form>
 |   "Click."
 
 #data
 <form action=' javascript:evil.com'>Click.</form>
+#config
+{}
 #document
 | <form>
 |   "Click."
 
 #data
 <form action='http:evil.com'>Click.</form>
+#config
+{}
 #document
 | <form>
 |   action="http:evil.com"
@@ -339,34 +351,46 @@ TypeError
 
 #data
 <input formaction='javascript:evil.com'>
+#config
+{}
 #document
 | <input>
 
 #data
 <input formaction=' javascript:evil.com'>
+#config
+{}
 #document
 | <input>
 
 #data
 <input formaction='http:evil.com'>
+#config
+{}
 #document
 | <input>
 |   formaction="http:evil.com"
 
 #data
 <button formaction='javascript:evil.com'>Click.</button>
+#config
+{}
 #document
 | <button>
 |   "Click."
 
 #data
 <button formaction=' javascript:evil.com'>Click.</button>
+#config
+{}
 #document
 | <button>
 |   "Click."
 
 #data
 <button formaction='http:evil.com'>Click.</button>
+#config
+{}
 #document
 | <button>
 |   formaction="http:evil.com"

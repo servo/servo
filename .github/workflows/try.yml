@@ -17,7 +17,7 @@ on:
       wpt-layout:
         required: false
         type: choice
-        options: ["none", "2013", "2020", "all"]
+        options: ["none", "2020", "all"]
       unit-tests:
         required: false
         type: boolean

@@ -30,7 +30,9 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment, IFrameFragment, ImageFragment};
-use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes};
+use crate::geom::{
+    LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSize, Size, Sizes,
+};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
@@ -96,7 +98,7 @@ impl NaturalSizes {
 
 pub(crate) enum CanvasSource {
     WebGL(ImageKey),
-    Image(Arc<Mutex<IpcSender<CanvasMsg>>>),
+    Image((ImageKey, CanvasId, Arc<Mutex<IpcSender<CanvasMsg>>>)),
     WebGPU(ImageKey),
     /// transparent black
     Empty,
@@ -120,7 +122,6 @@ impl fmt::Debug for CanvasSource {
 #[derive(Debug)]
 pub(crate) struct CanvasInfo {
     pub source: CanvasSource,
-    pub canvas_id: CanvasId,
 }
 
 #[derive(Debug)]
@@ -380,16 +381,17 @@ impl ReplacedContents {
                 let image_key = match canvas_info.source {
                     CanvasSource::WebGL(image_key) => image_key,
                     CanvasSource::WebGPU(image_key) => image_key,
-                    CanvasSource::Image(ref ipc_renderer) => {
+                    CanvasSource::Image((image_key, canvas_id, ref ipc_renderer)) => {
                         let ipc_renderer = ipc_renderer.lock().unwrap();
                         let (sender, receiver) = ipc::channel().unwrap();
                         ipc_renderer
                             .send(CanvasMsg::FromLayout(
-                                FromLayoutMsg::SendData(sender),
-                                canvas_info.canvas_id,
+                                FromLayoutMsg::UpdateImage(sender),
+                                canvas_id,
                             ))
                             .unwrap();
-                        receiver.recv().unwrap().image_key
+                        receiver.recv().unwrap();
+                        image_key
                     },
                     CanvasSource::Empty => return vec![],
                 };
@@ -434,6 +436,7 @@ impl ReplacedContents {
         containing_block: &ContainingBlock,
         style: &ComputedValues,
         content_box_sizes_and_pbm: &ContentBoxSizesAndPBM,
+        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     ) -> LogicalVec2<Au> {
         let pbm = &content_box_sizes_and_pbm.pbm;
         self.used_size_as_if_inline_element_from_content_box_sizes(
@@ -442,7 +445,7 @@ impl ReplacedContents {
             self.preferred_aspect_ratio(style, &pbm.padding_border_sums),
             content_box_sizes_and_pbm.content_box_sizes.as_ref(),
             Size::FitContent.into(),
-            pbm.padding_border_sums + pbm.margin.auto_is(Au::zero).sum(),
+            pbm.sums_auto_is_zero(ignore_block_margins_for_stretch),
         )
     }
 
@@ -532,27 +535,18 @@ impl ReplacedContents {
             )
             .into()
         };
-        let (preferred_inline, min_inline, max_inline) = sizes.inline.resolve_each(
+        let inline_size = sizes.inline.resolve(
             Direction::Inline,
             automatic_size.inline,
-            Au::zero(),
+            Au::zero,
             Some(inline_stretch_size),
             get_inline_content_size,
             false, /* is_table */
         );
-        let inline_size = preferred_inline.clamp_between_extremums(min_inline, max_inline);
 
         // Now we can compute the block size, using the inline size from above.
         let block_content_size = LazyCell::new(|| -> ContentSizes {
-            let get_inline_size = || {
-                if sizes.inline.preferred.is_initial() {
-                    // TODO: do we really need to special-case `auto`?
-                    // https://github.com/w3c/csswg-drafts/issues/11236
-                    SizeConstraint::MinMax(min_inline, max_inline)
-                } else {
-                    SizeConstraint::Definite(inline_size)
-                }
-            };
+            let get_inline_size = || SizeConstraint::Definite(inline_size);
             self.content_size(
                 Direction::Block,
                 preferred_aspect_ratio,
@@ -564,7 +558,7 @@ impl ReplacedContents {
         let block_size = sizes.block.resolve(
             Direction::Block,
             automatic_size.block,
-            Au::zero(),
+            Au::zero,
             block_stretch_size,
             || *block_content_size,
             false, /* is_table */

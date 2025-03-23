@@ -263,7 +263,7 @@ impl WritableStreamDefaultWriter {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-write>
-    fn write(
+    pub(crate) fn write(
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
@@ -363,7 +363,7 @@ impl WritableStreamDefaultWriter {
 
         // Root the js val of the error.
         rooted!(in(*cx) let mut error = UndefinedValue());
-        released_error.to_jsval(cx, global, error.handle_mut());
+        released_error.to_jsval(cx, global, error.handle_mut(), can_gc);
 
         // Perform ! WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, releasedError).
         self.ensure_ready_promise_rejected(global, error.handle(), can_gc);
@@ -376,6 +376,52 @@ impl WritableStreamDefaultWriter {
 
         // Set this.[[stream]] to undefined.
         self.stream.set(None);
+    }
+
+    /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-close-with-error-propagation>
+    pub(crate) fn close_with_error_propagation(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Let stream be writer.[[stream]].
+        let Some(stream) = self.stream.get() else {
+            // Assert: stream is not undefined.
+            unreachable!("Stream should be set.");
+        };
+
+        // Let state be stream.[[state]].
+        // Used via stream method calls.
+
+        // If ! WritableStreamCloseQueuedOrInFlight(stream) is true
+        // or state is "closed",
+        if stream.close_queued_or_in_flight() || stream.is_closed() {
+            // return a promise resolved with undefined.
+            let promise = Promise::new(global, can_gc);
+            promise.resolve_native(&(), can_gc);
+            return promise;
+        }
+
+        // If state is "errored",
+        if stream.is_errored() {
+            // return a promise rejected with stream.[[storedError]].
+            rooted!(in(*cx) let mut error = UndefinedValue());
+            stream.get_stored_error(error.handle_mut());
+            let promise = Promise::new(global, can_gc);
+            promise.reject_native(&error.handle(), can_gc);
+            return promise;
+        }
+
+        // Assert: state is "writable" or "erroring".
+        assert!(stream.is_writable() || stream.is_erroring());
+
+        // Return ! WritableStreamDefaultWriterClose(writer).
+        self.close(cx, global, can_gc)
+    }
+
+    pub(crate) fn get_stream(&self) -> Option<DomRoot<WritableStream>> {
+        self.stream.get()
     }
 }
 

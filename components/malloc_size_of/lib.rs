@@ -52,7 +52,7 @@ use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
 use std::sync::Arc;
 
-pub use style_malloc_size_of::MallocSizeOfOps;
+pub use stylo_malloc_size_of::MallocSizeOfOps;
 use uuid::Uuid;
 
 /// Trait for measuring the "deep" heap usage of a data structure. This is the
@@ -140,8 +140,8 @@ macro_rules! malloc_size_of_is_0(
 
 impl MallocSizeOf for keyboard_types::Key {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match self {
-            keyboard_types::Key::Character(ref string) => {
+        match &self {
+            keyboard_types::Key::Character(string) => {
                 <String as MallocSizeOf>::size_of(string, ops)
             },
             _ => 0,
@@ -720,6 +720,7 @@ malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
 malloc_size_of_is_0!(style::font_face::SourceList);
+malloc_size_of_is_0!(style::queries::values::PrefersColorScheme);
 
 macro_rules! malloc_size_of_is_webrender_malloc_size_of(
     ($($ty:ty),+) => (
@@ -749,12 +750,12 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::MixBlendMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::NormalBorder);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::RepeatMode);
 
-macro_rules! malloc_size_of_is_style_malloc_size_of(
+macro_rules! malloc_size_of_is_stylo_malloc_size_of(
     ($($ty:ty),+) => (
         $(
             impl MallocSizeOf for $ty {
                 fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-                    <$ty as style_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+                    <$ty as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
                 }
             }
         )+
@@ -765,10 +766,10 @@ impl<S> MallocSizeOf for style::author_styles::GenericAuthorStyles<S>
 where
     S: style::stylesheets::StylesheetInDocument
         + std::cmp::PartialEq
-        + style_malloc_size_of::MallocSizeOf,
+        + stylo_malloc_size_of::MallocSizeOf,
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        <style::author_styles::GenericAuthorStyles<S> as style_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+        <style::author_styles::GenericAuthorStyles<S> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
     }
 }
 
@@ -776,31 +777,30 @@ impl<S> MallocSizeOf for style::stylesheet_set::DocumentStylesheetSet<S>
 where
     S: style::stylesheets::StylesheetInDocument
         + std::cmp::PartialEq
-        + style_malloc_size_of::MallocSizeOf,
+        + stylo_malloc_size_of::MallocSizeOf,
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        <style::stylesheet_set::DocumentStylesheetSet<S> as style_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+        <style::stylesheet_set::DocumentStylesheetSet<S> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
     }
 }
 
-malloc_size_of_is_style_malloc_size_of!(style::animation::DocumentAnimationSet);
-malloc_size_of_is_style_malloc_size_of!(style::attr::AttrIdentifier);
-malloc_size_of_is_style_malloc_size_of!(style::attr::AttrValue);
-malloc_size_of_is_style_malloc_size_of!(style::color::AbsoluteColor);
-malloc_size_of_is_style_malloc_size_of!(style::computed_values::font_variant_caps::T);
-malloc_size_of_is_style_malloc_size_of!(style::dom::OpaqueNode);
-malloc_size_of_is_style_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
-malloc_size_of_is_style_malloc_size_of!(style::media_queries::MediaList);
-malloc_size_of_is_style_malloc_size_of!(style::properties::style_structs::Font);
-malloc_size_of_is_style_malloc_size_of!(style::queries::values::PrefersColorScheme);
-malloc_size_of_is_style_malloc_size_of!(style::selector_parser::PseudoElement);
-malloc_size_of_is_style_malloc_size_of!(style::selector_parser::RestyleDamage);
-malloc_size_of_is_style_malloc_size_of!(style::selector_parser::Snapshot);
-malloc_size_of_is_style_malloc_size_of!(style::shared_lock::SharedRwLock);
-malloc_size_of_is_style_malloc_size_of!(style::stylesheets::DocumentStyleSheet);
-malloc_size_of_is_style_malloc_size_of!(style::stylist::Stylist);
-malloc_size_of_is_style_malloc_size_of!(style::values::computed::FontStretch);
-malloc_size_of_is_style_malloc_size_of!(style::values::computed::FontStyle);
-malloc_size_of_is_style_malloc_size_of!(style::values::computed::FontWeight);
-malloc_size_of_is_style_malloc_size_of!(style::values::computed::font::SingleFontFamily);
-malloc_size_of_is_style_malloc_size_of!(style_dom::ElementState);
+malloc_size_of_is_stylo_malloc_size_of!(style::animation::DocumentAnimationSet);
+malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrIdentifier);
+malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrValue);
+malloc_size_of_is_stylo_malloc_size_of!(style::color::AbsoluteColor);
+malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_caps::T);
+malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
+malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
+malloc_size_of_is_stylo_malloc_size_of!(style::media_queries::MediaList);
+malloc_size_of_is_stylo_malloc_size_of!(style::properties::style_structs::Font);
+malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::PseudoElement);
+malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::RestyleDamage);
+malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::Snapshot);
+malloc_size_of_is_stylo_malloc_size_of!(style::shared_lock::SharedRwLock);
+malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::DocumentStyleSheet);
+malloc_size_of_is_stylo_malloc_size_of!(style::stylist::Stylist);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStretch);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStyle);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontWeight);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::font::SingleFontFamily);
+malloc_size_of_is_stylo_malloc_size_of!(stylo_dom::ElementState);

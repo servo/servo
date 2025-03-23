@@ -9,6 +9,6 @@ interface HTMLOptGroupElement : HTMLElement {
 
   [CEReactions]
            attribute boolean disabled;
-  // [CEReactions]
-  //          attribute DOMString label;
+  [CEReactions]
+           attribute DOMString label;
 };

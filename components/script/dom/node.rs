@@ -15,6 +15,9 @@ use std::{cmp, fmt, iter};
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
 use bitflags::bitflags;
+use constellation_traits::{
+    UntrustedNodeAddress, UntrustedNodeAddress as CompositorUntrustedNodeAddress,
+};
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D, Vector2D};
@@ -28,13 +31,14 @@ use script_layout_interface::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
     SVGSVGData, StyleData, TrustedNodeAddress,
 };
-use script_traits::{DocumentActivity, UntrustedNodeAddress};
+use script_traits::DocumentActivity;
 use selectors::matching::{
     MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags,
     matches_selector_list,
 };
 use selectors::parser::SelectorList;
 use servo_arc::Arc;
+use servo_config::pref;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
 use style::context::QuirksMode;
@@ -43,7 +47,6 @@ use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
-use webrender_traits::UntrustedNodeAddress as CompositorUntrustedNodeAddress;
 use xml5ever::serialize as xml_serialize;
 
 use super::globalscope::GlobalScope;
@@ -52,6 +55,7 @@ use crate::document_loader::DocumentLoader;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -315,7 +319,8 @@ impl Node {
         self.layout_data.borrow_mut().take();
     }
 
-    /// Clean up flags and unbind from tree.
+    /// Clean up flags and runs steps 11-14 of remove a node.
+    /// <https://dom.spec.whatwg.org/#concept-node-remove>
     pub(crate) fn complete_remove_subtree(root: &Node, context: &UnbindContext) {
         // Flags that reset when a node is disconnected
         const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
@@ -339,20 +344,27 @@ impl Node {
             }
         }
 
+        // Step 12.
+        let is_parent_connected = context.parent.is_connected();
+
         for node in root.traverse_preorder(ShadowIncluding::Yes) {
             node.clean_up_style_and_layout_data();
 
+            // Step 11 & 14.1. Run the removing steps.
             // This needs to be in its own loop, because unbind_from_tree may
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.
             vtable_for(&node).unbind_from_tree(context);
-            // https://dom.spec.whatwg.org/#concept-node-remove step 14
-            if let Some(element) = node.as_custom_element() {
-                ScriptThread::enqueue_callback_reaction(
-                    &element,
-                    CallbackReaction::Disconnected,
-                    None,
-                );
+
+            // Step 12 & 14.2. Enqueue disconnected custom element reactions.
+            if is_parent_connected {
+                if let Some(element) = node.as_custom_element() {
+                    ScriptThread::enqueue_callback_reaction(
+                        &element,
+                        CallbackReaction::Disconnected,
+                        None,
+                    );
+                }
             }
         }
     }
@@ -412,7 +424,8 @@ impl Node {
 
     pub(crate) fn as_custom_element(&self) -> Option<DomRoot<Element>> {
         self.downcast::<Element>().and_then(|element| {
-            if element.get_custom_element_definition().is_some() {
+            if element.is_custom() {
+                assert!(element.get_custom_element_definition().is_some());
                 Some(DomRoot::from_ref(element))
             } else {
                 None
@@ -751,14 +764,18 @@ impl Node {
         TreeIterator::new(self, shadow_including)
     }
 
-    pub(crate) fn inclusively_following_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn inclusively_following_siblings(
+        &self,
+    ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: Some(DomRoot::from_ref(self)),
             next_node: |n| n.GetNextSibling(),
         }
     }
 
-    pub(crate) fn inclusively_preceding_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn inclusively_preceding_siblings(
+        &self,
+    ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: Some(DomRoot::from_ref(self)),
             next_node: |n| n.GetPreviousSibling(),
@@ -798,14 +815,14 @@ impl Node {
             .any(|ancestor| &*ancestor == self)
     }
 
-    pub(crate) fn following_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn following_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: self.GetNextSibling(),
             next_node: |n| n.GetNextSibling(),
         }
     }
 
-    pub(crate) fn preceding_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn preceding_siblings(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: self.GetPreviousSibling(),
             next_node: |n| n.GetPreviousSibling(),
@@ -826,7 +843,7 @@ impl Node {
         }
     }
 
-    pub(crate) fn descending_last_children(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn descending_last_children(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: self.GetLastChild(),
             next_node: |n| n.GetLastChild(),
@@ -852,6 +869,10 @@ impl Node {
 
     pub(crate) fn bounding_content_box_or_zero(&self, can_gc: CanGc) -> Rect<Au> {
         self.bounding_content_box(can_gc).unwrap_or_else(Rect::zero)
+    }
+
+    pub(crate) fn bounding_content_box_no_reflow(&self) -> Option<Rect<Au>> {
+        self.owner_window().content_box_query_unchecked(self)
     }
 
     pub(crate) fn content_boxes(&self, can_gc: CanGc) -> Vec<Rect<Au>> {
@@ -1089,7 +1110,7 @@ impl Node {
         Ok(NodeList::new_simple_list(&window, iter, CanGc::note()))
     }
 
-    pub(crate) fn ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: self.GetParentNode(),
             next_node: |n| n.GetParentNode(),
@@ -1100,7 +1121,7 @@ impl Node {
     pub(crate) fn inclusive_ancestors(
         &self,
         shadow_including: ShadowIncluding,
-    ) -> impl Iterator<Item = DomRoot<Node>> {
+    ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: Some(DomRoot::from_ref(self)),
             next_node: move |n| {
@@ -1142,21 +1163,21 @@ impl Node {
         self.is_connected() && self.owner_doc().browsing_context().is_some()
     }
 
-    pub(crate) fn children(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn children(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: self.GetFirstChild(),
             next_node: |n| n.GetNextSibling(),
         }
     }
 
-    pub(crate) fn rev_children(&self) -> impl Iterator<Item = DomRoot<Node>> {
+    pub(crate) fn rev_children(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: self.GetLastChild(),
             next_node: |n| n.GetPreviousSibling(),
         }
     }
 
-    pub(crate) fn child_elements(&self) -> impl Iterator<Item = DomRoot<Element>> {
+    pub(crate) fn child_elements(&self) -> impl Iterator<Item = DomRoot<Element>> + use<> {
         self.children()
             .filter_map(DomRoot::downcast as fn(_) -> _)
             .peekable()
@@ -1196,9 +1217,12 @@ impl Node {
         let host = maybe_shadow_root
             .map(ShadowRoot::Host)
             .map(|host| host.upcast::<Node>().unique_id());
-        let is_shadow_host = self
-            .downcast::<Element>()
-            .is_some_and(Element::is_shadow_host);
+        let is_shadow_host = self.downcast::<Element>().is_some_and(|potential_host| {
+            let Some(root) = potential_host.shadow_root() else {
+                return false;
+            };
+            !root.is_user_agent_widget() || pref!(inspector_show_servo_internal_shadow_roots)
+        });
 
         let num_children = if is_shadow_host {
             // Shadow roots count as children
@@ -1206,6 +1230,12 @@ impl Node {
         } else {
             self.ChildNodes().Length() as usize
         };
+
+        let window = self.owner_window();
+        let display = self
+            .downcast::<Element>()
+            .map(|elem| window.GetComputedStyle(elem, None))
+            .map(|style| style.Display().into());
 
         NodeInfo {
             unique_id: self.unique_id(),
@@ -1222,6 +1252,7 @@ impl Node {
             attrs: self.downcast().map(Element::summarize).unwrap_or(vec![]),
             is_shadow_host,
             shadow_root_mode,
+            display,
         }
     }
 
@@ -1354,7 +1385,11 @@ impl Node {
         // NOTE: This method traverses all descendants of the node and is potentially very
         // expensive. If the node is not a shadow root then assigning slottables to it won't
         // have any effect, so we take a fast path out.
-        if !self.is::<ShadowRoot>() {
+        let Some(shadow_root) = self.downcast::<ShadowRoot>() else {
+            return;
+        };
+
+        if !shadow_root.has_slot_descendants() {
             return;
         }
 
@@ -2306,7 +2341,7 @@ impl Node {
                 .filter_map(DomRoot::downcast::<Element>)
             {
                 // Step 7.7.2, whatwg/dom#833
-                if descendant.get_custom_element_definition().is_some() {
+                if descendant.is_custom() {
                     if descendant.is_connected() {
                         ScriptThread::enqueue_callback_reaction(
                             &descendant,
@@ -2445,10 +2480,15 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
         parent.owner_doc().add_script_and_layout_blocker();
+
+        // Step 2.
         assert!(
             node.GetParentNode()
                 .is_some_and(|node_parent| &*node_parent == parent)
         );
+
+        // Step 3. Run the live range pre-remove steps.
+        // https://dom.spec.whatwg.org/#live-range-pre-remove-steps
         let cached_index = {
             if parent.ranges_is_empty() {
                 None
@@ -2464,20 +2504,25 @@ impl Node {
                 Some(index)
             }
         };
-        // Step 6. pre-removing steps for node iterators
-        // Step 7.
+
+        // TODO: Step 4. Pre-removing steps for node iterators
+
+        // Step 5.
         let old_previous_sibling = node.GetPreviousSibling();
-        // Step 8.
+
+        // Step 6.
         let old_next_sibling = node.GetNextSibling();
-        // Steps 9-10 are handled in unbind_from_tree.
+
+        // Step 7. Remove node from its parent's children.
+        // Step 11-14. Run removing steps and enqueue disconnected custom element reactions for the subtree.
         parent.remove_child(node, cached_index);
 
-        // Step 12. If node is assigned, then run assign slottables for node’s assigned slot.
+        // Step 8. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
             slot.assign_slottables();
         }
 
-        // Step 13. If parent’s root is a shadow root, and parent is a slot whose assigned nodes is the empty list,
+        // Step 9. If parent’s root is a shadow root, and parent is a slot whose assigned nodes is the empty list,
         // then run signal a slot change for parent.
         if parent.is_in_a_shadow_tree() {
             if let Some(slot_element) = parent.downcast::<HTMLSlotElement>() {
@@ -2487,22 +2532,23 @@ impl Node {
             }
         }
 
-        // Step 14. If node has an inclusive descendant that is a slot:
+        // Step 10. If node has an inclusive descendant that is a slot:
         let has_slot_descendant = node
             .traverse_preorder(ShadowIncluding::No)
             .any(|elem| elem.is::<HTMLSlotElement>());
         if has_slot_descendant {
-            // Step 14.1 Run assign slottables for a tree with parent’s root.
+            // Step 10.1 Run assign slottables for a tree with parent’s root.
             parent
                 .GetRootNode(&GetRootNodeOptions::empty())
                 .assign_slottables_for_a_tree();
 
-            // Step 14.2 Run assign slottables for a tree with node.
+            // Step 10.2 Run assign slottables for a tree with node.
             node.assign_slottables_for_a_tree();
         }
 
-        // Step 11. transient registered observers
-        // Step 12.
+        // TODO: Step 15. transient registered observers
+
+        // Step 16.
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(parent).children_changed(&ChildrenMutation::replace(
                 old_previous_sibling.as_deref(),
@@ -2597,6 +2643,7 @@ impl Node {
                     document.status_code(),
                     Default::default(),
                     false,
+                    document.allow_declarative_shadow_roots(),
                     Some(document.insecure_requests_policy()),
                     can_gc,
                 );
@@ -2686,13 +2733,16 @@ impl Node {
                     copy_elem.attach_shadow(
                         IsUserAgentWidget::No,
                         shadow_root.Mode(),
-                        true,
+                        shadow_root.Clonable(),
+                        shadow_root.Serializable(),
+                        shadow_root.DelegatesFocus(),
                         shadow_root.SlotAssignment(),
                         can_gc
                     )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
-                // TODO: Step 7.3 Set copy’s shadow root’s declarative to node’s shadow root’s declarative.
+                // Step 7.3 Set copy’s shadow root’s declarative to node’s shadow root’s declarative.
+                copy_shadow_root.set_declarative(shadow_root.is_declarative());
 
                 // Step 7.4 For each child child of node’s shadow root, in tree order: append the result of
                 // cloning child with document and the clone children flag set, to copy’s shadow root.
@@ -3249,20 +3299,24 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-clonenode>
-    fn CloneNode(&self, deep: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+    fn CloneNode(&self, subtree: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+        // Step 1. If this is a shadow root, then throw a "NotSupportedError" DOMException.
         if self.is::<ShadowRoot>() {
             return Err(Error::NotSupported);
         }
-        Ok(Node::clone(
+
+        // Step 2. Return the result of cloning a node given this with subtree set to subtree.
+        let result = Node::clone(
             self,
             None,
-            if deep {
+            if subtree {
                 CloneChildrenFlag::CloneChildren
             } else {
                 CloneChildrenFlag::DoNotCloneChildren
             },
             can_gc,
-        ))
+        );
+        Ok(result)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-isequalnode>

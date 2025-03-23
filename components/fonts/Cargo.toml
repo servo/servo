@@ -40,11 +40,11 @@ parking_lot = { workspace = true }
 range = { path = "../range" }
 serde = { workspace = true }
 servo_arc = { workspace = true }
-servo_atoms = { workspace = true }
+stylo_atoms = { workspace = true }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
-style = { workspace = true }
+stylo = { workspace = true }
 tracing = { workspace = true, optional = true }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }

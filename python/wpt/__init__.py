@@ -31,8 +31,6 @@ def create_parser():
                         help="Run under chaos mode in rr until a failure is captured")
     parser.add_argument('--pref', default=[], action="append", dest="prefs",
                         help="Pass preferences to servo")
-    parser.add_argument('--legacy-layout', '--layout-2013', '--with-layout-2013', default=False,
-                        action="store_true", help="Use expected results for the legacy layout engine")
     parser.add_argument('--log-servojson', action="append", type=mozlog.commandline.log_file,
                         help="Servo's JSON logger of unexpected results")
     parser.add_argument('--always-succeed', default=False, action="store_true",
@@ -46,18 +44,6 @@ def create_parser():
                         help="Raw structured log messages for unexpected results."
                              " '--log-raw' Must also be passed in order to use this.")
     return parser
-
-
-def update_args_for_legacy_layout(kwargs: dict):
-    def override_metadata_path(url_base, metadata_path):
-        test_root = kwargs["test_paths"][url_base]
-        kwargs["test_paths"][url_base] = wptrunner.wptcommandline.TestRoot(
-            test_root.tests_path,
-            os.path.join(WPT_PATH, *metadata_path)
-        )
-    override_metadata_path("/", ["meta-legacy-layout"])
-    override_metadata_path("/_mozilla/", ["mozilla", "meta-legacy-layout"])
-    override_metadata_path("/_webgl/", ["webgl", "meta-legacy-layout"])
 
 
 def run_tests():

@@ -5,8 +5,8 @@
 use js::jsapi::RuntimeCode;
 use net_traits::request::Referrer;
 use serde::Serialize;
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
+use stylo_atoms::Atom;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
@@ -49,6 +49,7 @@ pub(crate) struct SecurityPolicyViolationReport {
     line_number: u32,
     column_number: u32,
     original_policy: String,
+    #[serde(serialize_with = "serialize_disposition")]
     disposition: SecurityPolicyViolationEventDisposition,
 }
 
@@ -170,11 +171,12 @@ impl Convert<SecurityPolicyViolationEventInit> for SecurityPolicyViolationReport
     }
 }
 
-impl Serialize for SecurityPolicyViolationEventDisposition {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match self {
-            Self::Report => serializer.serialize_str("report"),
-            Self::Enforce => serializer.serialize_str("enforce"),
-        }
+fn serialize_disposition<S: serde::Serializer>(
+    val: &SecurityPolicyViolationEventDisposition,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    match val {
+        SecurityPolicyViolationEventDisposition::Report => serializer.serialize_str("report"),
+        SecurityPolicyViolationEventDisposition::Enforce => serializer.serialize_str("enforce"),
     }
 }

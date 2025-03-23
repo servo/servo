@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
+use std::ops::Deref;
 
 use base::id::{PipelineId, WebViewId};
 use content_security_policy::Destination;
@@ -30,13 +31,29 @@ use crate::script_module::ScriptFetchOptions;
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in html5ever"]
-    inner: HtmlTokenizer<PrefetchSink>,
+    inner: TraceableTokenizer,
+}
+
+struct TraceableTokenizer(HtmlTokenizer<PrefetchSink>);
+
+impl Deref for TraceableTokenizer {
+    type Target = HtmlTokenizer<PrefetchSink>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 #[allow(unsafe_code)]
-unsafe impl CustomTraceable for HtmlTokenizer<PrefetchSink> {
+unsafe impl JSTraceable for TraceableTokenizer {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        self.sink.trace(trc)
+        CustomTraceable::trace(&self.0, trc)
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe impl CustomTraceable for PrefetchSink {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        <Self as JSTraceable>::trace(self, trc)
     }
 }
 
@@ -58,7 +75,7 @@ impl Tokenizer {
             insecure_requests_policy: document.insecure_requests_policy(),
         };
         let options = Default::default();
-        let inner = HtmlTokenizer::new(sink, options);
+        let inner = TraceableTokenizer(HtmlTokenizer::new(sink, options));
         Tokenizer { inner }
     }
 
@@ -91,6 +108,7 @@ struct PrefetchSink {
 }
 
 /// The prefetch tokenizer produces trivial results
+#[derive(Clone, Copy, JSTraceable)]
 struct PrefetchHandle;
 
 impl TokenSink for PrefetchSink {
@@ -109,6 +127,10 @@ impl TokenSink for PrefetchSink {
                         .get_attr(tag, local_name!("integrity"))
                         .map(|attr| String::from(&attr.value))
                         .unwrap_or_default();
+                    let cryptographic_nonce = self
+                        .get_attr(tag, local_name!("nonce"))
+                        .map(|attr| String::from(&attr.value))
+                        .unwrap_or_default();
                     let request = script_fetch_request(
                         self.webview_id,
                         url,
@@ -119,7 +141,7 @@ impl TokenSink for PrefetchSink {
                             referrer: self.referrer.clone(),
                             referrer_policy: self.referrer_policy,
                             integrity_metadata,
-                            cryptographic_nonce: String::new(),
+                            cryptographic_nonce,
                             credentials_mode: CredentialsMode::CredentialsSameOrigin,
                             parser_metadata: ParserMetadata::ParserInserted,
                         },

@@ -2,17 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use style::author_styles::AuthorStyles;
 use style::dom::TElement;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
+use stylo_atoms::Atom;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
@@ -27,8 +32,10 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documentorshadowroot::{DocumentOrShadowRoot, StyleSheetInDocument};
 use crate::dom::element::Element;
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{
     BindContext, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
+    VecPreOrderInsertionHelper,
 };
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::types::EventTarget;
@@ -65,6 +72,22 @@ pub(crate) struct ShadowRoot {
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-clonable>
     clonable: bool,
+
+    /// <https://dom.spec.whatwg.org/#shadowroot-available-to-element-internals>
+    available_to_element_internals: Cell<bool>,
+
+    slots: DomRefCell<HashMap<DOMString, Vec<Dom<HTMLSlotElement>>>>,
+
+    is_user_agent_widget: bool,
+
+    /// <https://dom.spec.whatwg.org/#shadowroot-declarative>
+    declarative: Cell<bool>,
+
+    /// <https://dom.spec.whatwg.org/#shadowroot-serializable>
+    serializable: Cell<bool>,
+
+    /// <https://dom.spec.whatwg.org/#shadowroot-delegates-focus>
+    delegates_focus: Cell<bool>,
 }
 
 impl ShadowRoot {
@@ -75,6 +98,7 @@ impl ShadowRoot {
         mode: ShadowRootMode,
         slot_assignment_mode: SlotAssignmentMode,
         clonable: bool,
+        is_user_agent_widget: IsUserAgentWidget,
     ) -> ShadowRoot {
         let document_fragment = DocumentFragment::new_inherited(document);
         let node = document_fragment.upcast::<Node>();
@@ -95,6 +119,12 @@ impl ShadowRoot {
             mode,
             slot_assignment_mode,
             clonable,
+            available_to_element_internals: Cell::new(false),
+            slots: Default::default(),
+            is_user_agent_widget: is_user_agent_widget == IsUserAgentWidget::Yes,
+            declarative: Cell::new(false),
+            serializable: Cell::new(false),
+            delegates_focus: Cell::new(false),
         }
     }
 
@@ -104,6 +134,7 @@ impl ShadowRoot {
         mode: ShadowRootMode,
         slot_assignment_mode: SlotAssignmentMode,
         clonable: bool,
+        is_user_agent_widget: IsUserAgentWidget,
         can_gc: CanGc,
     ) -> DomRoot<ShadowRoot> {
         reflect_dom_object(
@@ -113,6 +144,7 @@ impl ShadowRoot {
                 mode,
                 slot_assignment_mode,
                 clonable,
+                is_user_agent_widget,
             )),
             document.window(),
             can_gc,
@@ -209,6 +241,73 @@ impl ShadowRoot {
             root,
         );
     }
+
+    pub(crate) fn register_slot(&self, slot: &HTMLSlotElement) {
+        debug!("Registering slot with name={:?}", slot.Name().str());
+
+        let mut slots = self.slots.borrow_mut();
+
+        let slots_with_the_same_name = slots.entry(slot.Name()).or_default();
+
+        // Insert the slot before the first element that comes after it in tree order
+        slots_with_the_same_name.insert_pre_order(slot, self.upcast::<Node>());
+    }
+
+    pub(crate) fn unregister_slot(&self, name: DOMString, slot: &HTMLSlotElement) {
+        debug!("Unregistering slot with name={:?}", name.str());
+
+        let mut slots = self.slots.borrow_mut();
+        let Entry::Occupied(mut entry) = slots.entry(name) else {
+            panic!("slot is not registered");
+        };
+        entry.get_mut().retain(|s| slot != &**s);
+    }
+
+    /// Find the first slot with the given name among this root's descendants in tree order
+    pub(crate) fn slot_for_name(&self, name: &DOMString) -> Option<DomRoot<HTMLSlotElement>> {
+        self.slots
+            .borrow()
+            .get(name)
+            .and_then(|slots| slots.first())
+            .map(|slot| slot.as_rooted())
+    }
+
+    pub(crate) fn has_slot_descendants(&self) -> bool {
+        !self.slots.borrow().is_empty()
+    }
+
+    pub(crate) fn set_available_to_element_internals(&self, value: bool) {
+        self.available_to_element_internals.set(value);
+    }
+
+    /// <https://dom.spec.whatwg.org/#shadowroot-available-to-element-internals>
+    pub(crate) fn is_available_to_element_internals(&self) -> bool {
+        self.available_to_element_internals.get()
+    }
+
+    pub(crate) fn is_user_agent_widget(&self) -> bool {
+        self.is_user_agent_widget
+    }
+
+    pub(crate) fn set_declarative(&self, declarative: bool) {
+        self.declarative.set(declarative);
+    }
+
+    pub(crate) fn is_declarative(&self) -> bool {
+        self.declarative.get()
+    }
+
+    pub(crate) fn shadow_root_mode(&self) -> ShadowRootMode {
+        self.mode
+    }
+
+    pub(crate) fn set_serializable(&self, serializable: bool) {
+        self.serializable.set(serializable);
+    }
+
+    pub(crate) fn set_delegates_focus(&self, delegates_focus: bool) {
+        self.delegates_focus.set(delegates_focus);
+    }
 }
 
 impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
@@ -274,9 +373,19 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         self.mode
     }
 
+    /// <https://dom.spec.whatwg.org/#dom-delegates-focus>
+    fn DelegatesFocus(&self) -> bool {
+        self.delegates_focus.get()
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-clonable>
     fn Clonable(&self) -> bool {
         self.clonable
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-serializable>
+    fn Serializable(&self) -> bool {
+        self.serializable.get()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-host>

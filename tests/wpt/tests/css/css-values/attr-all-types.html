@@ -91,7 +91,8 @@
     }
 
     test_valid_attr('content', 'attr(data-foo)', 'abc', '"abc"');
-    test_valid_attr('content', 'attr(data-foo string)', 'abc', '"abc"');
+    test_invalid_attr('content', 'attr(data-foo string)', 'abc');
+    test_valid_attr('content', 'attr(data-foo raw-string)', 'abc', '"abc"');
     test_valid_attr('content', 'attr(data-foo,)', 'abc', '"abc"');
 
     test_valid_attr('content', 'attr(data-foo type(<string>))', '"abc"', '"abc"');

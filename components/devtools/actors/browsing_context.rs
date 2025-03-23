@@ -10,7 +10,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::net::TcpStream;
 
-use base::id::{BrowsingContextId, PipelineId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, WantsLiveNotifications};
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use ipc_channel::ipc::{self, IpcSender};
@@ -84,6 +84,9 @@ pub struct BrowsingContextActorMsg {
     actor: String,
     title: String,
     url: String,
+    /// This correspond to webview_id
+    #[serde(rename = "browserId")]
+    browser_id: u32,
     #[serde(rename = "outerWindowID")]
     outer_window_id: u32,
     #[serde(rename = "browsingContextID")]
@@ -121,6 +124,8 @@ pub(crate) struct BrowsingContextActor {
     pub name: String,
     pub title: RefCell<String>,
     pub url: RefCell<String>,
+    /// This correspond to webview_id
+    pub browser_id: WebViewId,
     pub active_pipeline: Cell<PipelineId>,
     pub browsing_context_id: BrowsingContextId,
     pub accessibility: String,
@@ -173,14 +178,19 @@ impl Actor for BrowsingContextActor {
 impl BrowsingContextActor {
     pub(crate) fn new(
         console: String,
-        id: BrowsingContextId,
+        browser_id: WebViewId,
+        browsing_context_id: BrowsingContextId,
         page_info: DevtoolsPageInfo,
-        pipeline: PipelineId,
+        pipeline_id: PipelineId,
         script_sender: IpcSender<DevtoolScriptControlMsg>,
         actors: &mut ActorRegistry,
     ) -> BrowsingContextActor {
         let name = actors.new_name("target");
-        let DevtoolsPageInfo { title, url } = page_info;
+        let DevtoolsPageInfo {
+            title,
+            url,
+            is_top_level_global,
+        } = page_info;
 
         let accessibility = AccessibilityActor::new(actors.new_name("accessibility"));
 
@@ -205,7 +215,7 @@ impl BrowsingContextActor {
 
         let style_sheets = StyleSheetsActor::new(actors.new_name("stylesheets"));
 
-        let tabdesc = TabDescriptorActor::new(actors, name.clone());
+        let tabdesc = TabDescriptorActor::new(actors, name.clone(), is_top_level_global);
 
         let thread = ThreadActor::new(actors.new_name("thread"));
 
@@ -220,8 +230,9 @@ impl BrowsingContextActor {
             script_chan: script_sender,
             title: RefCell::new(title),
             url: RefCell::new(url.into_string()),
-            active_pipeline: Cell::new(pipeline),
-            browsing_context_id: id,
+            active_pipeline: Cell::new(pipeline_id),
+            browser_id,
+            browsing_context_id,
             accessibility: accessibility.name(),
             console,
             css_properties: css_properties.name(),
@@ -259,6 +270,7 @@ impl BrowsingContextActor {
             },
             title: self.title.borrow().clone(),
             url: self.url.borrow().clone(),
+            browser_id: self.browser_id.0.index.0.get(),
             //FIXME: shouldn't ignore pipeline namespace field
             browsing_context_id: self.browsing_context_id.index.0.get(),
             //FIXME: shouldn't ignore pipeline namespace field
@@ -304,8 +316,8 @@ impl BrowsingContextActor {
         }
     }
 
-    pub(crate) fn title_changed(&self, pipeline: PipelineId, title: String) {
-        if pipeline != self.active_pipeline.get() {
+    pub(crate) fn title_changed(&self, pipeline_id: PipelineId, title: String) {
+        if pipeline_id != self.active_pipeline.get() {
             return;
         }
         *self.title.borrow_mut() = title;

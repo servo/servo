@@ -19,6 +19,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::WebViewId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
+use constellation_traits::{AnimationTickType, CompositorHitTestResult};
 use content_security_policy::{self as csp, CspList, PolicyDisposition};
 use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
@@ -35,11 +36,8 @@ use html5ever::{LocalName, Namespace, QualName, local_name, namespace_url, ns};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue};
-use keyboard_types::{Code, Key, KeyState};
-use metrics::{
-    InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
-    ProgressiveWebMetric,
-};
+use keyboard_types::{Code, Key, KeyState, Modifiers};
+use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use mime::{self, Mime};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -51,13 +49,12 @@ use net_traits::{FetchResponseListener, IpcSend, ReferrerPolicy};
 use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
-use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
+use profile_traits::time::TimerMetadataFrameType;
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{
-    AnimationState, AnimationTickType, ConstellationInputEvent, DocumentActivity, ScriptMsg,
+    AnimationState, ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType, ScriptMsg,
 };
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use servo_config::pref;
 use servo_media::{ClientContextId, ServoMedia};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -69,15 +66,16 @@ use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
+use stylo_atoms::Atom;
 use url::Host;
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
-use webrender_traits::CompositorHitTestResult;
 
 use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use super::clipboardevent::ClipboardEventType;
+use super::performancepainttiming::PerformancePaintTiming;
 use crate::DomTypes;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
@@ -159,6 +157,7 @@ use crate::dom::htmlmetaelement::RefreshRedirectDue;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmltitleelement::HTMLTitleElement;
+use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
@@ -345,7 +344,7 @@ pub(crate) struct Document {
     animation_frame_ident: Cell<u32>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks>
     /// List of animation frame callbacks
-    animation_frame_list: DomRefCell<Vec<(u32, Option<AnimationFrameCallback>)>>,
+    animation_frame_list: DomRefCell<VecDeque<(u32, Option<AnimationFrameCallback>)>>,
     /// Whether we're in the process of running animation callbacks.
     ///
     /// Tracking this is not necessary for correctness. Instead, it is an optimization to avoid
@@ -431,7 +430,7 @@ pub(crate) struct Document {
     /// See <https://html.spec.whatwg.org/multipage/#form-owner>
     form_id_listener_map: DomRefCell<HashMapTracedValues<Atom, HashSet<Dom<Element>>>>,
     #[no_trace]
-    interactive_time: DomRefCell<InteractiveMetrics>,
+    interactive_time: DomRefCell<ProgressiveWebMetrics>,
     #[no_trace]
     tti_window: DomRefCell<InteractiveWindow>,
     /// RAII canceller for Fetch
@@ -513,11 +512,28 @@ pub(crate) struct Document {
     status_code: Option<u16>,
     /// <https://html.spec.whatwg.org/multipage/#is-initial-about:blank>
     is_initial_about_blank: Cell<bool>,
+    /// <https://dom.spec.whatwg.org/#document-allow-declarative-shadow-roots>
+    allow_declarative_shadow_roots: Cell<bool>,
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
     #[no_trace]
     inherited_insecure_requests_policy: Cell<Option<InsecureRequestsPolicy>>,
     /// <https://w3c.github.io/IntersectionObserver/#document-intersectionobservertaskqueued>
     intersection_observer_task_queued: Cell<bool>,
+    /// Active intersection observers that should be processed by this document in
+    /// the update intersection observation steps.
+    /// <https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps>
+    /// > Let observer list be a list of all IntersectionObservers whose root is in the DOM tree of document.
+    /// > For the top-level browsing context, this includes implicit root observers.
+    ///
+    /// Details of which document that should process an observers is discussed further at
+    /// <https://github.com/w3c/IntersectionObserver/issues/525>.
+    ///
+    /// The lifetime of an intersection observer is specified at
+    /// <https://github.com/w3c/IntersectionObserver/issues/525>.
+    intersection_observers: DomRefCell<Vec<Dom<IntersectionObserver>>>,
+    /// The active keyboard modifiers for the WebView. This is updated when receiving any input event.
+    #[no_trace]
+    active_keyboard_modifiers: Cell<Modifiers>,
 }
 
 #[allow(non_snake_case)]
@@ -1282,14 +1298,9 @@ impl Document {
             return;
         };
 
-        let mouse_event_type_string = match event.action {
-            MouseButtonAction::Click => "click".to_owned(),
-            MouseButtonAction::Up => "mouseup".to_owned(),
-            MouseButtonAction::Down => "mousedown".to_owned(),
-        };
         debug!(
-            "{}: at {:?}",
-            mouse_event_type_string, hit_test_result.point_in_viewport
+            "{:?}: at {:?}",
+            event.action, hit_test_result.point_in_viewport
         );
 
         let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
@@ -1302,7 +1313,7 @@ impl Document {
         };
 
         let node = el.upcast::<Node>();
-        debug!("{} on {:?}", mouse_event_type_string, node.debug_str());
+        debug!("{:?} on {:?}", event.action, node.debug_str());
         // Prevent click event if form control element is disabled.
         if let MouseButtonAction::Click = event.action {
             // The click event is filtered by the disabled state.
@@ -1314,35 +1325,14 @@ impl Document {
             self.request_focus(Some(&*el), FocusType::Element, can_gc);
         }
 
-        // https://w3c.github.io/uievents/#event-type-click
-        let client_x = hit_test_result.point_in_viewport.x as i32;
-        let client_y = hit_test_result.point_in_viewport.y as i32;
-        let click_count = 1;
-        let dom_event = MouseEvent::new(
-            &self.window,
-            DOMString::from(mouse_event_type_string),
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
-            Some(&self.window),
-            click_count,
-            client_x,
-            client_y,
-            client_x,
-            client_y, // TODO: Get real screen coordinates?
-            false,
-            false,
-            false,
-            false,
-            event.button.into(),
+        let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
+            event,
             pressed_mouse_buttons,
-            None,
-            Some(hit_test_result.point_relative_to_item),
+            &self.window,
+            &hit_test_result,
             can_gc,
-        );
-        let dom_event = dom_event.upcast::<Event>();
+        ));
 
-        // https://w3c.github.io/uievents/#trusted-events
-        dom_event.set_trusted(true);
         // https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
         let activatable = el.as_maybe_activatable();
         match event.action {
@@ -2337,7 +2327,7 @@ impl Document {
         self.animation_frame_ident.set(ident);
         self.animation_frame_list
             .borrow_mut()
-            .push((ident, Some(callback)));
+            .push_back((ident, Some(callback)));
 
         // If we are running 'fake' animation frames, we unconditionally
         // set up a one-shot timer for script to execute the rAF callbacks.
@@ -2380,11 +2370,6 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
     pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
         let _realm = enter_realm(self);
-        rooted_vec!(let mut animation_frame_list);
-        mem::swap(
-            &mut *animation_frame_list,
-            &mut *self.animation_frame_list.borrow_mut(),
-        );
 
         self.pending_animation_ticks
             .borrow_mut()
@@ -2394,8 +2379,10 @@ impl Document {
         let was_faking_animation_frames = self.is_faking_animation_frames();
         let timing = self.global().performance().Now();
 
-        for (_, callback) in animation_frame_list.drain(..) {
-            if let Some(callback) = callback {
+        let num_callbacks = self.animation_frame_list.borrow().len();
+        for _ in 0..num_callbacks {
+            let (_, maybe_callback) = self.animation_frame_list.borrow_mut().pop_front().unwrap();
+            if let Some(callback) = maybe_callback {
                 callback.call(self, *timing, can_gc);
             }
         }
@@ -2440,16 +2427,7 @@ impl Document {
         let just_crossed_spurious_animation_threshold =
             !was_faking_animation_frames && self.is_faking_animation_frames();
         if is_empty || just_crossed_spurious_animation_threshold {
-            if is_empty {
-                // If the current animation frame list in the DOM instance is empty,
-                // we can reuse the original `Vec<T>` that we put on the stack to
-                // avoid allocating a new one next time an animation callback
-                // is queued.
-                mem::swap(
-                    &mut *self.animation_frame_list.borrow_mut(),
-                    &mut *animation_frame_list,
-                );
-            } else if just_crossed_spurious_animation_threshold {
+            if !is_empty {
                 // We just realized that we need to stop requesting compositor's animation ticks
                 // due to spurious animation frames, but we still have rAF callbacks queued. Since
                 // `is_faking_animation_frames` would not have been true at the point where these
@@ -3033,7 +3011,7 @@ impl Document {
         // html parsing has finished - set dom content loaded
         self.interactive_time
             .borrow()
-            .maybe_set_tti(self, InteractiveFlag::DOMContentLoaded);
+            .maybe_set_tti(InteractiveFlag::DOMContentLoaded);
 
         // Step 4.2.
         // TODO: client message queue.
@@ -3118,7 +3096,7 @@ impl Document {
             .set_navigation_start(navigation_start);
     }
 
-    pub(crate) fn get_interactive_metrics(&self) -> Ref<InteractiveMetrics> {
+    pub(crate) fn get_interactive_metrics(&self) -> Ref<ProgressiveWebMetrics> {
         self.interactive_time.borrow()
     }
 
@@ -3172,10 +3150,10 @@ impl Document {
             return;
         }
         if self.tti_window.borrow().needs_check() {
-            self.get_interactive_metrics().maybe_set_tti(
-                self,
-                InteractiveFlag::TimeToInteractive(self.tti_window.borrow().get_start()),
-            );
+            self.get_interactive_metrics()
+                .maybe_set_tti(InteractiveFlag::TimeToInteractive(
+                    self.tti_window.borrow().get_start(),
+                ));
         }
     }
 
@@ -3457,6 +3435,135 @@ impl Document {
         // implement the Permissions Policy specification.
         true
     }
+
+    /// Add an [`IntersectionObserver`] to the [`Document`], to be processed in the [`Document`]'s event loop.
+    /// <https://github.com/w3c/IntersectionObserver/issues/525>
+    pub(crate) fn add_intersection_observer(&self, intersection_observer: &IntersectionObserver) {
+        self.intersection_observers
+            .borrow_mut()
+            .push(Dom::from_ref(intersection_observer));
+    }
+
+    /// Remove an [`IntersectionObserver`] from [`Document`], ommiting it from the event loop.
+    /// An observer without any target, ideally should be removed to be conformant with
+    /// <https://w3c.github.io/IntersectionObserver/#lifetime>.
+    pub(crate) fn remove_intersection_observer(
+        &self,
+        intersection_observer: &IntersectionObserver,
+    ) {
+        self.intersection_observers
+            .borrow_mut()
+            .retain(|observer| *observer != intersection_observer)
+    }
+
+    /// <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
+    pub(crate) fn update_intersection_observer_steps(
+        &self,
+        time: CrossProcessInstant,
+        can_gc: CanGc,
+    ) {
+        // Step 1-2
+        for intersection_observer in &*self.intersection_observers.borrow() {
+            self.update_single_intersection_observer_steps(intersection_observer, time, can_gc);
+        }
+    }
+
+    /// Step 2.1-2.2 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
+    fn update_single_intersection_observer_steps(
+        &self,
+        intersection_observer: &IntersectionObserver,
+        time: CrossProcessInstant,
+        can_gc: CanGc,
+    ) {
+        // Step 1
+        // > Let rootBounds be observer’s root intersection rectangle.
+        let root_bounds = intersection_observer.root_intersection_rectangle(self);
+
+        // Step 2
+        // > For each target in observer’s internal [[ObservationTargets]] slot,
+        // > processed in the same order that observe() was called on each target:
+        intersection_observer.update_intersection_observations_steps(
+            self,
+            time,
+            root_bounds,
+            can_gc,
+        );
+    }
+
+    /// <https://w3c.github.io/IntersectionObserver/#notify-intersection-observers-algo>
+    pub(crate) fn notify_intersection_observers(&self, can_gc: CanGc) {
+        // Step 1
+        // > Set document’s IntersectionObserverTaskQueued flag to false.
+        self.intersection_observer_task_queued.set(false);
+
+        // Step 2
+        // > Let notify list be a list of all IntersectionObservers whose root is in the DOM tree of document.
+        // We will copy the observers because callback could modify the current list.
+        // It will rooted to prevent GC in the iteration.
+        rooted_vec!(let notify_list <- self.intersection_observers.clone().take().into_iter());
+
+        // Step 3
+        // > For each IntersectionObserver object observer in notify list, run these steps:
+        for intersection_observer in notify_list.iter() {
+            // Step 3.1-3.5
+            intersection_observer.invoke_callback_if_necessary(can_gc);
+        }
+    }
+
+    /// <https://w3c.github.io/IntersectionObserver/#queue-intersection-observer-task>
+    pub(crate) fn queue_an_intersection_observer_task(&self) {
+        // Step 1
+        // > If document’s IntersectionObserverTaskQueued flag is set to true, return.
+        if self.intersection_observer_task_queued.get() {
+            return;
+        }
+
+        // Step 2
+        // > Set document’s IntersectionObserverTaskQueued flag to true.
+        self.intersection_observer_task_queued.set(true);
+
+        // Step 3
+        // > Queue a task on the IntersectionObserver task source associated with
+        // > the document's event loop to notify intersection observers.
+        let document = Trusted::new(self);
+        self.owner_global()
+            .task_manager()
+            .intersection_observer_task_source()
+            .queue(task!(notify_intersection_observers: move || {
+                document.root().notify_intersection_observers(CanGc::note());
+            }));
+    }
+
+    pub(crate) fn handle_paint_metric(
+        &self,
+        metric_type: ProgressiveWebMetricType,
+        metric_value: CrossProcessInstant,
+        first_reflow: bool,
+        can_gc: CanGc,
+    ) {
+        let metrics = self.interactive_time.borrow();
+        match metric_type {
+            ProgressiveWebMetricType::FirstPaint => {
+                metrics.set_first_paint(metric_value, first_reflow)
+            },
+            ProgressiveWebMetricType::FirstContentfulPaint => {
+                metrics.set_first_contentful_paint(metric_value, first_reflow)
+            },
+            ProgressiveWebMetricType::TimeToInteractive => {
+                unreachable!("Unexpected non-paint metric.")
+            },
+        }
+
+        let entry = PerformancePaintTiming::new(
+            self.window.as_global_scope(),
+            metric_type,
+            metric_value,
+            can_gc,
+        );
+        self.window
+            .Performance()
+            .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
+    }
 }
 
 fn is_character_value_key(key: &Key) -> bool {
@@ -3602,6 +3709,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
@@ -3612,8 +3720,15 @@ impl Document {
             (DocumentReadyState::Complete, true)
         };
 
-        let interactive_time =
-            InteractiveMetrics::new(window.time_profiler_chan().clone(), url.clone());
+        let frame_type = match window.is_top_level() {
+            true => TimerMetadataFrameType::RootWindow,
+            false => TimerMetadataFrameType::IFrame,
+        };
+        let interactive_time = ProgressiveWebMetrics::new(
+            window.time_profiler_chan().clone(),
+            url.clone(),
+            frame_type,
+        );
 
         let content_type = content_type.unwrap_or_else(|| {
             match is_html_document {
@@ -3686,7 +3801,7 @@ impl Document {
             asap_scripts_set: Default::default(),
             scripting_enabled: has_browsing_context,
             animation_frame_ident: Cell::new(0),
-            animation_frame_list: DomRefCell::new(vec![]),
+            animation_frame_list: DomRefCell::new(VecDeque::new()),
             running_animation_callbacks: Cell::new(false),
             loader: DomRefCell::new(doc_loader),
             current_parser: Default::default(),
@@ -3752,8 +3867,11 @@ impl Document {
             visibility_state: Cell::new(DocumentVisibilityState::Hidden),
             status_code,
             is_initial_about_blank: Cell::new(is_initial_about_blank),
+            allow_declarative_shadow_roots: Cell::new(allow_declarative_shadow_roots),
             inherited_insecure_requests_policy: Cell::new(inherited_insecure_requests_policy),
             intersection_observer_task_queued: Cell::new(false),
+            intersection_observers: Default::default(),
+            active_keyboard_modifiers: Cell::new(Modifiers::empty()),
         }
     }
 
@@ -3772,6 +3890,26 @@ impl Document {
         self.inherited_insecure_requests_policy
             .get()
             .unwrap_or(InsecureRequestsPolicy::DoNotUpgrade)
+    }
+
+    /// Update the active keyboard modifiers for this [`Document`] while handling events.
+    pub(crate) fn update_active_keyboard_modifiers(&self, modifiers: Modifiers) {
+        self.active_keyboard_modifiers.set(modifiers);
+    }
+
+    pub(crate) fn alternate_action_keyboard_modifier_active(&self) -> bool {
+        #[cfg(target_os = "macos")]
+        {
+            self.active_keyboard_modifiers
+                .get()
+                .contains(Modifiers::META)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            self.active_keyboard_modifiers
+                .get()
+                .contains(Modifiers::CONTROL)
+        }
     }
 
     /// Note a pending compositor event, to be processed at the next `update_the_rendering` task.
@@ -3886,6 +4024,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
@@ -3905,6 +4044,7 @@ impl Document {
             status_code,
             canceller,
             is_initial_about_blank,
+            allow_declarative_shadow_roots,
             inherited_insecure_requests_policy,
             can_gc,
         )
@@ -3927,6 +4067,7 @@ impl Document {
         status_code: Option<u16>,
         canceller: FetchCanceller,
         is_initial_about_blank: bool,
+        allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
@@ -3946,6 +4087,7 @@ impl Document {
                 status_code,
                 canceller,
                 is_initial_about_blank,
+                allow_declarative_shadow_roots,
                 inherited_insecure_requests_policy,
             )),
             window,
@@ -4078,6 +4220,7 @@ impl Document {
                     None,
                     Default::default(),
                     false,
+                    self.allow_declarative_shadow_roots(),
                     Some(self.insecure_requests_policy()),
                     can_gc,
                 );
@@ -4610,15 +4753,14 @@ impl Document {
     pub(crate) fn is_initial_about_blank(&self) -> bool {
         self.is_initial_about_blank.get()
     }
-}
 
-impl ProfilerMetadataFactory for Document {
-    fn new_metadata(&self) -> Option<TimerMetadata> {
-        Some(TimerMetadata {
-            url: String::from(self.url().as_str()),
-            iframe: TimerMetadataFrameType::RootWindow,
-            incremental: TimerMetadataReflowType::Incremental,
-        })
+    /// <https://dom.spec.whatwg.org/#document-allow-declarative-shadow-roots>
+    pub fn allow_declarative_shadow_roots(&self) -> bool {
+        self.allow_declarative_shadow_roots.get()
+    }
+
+    pub fn set_allow_declarative_shadow_roots(&self, value: bool) {
+        self.allow_declarative_shadow_roots.set(value)
     }
 }
 
@@ -4648,6 +4790,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             None,
             Default::default(),
             false,
+            doc.allow_declarative_shadow_roots(),
             Some(doc.insecure_requests_policy()),
             can_gc,
         ))

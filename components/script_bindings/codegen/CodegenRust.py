@@ -2287,7 +2287,7 @@ class CGImports(CGWrapper):
                     extras += [descriptor.path, descriptor.bindingPath]
                     parentName = descriptor.getParentName()
             elif t.isType() and t.isRecord():
-                extras += ['crate::dom::bindings::record::Record']
+                extras += ['script_bindings::record::Record']
             elif isinstance(t, IDLPromiseType):
                 extras += ['crate::dom::promise::Promise']
             else:
@@ -2643,7 +2643,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::import::base::*',
         'crate::dom::bindings::codegen::DomTypes::DomTypes',
         'crate::dom::bindings::conversions::windowproxy_from_handlevalue',
-        'crate::dom::bindings::record::Record',
+        'script_bindings::record::Record',
         'crate::dom::types::*',
         'crate::dom::windowproxy::WindowProxy',
         'js::typedarray',
@@ -5162,7 +5162,7 @@ class CGUnionStruct(CGThing):
         return False
 
     def manualImplClone(self, templateVars):
-        arms = [f"            {self.type}::{v['name']}(ref inner) => "
+        arms = [f"            {self.type}::{v['name']}(inner) => "
                 f"{self.type}::{v['name']}(inner.clone()),"
                 for (v, _) in templateVars]
         arms = "\n".join(arms)
@@ -6394,13 +6394,13 @@ let cx = SafeJSContext::from_ptr(cx);
 {maybeCrossOriginGet}
 
 let proxy_lt = Handle::from_raw(proxy);
-let vp_lt = MutableHandle::from_raw(vp);
+let mut vp_lt = MutableHandle::from_raw(vp);
 let id_lt = Handle::from_raw(id);
 let receiver_lt = Handle::from_raw(receiver);
 
 {getIndexedOrExpando}
 let mut found = false;
-if !get_property_on_prototype(*cx, proxy_lt, receiver_lt, id_lt, &mut found, vp_lt) {{
+if !get_property_on_prototype(*cx, proxy_lt, receiver_lt, id_lt, &mut found, vp_lt.reborrow()) {{
     return false;
 }}
 
@@ -7285,7 +7285,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         memberInserts = [memberInsert(m) for m in self.memberInfo]
 
         if d.parent:
-            memberInserts = [CGGeneric("self.parent.to_jsobject(cx, obj);\n")] + memberInserts
+            memberInserts = [CGGeneric("self.parent.to_jsobject(cx, obj.reborrow());\n")] + memberInserts
 
         selfName = self.makeClassName(d)
         if self.membersNeedTracing():
@@ -7334,6 +7334,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "}\n"
             "\n"
             f"impl{self.generic} {selfName}{self.genericSuffix} {{\n"
+            "    #[allow(clippy::wrong_self_convention)]\n"
             "    pub(crate) unsafe fn to_jsobject(&self, cx: *mut JSContext, mut obj: MutableHandleObject) {\n"
             f"{CGIndenter(CGList(memberInserts), indentLevel=8).define()}    }}\n"
             "}\n"

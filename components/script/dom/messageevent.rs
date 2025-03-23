@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -302,7 +302,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-ports>
-    fn Ports(&self, cx: JSContext, retval: MutableHandleValue) {
+    fn Ports(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         self.frozen_ports.get_or_init(
             || {
                 self.ports
@@ -313,6 +313,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
             },
             cx,
             retval,
+            can_gc,
         );
     }
 

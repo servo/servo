@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use compositing_traits::ConstellationMsg;
+use constellation_traits::ConstellationMsg;
 use crossbeam_channel::{SendError, Sender};
 use log::warn;
 

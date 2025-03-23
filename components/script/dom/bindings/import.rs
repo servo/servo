@@ -99,6 +99,7 @@ pub(crate) mod module {
         JSCLASS_RESERVED_SLOTS_MASK, jsapi, typedarray,
     };
     pub(crate) use script_bindings::constant::{ConstantSpec, ConstantVal};
+    pub(crate) use script_bindings::record::Record;
     pub(crate) use servo_config::pref;
 
     pub(crate) use super::base::*;
@@ -144,7 +145,6 @@ pub(crate) mod module {
     pub(crate) use crate::dom::bindings::proxyhandler::{
         ensure_expando_object, get_expando_object, set_property_descriptor,
     };
-    pub(crate) use crate::dom::bindings::record::Record;
     pub(crate) use crate::dom::bindings::reflector::{
         DomObjectIteratorWrap, DomObjectWrap, Reflector,
     };

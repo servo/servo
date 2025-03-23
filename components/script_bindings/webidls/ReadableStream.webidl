@@ -23,8 +23,8 @@ interface _ReadableStream {
   // [Throws]
   // ReadableStream pipeThrough(ReadableWritablePair transform, optional StreamPipeOptions options = {});
 
-  // [NewObject]
-  // Promise<undefined> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
+  [NewObject]
+  Promise<undefined> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
 
   [Throws]
   sequence<ReadableStream> tee();

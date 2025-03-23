@@ -38,9 +38,4 @@ impl EventLoop {
     pub fn send(&self, msg: ScriptThreadMessage) -> Result<(), Error> {
         self.script_chan.send(msg)
     }
-
-    /// The underlying channel to the script thread.
-    pub fn sender(&self) -> IpcSender<ScriptThreadMessage> {
-        self.script_chan.clone()
-    }
 }

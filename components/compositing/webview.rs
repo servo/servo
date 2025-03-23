@@ -8,7 +8,8 @@ use std::collections::hash_map::{Entry, Keys, Values, ValuesMut};
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
-use compositing_traits::{ConstellationMsg, SendableFrameTree};
+use compositing_traits::SendableFrameTree;
+use constellation_traits::{CompositorHitTestResult, ConstellationMsg, ScrollState};
 use embedder_traits::{
     InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, ShutdownState,
     TouchEvent, TouchEventType, TouchId,
@@ -16,13 +17,12 @@ use embedder_traits::{
 use euclid::{Point2D, Scale, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
-use script_traits::{AnimationState, ScriptThreadMessage, ScrollState, TouchEventResult};
+use script_traits::{AnimationState, TouchEventResult};
 use webrender::Transaction;
 use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{
     ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
-use webrender_traits::CompositorHitTestResult;
 
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};
@@ -158,10 +158,14 @@ impl WebView {
             }
         });
 
-        if let Some(pipeline) = details.pipeline.as_ref() {
-            let message = ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states);
-            let _ = pipeline.script_chan.send(message);
-        }
+        let _ = self
+            .global
+            .borrow()
+            .constellation_sender
+            .send(ConstellationMsg::SetScrollStates(
+                pipeline_id,
+                scroll_states,
+            ));
     }
 
     pub(crate) fn set_frame_tree_on_pipeline_details(
@@ -252,12 +256,6 @@ impl WebView {
         }
     }
 
-    pub(crate) fn add_pending_paint_metric(&mut self, pipeline_id: PipelineId, epoch: base::Epoch) {
-        self.ensure_pipeline_details(pipeline_id)
-            .pending_paint_metrics
-            .push(epoch);
-    }
-
     /// On a Window refresh tick (e.g. vsync)
     pub fn on_vsync(&mut self) {
         if let Some(fling_action) = self.touch_handler.on_vsync() {
@@ -285,7 +283,7 @@ impl WebView {
             return;
         };
 
-        self.global.borrow_mut().update_cursor(&result);
+        self.global.borrow_mut().update_cursor(point, &result);
 
         if let Err(error) =
             self.global
@@ -943,14 +941,13 @@ mod test {
     use std::num::NonZeroU32;
 
     use base::id::{
-        BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId,
-        TopLevelBrowsingContextId,
+        BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId, WebViewId,
     };
 
     use crate::webview::{UnknownWebView, WebViewAlreadyExists, WebViewManager};
 
-    fn top_level_id(namespace_id: u32, index: u32) -> TopLevelBrowsingContextId {
-        TopLevelBrowsingContextId(BrowsingContextId {
+    fn top_level_id(namespace_id: u32, index: u32) -> WebViewId {
+        WebViewId(BrowsingContextId {
             namespace_id: PipelineNamespaceId(namespace_id),
             index: BrowsingContextIndex(NonZeroU32::new(index).unwrap()),
         })
@@ -958,7 +955,7 @@ mod test {
 
     fn webviews_sorted<WebView: Clone>(
         webviews: &WebViewManager<WebView>,
-    ) -> Vec<(TopLevelBrowsingContextId, WebView)> {
+    ) -> Vec<(WebViewId, WebView)> {
         let mut keys = webviews.webviews.keys().collect::<Vec<_>>();
         keys.sort();
         keys.iter()
@@ -972,9 +969,9 @@ mod test {
         let mut webviews = WebViewManager::default();
 
         // add() adds the webview to the map, but not the painting order.
-        assert!(webviews.add(TopLevelBrowsingContextId::new(), 'a').is_ok());
-        assert!(webviews.add(TopLevelBrowsingContextId::new(), 'b').is_ok());
-        assert!(webviews.add(TopLevelBrowsingContextId::new(), 'c').is_ok());
+        assert!(webviews.add(WebViewId::new(), 'a').is_ok());
+        assert!(webviews.add(WebViewId::new(), 'b').is_ok());
+        assert!(webviews.add(WebViewId::new(), 'c').is_ok());
         assert_eq!(
             webviews_sorted(&webviews),
             vec![

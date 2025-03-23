@@ -4,7 +4,6 @@
 
 //! Common interfaces for Canvas Contexts
 
-use canvas_traits::canvas::CanvasId;
 use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSharedMemory;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
@@ -20,7 +19,6 @@ pub(crate) trait LayoutCanvasRenderingContextHelpers {
 
 pub(crate) trait LayoutHTMLCanvasElementHelpers {
     fn data(self) -> HTMLCanvasData;
-    fn get_canvas_id_for_layout(self) -> CanvasId;
 }
 
 pub(crate) trait CanvasContext {
@@ -66,8 +64,13 @@ pub(crate) trait CanvasContext {
     }
 }
 
-impl HTMLCanvasElementOrOffscreenCanvas {
-    pub(crate) fn size(&self) -> Size2D<u64> {
+pub(crate) trait CanvasHelpers {
+    fn size(&self) -> Size2D<u64>;
+    fn canvas(&self) -> Option<&HTMLCanvasElement>;
+}
+
+impl CanvasHelpers for HTMLCanvasElementOrOffscreenCanvas {
+    fn size(&self) -> Size2D<u64> {
         match self {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
                 canvas.get_size().cast()
@@ -76,7 +79,7 @@ impl HTMLCanvasElementOrOffscreenCanvas {
         }
     }
 
-    pub(crate) fn canvas(&self) -> Option<&HTMLCanvasElement> {
+    fn canvas(&self) -> Option<&HTMLCanvasElement> {
         match self {
             HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => Some(canvas),
             HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => canvas.placeholder(),

@@ -22,6 +22,15 @@ async def test_device_pixel_ratio_only(bidi_session, inline, new_tab, device_pix
     assert await get_device_pixel_ratio(bidi_session, new_tab) == device_pixel_ratio
     assert await get_viewport_dimensions(bidi_session, new_tab) == viewport
 
+    url = inline("<div>foo</div>", domain="alt")
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url, wait="complete"
+    )
+
+    # Make sure that overrides are applied after cross-origin navigation.
+    assert await get_device_pixel_ratio(bidi_session, new_tab) == device_pixel_ratio
+    assert await get_viewport_dimensions(bidi_session, new_tab) == viewport
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("device_pixel_ratio", [0.5, 2])

@@ -4,6 +4,7 @@
 
 use std::cell::UnsafeCell;
 use std::cmp::{Ordering, PartialOrd};
+use std::iter;
 
 use dom_struct::dom_struct;
 use js::jsapi::JSTracer;
@@ -29,9 +30,11 @@ use crate::dom::bindings::weakref::{WeakRef, WeakRefVec};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::domrect::DOMRect;
+use crate::dom::domrectlist::DOMRectList;
 use crate::dom::element::Element;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::node::{Node, ShadowIncluding, UnbindContext};
+use crate::dom::node::{Node, NodeTraits, ShadowIncluding, UnbindContext};
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 use crate::dom::window::Window;
@@ -323,6 +326,23 @@ impl Range {
 
     pub(crate) fn collapsed(&self) -> bool {
         self.abstract_range().Collapsed()
+    }
+
+    fn client_rects(
+        &self,
+        can_gc: CanGc,
+    ) -> impl Iterator<Item = euclid::Rect<app_units::Au, euclid::UnknownUnit>> {
+        // FIXME: For text nodes that are only partially selected, this should return the client
+        // rect of the selected part, not the whole text node.
+        let start = self.start_container();
+        let end = self.end_container();
+        let document = start.owner_doc();
+        let end_clone = end.clone();
+        start
+            .following_nodes(document.upcast::<Node>())
+            .take_while(move |node| node != &end)
+            .chain(iter::once(end_clone))
+            .flat_map(move |node| node.content_boxes(can_gc))
     }
 }
 
@@ -1104,6 +1124,51 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
         // Step 5.
         Ok(fragment_node)
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#dom-range-getclientrects>
+    fn GetClientRects(&self, can_gc: CanGc) -> DomRoot<DOMRectList> {
+        let start = self.start_container();
+        let window = start.owner_window();
+
+        let client_rects = self
+            .client_rects(can_gc)
+            .map(|rect| {
+                DOMRect::new(
+                    window.upcast(),
+                    rect.origin.x.to_f64_px(),
+                    rect.origin.y.to_f64_px(),
+                    rect.size.width.to_f64_px(),
+                    rect.size.height.to_f64_px(),
+                    can_gc,
+                )
+            })
+            .collect();
+
+        DOMRectList::new(&window, client_rects, can_gc)
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#dom-range-getboundingclientrect>
+    fn GetBoundingClientRect(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
+        let window = self.start_container().owner_window();
+
+        // Step 1. Let list be the result of invoking getClientRects() on the same range this method was invoked on.
+        let list = self.client_rects(can_gc);
+
+        // Step 2. If list is empty return a DOMRect object whose x, y, width and height members are zero.
+        // Step 3. If all rectangles in list have zero width or height, return the first rectangle in list.
+        // Step 4. Otherwise, return a DOMRect object describing the smallest rectangle that includes all
+        // of the rectangles in list of which the height or width is not zero.
+        let bounding_rect = list.fold(euclid::Rect::zero(), |acc, rect| acc.union(&rect));
+
+        DOMRect::new(
+            window.upcast(),
+            bounding_rect.origin.x.to_f64_px(),
+            bounding_rect.origin.y.to_f64_px(),
+            bounding_rect.size.width.to_f64_px(),
+            bounding_rect.size.height.to_f64_px(),
+            can_gc,
+        )
     }
 }
 

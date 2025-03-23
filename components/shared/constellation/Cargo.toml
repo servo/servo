@@ -1,0 +1,26 @@
+[package]
+name = "constellation_traits"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "constellation_traits"
+path = "lib.rs"
+
+[dependencies]
+base = { workspace = true }
+bitflags = { workspace = true }
+embedder_traits = { workspace = true }
+euclid = { workspace = true }
+ipc-channel = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+serde = { workspace = true }
+servo_url = { path = "../../url" }
+strum_macros = { workspace = true }
+stylo_traits = { workspace = true }
+webrender_api = { workspace = true }

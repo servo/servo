@@ -4,16 +4,16 @@
 
 use std::fmt;
 
+use constellation_traits::UntrustedNodeAddress;
 use euclid::default::Point2D;
 use script_layout_interface::{NodesFromPointQueryType, QueryMsg};
-use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
 use style::stylesheets::{Stylesheet, StylesheetContents};
+use stylo_atoms::Atom;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;
@@ -41,8 +41,8 @@ pub(crate) struct StyleSheetInDocument {
 
 // This is necessary because this type is contained within a Stylo type which needs
 // Stylo's version of MallocSizeOf.
-impl style_malloc_size_of::MallocSizeOf for StyleSheetInDocument {
-    fn size_of(&self, ops: &mut style_malloc_size_of::MallocSizeOfOps) -> usize {
+impl stylo_malloc_size_of::MallocSizeOf for StyleSheetInDocument {
+    fn size_of(&self, ops: &mut stylo_malloc_size_of::MallocSizeOfOps) -> usize {
         <StyleSheetInDocument as malloc_size_of::MallocSizeOf>::size_of(self, ops)
     }
 }

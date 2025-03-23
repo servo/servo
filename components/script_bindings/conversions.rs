@@ -18,8 +18,8 @@ use js::jsapi::{
 };
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::{
-    HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class, is_dom_object,
-    maybe_wrap_value,
+    HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
+    is_dom_object, maybe_wrap_value,
 };
 
 use crate::inheritance::Castable;
@@ -386,4 +386,25 @@ where
         return Err(());
     }
     root_from_object(v.get().to_object(), cx)
+}
+
+/// Convert `id` to a `DOMString`. Returns `None` if `id` is not a string or
+/// integer.
+///
+/// Handling of invalid UTF-16 in strings depends on the relevant option.
+///
+/// # Safety
+/// - cx must point to a non-null, valid JSContext instance.
+pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
+    let id_raw = *id;
+    if id_raw.is_string() {
+        let jsstr = std::ptr::NonNull::new(id_raw.to_string()).unwrap();
+        return Some(jsstring_to_str(cx, jsstr));
+    }
+
+    if id_raw.is_int() {
+        return Some(id_raw.to_int().to_string().into());
+    }
+
+    None
 }

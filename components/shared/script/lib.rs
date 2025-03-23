@@ -19,27 +19,27 @@ use std::fmt;
 use std::sync::Arc;
 
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
-use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{
     BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
-    TopLevelBrowsingContextId, WebViewId,
+    WebViewId,
 };
-use bitflags::bitflags;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use constellation_traits::{
+    AnimationTickType, CompositorHitTestResult, ScrollState, WindowSizeData, WindowSizeType,
+};
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::input_events::InputEvent;
 use embedder_traits::{MediaSessionActionType, Theme, WebDriverScriptCommand};
-use euclid::{Rect, Scale, Size2D, UnknownUnit, Vector2D};
+use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use http::{HeaderMap, Method};
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use libc::c_void;
+use keyboard_types::Modifiers;
 use log::warn;
-use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::image_cache::ImageCache;
@@ -48,69 +48,24 @@ use net_traits::storage_thread::StorageType;
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use pixels::PixelFormat;
 use profile_traits::{mem, time as profile_time};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use servo_atoms::Atom;
+use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use strum::{EnumIter, IntoEnumIterator};
+use strum_macros::IntoStaticStr;
 use style_traits::{CSSPixel, SpeculativePainter};
+use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
 use webgpu::WebGPUMsg;
-use webrender_api::units::{DevicePixel, LayoutPixel};
-use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
-use webrender_traits::{
-    CompositorHitTestResult, CrossProcessCompositorApi,
-    UntrustedNodeAddress as WebRenderUntrustedNodeAddress,
-};
+use webrender_api::units::DevicePixel;
+use webrender_api::{DocumentId, ImageKey};
+use webrender_traits::CrossProcessCompositorApi;
 
 pub use crate::script_msg::{
-    DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, LayoutMsg,
-    LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg,
-    TouchEventResult,
+    DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg,
+    SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg, TouchEventResult,
 };
-use crate::serializable::{BlobData, BlobImpl};
+use crate::serializable::BlobImpl;
 use crate::transferable::MessagePortImpl;
-
-/// The address of a node. Layout sends these back. They must be validated via
-/// `from_untrusted_node_address` before they can be used, because we do not trust layout.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct UntrustedNodeAddress(pub *const c_void);
-
-malloc_size_of_is_0!(UntrustedNodeAddress);
-
-#[allow(unsafe_code)]
-unsafe impl Send for UntrustedNodeAddress {}
-
-impl From<WebRenderUntrustedNodeAddress> for UntrustedNodeAddress {
-    fn from(o: WebRenderUntrustedNodeAddress) -> Self {
-        UntrustedNodeAddress(o.0)
-    }
-}
-
-impl From<style_traits::dom::OpaqueNode> for UntrustedNodeAddress {
-    fn from(o: style_traits::dom::OpaqueNode) -> Self {
-        UntrustedNodeAddress(o.0 as *const c_void)
-    }
-}
-
-impl Serialize for UntrustedNodeAddress {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        (self.0 as usize).serialize(s)
-    }
-}
-
-impl<'de> Deserialize<'de> for UntrustedNodeAddress {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
-        let value: usize = Deserialize::deserialize(d)?;
-        Ok(UntrustedNodeAddress::from_id(value))
-    }
-}
-
-impl UntrustedNodeAddress {
-    /// Creates an `UntrustedNodeAddress` from the given pointer address value.
-    #[inline]
-    pub fn from_id(id: usize) -> UntrustedNodeAddress {
-        UntrustedNodeAddress(id as *const c_void)
-    }
-}
 
 /// The origin where a given load was initiated.
 /// Useful for origin checks, for example before evaluation a JS URL.
@@ -216,7 +171,7 @@ pub struct NewLayoutInfo {
     /// Id of the browsing context associated with this pipeline.
     pub browsing_context_id: BrowsingContextId,
     /// Id of the top-level browsing context associated with this pipeline.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub webview_id: WebViewId,
     /// Id of the opener, if any
     pub opener: Option<BrowsingContextId>,
     /// Network request data which will be initiated by the script thread.
@@ -288,7 +243,7 @@ pub enum UpdatePipelineIdReason {
 
 /// Messages sent to the `ScriptThread` event loop from the `Constellation`, `Compositor`, and (for
 /// now) `Layout`.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptThreadMessage {
     /// Takes the associated window proxy out of "delaying-load-events-mode",
     /// used if a scheduled navigated was refused by the embedder.
@@ -337,7 +292,7 @@ pub enum ScriptThreadMessage {
         /// The source of the message.
         source: PipelineId,
         /// The top level browsing context associated with the source pipeline.
-        source_browsing_context: TopLevelBrowsingContextId,
+        source_browsing_context: WebViewId,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
         /// The source origin of the message.
@@ -351,7 +306,7 @@ pub enum ScriptThreadMessage {
     UpdatePipelineId(
         PipelineId,
         BrowsingContextId,
-        TopLevelBrowsingContextId,
+        WebViewId,
         PipelineId,
         UpdatePipelineIdReason,
     ),
@@ -393,7 +348,12 @@ pub enum ScriptThreadMessage {
     /// Reload the given page.
     Reload(PipelineId),
     /// Notifies the script thread about a new recorded paint metric.
-    PaintMetric(PipelineId, ProgressiveWebMetricType, CrossProcessInstant),
+    PaintMetric(
+        PipelineId,
+        ProgressiveWebMetricType,
+        CrossProcessInstant,
+        bool, /* first_reflow */
+    ),
     /// Notifies the media session about a user requested media session action.
     MediaSessionAction(PipelineId, MediaSessionActionType),
     /// Notifies script thread that WebGPU server has started
@@ -402,50 +362,12 @@ pub enum ScriptThreadMessage {
     /// The compositor scrolled and is updating the scroll states of the nodes in the given
     /// pipeline via the Constellation.
     SetScrollStates(PipelineId, Vec<ScrollState>),
-    /// Send the paint time for a specific epoch.
-    SetEpochPaintTime(PipelineId, Epoch, CrossProcessInstant),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use self::ScriptThreadMessage::*;
-        let variant = match *self {
-            StopDelayingLoadEventsMode(..) => "StopDelayingLoadsEventMode",
-            AttachLayout(..) => "AttachLayout",
-            Resize(..) => "Resize",
-            ThemeChange(..) => "ThemeChange",
-            ResizeInactive(..) => "ResizeInactive",
-            UnloadDocument(..) => "UnloadDocument",
-            ExitPipeline(..) => "ExitPipeline",
-            ExitScriptThread => "ExitScriptThread",
-            SendInputEvent(..) => "SendInputEvent",
-            Viewport(..) => "Viewport",
-            GetTitle(..) => "GetTitle",
-            SetDocumentActivity(..) => "SetDocumentActivity",
-            SetThrottled(..) => "SetThrottled",
-            SetThrottledInContainingIframe(..) => "SetThrottledInContainingIframe",
-            NavigateIframe(..) => "NavigateIframe",
-            PostMessage { .. } => "PostMessage",
-            UpdatePipelineId(..) => "UpdatePipelineId",
-            UpdateHistoryState(..) => "UpdateHistoryState",
-            RemoveHistoryStates(..) => "RemoveHistoryStates",
-            FocusIFrame(..) => "FocusIFrame",
-            WebDriverScriptCommand(..) => "WebDriverScriptCommand",
-            TickAllAnimations(..) => "TickAllAnimations",
-            WebFontLoaded(..) => "WebFontLoaded",
-            DispatchIFrameLoadEvent { .. } => "DispatchIFrameLoadEvent",
-            DispatchStorageEvent(..) => "DispatchStorageEvent",
-            ReportCSSError(..) => "ReportCSSError",
-            Reload(..) => "Reload",
-            PaintMetric(..) => "PaintMetric",
-            ExitFullScreen(..) => "ExitFullScreen",
-            MediaSessionAction(..) => "MediaSessionAction",
-            #[cfg(feature = "webgpu")]
-            SetWebGPUPort(..) => "SetWebGPUPort",
-            SetScrollStates(..) => "SetScrollStates",
-            SetEpochPaintTime(..) => "SetEpochPaintTime",
-        };
-        write!(formatter, "ConstellationControlMsg::{}", variant)
+        let variant_string: &'static str = self.into();
+        write!(formatter, "ConstellationControlMsg::{variant_string}")
     }
 }
 
@@ -480,6 +402,8 @@ pub struct ConstellationInputEvent {
     /// The pressed mouse button state of the constellation when this input
     /// event was triggered.
     pub pressed_mouse_buttons: u16,
+    /// The currently active keyboard modifiers.
+    pub active_keyboard_modifiers: Modifiers,
     /// The [`InputEvent`] itself.
     pub event: InputEvent,
 }
@@ -497,7 +421,7 @@ pub struct InitialScriptState {
     /// The ID of the browsing context this script is part of.
     pub browsing_context_id: BrowsingContextId,
     /// The ID of the top-level browsing context this script is part of.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub webview_id: WebViewId,
     /// The ID of the opener, if any.
     pub opener: Option<BrowsingContextId>,
     /// Loading into a Secure Context
@@ -510,8 +434,6 @@ pub struct InitialScriptState {
     pub pipeline_to_constellation_sender: ScriptToConstellationChan,
     /// A handle to register script-(and associated layout-)threads for hang monitoring.
     pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-    /// A sender layout to communicate to the constellation.
-    pub layout_to_constellation_ipc_sender: IpcSender<LayoutMsg>,
     /// A channel to the resource manager thread.
     pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
@@ -589,7 +511,7 @@ pub struct IFrameLoadInfo {
     /// The ID for this iframe's nested browsing context.
     pub browsing_context_id: BrowsingContextId,
     /// The ID for the top-level ancestor browsing context of this iframe's nested browsing context.
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub webview_id: WebViewId,
     /// The new pipeline ID that the iframe has generated.
     pub new_pipeline_id: PipelineId,
     ///  Whether this iframe should be considered private
@@ -614,46 +536,6 @@ pub struct IFrameLoadInfoWithData {
     pub sandbox: IFrameSandboxState,
     /// The initial viewport size for this iframe.
     pub window_size: WindowSizeData,
-}
-
-bitflags! {
-    #[derive(Debug, Default, Deserialize, Serialize)]
-    /// Specifies if rAF should be triggered and/or CSS Animations and Transitions.
-    pub struct AnimationTickType: u8 {
-        /// Trigger a call to requestAnimationFrame.
-        const REQUEST_ANIMATION_FRAME = 0b001;
-        /// Trigger restyles for CSS Animations and Transitions.
-        const CSS_ANIMATIONS_AND_TRANSITIONS = 0b010;
-    }
-}
-
-/// The scroll state of a stacking context.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct ScrollState {
-    /// The ID of the scroll root.
-    pub scroll_id: ExternalScrollId,
-    /// The scrolling offset of this stacking context.
-    pub scroll_offset: Vector2D<f32, LayoutPixel>,
-}
-
-/// Data about the window size.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub struct WindowSizeData {
-    /// The size of the initial layout viewport, before parsing an
-    /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
-    pub initial_viewport: Size2D<f32, CSSPixel>,
-
-    /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
-}
-
-/// The type of window size change.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-pub enum WindowSizeType {
-    /// Initial load.
-    Initial,
-    /// Window resize.
-    Resize,
 }
 
 /// Resources required by workerglobalscopes
@@ -776,47 +658,96 @@ pub struct StructuredSerializedData {
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
 }
 
+pub(crate) trait BroadcastClone
+where
+    Self: Sized,
+{
+    /// The ID type that uniquely identify each value.
+    type Id: Eq + std::hash::Hash + Copy;
+    /// Clone this value so that it can be reused with a broadcast channel.
+    /// Only return None if cloning is impossible.
+    fn clone_for_broadcast(&self) -> Option<Self>;
+    /// The field from which to clone values.
+    fn source(data: &StructuredSerializedData) -> &Option<HashMap<Self::Id, Self>>;
+    /// The field into which to place cloned values.
+    fn destination(data: &mut StructuredSerializedData) -> &mut Option<HashMap<Self::Id, Self>>;
+}
+
+/// All the DOM interfaces that can be serialized.
+#[derive(Clone, Copy, Debug, EnumIter)]
+pub enum Serializable {
+    /// The `Blob` interface.
+    Blob,
+}
+
+impl Serializable {
+    fn clone_values(&self) -> fn(&StructuredSerializedData, &mut StructuredSerializedData) {
+        match self {
+            Serializable::Blob => StructuredSerializedData::clone_all_of_type::<BlobImpl>,
+        }
+    }
+}
+
+/// All the DOM interfaces that can be transferred.
+#[derive(Clone, Copy, Debug, EnumIter)]
+pub enum Transferrable {
+    /// The `MessagePort` interface.
+    MessagePort,
+}
+
 impl StructuredSerializedData {
+    fn is_empty(&self, val: Transferrable) -> bool {
+        fn is_field_empty<K, V>(field: &Option<HashMap<K, V>>) -> bool {
+            field.as_ref().is_some_and(|h| h.is_empty())
+        }
+        match val {
+            Transferrable::MessagePort => is_field_empty(&self.ports),
+        }
+    }
+
+    /// Clone all values of the same type stored in this StructuredSerializedData
+    /// into another instance.
+    fn clone_all_of_type<T: BroadcastClone>(&self, cloned: &mut StructuredSerializedData) {
+        let existing = T::source(self);
+        let Some(existing) = existing else { return };
+        let mut clones = HashMap::with_capacity(existing.len());
+
+        for (original_id, obj) in existing.iter() {
+            if let Some(clone) = obj.clone_for_broadcast() {
+                clones.insert(*original_id, clone);
+            }
+        }
+
+        *T::destination(cloned) = Some(clones);
+    }
+
     /// Clone the serialized data for use with broadcast-channels.
     pub fn clone_for_broadcast(&self) -> StructuredSerializedData {
+        for transferrable in Transferrable::iter() {
+            if !self.is_empty(transferrable) {
+                // Not panicking only because this is called from the constellation.
+                warn!(
+                    "Attempt to broadcast structured serialized data including {:?} (should never happen).",
+                    transferrable,
+                );
+            }
+        }
+
         let serialized = self.serialized.clone();
 
-        let blobs = if let Some(blobs) = self.blobs.as_ref() {
-            let mut blob_clones = HashMap::with_capacity(blobs.len());
-
-            for (original_id, blob) in blobs.iter() {
-                let type_string = blob.type_string();
-
-                if let BlobData::Memory(ref bytes) = blob.blob_data() {
-                    let blob_clone = BlobImpl::new_from_bytes(bytes.clone(), type_string);
-
-                    // Note: we insert the blob at the original id,
-                    // otherwise this will not match the storage key as serialized by SM in `serialized`.
-                    // The clone has it's own new Id however.
-                    blob_clones.insert(*original_id, blob_clone);
-                } else {
-                    // Not panicking only because this is called from the constellation.
-                    warn!("Serialized blob not in memory format(should never happen).");
-                }
-            }
-            Some(blob_clones)
-        } else {
-            None
-        };
-
-        if self.ports.is_some() {
-            // Not panicking only because this is called from the constellation.
-            warn!(
-                "Attempt to broadcast structured serialized data including ports(should never happen)."
-            );
-        }
-
-        StructuredSerializedData {
+        let mut cloned = StructuredSerializedData {
             serialized,
-            blobs,
+            blobs: None,
             // Ports cannot be broadcast.
             ports: None,
+        };
+
+        for serializable in Serializable::iter() {
+            let clone_impl = serializable.clone_values();
+            clone_impl(self, &mut cloned);
         }
+
+        cloned
     }
 }
 

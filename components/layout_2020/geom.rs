@@ -48,6 +48,12 @@ pub struct LogicalSides<T> {
     pub block_end: T,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct LogicalSides1D<T> {
+    pub start: T,
+    pub end: T,
+}
+
 impl<T: fmt::Debug> fmt::Debug for LogicalVec2<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // Not using f.debug_struct on purpose here, to keep {:?} output somewhat compact
@@ -356,6 +362,16 @@ impl<T: Copy> LogicalSides<T> {
             block: self.block_start,
         }
     }
+
+    #[inline]
+    pub(crate) fn inline_sides(&self) -> LogicalSides1D<T> {
+        LogicalSides1D::new(self.inline_start, self.inline_end)
+    }
+
+    #[inline]
+    pub(crate) fn block_sides(&self) -> LogicalSides1D<T> {
+        LogicalSides1D::new(self.block_start, self.block_end)
+    }
 }
 
 impl LogicalSides<LengthPercentage> {
@@ -444,6 +460,32 @@ impl From<LogicalSides<Au>> for LogicalSides<CSSPixelLength> {
             block_start: value.block_start.into(),
             block_end: value.block_end.into(),
         }
+    }
+}
+
+impl<T> LogicalSides1D<T> {
+    #[inline]
+    pub(crate) fn new(start: T, end: T) -> Self {
+        Self { start, end }
+    }
+}
+
+impl<T> LogicalSides1D<AutoOr<T>> {
+    #[inline]
+    pub(crate) fn either_specified(&self) -> bool {
+        !self.start.is_auto() || !self.end.is_auto()
+    }
+
+    #[inline]
+    pub(crate) fn either_auto(&self) -> bool {
+        self.start.is_auto() || self.end.is_auto()
+    }
+}
+
+impl<T: Add + Copy> LogicalSides1D<T> {
+    #[inline]
+    pub(crate) fn sum(&self) -> T::Output {
+        self.start + self.end
     }
 }
 
@@ -688,12 +730,6 @@ impl<T: Clone> Size<T> {
     }
 
     #[inline]
-    pub(crate) fn to_auto_or(&self) -> AutoOr<T> {
-        self.to_numeric()
-            .map_or(AutoOr::Auto, AutoOr::LengthPercentage)
-    }
-
-    #[inline]
     pub fn map<U>(&self, f: impl FnOnce(T) -> U) -> Size<U> {
         match self {
             Size::Initial => Size::Initial,
@@ -808,12 +844,12 @@ impl Size<Au> {
     #[inline]
     pub(crate) fn resolve_for_min<F: FnOnce() -> ContentSizes>(
         &self,
-        automatic_minimum_size: Au,
+        get_automatic_minimum_size: impl FnOnce() -> Au,
         stretch_size: Option<Au>,
         content_size: &LazyCell<ContentSizes, F>,
     ) -> Au {
         match self {
-            Self::Initial => automatic_minimum_size,
+            Self::Initial => get_automatic_minimum_size(),
             Self::MinContent => content_size.min_content,
             Self::MaxContent => content_size.max_content,
             Self::FitContent => content_size.shrink_to_fit(stretch_size.unwrap_or_default()),
@@ -932,33 +968,11 @@ impl Sizes {
         &self,
         axis: Direction,
         automatic_size: Size<Au>,
-        automatic_minimum_size: Au,
+        get_automatic_minimum_size: impl FnOnce() -> Au,
         stretch_size: Option<Au>,
         get_content_size: impl FnOnce() -> ContentSizes,
         is_table: bool,
     ) -> Au {
-        let (preferred, min, max) = self.resolve_each(
-            axis,
-            automatic_size,
-            automatic_minimum_size,
-            stretch_size,
-            get_content_size,
-            is_table,
-        );
-        preferred.clamp_between_extremums(min, max)
-    }
-
-    /// Resolves each of the three sizes into a numerical value, separately.
-    #[inline]
-    pub(crate) fn resolve_each(
-        &self,
-        axis: Direction,
-        automatic_size: Size<Au>,
-        automatic_minimum_size: Au,
-        stretch_size: Option<Au>,
-        get_content_size: impl FnOnce() -> ContentSizes,
-        is_table: bool,
-    ) -> (Au, Au, Option<Au>) {
         // The provided `get_content_size` is a FnOnce but we may need its result multiple times.
         // A LazyCell will only invoke it once if needed, and then reuse the result.
         let content_size = LazyCell::new(get_content_size);
@@ -968,15 +982,15 @@ impl Sizes {
             // but it can be a smaller amount if there are collapsed rows.
             // Therefore, disregard sizing properties and just defer to the intrinsic size.
             // This is being discussed in https://github.com/w3c/csswg-drafts/issues/11408
-            return (content_size.max_content, content_size.min_content, None);
+            return content_size.max_content;
         }
 
         let preferred =
             self.preferred
                 .resolve_for_preferred(automatic_size, stretch_size, &content_size);
-        let mut min = self
-            .min
-            .resolve_for_min(automatic_minimum_size, stretch_size, &content_size);
+        let mut min =
+            self.min
+                .resolve_for_min(get_automatic_minimum_size, stretch_size, &content_size);
         if is_table {
             // In addition to the specified minimum, the inline size of a table is forced to be
             // at least as big as its min-content size.
@@ -986,7 +1000,7 @@ impl Sizes {
             min.max_assign(content_size.min_content);
         }
         let max = self.max.resolve_for_max(stretch_size, &content_size);
-        (preferred, min, max)
+        preferred.clamp_between_extremums(min, max)
     }
 
     /// Tries to extrinsically resolve the three sizes into a single [`SizeConstraint`].

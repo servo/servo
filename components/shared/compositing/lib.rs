@@ -2,22 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Communication with the compositor thread.
-
-mod constellation_msg;
+//! The interface to the `compositing` crate.
 
 use std::fmt::{Debug, Error, Formatter};
 
-use base::Epoch;
-use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
-pub use constellation_msg::ConstellationMsg;
+use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::{EventLoopWaker, MouseButton, MouseButtonAction};
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::Image;
-use script_traits::{AnimationState, ScriptThreadMessage, TouchEventResult};
+use script_traits::{AnimationState, TouchEventResult};
+use strum_macros::IntoStaticStr;
 use style_traits::CSSPixel;
 use webrender_api::DocumentId;
 use webrender_traits::{CrossProcessCompositorApi, CrossProcessCompositorMessage};
@@ -57,13 +54,14 @@ impl CompositorReceiver {
 }
 
 /// Messages from (or via) the constellation thread to the compositor.
+#[derive(IntoStaticStr)]
 pub enum CompositorMsg {
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(WebViewId, PipelineId, AnimationState),
     /// Create or update a webview, given its frame tree.
     CreateOrUpdateWebView(SendableFrameTree),
     /// Remove a webview.
-    RemoveWebView(TopLevelBrowsingContextId),
+    RemoveWebView(WebViewId),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(WebViewId, TouchEventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
@@ -82,12 +80,8 @@ pub enum CompositorMsg {
     // sends a reply on the IpcSender, the constellation knows it's safe to
     // tear down the other threads associated with this pipeline.
     PipelineExited(WebViewId, PipelineId, IpcSender<()>),
-    /// Indicates to the compositor that it needs to record the time when the frame with
-    /// the given ID (epoch) is painted and report it to the layout of the given
-    /// WebViewId and PipelienId.
-    PendingPaintMetric(WebViewId, PipelineId, Epoch),
     /// The load of a page has completed
-    LoadComplete(TopLevelBrowsingContextId),
+    LoadComplete(WebViewId),
     /// WebDriver mouse button event
     WebDriverMouseButtonEvent(WebViewId, MouseButtonAction, MouseButton, f32, f32),
     /// WebDriver mouse move event
@@ -107,29 +101,12 @@ pub struct SendableFrameTree {
 #[derive(Clone)]
 pub struct CompositionPipeline {
     pub id: PipelineId,
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
-    pub script_chan: IpcSender<ScriptThreadMessage>,
+    pub webview_id: WebViewId,
 }
 
 impl Debug for CompositorMsg {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        match *self {
-            CompositorMsg::ChangeRunningAnimationsState(_, _, state) => {
-                write!(f, "ChangeRunningAnimationsState({:?})", state)
-            },
-            CompositorMsg::CreateOrUpdateWebView(..) => write!(f, "CreateOrUpdateWebView"),
-            CompositorMsg::RemoveWebView(..) => write!(f, "RemoveWebView"),
-            CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
-            CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),
-            CompositorMsg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
-            CompositorMsg::SetThrottled(..) => write!(f, "SetThrottled"),
-            CompositorMsg::PipelineExited(..) => write!(f, "PipelineExited"),
-            CompositorMsg::NewWebRenderFrameReady(..) => write!(f, "NewWebRenderFrameReady"),
-            CompositorMsg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
-            CompositorMsg::LoadComplete(..) => write!(f, "LoadComplete"),
-            CompositorMsg::WebDriverMouseButtonEvent(..) => write!(f, "WebDriverMouseButtonEvent"),
-            CompositorMsg::WebDriverMouseMoveEvent(..) => write!(f, "WebDriverMouseMoveEvent"),
-            CompositorMsg::CrossProcess(..) => write!(f, "CrossProcess"),
-        }
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
+        let string: &'static str = self.into();
+        write!(formatter, "{string}")
     }
 }

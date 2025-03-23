@@ -428,9 +428,11 @@ thread_local!(pub static STACK_ROOTS: Cell<Option<*const RootCollection>> = cons
 pub unsafe fn trace_roots(tracer: *mut JSTracer) {
     trace!("tracing stack roots");
     STACK_ROOTS.with(|collection| {
-        let collection = &*(*collection.get().unwrap()).roots.get();
+        let collection = unsafe { &*(*collection.get().unwrap()).roots.get() };
         for root in collection {
-            (**root).trace(tracer);
+            unsafe {
+                (**root).trace(tracer);
+            }
         }
     });
 }

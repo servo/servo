@@ -8,6 +8,7 @@ use std::cell::Ref;
 use std::collections::HashMap;
 
 use base::id::PipelineId;
+use strum::VariantArray;
 
 use crate::messaging::ScriptEventLoopSender;
 use crate::task::TaskCanceller;
@@ -36,7 +37,7 @@ impl TaskCancellers {
             Self::OnePerTaskSource(..) => {
                 // We must create the canceller if they aren't created because we want future
                 // tasks to be ignored completely.
-                for task_source_name in TaskSourceName::all() {
+                for task_source_name in TaskSourceName::VARIANTS.iter() {
                     self.get(*task_source_name)
                         .cancelled
                         .store(true, Ordering::SeqCst)
@@ -145,4 +146,9 @@ impl TaskManager {
     task_source_functions!(self, timer_task_source, Timer);
     task_source_functions!(self, user_interaction_task_source, UserInteraction);
     task_source_functions!(self, websocket_task_source, WebSocket);
+    task_source_functions!(
+        self,
+        intersection_observer_task_source,
+        IntersectionObserver
+    );
 }

@@ -9,10 +9,10 @@
 [Exposed=Window]
 interface ShadowRoot : DocumentFragment {
   readonly attribute ShadowRootMode mode;
-  // readonly attribute boolean delegatesFocus;
+  readonly attribute boolean delegatesFocus;
   readonly attribute SlotAssignmentMode slotAssignment;
   readonly attribute boolean clonable;
-  // readonly attribute boolean serializable;
+  readonly attribute boolean serializable;
   readonly attribute Element host;
   attribute EventHandler onslotchange;
 };
