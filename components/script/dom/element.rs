@@ -562,8 +562,7 @@ impl Element {
             }
 
             // Step 4.3.1. Remove all of currentShadowRoot’s children, in tree order.
-            let node = self.upcast::<Node>();
-            for child in node.children() {
+            for child in current_shadow_root.upcast::<Node>().children() {
                 child.remove_self();
             }
 
