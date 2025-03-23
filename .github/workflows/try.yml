@@ -77,7 +77,7 @@ jobs:
             // Process `workflow_dispatch` provided configuration overrides.
             if (context.eventName == "workflow_dispatch") {
               // WPT-related overrides only affect Linux currently, as tests don't run by default on other platforms.
-              configuration.matrix[0].wpt = "${{ inputs.wpt }}" || "none";
+              configuration.matrix[0].wpt = Boolean(${{ inputs.wpt }});
               configuration.matrix[0].wpt_args = "${{ inputs.wpt-args }}" || "";
 
               let unit_tests = Boolean(${{ inputs.unit-tests }});
