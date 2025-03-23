@@ -68,7 +68,9 @@ use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods, ShadowRootInit};
+use crate::dom::bindings::codegen::Bindings::ElementBinding::{
+    ElementMethods, GetHTMLOptions, ShadowRootInit,
+};
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -2950,6 +2952,17 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Replace all with fragment within target.
         Node::replace_all(Some(frag.upcast()), &target);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
+    fn GetHTML(&self, options: &GetHTMLOptions) -> DOMString {
+        // > Element's getHTML(options) method steps are to return the result of HTML fragment serialization
+        // > algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
+        self.upcast::<Node>().html_serialize(
+            TraversalScope::ChildrenOnly(None),
+            options.serializableShadowRoots,
+            options.shadowRoots.clone(),
+        )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>

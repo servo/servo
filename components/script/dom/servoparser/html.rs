@@ -149,12 +149,20 @@ enum SerializationChildrenIterator<C, S> {
 }
 
 impl SerializationIterator {
-    fn new(node: &Node, skip_first: bool, can_gc: CanGc) -> SerializationIterator {
-        let mut ret = SerializationIterator { stack: vec![] };
+    fn new(
+        node: &Node,
+        skip_first: bool,
+        serialize_shadow_roots: bool,
+        shadow_roots: Vec<DomRoot<ShadowRoot>>,
+        can_gc: CanGc,
+    ) -> SerializationIterator {
+        let mut ret = SerializationIterator {
+            stack: vec![],
+            serialize_shadow_roots,
+            shadow_roots,
+        };
         if skip_first || node.is::<DocumentFragment>() || node.is::<Document>() {
-            for c in rev_children_iter(node, can_gc) {
-                ret.push_node(&c);
-            }
+            ret.handle_node_contents(node, can_gc);
         } else {
             ret.push_node(node);
         }
