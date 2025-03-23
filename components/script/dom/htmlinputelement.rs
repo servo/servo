@@ -2544,8 +2544,10 @@ impl VirtualMethods for HTMLInputElement {
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
-        self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+        for r in radio_group_iter(self, self.radio_group_name().as_ref()) {
+            r.validity_state()
+                .perform_validation_and_update(ValidationFlags::all());
+        }
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
