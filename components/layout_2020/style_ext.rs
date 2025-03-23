@@ -1014,18 +1014,16 @@ impl LayoutStyle<'_> {
             depends_on_block_constraints(&max_size.block) ||
             style.depends_on_block_constraints_due_to_relative_positioning(writing_mode);
 
-        let box_size = box_size.maybe_percentages_relative_to_basis(&containing_block.size);
-        let content_box_size = style
-            .content_box_size_for_box_size(box_size, &pbm)
-            .map(|v| v.map(Au::from));
+        let box_size = box_size.map_with(&containing_block.size, |size, basis| {
+            size.resolve_percentages_for_preferred(*basis)
+        });
+        let content_box_size = style.content_box_size_for_box_size(box_size, &pbm);
         let min_size = min_size.percentages_relative_to_basis(&containing_block_size_or_zero);
-        let content_min_box_size = style
-            .content_min_box_size_for_min_size(min_size, &pbm)
-            .map(|v| v.map(Au::from));
-        let max_size = max_size.maybe_percentages_relative_to_basis(&containing_block.size);
-        let content_max_box_size = style
-            .content_max_box_size_for_max_size(max_size, &pbm)
-            .map(|v| v.map(Au::from));
+        let content_min_box_size = style.content_min_box_size_for_min_size(min_size, &pbm);
+        let max_size = max_size.map_with(&containing_block.size, |size, basis| {
+            size.resolve_percentages_for_max(*basis)
+        });
+        let content_max_box_size = style.content_max_box_size_for_max_size(max_size, &pbm);
         ContentBoxSizesAndPBM {
             content_box_sizes: LogicalVec2 {
                 block: Sizes::new(
