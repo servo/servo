@@ -2955,18 +2955,19 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
-    fn GetHTML(&self, options: &GetHTMLOptions) -> DOMString {
+    fn GetHTML(&self, options: &GetHTMLOptions, can_gc: CanGc) -> DOMString {
         // > Element's getHTML(options) method steps are to return the result of HTML fragment serialization
         // > algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
         self.upcast::<Node>().html_serialize(
             TraversalScope::ChildrenOnly(None),
             options.serializableShadowRoots,
             options.shadowRoots.clone(),
+            can_gc,
         )
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
-    fn GetInnerHTML(&self) -> Fallible<DOMString> {
+    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<DOMString> {
         let qname = QualName::new(
             self.prefix().clone(),
             self.namespace().clone(),
@@ -2977,7 +2978,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
             self.upcast::<Node>()
-                .html_serialize(ChildrenOnly(Some(qname)), false, vec![])
+                .html_serialize(ChildrenOnly(Some(qname)), false, vec![], can_gc)
         } else {
             self.upcast::<Node>()
                 .xml_serialize(XmlChildrenOnly(Some(qname)))
@@ -3017,12 +3018,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
-    fn GetOuterHTML(&self) -> Fallible<DOMString> {
+    fn GetOuterHTML(&self, can_gc: CanGc) -> Fallible<DOMString> {
         // FIXME: This should use the fragment serialization algorithm, which takes
         // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
             self.upcast::<Node>()
-                .html_serialize(IncludeNode, false, vec![])
+                .html_serialize(IncludeNode, false, vec![], can_gc)
         } else {
             self.upcast::<Node>().xml_serialize(XmlIncludeNode)
         };

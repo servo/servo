@@ -2866,6 +2866,7 @@ impl Node {
         traversal_scope: html_serialize::TraversalScope,
         serialize_shadow_roots: bool,
         shadow_roots: Vec<DomRoot<ShadowRoot>>,
+        can_gc: CanGc,
     ) -> DOMString {
         let mut writer = vec![];
         let mut serializer = HtmlSerializer::new(
@@ -2882,7 +2883,7 @@ impl Node {
             traversal_scope,
             serialize_shadow_roots,
             shadow_roots,
-            CanGc::note(),
+            can_gc,
         )
         .expect("Serializing node failed");
 
@@ -2908,7 +2909,11 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fragment-serializing-algorithm-steps>
-    pub(crate) fn fragment_serialization_algorithm(&self, require_well_formed: bool) -> DOMString {
+    pub(crate) fn fragment_serialization_algorithm(
+        &self,
+        require_well_formed: bool,
+        can_gc: CanGc,
+    ) -> DOMString {
         // Step 1. Let context document be node's node document.
         let context_document = self.owner_document();
 
@@ -2919,6 +2924,7 @@ impl Node {
                 html_serialize::TraversalScope::ChildrenOnly(None),
                 false,
                 vec![],
+                can_gc,
             );
         }
 
