@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use webgpu::wgc::instance::RequestDeviceError;
 use webgpu::wgt::MemoryHints;
-use webgpu::{WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, wgt};
+use webgpu::{WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest, wgt};
 
 use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::gpusupportedlimits::set_limit;
@@ -22,10 +22,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::types::{GPUAdapterInfo, GPUSupportedLimits};
-use crate::dom::webgpu::gpu::{AsyncWGPUListener, response_async};
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::webgpu::gpusupportedfeatures::gpu_to_wgt_feature;
 use crate::realms::InRealm;
+use crate::routed_promise::{RoutedPromiseListener, route_promise};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -116,7 +116,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
     ) -> Rc<Promise> {
         // Step 2
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = response_async(&promise, self);
+        let sender = route_promise(&promise, self);
         let mut required_features = wgt::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
@@ -205,10 +205,15 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
     }
 }
 
-impl AsyncWGPUListener for GPUAdapter {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
+impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
+    fn handle_response(
+        &self,
+        response: WebGPUDeviceResponse,
+        promise: &Rc<Promise>,
+        can_gc: CanGc,
+    ) {
         match response {
-            WebGPUResponse::Device((device_id, queue_id, Ok(descriptor))) => {
+            (device_id, queue_id, Ok(descriptor)) => {
                 let device = GPUDevice::new(
                     &self.global(),
                     self.channel.clone(),
@@ -224,16 +229,14 @@ impl AsyncWGPUListener for GPUAdapter {
                 self.global().add_gpu_device(&device);
                 promise.resolve_native(&device, can_gc);
             },
-            WebGPUResponse::Device((_, _, Err(RequestDeviceError::UnsupportedFeature(f)))) => {
-                promise.reject_error(
-                    Error::Type(RequestDeviceError::UnsupportedFeature(f).to_string()),
-                    can_gc,
-                )
-            },
-            WebGPUResponse::Device((_, _, Err(RequestDeviceError::LimitsExceeded(_)))) => {
+            (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => promise.reject_error(
+                Error::Type(RequestDeviceError::UnsupportedFeature(f).to_string()),
+                can_gc,
+            ),
+            (_, _, Err(RequestDeviceError::LimitsExceeded(_))) => {
                 promise.reject_error(Error::Operation, can_gc)
             },
-            WebGPUResponse::Device((device_id, queue_id, Err(e))) => {
+            (device_id, queue_id, Err(e)) => {
                 let device = GPUDevice::new(
                     &self.global(),
                     self.channel.clone(),
@@ -249,8 +252,6 @@ impl AsyncWGPUListener for GPUAdapter {
                 device.lose(GPUDeviceLostReason::Unknown, e.to_string(), can_gc);
                 promise.resolve_native(&device, can_gc);
             },
-            WebGPUResponse::None => unreachable!("Failed to get a response for RequestDevice"),
-            _ => unreachable!("GPUAdapter received wrong WebGPUResponse"),
         }
     }
 }

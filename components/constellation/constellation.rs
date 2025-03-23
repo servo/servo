@@ -157,7 +157,7 @@ use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
-use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
+use webgpu::{self, WebGPU, WebGPURequest};
 #[cfg(feature = "webgpu")]
 use webrender::RenderApi;
 use webrender::RenderApiSender;
@@ -1936,7 +1936,7 @@ where
             FromScriptMsg::RequestAdapter(response_sender, options, adapter_id) => {
                 match webgpu_chan {
                     None => {
-                        if let Err(e) = response_sender.send(WebGPUResponse::None) {
+                        if let Err(e) = response_sender.send(None) {
                             warn!("Failed to send request adapter message: {}", e)
                         }
                     },
