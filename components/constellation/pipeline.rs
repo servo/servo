@@ -422,7 +422,6 @@ impl Pipeline {
         CompositionPipeline {
             id: self.id,
             webview_id: self.webview_id,
-            script_chan: self.event_loop.sender(),
         }
     }
 

@@ -13,7 +13,7 @@ use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::Image;
-use script_traits::{AnimationState, ScriptThreadMessage, TouchEventResult};
+use script_traits::{AnimationState, TouchEventResult};
 use strum_macros::IntoStaticStr;
 use style_traits::CSSPixel;
 use webrender_api::DocumentId;
@@ -102,7 +102,6 @@ pub struct SendableFrameTree {
 pub struct CompositionPipeline {
     pub id: PipelineId,
     pub webview_id: WebViewId,
-    pub script_chan: IpcSender<ScriptThreadMessage>,
 }
 
 impl Debug for CompositorMsg {
