@@ -36,7 +36,7 @@ use html5ever::{LocalName, Namespace, QualName, local_name, namespace_url, ns};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue};
-use keyboard_types::{Code, Key, KeyState};
+use keyboard_types::{Code, Key, KeyState, Modifiers};
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use mime::{self, Mime};
 use net_traits::CookieSource::NonHTTP;
@@ -531,6 +531,9 @@ pub(crate) struct Document {
     /// The lifetime of an intersection observer is specified at
     /// <https://github.com/w3c/IntersectionObserver/issues/525>.
     intersection_observers: DomRefCell<Vec<Dom<IntersectionObserver>>>,
+    /// The active keyboard modifiers for the WebView. This is updated when receiving any input event.
+    #[no_trace]
+    active_keyboard_modifiers: Cell<Modifiers>,
 }
 
 #[allow(non_snake_case)]
@@ -3868,6 +3871,7 @@ impl Document {
             inherited_insecure_requests_policy: Cell::new(inherited_insecure_requests_policy),
             intersection_observer_task_queued: Cell::new(false),
             intersection_observers: Default::default(),
+            active_keyboard_modifiers: Cell::new(Modifiers::empty()),
         }
     }
 
@@ -3886,6 +3890,26 @@ impl Document {
         self.inherited_insecure_requests_policy
             .get()
             .unwrap_or(InsecureRequestsPolicy::DoNotUpgrade)
+    }
+
+    /// Update the active keyboard modifiers for this [`Document`] while handling events.
+    pub(crate) fn update_active_keyboard_modifiers(&self, modifiers: Modifiers) {
+        self.active_keyboard_modifiers.set(modifiers);
+    }
+
+    pub(crate) fn alternate_action_keyboard_modifier_active(&self) -> bool {
+        #[cfg(target_os = "macos")]
+        {
+            self.active_keyboard_modifiers
+                .get()
+                .contains(Modifiers::META)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            self.active_keyboard_modifiers
+                .get()
+                .contains(Modifiers::CONTROL)
+        }
     }
 
     /// Note a pending compositor event, to be processed at the next `update_the_rendering` task.
