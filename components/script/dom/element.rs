@@ -17,6 +17,7 @@ use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use embedder_traits::InputMethodType;
 use euclid::default::{Rect, Size2D};
+use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{
     LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, namespace_url, ns,
@@ -2959,9 +2960,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             self.local_name().clone(),
         );
 
+        // FIXME: This should use the fragment serialization algorithm, which takes
+        // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
             self.upcast::<Node>()
-                .html_serialize(ChildrenOnly(Some(qname)))
+                .html_serialize(ChildrenOnly(Some(qname)), false, vec![])
         } else {
             self.upcast::<Node>()
                 .xml_serialize(XmlChildrenOnly(Some(qname)))
@@ -3002,8 +3005,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
     fn GetOuterHTML(&self) -> Fallible<DOMString> {
+        // FIXME: This should use the fragment serialization algorithm, which takes
+        // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
-            self.upcast::<Node>().html_serialize(IncludeNode)
+            self.upcast::<Node>()
+                .html_serialize(IncludeNode, false, vec![])
         } else {
             self.upcast::<Node>().xml_serialize(XmlIncludeNode)
         };

@@ -81,6 +81,8 @@ mod html;
 mod prefetch;
 mod xml;
 
+pub(crate) use html::serialize_html_fragment;
+
 #[dom_struct]
 /// The parser maintains two input streams: one for input from script through
 /// document.write(), and one for input from network.
