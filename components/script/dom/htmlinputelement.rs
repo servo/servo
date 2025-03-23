@@ -172,20 +172,20 @@ impl InputType {
     fn is_textual(&self) -> bool {
         matches!(
             *self,
-            InputType::Color |
-                InputType::Date |
-                InputType::DatetimeLocal |
-                InputType::Email |
-                InputType::Hidden |
-                InputType::Month |
-                InputType::Number |
-                InputType::Range |
-                InputType::Search |
-                InputType::Tel |
-                InputType::Text |
-                InputType::Time |
-                InputType::Url |
-                InputType::Week
+            InputType::Color
+                | InputType::Date
+                | InputType::DatetimeLocal
+                | InputType::Email
+                | InputType::Hidden
+                | InputType::Month
+                | InputType::Number
+                | InputType::Range
+                | InputType::Search
+                | InputType::Tel
+                | InputType::Text
+                | InputType::Time
+                | InputType::Url
+                | InputType::Week
         )
     }
 
@@ -427,28 +427,28 @@ impl HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-apply
     fn value_mode(&self) -> ValueMode {
         match self.input_type() {
-            InputType::Submit |
-            InputType::Reset |
-            InputType::Button |
-            InputType::Image |
-            InputType::Hidden => ValueMode::Default,
+            InputType::Submit
+            | InputType::Reset
+            | InputType::Button
+            | InputType::Image
+            | InputType::Hidden => ValueMode::Default,
 
             InputType::Checkbox | InputType::Radio => ValueMode::DefaultOn,
 
-            InputType::Color |
-            InputType::Date |
-            InputType::DatetimeLocal |
-            InputType::Email |
-            InputType::Month |
-            InputType::Number |
-            InputType::Password |
-            InputType::Range |
-            InputType::Search |
-            InputType::Tel |
-            InputType::Text |
-            InputType::Time |
-            InputType::Url |
-            InputType::Week => ValueMode::Value,
+            InputType::Color
+            | InputType::Date
+            | InputType::DatetimeLocal
+            | InputType::Email
+            | InputType::Month
+            | InputType::Number
+            | InputType::Password
+            | InputType::Range
+            | InputType::Search
+            | InputType::Tel
+            | InputType::Text
+            | InputType::Time
+            | InputType::Url
+            | InputType::Week => ValueMode::Value,
 
             InputType::File => ValueMode::Filename,
         }
@@ -477,27 +477,45 @@ impl HTMLInputElement {
         textinput.set_content(value);
     }
 
+    fn does_readonly_apply(&self) -> bool {
+        matches!(
+            self.input_type(),
+            InputType::Text
+                | InputType::Search
+                | InputType::Url
+                | InputType::Tel
+                | InputType::Email
+                | InputType::Password
+                | InputType::Date
+                | InputType::Month
+                | InputType::Week
+                | InputType::Time
+                | InputType::DatetimeLocal
+                | InputType::Number
+        )
+    }
+
     fn does_minmaxlength_apply(&self) -> bool {
         matches!(
             self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Email |
-                InputType::Password
+            InputType::Text
+                | InputType::Search
+                | InputType::Url
+                | InputType::Tel
+                | InputType::Email
+                | InputType::Password
         )
     }
 
     fn does_pattern_apply(&self) -> bool {
         matches!(
             self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Email |
-                InputType::Password
+            InputType::Text
+                | InputType::Search
+                | InputType::Url
+                | InputType::Tel
+                | InputType::Email
+                | InputType::Password
         )
     }
 
@@ -510,13 +528,13 @@ impl HTMLInputElement {
     fn does_value_as_number_apply(&self) -> bool {
         matches!(
             self.input_type(),
-            InputType::Date |
-                InputType::Month |
-                InputType::Week |
-                InputType::Time |
-                InputType::DatetimeLocal |
-                InputType::Number |
-                InputType::Range
+            InputType::Date
+                | InputType::Month
+                | InputType::Week
+                | InputType::Time
+                | InputType::DatetimeLocal
+                | InputType::Number
+                | InputType::Range
         )
     }
 
@@ -824,10 +842,10 @@ impl HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#the-required-attribute%3Asuffering-from-being-missing
             _ => {
-                self.Required() &&
-                    self.value_mode() == ValueMode::Value &&
-                    self.is_mutable() &&
-                    value.is_empty()
+                self.Required()
+                    && self.value_mode() == ValueMode::Value
+                    && self.is_mutable()
+                    && value.is_empty()
             },
         }
     }
@@ -871,10 +889,11 @@ impl HTMLInputElement {
 
         if compile_pattern(cx, &pattern_str, pattern.handle_mut()) {
             if self.Multiple() && self.does_multiple_apply() {
-                !split_commas(value)
-                    .all(|s| matches_js_regex(cx, pattern.handle(), s).unwrap_or(true))
+                !split_commas(value).all(|s| {
+                    matches_js_regex(cx, pattern.handle(), s, CanGc::note()).unwrap_or(true)
+                })
             } else {
-                !matches_js_regex(cx, pattern.handle(), value).unwrap_or(true)
+                !matches_js_regex(cx, pattern.handle(), value, CanGc::note()).unwrap_or(true)
             }
         } else {
             // Element doesn't suffer from pattern mismatch if pattern is invalid.
@@ -1138,11 +1157,11 @@ impl TextControlElement for HTMLInputElement {
     fn selection_api_applies(&self) -> bool {
         matches!(
             self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Password
+            InputType::Text
+                | InputType::Search
+                | InputType::Url
+                | InputType::Tel
+                | InputType::Password
         )
     }
 
@@ -1155,29 +1174,29 @@ impl TextControlElement for HTMLInputElement {
     // rendered as a text control: file
     fn has_selectable_text(&self) -> bool {
         match self.input_type() {
-            InputType::Text |
-            InputType::Search |
-            InputType::Url |
-            InputType::Tel |
-            InputType::Password |
-            InputType::Email |
-            InputType::Date |
-            InputType::Month |
-            InputType::Week |
-            InputType::Time |
-            InputType::DatetimeLocal |
-            InputType::Number |
-            InputType::Color => true,
+            InputType::Text
+            | InputType::Search
+            | InputType::Url
+            | InputType::Tel
+            | InputType::Password
+            | InputType::Email
+            | InputType::Date
+            | InputType::Month
+            | InputType::Week
+            | InputType::Time
+            | InputType::DatetimeLocal
+            | InputType::Number
+            | InputType::Color => true,
 
-            InputType::Button |
-            InputType::Checkbox |
-            InputType::File |
-            InputType::Hidden |
-            InputType::Image |
-            InputType::Radio |
-            InputType::Range |
-            InputType::Reset |
-            InputType::Submit => false,
+            InputType::Button
+            | InputType::Checkbox
+            | InputType::File
+            | InputType::Hidden
+            | InputType::Image
+            | InputType::Radio
+            | InputType::Range
+            | InputType::Reset
+            | InputType::Submit => false,
         }
     }
 
@@ -1713,9 +1732,9 @@ fn in_same_group(
         return false;
     }
 
-    if other.input_type() != InputType::Radio ||
-        other.form_owner().as_deref() != owner ||
-        other.radio_group_name().as_ref() != group
+    if other.input_type() != InputType::Radio
+        || other.form_owner().as_deref() != owner
+        || other.radio_group_name().as_ref() != group
     {
         return false;
     }
@@ -2104,14 +2123,14 @@ impl HTMLInputElement {
             },
             // The following inputs don't have a value sanitization algorithm.
             // See https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm
-            InputType::Button |
-            InputType::Checkbox |
-            InputType::File |
-            InputType::Hidden |
-            InputType::Image |
-            InputType::Radio |
-            InputType::Reset |
-            InputType::Submit => (),
+            InputType::Button
+            | InputType::Checkbox
+            | InputType::File
+            | InputType::Hidden
+            | InputType::Image
+            | InputType::Radio
+            | InputType::Reset
+            | InputType::Submit => (),
         }
     }
 
@@ -2155,21 +2174,21 @@ impl HTMLInputElement {
                     .unwrap()
                     .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
-                        input.form_owner() == owner &&
-                            matches!(
+                        input.form_owner() == owner
+                            && matches!(
                                 input.input_type(),
-                                InputType::Text |
-                                    InputType::Search |
-                                    InputType::Url |
-                                    InputType::Tel |
-                                    InputType::Email |
-                                    InputType::Password |
-                                    InputType::Date |
-                                    InputType::Month |
-                                    InputType::Week |
-                                    InputType::Time |
-                                    InputType::DatetimeLocal |
-                                    InputType::Number
+                                InputType::Text
+                                    | InputType::Search
+                                    | InputType::Url
+                                    | InputType::Tel
+                                    | InputType::Email
+                                    | InputType::Password
+                                    | InputType::Date
+                                    | InputType::Month
+                                    | InputType::Week
+                                    | InputType::Time
+                                    | InputType::DatetimeLocal
+                                    | InputType::Number
                             )
                     });
 
@@ -2386,8 +2405,8 @@ impl VirtualMethods for HTMLInputElement {
                         let new_value_mode = self.value_mode();
                         match (&old_value_mode, old_idl_value.is_empty(), new_value_mode) {
                             // Step 1
-                            (&ValueMode::Value, false, ValueMode::Default) |
-                            (&ValueMode::Value, false, ValueMode::DefaultOn) => {
+                            (&ValueMode::Value, false, ValueMode::Default)
+                            | (&ValueMode::Value, false, ValueMode::DefaultOn) => {
                                 self.SetValue(old_idl_value, CanGc::note())
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
@@ -2608,9 +2627,9 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
             }
-        } else if event.type_() == atom!("keydown") &&
-            !event.DefaultPrevented() &&
-            self.input_type().is_textual_or_password()
+        } else if event.type_() == atom!("keydown")
+            && !event.DefaultPrevented()
+            && self.input_type().is_textual_or_password()
         {
             if let Some(keyevent) = event.downcast::<KeyboardEvent>() {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
@@ -2633,9 +2652,9 @@ impl VirtualMethods for HTMLInputElement {
                     Nothing => (),
                 }
             }
-        } else if event.type_() == atom!("keypress") &&
-            !event.DefaultPrevented() &&
-            self.input_type().is_textual_or_password()
+        } else if event.type_() == atom!("keypress")
+            && !event.DefaultPrevented()
+            && self.input_type().is_textual_or_password()
         {
             if event.IsTrusted() {
                 self.owner_global()
@@ -2648,10 +2667,10 @@ impl VirtualMethods for HTMLInputElement {
                         EventCancelable::NotCancelable,
                     );
             }
-        } else if (event.type_() == atom!("compositionstart") ||
-            event.type_() == atom!("compositionupdate") ||
-            event.type_() == atom!("compositionend")) &&
-            self.input_type().is_textual_or_password()
+        } else if (event.type_() == atom!("compositionstart")
+            || event.type_() == atom!("compositionupdate")
+            || event.type_() == atom!("compositionend"))
+            && self.input_type().is_textual_or_password()
         {
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
@@ -2736,9 +2755,15 @@ impl Validatable for HTMLInputElement {
         match self.input_type() {
             InputType::Hidden | InputType::Button | InputType::Reset => false,
             _ => {
+<<<<<<< HEAD
                 !(self.upcast::<Element>().disabled_state() ||
                     self.ReadOnly() ||
                     is_barred_by_datalist_ancestor(self.upcast()))
+=======
+                !(self.upcast::<Element>().disabled_state()
+                    || (self.ReadOnly() && self.does_readonly_apply())
+                    || is_barred_by_datalist_ancestor(self.upcast()))
+>>>>>>> a4a6c131b7 (new_js_regex and matches_js_regex need a CanGc argument)
             },
         }
     }
@@ -2747,26 +2772,26 @@ impl Validatable for HTMLInputElement {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
 
-        if validate_flags.contains(ValidationFlags::VALUE_MISSING) &&
-            self.suffers_from_being_missing(&value)
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING)
+            && self.suffers_from_being_missing(&value)
         {
             failed_flags.insert(ValidationFlags::VALUE_MISSING);
         }
 
-        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH) &&
-            self.suffers_from_type_mismatch(&value)
+        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH)
+            && self.suffers_from_type_mismatch(&value)
         {
             failed_flags.insert(ValidationFlags::TYPE_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) &&
-            self.suffers_from_pattern_mismatch(&value)
+        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH)
+            && self.suffers_from_pattern_mismatch(&value)
         {
             failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::BAD_INPUT) &&
-            self.suffers_from_bad_input(&value)
+        if validate_flags.contains(ValidationFlags::BAD_INPUT)
+            && self.suffers_from_bad_input(&value)
         {
             failed_flags.insert(ValidationFlags::BAD_INPUT);
         }
@@ -2776,9 +2801,9 @@ impl Validatable for HTMLInputElement {
         }
 
         if validate_flags.intersects(
-            ValidationFlags::RANGE_UNDERFLOW |
-                ValidationFlags::RANGE_OVERFLOW |
-                ValidationFlags::STEP_MISMATCH,
+            ValidationFlags::RANGE_UNDERFLOW
+                | ValidationFlags::RANGE_OVERFLOW
+                | ValidationFlags::STEP_MISMATCH,
         ) {
             failed_flags |= self.suffers_from_range_issues(&value);
         }
@@ -2991,7 +3016,7 @@ fn compile_pattern(cx: SafeJSContext, pattern_str: &str, out_regex: MutableHandl
     if check_js_regex_syntax(cx, pattern_str) {
         // ...and if it does make pattern that matches only the entirety of string
         let pattern_str = format!("^(?:{})$", pattern_str);
-        new_js_regex(cx, &pattern_str, out_regex)
+        new_js_regex(cx, &pattern_str, out_regex, CanGc::note())
     } else {
         false
     }
@@ -3027,7 +3052,12 @@ fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
 }
 
 #[allow(unsafe_code)]
-fn new_js_regex(cx: SafeJSContext, pattern: &str, mut out_regex: MutableHandleObject) -> bool {
+fn new_js_regex(
+    cx: SafeJSContext,
+    pattern: &str,
+    mut out_regex: MutableHandleObject,
+    can_gc: CanGc,
+) -> bool {
     let pattern: Vec<u16> = pattern.encode_utf16().collect();
     unsafe {
         out_regex.set(NewUCRegExpObject(
@@ -3047,7 +3077,12 @@ fn new_js_regex(cx: SafeJSContext, pattern: &str, mut out_regex: MutableHandleOb
 }
 
 #[allow(unsafe_code)]
-fn matches_js_regex(cx: SafeJSContext, regex_obj: HandleObject, value: &str) -> Result<bool, ()> {
+fn matches_js_regex(
+    cx: SafeJSContext,
+    regex_obj: HandleObject,
+    value: &str,
+    can_gc: CanGc,
+) -> Result<bool, ()> {
     let mut value: Vec<u16> = value.encode_utf16().collect();
 
     unsafe {
