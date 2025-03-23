@@ -116,6 +116,15 @@ where
                 },
                 _ => {},
             }
+
+            if matches!(
+                element.type_id(),
+                Some(LayoutNodeType::Element(
+                    LayoutElementType::HTMLInputElement | LayoutElementType::HTMLTextAreaElement
+                ))
+            ) {
+                flags.insert(FragmentFlags::IS_TEXT_CONTROL);
+            }
         };
 
         Self {
@@ -135,12 +144,15 @@ pub(super) enum Contents {
 }
 
 #[derive(Debug)]
+#[allow(clippy::enum_variant_names)]
 pub(super) enum NonReplacedContents {
     /// Refers to a DOM subtree, plus `::before` and `::after` pseudo-elements.
     OfElement,
     /// Content of a `::before` or `::after` pseudo-element that is being generated.
     /// <https://drafts.csswg.org/css2/generate.html#content>
     OfPseudoElement(Vec<PseudoElementContentItem>),
+    /// Workaround for input and textarea element until we properly implement `display-inside`.
+    OfTextControl,
 }
 
 #[derive(Debug)]
@@ -236,8 +248,18 @@ fn traverse_element<'dom, Node>(
             }
         },
         Display::GeneratingBox(display) => {
-            let contents =
-                replaced.map_or(NonReplacedContents::OfElement.into(), Contents::Replaced);
+            let contents = if let Some(replaced) = replaced {
+                Contents::Replaced(replaced)
+            } else if matches!(
+                element.type_id(),
+                LayoutNodeType::Element(
+                    LayoutElementType::HTMLInputElement | LayoutElementType::HTMLTextAreaElement
+                )
+            ) {
+                NonReplacedContents::OfTextControl.into()
+            } else {
+                NonReplacedContents::OfElement.into()
+            };
             let display = display.used_value_for_contents(&contents);
             let box_slot = element.element_box_slot();
             let info = NodeAndStyleInfo::new(element, style);
@@ -366,7 +388,9 @@ impl NonReplacedContents {
             },
         };
         match self {
-            NonReplacedContents::OfElement => traverse_children_of(node, context, handler),
+            NonReplacedContents::OfElement | NonReplacedContents::OfTextControl => {
+                traverse_children_of(node, context, handler)
+            },
             NonReplacedContents::OfPseudoElement(items) => {
                 traverse_pseudo_element_contents(info, context, handler, items)
             },
