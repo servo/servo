@@ -212,6 +212,12 @@ codegen-units = 1
 #
 #     <crate> = { path = "/path/to/local/checkout" }
 #
+# For html5ever:
+#
+# markup5ever = { path = "../html5ever/markup5ever" }
+# html5ever = { path = "../html5ever/html5ever" }
+# xml5ever = { path = "../html5ever/xml5ever" }
+#
 # Or for Stylo:
 #
 # [patch."https://github.com/servo/stylo"]
