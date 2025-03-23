@@ -40,6 +40,9 @@ pub struct LayoutContext<'a> {
 
     pub webrender_image_cache:
         Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
+
+    /// The DOM node that is highlighted by the devtools inspector, if any
+    pub highlighted_dom_node: Option<OpaqueNode>,
 }
 
 impl Drop for LayoutContext<'_> {
