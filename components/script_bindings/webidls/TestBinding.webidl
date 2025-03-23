@@ -616,3 +616,5 @@ namespace TestNS {
     const unsigned long ONE   = 1;
     const unsigned long TWO   = 0x2;
 };
+
+typedef Promise<undefined> PromiseUndefined;

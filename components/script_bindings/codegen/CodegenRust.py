@@ -74,7 +74,7 @@ def isDomInterface(t, logging=False):
         t = t.inner
     if isinstance(t, IDLInterface):
         return True
-    if t.isCallback():
+    if t.isCallback() or t.isPromise():
         return True
     return t.isInterface() and (t.isGeckoInterface() or (t.isSpiderMonkeyInterface() and not t.isBufferSource()))
 
@@ -88,12 +88,12 @@ def containsDomInterface(t, logging=False):
         t = t.inner
     if t.isEnum():
         return False
-    if isDomInterface(t):
-        return True
     if t.isUnion():
         return any(map(lambda x: containsDomInterface(x), t.flatMemberTypes))
     if t.isDictionary():
         return any(map(lambda x: containsDomInterface(x), t.members)) or (t.parent and containsDomInterface(t.parent))
+    if isDomInterface(t):
+        return True
     if t.isSequence():
         return containsDomInterface(t.inner)
     return False
