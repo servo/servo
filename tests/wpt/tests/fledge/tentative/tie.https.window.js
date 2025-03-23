@@ -4,12 +4,12 @@
 // META: script=resources/fledge-util.sub.js
 // META: timeout=long
 
-"use strict;"
+"use strict";
 
 // Runs one auction at a time using `auctionConfigOverrides` until the auction
 // has a winner.
 async function runAuctionsUntilWinner(test, uuid, auctionConfigOverrides) {
-  fencedFrameConfig = null;
+  let fencedFrameConfig = null;
   while (!fencedFrameConfig) {
     fencedFrameConfig =
         await runBasicFledgeAuction(test, uuid, auctionConfigOverrides);

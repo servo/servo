@@ -468,11 +468,17 @@
         return create_context_action("create_virtual_pressure_source", context, {source_type, metadata});
     };
 
-    window.test_driver_internal.update_virtual_pressure_source = function(source_type, sample, context=null) {
-        return create_context_action("update_virtual_pressure_source", context, {source_type, sample});
+    window.test_driver_internal.update_virtual_pressure_source = function(source_type, sample, estimate, context=null) {
+        return create_context_action("update_virtual_pressure_source", context, {source_type, sample, estimate});
     };
 
     window.test_driver_internal.remove_virtual_pressure_source = function(source_type, context=null) {
         return create_context_action("remove_virtual_pressure_source", context, {source_type});
     };
+
+    window.test_driver_internal.set_protected_audience_k_anonymity = function(
+        owner, name, hashes, context=null) {
+      return create_context_action(
+          'set_protected_audience_k_anonymity', context, {owner, name, hashes});
+    }
 })();

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+
+<script>
+
+function getNextWindowMessageFromFrame(frame) {
+  return new Promise(resolve => {
+    window.addEventListener('message', event => {
+      if (event.source === frame.contentWindow) {
+        resolve(event.data);
+      }
+    });
+  });
+}
+
+function getNextMessageFromServiceWorker(serviceWorker) {
+  return new Promise(resolve => {
+    serviceWorker.addEventListener('message', event => {
+      resolve(event.data);
+    }, {once: true});
+  });
+}
+
+promise_setup(async () => {
+  assertSpeculationRulesIsSupported()
+  await test_driver.set_rph_registration_mode('autoAccept');
+  await test_driver.bless('handler registration');
+});
+
+// The overall idea for this test is:
+// 1. Register a protocol handler for a custom URI scheme.
+// 2. Create a prerendered page that unregisters the protocol handler.
+// 3. Navigate an iframe to the custom URI scheme. It should navigate
+// successfully.
+// 4. Activate the prerendered page. This should run the deferred unregistration
+// work.
+// 5. Navigate the iframe to the custom URI scheme again. It should fail to
+// navigate.
+// To detect the navigation failure, we use a service worker to perform the
+// navigation via client.navigate and report the result back to
+// the test. This is because the service worker's client.navigate method
+// actually reports if the navigation failed, unlike other mechanisms which
+// tell us nothing in this case.
+promise_test(async t => {
+  const customUrlScheme = 'web+wptrphtest';
+  function getProtocolHandlerUrlTemplate(id) {
+    return new URL(
+        `resources/protocol-handler.html?id=${id}&s=%s`, location.href).href;
+  }
+
+  const urlTemplate = getProtocolHandlerUrlTemplate('unregister');
+
+  t.add_cleanup(() => {
+    navigator.unregisterProtocolHandler(
+        customUrlScheme, urlTemplate);
+  });
+  navigator.registerProtocolHandler(customUrlScheme, urlTemplate);
+
+  const {exec, activate} = await create_prerendered_page(t);
+
+  const result = await exec(
+      (customUrlScheme, urlTemplate) => {
+        try {
+          navigator.unregisterProtocolHandler(
+              customUrlScheme, urlTemplate);
+        } catch (registerProtocolHandlerException) {
+          return 'registerProtocolHandler failed with \'' +
+              registerProtocolHandlerException.name + '\'';
+        }
+        return 'success';
+  }, [customUrlScheme, urlTemplate]);
+  assert_equals(result, 'success', 'unregisterProtocolHandler should succeed.');
+
+  const frame1 = await with_iframe('about:blank');
+
+  const frame1MessagePromise = getNextWindowMessageFromFrame(frame1);
+  frame1.src = `${customUrlScheme}:1`;
+  assert_equals((await frame1MessagePromise).id, 'unregister',
+    'Until activation, the initial handler should be registered.');
+
+  frame1.remove();
+
+  // Activate the prerendered page.
+  await activate();
+
+  // At this point the deferred unregistration work has run during activation
+  // and the protocol handler is no longer registered.
+  // We use Service Worker client.navigate to detect the failed navigation since
+  // it is well supported and reliably reports error for unknown URL schemes.
+  const serviceWorkerScope =
+      'resources/protocol-handler.html?service_worker_client';
+  const frame2Url = serviceWorkerScope + '&id=communication';
+  const frame3Url = serviceWorkerScope + '&id=nav_target';
+  const serviceWorkerUrl = 'resources/protocol-handler-service-worker.js';
+  const serviceWorkerRegistration =
+      await service_worker_unregister_and_register(
+          t, serviceWorkerUrl, serviceWorkerScope);
+
+  t.add_cleanup(async () => {
+    await serviceWorkerRegistration.unregister();
+  });
+
+  await wait_for_state(t, serviceWorkerRegistration.installing, 'activated');
+
+  // We use frame2 to communicate with the service worker.
+  const frame2 = await with_iframe(frame2Url);
+
+  // Frame3 is used by the service worker to attempt navigation.
+  const frame3 = await with_iframe(frame3Url);
+
+  const serviceWorkerMessagePromise = getNextMessageFromServiceWorker(
+      frame2.contentWindow.navigator.serviceWorker);
+
+  // Post message via frame2 to the service worker to tell it to navigate frame3
+  // to the custom URI.
+  frame2.contentWindow.navigator.serviceWorker.controller.postMessage(
+      {clientUrlMatch: new URL(frame3Url, location.href).href,
+       navigationUrl: `${customUrlScheme}:3`});
+
+  // The service worker will post message back the result of the navigation.
+  const navigationResult = await serviceWorkerMessagePromise;
+
+  frame2.remove();
+  frame3.remove();
+
+  assert_false(navigationResult.success, 'Navigation to unregistered URI should fail');
+  assert_equals(navigationResult.message, 'navigate failure: TypeError',
+      'unregisterProtocolHandler should have completed.');
+}, 'prerendering page unregisterProtocolHandler call defers registration until activation.');
+
+</script>

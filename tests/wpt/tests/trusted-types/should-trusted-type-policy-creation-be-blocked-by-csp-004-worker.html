@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="timeout" content="long">
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  fetch_tests_from_worker(new Worker(
+    "support/should-trusted-type-policy-creation-be-blocked-by-csp-004-worker.js"
+  ));
+</script>

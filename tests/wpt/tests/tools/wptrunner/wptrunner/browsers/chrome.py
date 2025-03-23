@@ -158,6 +158,9 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
         chrome_options["args"].append(
             "--ip-address-space-overrides=" + address_space_overrides_arg)
 
+    # Disable overlay scrollbar animations to prevent flaky wpt screenshots based on timing.
+    chrome_options["args"].append("--disable-features=ScrollbarAnimations")
+
     # Always disable antialiasing on the Ahem font.
     blink_features = ['DisableAhemAntialias']
 

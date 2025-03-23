@@ -45,6 +45,7 @@ from .protocol import (BaseProtocolPart,
                        DevicePostureProtocolPart,
                        StorageProtocolPart,
                        VirtualPressureSourceProtocolPart,
+                       ProtectedAudienceProtocolPart,
                        merge_dicts)
 
 from typing import Any, List, Optional, Tuple
@@ -684,13 +685,20 @@ class WebDriverVirtualPressureSourceProtocolPart(VirtualPressureSourceProtocolPa
         body.update(metadata)
         return self.webdriver.send_session_command("POST", "pressuresource", body)
 
-    def update_virtual_pressure_source(self, source_type, sample):
-        body = {"sample": sample}
+    def update_virtual_pressure_source(self, source_type, sample, estimate):
+        body = {"sample": sample, "estimate": estimate}
         return self.webdriver.send_session_command("POST", "pressuresource/%s" % source_type, body)
 
     def remove_virtual_pressure_source(self, source_type):
         return self.webdriver.send_session_command("DELETE", "pressuresource/%s" % source_type)
 
+class WebDriverProtectedAudienceProtocolPart(ProtectedAudienceProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def set_k_anonymity(self, owner, name, hashes):
+        body = {"owner": owner, "name": name, "hashes": hashes}
+        return self.webdriver.send_session_command("POST", "protected_audience/set_k_anonymity", body)
 
 class WebDriverProtocol(Protocol):
     enable_bidi = False
@@ -715,7 +723,8 @@ class WebDriverProtocol(Protocol):
                   WebDriverVirtualSensorPart,
                   WebDriverDevicePostureProtocolPart,
                   WebDriverStorageProtocolPart,
-                  WebDriverVirtualPressureSourceProtocolPart]
+                  WebDriverVirtualPressureSourceProtocolPart,
+                  WebDriverProtectedAudienceProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         super().__init__(executor, browser)

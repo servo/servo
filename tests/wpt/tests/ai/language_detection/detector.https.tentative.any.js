@@ -32,6 +32,12 @@ promise_test(async t => {
 }, 'AILanguageDetectorFactory.create() call with an aborted signal.');
 
 promise_test(async t => {
+  await testAbortPromise(t, signal => {
+    return ai.languageDetector.create({signal});
+  });
+}, 'Aborting AILanguageDetectorFactory.create().');
+
+promise_test(async t => {
   const controller = new AbortController();
   controller.abort();
 

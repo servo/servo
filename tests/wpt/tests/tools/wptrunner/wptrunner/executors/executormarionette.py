@@ -721,7 +721,7 @@ class MarionetteVirtualPressureSourceProtocolPart(VirtualPressureSourceProtocolP
     def create_virtual_pressure_source(self, source_type, metadata):
         raise NotImplementedError("create_virtual_pressure_source not yet implemented")
 
-    def update_virtual_pressure_source(self, source_type, sample):
+    def update_virtual_pressure_source(self, source_type, sample, estimate):
         raise NotImplementedError("update_virtual_pressure_source not yet implemented")
 
     def remove_virtual_pressure_source(self, source_type):

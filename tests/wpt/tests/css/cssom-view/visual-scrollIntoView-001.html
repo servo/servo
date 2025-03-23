@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support/action-utils.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1943865">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1943053">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#perform-a-scroll">
+<style>
+body {
+  margin: 0px;
+  padding: 0px;
+}
+</style>
+<div id="anchor"></div>
+<div style="position: fixed; bottom: 0;">
+  <div style="position: absolute; bottom: 0;">
+    <input type="text" id="name" />
+  </div>
+</div>
+<script>
+promise_test(async t => {
+  assert_equals(window.scrollY, 0);
+  assert_equals(visualViewport.scale, 1.0);
+  assert_equals(visualViewport.pageTop, 0);
+
+  // Pinch zoom in this document.
+  await pinch_zoom_action();
+
+  assert_greater_than(visualViewport.scale, 1.0);
+
+  // Suppose that the pinch zoom-in gesture at the center of the document did
+  // move the visual viewport offset.
+  assert_greater_than(visualViewport.pageTop, 0);
+
+  // Move to zero offset of the visual viewport.
+  let scrollPromise =
+      new Promise(resolve => visualViewport.addEventListener("scroll", resolve));
+  document.querySelector('#anchor').scrollIntoView({ behavior: "instant" });
+  await scrollPromise;
+
+  assert_equals(visualViewport.pageTop, 0);
+
+  // Now trigger a scrollIntoView call to an element inside a position:fixed element.
+  scrollPromise =
+      new Promise(resolve => visualViewport.addEventListener("scroll", resolve));
+  document.querySelector('#name').scrollIntoView({ behavior: "instant" });
+  await scrollPromise;
+
+  assert_greater_than(visualViewport.pageTop, 0);
+}, "Element.scrollIntoView scrolls visually");
+</script>

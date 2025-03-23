@@ -17,8 +17,8 @@ function resolve_corner_style(style, w, h) {
         style['corner-shape'] || 'round';
     const match = shape.match(/superellipse\((\.?[0-9]+(.[0-9]+)?)\)/);
     shape = match ? +match[1] : keywords[shape];
-    const hWidth = style[`border-${hSide}-width`] || style['border-width'] || 0;
-    const vWidth = style[`border-${vSide}-width`] || style['border-width'] || 0;
+    const hWidth = parseFloat(style[`border-${hSide}-width`] || style['border-width'] || 0);
+    const vWidth = parseFloat(style[`border-${vSide}-width`] || style['border-width'] || 0);
     let radius =
         style[`border-${vSide}-${hSide}-radius`] || style['border-radius'] || 0;
     if (!Array.isArray(radius))

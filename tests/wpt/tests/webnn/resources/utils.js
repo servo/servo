@@ -975,6 +975,15 @@ const getConv2dPrecisionTolerance =
   return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
 };
 
+const getInstanceNormPrecisionTolerance = (graphResources) => {
+  // according to
+  // https://github.com/web-platform-tests/wpt/pull/43891#discussion_r1457026316
+  const toleranceValueDict = {float32: 840, float16: 8400};
+  const expectedDataType =
+      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
+  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
+};
+
 const getExpectedDataTypeOfSingleOutput = (expectedOutput) => {
   const expectedDescriptor =
       expectedOutput[Object.keys(expectedOutput)[0]].descriptor;

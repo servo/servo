@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  fetch_tests_from_worker(new Worker(
+    "support/should-sink-type-mismatch-violation-be-blocked-by-csp-002-worker.js"
+  ));
+</script>

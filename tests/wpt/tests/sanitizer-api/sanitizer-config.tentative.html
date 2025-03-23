@@ -95,9 +95,10 @@ for (key of ["attributes", "removeAttributes"]) {
   test_normalization(key,
     {name: "href", namespace: null},
     {name: "href", namespace: null});
+  // https://wicg.github.io/sanitizer-api/#canonicalize-a-sanitizer-name, step 5
   test_normalization(key,
     {name: "href", namespace: ""},
-    {name: "href", namespace: null});  // ??? Is this correct?
+    {name: "href", namespace: null});
   test_normalization(key,
     {name: "href", namespace: "https://www.w3.org/1999/xlink"},
     {name: "href", namespace: "https://www.w3.org/1999/xlink"});

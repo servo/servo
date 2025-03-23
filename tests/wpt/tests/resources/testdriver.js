@@ -1428,7 +1428,7 @@
          * Causes a virtual pressure source to report a new reading.
          *
          * Matches the `Update virtual pressure source
-         * <https://w3c.github.io/compute-pressure/#update-virtual-pressure-source>`_
+         * <https://w3c.github.io/compute-pressure/?experimental=1#update-virtual-pressure-source>`_
          * WebDriver command.
          *
          * @param {String} source_type - A `virtual pressure source type
@@ -1437,6 +1437,9 @@
          * @param {String} sample - A `virtual pressure state
          *                          <https://w3c.github.io/compute-pressure/#dom-pressurestate>`_
          *                          such as "critical".
+         * @param {number} estimate - Optional, A `virtual own contribution estimate`
+         *                          <https://w3c.github.io/compute-pressure/?experimental=1#the-owncontributionestimate-attribute>`_
+
          * @param {WindowProxy} [context=null] - Browsing context in which to
          *                                       run the call, or null for the
          *                                       current browsing context.
@@ -1447,8 +1450,8 @@
          *                    virtual pressure source of the given type does not
          *                    exist).
          */
-        update_virtual_pressure_source: function(source_type, sample, context=null) {
-            return window.test_driver_internal.update_virtual_pressure_source(source_type, sample, context);
+        update_virtual_pressure_source: function(source_type, sample, estimate, context=null) {
+            return window.test_driver_internal.update_virtual_pressure_source(source_type, sample, estimate, context);
         },
 
         /**
@@ -1472,6 +1475,29 @@
          */
         remove_virtual_pressure_source: function(source_type, context=null) {
             return window.test_driver_internal.remove_virtual_pressure_source(source_type, context);
+        },
+
+        /**
+         * Sets which hashes are considered k-anonymous for the Protected
+         * Audience interest group with specified `owner` and `name`.
+         *
+         * Matches the `Set Protected Audience K-Anonymity
+         * <https://wicg.github.io/turtledove/#sctn-automation-set-protected-audience-k-anonymity>
+         * WebDriver command.
+         *
+         *  @param {String} owner - Origin of the owner of the interest group
+         *                          to modify
+         *  @param {String} name -  Name of the interest group to modify
+         *  @param {Array} hashes - An array of strings, each of which is a
+         *                          base64 ecoded hash to consider k-anonymous.
+         *
+         *  @returns {Promise} Fulfilled after the k-anonymity status for the
+         *                     specified Protected Audience interest group has
+         *                     been updated.
+         *
+         */
+        set_protected_audience_k_anonymity: function(owner, name, hashes, context = null) {
+            return window.test_driver_internal.set_protected_audience_k_anonymity(owner, name, hashes, context);
         }
     };
 
@@ -1723,12 +1749,16 @@
             throw new Error("create_virtual_pressure_source() is not implemented by testdriver-vendor.js");
         },
 
-        async update_virtual_pressure_source(source_type, sample, context=null) {
+        async update_virtual_pressure_source(source_type, sample, estimate, context=null) {
             throw new Error("update_virtual_pressure_source() is not implemented by testdriver-vendor.js");
         },
 
         async remove_virtual_pressure_source(source_type, context=null) {
             throw new Error("remove_virtual_pressure_source() is not implemented by testdriver-vendor.js");
+        },
+
+        async set_protected_audience_k_anonymity(owner, name, hashes, context=null) {
+            throw new Error("set_protected_audience_k_anonymity() is not implemented by testdriver-vendor.js");
         }
     };
 })();

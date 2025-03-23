@@ -287,6 +287,8 @@ SET TIMEOUT: shadow-dom/scroll-to-the-fragment-in-shadow-tree.html
 SET TIMEOUT: shadow-dom/slotchange-event.html
 SET TIMEOUT: trusted-types/support/block-string-assignment-to-DOMWindowTimers-setTimeout-setInterval.js
 SET TIMEOUT: trusted-types/support/DOMWindowTimers-setTimeout-setInterval.js
+SET TIMEOUT: trusted-types/support/should-sink-type-mismatch-violation-be-blocked-by-csp-002-worker.js
+SET TIMEOUT: trusted-types/support/trusted-types-reporting-check-report-sink-mismatch.js
 SET TIMEOUT: trusted-types/support/trusted-types-reporting-for-DOMWindowTimers-setTimeout-setInterval.js
 SET TIMEOUT: user-timing/*
 SET TIMEOUT: web-animations/crashtests/reparent-animating-element-002.html

@@ -4,6 +4,9 @@
 <link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
 <link rel="match" href="corner-shape-any-ref.html">
 <meta name="variant" content="?corner-shape=squircle&border-radius=50%">
+<meta name="variant" content="?corner-shape=squircle&border-top-left-radius=25%&border-width=10px">
+<meta name="variant" content="?corner-shape=squircle&border-radius=25%&border-width=20px">
+<meta name="variant" content="?corner-top-left-shape=superellipse(6)&border-radius=20%&border-width=10px">
 <meta name="variant" content="?corner-shape=squircle&border-top-left-radius=30%">
 <meta name="variant" content="?corner-shape=squircle&border-top-right-radius=30px">
 <meta name="variant" content="?corner-shape=straight&border-bottom-leftradius=5px">
@@ -13,13 +16,31 @@
 <meta name="variant" content="?corner-top-right-shape=superellipse(0.1)&border-top-right-radius=50px">
 <meta name="variant" content="?corner-bottom-left-shape=bevel&border-bottom-left-radius=30px">
 <meta name="variant" content="?corner-bottom-right-shape=superellipse(1.9)&border-bottom-right-radius=50%">
+<meta name="variant" content="?corner-top-left-shape=bevel&border-width=10px&border-color=black">
+<meta name="variant" content="?corner-top-right-shape=bevel&border-width=10px&border-color=black">
+<meta name="variant" content="?corner-bottom-left-shape=bevel&border-width=10px&border-radius=20px">
+<meta name="variant" content="?corner-bottom-right-shape=bevel&border-width=10px&border-radius=20px">
+<meta name="variant" content="?corner-bottom-right-shape=bevel&corner-bottom-left-shape=bevel">
+<meta name="variant" content="?corner-top-left-shape=bevel&border-radius=40px">
+<meta name="variant" content="?corner-top-left-shape=scoop&border-radius=40px">
+<meta name="variant" content="?corner-top-left-shape=superellipse(0.2)&border-radius=40px">
+<meta name="variant" content="?corner-top-left-shape=superellipse(0.3)&border-radius=40%">
+<meta name="variant" content="?corner-top-left-shape=superellipse(1.2)&border-radius=40px">
+<meta name="variant" content="?corner-top-left-shape=superellipse(0.8)&border-radius=40px">
+<meta name="variant" content="?corner-top-left-shape=bevel&border-radius=40px&border-width=10px">
 <meta name="fuzzy" content="maxDifference=0-180;totalPixels=0-520">
 <style>
+  body {
+    margin: 0;
+  }
   #target {
     width: 200px;
     height: 100px;
     box-sizing: border-box;
     background: green;
+    border-style: solid;
+    border-color: black;
+    border-width: 0;
   }
 </style>
 <div id="target"></div>
