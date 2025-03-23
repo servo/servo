@@ -20,7 +20,7 @@ use js::jsapi::{
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
 };
 use js::jsval::UndefinedValue;
-use js::rust::jsapi_wrapped::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
+use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
@@ -3010,7 +3010,7 @@ fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
             RegExpFlags {
                 flags_: RegExpFlag_Unicode,
             },
-            &mut exception.handle_mut(),
+            exception.handle_mut(),
         );
 
         if !valid {
@@ -3063,7 +3063,7 @@ fn matches_js_regex(cx: SafeJSContext, regex_obj: HandleObject, value: &str) -> 
             value.len(),
             &mut index,
             true,
-            &mut rval.handle_mut(),
+            rval.handle_mut(),
         );
 
         if ok {
