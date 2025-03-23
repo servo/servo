@@ -27,8 +27,7 @@ use js::jsapi::{
     ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
-use js::rust::jsapi_wrapped::JS_GetPendingException;
-use js::rust::wrappers::JS_SetPendingException;
+use js::rust::wrappers::{JS_GetPendingException, JS_SetPendingException};
 use js::rust::{
     CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle,
     MutableHandleObject as RustMutableHandleObject, transform_str_to_source_text,
@@ -488,7 +487,7 @@ impl ModuleTree {
                 warn!("fail to compile module script of {}", url);
 
                 rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, &mut exception.handle_mut()));
+                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 return Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
@@ -531,7 +530,7 @@ impl ModuleTree {
                 warn!("fail to link & instantiate module");
 
                 rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, &mut exception.handle_mut()));
+                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
@@ -577,7 +576,7 @@ impl ModuleTree {
                 warn!("fail to evaluate module");
 
                 rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, &mut exception.handle_mut()));
+                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
                 JS_ClearPendingException(*cx);
 
                 Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(

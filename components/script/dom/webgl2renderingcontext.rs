@@ -903,7 +903,6 @@ impl WebGL2RenderingContext {
 impl CanvasContext for WebGL2RenderingContext {
     type ID = WebGLContextId;
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Crown is wrong here #35570
     fn context_id(&self) -> Self::ID {
         self.base.context_id()
     }
@@ -1217,14 +1216,21 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             );
             handle_potential_webgl_error!(
                 self.base,
-                self.get_specific_fb_attachment_param(cx, &fb, target, attachment, pname, rval),
+                self.get_specific_fb_attachment_param(
+                    cx,
+                    &fb,
+                    target,
+                    attachment,
+                    pname,
+                    rval.reborrow()
+                ),
                 rval.set(NullValue())
             )
         } else {
             // The default framebuffer is bound to the target
             handle_potential_webgl_error!(
                 self.base,
-                self.get_default_fb_attachment_param(attachment, pname, rval),
+                self.get_default_fb_attachment_param(attachment, pname, rval.reborrow()),
                 rval.set(NullValue())
             )
         }

@@ -620,13 +620,15 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> 
 pub(crate) fn create_buffer_source<T>(
     cx: JSContext,
     data: &[T::Element],
-    dest: MutableHandleObject,
+    mut dest: MutableHandleObject,
     _can_gc: CanGc,
 ) -> Result<TypedArray<T, *mut JSObject>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
-    let res = unsafe { TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Slice(data), dest) };
+    let res = unsafe {
+        TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Slice(data), dest.reborrow())
+    };
 
     if res.is_err() {
         Err(())
@@ -638,13 +640,15 @@ where
 fn create_buffer_source_with_length<T>(
     cx: JSContext,
     len: usize,
-    dest: MutableHandleObject,
+    mut dest: MutableHandleObject,
     _can_gc: CanGc,
 ) -> Result<TypedArray<T, *mut JSObject>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
-    let res = unsafe { TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Length(len), dest) };
+    let res = unsafe {
+        TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Length(len), dest.reborrow())
+    };
 
     if res.is_err() {
         Err(())

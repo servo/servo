@@ -139,7 +139,7 @@ impl CustomElementRegistry {
     fn check_prototype(
         &self,
         constructor: HandleObject,
-        prototype: MutableHandleValue,
+        mut prototype: MutableHandleValue,
     ) -> ErrorResult {
         unsafe {
             // Step 10.1
@@ -147,7 +147,7 @@ impl CustomElementRegistry {
                 *GlobalScope::get_cx(),
                 constructor,
                 c"prototype".as_ptr(),
-                prototype,
+                prototype.reborrow(),
             ) {
                 return Err(Error::JSFailed);
             }

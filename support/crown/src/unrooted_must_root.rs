@@ -192,7 +192,9 @@ fn is_unrooted_ty<'tcx>(
             ty::RawPtr(..) => false, // don't recurse down *ptrs
             ty::FnDef(..) | ty::FnPtr(..) => false,
             ty::Alias(
-                ty::AliasTyKind::Projection | ty::AliasTyKind::Inherent | ty::AliasTyKind::Weak,
+                kind @ ty::AliasTyKind::Projection |
+                kind @ ty::AliasTyKind::Inherent |
+                kind @ ty::AliasTyKind::Weak,
                 ty,
             ) => {
                 if has_attr(ty.def_id, sym.must_root) {
@@ -201,7 +203,10 @@ fn is_unrooted_ty<'tcx>(
                 } else if has_attr(ty.def_id, sym.allow_unrooted_interior) {
                     false
                 } else {
-                    true
+                    // If this is a projection (i.e. Self::FOO), recursing will
+                    // make us consider Self, which is overly conservative for
+                    // this analysys.
+                    *kind != ty::AliasTyKind::Projection
                 }
             },
             _ => true,

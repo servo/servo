@@ -15,7 +15,6 @@ use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::formatting_contexts::Baselines;
-use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
@@ -346,8 +345,7 @@ impl BoxFragment {
     /// Whether this is a non-replaced inline-level box whose inner display type is `flow`.
     /// <https://drafts.csswg.org/css-display-3/#inline-box>
     pub(crate) fn is_inline_box(&self) -> bool {
-        self.style.get_box().display.is_inline_flow() &&
-            !self.base.flags.contains(FragmentFlags::IS_REPLACED)
+        self.style.is_inline_box(self.base.flags)
     }
 
     /// Whether this is a table wrapper box.

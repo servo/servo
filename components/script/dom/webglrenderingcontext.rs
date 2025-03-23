@@ -1864,7 +1864,6 @@ impl WebGLRenderingContext {
 impl CanvasContext for WebGLRenderingContext {
     type ID = WebGLContextId;
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Crown is wrong here #35570
     fn context_id(&self) -> Self::ID {
         self.webgl_sender.context_id()
     }
@@ -3553,7 +3552,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 constants::VERTEX_ATTRIB_ARRAY_STRIDE => retval.set(Int32Value(data.stride as i32)),
                 constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => unsafe {
                     if let Some(buffer) = data.buffer() {
-                        buffer.to_jsval(*cx, retval);
+                        buffer.to_jsval(*cx, retval.reborrow());
                     } else {
                         retval.set(NullValue());
                     }

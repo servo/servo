@@ -61,9 +61,6 @@ impl TestBindingSetlikeWithInterfaceMethods<crate::DomTypeHolder>
     }
 }
 
-// this error is wrong because if we inline Self::Key and Self::Value all errors are gone
-// TODO: FIX THIS
-#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 impl Setlike for TestBindingSetlikeWithInterface {
     type Key = DomRoot<TestBinding>;
 

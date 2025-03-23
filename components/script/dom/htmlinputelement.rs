@@ -20,7 +20,7 @@ use js::jsapi::{
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
 };
 use js::jsval::UndefinedValue;
-use js::rust::jsapi_wrapped::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
+use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
@@ -475,24 +475,6 @@ impl HTMLInputElement {
         let mut value = textinput.single_line_content().clone();
         self.sanitize_value(&mut value);
         textinput.set_content(value);
-    }
-
-    fn does_readonly_apply(&self) -> bool {
-        matches!(
-            self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Email |
-                InputType::Password |
-                InputType::Date |
-                InputType::Month |
-                InputType::Week |
-                InputType::Time |
-                InputType::DatetimeLocal |
-                InputType::Number
-        )
     }
 
     fn does_minmaxlength_apply(&self) -> bool {
@@ -2753,7 +2735,7 @@ impl Validatable for HTMLInputElement {
             InputType::Hidden | InputType::Button | InputType::Reset => false,
             _ => {
                 !(self.upcast::<Element>().disabled_state() ||
-                    (self.ReadOnly() && self.does_readonly_apply()) ||
+                    self.ReadOnly() ||
                     is_barred_by_datalist_ancestor(self.upcast()))
             },
         }
@@ -3028,7 +3010,7 @@ fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
             RegExpFlags {
                 flags_: RegExpFlag_Unicode,
             },
-            &mut exception.handle_mut(),
+            exception.handle_mut(),
         );
 
         if !valid {
@@ -3081,7 +3063,7 @@ fn matches_js_regex(cx: SafeJSContext, regex_obj: HandleObject, value: &str) -> 
             value.len(),
             &mut index,
             true,
-            &mut rval.handle_mut(),
+            rval.handle_mut(),
         );
 
         if ok {

@@ -36,7 +36,7 @@ impl CachedFrozenArray {
         }
 
         let array = f();
-        to_frozen_array(array.as_slice(), cx, retval, can_gc);
+        to_frozen_array(array.as_slice(), cx, retval.reborrow(), can_gc);
 
         // Safety: need to create the Heap value in its final memory location before setting it.
         *self.frozen_value.borrow_mut() = Some(Heap::default());

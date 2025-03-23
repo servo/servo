@@ -172,7 +172,7 @@ pub(crate) unsafe fn ensure_expando_object(
     mut expando: MutableHandleObject,
 ) {
     assert!(is_dom_proxy(obj.get()));
-    get_expando_object(obj, expando);
+    get_expando_object(obj, expando.reborrow());
     if expando.is_null() {
         expando.set(JS_NewObjectWithGivenProto(
             cx,
