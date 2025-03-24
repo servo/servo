@@ -6,9 +6,8 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use webgpu::{WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse, wgt};
+use webgpu::{WebGPU, WebGPUQueue, WebGPURequest, wgt};
 
-use super::gpu::{AsyncWGPUListener, response_async};
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -24,6 +23,7 @@ use crate::dom::promise::Promise;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::webgpu::gpudevice::GPUDevice;
+use crate::routed_promise::{RoutedPromiseListener, route_promise};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -200,7 +200,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     fn OnSubmittedWorkDone(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
         let promise = Promise::new(&global, can_gc);
-        let sender = response_async(&promise, self);
+        let sender = route_promise(&promise, self);
         if let Err(e) = self
             .channel
             .0
@@ -215,21 +215,8 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
     }
 }
 
-impl AsyncWGPUListener for GPUQueue {
-    fn handle_response(
-        &self,
-        response: webgpu::WebGPUResponse,
-        promise: &Rc<Promise>,
-        can_gc: CanGc,
-    ) {
-        match response {
-            WebGPUResponse::SubmittedWorkDone => {
-                promise.resolve_native(&(), can_gc);
-            },
-            _ => {
-                warn!("GPUQueue received wrong WebGPUResponse");
-                promise.reject_error(Error::Operation, can_gc);
-            },
-        }
+impl RoutedPromiseListener<()> for GPUQueue {
+    fn handle_response(&self, _response: (), promise: &Rc<Promise>, can_gc: CanGc) {
+        promise.resolve_native(&(), can_gc);
     }
 }

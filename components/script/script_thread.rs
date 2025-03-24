@@ -1069,6 +1069,8 @@ impl ScriptThread {
         let window = document.window();
         let _realm = enter_realm(document.window());
         for event in document.take_pending_input_events().into_iter() {
+            document.update_active_keyboard_modifiers(event.active_keyboard_modifiers);
+
             match event.event {
                 InputEvent::MouseButton(mouse_button_event) => {
                     document.handle_mouse_button_event(
@@ -1876,16 +1878,12 @@ impl ScriptThread {
                 panic!("should have handled {:?} already", msg)
             },
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
-                self.handle_set_scroll_states_offsets(pipeline_id, scroll_states)
+                self.handle_set_scroll_states(pipeline_id, scroll_states)
             },
         }
     }
 
-    fn handle_set_scroll_states_offsets(
-        &self,
-        pipeline_id: PipelineId,
-        scroll_states: Vec<ScrollState>,
-    ) {
+    fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: Vec<ScrollState>) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             warn!("Received scroll states for closed pipeline {pipeline_id}");
             return;

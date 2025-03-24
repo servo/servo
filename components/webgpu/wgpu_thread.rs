@@ -36,7 +36,7 @@ use crate::render_commands::apply_render_command;
 use crate::swapchain::{WGPUImageMap, WebGPUContextId};
 use crate::{
     Adapter, ComputePassId, Error, Mapping, Pipeline, PopError, RenderPassId, WebGPU,
-    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
+    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest,
 };
 
 #[derive(Eq, Hash, PartialEq)]
@@ -196,9 +196,7 @@ impl WGPU {
                                     mode: host_map,
                                 })
                             });
-                            if let Err(e) =
-                                resp_sender.send(WebGPUResponse::BufferMapAsync(response))
-                            {
+                            if let Err(e) = resp_sender.send(response) {
                                 warn!("Could not send BufferMapAsync Response ({})", e);
                             }
                         });
@@ -392,8 +390,8 @@ impl WGPU {
                                 }),
                                 Some(e) => Err(Error::from_error(e)),
                             };
-                            if let Err(e) = sender.send(WebGPUResponse::ComputePipeline(res)) {
-                                warn!("Failed sending WebGPUResponse::ComputePipeline {e:?}");
+                            if let Err(e) = sender.send(res) {
+                                warn!("Failed sending WebGPUComputePipelineResponse {e:?}");
                             }
                         } else {
                             self.maybe_dispatch_wgpu_error(device_id, error);
@@ -451,8 +449,8 @@ impl WGPU {
                                 }),
                                 Some(e) => Err(Error::from_error(e)),
                             };
-                            if let Err(e) = sender.send(WebGPUResponse::RenderPipeline(res)) {
-                                warn!("Failed sending WebGPUResponse::RenderPipeline {e:?}");
+                            if let Err(e) = sender.send(res) {
+                                warn!("Failed sending WebGPURenderPipelineResponse {e:?}");
                             }
                         } else {
                             self.maybe_dispatch_wgpu_error(device_id, error);
@@ -488,12 +486,12 @@ impl WGPU {
                             source,
                             Some(program_id),
                         );
-                        if let Err(e) = sender.send(WebGPUResponse::CompilationInfo(
+                        if let Err(e) = sender.send(
                             error
                                 .as_ref()
                                 .map(|e| crate::ShaderCompilationInfo::from(e, &program)),
-                        )) {
-                            warn!("Failed to send WebGPUResponse::CompilationInfo {e:?}");
+                        ) {
+                            warn!("Failed to send CompilationInfo {e:?}");
                         }
                         self.maybe_dispatch_wgpu_error(device_id, error);
                     },
@@ -669,7 +667,7 @@ impl WGPU {
                                 }
                             });
 
-                        if let Err(e) = sender.send(WebGPUResponse::Adapter(response)) {
+                        if let Err(e) = sender.send(Some(response)) {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestAdapter ({})",
                                 e
@@ -739,8 +737,7 @@ impl WGPU {
                                 global.device_set_device_lost_closure(device_id, callback);
                                 descriptor
                             });
-                        if let Err(e) = sender.send(WebGPUResponse::Device((device, queue, result)))
-                        {
+                        if let Err(e) = sender.send((device, queue, result)) {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestDevice ({})",
                                 e
@@ -1048,7 +1045,7 @@ impl WGPU {
                         let token = self.poller.token();
                         let callback = Box::from(move || {
                             drop(token);
-                            if let Err(e) = sender.send(WebGPUResponse::SubmittedWorkDone) {
+                            if let Err(e) = sender.send(()) {
                                 warn!("Could not send SubmittedWorkDone Response ({})", e);
                             }
                         });
@@ -1187,25 +1184,21 @@ impl WGPU {
                             .expect("Device should not be dropped by this point");
                         if let Some(error_scope_stack) = &mut device_scope.error_scope_stack {
                             if let Some(error_scope) = error_scope_stack.pop() {
-                                if let Err(e) = sender.send(WebGPUResponse::PoppedErrorScope(Ok(
+                                if let Err(e) = sender.send(Ok(
                                     // TODO: Do actual selection instead of selecting first error
                                     error_scope.errors.first().cloned(),
-                                ))) {
+                                )) {
                                     warn!(
                                         "Unable to send {:?} to poperrorscope: {e:?}",
                                         error_scope.errors
                                     );
                                 }
-                            } else if let Err(e) =
-                                sender.send(WebGPUResponse::PoppedErrorScope(Err(PopError::Empty)))
-                            {
+                            } else if let Err(e) = sender.send(Err(PopError::Empty)) {
                                 warn!("Unable to send PopError::Empty: {e:?}");
                             }
                         } else {
                             // device lost
-                            if let Err(e) =
-                                sender.send(WebGPUResponse::PoppedErrorScope(Err(PopError::Lost)))
-                            {
+                            if let Err(e) = sender.send(Err(PopError::Lost)) {
                                 warn!("Unable to send PopError::Lost due {e:?}");
                             }
                         }

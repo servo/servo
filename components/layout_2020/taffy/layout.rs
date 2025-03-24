@@ -18,7 +18,6 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
-    IndependentLayout,
 };
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
@@ -27,6 +26,7 @@ use crate::geom::{
     LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, Size,
     SizeConstraint, Sizes,
 };
+use crate::layout_box_base::CacheableLayoutResult;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, LayoutStyle};
@@ -264,6 +264,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                                 &mut child_positioning_context,
                                 &content_box_size_override,
                                 containing_block,
+                                false, /* depends_on_block_constraints */
                             );
 
                             // Store layout data on child for later access
@@ -425,7 +426,7 @@ impl TaffyContainer {
         positioning_context: &mut PositioningContext,
         content_box_size_override: &ContainingBlock,
         containing_block: &ContainingBlock,
-    ) -> IndependentLayout {
+    ) -> CacheableLayoutResult {
         let mut container_ctx = TaffyContainerContext {
             layout_context,
             positioning_context,
@@ -643,7 +644,7 @@ impl TaffyContainer {
             })
             .collect();
 
-        IndependentLayout {
+        CacheableLayoutResult {
             fragments,
             content_block_size: Au::from_f32_px(output.size.height) - pbm.padding_border_sums.block,
             content_inline_size_for_table: None,
@@ -654,8 +655,8 @@ impl TaffyContainer {
             // "true" is a safe default as it will prevent Servo from performing optimizations based
             // on the assumption that the node's size does not depend on block constraints.
             depends_on_block_constraints: true,
-
             specific_layout_info: container_ctx.specific_layout_info,
+            collapsible_margins_in_children: CollapsedBlockMargins::zero(),
         }
     }
 

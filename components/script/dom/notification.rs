@@ -9,6 +9,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use content_security_policy::Destination;
 use dom_struct::dom_struct;
+use embedder_traits::{
+    EmbedderMsg, Notification as EmbedderNotification,
+    NotificationAction as EmbedderNotificationAction,
+};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
@@ -253,28 +257,84 @@ impl Notification {
 
     /// <https://notifications.spec.whatwg.org/#notification-show-steps>
     fn show(&self) {
-        // TODO: step 3: set shown to false
+        // step 3: set shown to false
+        let shown = false;
+
         // TODO: step 4: Let oldNotification be the notification in the list of notifications
         //               whose tag is not the empty string and is notification’s tag,
         //               and whose origin is same origin with notification’s origin,
         //               if any, and null otherwise.
+
         // TODO: step 5: If oldNotification is non-null, then:
-        // TODO: step 6: If shown is false, then:
-        // TODO:   step 6.1: Append notification to the list of notifications.
-        // TODO:   step 6.2: Display notification on the device
-        // TODO: Add EmbedderMsg::ShowNotification(...) event
+        // TODO:   step 5.1: Handle close events with oldNotification.
+        // TODO:   step 5.2: If the notification platform supports replacement, then:
+        // TODO:     step 5.2.1: Replace oldNotification with notification, in the list of notifications.
+        // TODO:     step 5.2.2: Set shown to true.
+        // TODO:   step 5.3: Otherwise, remove oldNotification from the list of notifications.
+
+        // step 6: If shown is false, then:
+        if !shown {
+            // TODO: step 6.1: Append notification to the list of notifications.
+            // step 6.2: Display notification on the device
+            self.global()
+                .send_to_embedder(EmbedderMsg::ShowNotification(
+                    self.global().webview_id(),
+                    self.to_embedder_notification(),
+                ));
+        }
+
         // TODO: step 7: If shown is false or oldNotification is non-null,
         //               and notification’s renotify preference is true,
         //               then run the alert steps for notification.
 
         // step 8: If notification is a non-persistent notification,
-        //               then queue a task to fire an event named show on
-        //               the Notification object representing notification.
+        //         then queue a task to fire an event named show on
+        //         the Notification object representing notification.
         if self.serviceworker_registration.is_none() {
             self.global()
                 .task_manager()
                 .dom_manipulation_task_source()
                 .queue_simple_event(self.upcast(), atom!("show"));
+        }
+    }
+
+    /// Create an [`embedder_traits::Notification`].
+    fn to_embedder_notification(&self) -> EmbedderNotification {
+        EmbedderNotification {
+            title: self.title.to_string(),
+            body: self.body.to_string(),
+            tag: self.tag.to_string(),
+            language: self.lang.to_string(),
+            require_interaction: self.require_interaction,
+            silent: self.silent,
+            icon_url: self
+                .icon
+                .as_ref()
+                .and_then(|icon| ServoUrl::parse(icon).ok()),
+            badge_url: self
+                .badge
+                .as_ref()
+                .and_then(|badge| ServoUrl::parse(badge).ok()),
+            image_url: self
+                .image
+                .as_ref()
+                .and_then(|image| ServoUrl::parse(image).ok()),
+            actions: self
+                .actions
+                .iter()
+                .map(|action| EmbedderNotificationAction {
+                    name: action.name.to_string(),
+                    title: action.title.to_string(),
+                    icon_url: action
+                        .icon_url
+                        .as_ref()
+                        .and_then(|icon| ServoUrl::parse(icon).ok()),
+                    icon_resource: action.icon_resource.borrow().clone(),
+                })
+                .collect(),
+            icon_resource: self.icon_resource.borrow().clone(),
+            badge_resource: self.badge_resource.borrow().clone(),
+            image_resource: self.image_resource.borrow().clone(),
         }
     }
 }
@@ -316,12 +376,12 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
                 .dom_manipulation_task_source()
                 .queue_simple_event(notification.upcast(), atom!("error"));
             // TODO: abort steps
+        } else {
+            // step 5.2: Run the notification show steps for notification
+            // <https://notifications.spec.whatwg.org/#notification-show-steps>
+            // step 1: Run the fetch steps for notification.
+            notification.fetch_resources_and_show_when_ready();
         }
-        // TODO: step 5.2: Run the notification show steps for notification
-        // <https://notifications.spec.whatwg.org/#notification-show-steps>
-        // step 1: Run the fetch steps for notification.
-        // following steps are processed in show_steps after all resources are fetched
-        notification.fetch_resources_and_show_when_ready();
 
         Ok(notification)
     }
@@ -478,10 +538,12 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
         // If notification is a non-persistent notification
         // then queue a task to fire an event named close on the Notification object representing notification.
-        self.global()
-            .task_manager()
-            .dom_manipulation_task_source()
-            .queue_simple_event(self.upcast(), atom!("close"));
+        if self.serviceworker_registration.is_none() {
+            self.global()
+                .task_manager()
+                .dom_manipulation_task_source()
+                .queue_simple_event(self.upcast(), atom!("close"));
+        }
     }
 }
 
@@ -754,7 +816,7 @@ impl Notification {
             None,
             url.clone(),
             Destination::Image,
-            None, // TODO: check CORS
+            None, // TODO: check which CORS should be used
             None,
             global.get_referrer(),
             global.insecure_requests_policy(),
@@ -809,7 +871,7 @@ impl Notification {
         let cache_result = global.image_cache().get_cached_image_status(
             request.url.clone(),
             global.origin().immutable().clone(),
-            None, // TODO: check CORS
+            None, // TODO: check which CORS should be used
             UsePlaceholder::No,
         );
         match cache_result {

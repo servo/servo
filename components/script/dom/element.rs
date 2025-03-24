@@ -17,6 +17,7 @@ use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use embedder_traits::InputMethodType;
 use euclid::default::{Rect, Size2D};
+use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{
     LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, namespace_url, ns,
@@ -67,7 +68,9 @@ use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods, ShadowRootInit};
+use crate::dom::bindings::codegen::Bindings::ElementBinding::{
+    ElementMethods, GetHTMLOptions, ShadowRootInit,
+};
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -562,8 +565,7 @@ impl Element {
             }
 
             // Step 4.3.1. Remove all of currentShadowRoot’s children, in tree order.
-            let node = self.upcast::<Node>();
-            for child in node.children() {
+            for child in current_shadow_root.upcast::<Node>().children() {
                 child.remove_self();
             }
 
@@ -2952,17 +2954,31 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         Node::replace_all(Some(frag.upcast()), &target);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
+    fn GetHTML(&self, options: &GetHTMLOptions, can_gc: CanGc) -> DOMString {
+        // > Element's getHTML(options) method steps are to return the result of HTML fragment serialization
+        // > algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
+        self.upcast::<Node>().html_serialize(
+            TraversalScope::ChildrenOnly(None),
+            options.serializableShadowRoots,
+            options.shadowRoots.clone(),
+            can_gc,
+        )
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
-    fn GetInnerHTML(&self) -> Fallible<DOMString> {
+    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<DOMString> {
         let qname = QualName::new(
             self.prefix().clone(),
             self.namespace().clone(),
             self.local_name().clone(),
         );
 
+        // FIXME: This should use the fragment serialization algorithm, which takes
+        // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
             self.upcast::<Node>()
-                .html_serialize(ChildrenOnly(Some(qname)))
+                .html_serialize(ChildrenOnly(Some(qname)), false, vec![], can_gc)
         } else {
             self.upcast::<Node>()
                 .xml_serialize(XmlChildrenOnly(Some(qname)))
@@ -3002,9 +3018,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
-    fn GetOuterHTML(&self) -> Fallible<DOMString> {
+    fn GetOuterHTML(&self, can_gc: CanGc) -> Fallible<DOMString> {
+        // FIXME: This should use the fragment serialization algorithm, which takes
+        // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
-            self.upcast::<Node>().html_serialize(IncludeNode)
+            self.upcast::<Node>()
+                .html_serialize(IncludeNode, false, vec![], can_gc)
         } else {
             self.upcast::<Node>().xml_serialize(XmlIncludeNode)
         };

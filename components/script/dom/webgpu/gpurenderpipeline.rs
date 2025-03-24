@@ -5,7 +5,10 @@
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use webgpu::wgc::pipeline::RenderPipelineDescriptor;
-use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPURenderPipeline, WebGPURequest, WebGPUResponse};
+use webgpu::{
+    WebGPU, WebGPUBindGroupLayout, WebGPURenderPipeline, WebGPURenderPipelineResponse,
+    WebGPURequest,
+};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderPipelineMethods;
@@ -74,7 +77,7 @@ impl GPURenderPipeline {
         device: &GPUDevice,
         pipeline_layout: PipelineLayout,
         descriptor: RenderPipelineDescriptor<'static>,
-        async_sender: Option<IpcSender<WebGPUResponse>>,
+        async_sender: Option<IpcSender<WebGPURenderPipelineResponse>>,
     ) -> Fallible<WebGPURenderPipeline> {
         let render_pipeline_id = device.global().wgpu_id_hub().create_render_pipeline_id();
 

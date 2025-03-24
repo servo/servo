@@ -14,20 +14,23 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
 
-pub(crate) trait RoutedPromiseListener {
-    type Response: Serialize + DeserializeOwned + Send;
-
-    fn handle_response(&self, response: Self::Response, promise: &Rc<Promise>, can_gc: CanGc);
+pub(crate) trait RoutedPromiseListener<R: Serialize + DeserializeOwned + Send> {
+    fn handle_response(&self, response: R, promise: &Rc<Promise>, can_gc: CanGc);
 }
 
-pub(crate) struct RoutedPromiseContext<T: RoutedPromiseListener + DomObject> {
+pub(crate) struct RoutedPromiseContext<
+    R: Serialize + DeserializeOwned + Send,
+    T: RoutedPromiseListener<R> + DomObject,
+> {
     trusted: TrustedPromise,
     receiver: Trusted<T>,
+    _phantom: std::marker::PhantomData<R>,
 }
 
-impl<T: RoutedPromiseListener + DomObject> RoutedPromiseContext<T> {
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn response(self, response: T::Response, can_gc: CanGc) {
+impl<R: Serialize + DeserializeOwned + Send, T: RoutedPromiseListener<R> + DomObject>
+    RoutedPromiseContext<R, T>
+{
+    fn response(self, response: R, can_gc: CanGc) {
         let promise = self.trusted.root();
         self.receiver
             .root()
@@ -35,10 +38,13 @@ impl<T: RoutedPromiseListener + DomObject> RoutedPromiseContext<T> {
     }
 }
 
-pub(crate) fn route_promise<T: RoutedPromiseListener + DomObject + 'static>(
+pub(crate) fn route_promise<
+    R: Serialize + DeserializeOwned + Send + 'static,
+    T: RoutedPromiseListener<R> + DomObject + 'static,
+>(
     promise: &Rc<Promise>,
     receiver: &T,
-) -> IpcSender<T::Response> {
+) -> IpcSender<R> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let task_source = receiver
         .global()
@@ -60,6 +66,7 @@ pub(crate) fn route_promise<T: RoutedPromiseListener + DomObject + 'static>(
             let context = RoutedPromiseContext {
                 trusted,
                 receiver: trusted_receiver.clone(),
+                _phantom: Default::default(),
             };
             task_source.queue(task!(routed_promise_task: move|| {
                 context.response(message.unwrap(), CanGc::note());

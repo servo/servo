@@ -120,12 +120,18 @@ partial interface Element {
   readonly attribute long clientHeight;
 };
 
-// https://w3c.github.io/DOM-Parsing/#extensions-to-the-element-interface
+// https://html.spec.whatwg.org/multipage/#dom-parsing-and-serialization
 partial interface Element {
   [CEReactions] undefined setHTMLUnsafe(DOMString html);
+  DOMString getHTML(optional GetHTMLOptions options = {});
 
   [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString innerHTML;
   [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString outerHTML;
+};
+
+dictionary GetHTMLOptions {
+  boolean serializableShadowRoots = false;
+  sequence<ShadowRoot> shadowRoots = [];
 };
 
 // https://fullscreen.spec.whatwg.org/#api

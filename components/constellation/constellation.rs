@@ -131,6 +131,7 @@ use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
+use keyboard_types::{Key, KeyState, KeyboardEvent, Modifiers};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
 use net_traits::pub_domains::reg_host;
@@ -156,7 +157,7 @@ use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
-use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
+use webgpu::{self, WebGPU, WebGPURequest};
 #[cfg(feature = "webgpu")]
 use webrender::RenderApi;
 use webrender::RenderApiSender;
@@ -454,6 +455,9 @@ pub struct Constellation<STF, SWF> {
     /// currently being pressed.
     pressed_mouse_buttons: u16,
 
+    /// The currently activated keyboard modifiers.
+    active_keyboard_modifiers: Modifiers,
+
     /// If True, exits on thread failure instead of displaying about:failure
     hard_fail: bool,
 
@@ -730,6 +734,7 @@ where
                     canvas_ipc_sender,
                     pending_approval_navigations: HashMap::new(),
                     pressed_mouse_buttons: 0,
+                    active_keyboard_modifiers: Modifiers::empty(),
                     hard_fail,
                     active_media_session: None,
                     user_agent: state.user_agent,
@@ -1931,7 +1936,7 @@ where
             FromScriptMsg::RequestAdapter(response_sender, options, adapter_id) => {
                 match webgpu_chan {
                     None => {
-                        if let Err(e) = response_sender.send(WebGPUResponse::None) {
+                        if let Err(e) = response_sender.send(None) {
                             warn!("Failed to send request adapter message: {}", e)
                         }
                     },
@@ -2830,6 +2835,38 @@ where
         }
     }
 
+    fn update_active_keybord_modifiers(&mut self, event: &KeyboardEvent) {
+        self.active_keyboard_modifiers = event.modifiers;
+
+        // `KeyboardEvent::modifiers` contains the pre-existing modifiers before this key was
+        // either pressed or released, but `active_keyboard_modifiers` should track the subsequent
+        // state. If this event will update that state, we need to ensure that we are tracking what
+        // the event changes.
+        let modified_modifier = match event.key {
+            Key::Alt => Modifiers::ALT,
+            Key::AltGraph => Modifiers::ALT_GRAPH,
+            Key::CapsLock => Modifiers::CAPS_LOCK,
+            Key::Control => Modifiers::CONTROL,
+            Key::Fn => Modifiers::FN,
+            Key::FnLock => Modifiers::FN_LOCK,
+            Key::Meta => Modifiers::META,
+            Key::NumLock => Modifiers::NUM_LOCK,
+            Key::ScrollLock => Modifiers::SCROLL_LOCK,
+            Key::Shift => Modifiers::SHIFT,
+            Key::Symbol => Modifiers::SYMBOL,
+            Key::SymbolLock => Modifiers::SYMBOL_LOCK,
+            Key::Hyper => Modifiers::HYPER,
+            // The web doesn't make a distinction between these keys (there is only
+            // "meta") so map "super" to "meta".
+            Key::Super => Modifiers::META,
+            _ => return,
+        };
+        match event.state {
+            KeyState::Down => self.active_keyboard_modifiers.insert(modified_modifier),
+            KeyState::Up => self.active_keyboard_modifiers.remove(modified_modifier),
+        }
+    }
+
     fn forward_input_event(
         &mut self,
         webview_id: WebViewId,
@@ -2840,9 +2877,14 @@ where
             self.update_pressed_mouse_buttons(event);
         }
 
-        // The constellation tracks the state of pressed mouse buttons and updates the event
-        // here to reflect the current state.
+        if let InputEvent::Keyboard(event) = &event {
+            self.update_active_keybord_modifiers(event);
+        }
+
+        // The constellation tracks the state of pressed mouse buttons and keyboard
+        // modifiers and updates the event here to reflect the current state.
         let pressed_mouse_buttons = self.pressed_mouse_buttons;
+        let active_keyboard_modifiers = self.active_keyboard_modifiers;
 
         // TODO: Click should be handled internally in the `Document`.
         if let InputEvent::MouseButton(event) = &event {
@@ -2885,6 +2927,7 @@ where
         let event = ConstellationInputEvent {
             hit_test_result,
             pressed_mouse_buttons,
+            active_keyboard_modifiers,
             event,
         };
 
@@ -4392,11 +4435,13 @@ where
                     let event = match event {
                         WebDriverInputEvent::Keyboard(event) => ConstellationInputEvent {
                             pressed_mouse_buttons: self.pressed_mouse_buttons,
+                            active_keyboard_modifiers: event.modifiers,
                             hit_test_result: None,
                             event: InputEvent::Keyboard(event),
                         },
                         WebDriverInputEvent::Composition(event) => ConstellationInputEvent {
                             pressed_mouse_buttons: self.pressed_mouse_buttons,
+                            active_keyboard_modifiers: self.active_keyboard_modifiers,
                             hit_test_result: None,
                             event: InputEvent::Ime(ImeEvent::Composition(event)),
                         },
@@ -4422,6 +4467,7 @@ where
                     pipeline_id,
                     ConstellationInputEvent {
                         pressed_mouse_buttons: self.pressed_mouse_buttons,
+                        active_keyboard_modifiers: event.modifiers,
                         hit_test_result: None,
                         event: InputEvent::Keyboard(event),
                     },

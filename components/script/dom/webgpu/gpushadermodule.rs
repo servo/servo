@@ -5,9 +5,8 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPURequest, WebGPUResponse, WebGPUShaderModule};
+use webgpu::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
 
-use super::gpu::AsyncWGPUListener;
 use super::gpucompilationinfo::GPUCompilationInfo;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -20,8 +19,8 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::types::GPUDevice;
-use crate::dom::webgpu::gpu::response_async;
 use crate::realms::InRealm;
+use crate::routed_promise::{RoutedPromiseListener, route_promise};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -96,7 +95,7 @@ impl GPUShaderModule {
             promise.clone(),
             can_gc,
         );
-        let sender = response_async(&promise, &*shader_module);
+        let sender = route_promise(&promise, &*shader_module);
         device
             .channel()
             .0
@@ -129,15 +128,15 @@ impl GPUShaderModuleMethods<crate::DomTypeHolder> for GPUShaderModule {
     }
 }
 
-impl AsyncWGPUListener for GPUShaderModule {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
-        match response {
-            WebGPUResponse::CompilationInfo(info) => {
-                let info = GPUCompilationInfo::from(&self.global(), info, can_gc);
-                promise.resolve_native(&info, can_gc);
-            },
-            _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUShaderModule"),
-        }
+impl RoutedPromiseListener<Option<ShaderCompilationInfo>> for GPUShaderModule {
+    fn handle_response(
+        &self,
+        response: Option<ShaderCompilationInfo>,
+        promise: &Rc<Promise>,
+        can_gc: CanGc,
+    ) {
+        let info = GPUCompilationInfo::from(&self.global(), response, can_gc);
+        promise.resolve_native(&info, can_gc);
     }
 }
 

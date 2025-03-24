@@ -21,6 +21,7 @@ use constellation_traits::{
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D, Vector2D};
+use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, namespace_url, ns, serialize as html_serialize};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
@@ -110,6 +111,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
+use crate::dom::servoparser::serialize_html_fragment;
 use crate::dom::shadowroot::{IsUserAgentWidget, LayoutShadowRootHelpers, ShadowRoot};
 use crate::dom::stylesheetlist::StyleSheetListOwner;
 use crate::dom::svgsvgelement::{LayoutSVGSVGElementHelpers, SVGSVGElement};
@@ -2862,22 +2864,34 @@ impl Node {
     pub(crate) fn html_serialize(
         &self,
         traversal_scope: html_serialize::TraversalScope,
+        serialize_shadow_roots: bool,
+        shadow_roots: Vec<DomRoot<ShadowRoot>>,
+        can_gc: CanGc,
     ) -> DOMString {
         let mut writer = vec![];
-        html_serialize::serialize(
+        let mut serializer = HtmlSerializer::new(
             &mut writer,
-            &self,
             html_serialize::SerializeOpts {
-                traversal_scope,
+                traversal_scope: traversal_scope.clone(),
                 ..Default::default()
             },
+        );
+
+        serialize_html_fragment(
+            self,
+            &mut serializer,
+            traversal_scope,
+            serialize_shadow_roots,
+            shadow_roots,
+            can_gc,
         )
-        .expect("Cannot serialize node");
+        .expect("Serializing node failed");
 
         // FIXME(ajeffrey): Directly convert UTF8 to DOMString
         DOMString::from(String::from_utf8(writer).unwrap())
     }
 
+    /// <https://w3c.github.io/DOM-Parsing/#dfn-xml-serialization>
     pub(crate) fn xml_serialize(
         &self,
         traversal_scope: xml_serialize::TraversalScope,
@@ -2895,14 +2909,23 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fragment-serializing-algorithm-steps>
-    pub(crate) fn fragment_serialization_algorithm(&self, require_well_formed: bool) -> DOMString {
+    pub(crate) fn fragment_serialization_algorithm(
+        &self,
+        require_well_formed: bool,
+        can_gc: CanGc,
+    ) -> DOMString {
         // Step 1. Let context document be node's node document.
         let context_document = self.owner_document();
 
         // Step 2. If context document is an HTML document, return the result of HTML fragment serialization algorithm
         // with node, false, and « ».
         if context_document.is_html_document() {
-            return self.html_serialize(html_serialize::TraversalScope::ChildrenOnly(None));
+            return self.html_serialize(
+                html_serialize::TraversalScope::ChildrenOnly(None),
+                false,
+                vec![],
+                can_gc,
+            );
         }
 
         // Step 3. Return the XML serialization of node given require well-formed.

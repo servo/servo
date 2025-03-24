@@ -12,7 +12,6 @@ use wgc::id;
 use wgc::pipeline::CreateShaderModuleError;
 use wgpu_core::device::HostMap;
 use wgpu_core::instance::{RequestAdapterError, RequestDeviceError};
-use wgpu_core::resource::BufferAccessError;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::identity::*;
@@ -82,23 +81,14 @@ pub struct Mapping {
     pub range: Range<u64>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[allow(clippy::large_enum_variant)]
-pub enum WebGPUResponse {
-    /// WebGPU is disabled
-    None,
-    Adapter(Result<Adapter, RequestAdapterError>),
-    Device(
-        (
-            WebGPUDevice,
-            WebGPUQueue,
-            Result<wgt::DeviceDescriptor<Option<String>>, RequestDeviceError>,
-        ),
-    ),
-    BufferMapAsync(Result<Mapping, BufferAccessError>),
-    SubmittedWorkDone,
-    PoppedErrorScope(Result<Option<Error>, PopError>),
-    CompilationInfo(Option<ShaderCompilationInfo>),
-    RenderPipeline(Result<Pipeline<id::RenderPipelineId>, Error>),
-    ComputePipeline(Result<Pipeline<id::ComputePipelineId>, Error>),
-}
+pub type WebGPUDeviceResponse = (
+    WebGPUDevice,
+    WebGPUQueue,
+    Result<wgt::DeviceDescriptor<Option<String>>, RequestDeviceError>,
+);
+
+pub type WebGPUAdapterResponse = Option<Result<Adapter, RequestAdapterError>>;
+
+pub type WebGPUPoppedErrorScopeResponse = Result<Option<Error>, PopError>;
+pub type WebGPURenderPipelineResponse = Result<Pipeline<id::RenderPipelineId>, Error>;
+pub type WebGPUComputePipelineResponse = Result<Pipeline<id::ComputePipelineId>, Error>;

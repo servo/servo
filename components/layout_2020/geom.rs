@@ -133,6 +133,17 @@ impl<T: Clone> LogicalVec2<T> {
             block: f(&self.block),
         }
     }
+
+    pub(crate) fn map_with<U, V>(
+        &self,
+        other: &LogicalVec2<U>,
+        f: impl Fn(&T, &U) -> V,
+    ) -> LogicalVec2<V> {
+        LogicalVec2 {
+            inline: f(&self.inline, &other.inline),
+            block: f(&self.block, &other.block),
+        }
+    }
 }
 
 impl<T: Add<Output = T> + Copy> Add<LogicalVec2<T>> for LogicalVec2<T> {
@@ -697,6 +708,8 @@ pub(crate) enum Size<T> {
     MaxContent,
     /// <https://drafts.csswg.org/css-sizing-4/#valdef-width-fit-content>
     FitContent,
+    /// <https://drafts.csswg.org/css-sizing-3/#funcdef-width-fit-content>
+    FitContentFunction(T),
     /// <https://drafts.csswg.org/css-sizing-4/#valdef-width-stretch>
     Stretch,
     /// Represents a numeric `<length-percentage>`, but resolved as a `T`.
@@ -730,34 +743,28 @@ impl<T: Clone> Size<T> {
     }
 
     #[inline]
-    pub fn map<U>(&self, f: impl FnOnce(T) -> U) -> Size<U> {
+    pub(crate) fn map<U>(&self, f: impl FnOnce(T) -> U) -> Size<U> {
         match self {
             Size::Initial => Size::Initial,
             Size::MinContent => Size::MinContent,
             Size::MaxContent => Size::MaxContent,
             Size::FitContent => Size::FitContent,
+            Size::FitContentFunction(size) => Size::FitContentFunction(f(size.clone())),
             Size::Stretch => Size::Stretch,
             Size::Numeric(numeric) => Size::Numeric(f(numeric.clone())),
         }
-    }
-
-    #[inline]
-    pub fn maybe_map<U>(&self, f: impl FnOnce(T) -> Option<U>) -> Option<Size<U>> {
-        Some(match self {
-            Size::Numeric(numeric) => Size::Numeric(f(numeric.clone())?),
-            _ => self.map(|_| unreachable!("This shouldn't be called for keywords")),
-        })
     }
 }
 
 impl From<StyleSize> for Size<LengthPercentage> {
     fn from(size: StyleSize) -> Self {
         match size {
-            StyleSize::LengthPercentage(length) => Size::Numeric(length.0),
+            StyleSize::LengthPercentage(lp) => Size::Numeric(lp.0),
             StyleSize::Auto => Size::Initial,
             StyleSize::MinContent => Size::MinContent,
             StyleSize::MaxContent => Size::MaxContent,
             StyleSize::FitContent => Size::FitContent,
+            StyleSize::FitContentFunction(lp) => Size::FitContentFunction(lp.0),
             StyleSize::Stretch => Size::Stretch,
             StyleSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
@@ -767,11 +774,12 @@ impl From<StyleSize> for Size<LengthPercentage> {
 impl From<StyleMaxSize> for Size<LengthPercentage> {
     fn from(max_size: StyleMaxSize) -> Self {
         match max_size {
-            StyleMaxSize::LengthPercentage(length) => Size::Numeric(length.0),
+            StyleMaxSize::LengthPercentage(lp) => Size::Numeric(lp.0),
             StyleMaxSize::None => Size::Initial,
             StyleMaxSize::MinContent => Size::MinContent,
             StyleMaxSize::MaxContent => Size::MaxContent,
             StyleMaxSize::FitContent => Size::FitContent,
+            StyleMaxSize::FitContentFunction(lp) => Size::FitContentFunction(lp.0),
             StyleMaxSize::Stretch => Size::Stretch,
             StyleMaxSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
         }
@@ -784,25 +792,49 @@ impl Size<LengthPercentage> {
         self.to_numeric()
             .and_then(|length_percentage| length_percentage.to_percentage())
     }
-}
 
-impl LogicalVec2<Size<LengthPercentage>> {
-    pub(crate) fn maybe_percentages_relative_to_basis(
-        &self,
-        basis: &LogicalVec2<Option<Au>>,
-    ) -> LogicalVec2<Size<Au>> {
-        LogicalVec2 {
-            inline: self
-                .inline
-                .maybe_map(|v| v.maybe_to_used_value(basis.inline))
-                .unwrap_or_default(),
-            block: self
-                .block
-                .maybe_map(|v| v.maybe_to_used_value(basis.block))
-                .unwrap_or_default(),
+    /// Resolves percentages in a preferred size, against the provided basis.
+    /// If the basis is missing, percentages are considered cyclic.
+    /// <https://www.w3.org/TR/css-sizing-3/#preferred-size-properties>
+    /// <https://www.w3.org/TR/css-sizing-3/#cyclic-percentage-size>
+    #[inline]
+    pub(crate) fn resolve_percentages_for_preferred(&self, basis: Option<Au>) -> Size<Au> {
+        match self {
+            Size::Numeric(numeric) => numeric
+                .maybe_to_used_value(basis)
+                .map_or(Size::Initial, Size::Numeric),
+            Size::FitContentFunction(numeric) => {
+                // Under discussion in https://github.com/w3c/csswg-drafts/issues/11805
+                numeric
+                    .maybe_to_used_value(basis)
+                    .map_or(Size::FitContent, Size::FitContentFunction)
+            },
+            _ => self.map(|_| unreachable!("This shouldn't be called for keywords")),
         }
     }
 
+    /// Resolves percentages in a maximum size, against the provided basis.
+    /// If the basis is missing, percentages are considered cyclic.
+    /// <https://www.w3.org/TR/css-sizing-3/#preferred-size-properties>
+    /// <https://www.w3.org/TR/css-sizing-3/#cyclic-percentage-size>
+    #[inline]
+    pub(crate) fn resolve_percentages_for_max(&self, basis: Option<Au>) -> Size<Au> {
+        match self {
+            Size::Numeric(numeric) => numeric
+                .maybe_to_used_value(basis)
+                .map_or(Size::Initial, Size::Numeric),
+            Size::FitContentFunction(numeric) => {
+                // Under discussion in https://github.com/w3c/csswg-drafts/issues/11805
+                numeric
+                    .maybe_to_used_value(basis)
+                    .map_or(Size::MaxContent, Size::FitContentFunction)
+            },
+            _ => self.map(|_| unreachable!("This shouldn't be called for keywords")),
+        }
+    }
+}
+
+impl LogicalVec2<Size<LengthPercentage>> {
     pub(crate) fn percentages_relative_to_basis(
         &self,
         basis: &LogicalVec2<Au>,
@@ -831,6 +863,7 @@ impl Size<Au> {
             },
             Self::MinContent => content_size.min_content,
             Self::MaxContent => content_size.max_content,
+            Self::FitContentFunction(size) => content_size.shrink_to_fit(*size),
             Self::FitContent => {
                 content_size.shrink_to_fit(stretch_size.unwrap_or_else(|| content_size.max_content))
             },
@@ -852,6 +885,7 @@ impl Size<Au> {
             Self::Initial => get_automatic_minimum_size(),
             Self::MinContent => content_size.min_content,
             Self::MaxContent => content_size.max_content,
+            Self::FitContentFunction(size) => content_size.shrink_to_fit(*size),
             Self::FitContent => content_size.shrink_to_fit(stretch_size.unwrap_or_default()),
             Self::Stretch => stretch_size.unwrap_or_default(),
             Self::Numeric(numeric) => *numeric,
@@ -870,6 +904,7 @@ impl Size<Au> {
             Self::Initial => return None,
             Self::MinContent => content_size.min_content,
             Self::MaxContent => content_size.max_content,
+            Self::FitContentFunction(size) => content_size.shrink_to_fit(*size),
             Self::FitContent => content_size.shrink_to_fit(stretch_size.unwrap_or(MAX_AU)),
             Self::Stretch => return stretch_size,
             Self::Numeric(numeric) => *numeric,
@@ -888,7 +923,11 @@ impl Size<Au> {
     #[inline]
     pub(crate) fn maybe_resolve_extrinsic(&self, stretch_size: Option<Au>) -> Option<Au> {
         match self {
-            Self::Initial | Self::MinContent | Self::MaxContent | Self::FitContent => None,
+            Self::Initial |
+            Self::MinContent |
+            Self::MaxContent |
+            Self::FitContent |
+            Self::FitContentFunction(_) => None,
             Self::Stretch => stretch_size,
             Self::Numeric(numeric) => Some(*numeric),
         }

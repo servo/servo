@@ -25,16 +25,13 @@ use style::values::generics::length::LengthPercentageOrNormal;
 use style::values::specified::align::AlignFlags;
 
 use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2};
-use super::{
-    CachedBlockSizeContribution, FlexContainer, FlexContainerConfig, FlexItemBox, FlexLevelBox,
-};
+use super::{FlexContainer, FlexContainerConfig, FlexItemBox, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::formatting_contexts::{
-    Baselines, IndependentFormattingContextContents, IndependentLayout,
-};
+use crate::formatting_contexts::{Baselines, IndependentFormattingContextContents};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, Size, Sizes};
+use crate::layout_box_base::CacheableLayoutResult;
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
@@ -650,8 +647,10 @@ impl FlexContainer {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-    ) -> IndependentLayout {
-        let depends_on_block_constraints = self.config.flex_direction == FlexDirection::Column;
+        depends_on_block_constraints: bool,
+    ) -> CacheableLayoutResult {
+        let depends_on_block_constraints =
+            depends_on_block_constraints || self.config.flex_direction == FlexDirection::Column;
 
         let mut flex_context = FlexContext {
             config: self.config.clone(),
@@ -985,13 +984,14 @@ impl FlexContainer {
                 .or(all_baselines.last),
         };
 
-        IndependentLayout {
+        CacheableLayoutResult {
             fragments,
             content_block_size,
             content_inline_size_for_table: None,
             baselines,
             depends_on_block_constraints,
             specific_layout_info: None,
+            collapsible_margins_in_children: CollapsedBlockMargins::zero(),
         }
     }
 
@@ -1950,29 +1950,23 @@ impl FlexItem<'_> {
                     }
                 }
 
-                let cache = self.box_.block_content_size_cache.borrow_mut().take();
-                let layout = if let Some(cache) = cache.filter(|cache| {
-                    cache.compatible_with_item_as_containing_block(&item_as_containing_block)
-                }) {
-                    positioning_context = cache.positioning_context;
-                    cache.layout
-                } else {
-                    non_replaced.layout(
-                        flex_context.layout_context,
-                        &mut positioning_context,
-                        &item_as_containing_block,
-                        containing_block,
-                    )
-                };
-                let IndependentLayout {
+                let layout = non_replaced.layout_with_caching(
+                    flex_context.layout_context,
+                    &mut positioning_context,
+                    &item_as_containing_block,
+                    containing_block,
+                    &independent_formatting_context.base,
+                    flex_axis == FlexAxis::Column ||
+                        self.stretches_to_line() ||
+                        self.depends_on_block_constraints,
+                );
+                let CacheableLayoutResult {
                     fragments,
                     content_block_size,
                     baselines: content_box_baselines,
                     depends_on_block_constraints,
                     ..
                 } = layout;
-                let depends_on_block_constraints = depends_on_block_constraints ||
-                    (flex_axis == FlexAxis::Row && self.stretches_to_line());
 
                 let has_child_which_depends_on_block_constraints = fragments.iter().any(|fragment| {
                         fragment.base().is_some_and(|base|
@@ -2599,11 +2593,8 @@ impl FlexItemBox {
                             BoxSizing::BorderBox => length - main_padding_border_sum,
                         }
                     };
-                    size.maybe_map(|v| {
-                        v.maybe_to_used_value(container_definite_main_size)
-                            .map(apply_box_sizing)
-                    })
-                    .unwrap_or_default()
+                    size.resolve_percentages_for_preferred(container_definite_main_size)
+                        .map(apply_box_sizing)
                 },
             },
         }
@@ -2696,37 +2687,17 @@ impl FlexItemBox {
                     },
                     style,
                 };
-                let content_block_size = || {
-                    if let Some(cache) = &*self.block_content_size_cache.borrow() {
-                        if inline_size == cache.containing_block_inline_size {
-                            return cache.layout.content_block_size;
-                        } else {
-                            #[cfg(feature = "tracing")]
-                            tracing::warn!(
-                                name: "NonReplaced cache miss",
-                                cached = ?cache.containing_block_inline_size,
-                                required = ?inline_size,
-                            );
-                        }
-                    } else {
-                        #[cfg(feature = "tracing")]
-                        tracing::warn!(name: "NonReplaced no cache", required = ?inline_size);
-                    }
-
-                    let layout = non_replaced.layout(
-                        flex_context.layout_context,
-                        &mut positioning_context,
-                        &item_as_containing_block,
-                        flex_context.containing_block,
-                    );
-                    let content_block_size = layout.content_block_size;
-                    *self.block_content_size_cache.borrow_mut() =
-                        Some(CachedBlockSizeContribution {
-                            containing_block_inline_size: item_as_containing_block.size.inline,
-                            layout,
-                            positioning_context,
-                        });
-                    content_block_size
+                let mut content_block_size = || {
+                    non_replaced
+                        .layout_with_caching(
+                            flex_context.layout_context,
+                            &mut positioning_context,
+                            &item_as_containing_block,
+                            flex_context.containing_block,
+                            &self.independent_formatting_context.base,
+                            false, /* depends_on_block_constraints */
+                        )
+                        .content_block_size
                 };
                 match intrinsic_sizing_mode {
                     IntrinsicSizingMode::Contribution => {
