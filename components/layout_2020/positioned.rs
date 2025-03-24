@@ -41,6 +41,7 @@ pub(crate) struct AbsolutelyPositionedBox {
     pub context: IndependentFormattingContext,
 }
 
+#[derive(Clone)]
 pub(crate) struct PositioningContext {
     for_nearest_positioned_ancestor: Option<Vec<HoistedAbsolutelyPositionedBox>>,
 
@@ -50,6 +51,7 @@ pub(crate) struct PositioningContext {
     for_nearest_containing_block_for_all_descendants: Vec<HoistedAbsolutelyPositionedBox>,
 }
 
+#[derive(Clone)]
 pub(crate) struct HoistedAbsolutelyPositionedBox {
     absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
 
@@ -299,7 +301,7 @@ impl PositioningContext {
             .push(box_)
     }
 
-    fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.for_nearest_containing_block_for_all_descendants
             .is_empty() &&
             self.for_nearest_positioned_ancestor
@@ -627,6 +629,7 @@ impl HoistedAbsolutelyPositionedBox {
                         &mut positioning_context,
                         &containing_block_for_children,
                         containing_block,
+                        false, /* depends_on_block_constraints */
                     );
 
                     let inline_size = if let Some(inline_size) =

@@ -26,7 +26,7 @@ use crate::flow::float::{
 };
 use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
-    IndependentLayout, IndependentLayoutResult, IndependentNonReplacedContents,
+    IndependentNonReplacedContents,
 };
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
@@ -35,7 +35,7 @@ use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
     PhysicalSides, Size, Sizes, ToLogical, ToLogicalWithContainingBlock,
 };
-use crate::layout_box_base::LayoutBoxBase;
+use crate::layout_box_base::{CacheableLayoutResult, LayoutBoxBase};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContents;
 use crate::sizing::{self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
@@ -219,18 +219,6 @@ impl BlockLevelBox {
     }
 }
 
-pub(crate) struct FlowLayout {
-    pub fragments: Vec<Fragment>,
-    pub content_block_size: Au,
-    pub collapsible_margins_in_children: CollapsedBlockMargins,
-    /// The offset of the baselines in this layout in the content area, if there were some. This is
-    /// used to propagate inflow baselines to the ancestors of `display: inline-block` elements
-    /// and table content.
-    pub baselines: Baselines,
-    /// Whether or not this layout depends on the block size of its containing block.
-    pub depends_on_block_constraints: bool,
-}
-
 #[derive(Clone, Copy)]
 pub(crate) struct CollapsibleWithParentStartMargin(bool);
 
@@ -362,7 +350,8 @@ impl BlockFormattingContext {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-    ) -> IndependentLayout {
+        depends_on_block_constraints: bool,
+    ) -> CacheableLayoutResult {
         let mut sequential_layout_state = if self.contains_floats || !layout_context.use_rayon {
             Some(SequentialLayoutState::new(containing_block.size.inline))
         } else {
@@ -395,15 +384,17 @@ impl BlockFormattingContext {
             sequential_layout_state.calculate_clearance(Clear::Both, &CollapsedMargin::zero())
         });
 
-        IndependentLayout {
+        CacheableLayoutResult {
             fragments: flow_layout.fragments,
             content_block_size: flow_layout.content_block_size +
                 flow_layout.collapsible_margins_in_children.end.solve() +
                 clearance.unwrap_or_default(),
             content_inline_size_for_table: None,
             baselines: flow_layout.baselines,
-            depends_on_block_constraints: flow_layout.depends_on_block_constraints,
+            depends_on_block_constraints: depends_on_block_constraints ||
+                flow_layout.depends_on_block_constraints,
             specific_layout_info: None,
+            collapsible_margins_in_children: CollapsedBlockMargins::zero(),
         }
     }
 
@@ -573,7 +564,7 @@ impl BlockContainer {
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
-    ) -> FlowLayout {
+    ) -> CacheableLayoutResult {
         match self {
             BlockContainer::BlockLevelBoxes(child_boxes) => layout_block_level_children(
                 layout_context,
@@ -627,7 +618,7 @@ fn layout_block_level_children(
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
     ignore_block_margins_for_stretch: LogicalSides1D<bool>,
-) -> FlowLayout {
+) -> CacheableLayoutResult {
     let mut placement_state =
         PlacementState::new(collapsible_with_parent_start_margin, containing_block);
 
@@ -660,12 +651,14 @@ fn layout_block_level_children(
     });
 
     let (content_block_size, collapsible_margins_in_children, baselines) = placement_state.finish();
-    FlowLayout {
+    CacheableLayoutResult {
         fragments,
         content_block_size,
         collapsible_margins_in_children,
         baselines,
         depends_on_block_constraints,
+        content_inline_size_for_table: None,
+        specific_layout_info: None,
     }
 }
 
@@ -1150,6 +1143,7 @@ impl IndependentNonReplacedContents {
             positioning_context,
             &containing_block_for_children,
             containing_block,
+            false, /* depends_on_block_constraints */
         );
 
         let inline_size = layout
@@ -1299,7 +1293,7 @@ impl IndependentNonReplacedContents {
             )
         };
 
-        let compute_block_size = |layout: &IndependentLayout| {
+        let compute_block_size = |layout: &CacheableLayoutResult| {
             content_box_sizes.block.resolve(
                 Direction::Block,
                 Size::FitContent,
@@ -1335,6 +1329,7 @@ impl IndependentNonReplacedContents {
                     style,
                 },
                 containing_block,
+                false, /* depends_on_block_constraints */
             );
 
             content_size = LogicalVec2 {
@@ -1398,6 +1393,7 @@ impl IndependentNonReplacedContents {
                         style,
                     },
                     containing_block,
+                    false, /* depends_on_block_constraints */
                 );
 
                 let inline_size = if let Some(inline_size) = layout.content_inline_size_for_table {
@@ -2162,6 +2158,12 @@ fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &Containi
     }
 }
 
+pub(crate) struct IndependentFloatOrAtomicLayoutResult {
+    pub fragment: BoxFragment,
+    pub baselines: Option<Baselines>,
+    pub pbm_sums: LogicalSides<Au>,
+}
+
 impl IndependentFormattingContext {
     pub(crate) fn layout_in_flow_block_level(
         &self,
@@ -2196,7 +2198,7 @@ impl IndependentFormattingContext {
         layout_context: &LayoutContext,
         child_positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-    ) -> IndependentLayoutResult {
+    ) -> IndependentFloatOrAtomicLayoutResult {
         let style = self.style();
         let container_writing_mode = containing_block.style.writing_mode;
         let layout_style = self.layout_style();
@@ -2280,6 +2282,7 @@ impl IndependentFormattingContext {
                     child_positioning_context,
                     &containing_block_for_children,
                     containing_block,
+                    false, /* depends_on_block_constraints */
                 );
                 let inline_size = independent_layout
                     .content_inline_size_for_table
@@ -2330,7 +2333,7 @@ impl IndependentFormattingContext {
             CollapsedBlockMargins::zero(),
         );
 
-        IndependentLayoutResult {
+        IndependentFloatOrAtomicLayoutResult {
             fragment,
             baselines,
             pbm_sums,
