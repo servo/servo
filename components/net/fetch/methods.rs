@@ -983,10 +983,11 @@ fn should_upgrade_request_to_potentially_trustworty(
     request.insecure_requests_policy == InsecureRequestsPolicy::Upgrade
 }
 
-// TODO : Needs to revisit
 /// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
-fn does_settings_prohibit_mixed_security_contexts(url: &ServoUrl) -> bool {
-    if url.is_origin_trustworthy() {
+fn does_settings_prohibit_mixed_security_contexts(request: &Request) -> bool {
+    
+    // Step 1
+    if request.origin.is_potentially_trustworthy() {
         return true;
     }
 
@@ -1008,7 +1009,7 @@ fn should_upgrade_mixed_content_request(request: &Request) -> bool {
     }
 
     // Step 1.3
-    if !does_settings_prohibit_mixed_security_contexts(&url) {
+    if !does_settings_prohibit_mixed_security_contexts(request) {
         return false;
     }
 
