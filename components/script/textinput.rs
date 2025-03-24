@@ -671,8 +671,14 @@ impl<T: ClipboardProvider> TextInput<T> {
             Direction::Backward => {
                 let remaining = self.edit_point.index;
                 if adjust > remaining && self.edit_point.line > 0 {
+                    // Preserve the current selection origin because `adjust_vertical`
+                    // modifies `selection_origin`. Since we are moving backward instead of
+                    // highlighting vertically, we need to restore it after adjusting the line.
+                    let selection_origin_temp = self.selection_origin;
                     self.adjust_vertical(-1, select);
                     self.edit_point.index = self.current_line_length();
+                    // Restore the original selection origin to maintain expected behavior.
+                    self.selection_origin = selection_origin_temp;
                     // one shift is consumed by the change of line, hence the -1
                     self.adjust_horizontal(
                         adjust.saturating_sub(remaining + UTF8Bytes::one()),
