@@ -371,15 +371,15 @@ impl HTMLCanvasElement {
             Some(CanvasContext::Context2d(context)) => context.get_image_data(),
             Some(CanvasContext::WebGL(_context)) => {
                 // TODO: add a method in WebGLRenderingContext to get the pixels.
-                return None;
+                None
             },
             Some(CanvasContext::WebGL2(_context)) => {
                 // TODO: add a method in WebGL2RenderingContext to get the pixels.
-                return None;
+                None
             },
             #[cfg(feature = "webgpu")]
             Some(CanvasContext::WebGPU(context)) => context.get_image_data(),
-            Some(CanvasContext::Placeholder(context)) => return context.get_image_data(),
+            Some(CanvasContext::Placeholder(context)) => context.get_image_data(),
             None => None,
         }
     }

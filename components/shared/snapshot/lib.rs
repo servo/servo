@@ -8,8 +8,9 @@ use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSharedMemory;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum PixelFormat {
+    #[default]
     RGBA,
     BGRA,
 }
@@ -22,6 +23,14 @@ pub enum AlphaMode {
     AsOpaque { premultiplied: bool },
     /// Data is not opaque
     Transparent { premultiplied: bool },
+}
+
+impl Default for AlphaMode {
+    fn default() -> Self {
+        Self::Transparent {
+            premultiplied: true,
+        }
+    }
 }
 
 impl AlphaMode {
