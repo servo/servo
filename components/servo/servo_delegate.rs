@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use embedder_traits::Notification;
+
 use crate::Servo;
 use crate::webview_delegate::{AllowOrDenyRequest, WebResourceLoad};
 
@@ -34,6 +36,9 @@ pub trait ServoDelegate {
     /// [`WebView`].  For loads associated with a [`WebView`], Servo  will call
     /// [`crate::WebViewDelegate::load_web_resource`].
     fn load_web_resource(&self, _load: WebResourceLoad) {}
+
+    /// Request to display a notification.
+    fn show_notification(&self, _notification: Notification) {}
 }
 
 pub(crate) struct DefaultServoDelegate;
