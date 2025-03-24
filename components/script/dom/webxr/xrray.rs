@@ -83,7 +83,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
         .normalize();
 
         Ok(Self::new(
-            &window.global(),
+            window,
             proto,
             Ray { origin, direction },
             can_gc,
@@ -104,7 +104,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
             .transform_vector3d(Vector3D::new(0., 0., -1.));
 
         Ok(Self::new(
-            &window.global(),
+            window,
             proto,
             Ray { origin, direction },
             can_gc,

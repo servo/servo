@@ -88,7 +88,7 @@ impl XRInputSourceEventMethods<crate::DomTypeHolder> for XRInputSourceEvent {
         init: &XRInputSourceEventBinding::XRInputSourceEventInit,
     ) -> Fallible<DomRoot<XRInputSourceEvent>> {
         Ok(XRInputSourceEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

@@ -78,7 +78,7 @@ impl RTCErrorEventMethods<crate::DomTypeHolder> for RTCErrorEvent {
         init: &RTCErrorEventInit,
     ) -> DomRoot<RTCErrorEvent> {
         RTCErrorEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

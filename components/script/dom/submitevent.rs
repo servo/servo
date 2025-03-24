@@ -78,7 +78,7 @@ impl SubmitEventMethods<crate::DomTypeHolder> for SubmitEvent {
         init: &SubmitEventBinding::SubmitEventInit,
     ) -> DomRoot<SubmitEvent> {
         SubmitEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

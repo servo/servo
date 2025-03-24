@@ -57,7 +57,7 @@ impl RTCSessionDescriptionMethods<crate::DomTypeHolder> for RTCSessionDescriptio
         config: &RTCSessionDescriptionInit,
     ) -> Fallible<DomRoot<RTCSessionDescription>> {
         Ok(RTCSessionDescription::new(
-            &window.global(),
+            window,
             proto,
             config.type_,
             config.sdp.clone(),

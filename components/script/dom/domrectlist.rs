@@ -37,7 +37,7 @@ impl DOMRectList {
     ) -> DomRoot<DOMRectList> {
         reflect_dom_object_with_proto(
             Box::new(DOMRectList::new_inherited(rects)),
-            &*window.global(),
+            window,
             None,
             can_gc,
         )

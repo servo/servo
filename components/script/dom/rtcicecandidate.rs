@@ -97,7 +97,7 @@ impl RTCIceCandidateMethods<crate::DomTypeHolder> for RTCIceCandidate {
             ));
         }
         Ok(RTCIceCandidate::new_with_proto(
-            &window.global(),
+            window,
             proto,
             config.candidate.clone(),
             config.sdpMid.clone(),

@@ -89,7 +89,7 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
         text: DOMString,
     ) -> DomRoot<Self> {
         VTTCue::new(
-            &window.global(),
+            window,
             proto,
             *start_time,
             *end_time,

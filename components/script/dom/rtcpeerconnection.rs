@@ -503,7 +503,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         config: &RTCConfiguration,
     ) -> Fallible<DomRoot<RTCPeerConnection>> {
         Ok(RTCPeerConnection::new(
-            &window.global(),
+            window,
             proto,
             config,
             can_gc,

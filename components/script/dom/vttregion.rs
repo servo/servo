@@ -58,7 +58,7 @@ impl VTTRegionMethods<crate::DomTypeHolder> for VTTRegion {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
-        Ok(VTTRegion::new(&window.global(), proto, can_gc))
+        Ok(VTTRegion::new(window, proto, can_gc))
     }
 
     // https://w3c.github.io/webvtt/#dom-vttregion-id

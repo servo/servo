@@ -104,7 +104,7 @@ impl TrackEventMethods<crate::DomTypeHolder> for TrackEvent {
         init: &TrackEventBinding::TrackEventInit,
     ) -> Fallible<DomRoot<TrackEvent>> {
         Ok(TrackEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

@@ -123,7 +123,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
         }
         let transform = RigidTransform3D::new(rotate, translate);
         Ok(XRRigidTransform::new_with_proto(
-            &window.global(),
+            window,
             proto,
             transform,
             can_gc,

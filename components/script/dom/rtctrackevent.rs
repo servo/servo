@@ -78,7 +78,7 @@ impl RTCTrackEventMethods<crate::DomTypeHolder> for RTCTrackEvent {
         init: &RTCTrackEventBinding::RTCTrackEventInit,
     ) -> Fallible<DomRoot<RTCTrackEvent>> {
         Ok(RTCTrackEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

@@ -91,7 +91,7 @@ impl XRReferenceSpaceEventMethods<crate::DomTypeHolder> for XRReferenceSpaceEven
         init: &XRReferenceSpaceEventInit,
     ) -> Fallible<DomRoot<XRReferenceSpaceEvent>> {
         Ok(XRReferenceSpaceEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

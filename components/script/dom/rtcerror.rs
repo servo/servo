@@ -74,7 +74,7 @@ impl RTCErrorMethods<crate::DomTypeHolder> for RTCError {
         init: &RTCErrorInit,
         message: DOMString,
     ) -> DomRoot<RTCError> {
-        RTCError::new_with_proto(&window.global(), proto, init, message, can_gc)
+        RTCError::new_with_proto(window, proto, init, message, can_gc)
     }
 
     // https://www.w3.org/TR/webrtc/#dom-rtcerror-errordetail

@@ -78,7 +78,7 @@ impl RTCDataChannelEventMethods<crate::DomTypeHolder> for RTCDataChannelEvent {
         init: &RTCDataChannelEventInit,
     ) -> DomRoot<RTCDataChannelEvent> {
         RTCDataChannelEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

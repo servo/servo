@@ -106,7 +106,7 @@ impl XRInputSourcesChangeEventMethods<crate::DomTypeHolder> for XRInputSourcesCh
         init: &XRInputSourcesChangeEventBinding::XRInputSourcesChangeEventInit,
     ) -> DomRoot<XRInputSourcesChangeEvent> {
         XRInputSourcesChangeEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

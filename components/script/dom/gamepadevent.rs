@@ -97,7 +97,7 @@ impl GamepadEventMethods<crate::DomTypeHolder> for GamepadEvent {
         init: &GamepadEventBinding::GamepadEventInit,
     ) -> Fallible<DomRoot<GamepadEvent>> {
         Ok(GamepadEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

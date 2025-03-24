@@ -78,7 +78,7 @@ impl XRSessionEventMethods<crate::DomTypeHolder> for XRSessionEvent {
         init: &XRSessionEventBinding::XRSessionEventInit,
     ) -> Fallible<DomRoot<XRSessionEvent>> {
         Ok(XRSessionEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
