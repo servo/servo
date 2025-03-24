@@ -81,6 +81,7 @@ stdenv.mkDerivation (androidEnvironment // {
     llvmPackages.bintools # provides lld
 
     udev # Needed by libudev-sys for GamePad API.
+    wireshark-cli  # for `tshark` in etc/devtools_parser.py
 
     # Build utilities
     cmake dbus gcc git pkg-config which llvm perl yasm m4
