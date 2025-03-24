@@ -428,6 +428,7 @@ impl Window {
         self.rendering_context.clone()
     }
 
+    #[allow(unused_variables)]
     fn force_srgb_color_space(window_handle: RawWindowHandle) {
         #[cfg(target_os = "macos")]
         {
