@@ -107,19 +107,7 @@ impl Window {
             winit_window.set_window_icon(Some(load_icon(icon_bytes)));
         }
 
-        #[cfg(target_os = "macos")]
-        {
-            if let RawWindowHandle::AppKit(handle) = winit_window.window_handle().unwrap().as_raw()
-            {
-                assert!(MainThreadMarker::new().is_some());
-                unsafe {
-                    let view = handle.ns_view.cast::<NSView>().as_ref();
-                    view.window()
-                        .unwrap()
-                        .setColorSpace(Some(&NSColorSpace::sRGBColorSpace()));
-                }
-            }
-        }
+        Window::force_srgb_color_space(winit_window.window_handle().unwrap().as_raw());
 
         let monitor = winit_window
             .current_monitor()
@@ -439,6 +427,22 @@ impl Window {
 
     pub(crate) fn offscreen_rendering_context(&self) -> Rc<OffscreenRenderingContext> {
         self.rendering_context.clone()
+    }
+
+    fn force_srgb_color_space(window_handle: RawWindowHandle) {
+        #[cfg(target_os = "macos")]
+        {
+            if let RawWindowHandle::AppKit(handle) = window_handle
+            {
+                assert!(MainThreadMarker::new().is_some());
+                unsafe {
+                    let view = handle.ns_view.cast::<NSView>().as_ref();
+                    view.window()
+                        .unwrap()
+                        .setColorSpace(Some(&NSColorSpace::sRGBColorSpace()));
+                }
+            }
+        }
     }
 }
 
