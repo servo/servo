@@ -55,6 +55,30 @@ impl Origin {
     pub fn is_opaque(&self) -> bool {
         matches!(self, Origin::Origin(ImmutableOrigin::Opaque(_)))
     }
+
+    /// <https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin>
+    pub fn is_potentially_trustworthy(&self) -> bool {
+        // Step 1.
+        if self.is_opaque() {
+            return  false;
+        }
+
+        let Origin::Origin(ImmutableOrigin::Tuple(scheme, _host, _))= self
+        else {
+            return false;
+        };
+
+        // Step 3, 6
+        match scheme.as_str() {
+            "https" | "wss" => return true,
+            "file" => return true,
+            _ => (),
+        }
+
+        //TODO: Steps 4-8
+        
+        false
+    }
 }
 
 /// A [referer](https://fetch.spec.whatwg.org/#concept-request-referrer)
