@@ -172,7 +172,7 @@ impl FragmentTree {
         let mut scroll_area = self.initial_containing_block;
         for fragment in self.root_fragments.iter() {
             scroll_area = fragment
-                .scrolling_area(&self.initial_containing_block)
+                .scrolling_area(&self.initial_containing_block, Some(self.initial_containing_block))
                 .union(&scroll_area);
         }
         scroll_area
@@ -182,7 +182,7 @@ impl FragmentTree {
         let tag_to_find = Tag::new(requested_node);
         let scroll_area = self.find(|fragment, _, containing_block| {
             if fragment.tag() == Some(tag_to_find) {
-                Some(fragment.scrolling_area(containing_block))
+                Some(fragment.scrolling_area(containing_block, None))
             } else {
                 None
             }
