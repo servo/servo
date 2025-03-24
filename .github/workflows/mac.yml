@@ -205,7 +205,7 @@ jobs:
           path: target.tar.gz
 
   wpt-2020:
-    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
+    if: ${{ inputs.wpt }}
     name: MacOS WPT
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
