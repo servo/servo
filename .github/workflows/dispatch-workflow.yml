@@ -85,3 +85,16 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       bencher: ${{ inputs.bencher }}
+
+  linux-arm:
+    if: ${{ inputs.workflow == 'linux-arm' }}
+    name: Linux ARM
+    uses: ./.github/workflows/linux-arm.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      unit-tests: ${{ inputs.unit-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
+      bencher: ${{ inputs.bencher }}
+
+
