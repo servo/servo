@@ -45,6 +45,7 @@ class Workflow(str, Enum):
     ANDROID = "android"
     OHOS = "ohos"
     LINT = "lint"
+    LINUX_ARM = "linux-arm"
 
 
 @dataclass
@@ -78,6 +79,8 @@ class JobConfig(object):
     def update_name(self):
         if self.workflow is Workflow.LINUX:
             self.name = "Linux"
+        elif self.workflow is Workflow.LINUX_ARM:
+            self.name = "Linux ARM"
         elif self.workflow is Workflow.MACOS:
             self.name = "MacOS"
         elif self.workflow is Workflow.WINDOWS:
@@ -104,7 +107,9 @@ class JobConfig(object):
 def handle_preset(s: str) -> Optional[JobConfig]:
     s = s.lower()
 
-    if any(word in s for word in ["linux"]):
+    if any(word in s for word in ["linux-arm", "arm"]):
+        return JobConfig("Linux ARM", Workflow.LINUX_ARM)
+    elif any(word in s for word in ["linux"]):
         return JobConfig("Linux", Workflow.LINUX)
     elif any(word in s for word in ["mac", "macos"]):
         return JobConfig("MacOS", Workflow.MACOS)
@@ -122,6 +127,8 @@ def handle_preset(s: str) -> Optional[JobConfig]:
                          unit_tests=False)  # production profile does not work with unit-tests
     elif any(word in s for word in ["lint", "tidy"]):
         return JobConfig("Lint", Workflow.LINT)
+    elif any(word in s for word in ["linux-arm", "arm"]):
+        return JobConfig("Linux ARM", Workflow.LINUX_ARM)
     else:
         return None
 
