@@ -12,7 +12,7 @@ use crate::dom::bindings::iterable::{Iterable, IterableIterator};
 use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
-use crate::realms::AlreadyInRealm;
+use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext};
 
 /// Create the reflector for a new DOM object and yield ownership to the
@@ -46,22 +46,36 @@ pub(crate) trait DomGlobalGeneric<D: DomTypes>: DomObject {
     /// Returns the [`GlobalScope`] of the realm that the [`DomObject`] was created in.  If this
     /// object is a `Node`, this will be different from it's owning `Document` if adopted by. For
     /// `Node`s it's almost always better to use `NodeTraits::owning_global`.
+    fn global_(&self, realm: InRealm) -> DomRoot<D::GlobalScope>
+    where
+        Self: Sized,
+    {
+        D::GlobalScope::from_reflector(self, realm)
+    }
+
+    /// Returns the [`GlobalScope`] of the realm that the [`DomObject`] was created in.  If this
+    /// object is a `Node`, this will be different from it's owning `Document` if adopted by. For
+    /// `Node`s it's almost always better to use `NodeTraits::owning_global`.
     fn global(&self) -> DomRoot<D::GlobalScope>
     where
         Self: Sized,
     {
         let realm = AlreadyInRealm::assert_for_cx(D::GlobalScope::get_cx());
-        D::GlobalScope::from_reflector(self, &realm)
+        D::GlobalScope::from_reflector(self, InRealm::already(&realm))
     }
 }
 
 impl<D: DomTypes, T: DomObject> DomGlobalGeneric<D> for T {}
 
 pub(crate) trait DomGlobal {
+    fn global_(&self, realm: InRealm) -> DomRoot<GlobalScope>;
     fn global(&self) -> DomRoot<GlobalScope>;
 }
 
 impl<T: DomGlobalGeneric<crate::DomTypeHolder>> DomGlobal for T {
+    fn global_(&self, realm: InRealm) -> DomRoot<GlobalScope> {
+        <Self as DomGlobalGeneric<crate::DomTypeHolder>>::global_(self, realm)
+    }
     fn global(&self) -> DomRoot<GlobalScope> {
         <Self as DomGlobalGeneric<crate::DomTypeHolder>>::global(self)
     }
