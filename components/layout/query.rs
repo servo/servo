@@ -89,7 +89,7 @@ pub fn process_node_scroll_area_request<'dom>(
         Some(node) => node
             .fragments_for_pseudo(None)
             .first()
-            .map(Fragment::scrolling_area)
+            .map(|fragment| Fragment::scrolling_area(fragment, None))
             .unwrap_or_default(),
         None => tree.get_scrolling_area_for_viewport(),
     };

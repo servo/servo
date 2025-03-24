@@ -56,7 +56,7 @@ impl PositioningFragment {
         let scrollable_overflow = children.iter().fold(PhysicalRect::zero(), |acc, child| {
             acc.union(
                 &child
-                    .scrollable_overflow()
+                    .scrollable_overflow_for_parent()
                     .translate(content_origin.to_vector()),
             )
         });

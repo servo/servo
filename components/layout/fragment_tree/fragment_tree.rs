@@ -141,7 +141,7 @@ impl FragmentTree {
     pub fn get_scrolling_area_for_viewport(&self) -> PhysicalRect<Au> {
         let mut scroll_area = self.initial_containing_block;
         for fragment in self.root_fragments.iter() {
-            scroll_area = fragment.scrolling_area().union(&scroll_area);
+            scroll_area = fragment.scrolling_area(Some(self.initial_containing_block)).union(&scroll_area);
         }
         scroll_area
     }
