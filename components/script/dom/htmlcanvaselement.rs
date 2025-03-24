@@ -189,7 +189,7 @@ impl HTMLCanvasElement {
                 #[cfg(feature = "webgpu")]
                 CanvasContext::WebGPU(ref context) => context.mark_as_dirty(),
                 CanvasContext::Placeholder(ref _context) => {
-                    // TODO: should this be marked as dirty
+                    // TODO: Should this be marked as dirty?
                 },
             }
         }
