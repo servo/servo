@@ -127,8 +127,6 @@ def handle_preset(s: str) -> Optional[JobConfig]:
                          unit_tests=False)  # production profile does not work with unit-tests
     elif any(word in s for word in ["lint", "tidy"]):
         return JobConfig("Lint", Workflow.LINT)
-    elif any(word in s for word in ["linux-arm", "arm"]):
-        return JobConfig("Linux ARM", Workflow.LINUX_ARM)
     else:
         return None
 
