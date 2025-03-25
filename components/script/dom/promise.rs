@@ -15,7 +15,7 @@ use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::conversions::ToJSValConvertible;
+use js::conversions::{ConversionResult, FromJSValConvertibleRc, ToJSValConvertible};
 use js::jsapi::{
     AddRawValueRoot, CallArgs, GetFunctionNativeReserved, Heap, JS_ClearPendingException,
     JS_GetFunctionObject, JS_NewFunction, JSAutoRealm, JSContext, JSObject,
@@ -403,5 +403,26 @@ impl PromiseHelpers<crate::DomTypeHolder> for Promise {
         value: impl ToJSValConvertible,
     ) -> Rc<Promise> {
         Promise::new_resolved(global, cx, value, CanGc::note())
+    }
+}
+
+impl FromJSValConvertibleRc for Promise {
+    #[allow(unsafe_code)]
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+    ) -> Result<ConversionResult<Rc<Promise>>, ()> {
+        if value.get().is_null() {
+            return Ok(ConversionResult::Failure("null not allowed".into()));
+        }
+        if !value.get().is_object() {
+            return Ok(ConversionResult::Failure("not an object".into()));
+        }
+        rooted!(in(cx) let obj = value.get().to_object());
+        if !IsPromiseObject(obj.handle()) {
+            return Ok(ConversionResult::Failure("not a promise".into()));
+        }
+        let promise = Promise::new_with_js_promise(obj.handle(), SafeJSContext::from_ptr(cx));
+        Ok(ConversionResult::Success(promise))
     }
 }

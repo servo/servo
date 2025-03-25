@@ -910,6 +910,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
 
+    fn PassRecordPromise(&self, _: Record<DOMString, Rc<Promise>>) {}
     fn PassRecord(&self, _: Record<DOMString, i32>) {}
     fn PassRecordWithUSVStringKey(&self, _: Record<USVString, i32>) {}
     fn PassRecordWithByteStringKey(&self, _: Record<ByteString, i32>) {}
