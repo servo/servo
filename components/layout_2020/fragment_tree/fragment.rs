@@ -134,7 +134,11 @@ impl Fragment {
         }
     }
 
-    pub fn scrolling_area(&self, containing_block: &PhysicalRect<Au>, clipping_rect: Option<PhysicalRect<Au>>) -> PhysicalRect<Au> {
+    pub fn scrolling_area(
+        &self,
+        containing_block: &PhysicalRect<Au>,
+        clipping_rect: Option<PhysicalRect<Au>>,
+    ) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
                 .borrow()

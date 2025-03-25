@@ -172,7 +172,10 @@ impl FragmentTree {
         let mut scroll_area = self.initial_containing_block;
         for fragment in self.root_fragments.iter() {
             scroll_area = fragment
-                .scrolling_area(&self.initial_containing_block, Some(self.initial_containing_block))
+                .scrolling_area(
+                    &self.initial_containing_block,
+                    Some(self.initial_containing_block),
+                )
                 .union(&scroll_area);
         }
         scroll_area
