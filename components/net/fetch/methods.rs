@@ -278,7 +278,6 @@ pub async fn main_fetch(
     // Step 7. If should request be blocked due to a bad port, should fetching request be blocked
     // as mixed content, or should request be blocked by Content Security Policy returns blocked,
     // then set response to a network error.
-    // TODO: check "should fetching request be blocked as mixed content"
     if should_request_be_blocked_by_csp(request, &policy_container) == csp::CheckResult::Blocked {
         warn!("Request blocked by CSP");
         response = Some(Response::network_error(NetworkError::Internal(
@@ -288,6 +287,12 @@ pub async fn main_fetch(
     if should_request_be_blocked_due_to_a_bad_port(&request.current_url()) {
         response = Some(Response::network_error(NetworkError::Internal(
             "Request attempted on bad port".into(),
+        )));
+    }
+    if should_request_be_blocked_as_mixed_content(request) {
+        debug!("Blocking for mixed content");
+        response = Some(Response::network_error(NetworkError::Internal(
+            "Blocked as mixed content".into(),
         )));
     }
 
@@ -480,6 +485,8 @@ pub async fn main_fetch(
             should_be_blocked_due_to_nosniff(request.destination, &response.headers);
         let should_replace_with_mime_type_error = !response_is_network_error &&
             should_be_blocked_due_to_mime_type(request.destination, &response.headers);
+        let should_replace_with_mixed_content = !response_is_network_error &&
+            should_response_be_blocked_as_mixed_content(request, &response);
 
         // Step 15.
         let mut network_error_response = response
@@ -517,6 +524,10 @@ pub async fn main_fetch(
             // Defer rebinding result
             blocked_error_response =
                 Response::network_error(NetworkError::Internal("Blocked by mime type".into()));
+            &blocked_error_response
+        } else if should_replace_with_mixed_content {
+            blocked_error_response =
+                Response::network_error(NetworkError::Internal("Blocked as mixed content".into()));
             &blocked_error_response
         } else {
             internal_response
@@ -914,6 +925,60 @@ pub fn should_request_be_blocked_due_to_a_bad_port(url: &ServoUrl) -> bool {
     false
 }
 
+/// <https://w3c.github.io/webappsec-mixed-content/#should-block-fetch>
+pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
+    // 1.1
+    if does_settings_prohibit_mixed_security_contexts(request) ==
+        MixedSecurityProhibited::NotProhibited
+    {
+        return false;
+    }
+
+    // 1.2 request url is potentially trustworthy
+    if request.url().is_potentially_trustworthy() {
+        debug!("{} is potentially trustworthy", request.url());
+        return false;
+    }
+    // debug!("{} is not potentially trustworthy with scheme", request.url(), request.url().scheme());
+
+    // 1.3 User Agent set to allow mixed content
+
+    // 1.4 destination is document
+    if request.destination == Destination::Document {
+        //TODO: request's target browsing context has no parent browsing context
+        return false;
+    }
+
+    true
+}
+
+/// <https://w3c.github.io/webappsec-mixed-content/#should-block-response>
+pub fn should_response_be_blocked_as_mixed_content(request: &Request, response: &Response) -> bool {
+    // 1.1
+    if does_settings_prohibit_mixed_security_contexts(request) ==
+        MixedSecurityProhibited::NotProhibited
+    {
+        return false;
+    }
+
+    // 1.2
+    if let Some(response_url) = response.actual_response().url() {
+        if response_url.is_potentially_trustworthy() {
+            debug! {"response url {} is potentially trustworthy", response_url}
+            return false;
+        }
+    }
+
+    // 1.3 TODO: UA allows mixed content
+    // 1.4
+    if request.destination == Destination::Document {
+        // TODO if requests target browsing context has no parent browsing context
+        return false;
+    }
+    debug!("Blocking response as mixed content");
+    true
+}
+
 /// <https://fetch.spec.whatwg.org/#bad-port>
 fn is_bad_port(port: u16) -> bool {
     static BAD_PORTS: [u16; 78] = [
@@ -983,15 +1048,27 @@ fn should_upgrade_request_to_potentially_trustworty(
     request.insecure_requests_policy == InsecureRequestsPolicy::Upgrade
 }
 
+#[derive(Debug, PartialEq)]
+pub enum MixedSecurityProhibited {
+    Prohibited,
+    NotProhibited,
+}
+
 /// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
-fn does_settings_prohibit_mixed_security_contexts(request: &Request) -> bool {
-    
-    // Step 1
-    if request.origin.is_potentially_trustworthy() {
-        return true;
+fn does_settings_prohibit_mixed_security_contexts(request: &Request) -> MixedSecurityProhibited {
+    if let Origin::Origin(ref origin) = request.origin {
+        // Step 1
+        if origin.is_potentially_trustworthy() {
+            return MixedSecurityProhibited::Prohibited;
+        }
     }
 
-    false
+    // Step 2.2
+    if request.has_trustworthy_ancestor_origin {
+        return MixedSecurityProhibited::Prohibited;
+    }
+
+    MixedSecurityProhibited::NotProhibited
 }
 
 /// <https://w3c.github.io/webappsec-mixed-content/#upgrade-algorithm>
@@ -1009,12 +1086,14 @@ fn should_upgrade_mixed_content_request(request: &Request) -> bool {
     }
 
     // Step 1.3
-    if !does_settings_prohibit_mixed_security_contexts(request) {
+    if does_settings_prohibit_mixed_security_contexts(request) ==
+        MixedSecurityProhibited::NotProhibited
+    {
         return false;
     }
 
     // Step 1.4 : request’s destination is not "image", "audio", or "video".
-    if matches!(
+    if !matches!(
         request.destination,
         Destination::Audio | Destination::Image | Destination::Video
     ) {

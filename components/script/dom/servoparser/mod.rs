@@ -228,6 +228,7 @@ impl ServoParser {
             false,
             allow_declarative_shadow_roots,
             Some(context_document.insecure_requests_policy()),
+            context_document.has_trustworthy_ancestor_origin(),
             can_gc,
         );
 

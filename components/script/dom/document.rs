@@ -524,6 +524,8 @@ pub(crate) struct Document {
     /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
     #[no_trace]
     inherited_insecure_requests_policy: Cell<Option<InsecureRequestsPolicy>>,
+    //// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
+    has_trustworthy_ancestor_origin: Cell<bool>,
     /// <https://w3c.github.io/IntersectionObserver/#document-intersectionobservertaskqueued>
     intersection_observer_task_queued: Cell<bool>,
     /// Active intersection observers that should be processed by this document in
@@ -3735,8 +3737,12 @@ impl Document {
         is_initial_about_blank: bool,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        has_trustworthy_ancestor_origin: bool,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
+
+        let has_trustworthy_ancestor_origin =
+            url.origin().is_potentially_trustworthy() || has_trustworthy_ancestor_origin;
 
         let (ready_state, domcontentloaded_dispatched) = if source == DocumentSource::FromParser {
             (DocumentReadyState::Loading, false)
@@ -3895,6 +3901,7 @@ impl Document {
             is_initial_about_blank: Cell::new(is_initial_about_blank),
             allow_declarative_shadow_roots: Cell::new(allow_declarative_shadow_roots),
             inherited_insecure_requests_policy: Cell::new(inherited_insecure_requests_policy),
+            has_trustworthy_ancestor_origin: Cell::new(has_trustworthy_ancestor_origin),
             intersection_observer_task_queued: Cell::new(false),
             intersection_observers: Default::default(),
             active_keyboard_modifiers: Cell::new(Modifiers::empty()),
@@ -4052,6 +4059,7 @@ impl Document {
         is_initial_about_blank: bool,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        has_trustworthy_ancestor_origin: bool,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -4072,6 +4080,7 @@ impl Document {
             is_initial_about_blank,
             allow_declarative_shadow_roots,
             inherited_insecure_requests_policy,
+            has_trustworthy_ancestor_origin,
             can_gc,
         )
     }
@@ -4095,6 +4104,7 @@ impl Document {
         is_initial_about_blank: bool,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        has_trustworthy_ancestor_origin: bool,
         can_gc: CanGc,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
@@ -4115,6 +4125,7 @@ impl Document {
                 is_initial_about_blank,
                 allow_declarative_shadow_roots,
                 inherited_insecure_requests_policy,
+                has_trustworthy_ancestor_origin,
             )),
             window,
             proto,
@@ -4248,6 +4259,7 @@ impl Document {
                     false,
                     self.allow_declarative_shadow_roots(),
                     Some(self.insecure_requests_policy()),
+                    self.has_trustworthy_ancestor_origin(),
                     can_gc,
                 );
                 new_doc
@@ -4795,6 +4807,10 @@ impl Document {
     pub fn set_allow_declarative_shadow_roots(&self, value: bool) {
         self.allow_declarative_shadow_roots.set(value)
     }
+
+    pub fn has_trustworthy_ancestor_origin(&self) -> bool {
+        self.has_trustworthy_ancestor_origin.get()
+    }
 }
 
 #[allow(non_snake_case)]
@@ -4825,6 +4841,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             false,
             doc.allow_declarative_shadow_roots(),
             Some(doc.insecure_requests_policy()),
+            doc.has_trustworthy_ancestor_origin(),
             can_gc,
         ))
     }

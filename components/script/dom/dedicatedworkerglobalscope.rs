@@ -258,6 +258,7 @@ impl DedicatedWorkerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
+        has_trustworthy_ancestor_origin: bool,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -271,6 +272,7 @@ impl DedicatedWorkerGlobalScope {
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 insecure_requests_policy,
+                has_trustworthy_ancestor_origin,
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
@@ -299,6 +301,7 @@ impl DedicatedWorkerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
+        has_trustworthy_ancestor_origin: bool,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
@@ -318,6 +321,7 @@ impl DedicatedWorkerGlobalScope {
             gpu_id_hub,
             control_receiver,
             insecure_requests_policy,
+            has_trustworthy_ancestor_origin,
         ));
         unsafe {
             DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
@@ -347,6 +351,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
         insecure_requests_policy: InsecureRequestsPolicy,
+        has_trustworthy_ancestor_origin: bool,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
         let webview_id = WebViewId::installed();
@@ -384,8 +389,8 @@ impl DedicatedWorkerGlobalScope {
                     .use_url_credentials(true)
                     .pipeline_id(Some(pipeline_id))
                     .referrer_policy(referrer_policy)
-                    .referrer_policy(referrer_policy)
                     .insecure_requests_policy(insecure_requests_policy)
+                    .has_trustworthy_ancestor_origin(has_trustworthy_ancestor_origin)
                     .origin(origin);
 
                 let runtime = unsafe {
@@ -438,6 +443,7 @@ impl DedicatedWorkerGlobalScope {
                     gpu_id_hub,
                     control_receiver,
                     insecure_requests_policy,
+                    has_trustworthy_ancestor_origin,
                 );
                 // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
                 // registration (#6631), so we instead use a random number and cross our fingers.

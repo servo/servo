@@ -110,6 +110,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             DocumentSource::NotFromParser,
             loader,
             Some(self.document.insecure_requests_policy()),
+            self.document.has_trustworthy_ancestor_origin(),
             can_gc,
         );
 
@@ -176,6 +177,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             false,
             self.document.allow_declarative_shadow_roots(),
             Some(self.document.insecure_requests_policy()),
+            self.document.has_trustworthy_ancestor_origin(),
             can_gc,
         );
 

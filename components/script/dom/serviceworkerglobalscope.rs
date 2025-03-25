@@ -227,7 +227,9 @@ impl ServiceWorkerGlobalScope {
                 #[cfg(feature = "webgpu")]
                 Arc::new(IdentityHub::default()),
                 InsecureRequestsPolicy::DoNotUpgrade, // FIXME: investigate what environment this value comes from for
-                                                      // service workers.
+                // service workers.
+                true, // https://github.com/w3c/ServiceWorker/issues/493#issuecomment-322994867
+                      // Use true for trustworthy origin, SeviceWorkers can't do mixed-content
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
