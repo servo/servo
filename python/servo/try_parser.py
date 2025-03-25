@@ -18,7 +18,7 @@ import unittest
 import logging
 
 from dataclasses import dataclass
-from enum import Enum, auto
+from enum import Enum
 
 
 class Workflow(str, Enum):
