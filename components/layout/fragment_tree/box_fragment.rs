@@ -332,7 +332,7 @@ impl BoxFragment {
                 overflow_box.to_rect()
             },
             // FIXME: should wait for scrolling in other direction to work before adding new cases.
-            (_, _) => scrollable_overflow
+            (_, _) => scrollable_overflow,
         }
     }
 

@@ -57,8 +57,8 @@ mod gradient;
 mod stacking_context;
 
 use background::BackgroundPainter;
-pub use stacking_context::*;
 pub use conversions::*;
+pub use stacking_context::*;
 
 #[derive(Clone, Copy)]
 pub struct WebRenderImageInfo {
