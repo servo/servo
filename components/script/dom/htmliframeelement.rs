@@ -343,7 +343,7 @@ impl HTMLIFrameElement {
                     return;
                 }
             }
-            ancestor = a.parent().map(DomRoot::from_ref);
+            ancestor = Some(a.parent().map(DomRoot::from_ref));
         }
 
         let creator_pipeline_id = if url.as_str() == "about:blank" {
@@ -374,7 +374,7 @@ impl HTMLIFrameElement {
             NavigationHistoryBehavior::Push
         };
 
-        self.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
+        self.navigate_or_reload_child_browsing_context(load_data, history_handling, CanGc::note);
     }
 
     fn create_nested_browsing_context(&self, can_gc: CanGc) {
@@ -676,8 +676,10 @@ impl VirtualMethods for HTMLIFrameElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("sandbox") => {
                 self.sandbox_allowance
@@ -761,8 +763,8 @@ impl VirtualMethods for HTMLIFrameElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         let blocker = &self.load_blocker;
         LoadBlocker::terminate(blocker, CanGc::note());

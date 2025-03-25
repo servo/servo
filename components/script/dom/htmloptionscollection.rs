@@ -64,7 +64,7 @@ impl HTMLOptionsCollection {
             let element =
                 HTMLOptionElement::new(local_name!("option"), None, &document, None, can_gc);
             let node = element.upcast::<Node>();
-            root.AppendChild(node)?;
+            root.AppendChild(node, can_gc)?;
         }
         Ok(())
     }
@@ -117,16 +117,16 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
             let node = value.upcast::<Node>();
             let root = self.upcast().root_node();
             if n >= 0 {
-                Node::pre_insert(node, &root, None).map(|_| ())
+                Node::pre_insert(node, &root, None, can_gc).map(|_| ())
             } else {
                 let child = self.upcast().IndexedGetter(index).unwrap();
                 let child_node = child.upcast::<Node>();
 
-                root.ReplaceChild(node, child_node).map(|_| ())
+                root.ReplaceChild(node, child_node, can_gc).map(|_| ())
             }
         } else {
             // Step 1
-            self.Remove(index as i32);
+            self.Remove(index as i32, can_gc);
             Ok(())
         }
     }
@@ -161,7 +161,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
                 // Step 3.1. Let n be current − value.
                 // Step 3.2 Remove the last n nodes in the collection from their parent nodes.
                 for index in (length..current).rev() {
-                    self.Remove(index as i32)
+                    self.Remove(index as i32, can_gc)
                 }
             },
             _ => {},
@@ -173,6 +173,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
         &self,
         element: HTMLOptionElementOrHTMLOptGroupElement,
         before: Option<HTMLElementOrLong>,
+        can_gc: CanGc,
     ) -> ErrorResult {
         let root = self.upcast().root_node();
 
@@ -220,13 +221,13 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
         };
 
         // Step 6
-        Node::pre_insert(node, &parent, reference_node.as_deref()).map(|_| ())
+        Node::pre_insert(node, &parent, reference_node.as_deref(), can_gc).map(|_| ())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove>
-    fn Remove(&self, index: i32) {
+    fn Remove(&self, index: i32, can_gc: CanGc) {
         if let Some(element) = self.upcast().IndexedGetter(index as u32) {
-            element.Remove();
+            element.Remove(can_gc);
         }
     }
 

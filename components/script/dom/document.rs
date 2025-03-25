@@ -917,14 +917,14 @@ impl Document {
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
-    pub(crate) fn unregister_element_id(&self, to_unregister: &Element, id: Atom) {
+    pub(crate) fn unregister_element_id(&self, to_unregister: &Element, id: Atom, can_gc: CanGc) {
         self.document_or_shadow_root
             .unregister_named_element(&self.id_map, to_unregister, &id);
-        self.reset_form_owner_for_listeners(&id);
+        self.reset_form_owner_for_listeners(&id, can_gc);
     }
 
     /// Associate an element present in this document with the provided id.
-    pub(crate) fn register_element_id(&self, element: &Element, id: Atom) {
+    pub(crate) fn register_element_id(&self, element: &Element, id: Atom, can_gc: CanGc) {
         let root = self.GetDocumentElement().expect(
             "The element is in the document, so there must be a document \
              element.",
@@ -935,7 +935,7 @@ impl Document {
             &id,
             DomRoot::from_ref(root.upcast::<Node>()),
         );
-        self.reset_form_owner_for_listeners(&id);
+        self.reset_form_owner_for_listeners(&id, can_gc);
     }
 
     /// Remove any existing association between the provided name and any elements in this document.
@@ -2248,13 +2248,13 @@ impl Document {
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
-                        fragment.AppendChild(&node)?;
+                        fragment.AppendChild(&node, can_gc)?;
                     },
                     NodeOrString::String(string) => {
                         let node = DomRoot::upcast::<Node>(self.CreateTextNode(string, can_gc));
                         // No try!() here because appending a text node
                         // should not fail.
-                        fragment.AppendChild(&node).unwrap();
+                        fragment.AppendChild(&node, can_gc).unwrap();
                     },
                 }
             }
@@ -3262,10 +3262,10 @@ impl Document {
         id
     }
 
-    pub(crate) fn unregister_media_controls(&self, id: &str) {
+    pub(crate) fn unregister_media_controls(&self, id: &str, can_gc: CanGc) {
         if let Some(ref media_controls) = self.media_controls.borrow_mut().remove(id) {
             let media_controls = DomRoot::from_ref(&**media_controls);
-            media_controls.Host().detach_shadow();
+            media_controls.Host().detach_shadow(can_gc);
         } else {
             debug_assert!(false, "Trying to unregister unknown media controls");
         }
@@ -4508,14 +4508,14 @@ impl Document {
         }
     }
 
-    fn reset_form_owner_for_listeners(&self, id: &Atom) {
+    fn reset_form_owner_for_listeners(&self, id: &Atom, can_gc: CanGc) {
         let map = self.form_id_listener_map.borrow();
         if let Some(listeners) = map.get(id) {
             for listener in listeners {
                 listener
                     .as_maybe_form_control()
                     .expect("Element must be a form control")
-                    .reset_form_owner();
+                    .reset_form_owner(can_gc);
             }
         }
     }
@@ -5211,7 +5211,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-adoptnode
-    fn AdoptNode(&self, node: &Node) -> Fallible<DomRoot<Node>> {
+    fn AdoptNode(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() {
             return Err(Error::NotSupported);
@@ -5223,7 +5223,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 3.
-        Node::adopt(node, self);
+        Node::adopt(node, self, can_gc);
 
         // Step 4.
         Ok(DomRoot::from_ref(node))
@@ -5358,7 +5358,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().as_deref())
+                        .InsertBefore(child, parent.GetFirstChild().as_deref(), can_gc)
                         .unwrap()
                 },
             }
@@ -5381,7 +5381,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                             None,
                             can_gc,
                         );
-                        head.upcast::<Node>().AppendChild(elem.upcast()).unwrap()
+                        head.upcast::<Node>()
+                            .AppendChild(elem.upcast(), can_gc)
+                            .unwrap()
                     },
                     None => return,
                 },
@@ -5428,7 +5430,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-body
-    fn SetBody(&self, new_body: Option<&HTMLElement>) -> ErrorResult {
+    fn SetBody(&self, new_body: Option<&HTMLElement>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
         let new_body = match new_body {
             Some(new_body) => new_body,
@@ -5454,7 +5456,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Step 3.
             (Some(ref root), Some(child)) => {
                 let root = root.upcast::<Node>();
-                root.ReplaceChild(new_body.upcast(), child.upcast())
+                root.ReplaceChild(new_body.upcast(), child.upcast(), can_gc)
                     .unwrap();
             },
 
@@ -5464,7 +5466,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Step 5.
             (Some(ref root), &None) => {
                 let root = root.upcast::<Node>();
-                root.AppendChild(new_body.upcast()).unwrap();
+                root.AppendChild(new_body.upcast(), can_gc).unwrap();
             },
         }
         Ok(())
@@ -5934,7 +5936,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 11. Replace all with null within document.
-        Node::replace_all(None, self.upcast::<Node>());
+        Node::replace_all(None, self.upcast::<Node>(), can_gc);
 
         // Specs and tests are in a state of flux about whether
         // we want to clear the selection when we remove the contents;

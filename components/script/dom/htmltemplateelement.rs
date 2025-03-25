@@ -113,14 +113,14 @@ impl VirtualMethods for HTMLTemplateElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#template-adopting-steps>
-    fn adopting_steps(&self, old_doc: &Document) {
-        self.super_type().unwrap().adopting_steps(old_doc);
+    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
+        self.super_type().unwrap().adopting_steps(old_doc, can_gc);
         // Step 1.
         let doc = self
             .owner_document()
             .appropriate_template_contents_owner_document(CanGc::note());
         // Step 2.
-        Node::adopt(self.Content(CanGc::note()).upcast(), &doc);
+        Node::adopt(self.Content(CanGc::note()).upcast(), &doc, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-template-element:concept-node-clone-ext>
@@ -129,10 +129,11 @@ impl VirtualMethods for HTMLTemplateElement {
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
+        can_gc: CanGc,
     ) {
         self.super_type()
             .unwrap()
-            .cloning_steps(copy, maybe_doc, clone_children);
+            .cloning_steps(copy, maybe_doc, clone_children, can_gc);
         if clone_children == CloneChildrenFlag::DoNotCloneChildren {
             // Step 1.
             return;
@@ -148,7 +149,7 @@ impl VirtualMethods for HTMLTemplateElement {
                 CloneChildrenFlag::CloneChildren,
                 CanGc::note(),
             );
-            copy_contents.AppendChild(&copy_child).unwrap();
+            copy_contents.AppendChild(&copy_child, can_gc).unwrap();
         }
     }
 }

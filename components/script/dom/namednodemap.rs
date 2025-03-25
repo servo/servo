@@ -66,20 +66,20 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditem
-    fn SetNamedItem(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
-        self.owner.SetAttributeNode(attr)
+    fn SetNamedItem(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
+        self.owner.SetAttributeNode(attr, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-setnameditemns
-    fn SetNamedItemNS(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
-        self.SetNamedItem(attr)
+    fn SetNamedItemNS(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
+        self.SetNamedItem(attr, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem
-    fn RemoveNamedItem(&self, name: DOMString) -> Fallible<DomRoot<Attr>> {
+    fn RemoveNamedItem(&self, name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
         let name = self.owner.parsed_name(name);
         self.owner
-            .remove_attribute_by_name(&name)
+            .remove_attribute_by_name(&name, can_gc)
             .ok_or(Error::NotFound)
     }
 
@@ -88,10 +88,11 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
         &self,
         namespace: Option<DOMString>,
         local_name: DOMString,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<Attr>> {
         let ns = namespace_from_domstring(namespace);
         self.owner
-            .remove_attribute(&ns, &LocalName::from(local_name))
+            .remove_attribute(&ns, &LocalName::from(local_name), can_gc)
             .ok_or(Error::NotFound)
     }
 

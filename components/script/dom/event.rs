@@ -584,7 +584,7 @@ impl Event {
             if let Some(target) = self.GetTarget() {
                 if let Some(node) = target.downcast::<Node>() {
                     let vtable = vtable_for(node);
-                    vtable.handle_event(self);
+                    vtable.handle_event(self, can_gc);
                 }
             }
         }

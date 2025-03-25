@@ -25,7 +25,11 @@ pub(crate) trait Validatable {
     fn is_instance_validatable(&self) -> bool;
 
     // Check if element satisfies its constraints, excluding custom errors
-    fn perform_validation(&self, _validate_flags: ValidationFlags) -> ValidationFlags {
+    fn perform_validation(
+        &self,
+        _validate_flags: ValidationFlags,
+        can_gc: CanGc,
+    ) -> ValidationFlags {
         ValidationFlags::empty()
     }
 

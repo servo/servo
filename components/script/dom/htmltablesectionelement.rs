@@ -77,13 +77,19 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
             index,
             || self.Rows(),
             || HTMLTableRowElement::new(local_name!("tr"), None, &node.owner_doc(), None, can_gc),
+            can_gc,
         )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow
-    fn DeleteRow(&self, index: i32) -> ErrorResult {
+    fn DeleteRow(&self, index: i32, can_gc: CanGc) -> ErrorResult {
         let node = self.upcast::<Node>();
-        node.delete_cell_or_row(index, || self.Rows(), |n| n.is::<HTMLTableRowElement>())
+        node.delete_cell_or_row(
+            index,
+            || self.Rows(),
+            |n| n.is::<HTMLTableRowElement>(),
+            can_gc,
+        )
     }
 }
 

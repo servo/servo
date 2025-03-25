@@ -484,7 +484,7 @@ impl Tokenizer {
 
                 document
                     .upcast::<Node>()
-                    .AppendChild(doctype.upcast())
+                    .AppendChild(doctype.upcast(), can_gc)
                     .expect("Appending failed");
             },
             ParseOperation::AddAttrsIfMissing { target, attrs } => {
@@ -503,7 +503,7 @@ impl Tokenizer {
             },
             ParseOperation::RemoveFromParent { target } => {
                 if let Some(ref parent) = self.get_node(&target).GetParentNode() {
-                    parent.RemoveChild(&self.get_node(&target)).unwrap();
+                    parent.RemoveChild(&self.get_node(&target), can_gc).unwrap();
                 }
             },
             ParseOperation::MarkScriptAlreadyStarted { node } => {
@@ -517,7 +517,7 @@ impl Tokenizer {
                 let parent = self.get_node(&parent);
                 let new_parent = self.get_node(&new_parent);
                 while let Some(child) = parent.GetFirstChild() {
-                    new_parent.AppendChild(&child).unwrap();
+                    new_parent.AppendChild(&child, can_gc).unwrap();
                 }
             },
             ParseOperation::AssociateWithForm {
@@ -546,7 +546,7 @@ impl Tokenizer {
                 let control = elem.and_then(|e| e.as_maybe_form_control());
 
                 if let Some(control) = control {
-                    control.set_form_owner_from_parser(&form);
+                    control.set_form_owner_from_parser(&form, can_gc);
                 }
             },
             ParseOperation::Pop { node } => {

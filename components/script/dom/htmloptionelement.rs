@@ -141,7 +141,7 @@ impl HTMLOptionElement {
         }
     }
 
-    fn update_select_validity(&self) {
+    fn update_select_validity(&self, can_gc: CanGc) {
         if let Some(select) = self
             .upcast::<Node>()
             .ancestors()
@@ -150,7 +150,7 @@ impl HTMLOptionElement {
         {
             select
                 .validity_state()
-                .perform_validation_and_update(ValidationFlags::all());
+                .perform_validation_and_update(ValidationFlags::all(), can_gc);
         }
     }
 }
@@ -207,7 +207,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
 
         option.SetDefaultSelected(default_selected);
         option.set_selectedness(selected);
-        option.update_select_validity();
+        option.update_select_validity(can_gc);
         Ok(option)
     }
 
@@ -282,11 +282,11 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-selected
-    fn SetSelected(&self, selected: bool) {
+    fn SetSelected(&self, selected: bool, can_gc: CanGc) {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
         self.pick_if_selected_and_reset();
-        self.update_select_validity();
+        self.update_select_validity(can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-index
@@ -300,8 +300,10 @@ impl VirtualMethods for HTMLOptionElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -316,7 +318,7 @@ impl VirtualMethods for HTMLOptionElement {
                         el.check_parent_disabled_state_for_option();
                     },
                 }
-                self.update_select_validity();
+                self.update_select_validity(can_gc);
             },
             local_name!("selected") => {
                 match mutation {
@@ -333,26 +335,26 @@ impl VirtualMethods for HTMLOptionElement {
                         }
                     },
                 }
-                self.update_select_validity();
+                self.update_select_validity(can_gc);
             },
             _ => {},
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
         self.upcast::<Element>()
             .check_parent_disabled_state_for_option();
 
         self.pick_if_selected_and_reset();
-        self.update_select_validity();
+        self.update_select_validity(can_gc);
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         if let Some(select) = context
             .parent
@@ -362,7 +364,7 @@ impl VirtualMethods for HTMLOptionElement {
         {
             select
                 .validity_state()
-                .perform_validation_and_update(ValidationFlags::all());
+                .perform_validation_and_update(ValidationFlags::all(), can_gc);
             select.ask_for_reset();
         }
 

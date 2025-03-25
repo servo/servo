@@ -114,6 +114,7 @@ impl HTMLTableElement {
         atom: &LocalName,
         section: Option<&HTMLTableSectionElement>,
         reference_predicate: P,
+        can_gc: CanGc,
     ) -> ErrorResult
     where
         P: FnMut(&DomRoot<Element>) -> bool,
@@ -124,7 +125,7 @@ impl HTMLTableElement {
             }
         }
 
-        self.delete_first_section_of_type(atom);
+        self.delete_first_section_of_type(atom, can_gc);
 
         let node = self.upcast::<Node>();
 
@@ -132,7 +133,7 @@ impl HTMLTableElement {
             let reference_element = node.child_elements().find(reference_predicate);
             let reference_node = reference_element.as_ref().map(|e| e.upcast());
 
-            node.InsertBefore(section.upcast(), reference_node)?;
+            node.InsertBefore(section.upcast(), reference_node, can_gc)?;
         }
 
         Ok(())
@@ -152,8 +153,8 @@ impl HTMLTableElement {
         let section =
             HTMLTableSectionElement::new(atom.clone(), None, &self.owner_document(), None, can_gc);
         match *atom {
-            local_name!("thead") => self.SetTHead(Some(&section)),
-            local_name!("tfoot") => self.SetTFoot(Some(&section)),
+            local_name!("thead") => self.SetTHead(Some(&section), can_gc),
+            local_name!("tfoot") => self.SetTFoot(Some(&section), can_gc),
             _ => unreachable!("unexpected section type"),
         }
         .expect("unexpected section type");
@@ -163,9 +164,9 @@ impl HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletethead
     // https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot
-    fn delete_first_section_of_type(&self, atom: &LocalName) {
+    fn delete_first_section_of_type(&self, atom: &LocalName, can_gc: CanGc) {
         if let Some(thead) = self.get_first_section_of_type(atom) {
-            thead.upcast::<Node>().remove_self();
+            thead.upcast::<Node>().remove_self(can_gc);
         }
     }
 
@@ -204,14 +205,18 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
-    fn SetCaption(&self, new_caption: Option<&HTMLTableCaptionElement>) -> Fallible<()> {
+    fn SetCaption(
+        &self,
+        new_caption: Option<&HTMLTableCaptionElement>,
+        can_gc: CanGc,
+    ) -> Fallible<()> {
         if let Some(ref caption) = self.GetCaption() {
-            caption.upcast::<Node>().remove_self();
+            caption.upcast::<Node>().remove_self(can_gc);
         }
 
         if let Some(caption) = new_caption {
             let node = self.upcast::<Node>();
-            node.InsertBefore(caption.upcast(), node.GetFirstChild().as_deref())?;
+            node.InsertBefore(caption.upcast(), node.GetFirstChild().as_deref(), can_gc)?;
         }
 
         Ok(())
@@ -229,7 +234,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                     None,
                     can_gc,
                 );
-                self.SetCaption(Some(&caption))
+                self.SetCaption(Some(&caption), can_gc)
                     .expect("Generated caption is invalid");
                 caption
             },
@@ -237,9 +242,9 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletecaption
-    fn DeleteCaption(&self) {
+    fn DeleteCaption(&self, can_gc: CanGc) {
         if let Some(caption) = self.GetCaption() {
-            caption.upcast::<Node>().remove_self();
+            caption.upcast::<Node>().remove_self(can_gc);
         }
     }
 
@@ -249,10 +254,13 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
-    fn SetTHead(&self, thead: Option<&HTMLTableSectionElement>) -> ErrorResult {
-        self.set_first_section_of_type(&local_name!("thead"), thead, |n| {
-            !n.is::<HTMLTableCaptionElement>() && !n.is::<HTMLTableColElement>()
-        })
+    fn SetTHead(&self, thead: Option<&HTMLTableSectionElement>, can_gc: CanGc) -> ErrorResult {
+        self.set_first_section_of_type(
+            &local_name!("thead"),
+            thead,
+            |n| !n.is::<HTMLTableCaptionElement>() && !n.is::<HTMLTableColElement>(),
+            can_gc,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createthead
@@ -261,8 +269,8 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletethead
-    fn DeleteTHead(&self) {
-        self.delete_first_section_of_type(&local_name!("thead"))
+    fn DeleteTHead(&self, can_gc: CanGc) {
+        self.delete_first_section_of_type(&local_name!("thead"), can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
@@ -271,21 +279,26 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
-    fn SetTFoot(&self, tfoot: Option<&HTMLTableSectionElement>) -> ErrorResult {
-        self.set_first_section_of_type(&local_name!("tfoot"), tfoot, |n| {
-            if n.is::<HTMLTableCaptionElement>() || n.is::<HTMLTableColElement>() {
-                return false;
-            }
-
-            if n.is::<HTMLTableSectionElement>() {
-                let name = n.local_name();
-                if name == &local_name!("thead") || name == &local_name!("tbody") {
+    fn SetTFoot(&self, tfoot: Option<&HTMLTableSectionElement>, can_gc: CanGc) -> ErrorResult {
+        self.set_first_section_of_type(
+            &local_name!("tfoot"),
+            tfoot,
+            |n| {
+                if n.is::<HTMLTableCaptionElement>() || n.is::<HTMLTableColElement>() {
                     return false;
                 }
-            }
 
-            true
-        })
+                if n.is::<HTMLTableSectionElement>() {
+                    let name = n.local_name();
+                    if name == &local_name!("thead") || name == &local_name!("tbody") {
+                        return false;
+                    }
+                }
+
+                true
+            },
+            can_gc,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtfoot
@@ -294,8 +307,8 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot
-    fn DeleteTFoot(&self) {
-        self.delete_first_section_of_type(&local_name!("tfoot"))
+    fn DeleteTFoot(&self, can_gc: CanGc) {
+        self.delete_first_section_of_type(&local_name!("tfoot"), can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-tbodies
@@ -329,7 +342,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody"));
         let reference_element = last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
-        node.InsertBefore(tbody.upcast(), reference_element.as_deref())
+        node.InsertBefore(tbody.upcast(), reference_element.as_deref(), can_gc)
             .expect("Insertion failed");
         tbody
     }
@@ -363,16 +376,16 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             {
                 last_tbody
                     .upcast::<Node>()
-                    .AppendChild(new_row.upcast::<Node>())
+                    .AppendChild(new_row.upcast::<Node>(), can_gc)
                     .expect("InsertRow failed to append first row.");
             } else {
                 let tbody = self.CreateTBody(can_gc);
-                node.AppendChild(tbody.upcast())
+                node.AppendChild(tbody.upcast(), can_gc)
                     .expect("InsertRow failed to append new tbody.");
 
                 tbody
                     .upcast::<Node>()
-                    .AppendChild(new_row.upcast::<Node>())
+                    .AppendChild(new_row.upcast::<Node>(), can_gc)
                     .expect("InsertRow failed to append first row.");
             }
         } else if index == number_of_row_elements as i32 || index == -1 {
@@ -388,7 +401,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
             last_row_parent
                 .upcast::<Node>()
-                .AppendChild(new_row.upcast::<Node>())
+                .AppendChild(new_row.upcast::<Node>(), can_gc)
                 .expect("InsertRow failed to append last row.");
         } else {
             // insert new row before the index-th row in rows using the same parent
@@ -403,7 +416,11 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
             ith_row_parent
                 .upcast::<Node>()
-                .InsertBefore(new_row.upcast::<Node>(), Some(ith_row.upcast::<Node>()))
+                .InsertBefore(
+                    new_row.upcast::<Node>(),
+                    Some(ith_row.upcast::<Node>()),
+                    can_gc,
+                )
                 .expect("InsertRow failed to append row");
         }
 
@@ -411,7 +428,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-deleterow>
-    fn DeleteRow(&self, mut index: i32) -> Fallible<()> {
+    fn DeleteRow(&self, mut index: i32, can_gc: CanGc) -> Fallible<()> {
         let rows = self.Rows();
         let num_rows = rows.Length() as i32;
 
@@ -434,7 +451,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         }
 
         // Step 3: Otherwise, remove the indexth element in the rows collection from its parent.
-        DomRoot::upcast::<Node>(rows.Item(index as u32).unwrap()).remove_self();
+        DomRoot::upcast::<Node>(rows.Item(index as u32).unwrap()).remove_self(can_gc);
 
         Ok(())
     }
@@ -503,8 +520,10 @@ impl VirtualMethods for HTMLTableElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("border") => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
