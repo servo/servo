@@ -2774,7 +2774,7 @@ impl Validatable for HTMLInputElement {
     fn perform_validation(
         &self,
         validate_flags: ValidationFlags,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
@@ -3068,7 +3068,7 @@ fn new_js_regex(
     cx: SafeJSContext,
     pattern: &str,
     mut out_regex: MutableHandleObject,
-    can_gc: CanGc,
+    _can_gc: CanGc,
 ) -> bool {
     let pattern: Vec<u16> = pattern.encode_utf16().collect();
     unsafe {
@@ -3093,7 +3093,7 @@ fn matches_js_regex(
     cx: SafeJSContext,
     regex_obj: HandleObject,
     value: &str,
-    can_gc: CanGc,
+    _can_gc: CanGc,
 ) -> Result<bool, ()> {
     let mut value: Vec<u16> = value.encode_utf16().collect();
 

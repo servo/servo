@@ -343,7 +343,7 @@ impl HTMLIFrameElement {
                     return;
                 }
             }
-            ancestor = Some(a.parent().map(DomRoot::from_ref));
+            ancestor = a.parent().map(DomRoot::from_ref);
         }
 
         let creator_pipeline_id = if url.as_str() == "about:blank" {
@@ -374,7 +374,7 @@ impl HTMLIFrameElement {
             NavigationHistoryBehavior::Push
         };
 
-        self.navigate_or_reload_child_browsing_context(load_data, history_handling, CanGc::note);
+        self.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
     }
 
     fn create_nested_browsing_context(&self, can_gc: CanGc) {

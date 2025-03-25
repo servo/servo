@@ -1008,7 +1008,7 @@ impl Node {
             .node_from_nodes_and_strings(nodes, can_gc)?;
         if self.parent_node == Some(&*parent) {
             // Step 5.
-            parent.ReplaceChild(&node, self)?;
+            parent.ReplaceChild(&node, self, can_gc)?;
         } else {
             // Step 6.
             Node::pre_insert(&node, &parent, viable_next_sibling.as_deref(), can_gc)?;

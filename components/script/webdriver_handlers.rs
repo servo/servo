@@ -1148,6 +1148,7 @@ pub(crate) fn handle_get_url(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<ServoUrl>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1233,10 +1234,11 @@ pub(crate) fn handle_element_click(
                             match parent_node.downcast::<HTMLSelectElement>() {
                                 Some(select_element) => {
                                     if select_element.Multiple() {
-                                        option_element.SetSelected(!option_element.Selected());
+                                        option_element
+                                            .SetSelected(!option_element.Selected(), can_gc);
                                     }
                                 },
-                                None => option_element.SetSelected(true),
+                                None => option_element.SetSelected(true, can_gc),
                             }
 
                             // Step 8.6.4

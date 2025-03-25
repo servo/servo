@@ -1776,7 +1776,7 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn handle_event(&self, event: &Event, can_gc: CanGc) {
+    fn handle_event(&self, event: &Event, _can_gc: CanGc) {
         if event.type_() != atom!("click") {
             return;
         }

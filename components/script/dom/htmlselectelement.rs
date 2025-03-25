@@ -523,7 +523,7 @@ impl Validatable for HTMLSelectElement {
     fn perform_validation(
         &self,
         validate_flags: ValidationFlags,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
 

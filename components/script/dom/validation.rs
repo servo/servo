@@ -28,7 +28,7 @@ pub(crate) trait Validatable {
     fn perform_validation(
         &self,
         _validate_flags: ValidationFlags,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) -> ValidationFlags {
         ValidationFlags::empty()
     }
