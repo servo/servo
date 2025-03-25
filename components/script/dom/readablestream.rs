@@ -197,8 +197,14 @@ impl Callback for PipeTo {
                         } else {
                             rooted!(in(*cx) let object = result.to_object());
                             rooted!(in(*cx) let mut done = UndefinedValue());
-                            get_dictionary_property(*cx, object.handle(), "done", done.handle_mut())
-                                .unwrap()
+                            get_dictionary_property(
+                                *cx,
+                                object.handle(),
+                                "done",
+                                done.handle_mut(),
+                                can_gc,
+                            )
+                            .unwrap()
                         }
                     };
                     // If any chunks have been read but not yet written, write them to dest.
@@ -347,7 +353,7 @@ impl PipeTo {
             rooted!(in(*cx) let object = chunk.to_object());
             rooted!(in(*cx) let mut bytes = UndefinedValue());
             let has_value =
-                get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut())
+                get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut(), can_gc)
                     .expect("Chunk should have a value.");
             if !bytes.is_undefined() && has_value {
                 // Write the chunk.
@@ -1932,14 +1938,18 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
 
 #[allow(unsafe_code)]
 /// Get the `done` property of an object that a read promise resolved to.
-pub(crate) fn get_read_promise_done(cx: SafeJSContext, v: &SafeHandleValue) -> Result<bool, Error> {
+pub(crate) fn get_read_promise_done(
+    cx: SafeJSContext,
+    v: &SafeHandleValue,
+    can_gc: CanGc,
+) -> Result<bool, Error> {
     if !v.is_object() {
         return Err(Error::Type("Unknown format for done property.".to_string()));
     }
     unsafe {
         rooted!(in(*cx) let object = v.to_object());
         rooted!(in(*cx) let mut done = UndefinedValue());
-        match get_dictionary_property(*cx, object.handle(), "done", done.handle_mut()) {
+        match get_dictionary_property(*cx, object.handle(), "done", done.handle_mut(), can_gc) {
             Ok(true) => match bool::from_jsval(*cx, done.handle(), ()) {
                 Ok(ConversionResult::Success(val)) => Ok(val),
                 Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
@@ -1956,6 +1966,7 @@ pub(crate) fn get_read_promise_done(cx: SafeJSContext, v: &SafeHandleValue) -> R
 pub(crate) fn get_read_promise_bytes(
     cx: SafeJSContext,
     v: &SafeHandleValue,
+    can_gc: CanGc,
 ) -> Result<Vec<u8>, Error> {
     if !v.is_object() {
         return Err(Error::Type(
@@ -1965,7 +1976,7 @@ pub(crate) fn get_read_promise_bytes(
     unsafe {
         rooted!(in(*cx) let object = v.to_object());
         rooted!(in(*cx) let mut bytes = UndefinedValue());
-        match get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut()) {
+        match get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut(), can_gc) {
             Ok(true) => {
                 match Vec::<u8>::from_jsval(*cx, bytes.handle(), ConversionBehavior::EnforceRange) {
                     Ok(ConversionResult::Success(val)) => Ok(val),
