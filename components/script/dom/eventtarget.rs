@@ -307,11 +307,36 @@ impl CompiledEventListener {
 // (as distinct from https://dom.spec.whatwg.org/#callbackdef-eventlistener)
 #[derive(Clone, DenyPublicFields, JSTraceable, MallocSizeOf)]
 /// A listener in a collection of event listeners.
-struct EventListenerEntry {
+pub(crate) struct EventListenerEntry {
     phase: ListenerPhase,
     listener: EventListenerType,
     once: bool,
     passive: Option<bool>,
+    removed: bool,
+}
+
+impl EventListenerEntry {
+    pub(crate) fn phase(&self) -> ListenerPhase {
+        self.phase
+    }
+
+    pub(crate) fn once(&self) -> bool {
+        self.once
+    }
+
+    pub(crate) fn removed(&self) -> bool {
+        self.removed
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler>
+    pub(crate) fn get_compiled_listener(
+        &self,
+        owner: &EventTarget,
+        ty: &Atom,
+        can_gc: CanGc,
+    ) -> Option<CompiledEventListener> {
+        self.listener.get_compiled_listener(owner, ty, can_gc)
+    }
 }
 
 impl std::cmp::PartialEq for EventListenerEntry {
@@ -320,19 +345,21 @@ impl std::cmp::PartialEq for EventListenerEntry {
     }
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 /// A mix of potentially uncompiled and compiled event listeners of the same type.
-struct EventListeners(Vec<EventListenerEntry>);
+pub(crate) struct EventListeners(
+    #[ignore_malloc_size_of = "Rc"] Vec<Rc<RefCell<EventListenerEntry>>>,
+);
 
 impl Deref for EventListeners {
-    type Target = Vec<EventListenerEntry>;
-    fn deref(&self) -> &Vec<EventListenerEntry> {
+    type Target = Vec<Rc<RefCell<EventListenerEntry>>>;
+    fn deref(&self) -> &Vec<Rc<RefCell<EventListenerEntry>>> {
         &self.0
     }
 }
 
 impl DerefMut for EventListeners {
-    fn deref_mut(&mut self) -> &mut Vec<EventListenerEntry> {
+    fn deref_mut(&mut self) -> &mut Vec<Rc<RefCell<EventListenerEntry>>> {
         &mut self.0
     }
 }
@@ -346,7 +373,7 @@ impl EventListeners {
         can_gc: CanGc,
     ) -> Option<CommonEventHandler> {
         for entry in &self.0 {
-            if let EventListenerType::Inline(ref inline) = entry.listener {
+            if let EventListenerType::Inline(ref inline) = entry.borrow().listener {
                 // Step 1.1-1.8 and Step 2
                 return get_compiled_handler(inline, owner, ty, can_gc);
             }
@@ -356,30 +383,7 @@ impl EventListeners {
         None
     }
 
-    // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
-    fn get_listeners(
-        &self,
-        phase: Option<ListenerPhase>,
-        owner: &EventTarget,
-        ty: &Atom,
-        can_gc: CanGc,
-    ) -> Vec<CompiledEventListener> {
-        self.0
-            .iter()
-            .filter_map(|entry| {
-                if phase.is_none() || Some(entry.phase) == phase {
-                    // Step 1.1-1.8, 2
-                    entry.listener.get_compiled_listener(owner, ty, can_gc)
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-
     fn has_listeners(&self) -> bool {
-        // TODO: add, and take into account, a 'removed' field?
-        // https://dom.spec.whatwg.org/#event-listener-removed
         !self.0.is_empty()
     }
 }
@@ -420,18 +424,11 @@ impl EventTarget {
         }
     }
 
-    pub(crate) fn get_listeners_for(
-        &self,
-        type_: &Atom,
-        specific_phase: Option<ListenerPhase>,
-        can_gc: CanGc,
-    ) -> Vec<CompiledEventListener> {
+    pub(crate) fn get_listeners_for(&self, type_: &Atom) -> EventListeners {
         self.handlers
             .borrow()
             .get(type_)
-            .map_or(vec![], |listeners| {
-                listeners.get_listeners(specific_phase, self, type_, can_gc)
-            })
+            .map_or(EventListeners(vec![]), |listeners| listeners.clone())
     }
 
     pub(crate) fn dispatch_event(&self, event: &Event, can_gc: CanGc) -> EventStatus {
@@ -439,7 +436,14 @@ impl EventTarget {
     }
 
     pub(crate) fn remove_all_listeners(&self) {
-        *self.handlers.borrow_mut() = Default::default();
+        let mut handlers = self.handlers.borrow_mut();
+        for (_, entries) in handlers.iter() {
+            entries
+                .iter()
+                .for_each(|entry| entry.borrow_mut().removed = true);
+        }
+
+        *handlers = Default::default();
     }
 
     /// <https://dom.spec.whatwg.org/#default-passive-value>
@@ -488,50 +492,49 @@ impl EventTarget {
 
         let idx = entries
             .iter()
-            .position(|entry| matches!(entry.listener, EventListenerType::Inline(_)));
+            .position(|entry| matches!(entry.borrow().listener, EventListenerType::Inline(_)));
 
         match idx {
             Some(idx) => match listener {
                 // Replace if there's something to replace with,
                 // but remove entirely if there isn't.
                 Some(listener) => {
-                    entries[idx].listener = EventListenerType::Inline(listener.into());
+                    entries[idx].borrow_mut().listener = EventListenerType::Inline(listener.into());
                 },
                 None => {
-                    entries.remove(idx);
+                    entries.remove(idx).borrow_mut().removed = true;
                 },
             },
             None => {
                 if let Some(listener) = listener {
-                    entries.push(EventListenerEntry {
+                    entries.push(Rc::new(RefCell::new(EventListenerEntry {
                         phase: ListenerPhase::Bubbling,
                         listener: EventListenerType::Inline(listener.into()),
                         once: false,
                         passive: None,
-                    });
+                        removed: false,
+                    })));
                 }
             },
         }
     }
 
-    pub(crate) fn remove_listener_if_once(&self, ty: &Atom, listener: &Rc<EventListener>) {
+    pub(crate) fn remove_listener(&self, ty: &Atom, entry: &Rc<RefCell<EventListenerEntry>>) {
         let mut handlers = self.handlers.borrow_mut();
 
-        let listener = EventListenerType::Additive(listener.clone());
         if let Some(entries) = handlers.get_mut(ty) {
-            entries.retain(|e| e.listener != listener || !e.once)
+            if let Some(position) = entries.iter().position(|e| *e == *entry) {
+                entries.remove(position).borrow_mut().removed = true;
+            }
         }
     }
 
     /// Determines the `passive` attribute of an associated event listener
-    pub(crate) fn is_passive(&self, ty: &Atom, listener: &Rc<EventListener>) -> bool {
-        let handlers = self.handlers.borrow();
-        let listener_instance = EventListenerType::Additive(listener.clone());
-
-        handlers
-            .get(ty)
-            .and_then(|entries| entries.iter().find(|e| e.listener == listener_instance))
-            .is_some_and(|entry| entry.passive.unwrap_or(self.default_passive_value(ty)))
+    pub(crate) fn is_passive(&self, ty: &Atom, listener: &Rc<RefCell<EventListenerEntry>>) -> bool {
+        listener
+            .borrow()
+            .passive
+            .unwrap_or(self.default_passive_value(ty))
     }
 
     fn get_inline_event_listener(&self, ty: &Atom, can_gc: CanGc) -> Option<CommonEventHandler> {
@@ -810,7 +813,7 @@ impl EventTarget {
             None => return,
         };
         let mut handlers = self.handlers.borrow_mut();
-        let entry = match handlers.entry(Atom::from(ty)) {
+        let entries = match handlers.entry(Atom::from(ty)) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(EventListeners(vec![])),
         };
@@ -820,14 +823,16 @@ impl EventTarget {
         } else {
             ListenerPhase::Bubbling
         };
-        let new_entry = EventListenerEntry {
+        let new_entry = Rc::new(RefCell::new(EventListenerEntry {
             phase,
             listener: EventListenerType::Additive(listener),
             once: options.once,
             passive: options.passive,
-        };
-        if !entry.contains(&new_entry) {
-            entry.push(new_entry);
+            removed: false,
+        }));
+
+        if !entries.contains(&new_entry) {
+            entries.push(new_entry);
         }
     }
 
@@ -842,21 +847,21 @@ impl EventTarget {
             return;
         };
         let mut handlers = self.handlers.borrow_mut();
-        let entry = handlers.get_mut(&Atom::from(ty));
-        if let Some(entry) = entry {
+        if let Some(entries) = handlers.get_mut(&Atom::from(ty)) {
             let phase = if options.capture {
                 ListenerPhase::Capturing
             } else {
                 ListenerPhase::Bubbling
             };
-            let old_entry = EventListenerEntry {
+            let old_entry = Rc::new(RefCell::new(EventListenerEntry {
                 phase,
                 listener: EventListenerType::Additive(listener.clone()),
                 once: false,
                 passive: None,
-            };
-            if let Some(position) = entry.iter().position(|e| *e == old_entry) {
-                entry.remove(position);
+                removed: false,
+            }));
+            if let Some(position) = entries.iter().position(|e| *e == old_entry) {
+                entries.remove(position).borrow_mut().removed = true;
             }
         }
     }
