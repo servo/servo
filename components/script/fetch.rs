@@ -375,7 +375,7 @@ pub(crate) fn load_whole_resource(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request>
-#[clippy::allow(too_many_arguments)]
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn create_a_potential_cors_request(
     webview_id: Option<WebViewId>,
     url: ServoUrl,

@@ -558,7 +558,7 @@ impl PreInvoke for ClassicContext {}
 
 /// Steps 1-2 of <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
 // This function is also used to prefetch a script in `script::dom::servoparser::prefetch`.
-#[clippy::allow(too_many_arguments)]
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn script_fetch_request(
     webview_id: WebViewId,
     url: ServoUrl,
