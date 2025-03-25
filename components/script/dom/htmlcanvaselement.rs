@@ -180,6 +180,21 @@ impl HTMLCanvasElement {
         }
     }
 
+    pub(crate) fn mark_as_dirty(&self) {
+        if let Some(ref context) = *self.context.borrow() {
+            match *context {
+                CanvasContext::Context2d(ref context) => context.mark_as_dirty(),
+                CanvasContext::WebGL(ref context) => context.mark_as_dirty(),
+                CanvasContext::WebGL2(ref context) => context.mark_as_dirty(),
+                #[cfg(feature = "webgpu")]
+                CanvasContext::WebGPU(ref context) => context.mark_as_dirty(),
+                CanvasContext::Placeholder(ref _context) => {
+                    // TODO: Should this be marked as dirty?
+                },
+            }
+        }
+    }
+
     pub(crate) fn set_natural_width(&self, value: u32, can_gc: CanGc) {
         let value = if value > UNSIGNED_LONG_MAX {
             DEFAULT_WIDTH

@@ -54,7 +54,7 @@ use crate::dom::element::{Element, cors_setting_for_element};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
-use crate::dom::node::{Node, NodeDamage, NodeTraits};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
@@ -219,6 +219,18 @@ impl CanvasState {
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(msg, self.get_canvas_id()))
             .unwrap()
+    }
+
+    /// Updates WR image and blocks on completion
+    pub(crate) fn update_rendering(&self) {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_renderer
+            .send(CanvasMsg::Canvas2d(
+                Canvas2dMsg::UpdateImage(sender),
+                self.canvas_id,
+            ))
+            .unwrap();
+        receiver.recv().unwrap();
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
@@ -608,7 +620,7 @@ impl CanvasState {
 
     pub(crate) fn mark_as_dirty(&self, canvas: Option<&HTMLCanvasElement>) {
         if let Some(canvas) = canvas {
-            canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            canvas.mark_as_dirty();
         }
     }
 

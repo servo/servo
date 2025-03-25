@@ -19,7 +19,6 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
-use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use constellation_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use euclid::Size2D;
 use euclid::default::{Point2D, Rect};
@@ -116,7 +115,7 @@ pub enum LayoutElementType {
 
 pub enum HTMLCanvasDataSource {
     WebGL(ImageKey),
-    Image((ImageKey, CanvasId, IpcSender<CanvasMsg>)),
+    Image(ImageKey),
     WebGPU(ImageKey),
     /// transparent black
     Empty,

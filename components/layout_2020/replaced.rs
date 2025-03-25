@@ -4,14 +4,12 @@
 
 use std::cell::LazyCell;
 use std::fmt;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
-use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
 use data_url::DataUrl;
 use euclid::Size2D;
-use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use pixels::Image;
 use script_layout_interface::IFrameSize;
@@ -98,7 +96,7 @@ impl NaturalSizes {
 
 pub(crate) enum CanvasSource {
     WebGL(ImageKey),
-    Image((ImageKey, CanvasId, Arc<Mutex<IpcSender<CanvasMsg>>>)),
+    Image(ImageKey),
     WebGPU(ImageKey),
     /// transparent black
     Empty,
@@ -381,18 +379,7 @@ impl ReplacedContents {
                 let image_key = match canvas_info.source {
                     CanvasSource::WebGL(image_key) => image_key,
                     CanvasSource::WebGPU(image_key) => image_key,
-                    CanvasSource::Image((image_key, canvas_id, ref ipc_renderer)) => {
-                        let ipc_renderer = ipc_renderer.lock().unwrap();
-                        let (sender, receiver) = ipc::channel().unwrap();
-                        ipc_renderer
-                            .send(CanvasMsg::FromLayout(
-                                FromLayoutMsg::UpdateImage(sender),
-                                canvas_id,
-                            ))
-                            .unwrap();
-                        receiver.recv().unwrap();
-                        image_key
-                    },
+                    CanvasSource::Image(image_key) => image_key,
                     CanvasSource::Empty => return vec![],
                 };
                 vec![Fragment::Image(ArcRefCell::new(ImageFragment {

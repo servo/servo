@@ -1941,6 +1941,7 @@ impl Window {
         let for_display = reflow_goal.needs_display();
         if for_display {
             document.flush_dirty_webgl_canvases();
+            document.flush_dirty_2d_canvases();
         }
 
         let pending_restyles = document.drain_pending_restyles();
