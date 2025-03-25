@@ -303,6 +303,7 @@ pub(crate) fn get_dictionary_property(
     object: HandleObject,
     property: &str,
     rval: MutableHandleValue,
+    _can_gc: CanGc,
 ) -> Result<bool, ()> {
     fn has_property(
         cx: *mut JSContext,
