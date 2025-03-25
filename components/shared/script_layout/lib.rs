@@ -460,6 +460,16 @@ pub enum FragmentType {
     AfterPseudoContent,
 }
 
+impl From<Option<PseudoElement>> for FragmentType {
+    fn from(value: Option<PseudoElement>) -> Self {
+        match value {
+            Some(PseudoElement::After) => FragmentType::AfterPseudoContent,
+            Some(PseudoElement::Before) => FragmentType::BeforePseudoContent,
+            _ => FragmentType::FragmentBody,
+        }
+    }
+}
+
 /// The next ID that will be used for a special scroll root id.
 ///
 /// A special scroll root is a scroll root that is created for generated content.
