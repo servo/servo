@@ -14,9 +14,9 @@ on:
         required: false
         default: false
         type: boolean
-      wpt-layout:
+      wpt:
         required: false
-        type: string
+        type: boolean
       unit-tests:
         required: false
         default: false
@@ -55,10 +55,9 @@ on:
         default: false
         required: false
         type: boolean
-      wpt-layout:
+      wpt:
         required: false
-        type: choice
-        options: ["none", "2020", "all"]
+        type: boolean
       unit-tests:
         required: false
         default: false
@@ -216,7 +215,7 @@ jobs:
           path: target.tar.gz
 
   wpt-2020:
-    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
+    if: ${{ inputs.wpt }}
     name: Linux WPT
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
