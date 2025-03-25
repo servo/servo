@@ -33,16 +33,17 @@ updates:
         - "servo-media*"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
-  - dependency-name: servo_atoms
+  - dependency-name: stylo_atoms
   - dependency-name: derive_common
   - dependency-name: malloc_size_of
   - dependency-name: selectors
   - dependency-name: servo_arc
   - dependency-name: size_of_test
-  - dependency-name: style
-  - dependency-name: style_config
-  - dependency-name: style_derive
-  - dependency-name: style_static_prefs
-  - dependency-name: style_traits
+  - dependency-name: stylo
+  - dependency-name: stylo_config
+  - dependency-name: stylo_derive
+  - dependency-name: stylo_dom
+  - dependency-name: stylo_static_prefs
+  - dependency-name: stylo_traits
   - dependency-name: to_shmem
   - dependency-name: to_shmem_derive
