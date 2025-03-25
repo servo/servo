@@ -30,6 +30,7 @@ use glow::{
     bytes_per_type, components_per_format,
 };
 use half::f16;
+use ipc_channel::ipc::IpcSharedMemory;
 use log::{debug, error, trace, warn};
 use pixels::{self, PixelFormat, unmultiply_inplace};
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
@@ -1212,7 +1213,7 @@ impl WebGLImpl {
                         glow::PixelPackData::Slice(Some(&mut pixels)),
                     )
                 };
-                sender.send(&pixels).unwrap();
+                sender.send(IpcSharedMemory::from_bytes(&pixels)).unwrap();
             },
             WebGLCommand::ReadPixelsPP(rect, format, pixel_type, offset) => unsafe {
                 gl.read_pixels(

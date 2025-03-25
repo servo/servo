@@ -9,10 +9,11 @@ use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
 use euclid::default::Size2D;
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSender;
 use log::{error, warn};
 use malloc_size_of::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use snapshot::{IpcSnapshot, Snapshot};
 use webrender::{RenderApi, Transaction};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{
@@ -383,20 +384,34 @@ impl crate::WGPU {
         );
     }
 
-    pub(crate) fn get_image(&self, context_id: WebGPUContextId) -> IpcSharedMemory {
+    pub(crate) fn get_image(&self, context_id: WebGPUContextId) -> IpcSnapshot {
         let webgpu_contexts = self.wgpu_image_map.lock().unwrap();
         let context_data = webgpu_contexts.get(&context_id).unwrap();
-        let buffer_size = context_data.image_desc.buffer_size();
+        let size = context_data.image_desc.size().cast().cast_unit();
         let data = if let Some(present_buffer) = context_data
             .swap_chain
             .as_ref()
             .and_then(|swap_chain| swap_chain.data.as_ref())
         {
-            IpcSharedMemory::from_bytes(present_buffer.slice())
+            let format = match context_data.image_desc.0.format {
+                ImageFormat::BGRA8 => snapshot::PixelFormat::RGBA,
+                ImageFormat::RGBA8 => snapshot::PixelFormat::BGRA,
+                _ => unimplemented!(),
+            };
+            let alpha_mode = if context_data.image_desc.0.is_opaque() {
+                snapshot::AlphaMode::AsOpaque {
+                    premultiplied: true,
+                }
+            } else {
+                snapshot::AlphaMode::Transparent {
+                    premultiplied: true,
+                }
+            };
+            Snapshot::from_vec(size, format, alpha_mode, present_buffer.slice().to_vec())
         } else {
-            IpcSharedMemory::from_byte(0, buffer_size as usize)
+            Snapshot::cleared(size)
         };
-        data
+        data.as_ipc()
     }
 
     pub(crate) fn update_context(
