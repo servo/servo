@@ -145,6 +145,12 @@ jobs:
         run: |
           ./mach bootstrap --skip-lints
           brew install gnu-tar
+      - name: Build libservo with examples (${{ inputs.profile }})
+        if: ${{ inputs.build-libservo }}
+        run: cargo build -p libservo --all-targets --${{ inputs.profile }} --target-dir target/libservo
+      - name: Clean libservo build to save disk space
+        if: ${{ inputs.build-libservo }}
+        run: rm -Rf target/libservo
       - name: Build (${{ inputs.profile }})
         run: |
           ./mach build --use-crown --locked --${{ inputs.profile }}
@@ -164,10 +170,6 @@ jobs:
           timeout_minutes: 40 # https://github.com/servo/servo/issues/30275
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
           command: ./mach test-unit --${{ inputs.profile }}
-      - name: Build libservo with examples
-        if: ${{ inputs.build-libservo }}
-        continue-on-error: true
-        run: cargo build -p libservo --all-targets
       - name: Build mach package
         run: ./mach package --${{ inputs.profile }}
       - name: Run DMG smoketest
