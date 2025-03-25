@@ -3179,6 +3179,7 @@ impl ScriptThread {
             is_initial_about_blank,
             true,
             incomplete.load_data.inherited_insecure_requests_policy,
+            final_url.is_potentially_trustworthy(),
             can_gc,
         );
 

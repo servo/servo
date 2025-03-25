@@ -2647,6 +2647,7 @@ impl Node {
                     false,
                     document.allow_declarative_shadow_roots(),
                     Some(document.insecure_requests_policy()),
+                    document.has_trustworthy_ancestor_origin(),
                     can_gc,
                 );
                 DomRoot::upcast::<Node>(document)

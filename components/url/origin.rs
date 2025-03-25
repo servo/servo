@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
+use std::net::IpAddr;
 use std::rc::Rc;
 
 use malloc_size_of::malloc_size_of_is_0;
@@ -77,6 +78,38 @@ impl ImmutableOrigin {
             ImmutableOrigin::Opaque(..) => false,
             ImmutableOrigin::Tuple(..) => true,
         }
+    }
+
+    /// <https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy>
+    pub fn is_potentially_trustworthy(&self) -> bool {
+        // Step 1
+        if matches!(self, ImmutableOrigin::Opaque(_)) {
+            return false;
+        }
+
+        if let ImmutableOrigin::Tuple(scheme, host, _) = self {
+            // Step 3
+            if scheme == "https" || scheme == "wss" {
+                return true;
+            }
+            // Step 6
+            if scheme == "file" {
+                return true;
+            }
+
+            //Step 4
+            if let Ok(ip_addr) = host.to_string().parse::<IpAddr>() {
+                return ip_addr.is_loopback();
+            }
+            // Step 5
+            if let Host::Domain(domain) = host {
+                if domain == "localhost" || domain.ends_with(".localhost") {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin>
