@@ -107,7 +107,9 @@ class JobConfig(object):
 def handle_preset(s: str) -> Optional[JobConfig]:
     s = s.lower()
 
-    if any(word in s for word in ["linux-arm", "arm"]):
+    if s == "linux-arm":
+        return JobConfig("Linux ARM", Workflow.LINUX_ARM)
+    elif any(word in s for word in ["arm"]):
         return JobConfig("Linux ARM", Workflow.LINUX_ARM)
     elif any(word in s for word in ["linux"]):
         return JobConfig("Linux", Workflow.LINUX)
