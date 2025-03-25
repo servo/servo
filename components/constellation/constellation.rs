@@ -119,6 +119,7 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg,
 };
 use embedder_traits::resources::{self, Resource};
+use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     Cursor, EmbedderMsg, EmbedderProxy, ImeEvent, InputEvent, MediaSessionActionType,
     MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
@@ -471,6 +472,9 @@ pub struct Constellation<STF, SWF> {
     /// Read during startup and provided to image caches that are created
     /// on an as-needed basis, rather than retrieving it every time.
     rippy_data: Vec<u8>,
+
+    /// User content manager
+    user_content_manager: UserContentManager,
 }
 
 /// State needed to construct a constellation.
@@ -523,6 +527,9 @@ pub struct InitialConstellationState {
 
     #[cfg(feature = "webgpu")]
     pub wgpu_image_map: WGPUImageMap,
+
+    /// User content manager
+    pub user_content_manager: UserContentManager,
 }
 
 /// Data needed for webdriver
@@ -739,6 +746,7 @@ where
                     active_media_session: None,
                     user_agent: state.user_agent,
                     rippy_data,
+                    user_content_manager: state.user_content_manager,
                 };
 
                 constellation.run();
@@ -982,6 +990,7 @@ where
             player_context: WindowGLContext::get(),
             user_agent: self.user_agent.clone(),
             rippy_data: self.rippy_data.clone(),
+            user_content_manager: self.user_content_manager.clone(),
         });
 
         let pipeline = match result {

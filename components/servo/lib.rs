@@ -61,6 +61,7 @@ use constellation::{
 };
 use constellation_traits::{ConstellationMsg, WindowSizeData};
 use crossbeam_channel::{Receiver, Sender, unbounded};
+use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Scale;
@@ -264,6 +265,7 @@ impl Servo {
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<dyn WindowMethods>,
         user_agent: Option<String>,
+        user_content_manager: UserContentManager,
     ) -> Self {
         // Global configuration options, parsed from the command line.
         opts::set_options(opts);
@@ -501,6 +503,7 @@ impl Servo {
             #[cfg(feature = "webgpu")]
             wgpu_image_map,
             protocols,
+            user_content_manager,
         );
 
         if cfg!(feature = "webdriver") {
@@ -1047,6 +1050,7 @@ fn create_constellation(
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
     protocols: ProtocolRegistry,
+    user_content_manager: UserContentManager,
 ) -> Sender<ConstellationMsg> {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -1099,6 +1103,7 @@ fn create_constellation(
         webrender_external_images: external_images,
         #[cfg(feature = "webgpu")]
         wgpu_image_map,
+        user_content_manager,
     };
 
     let layout_factory = Arc::new(layout_thread_2020::LayoutFactoryImpl());

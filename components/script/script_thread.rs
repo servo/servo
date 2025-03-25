@@ -43,6 +43,7 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
+use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     EmbedderMsg, InputEvent, MediaSessionActionType, Theme, WebDriverScriptCommand,
 };
@@ -173,7 +174,7 @@ pub(crate) fn with_script_thread<R: Default>(f: impl FnOnce(&ScriptThread) -> R)
 pub(crate) unsafe fn trace_thread(tr: *mut JSTracer) {
     with_script_thread(|script_thread| {
         trace!("tracing fields of ScriptThread");
-        script_thread.trace(tr);
+        unsafe { script_thread.trace(tr) };
     })
 }
 
@@ -303,9 +304,9 @@ pub struct ScriptThread {
     /// Unminify Css.
     unminify_css: bool,
 
-    /// Where to load userscripts from, if any.
-    /// and if the option isn't passed userscripts won't be loaded.
-    userscripts_directory: Option<String>,
+    /// User content manager
+    #[no_trace]
+    user_content_manager: UserContentManager,
 
     /// An optional string allowing the user agent to be set for testing.
     user_agent: Cow<'static, str>,
@@ -937,8 +938,8 @@ impl ScriptThread {
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
-            userscripts_directory: opts.userscripts.clone(),
             user_agent,
+            user_content_manager: state.user_content_manager,
             player_context: state.player_context,
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
@@ -3095,7 +3096,7 @@ impl ScriptThread {
             self.unminify_js,
             self.unminify_css,
             self.local_script_source.clone(),
-            self.userscripts_directory.clone(),
+            self.user_content_manager.clone(),
             self.user_agent.clone(),
             self.player_context.clone(),
             #[cfg(feature = "webgpu")]

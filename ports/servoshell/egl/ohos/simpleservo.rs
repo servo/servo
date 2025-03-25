@@ -131,6 +131,7 @@ pub fn init(
         embedder_callbacks,
         window_callbacks.clone(),
         None, /* user_agent */
+        Default::default(),
     );
 
     let app_state = RunningAppState::new(

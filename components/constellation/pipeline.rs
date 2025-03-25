@@ -23,6 +23,7 @@ use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
 use constellation_traits::WindowSizeData;
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
+use embedder_traits::user_content_manager::UserContentManager;
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
 use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -196,6 +197,9 @@ pub struct InitialPipelineState {
 
     /// The image bytes associated with the RippyPNG embedder resource.
     pub rippy_data: Vec<u8>,
+
+    /// User content manager
+    pub user_content_manager: UserContentManager,
 }
 
 pub struct NewPipeline {
@@ -292,6 +296,7 @@ impl Pipeline {
                     player_context: state.player_context,
                     user_agent: state.user_agent,
                     rippy_data: state.rippy_data,
+                    user_content_manager: state.user_content_manager,
                 };
 
                 // Spawn the child process.
@@ -498,6 +503,7 @@ pub struct UnprivilegedPipelineContent {
     player_context: WindowGLContext,
     user_agent: Cow<'static, str>,
     rippy_data: Vec<u8>,
+    user_content_manager: UserContentManager,
 }
 
 impl UnprivilegedPipelineContent {
@@ -543,6 +549,7 @@ impl UnprivilegedPipelineContent {
                 compositor_api: self.cross_process_compositor_api.clone(),
                 player_context: self.player_context.clone(),
                 inherited_secure_context: self.load_data.inherited_secure_context,
+                user_content_manager: self.user_content_manager,
             },
             layout_factory,
             Arc::new(self.system_font_service.to_proxy()),

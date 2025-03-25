@@ -10,6 +10,7 @@
 
 pub mod input_events;
 pub mod resources;
+pub mod user_content_manager;
 mod webdriver;
 
 use std::fmt::{Debug, Error, Formatter};

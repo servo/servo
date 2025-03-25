@@ -26,6 +26,7 @@ use crossbeam_channel::{Sender, unbounded};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
+use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, SimpleDialog, Theme,
     WebDriverJSError, WebDriverJSResult,
@@ -373,9 +374,9 @@ pub(crate) struct Window {
     /// Unminify Css.
     unminify_css: bool,
 
-    /// Where to load userscripts from, if any.
-    /// and if the option isn't passed userscripts won't be loaded.
-    userscripts_directory: Option<String>,
+    /// User content manager
+    #[no_trace]
+    user_content_manager: UserContentManager,
 
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
@@ -623,8 +624,8 @@ impl Window {
         &self.compositor_api
     }
 
-    pub(crate) fn get_userscripts_directory(&self) -> Option<String> {
-        self.userscripts_directory.clone()
+    pub(crate) fn get_userscripts(&self) -> &Vec<UserScript> {
+        self.user_content_manager.get_scripts()
     }
 
     pub(crate) fn get_player_context(&self) -> WindowGLContext {
@@ -2795,7 +2796,7 @@ impl Window {
         unminify_js: bool,
         unminify_css: bool,
         local_script_source: Option<String>,
-        userscripts_directory: Option<String>,
+        user_content_manager: UserContentManager,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
@@ -2882,7 +2883,7 @@ impl Window {
             has_sent_idle_message: Cell::new(false),
             relayout_event,
             unminify_css,
-            userscripts_directory,
+            user_content_manager,
             player_context,
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
