@@ -56,7 +56,13 @@ struct SourcesReply {
 }
 
 #[derive(Serialize)]
-enum Source {}
+#[serde(rename_all = "camelCase")]
+struct Source {
+    actor: String,
+    url: String,
+    #[serde(rename = "isBlackBoxed")]
+    is_black_boxed: bool,
+}
 
 pub struct ThreadActor {
     name: String,
