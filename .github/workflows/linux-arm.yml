@@ -34,7 +34,7 @@ jobs:
   linux-arm:
     name: Linux Arm
     runs-on: ubuntu-24.04-arm
-    steps:i
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
