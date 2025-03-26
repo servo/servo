@@ -5,6 +5,7 @@
 //! This module contains helpers for Viewport
 
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use euclid::default::Scale;
 use serde::{Deserialize, Serialize};
@@ -129,5 +130,30 @@ impl ViewportDescription {
             .ok()
             .filter(|&n| (0.0..=10.0).contains(&n))
             .map(Scale::new)
+    }
+}
+
+/// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
+impl FromStr for ViewportDescription {
+    type Err = ViewportDescriptionParseError;
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        if string.is_empty() {
+            return Err(ViewportDescriptionParseError::Empty);
+        }
+
+        // Parse key-value pairs from the content string
+        let parsed_values = string
+            .split([',', ';'])
+            .filter_map(|pair| {
+                let mut parts = pair.split('=').map(str::trim);
+                if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
+                    Some((key.to_string(), value.to_string()))
+                } else {
+                    None
+                }
+            })
+            .collect::<HashMap<String, String>>();
+
+        Ok(Self::process_viewport_key_value_pair(parsed_values))
     }
 }

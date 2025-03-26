@@ -6,6 +6,7 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use compositing_traits::viewport_description::ViewportDescription;
 use constellation_traits::NavigationHistoryBehavior;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
@@ -91,7 +92,7 @@ impl HTMLMetaElement {
                 self.apply_referrer();
             }
             if name == "viewport" {
-                self.parse_viewport();
+                self.parse_and_send_viewport_if_necessary();
             }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
         } else if !self.HttpEquiv().is_empty() {
@@ -148,8 +149,11 @@ impl HTMLMetaElement {
     }
 
     /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
-    fn parse_viewport(&self) {
-        let _element = self.upcast::<Element>();
+    fn parse_and_send_viewport_if_necessary(&self) {
+        let element = self.upcast::<Element>();
+        if let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) {
+            let _viewport = ViewportDescription::from_str(&content.value()).unwrap_or_default();
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>

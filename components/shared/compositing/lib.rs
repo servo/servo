@@ -21,6 +21,7 @@ use webrender_api::DocumentId;
 
 pub mod display_list;
 pub mod rendering_context;
+pub mod viewport_description;
 
 use core::fmt;
 use std::collections::HashMap;
