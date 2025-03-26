@@ -32,6 +32,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
+use crate::dom::path2d::Path2D;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
 
@@ -288,9 +289,21 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         self.mark_as_dirty();
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
+    fn Fill_(&self, path: &Path2D, fill_rule: CanvasFillRule) {
+        self.canvas_state.fill_(path.segments(), fill_rule);
+        self.mark_as_dirty();
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
     fn Stroke(&self) {
         self.canvas_state.stroke();
+        self.mark_as_dirty();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
+    fn Stroke_(&self, path: &Path2D) {
+        self.canvas_state.stroke_(path.segments());
         self.mark_as_dirty();
     }
 
@@ -299,10 +312,21 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         self.canvas_state.clip(fill_rule)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
+    fn Clip_(&self, path: &Path2D, fill_rule: CanvasFillRule) {
+        self.canvas_state.clip_(path.segments(), fill_rule)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
     fn IsPointInPath(&self, x: f64, y: f64, fill_rule: CanvasFillRule) -> bool {
         self.canvas_state
             .is_point_in_path(&self.global(), x, y, fill_rule)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
+    fn IsPointInPath_(&self, path: &Path2D, x: f64, y: f64, fill_rule: CanvasFillRule) -> bool {
+        self.canvas_state
+            .is_point_in_path_(&self.global(), path.segments(), x, y, fill_rule)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
