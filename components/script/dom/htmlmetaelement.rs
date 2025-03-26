@@ -7,7 +7,8 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use webrender_traits::viewport_description::ViewportDescription;
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use regex::bytes::Regex;
 use script_traits::NavigationHistoryBehavior;
@@ -91,7 +92,7 @@ impl HTMLMetaElement {
                 self.apply_referrer();
             }
             if name == "viewport" {
-                self.parse_viewport();
+                self.apply_viewport_description();
             }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
         } else if !self.HttpEquiv().is_empty() {
@@ -124,9 +125,13 @@ impl HTMLMetaElement {
             }
         }
     }
+
     /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
-    fn parse_viewport(&self) {
-        let _element = self.upcast::<Element>();
+    fn apply_viewport_description(&self) {
+        let element = self.upcast::<Element>();
+        if let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) {
+            let _viewport = ViewportDescription::from_str(&content.value()).unwrap_or_default();
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>

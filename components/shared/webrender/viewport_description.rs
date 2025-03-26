@@ -5,6 +5,7 @@
 //! This module contains helpers for Viewport
 
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use euclid::default::Scale;
 use serde::{Deserialize, Serialize};
@@ -154,5 +155,29 @@ impl ViewportDescription {
                 _ => return None,
             },
         })
+    }
+}
+
+impl FromStr for ViewportDescription {
+    type Err = ();
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        if string.is_empty() {
+            return Err(());
+        }
+
+        // Parse key-value pairs from the content string
+        let parsed_values = string
+            .split([',', ';'])
+            .filter_map(|pair| {
+                let mut parts = pair.split('=').map(str::trim);
+                if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
+                    Some((key.to_string(), value.to_string()))
+                } else {
+                    None
+                }
+            })
+            .collect::<HashMap<String, String>>();
+
+        Ok(Self::process_viewport_key_value_pair(parsed_values))
     }
 }
