@@ -35,18 +35,18 @@ impl RTCDataChannelEvent {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         channel: &RTCDataChannel,
         can_gc: CanGc,
     ) -> DomRoot<RTCDataChannelEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, channel, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, channel, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -56,7 +56,7 @@ impl RTCDataChannelEvent {
     ) -> DomRoot<RTCDataChannelEvent> {
         let event = reflect_dom_object_with_proto(
             Box::new(RTCDataChannelEvent::new_inherited(channel)),
-            global,
+            window,
             proto,
             can_gc,
         );

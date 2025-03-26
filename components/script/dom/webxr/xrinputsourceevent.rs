@@ -40,7 +40,7 @@ impl XRInputSourceEvent {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
@@ -49,13 +49,13 @@ impl XRInputSourceEvent {
         can_gc: CanGc,
     ) -> DomRoot<XRInputSourceEvent> {
         Self::new_with_proto(
-            global, None, type_, bubbles, cancelable, frame, source, can_gc,
+            window, None, type_, bubbles, cancelable, frame, source, can_gc,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -66,7 +66,7 @@ impl XRInputSourceEvent {
     ) -> DomRoot<XRInputSourceEvent> {
         let trackevent = reflect_dom_object_with_proto(
             Box::new(XRInputSourceEvent::new_inherited(frame, source)),
-            global,
+            window,
             proto,
             can_gc,
         );

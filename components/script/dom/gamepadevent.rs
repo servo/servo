@@ -40,18 +40,18 @@ impl GamepadEvent {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         gamepad: &Gamepad,
         can_gc: CanGc,
     ) -> DomRoot<GamepadEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, gamepad, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, gamepad, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -61,7 +61,7 @@ impl GamepadEvent {
     ) -> DomRoot<GamepadEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(GamepadEvent::new_inherited(gamepad)),
-            global,
+            window,
             proto,
             can_gc,
         );

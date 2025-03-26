@@ -40,12 +40,12 @@ impl XRRay {
     }
 
     fn new(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         ray: Ray<ApiSpace>,
         can_gc: CanGc,
     ) -> DomRoot<XRRay> {
-        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), global, proto, can_gc)
+        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), window, proto, can_gc)
     }
 
     pub(crate) fn ray(&self) -> Ray<ApiSpace> {

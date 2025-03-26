@@ -35,18 +35,18 @@ impl SubmitEvent {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         submitter: Option<DomRoot<HTMLElement>>,
         can_gc: CanGc,
     ) -> DomRoot<SubmitEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, submitter, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, submitter, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -56,7 +56,7 @@ impl SubmitEvent {
     ) -> DomRoot<SubmitEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(SubmitEvent::new_inherited(submitter)),
-            global,
+            window,
             proto,
             can_gc,
         );

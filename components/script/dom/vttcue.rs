@@ -62,7 +62,7 @@ impl VTTCue {
     }
 
     fn new(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         start_time: f64,
         end_time: f64,
@@ -71,7 +71,7 @@ impl VTTCue {
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
             Box::new(Self::new_inherited(start_time, end_time, text)),
-            global,
+            window,
             proto,
             can_gc,
         )

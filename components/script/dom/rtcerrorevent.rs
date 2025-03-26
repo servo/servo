@@ -35,18 +35,18 @@ impl RTCErrorEvent {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         error: &RTCError,
         can_gc: CanGc,
     ) -> DomRoot<RTCErrorEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, error, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, error, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -56,7 +56,7 @@ impl RTCErrorEvent {
     ) -> DomRoot<RTCErrorEvent> {
         let event = reflect_dom_object_with_proto(
             Box::new(RTCErrorEvent::new_inherited(error)),
-            global,
+            window,
             proto,
             can_gc,
         );

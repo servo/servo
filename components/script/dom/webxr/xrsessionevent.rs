@@ -35,18 +35,18 @@ impl XRSessionEvent {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         session: &XRSession,
         can_gc: CanGc,
     ) -> DomRoot<XRSessionEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, session, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, session, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -56,7 +56,7 @@ impl XRSessionEvent {
     ) -> DomRoot<XRSessionEvent> {
         let trackevent = reflect_dom_object_with_proto(
             Box::new(XRSessionEvent::new_inherited(session)),
-            global,
+            window,
             proto,
             can_gc,
         );

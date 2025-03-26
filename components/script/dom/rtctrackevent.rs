@@ -35,18 +35,18 @@ impl RTCTrackEvent {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         track: &MediaStreamTrack,
         can_gc: CanGc,
     ) -> DomRoot<RTCTrackEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, track, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, track, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -56,7 +56,7 @@ impl RTCTrackEvent {
     ) -> DomRoot<RTCTrackEvent> {
         let trackevent = reflect_dom_object_with_proto(
             Box::new(RTCTrackEvent::new_inherited(track)),
-            global,
+            window,
             proto,
             can_gc,
         );

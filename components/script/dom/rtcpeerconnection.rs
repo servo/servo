@@ -230,7 +230,7 @@ impl RTCPeerConnection {
             return;
         }
         let candidate = RTCIceCandidate::new(
-            &self.global(),
+            &self.window(),
             candidate.candidate.into(),
             None,
             Some(candidate.sdp_mline_index as u16),
@@ -238,7 +238,7 @@ impl RTCPeerConnection {
             can_gc,
         );
         let event = RTCPeerConnectionIceEvent::new(
-            &self.global(),
+            &self.window(),
             atom!("icecandidate"),
             Some(&candidate),
             None,
@@ -268,7 +268,7 @@ impl RTCPeerConnection {
         }
         let track = MediaStreamTrack::new(&self.global(), id, ty, can_gc);
         let event =
-            RTCTrackEvent::new(&self.global(), atom!("track"), false, false, &track, can_gc);
+            RTCTrackEvent::new(window, atom!("track"), false, false, &track, can_gc);
         event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
@@ -503,7 +503,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         config: &RTCConfiguration,
     ) -> Fallible<DomRoot<RTCPeerConnection>> {
         Ok(RTCPeerConnection::new(
-            window,
+            &window.global(),
             proto,
             config,
             can_gc,

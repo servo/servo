@@ -28,7 +28,7 @@ pub(crate) struct FormDataEvent {
 
 impl FormDataEvent {
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         type_: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
@@ -36,12 +36,12 @@ impl FormDataEvent {
         can_gc: CanGc,
     ) -> DomRoot<FormDataEvent> {
         Self::new_with_proto(
-            global, None, type_, can_bubble, cancelable, form_data, can_gc,
+            window, None, type_, can_bubble, cancelable, form_data, can_gc,
         )
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         can_bubble: EventBubbles,
@@ -54,7 +54,7 @@ impl FormDataEvent {
                 event: Event::new_inherited(),
                 form_data: Dom::from_ref(form_data),
             }),
-            global,
+            window,
             proto,
             can_gc,
         );

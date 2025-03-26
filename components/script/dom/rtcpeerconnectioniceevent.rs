@@ -41,18 +41,18 @@ impl RTCPeerConnectionIceEvent {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         ty: Atom,
         candidate: Option<&RTCIceCandidate>,
         url: Option<DOMString>,
         trusted: bool,
         can_gc: CanGc,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
-        Self::new_with_proto(global, None, ty, candidate, url, trusted, can_gc)
+        Self::new_with_proto(window, None, ty, candidate, url, trusted, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         ty: Atom,
         candidate: Option<&RTCIceCandidate>,
@@ -62,7 +62,7 @@ impl RTCPeerConnectionIceEvent {
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
         let e = reflect_dom_object_with_proto(
             Box::new(RTCPeerConnectionIceEvent::new_inherited(candidate, url)),
-            global,
+            window,
             proto,
             can_gc,
         );

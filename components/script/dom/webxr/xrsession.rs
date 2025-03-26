@@ -290,7 +290,7 @@ impl XRSession {
                 }
                 // Step 7
                 let event =
-                    XRSessionEvent::new(&self.global(), atom!("end"), false, false, self, can_gc);
+                    XRSessionEvent::new(window, atom!("end"), false, false, self, can_gc);
                 event.upcast::<Event>().fire(self.upcast(), can_gc);
             },
             XREvent::Select(input, kind, ty, frame) => {
@@ -351,7 +351,7 @@ impl XRSession {
                 };
                 self.visibility_state.set(v);
                 let event = XRSessionEvent::new(
-                    &self.global(),
+                    window,
                     atom!("visibilitychange"),
                     false,
                     false,
@@ -603,7 +603,7 @@ impl XRSession {
         self.framerate.set(rate);
 
         let event = XRSessionEvent::new(
-            &self.global(),
+            window,
             Atom::from("frameratechange"),
             false,
             false,

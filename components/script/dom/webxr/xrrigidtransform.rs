@@ -45,22 +45,22 @@ impl XRRigidTransform {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         transform: ApiRigidTransform,
         can_gc: CanGc,
     ) -> DomRoot<XRRigidTransform> {
-        Self::new_with_proto(global, None, transform, can_gc)
+        Self::new_with_proto(window, None, transform, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         transform: ApiRigidTransform,
         can_gc: CanGc,
     ) -> DomRoot<XRRigidTransform> {
         reflect_dom_object_with_proto(
             Box::new(XRRigidTransform::new_inherited(transform)),
-            global,
+            window,
             proto,
             can_gc,
         )
