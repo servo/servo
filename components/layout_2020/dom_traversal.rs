@@ -407,8 +407,8 @@ where
     Node: NodeExt<'dom>,
 {
     match which {
-        WhichPseudoElement::Before => element.to_threadsafe().get_before_pseudo(),
-        WhichPseudoElement::After => element.to_threadsafe().get_after_pseudo(),
+        WhichPseudoElement::After => element.to_threadsafe().get_pseudo(PseudoElement::After),
+        WhichPseudoElement::Before => element.to_threadsafe().get_pseudo(PseudoElement::Before),
     }
     .and_then(|pseudo_element| {
         let style = pseudo_element.style(context.shared_context());

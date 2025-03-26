@@ -9,7 +9,6 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::{SideOffsets2D, Size2D, Vector2D};
 use itertools::Itertools;
-use log::warn;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
@@ -117,15 +116,10 @@ pub fn process_resolved_style_request<'dom>(
     // We call process_resolved_style_request after performing a whole-document
     // traversal, so in the common case, the element is styled.
     let layout_element = node.to_threadsafe().as_element().unwrap();
-    let layout_element = match *pseudo {
-        None => Some(layout_element),
-        Some(PseudoElement::Before) => layout_element.get_before_pseudo(),
-        Some(PseudoElement::After) => layout_element.get_after_pseudo(),
-        Some(_) => {
-            warn!("Got unexpected pseudo element type!");
-            None
-        },
-    };
+    let layout_element = pseudo.map_or_else(
+        || Some(layout_element),
+        |pseudo_element| layout_element.get_pseudo(pseudo_element),
+    );
 
     let layout_element = match layout_element {
         None => {
