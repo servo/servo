@@ -43,6 +43,8 @@ use webrender_api::{
     ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId,
 };
 
+use crate::viewport_description::ViewportDescription;
+
 /// Sends messages to the compositor.
 #[derive(Clone)]
 pub struct CompositorProxy {
@@ -177,6 +179,8 @@ pub enum CompositorMsg {
     /// Measure the current memory usage associated with the compositor.
     /// The report must be sent on the provided channel once it's complete.
     CollectMemoryReport(ReportsChan),
+    /// A top-level frame has parsed a viewport metatag and is sending the new constraints.
+    Viewport(WebViewId, ViewportDescription),
 }
 
 impl Debug for CompositorMsg {
