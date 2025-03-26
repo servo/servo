@@ -19,12 +19,13 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use actors::thread::Source;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleMessage, ConsoleMessageBuilder, DevtoolScriptControlMsg,
     DevtoolsControlMsg, DevtoolsPageInfo, LogLevel, NavigationState, NetworkEvent, PageError,
-    ScriptToDevtoolsControlMsg, WorkerId,
+    ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
@@ -242,6 +243,10 @@ impl DevtoolsInstance {
                     console_message,
                     worker_id,
                 )) => self.handle_console_message(pipeline_id, worker_id, console_message),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                    pipeline_id,
+                    source_info,
+                )) => self.handle_script_source_info(pipeline_id, source_info),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
                     pipeline_id,
                     page_error,
@@ -487,6 +492,38 @@ impl DevtoolsInstance {
                 actor_name
             },
         }
+    }
+
+    fn handle_script_source_info(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
+        let mut actors = self.actors.lock().unwrap();
+
+        let browsing_context_id = match self.pipelines.get(&pipeline_id) {
+            Some(id) => id,
+            None => return,
+        };
+
+        let actor_name = match self.browsing_contexts.get(browsing_context_id) {
+            Some(name) => name,
+            None => return,
+        };
+
+        let thread_actor_name = actors
+            .find::<BrowsingContextActor>(actor_name)
+            .thread
+            .clone();
+
+        let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
+        thread_actor.add_source(source_info.url.clone());
+
+        let source = Source {
+            actor: thread_actor_name.clone(),
+            url: source_info.url.to_string(),
+            is_black_boxed: false,
+        };
+
+        // Notify browsing context about the new source
+        let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
+        browsing_context.resource_available(source, "source".into());
     }
 }
 

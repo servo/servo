@@ -30,6 +30,12 @@ use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
+struct ListWorkersReply {
+    from: String,
+    workers: Vec<()>,
+}
+
+#[derive(Serialize)]
 struct FrameUpdateReply {
     from: String,
     #[serde(rename = "type")]
@@ -159,6 +165,14 @@ impl Actor for BrowsingContextActor {
                 // TODO: Find out what needs to be listed here
                 let msg = EmptyReplyMsg { from: self.name() };
                 let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+            "listWorkers" => {
+                let _ = stream.write_json_packet(&ListWorkersReply {
+                    from: self.name(),
+                    // TODO: Find out what needs to be listed here
+                    workers: vec![],
+                });
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,
@@ -336,11 +350,19 @@ impl BrowsingContextActor {
         });
     }
 
-    pub(crate) fn resource_available<T: Serialize>(&self, message: T, resource_type: String) {
+    pub(crate) fn resource_available<T: Serialize>(&self, resource: T, resource_type: String) {
+        self.resources_available(vec![resource], resource_type);
+    }
+
+    pub(crate) fn resources_available<T: Serialize>(
+        &self,
+        resources: Vec<T>,
+        resource_type: String,
+    ) {
         let msg = ResourceAvailableReply::<T> {
             from: self.name(),
             type_: "resources-available-array".into(),
-            array: vec![(resource_type, vec![message])],
+            array: vec![(resource_type, resources)],
         };
 
         for stream in self.streams.borrow_mut().values_mut() {

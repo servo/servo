@@ -19,6 +19,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
+use super::thread::ThreadActor;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::watcher::target_configuration::{
@@ -78,7 +79,7 @@ impl SessionContext {
                 ("network-event-stacktrace", false),
                 ("reflow", false),
                 ("stylesheet", false),
-                ("source", false),
+                ("source", true),
                 ("thread-state", false),
                 ("server-sent-event", false),
                 ("websocket", false),
@@ -131,6 +132,18 @@ struct GetTargetConfigurationActorReply {
 struct GetThreadConfigurationActorReply {
     from: String,
     configuration: ThreadConfigurationActorMsg,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GetBreakpointListActorReply {
+    from: String,
+    breakpoint_list: GetBreakpointListActorReplyInner,
+}
+
+#[derive(Serialize)]
+struct GetBreakpointListActorReplyInner {
+    actor: String,
 }
 
 #[derive(Serialize)]
@@ -249,6 +262,11 @@ impl Actor for WatcherActor {
                                 target.resource_available(event, "document-event".into());
                             }
                         },
+                        "source" => {
+                            let thread_actor = registry.find::<ThreadActor>(&target.thread);
+                            let sources = thread_actor.sources();
+                            target.resources_available(sources.iter().collect(), "source".into());
+                        },
                         "console-message" | "error-message" => {},
                         _ => warn!("resource {} not handled yet", resource),
                     }
@@ -294,6 +312,15 @@ impl Actor for WatcherActor {
                     configuration: thread_configuration.encodable(),
                 };
                 let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+            "getBreakpointListActor" => {
+                let _ = stream.write_json_packet(&GetBreakpointListActorReply {
+                    from: self.name(),
+                    breakpoint_list: GetBreakpointListActorReplyInner {
+                        actor: registry.new_name("breakpoint-list"),
+                    },
+                });
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,

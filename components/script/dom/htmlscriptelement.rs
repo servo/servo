@@ -13,6 +13,7 @@ use std::sync::{Arc, Mutex};
 
 use base::id::{PipelineId, WebViewId};
 use content_security_policy as csp;
+use devtools_traits::{ScriptToDevtoolsControlMsg, SourceInfo};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
@@ -983,6 +984,19 @@ impl HTMLScriptElement {
 
             Ok(script) => script,
         };
+
+        // TODO: we need to handle this for worker
+        if let Some(chan) = self.global().devtools_chan() {
+            let pipeline_id = self.global().pipeline_id();
+            let source_info = SourceInfo {
+                url: script.url.clone(),
+                external: script.external,
+            };
+            let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                pipeline_id,
+                source_info,
+            ));
+        }
 
         if script.type_ == ScriptType::Classic {
             unminify_js(&mut script);

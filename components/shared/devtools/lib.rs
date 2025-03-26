@@ -102,6 +102,9 @@ pub enum ScriptToDevtoolsControlMsg {
 
     /// Report a page title change
     TitleChanged(PipelineId, String),
+
+    /// Get source information from script
+    ScriptSourceLoaded(PipelineId, SourceInfo),
 }
 
 /// Serialized JS return values
@@ -539,4 +542,10 @@ impl fmt::Display for ShadowRootMode {
             Self::Closed => write!(f, "close"),
         }
     }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct SourceInfo {
+    pub url: ServoUrl,
+    pub external: bool,
 }
