@@ -90,6 +90,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::rc::{Rc, Weak};
+use std::sync::atomic::AtomicUsize;
 use std::sync::{Arc, Mutex};
 use std::{process, thread};
 
@@ -120,9 +121,10 @@ use devtools_traits::{
 };
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{
-    Cursor, EmbedderMsg, EmbedderProxy, ImeEvent, InputEvent, MediaSessionActionType,
-    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
-    Theme, WebDriverCommandMsg, WebDriverLoadStatus,
+    Cursor, EmbedderMsg, EmbedderProxy, ImeEvent, InputEvent, JSValue, JSValueError,
+    MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState, MouseButton,
+    MouseButtonAction, MouseButtonEvent, ReceiveJSValue, ScriptId, Theme, WebDriverCommandMsg,
+    WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -471,6 +473,10 @@ pub struct Constellation<STF, SWF> {
     /// Read during startup and provided to image caches that are created
     /// on an as-needed basis, rather than retrieving it every time.
     rippy_data: Vec<u8>,
+
+    /// Embedders can run arbitrary javascript via messages to the constellation.
+    /// We forward these messages to the script thread and store the callback in this struct.
+    evaluate_javascript_data: EvaluateJavaScriptData,
 }
 
 /// State needed to construct a constellation.
@@ -523,6 +529,40 @@ pub struct InitialConstellationState {
 
     #[cfg(feature = "webgpu")]
     pub wgpu_image_map: WGPUImageMap,
+}
+
+/// Id that identifies an execution of a script loaded via EvaluateJS function in constellation.
+#[derive(Debug, Deserialize, Serialize)]
+struct ScriptIdCounter(AtomicUsize);
+
+impl ScriptIdCounter {
+    fn new() -> Self {
+        ScriptIdCounter(AtomicUsize::new(0))
+    }
+
+    fn inc(&self) -> ScriptId {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    }
+}
+
+/// Data needed for EvaluateJavaScript
+struct EvaluateJavaScriptData {
+    /// Embedders can run arbitrary javascript via messages to the constellation.
+    /// We forward these messages to the script thread but need to store the callback function.
+    /// We cannot use the ScriptIdCounter here because it does not implement Hash
+    pub(crate) callbacks: HashMap<ScriptId, Box<dyn ReceiveJSValue>>,
+
+    /// An Atomic Counter to assign callbacks to javascript execution
+    pub counter: ScriptIdCounter,
+}
+
+impl EvaluateJavaScriptData {
+    fn new() -> EvaluateJavaScriptData {
+        EvaluateJavaScriptData {
+            callbacks: HashMap::new(),
+            counter: ScriptIdCounter::new(),
+        }
+    }
 }
 
 /// Data needed for webdriver
@@ -739,6 +779,7 @@ where
                     active_media_session: None,
                     user_agent: state.user_agent,
                     rippy_data,
+                    evaluate_javascript_data: EvaluateJavaScriptData::new(),
                 };
 
                 constellation.run();
@@ -1393,6 +1434,26 @@ where
             FromCompositorMsg::PaintMetric(pipeline_id, paint_metric_event) => {
                 self.handle_paint_metric(pipeline_id, paint_metric_event);
             },
+            FromCompositorMsg::EvaluateJavaScript(webview_id, script, callback) => {
+                let id = self.evaluate_javascript_data.counter.inc();
+                self.evaluate_javascript_data.callbacks.insert(id, callback);
+                let pipeline_id = match self.browsing_contexts.get(&webview_id.0) {
+                    Some(browsing_context) => browsing_context.pipeline_id,
+                    None => {
+                        return warn!("{}: EvaluteJavaScript after closure", webview_id.0);
+                    },
+                };
+                let control_msg = ScriptThreadMessage::EvaluateJavaScript(pipeline_id, script, id);
+                let err = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.event_loop.send(control_msg),
+                    None => {
+                        return warn!("{}: ScriptCommand after closure", pipeline_id);
+                    },
+                };
+                if err.is_err() {
+                    warn!("Could not send to pipeline event loop");
+                }
+            },
         }
     }
 
@@ -1697,6 +1758,9 @@ where
                 // get memory report and send it back.
                 self.mem_profiler_chan
                     .send(mem::ProfilerMsg::Report(sender));
+            },
+            FromScriptMsg::EvaluatedJavaScriptResult(jsval, id) => {
+                self.handle_evaluated_javascript_result(jsval, id)
             },
         }
     }
@@ -3077,6 +3141,24 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
+    fn handle_evaluated_javascript_result(
+        &mut self,
+        result: Result<JSValue, JSValueError>,
+        id: usize,
+    ) {
+        if let Some(callback) = self.evaluate_javascript_data.callbacks.remove(&id) {
+            thread::spawn(move || {
+                callback.receive(result);
+            });
+        } else {
+            warn!("Could not find callback.")
+        }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
     fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
         let browsing_context_id = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.browsing_context_id,
@@ -4404,6 +4486,7 @@ where
                     NavigationHistoryBehavior::Replace,
                 );
             },
+            // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
                 let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
                     Some(browsing_context) => browsing_context.pipeline_id,

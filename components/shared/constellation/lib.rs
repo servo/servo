@@ -17,7 +17,9 @@ use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
 use bitflags::bitflags;
-use embedder_traits::{Cursor, InputEvent, MediaSessionActionType, Theme, WebDriverCommandMsg};
+use embedder_traits::{
+    Cursor, InputEvent, MediaSessionActionType, ReceiveJSValue, Theme, WebDriverCommandMsg,
+};
 use euclid::{Scale, Size2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of::malloc_size_of_is_0;
@@ -86,6 +88,7 @@ pub enum ConstellationMsg {
     SetScrollStates(PipelineId, Vec<ScrollState>),
     /// Notify the constellation that a particular paint metric event has happened for the given pipeline.
     PaintMetric(PipelineId, PaintMetricEvent),
+    EvaluateJavaScript(WebViewId, String, Box<dyn ReceiveJSValue>),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
