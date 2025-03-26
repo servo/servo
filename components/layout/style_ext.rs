@@ -283,7 +283,7 @@ impl Default for BorderStyleColor {
 /// <https://drafts.csswg.org/cssom-view/#overflow-directions>
 /// > A scrolling box of a viewport or element has two overflow directions,
 /// > which are the block-end and inline-end directions for that viewport or element.
-pub(crate) struct ScrollingOverflowDirection {
+pub(crate) struct OverflowDirection {
     /// Whether block-end or inline-end direction is [PhysicalSide::Right].
     pub rightward: bool,
     /// Whether block-end or inline-end direction is [PhysicalSide::Bottom].
@@ -364,7 +364,7 @@ pub(crate) trait ComputedValuesExt {
         writing_mode: WritingMode,
     ) -> bool;
     fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool;
-    fn scrolling_overflow_direction(&self) -> ScrollingOverflowDirection;
+    fn overflow_direction(&self) -> OverflowDirection;
 }
 
 impl ComputedValuesExt for ComputedValues {
@@ -993,7 +993,7 @@ impl ComputedValuesExt for ComputedValues {
     }
 
     // <https://drafts.csswg.org/cssom-view/#overflow-directions>
-    fn scrolling_overflow_direction(&self) -> ScrollingOverflowDirection {
+    fn overflow_direction(&self) -> OverflowDirection {
         let writing_mode: WritingMode = self.writing_mode;
         let inline_end_direction = writing_mode.inline_end_physical_side();
         let block_end_direction = writing_mode.block_end_physical_side();
@@ -1004,7 +1004,7 @@ impl ComputedValuesExt for ComputedValues {
             block_end_direction == PhysicalSide::Bottom;
 
         // FIXME: We should consider the flex-container's CSS (e.g. flow-direction: column-reverse).
-        ScrollingOverflowDirection {
+        OverflowDirection {
             rightward,
             downward,
         }

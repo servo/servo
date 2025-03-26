@@ -711,7 +711,12 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build(&mut self, builder: &mut DisplayListBuilder, section: StackingContextSection) {
         if self.is_hit_test_for_scrollable_overflow {
-            self.build_hit_test(builder, self.fragment.scrollable_overflow().to_webrender());
+            self.build_hit_test(
+                builder,
+                self.fragment
+                    .reachable_scrollable_overflow_region()
+                    .to_webrender(),
+            );
             return;
         }
 

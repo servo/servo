@@ -138,11 +138,26 @@ impl FragmentTree {
             .find_map(|child| child.find(&info, 0, &mut process_func))
     }
 
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
+    ///
+    /// Scrolling area for a viewport that is clipped according to overflow direction of root element.
     pub fn get_scrolling_area_for_viewport(&self) -> PhysicalRect<Au> {
         let mut scroll_area = self.initial_containing_block;
-        for fragment in self.root_fragments.iter() {
-            scroll_area = fragment.scrolling_area(Some(self.initial_containing_block)).union(&scroll_area);
+        if let Some(root_fragment) = self.root_fragments.first() {
+            for fragment in self.root_fragments.iter() {
+                scroll_area = fragment.unclipped_scrolling_area().union(&scroll_area);
+            }
+            match root_fragment {
+                Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
+                    .borrow()
+                    .clip_unreachable_scrollable_overflow_region(
+                        scroll_area,
+                        self.initial_containing_block,
+                    ),
+                _ => scroll_area,
+            }
+        } else {
+            scroll_area
         }
-        scroll_area
     }
 }
