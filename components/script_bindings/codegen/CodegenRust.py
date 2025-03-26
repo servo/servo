@@ -3960,7 +3960,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = "global.upcast::<D::GlobalScope>()"
             else:
-                glob = "&this.global()"
+                glob = "&this.global_(InRealm::already(&AlreadyInRealm::assert_for_cx(cx)))"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"
@@ -8454,7 +8454,8 @@ class CGIterableMethodGenerator(CGGeneric):
             return
         CGGeneric.__init__(self, fill(
             """
-            let result = ${iterClass}::new(this, IteratorType::${itrMethod});
+            let realm = AlreadyInRealm::assert_for_cx(cx);
+            let result = ${iterClass}::new(this, IteratorType::${itrMethod}, InRealm::already(&realm));
             """,
             iterClass=iteratorNativeType(descriptor, True),
             ifaceName=descriptor.interface.identifier.name,

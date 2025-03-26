@@ -2021,10 +2021,7 @@ impl GlobalScope {
     /// Returns the global scope of the realm that the given DOM object's reflector
     /// was created in.
     #[allow(unsafe_code)]
-    pub(crate) fn from_reflector<T: DomObject>(
-        reflector: &T,
-        _realm: &AlreadyInRealm,
-    ) -> DomRoot<Self> {
+    pub(crate) fn from_reflector<T: DomObject>(reflector: &T, _realm: InRealm) -> DomRoot<Self> {
         unsafe { GlobalScope::from_object(*reflector.reflector().get_jsobject()) }
     }
 
@@ -3337,10 +3334,7 @@ pub(crate) trait GlobalScopeHelpers<D: crate::DomTypes> {
     unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<D::GlobalScope>;
     fn get_cx() -> SafeJSContext;
     unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
-    fn from_reflector(
-        reflector: &impl DomObject,
-        realm: &AlreadyInRealm,
-    ) -> DomRoot<D::GlobalScope>;
+    fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<D::GlobalScope>;
 
     unsafe fn from_object_maybe_wrapped(
         obj: *mut JSObject,
@@ -3370,7 +3364,7 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
         GlobalScope::from_object(obj)
     }
 
-    fn from_reflector(reflector: &impl DomObject, realm: &AlreadyInRealm) -> DomRoot<Self> {
+    fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<Self> {
         GlobalScope::from_reflector(reflector, realm)
     }
 

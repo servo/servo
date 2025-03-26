@@ -33,6 +33,18 @@ pub(crate) enum InRealm<'a> {
     Entered(&'a JSAutoRealm),
 }
 
+impl<'a> From<&'a AlreadyInRealm> for InRealm<'a> {
+    fn from(token: &'a AlreadyInRealm) -> InRealm<'a> {
+        InRealm::already(token)
+    }
+}
+
+impl<'a> From<&'a JSAutoRealm> for InRealm<'a> {
+    fn from(token: &'a JSAutoRealm) -> InRealm<'a> {
+        InRealm::entered(token)
+    }
+}
+
 impl InRealm<'_> {
     pub(crate) fn already(token: &AlreadyInRealm) -> InRealm {
         InRealm::Already(token)

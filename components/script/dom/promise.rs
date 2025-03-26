@@ -270,10 +270,10 @@ impl Promise {
     pub(crate) fn append_native_handler(
         &self,
         handler: &PromiseNativeHandler,
-        _comp: InRealm,
+        realm: InRealm,
         can_gc: CanGc,
     ) {
-        let _ais = AutoEntryScript::new(&handler.global());
+        let _ais = AutoEntryScript::new(&handler.global_(realm));
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let resolve_func =
                 create_native_handler_function(*cx,
