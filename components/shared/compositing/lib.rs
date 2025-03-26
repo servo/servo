@@ -23,6 +23,7 @@ use webrender_api::DocumentId;
 
 pub mod display_list;
 pub mod rendering_context;
+pub mod viewport_description;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
