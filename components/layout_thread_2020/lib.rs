@@ -128,10 +128,6 @@ pub struct LayoutThread {
     /// Is this the first reflow in this LayoutThread?
     first_reflow: Cell<bool>,
 
-    /// Starts at zero, and increased by one every time a layout completes.
-    /// This can be used to easily check for invalid stale data.
-    generation: Cell<u32>,
-
     /// The box tree.
     box_tree: RefCell<Option<Arc<BoxTree>>>,
 
@@ -496,7 +492,6 @@ impl LayoutThread {
             image_cache: config.image_cache,
             font_context: config.font_context,
             first_reflow: Cell::new(true),
-            generation: Cell::new(0),
             box_tree: Default::default(),
             fragment_tree: Default::default(),
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
@@ -886,8 +881,6 @@ impl LayoutThread {
             self.compositor_api
                 .remove_unused_font_resources(keys, instance_keys)
         }
-
-        self.generation.set(self.generation.get() + 1);
     }
 
     /// Returns profiling information which is passed to the time profiler.
