@@ -78,6 +78,8 @@ mod drag_data_store;
 mod links;
 mod xpath;
 
+mod svgpath;
+
 pub use init::init;
 pub use script_runtime::JSEngineSetup;
 pub use script_thread::ScriptThread;

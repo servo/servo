@@ -687,7 +687,7 @@ unsafe fn is_cross_origin_allowlisted_prop(cx: SafeJSContext, id: RawHandleId) -
 
     rooted!(in(*cx) let mut allowed_id: jsid);
     ALLOWLISTED_SYMBOL_CODES.iter().any(|&allowed_code| {
-        *allowed_id.handle_mut() = SymbolId(GetWellKnownSymbol(*cx, allowed_code));
+        allowed_id.set(SymbolId(GetWellKnownSymbol(*cx, allowed_code)));
         // `jsid`s containing `JS::Symbol *` can be compared by
         // referential equality
         allowed_id.get().asBits_ == id.asBits_
@@ -710,7 +710,7 @@ unsafe fn append_cross_origin_allowlisted_prop_keys(
     AppendToIdVector(props, id.handle());
 
     for &allowed_code in ALLOWLISTED_SYMBOL_CODES.iter() {
-        *id.handle_mut() = SymbolId(GetWellKnownSymbol(*cx, allowed_code));
+        id.set(SymbolId(GetWellKnownSymbol(*cx, allowed_code)));
         AppendToIdVector(props, id.handle());
     }
 }

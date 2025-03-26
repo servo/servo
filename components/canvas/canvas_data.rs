@@ -27,6 +27,77 @@ use webrender_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImage
 
 use crate::raqote_backend::Repetition;
 
+fn to_path(path: &[PathSegment], mut builder: Box<dyn GenericPathBuilder>) -> Path {
+    let mut build_ref = PathBuilderRef {
+        builder: &mut builder,
+        transform: Transform2D::identity(),
+    };
+    for &seg in path {
+        match seg {
+            PathSegment::ClosePath => build_ref.close(),
+            PathSegment::MoveTo { x, y } => build_ref.move_to(&Point2D::new(x, y)),
+            PathSegment::LineTo { x, y } => build_ref.line_to(&Point2D::new(x, y)),
+            PathSegment::Quadratic { cpx, cpy, x, y } => {
+                build_ref.quadratic_curve_to(&Point2D::new(cpx, cpy), &Point2D::new(x, y))
+            },
+            PathSegment::Bezier {
+                cp1x,
+                cp1y,
+                cp2x,
+                cp2y,
+                x,
+                y,
+            } => build_ref.bezier_curve_to(
+                &Point2D::new(cp1x, cp1y),
+                &Point2D::new(cp2x, cp2y),
+                &Point2D::new(x, y),
+            ),
+            PathSegment::ArcTo {
+                cp1x,
+                cp1y,
+                cp2x,
+                cp2y,
+                radius,
+            } => build_ref.arc_to(&Point2D::new(cp1x, cp1y), &Point2D::new(cp2x, cp2y), radius),
+            PathSegment::Ellipse {
+                x,
+                y,
+                radius_x,
+                radius_y,
+                rotation,
+                start_angle,
+                end_angle,
+                anticlockwise,
+            } => build_ref.ellipse(
+                &Point2D::new(x, y),
+                radius_x,
+                radius_y,
+                rotation,
+                start_angle,
+                end_angle,
+                anticlockwise,
+            ),
+            PathSegment::SvgArc {
+                radius_x,
+                radius_y,
+                rotation,
+                large_arc,
+                sweep,
+                x,
+                y,
+            } => build_ref.svg_arc(
+                radius_x,
+                radius_y,
+                rotation,
+                large_arc,
+                sweep,
+                &Point2D::new(x, y),
+            ),
+        }
+    }
+    builder.finish()
+}
+
 /// The canvas data stores a state machine for the current status of
 /// the path data and any relevant transformations that are
 /// applied to it. The Azure drawing API expects the path to be in
@@ -125,6 +196,15 @@ pub trait GenericPathBuilder {
     fn line_to(&mut self, point: Point2D<f32>);
     fn move_to(&mut self, point: Point2D<f32>);
     fn quadratic_curve_to(&mut self, control_point: &Point2D<f32>, end_point: &Point2D<f32>);
+    fn svg_arc(
+        &mut self,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        large_arc: bool,
+        sweep: bool,
+        end_point: Point2D<f32>,
+    );
     fn finish(&mut self) -> Path;
 }
 
@@ -192,6 +272,69 @@ impl PathBuilderRef<'_> {
             .arc(center, radius, start_angle, end_angle, ccw);
     }
 
+    fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
+        let cp0 = if let (Some(inverse), Some(point)) =
+            (self.transform.inverse(), self.builder.get_current_point())
+        {
+            inverse.transform_point(Point2D::new(point.x, point.y))
+        } else {
+            *cp1
+        };
+        if (cp0.x == cp1.x && cp0.y == cp1.y) || cp1 == cp2 || radius == 0.0 {
+            self.line_to(cp1);
+            return;
+        }
+
+        // if all three control points lie on a single straight line,
+        // connect the first two by a straight line
+        let direction = (cp2.x - cp1.x) * (cp0.y - cp1.y) + (cp2.y - cp1.y) * (cp1.x - cp0.x);
+        if direction == 0.0 {
+            self.line_to(cp1);
+            return;
+        }
+
+        // otherwise, draw the Arc
+        let a2 = (cp0.x - cp1.x).powi(2) + (cp0.y - cp1.y).powi(2);
+        let b2 = (cp1.x - cp2.x).powi(2) + (cp1.y - cp2.y).powi(2);
+        let d = {
+            let c2 = (cp0.x - cp2.x).powi(2) + (cp0.y - cp2.y).powi(2);
+            let cosx = (a2 + b2 - c2) / (2.0 * (a2 * b2).sqrt());
+            let sinx = (1.0 - cosx.powi(2)).sqrt();
+            radius / ((1.0 - cosx) / sinx)
+        };
+
+        // first tangent point
+        let anx = (cp1.x - cp0.x) / a2.sqrt();
+        let any = (cp1.y - cp0.y) / a2.sqrt();
+        let tp1 = Point2D::new(cp1.x - anx * d, cp1.y - any * d);
+
+        // second tangent point
+        let bnx = (cp1.x - cp2.x) / b2.sqrt();
+        let bny = (cp1.y - cp2.y) / b2.sqrt();
+        let tp2 = Point2D::new(cp1.x - bnx * d, cp1.y - bny * d);
+
+        // arc center and angles
+        let anticlockwise = direction < 0.0;
+        let cx = tp1.x + any * radius * if anticlockwise { 1.0 } else { -1.0 };
+        let cy = tp1.y - anx * radius * if anticlockwise { 1.0 } else { -1.0 };
+        let angle_start = (tp1.y - cy).atan2(tp1.x - cx);
+        let angle_end = (tp2.y - cy).atan2(tp2.x - cx);
+
+        self.line_to(&self.transform.transform_point(tp1));
+        if [cx, cy, angle_start, angle_end]
+            .iter()
+            .all(|x| x.is_finite())
+        {
+            self.arc(
+                &self.transform.transform_point(Point2D::new(cx, cy)),
+                radius,
+                angle_start,
+                angle_end,
+                anticlockwise,
+            );
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn ellipse(
         &mut self,
@@ -215,11 +358,24 @@ impl PathBuilderRef<'_> {
         );
     }
 
-    fn current_point(&mut self) -> Option<Point2D<f32>> {
-        let inverse = self.transform.inverse()?;
-        self.builder
-            .get_current_point()
-            .map(|point| inverse.transform_point(Point2D::new(point.x, point.y)))
+    fn svg_arc(
+        &mut self,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        large_arc: bool,
+        sweep: bool,
+        end_point: &Point2D<f32>,
+    ) {
+        let end_point = self.transform.transform_point(*end_point);
+        self.builder.svg_arc(
+            radius_x,
+            radius_y,
+            rotation_angle,
+            large_arc,
+            sweep,
+            end_point,
+        );
     }
 
     fn close(&mut self) {
@@ -957,6 +1113,20 @@ impl<'a> CanvasData<'a> {
         );
     }
 
+    pub fn fill_path(&mut self, path: &[PathSegment]) {
+        if self.state.fill_style.is_zero_size_gradient() {
+            return; // Paint nothing if gradient size is zero.
+        }
+
+        let path = to_path(path, self.drawtarget.create_path_builder());
+
+        self.drawtarget.fill(
+            &path,
+            self.state.fill_style.clone(),
+            &self.state.draw_options,
+        );
+    }
+
     pub fn stroke(&mut self) {
         if self.state.stroke_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
@@ -971,9 +1141,29 @@ impl<'a> CanvasData<'a> {
         );
     }
 
+    pub fn stroke_path(&mut self, path: &[PathSegment]) {
+        if self.state.stroke_style.is_zero_size_gradient() {
+            return; // Paint nothing if gradient size is zero.
+        }
+
+        let path = to_path(path, self.drawtarget.create_path_builder());
+
+        self.drawtarget.stroke(
+            &path,
+            self.state.stroke_style.clone(),
+            &self.state.stroke_opts,
+            &self.state.draw_options,
+        );
+    }
+
     pub fn clip(&mut self) {
         self.ensure_path();
         let path = self.path().clone();
+        self.drawtarget.push_clip(&path);
+    }
+
+    pub fn clip_path(&mut self, path: &[PathSegment]) {
+        let path = to_path(path, self.drawtarget.create_path_builder());
         self.drawtarget.push_clip(&path);
     }
 
@@ -993,6 +1183,26 @@ impl<'a> CanvasData<'a> {
             },
             Some(_) | None => false,
         };
+        chan.send(result).unwrap();
+    }
+
+    pub fn is_point_in_path_(
+        &mut self,
+        path: &[PathSegment],
+        x: f64,
+        y: f64,
+        _fill_rule: FillRule,
+        chan: IpcSender<bool>,
+    ) {
+        let path_transform = match self.path_state.as_ref() {
+            Some(PathState::UserSpacePath(_, Some(transform))) => transform,
+            Some(_) | None => &self.drawtarget.get_transform(),
+        };
+        let result = to_path(path, self.drawtarget.create_path_builder()).contains_point(
+            x,
+            y,
+            path_transform,
+        );
         chan.send(result).unwrap();
     }
 
@@ -1105,69 +1315,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
-        let cp0 = match self.path_builder().current_point() {
-            Some(p) => p,
-            None => {
-                self.path_builder().move_to(cp1);
-                *cp1
-            },
-        };
-        let cp1 = *cp1;
-        let cp2 = *cp2;
-
-        if (cp0.x == cp1.x && cp0.y == cp1.y) || cp1 == cp2 || radius == 0.0 {
-            self.line_to(&cp1);
-            return;
-        }
-
-        // if all three control points lie on a single straight line,
-        // connect the first two by a straight line
-        let direction = (cp2.x - cp1.x) * (cp0.y - cp1.y) + (cp2.y - cp1.y) * (cp1.x - cp0.x);
-        if direction == 0.0 {
-            self.line_to(&cp1);
-            return;
-        }
-
-        // otherwise, draw the Arc
-        let a2 = (cp0.x - cp1.x).powi(2) + (cp0.y - cp1.y).powi(2);
-        let b2 = (cp1.x - cp2.x).powi(2) + (cp1.y - cp2.y).powi(2);
-        let d = {
-            let c2 = (cp0.x - cp2.x).powi(2) + (cp0.y - cp2.y).powi(2);
-            let cosx = (a2 + b2 - c2) / (2.0 * (a2 * b2).sqrt());
-            let sinx = (1.0 - cosx.powi(2)).sqrt();
-            radius / ((1.0 - cosx) / sinx)
-        };
-
-        // first tangent point
-        let anx = (cp1.x - cp0.x) / a2.sqrt();
-        let any = (cp1.y - cp0.y) / a2.sqrt();
-        let tp1 = Point2D::new(cp1.x - anx * d, cp1.y - any * d);
-
-        // second tangent point
-        let bnx = (cp1.x - cp2.x) / b2.sqrt();
-        let bny = (cp1.y - cp2.y) / b2.sqrt();
-        let tp2 = Point2D::new(cp1.x - bnx * d, cp1.y - bny * d);
-
-        // arc center and angles
-        let anticlockwise = direction < 0.0;
-        let cx = tp1.x + any * radius * if anticlockwise { 1.0 } else { -1.0 };
-        let cy = tp1.y - anx * radius * if anticlockwise { 1.0 } else { -1.0 };
-        let angle_start = (tp1.y - cy).atan2(tp1.x - cx);
-        let angle_end = (tp2.y - cy).atan2(tp2.x - cx);
-
-        self.line_to(&tp1);
-        if [cx, cy, angle_start, angle_end]
-            .iter()
-            .all(|x| x.is_finite())
-        {
-            self.arc(
-                &Point2D::new(cx, cy),
-                radius,
-                angle_start,
-                angle_end,
-                anticlockwise,
-            );
-        }
+        self.path_builder().arc_to(cp1, cp2, radius);
     }
 
     #[allow(clippy::too_many_arguments)]

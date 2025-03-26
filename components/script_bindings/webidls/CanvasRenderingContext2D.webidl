@@ -117,15 +117,15 @@ interface mixin CanvasDrawPath {
   // path API (see also CanvasPath)
   undefined beginPath();
   undefined fill(optional CanvasFillRule fillRule = "nonzero");
-  //void fill(Path2D path, optional CanvasFillRule fillRule = "nonzero");
+  undefined fill(Path2D path, optional CanvasFillRule fillRule = "nonzero");
   undefined stroke();
-  //void stroke(Path2D path);
+  undefined stroke(Path2D path);
   undefined clip(optional CanvasFillRule fillRule = "nonzero");
-  //void clip(Path2D path, optional CanvasFillRule fillRule = "nonzero");
+  undefined clip(Path2D path, optional CanvasFillRule fillRule = "nonzero");
   boolean isPointInPath(unrestricted double x, unrestricted double y,
                         optional CanvasFillRule fillRule = "nonzero");
-  //boolean isPointInPath(Path2D path, unrestricted double x, unrestricted double y,
-  //                      optional CanvasFillRule fillRule = "nonzero");
+  boolean isPointInPath(Path2D path, unrestricted double x, unrestricted double y,
+                        optional CanvasFillRule fillRule = "nonzero");
   //boolean isPointInStroke(unrestricted double x, unrestricted double y);
   //boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
 };
@@ -262,3 +262,12 @@ interface ImageData {
   [Throws] readonly attribute Uint8ClampedArray data;
   //readonly attribute PredefinedColorSpace colorSpace;
 };
+
+[Exposed=(Window,Worker)]
+interface Path2D {
+  constructor();
+  constructor(Path2D other);
+  constructor(DOMString pathString);
+  undefined addPath(Path2D path/*, SVGMatrix? transformation*/);
+};
+Path2D includes CanvasPath;

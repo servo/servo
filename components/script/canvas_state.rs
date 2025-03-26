@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use canvas_traits::canvas::{
     Canvas2dMsg, CanvasId, CanvasMsg, CompositionOrBlending, Direction, FillOrStrokeStyle,
-    FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, RadialGradientStyle,
+    FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, PathSegment, RadialGradientStyle,
     RepetitionStyle, TextAlign, TextBaseline, TextMetrics as CanvasTextMetrics,
 };
 use cssparser::color::clamp_unit_f32;
@@ -1521,16 +1521,34 @@ impl CanvasState {
         self.send_canvas_2d_msg(Canvas2dMsg::Fill(style));
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
+    pub(crate) fn fill_(&self, path: Vec<PathSegment>, _fill_rule: CanvasFillRule) {
+        // TODO: Process fill rule
+        let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
+        self.send_canvas_2d_msg(Canvas2dMsg::FillPath(style, path));
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
     pub(crate) fn stroke(&self) {
         let style = self.state.borrow().stroke_style.to_fill_or_stroke_style();
         self.send_canvas_2d_msg(Canvas2dMsg::Stroke(style));
     }
 
+    pub(crate) fn stroke_(&self, path: Vec<PathSegment>) {
+        let style = self.state.borrow().stroke_style.to_fill_or_stroke_style();
+        self.send_canvas_2d_msg(Canvas2dMsg::StrokePath(style, path));
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
     pub(crate) fn clip(&self, _fill_rule: CanvasFillRule) {
         // TODO: Process fill rule
         self.send_canvas_2d_msg(Canvas2dMsg::Clip);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
+    pub(crate) fn clip_(&self, path: Vec<PathSegment>, _fill_rule: CanvasFillRule) {
+        // TODO: Process fill rule
+        self.send_canvas_2d_msg(Canvas2dMsg::ClipPath(path));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
@@ -1551,7 +1569,30 @@ impl CanvasState {
         };
         let (sender, receiver) =
             profiled_ipc::channel::<bool>(global.time_profiler_chan().clone()).unwrap();
-        self.send_canvas_2d_msg(Canvas2dMsg::IsPointInPath(x, y, fill_rule, sender));
+        self.send_canvas_2d_msg(Canvas2dMsg::IsPointInCurrentPath(x, y, fill_rule, sender));
+        receiver.recv().unwrap()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
+    pub(crate) fn is_point_in_path_(
+        &self,
+        global: &GlobalScope,
+        path: Vec<PathSegment>,
+        x: f64,
+        y: f64,
+        fill_rule: CanvasFillRule,
+    ) -> bool {
+        if !(x.is_finite() && y.is_finite()) {
+            return false;
+        }
+
+        let fill_rule = match fill_rule {
+            CanvasFillRule::Nonzero => FillRule::Nonzero,
+            CanvasFillRule::Evenodd => FillRule::Evenodd,
+        };
+        let (sender, receiver) =
+            profiled_ipc::channel::<bool>(global.time_profiler_chan().clone()).unwrap();
+        self.send_canvas_2d_msg(Canvas2dMsg::IsPointInPath(path, x, y, fill_rule, sender));
         receiver.recv().unwrap()
     }
 
