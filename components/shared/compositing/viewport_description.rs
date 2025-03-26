@@ -5,6 +5,7 @@
 //! This module contains helpers for Viewport
 
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use euclid::default::Scale;
 use serde::{Deserialize, Serialize};
@@ -17,6 +18,9 @@ pub const MIN_ZOOM: f32 = 0.1;
 pub const MAX_ZOOM: f32 = 10.0;
 /// <https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag#initial-scale>
 pub const DEFAULT_ZOOM: f32 = 1.0;
+
+/// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
+const SEPARATORS: [char; 2] = [',', ';']; // Comma (0x2c) and Semicolon (0x3b)
 
 /// A set of viewport descriptors:
 ///
@@ -135,5 +139,37 @@ impl ViewportDescription {
     /// Constrains a zoom value within the allowed scale range
     pub fn clamp_zoom(&self, zoom: f32) -> f32 {
         zoom.clamp(self.minimum_scale.get(), self.maximum_scale.get())
+    }
+}
+
+/// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
+///
+/// This implementation differs from the specified algorithm, but is equivalent because
+/// 1. It uses higher-level string operations to process string instead of character-by-character iteration.
+/// 2. Uses trim() operation to handle whitespace instead of explicitly handling throughout the parsing process.
+impl FromStr for ViewportDescription {
+    type Err = ViewportDescriptionParseError;
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        if string.is_empty() {
+            return Err(ViewportDescriptionParseError::Empty);
+        }
+
+        // Parse key-value pairs from the content string
+        // 1. Split the content string using SEPARATORS
+        // 2. Split into key-value pair using "=" and trim whitespaces
+        // 3. Insert into HashMap
+        let parsed_values = string
+            .split(SEPARATORS)
+            .filter_map(|pair| {
+                let mut parts = pair.split('=').map(str::trim);
+                if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
+                    Some((key.to_string(), value.to_string()))
+                } else {
+                    None
+                }
+            })
+            .collect::<HashMap<String, String>>();
+
+        Ok(Self::process_viewport_key_value_pair(parsed_values))
     }
 }
