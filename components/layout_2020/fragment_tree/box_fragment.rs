@@ -290,7 +290,10 @@ impl BoxFragment {
     /// Return the clipped the scrollable overflow based on its scroll origin, determined by overflow direction.
     /// By default the clipping rect is the padding box of the fragment, this will coincides with the scrollport
     /// if the fragment is a scroll container.
-    pub fn reachable_scrolling_overflow_region(&self, clipping_rect: Option<PhysicalRect<Au>>) -> PhysicalRect<Au> {
+    pub fn reachable_scrolling_overflow_region(
+        &self,
+        clipping_rect: Option<PhysicalRect<Au>>,
+    ) -> PhysicalRect<Au> {
         let scrolling_direction = self.style.overflow_direction();
         let scrollable_overflow = self.scrollable_overflow();
         let clipping_rect = clipping_rect.unwrap_or(self.padding_rect());

@@ -1477,7 +1477,9 @@ impl BoxFragment {
             y: overflow.y.into(),
         };
 
-        let content_rect = self.reachable_scrolling_overflow_region(None).to_webrender();
+        let content_rect = self
+            .reachable_scrolling_overflow_region(None)
+            .to_webrender();
 
         let scroll_tree_node_id = display_list.define_scroll_frame(
             parent_scroll_node_id,
