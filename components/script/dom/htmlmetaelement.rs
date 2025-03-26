@@ -6,6 +6,7 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use compositing_traits::CrossProcessCompositorMessage;
 use compositing_traits::viewport_description::ViewportDescription;
 use constellation_traits::NavigationHistoryBehavior;
 use dom_struct::dom_struct;
@@ -152,7 +153,12 @@ impl HTMLMetaElement {
     fn parse_and_send_viewport_if_necessary(&self) {
         let element = self.upcast::<Element>();
         if let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) {
-            let _viewport = ViewportDescription::from_str(&content.value()).unwrap_or_default();
+            if let Ok(viewport) = ViewportDescription::from_str(&content.value()) {
+                let document = self.owner_window();
+                let _ = document.compositor_api().sender().send(
+                    CrossProcessCompositorMessage::Viewport(document.webview_id(), viewport),
+                );
+            }
         }
     }
 

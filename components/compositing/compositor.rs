@@ -947,6 +947,7 @@ impl IOCompositor {
                     warn!("Sending response to get screen size failed ({error:?}).");
                 }
             },
+            CrossProcessCompositorMessage::Viewport(_webview_id, _viewport_description) => {},
         }
     }
 
