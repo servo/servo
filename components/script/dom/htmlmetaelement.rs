@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use compositing_traits::viewport_description::ViewportDescription;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
@@ -62,7 +63,7 @@ impl HTMLMetaElement {
                 self.apply_referrer();
             }
             if name == "viewport" {
-                self.parse_viewport();
+                self.parse_and_send_viewport_if_necessary();
             }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
         } else if !self.HttpEquiv().is_empty() {
@@ -119,8 +120,15 @@ impl HTMLMetaElement {
     }
 
     /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
-    fn parse_viewport(&self) {
-        let _element = self.upcast::<Element>();
+    fn parse_and_send_viewport_if_necessary(&self) {
+        // Skip processing if this isn't the top level frame
+        if !self.owner_window().is_top_level() {
+            return;
+        }
+        let element = self.upcast::<Element>();
+        if let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) {
+            let _viewport = ViewportDescription::from_str(&content.value()).unwrap_or_default();
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
