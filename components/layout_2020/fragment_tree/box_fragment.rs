@@ -5,6 +5,7 @@
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::print_tree::PrintTree;
+use euclid::Rect;
 use servo_arc::Arc as ServoArc;
 use servo_geometry::f32_rect_to_au_rect;
 use style::Zero;
@@ -264,7 +265,7 @@ impl BoxFragment {
         // <https://drafts.csswg.org/css-overflow-3/#scrollable-overflow-region>
         // > ...accounting for transforms by projecting each box onto the plane of
         // > the element that establishes its 3D rendering context. [CSS3-TRANSFORMS]
-        // Both boxes and it's scrollable overflow (if it is included) should be transformed accordingly.
+        // Both boxes and its scrollable overflow (if it is included) should be transformed accordingly.
         //
         // FIXME: We are supposed to handle perspective transform and 3d context, but it is yet to happen.
         if self.style.has_transform_or_perspective(self.base.flags) {
@@ -283,16 +284,17 @@ impl BoxFragment {
         overflow
     }
 
-    /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
-    /// We will "clip" the scrollable overflow based on it's overflow direction.
-    /// Specifically, a scrolling area would not consider area beyond it's block start and inline start corner.
-    pub fn scrolling_area(&self, clipping_rect: Option<PhysicalRect<Au>>) -> PhysicalRect<Au> {
-        let scrolling_direction = self.style.scrolling_overflow_direction();
+    /// <https://drafts.csswg.org/css-overflow/#unreachable-scrollable-overflow-region>
+    /// > area beyond the scroll origin in either axis is considered the unreachable scrollable overflow region
+    ///
+    /// Return the clipped the scrollable overflow based on its scroll origin, determined by overflow direction.
+    /// By default the clipping rect is the padding box of the fragment, this will coincides with the scrollport
+    /// if the fragment is a scroll container.
+    pub fn reachable_scrolling_overflow_region(&self, clipping_rect: Option<PhysicalRect<Au>>) -> PhysicalRect<Au> {
+        let scrolling_direction = self.style.overflow_direction();
         let scrollable_overflow = self.scrollable_overflow();
         let clipping_rect = clipping_rect.unwrap_or(self.padding_rect());
 
-        // > The term scrolling area refers to a box of a viewport or an element that has the following edges,
-        // > depending on the viewport’s or element’s scrolling box’s overflow directions.
         match (scrolling_direction.rightward, scrolling_direction.downward) {
             (true, true) => {
                 let mut overflow_box = scrollable_overflow.to_box2d();
@@ -300,7 +302,10 @@ impl BoxFragment {
                 overflow_box.min.x.max_assign(clipping_rect.min_x());
                 overflow_box.min.y.max_assign(clipping_rect.min_y());
 
-                overflow_box.to_rect()
+                match overflow_box.is_negative() {
+                    false => overflow_box.to_rect(),
+                    true => Rect::zero(),
+                }
             },
             // FIXME: should wait for scrolling in other direction to work before adding new cases.
             (_, _) => scrollable_overflow,
