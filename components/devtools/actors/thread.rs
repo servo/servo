@@ -56,12 +56,20 @@ struct SourcesReply {
 }
 
 #[derive(Serialize)]
+pub struct SpontaneousNewSource {
+    pub from: String,
+    pub r#type: String,
+    pub source: Source,
+}
+
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct Source {
-    actor: String,
-    url: String,
+pub struct Source {
+    pub actor: String,
+    /// URL of the script, at least for `SpontaneousNewSource` on a page with external scripts
+    pub url: String,
     #[serde(rename = "isBlackBoxed")]
-    is_black_boxed: bool,
+    pub is_black_boxed: bool,
 }
 
 pub struct ThreadActor {
@@ -131,6 +139,8 @@ impl Actor for ThreadActor {
                 ActorMessageStatus::Processed
             },
 
+            // Client has attached to the thread and wants to load script sources.
+            // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#loading-script-sources>
             "sources" => {
                 let msg = SourcesReply {
                     from: self.name(),

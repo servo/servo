@@ -21,6 +21,7 @@ use serde_json::{Map, Value};
 use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
+use crate::actors::thread::{Source, SpontaneousNewSource};
 use crate::actors::watcher::target_configuration::{
     TargetConfigurationActor, TargetConfigurationActorMsg,
 };
@@ -155,6 +156,7 @@ struct ThreadState {
     state: String,
     #[serde(rename = "type")]
     type_: String,
+    /// URL of the page? At least when testing on page with inline script
     url: String,
 }
 
@@ -162,6 +164,7 @@ struct ThreadState {
 #[serde(rename_all = "camelCase")]
 struct SourceInfo {
     actor: String,
+    /// URL of the script, at least on a page with external scripts
     url: String,
     #[serde(rename = "isBlackBoxed")]
     is_black_boxed: bool,
@@ -227,6 +230,20 @@ impl Actor for WatcherActor {
                     target: target.encodable(),
                 };
                 let _ = stream.write_json_packet(&msg);
+
+                if let Err(error) = stream.write_json_packet(&SpontaneousNewSource {
+                    from: target.thread.clone(), // TODO: rename to thread_actor
+                    r#type: "newSource".to_owned(),
+                    source: Source {
+                        // TODO: register this actor
+                        actor: registry.new_name("source"),
+                        // TODO: use JS URL, not page URL
+                        url: target.url.borrow().clone(),
+                        is_black_boxed: false,
+                    },
+                }) {
+                    warn!("Failed to send message: {error:?}");
+                }
 
                 target.frame_update(stream);
 
