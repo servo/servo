@@ -43,6 +43,10 @@ impl TabDescriptorActorMsg {
     pub fn browser_id(&self) -> u32 {
         self.browser_id
     }
+
+    pub fn actor(&self) -> String {
+        self.actor.clone()
+    }
 }
 
 #[derive(Serialize)]
@@ -166,5 +170,9 @@ impl TabDescriptorActor {
 
     pub(crate) fn is_top_level_global(&self) -> bool {
         self.is_top_level_global
+    }
+
+    pub fn browsing_context(&self) -> String {
+        self.browsing_context_actor.clone()
     }
 }

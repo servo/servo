@@ -69,7 +69,7 @@ impl TargetConfigurationActor {
             configuration: HashMap::new(),
             supported_options: HashMap::from([
                 ("cacheDisabled", false),
-                ("colorSchemeSimulation", true),
+                ("colorSchemeSimulation", false),
                 ("customFormatters", false),
                 ("customUserAgent", false),
                 ("javascriptEnabled", false),
