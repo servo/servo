@@ -920,6 +920,7 @@ impl IOCompositor {
                     );
                 }
             },
+            CrossProcessCompositorMessage::Viewport(_webview_id, _viewport_description) => {},
         }
     }
 

@@ -7,13 +7,13 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use dom_struct::dom_struct;
-use webrender_traits::viewport_description::ViewportDescription;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use regex::bytes::Regex;
 use script_traits::NavigationHistoryBehavior;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
+use webrender_traits::viewport_description::ViewportDescription;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
@@ -130,7 +130,15 @@ impl HTMLMetaElement {
     fn apply_viewport_description(&self) {
         let element = self.upcast::<Element>();
         if let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) {
-            let _viewport = ViewportDescription::from_str(&content.value()).unwrap_or_default();
+            if let Ok(viewport) = ViewportDescription::from_str(&content.value()) {
+                let document = self.owner_window();
+                let _ = document.compositor_api().sender().send(
+                    webrender_traits::CrossProcessCompositorMessage::Viewport(
+                        document.webview_id(),
+                        viewport,
+                    ),
+                );
+            }
         }
     }
 
