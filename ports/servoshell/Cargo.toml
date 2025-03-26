@@ -140,6 +140,6 @@ objc2-app-kit = { version = "0.2.2", default-features = false, features = [
     "NSView",
     "NSWindow",
 ] }
-objc2-foundation = { version = "0.2.2", default-features = false, features = [
+objc2-foundation = { version = "0.3.0", default-features = false, features = [
     "std",
 ] }
