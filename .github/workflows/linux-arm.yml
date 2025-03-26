@@ -15,13 +15,26 @@ on:
       bencher:
         required: true
         type: boolean
-
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: true
+        type: string
+      unit-tests:
+        required: true
+        type: boolean
+      build-libservo:
+        required: true
+        type: boolean
+      bencher:
+        required: true
+        type: boolean
 
 jobs:
   linux-arm:
     name: Linux Arm
     runs-on: ubuntu-24.04-arm
-    steps:
+    steps:i
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -58,5 +71,4 @@ jobs:
       - name: Run Bencher
         if: ${{ inputs.bencher }}
         run: |
-          # Replace with the command to run your bencher tests
           ./mach test-bencher --release -- target=aarch64-unknown-linux-gnu
