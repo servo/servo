@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::str::FromStr;
+
+use compositing_traits::CompositorMsg;
 use compositing_traits::viewport_description::ViewportDescription;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -126,8 +129,19 @@ impl HTMLMetaElement {
             return;
         }
         let element = self.upcast::<Element>();
-        if let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) {
-            let _viewport = ViewportDescription::from_str(&content.value()).unwrap_or_default();
+        let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) else {
+            return;
+        };
+
+        if let Ok(viewport) = ViewportDescription::from_str(&content.value()) {
+            self.owner_window()
+                .compositor_api()
+                .sender()
+                .send(CompositorMsg::Viewport(
+                    self.owner_window().webview_id(),
+                    viewport,
+                ))
+                .unwrap();
         }
     }
 
