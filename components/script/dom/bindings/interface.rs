@@ -641,7 +641,7 @@ pub(crate) fn get_desired_proto(
             // We might still have a cross-compartment wrapper for a known DOM
             // constructor.  CheckedUnwrapStatic is fine here, because we're looking for
             // DOM constructors and those can't be cross-origin objects.
-            *new_target = CheckedUnwrapStatic(*new_target);
+            new_target.set(CheckedUnwrapStatic(*new_target));
             if !new_target.is_null() && *new_target != *original_new_target {
                 get_proto_id_for_new_target(new_target.handle())
             } else {
