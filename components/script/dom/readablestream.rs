@@ -2001,8 +2001,7 @@ impl Transferable for ReadableStream {
     type Id = MessagePortId;
     type Data = MessagePortImpl;
 
-    /// The transfer steps
-    /// <https://html.spec.whatwg.org/multipage/#transfer-steps>
+    /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A1%E2%91%A0>
     fn transfer(&self) -> Result<(MessagePortId, MessagePortImpl), ()> {
         // If ! IsReadableStreamLocked(value) is true, throw a "DataCloneError" DOMException.
         if self.is_locked() {
@@ -2048,6 +2047,7 @@ impl Transferable for ReadableStream {
         Ok((*id, transferred_port))
     }
 
+    /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A1%E2%91%A0>
     fn transfer_receive(
         owner: &GlobalScope,
         id: MessagePortId,
