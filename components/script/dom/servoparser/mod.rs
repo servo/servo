@@ -1477,6 +1477,9 @@ impl TreeSink for Sink {
                 let shadow = shadow_root.upcast::<DocumentFragment>();
                 template_element.set_contents(Some(shadow));
 
+                // Step 8.5. Set shadow’s available to element internals to true.
+                shadow_root.set_available_to_element_internals(true);
+
                 Ok(())
             },
             Err(_) => Err(String::from("Attaching shadow fails")),
