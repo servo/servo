@@ -40,6 +40,13 @@ enum Message {
     },
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+struct ResourcesAvailableArray {
+    from: String,
+    r#type: String,
+    array: Vec<(String, Vec<Value>)>,
+}
+
 fn main() -> eyre::Result<()> {
     jane_eyre::install()?;
     tracing_subscriber::registry()
@@ -74,11 +81,14 @@ fn main() -> eyre::Result<()> {
     // Match up server responses with client requests, organised into queues by actor and type.
     #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
     struct Type(String);
+    #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+    struct ResourceType(String);
     let mut transactions: BTreeMap<(Actor, Type), Vec<(&Message, &Message)>> = BTreeMap::default();
     let mut spontaneous_messages: BTreeMap<Actor, Vec<&Message>> = BTreeMap::default();
     let mut target_available_form_messages = vec![];
     let mut frame_update_messages = vec![];
-    let mut resources_available_array_messages = vec![];
+    let mut resources_available: BTreeMap<ResourceType, BTreeMap<Actor, Vec<Value>>> =
+        BTreeMap::default();
     for message in subsequent_messages.iter() {
         if let server_message @ Message::Server { from, r#type, .. } = message {
             // Server messages with types are probably spontaneous messages (often in request/reply/notify pattern),
@@ -96,8 +106,18 @@ fn main() -> eyre::Result<()> {
                     frame_update_messages.push(message);
                 },
                 Some("resources-available-array") => {
-                    // watcher resources-available-array model: send all on watcher watchResources
-                    resources_available_array_messages.push(message);
+                    // watcher resources-available-array model: on watcher watchResources, send resources with the
+                    // given resourceTypes, from their original actors
+                    let message: ResourcesAvailableArray =
+                        serde_json::from_str(&serde_json::to_string(message)?)?;
+                    for (resource_type, resources) in message.array {
+                        resources_available
+                            .entry(ResourceType(resource_type))
+                            .or_default()
+                            .entry(Actor(from.clone()))
+                            .or_default()
+                            .extend(resources);
+                    }
                 },
                 Some(r#type) => {
                     // TODO: figure out how to realistically replay other spontaneous messages at the right time
@@ -135,7 +155,7 @@ fn main() -> eyre::Result<()> {
     loop {
         let message = reader.read_packet()?;
         debug!(?message);
-        let Message::Client { to, r#type, .. } = &message else {
+        let Message::Client { to, r#type, rest } = &message else {
             panic!("Not a client message: {message:?}")
         };
         let Some(r#type) = r#type else {
@@ -158,15 +178,32 @@ fn main() -> eyre::Result<()> {
         match &**r#type {
             "watchTargets" => {
                 for spontaneous_message in target_available_form_messages.drain(..) {
+                    debug!(?spontaneous_message);
                     stream.write_json_packet(spontaneous_message)?;
                 }
                 for spontaneous_message in frame_update_messages.drain(..) {
+                    debug!(?spontaneous_message);
                     stream.write_json_packet(spontaneous_message)?;
                 }
             },
             "watchResources" => {
-                for spontaneous_message in resources_available_array_messages.drain(..) {
-                    stream.write_json_packet(spontaneous_message)?;
+                let resource_types = rest.get("resourceTypes");
+                let resource_types = resource_types
+                    .iter()
+                    .flat_map(|x| x.as_array())
+                    .flat_map(|x| x.iter())
+                    .flat_map(|x| x.as_str());
+                for resource_type in resource_types {
+                    let resources = resources_available
+                        .entry(ResourceType(resource_type.to_owned()))
+                        .or_default();
+                    for (actor, resources) in resources.iter() {
+                        stream.write_json_packet(&ResourcesAvailableArray {
+                            from: actor.0.clone(),
+                            r#type: "resources-available-array".to_owned(),
+                            array: vec![(resource_type.to_owned(), resources.clone())],
+                        })?;
+                    }
                 }
             },
             _ => {},
@@ -177,14 +214,14 @@ fn main() -> eyre::Result<()> {
 // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#id1>
 trait DevtoolsWrite {
     /// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#json-packets>
-    fn write_json_packet(&mut self, message: &Message) -> eyre::Result<()>;
+    fn write_json_packet<T: Serialize>(&mut self, message: &T) -> eyre::Result<()>;
 }
 trait DevtoolsRead {
     fn read_packet(&mut self) -> eyre::Result<Message>;
 }
 
 impl DevtoolsWrite for TcpStream {
-    fn write_json_packet(&mut self, message: &Message) -> eyre::Result<()> {
+    fn write_json_packet<T: Serialize>(&mut self, message: &T) -> eyre::Result<()> {
         let result = serde_json::to_string(message)?;
         let result = format!("{}:{}", result.len(), result);
         self.write_all(result.as_bytes())?;
