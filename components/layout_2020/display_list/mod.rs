@@ -652,7 +652,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             self.build_hit_test(
                 builder,
                 self.fragment
-                    .reachable_scrolling_overflow_region(None)
+                    .reachable_scrollable_overflow_region(None)
                     .to_webrender(),
             );
             return;

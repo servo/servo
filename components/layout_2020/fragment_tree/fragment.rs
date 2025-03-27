@@ -142,7 +142,7 @@ impl Fragment {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
                 .borrow()
-                .reachable_scrolling_overflow_region(clipping_rect)
+                .reachable_scrollable_overflow_region(clipping_rect)
                 .translate(containing_block.origin.to_vector()),
             _ => self.scrollable_overflow_for_parent(),
         }
