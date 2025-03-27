@@ -161,7 +161,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-inverse
     fn Inverse(&self, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
         self.inverse.or_init(|| {
-            let transform = XRRigidTransform::new(&self.global(), self.transform.inverse(), can_gc);
+            let transform = XRRigidTransform::new(&self.global().as_window(), self.transform.inverse(), can_gc);
             transform.inverse.set(Some(self));
             transform
         })

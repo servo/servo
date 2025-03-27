@@ -85,7 +85,7 @@ impl XRReferenceSpaceMethods<crate::DomTypeHolder> for XRReferenceSpace {
     /// <https://immersive-web.github.io/webxr/#dom-xrreferencespace-getoffsetreferencespace>
     fn GetOffsetReferenceSpace(&self, new: &XRRigidTransform, can_gc: CanGc) -> DomRoot<Self> {
         let offset = new.transform().then(&self.offset.transform());
-        let offset = XRRigidTransform::new(&self.global(), offset, can_gc);
+        let offset = XRRigidTransform::new(&self.global().as_window(), offset, can_gc);
         Self::new_offset(
             &self.global(),
             self.upcast::<XRSpace>().session(),

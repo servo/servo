@@ -290,7 +290,7 @@ impl XRSession {
                 }
                 // Step 7
                 let event =
-                    XRSessionEvent::new(window, atom!("end"), false, false, self, can_gc);
+                    XRSessionEvent::new(&self.global().as_window(), atom!("end"), false, false, self, can_gc);
                 event.upcast::<Event>().fire(self.upcast(), can_gc);
             },
             XREvent::Select(input, kind, ty, frame) => {
@@ -307,7 +307,7 @@ impl XRSession {
                     frame.set_active(true);
                     if ty == SelectEvent::Start {
                         let event = XRInputSourceEvent::new(
-                            &self.global(),
+                            &self.global().as_window(),
                             START_ATOMS[atom_index].clone(),
                             false,
                             false,
@@ -319,7 +319,7 @@ impl XRSession {
                     } else {
                         if ty == SelectEvent::Select {
                             let event = XRInputSourceEvent::new(
-                                &self.global(),
+                                &self.global().as_window(),
                                 EVENT_ATOMS[atom_index].clone(),
                                 false,
                                 false,
@@ -330,7 +330,7 @@ impl XRSession {
                             event.upcast::<Event>().fire(self.upcast(), can_gc);
                         }
                         let event = XRInputSourceEvent::new(
-                            &self.global(),
+                            &self.global().as_window(),
                             END_ATOMS[atom_index].clone(),
                             false,
                             false,
@@ -393,9 +393,9 @@ impl XRSession {
                         base == base_space
                     })
                     .for_each(|space| {
-                        let offset = XRRigidTransform::new(&self.global(), transform, can_gc);
+                        let offset = XRRigidTransform::new(&self.global().as_window(), transform, can_gc);
                         let event = XRReferenceSpaceEvent::new(
-                            &self.global(),
+                            &self.global().as_window(),
                             atom!("reset"),
                             false,
                             false,
@@ -603,7 +603,7 @@ impl XRSession {
         self.framerate.set(rate);
 
         let event = XRSessionEvent::new(
-            window,
+            &self.global().as_window(),
             Atom::from("frameratechange"),
             false,
             false,

@@ -73,7 +73,7 @@ impl GamepadEvent {
     }
 
     pub(crate) fn new_with_type(
-        global: &GlobalScope,
+        window: &Window,
         event_type: GamepadEventType,
         gamepad: &Gamepad,
         can_gc: CanGc,
@@ -83,7 +83,7 @@ impl GamepadEvent {
             GamepadEventType::Disconnected => "gamepaddisconnected",
         };
 
-        GamepadEvent::new(global, name.into(), false, false, gamepad, can_gc)
+        GamepadEvent::new(window, name.into(), false, false, gamepad, can_gc)
     }
 }
 

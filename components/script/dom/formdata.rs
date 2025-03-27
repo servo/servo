@@ -15,6 +15,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::window::Window;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -52,21 +53,21 @@ impl FormData {
 
     pub(crate) fn new(
         form_datums: Option<Vec<FormDatum>>,
-        global: &GlobalScope,
+        window: &Window,
         can_gc: CanGc,
     ) -> DomRoot<FormData> {
-        Self::new_with_proto(form_datums, global, None, can_gc)
+        Self::new_with_proto(form_datums, window, None, can_gc)
     }
 
     fn new_with_proto(
         form_datums: Option<Vec<FormDatum>>,
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<FormData> {
         reflect_dom_object_with_proto(
             Box::new(FormData::new_inherited(form_datums)),
-            global,
+            window,
             proto,
             can_gc,
         )
@@ -124,7 +125,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             return match opt_form.get_form_dataset(submitter_element, None, can_gc) {
                 Some(form_datums) => Ok(FormData::new_with_proto(
                     Some(form_datums),
-                    global,
+                    global.as_window(),
                     proto,
                     can_gc,
                 )),
@@ -133,7 +134,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             };
         }
 
-        Ok(FormData::new_with_proto(None, global, proto, can_gc))
+        Ok(FormData::new_with_proto(None, global.as_window(), proto, can_gc))
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-append

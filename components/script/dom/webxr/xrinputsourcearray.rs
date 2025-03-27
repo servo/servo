@@ -65,7 +65,7 @@ impl XRInputSourceArray {
         }
 
         let event = XRInputSourcesChangeEvent::new(
-            &global,
+            window,
             atom!("inputsourceschange"),
             false,
             true,
@@ -87,7 +87,7 @@ impl XRInputSourceArray {
         };
 
         let event = XRInputSourcesChangeEvent::new(
-            &global,
+            window,
             atom!("inputsourceschange"),
             false,
             true,
@@ -124,7 +124,7 @@ impl XRInputSourceArray {
         let added = [input];
 
         let event = XRInputSourcesChangeEvent::new(
-            &global,
+            window,
             atom!("inputsourceschange"),
             false,
             true,

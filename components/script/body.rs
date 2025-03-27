@@ -897,7 +897,7 @@ fn run_form_data_algorithm(
     // ... is not fully determined yet.
     if mime.type_() == mime::APPLICATION && mime.subtype() == mime::WWW_FORM_URLENCODED {
         let entries = form_urlencoded::parse(&bytes);
-        let formdata = FormData::new(None, root, can_gc);
+        let formdata = FormData::new(None, window, can_gc);
         for (k, e) in entries {
             formdata.Append(USVString(k.into_owned()), USVString(e.into_owned()));
         }
