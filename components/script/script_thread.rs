@@ -43,6 +43,7 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
+use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     EmbedderMsg, InputEvent, MediaSessionActionType, Theme, WebDriverScriptCommand,
 };
@@ -303,10 +304,9 @@ pub struct ScriptThread {
     /// Unminify Css.
     unminify_css: bool,
 
-    /// Where to load userscripts from, if any. An empty string will load from
-    /// the resources/user-agent-js directory, and if the option isn't passed userscripts
-    /// won't be loaded
-    userscripts_path: Option<String>,
+    /// User content manager
+    #[no_trace]
+    user_content_manager: UserContentManager,
 
     /// An optional string allowing the user agent to be set for testing.
     user_agent: Cow<'static, str>,
@@ -938,8 +938,8 @@ impl ScriptThread {
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
-            userscripts_path: opts.userscripts.clone(),
             user_agent,
+            user_content_manager: state.user_content_manager,
             player_context: state.player_context,
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
@@ -3096,7 +3096,7 @@ impl ScriptThread {
             self.unminify_js,
             self.unminify_css,
             self.local_script_source.clone(),
-            self.userscripts_path.clone(),
+            self.user_content_manager.clone(),
             self.user_agent.clone(),
             self.player_context.clone(),
             #[cfg(feature = "webgpu")]

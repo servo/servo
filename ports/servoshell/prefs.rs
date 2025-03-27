@@ -56,6 +56,9 @@ pub(crate) struct ServoShellPreferences {
     pub output_image_path: Option<String>,
     /// Whether or not to exit after Servo detects a stable output image in all WebViews.
     pub exit_after_stable_image: bool,
+    /// Where to load userscripts from, if any.
+    /// and if the option isn't passed userscripts won't be loaded.
+    pub userscripts_directory: Option<PathBuf>,
 }
 
 impl Default for ServoShellPreferences {
@@ -74,6 +77,7 @@ impl Default for ServoShellPreferences {
             user_agent: None,
             output_image_path: None,
             exit_after_stable_image: false,
+            userscripts_directory: None,
         }
     }
 }
@@ -622,6 +626,9 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         screen_size_override,
         output_image_path,
         exit_after_stable_image: exit_after_load,
+        userscripts_directory: opt_match
+            .opt_default("userscripts", "resources/user-agent-js")
+            .map(PathBuf::from),
         ..Default::default()
     };
 
@@ -636,7 +643,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         nonincremental_layout,
-        userscripts: opt_match.opt_default("userscripts", "resources/user-agent-js"),
         user_stylesheets,
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         webdriver_port,

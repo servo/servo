@@ -33,6 +33,7 @@ use constellation_traits::{
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::input_events::InputEvent;
+use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{MediaSessionActionType, Theme, WebDriverScriptCommand};
 use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use http::{HeaderMap, Method};
@@ -463,6 +464,8 @@ pub struct InitialScriptState {
     pub compositor_api: CrossProcessCompositorApi,
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
+    /// User content manager
+    pub user_content_manager: UserContentManager,
 }
 
 /// This trait allows creating a `ServiceWorkerManager` without depending on the `script`
