@@ -153,7 +153,7 @@ impl FontList {
             // If no xml mapping file is found fallback to some default
             // fonts expected to be on all Android devices.
             None => FontList {
-                families: Self::fallback_font_families(),
+                families: Self::os_fallback_families(),
                 aliases: Vec::new(),
             },
         }
@@ -199,7 +199,7 @@ impl FontList {
 
     // Fonts expected to exist in Android devices.
     // Only used in the unlikely case where no font xml mapping files are found.
-    fn fallback_font_families() -> Vec<FontFamily> {
+    fn os_fallback_families() -> Vec<FontFamily> {
         let alternatives = [
             ("sans-serif", "Roboto-Regular.ttf"),
             ("Droid Sans", "DroidSans.ttf"),
@@ -480,7 +480,7 @@ where
 }
 
 // Based on gfxAndroidPlatform::GetCommonFallbackFonts() in Gecko
-pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+pub fn os_fallback_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = vec![];
 
     if let Some(block) = options.character.block() {

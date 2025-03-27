@@ -20,7 +20,8 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use style::font_face::{FontFaceRuleData, FontStyle as FontFaceStyle};
 use style::values::computed::font::{
-    FixedPoint, FontStyleFixedPoint, GenericFontFamily, SingleFontFamily,
+    FixedPoint, FontFamilyNameSyntax, FontStyleFixedPoint, GenericFontFamily,
+    SingleFontFamily,
 };
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
@@ -29,7 +30,7 @@ use webrender_traits::CrossProcessCompositorApi;
 
 use crate::font::FontDescriptor;
 use crate::font_store::FontStore;
-use crate::font_template::{FontTemplate, FontTemplateRef};
+use crate::font_template::{FontTemplate, FontTemplateDescriptor, FontTemplateRef};
 use crate::platform::LocalFontIdentifier;
 use crate::platform::font_list::{
     default_system_generic_font_family, for_each_available_family, for_each_variation,
@@ -37,6 +38,7 @@ use crate::platform::font_list::{
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FontIdentifier {
+    LastResortFont,
     Local(LocalFontIdentifier),
     Web(ServoUrl),
 }
@@ -46,6 +48,7 @@ impl FontIdentifier {
         match *self {
             Self::Local(ref local_font_identifier) => local_font_identifier.index(),
             Self::Web(_) => 0,
+            Self::LastResortFont => 0,
         }
     }
 }
@@ -224,11 +227,21 @@ impl SystemFontService {
     fn refresh_local_families(&mut self) {
         self.local_families.clear();
         for_each_available_family(|family_name| {
-            self.local_families
-                .families
-                .entry(family_name.as_str().into())
-                .or_default();
+            for_each_variation(&family_name, |font_template| {
+                self.local_families
+                    .add_new_template(family_name.as_str().into(), font_template);
+            });
         });
+        // This seems as bad solution. Think on better approach...
+        // Add entries for Resource::LastResortFont and Resource::LastResortHE
+        self.local_families
+            .families
+            .entry("Last Resort".into())
+            .or_default();
+        self.local_families
+            .families
+            .entry("Last Resort HE".into())
+            .or_default();
     }
 
     #[cfg_attr(
@@ -240,6 +253,12 @@ impl SystemFontService {
         descriptor_to_match: Option<&FontDescriptor>,
         family: &SingleFontFamily,
     ) -> Vec<FontTemplateRef> {
+        // This function is responsible for font matching algorithms, by providing vector of
+        // templates that belong to particular web or local family.
+        // Templates from this vector will be checked one by one against template created
+        // from the style of html element
+        // https://www.w3.org/TR/css-fonts-4/#font-style-matching
+
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
         let family_name = self.family_name_for_single_font_family(family);
@@ -487,30 +506,59 @@ impl SystemFontServiceProxy {
         instance_key.unwrap()
     }
 
+    /// Loads all matching font faces for specified font-family with help of platform
+    /// font libraries, search within the list and return vecror of entries that matched
+    /// agains descriptor afterwards.
     pub(crate) fn find_matching_font_templates(
         &self,
         descriptor_to_match: Option<&FontDescriptor>,
-        family_descriptor: &SingleFontFamily,
+        family_name: &SingleFontFamily,
     ) -> Vec<FontTemplateRef> {
         let cache_key = FontTemplateCacheKey {
             font_descriptor: descriptor_to_match.cloned(),
-            family_descriptor: family_descriptor.clone(),
+            family_descriptor: family_name.clone(),
         };
         if let Some(templates) = self.templates.read().get(&cache_key).cloned() {
             return templates;
         }
 
         debug!(
-            "SystemFontServiceProxy: cache miss for template_descriptor={:?} family_descriptor={:?}",
-            descriptor_to_match, family_descriptor
+            "SystemFontServiceProxy: cache miss for template_descriptor={:?} family_name={:?}",
+            descriptor_to_match, family_name
         );
+
+        if let SingleFontFamily::FamilyName(family) = family_name {
+            if family.syntax == FontFamilyNameSyntax::Quoted {
+                let family_name_str: &str = &family.name;
+
+                let create_last_resort_templates = |cache_key: FontTemplateCacheKey| {
+                    let last_resort_template: FontTemplateRef =
+                        Arc::new(AtomicRefCell::new(FontTemplate {
+                            identifier: FontIdentifier::LastResortFont,
+                            descriptor: FontTemplateDescriptor::default(),
+                            stylesheet: None,
+                        }));
+                    self.templates
+                        .write()
+                        .insert(cache_key, vec![last_resort_template.clone()]);
+                    vec![last_resort_template]
+                };
+
+                match family_name_str {
+                    "Last Resort HE" | "Last Resort" => {
+                        return create_last_resort_templates(cache_key);
+                    },
+                    _ => (),
+                }
+            }
+        };
 
         let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
         self.sender
             .lock()
             .send(SystemFontServiceMessage::GetFontTemplates(
                 descriptor_to_match.cloned(),
-                family_descriptor.clone(),
+                family_name.clone(),
                 response_chan,
             ))
             .expect("failed to send message to system font service");

@@ -9,11 +9,11 @@
 ))]
 use base::text::{UnicodeBlock, UnicodeBlockMethod};
 #[cfg(all(
-    any(target_os = "linux", target_os = "macos"),
+    any(target_os = "linux", target_os = "macos",),
     not(target_os = "android"),
     not(target_env = "ohos")
 ))]
-use unicode_script::Script;
+use unicode_script::Script as ScriptProperty;
 
 #[cfg(all(
     any(target_os = "linux", target_os = "macos"),
@@ -30,7 +30,7 @@ pub use crate::platform::macos::{
 #[cfg(target_os = "windows")]
 pub use crate::platform::windows::{font, font_list, font_list::LocalFontIdentifier};
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(any(target_os = "linux", target_os = "android", target_env = "ohos"))]
 pub mod freetype;
 
 #[cfg(target_os = "macos")]
@@ -65,18 +65,22 @@ pub(crate) fn add_noto_fallback_families(
         families.push("Noto Sans TC");
     };
 
-    match Script::from(options.character) {
+    match ScriptProperty::from(options.character) {
         // In most cases, COMMON and INHERITED characters will be merged into
         // their context, but if they occur without any specific script context
         // we'll just try common default fonts here.
-        Script::Common | Script::Inherited | Script::Latin | Script::Cyrillic | Script::Greek => {
+        ScriptProperty::Common |
+        ScriptProperty::Inherited |
+        ScriptProperty::Latin |
+        ScriptProperty::Cyrillic |
+        ScriptProperty::Greek => {
             families.push("Noto Sans");
         },
         // CJK-related script codes are a bit troublesome because of unification;
         // we'll probably just get HAN much of the time, so the choice of which
         // language font to try for fallback is rather arbitrary. Usually, though,
         // we hope that font prefs will have handled this earlier.
-        Script::Bopomofo | Script::Han => add_chinese_families(families),
+        ScriptProperty::Bopomofo | ScriptProperty::Han => add_chinese_families(families),
         _ => {},
     }
 

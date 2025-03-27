@@ -115,6 +115,10 @@ pub enum Resource {
     DirectoryListingHTML,
     /// A HTML page that is used for the about:memory url.
     AboutMemoryHTML,
+    /// Special font that is used for drawing symbols that was not found in any other font. Takes 8.6Mb
+    LastResortFont,
+    /// Space optimized version of LastResortFont; takes 551Kb
+    LastResortFontHE,
 }
 
 impl Resource {
@@ -135,6 +139,8 @@ impl Resource {
             Resource::CrashHTML => "crash.html",
             Resource::DirectoryListingHTML => "directory-listing.html",
             Resource::AboutMemoryHTML => "about-memory.html",
+            Resource::LastResortFont => "LastResort-Regular.ttf",
+            Resource::LastResortFontHE => "LastResortHE-Regular.ttf",
         }
     }
 }
@@ -194,6 +200,12 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                 },
                 Resource::AboutMemoryHTML => {
                     &include_bytes!("../../../resources/about-memory.html")[..]
+                },
+                Resource::LastResortFont => {
+                    &include_bytes!("../../../resources/last-resort-font/LastResort-Regular.ttf")[..]
+                },
+                Resource::LastResortFontHE => {
+                    &include_bytes!("../../../resources/last-resort-font/LastResortHE-Regular.ttf")[..]
                 },
             }
             .to_owned()
