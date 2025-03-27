@@ -12,6 +12,7 @@ use constellation_traits::{MessagePortImpl, PortMessageTask};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
@@ -57,7 +58,7 @@ impl MessagePort {
     }
 
     /// Create a new port for an incoming transfer-received one.
-    fn new_transferred(
+    pub(crate) fn new_transferred(
         owner: &GlobalScope,
         transferred_port: MessagePortId,
         entangled_port: Option<MessagePortId>,
@@ -155,6 +156,31 @@ impl MessagePort {
         self.global()
             .post_messageport_msg(*self.message_port_id(), task);
         Ok(())
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-crossrealmtransformsenderror>
+    pub(crate) fn cross_relam_transform_send_error(&self, error: HandleValue) {
+        // TODO
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessagehandlingerror>
+    pub(crate) fn pack_and_post_message_handling_error(
+        &self,
+        type_: DOMString,
+        reason: HandleValue,
+    ) -> Result<(), ()> {
+        // TODO
+        todo!()
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessage>
+    pub(crate) fn pack_and_post_message(
+        &self,
+        type_: DOMString,
+        value: HandleValue,
+    ) -> Result<(), ()> {
+        // TODO
+        todo!()
     }
 }
 
