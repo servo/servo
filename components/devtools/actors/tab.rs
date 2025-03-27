@@ -172,6 +172,7 @@ impl TabDescriptorActor {
         self.is_top_level_global
     }
 
+    #[allow(dead_code)]
     pub fn browsing_context(&self) -> String {
         self.browsing_context_actor.clone()
     }

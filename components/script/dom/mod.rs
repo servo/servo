@@ -576,6 +576,7 @@ pub(crate) mod uievent;
 pub(crate) mod underlyingsourcecontainer;
 pub(crate) mod url;
 pub(crate) mod urlhelper;
+pub(crate) mod urlpattern;
 pub(crate) mod urlsearchparams;
 pub(crate) mod userscripts;
 pub(crate) mod validation;

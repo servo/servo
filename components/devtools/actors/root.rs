@@ -9,12 +9,11 @@
 //!
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/root.js
 
-use std::net::TcpStream;
 use std::cell::RefCell;
+use std::net::TcpStream;
 
 use serde::Serialize;
 use serde_json::{Map, Value, json};
-
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
@@ -306,7 +305,8 @@ impl RootActor {
         registry: &ActorRegistry,
         browser_id: u32,
     ) -> Option<TabDescriptorActorMsg> {
-        let tab_msg = self.tabs
+        let tab_msg = self
+            .tabs
             .iter()
             .map(|target| {
                 registry
@@ -315,12 +315,13 @@ impl RootActor {
             })
             .find(|tab| tab.browser_id() == browser_id);
 
-            if let Some(ref msg) = tab_msg {
-                *self.active_tab.borrow_mut() = Some(msg.actor());
-            }
+        if let Some(ref msg) = tab_msg {
+            *self.active_tab.borrow_mut() = Some(msg.actor());
+        }
         tab_msg
     }
 
+    #[allow(dead_code)]
     pub fn active_tab(&self) -> Option<String> {
         self.active_tab.borrow().clone()
     }
