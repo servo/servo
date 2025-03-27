@@ -290,7 +290,6 @@ pub async fn main_fetch(
         )));
     }
     if should_request_be_blocked_as_mixed_content(request) {
-        debug!("Blocking for mixed content");
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked as mixed content".into(),
         )));
@@ -936,10 +935,8 @@ pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
 
     // 1.2 request url is potentially trustworthy
     if request.url().is_potentially_trustworthy() {
-        debug!("{} is potentially trustworthy", request.url());
         return false;
     }
-    // debug!("{} is not potentially trustworthy with scheme", request.url(), request.url().scheme());
 
     // 1.3 User Agent set to allow mixed content
 
@@ -964,7 +961,6 @@ pub fn should_response_be_blocked_as_mixed_content(request: &Request, response: 
     // 1.2
     if let Some(response_url) = response.actual_response().url() {
         if response_url.is_potentially_trustworthy() {
-            debug! {"response url {} is potentially trustworthy", response_url}
             return false;
         }
     }
@@ -975,7 +971,7 @@ pub fn should_response_be_blocked_as_mixed_content(request: &Request, response: 
         // TODO if requests target browsing context has no parent browsing context
         return false;
     }
-    debug!("Blocking response as mixed content");
+
     true
 }
 

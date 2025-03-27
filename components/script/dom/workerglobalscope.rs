@@ -196,7 +196,7 @@ impl WorkerGlobalScope {
     }
 
     /// Returns if any ancestor of this worker has a trustowrthy origin.
-    pub(crate) fn has_trustworth_ancestor_origin(&self) -> bool {
+    pub(crate) fn has_trustworthy_ancestor_origin(&self) -> bool {
         self.has_trustworthy_ancestor_origin
     }
 
@@ -305,6 +305,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             .use_url_credentials(true)
             .origin(global_scope.origin().immutable().clone())
             .insecure_requests_policy(self.insecure_requests_policy())
+            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin())
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
             let (url, source) = match fetch::load_whole_resource(

@@ -556,6 +556,7 @@ impl RequestBuilder {
         request.crash = self.crash;
         request.policy_container = self.policy_container;
         request.insecure_requests_policy = self.insecure_requests_policy;
+        request.has_trustworthy_ancestor_origin = self.has_trustworthy_ancestor_origin;
         request
     }
 }

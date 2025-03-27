@@ -212,6 +212,7 @@ impl InProgressLoad {
                 .inherited_insecure_requests_policy
                 .unwrap_or(InsecureRequestsPolicy::DoNotUpgrade),
         )
+        .has_trustworthy_ancestor_origin(self.load_data.has_trustworthy_ancestor_origin)
         .headers(self.load_data.headers.clone())
         .body(self.load_data.data.clone())
         .redirect_mode(RedirectMode::Manual)

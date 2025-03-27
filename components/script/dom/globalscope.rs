@@ -2392,7 +2392,7 @@ impl GlobalScope {
             return window.Document().has_trustworthy_ancestor_origin();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.has_trustworth_ancestor_origin();
+            return worker.has_trustworthy_ancestor_origin();
         }
         debug!("unsupported global, defaulting any trustworthy ancestor origin to true");
         true

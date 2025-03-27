@@ -2481,7 +2481,9 @@ impl Document {
         mut request: RequestBuilder,
         listener: Listener,
     ) {
-        request = request.insecure_requests_policy(self.insecure_requests_policy());
+        request = request
+            .insecure_requests_policy(self.insecure_requests_policy())
+            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin());
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
             task_source: self
@@ -2500,7 +2502,9 @@ impl Document {
         mut request: RequestBuilder,
         listener: Listener,
     ) {
-        request = request.insecure_requests_policy(self.insecure_requests_policy());
+        request = request
+            .insecure_requests_policy(self.insecure_requests_policy())
+            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin());
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
             task_source: self
