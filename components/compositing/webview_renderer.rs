@@ -8,6 +8,7 @@ use std::collections::hash_map::Keys;
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
+use compositing_traits::viewport_description::ViewportDescription;
 use compositing_traits::{SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, ScrollState, WindowSizeType};
 use embedder_traits::{
@@ -89,6 +90,8 @@ pub(crate) struct WebViewRenderer {
     /// Whether or not this [`WebViewRenderer`] isn't throttled and has a pipeline with
     /// active animations or animation frame callbacks.
     animating: bool,
+    /// Viewport Description
+    viewport_description: Option<ViewportDescription>,
 }
 
 impl Drop for WebViewRenderer {
@@ -123,6 +126,7 @@ impl WebViewRenderer {
             max_viewport_zoom: None,
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             animating: false,
+            viewport_description: None,
         }
     }
 
@@ -989,6 +993,10 @@ impl WebViewRenderer {
     pub(crate) fn available_screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
         let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
         (screen_geometry.available_size.to_f32() / self.hidpi_scale_factor).to_i32()
+    }
+
+    pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
+        self.viewport_description = Some(viewport_description);
     }
 }
 
