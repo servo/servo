@@ -737,8 +737,15 @@ fn run_package_data_algorithm(
 
 /// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A4>
 fn run_text_data_algorithm(bytes: Vec<u8>) -> Fallible<FetchedData> {
+    // This implements the Encoding standard's "decode UTF-8", which removes the
+    // BOM if present.
+    let no_bom_bytes = if bytes.starts_with(b"\xEF\xBB\xBF") {
+        &bytes[3..]
+    } else {
+        &bytes
+    };
     Ok(FetchedData::Text(
-        String::from_utf8_lossy(&bytes).into_owned(),
+        String::from_utf8_lossy(no_bom_bytes).into_owned(),
     ))
 }
 
