@@ -269,6 +269,7 @@ impl HTMLIFrameElement {
                 document.get_referrer_policy(),
                 Some(window.as_global_scope().is_secure_context()),
                 Some(document.insecure_requests_policy()),
+                document.has_trustworthy_ancestor_origin(),
             );
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
@@ -360,6 +361,7 @@ impl HTMLIFrameElement {
             referrer_policy,
             Some(window.as_global_scope().is_secure_context()),
             Some(document.insecure_requests_policy()),
+            document.has_trustworthy_ancestor_origin(),
         );
 
         let pipeline_id = self.pipeline_id();
@@ -405,6 +407,7 @@ impl HTMLIFrameElement {
             document.get_referrer_policy(),
             Some(window.as_global_scope().is_secure_context()),
             Some(document.insecure_requests_policy()),
+            document.has_trustworthy_ancestor_origin(),
         );
         let browsing_context_id = BrowsingContextId::new();
         let webview_id = window.window_proxy().webview_id();
