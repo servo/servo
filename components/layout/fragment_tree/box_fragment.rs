@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
+use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::AtomicRefCell;
 use base::print_tree::PrintTree;
 use malloc_size_of_derive::MallocSizeOf;
@@ -322,22 +322,27 @@ impl BoxFragment {
         scrollable_overflow: PhysicalRect<Au>,
         clipping_rect: PhysicalRect<Au>,
     ) -> PhysicalRect<Au> {
-        let overflow_direction = self.style.overflow_direction();
+        let scrolling_direction = self.style.overflow_direction();
+        let mut scrollable_overflow_box = scrollable_overflow.to_box2d();
+        let mut clipping_box = clipping_rect.to_box2d();
 
-        match (overflow_direction.rightward, overflow_direction.downward) {
-            (true, true) => {
-                let mut overflow_box = scrollable_overflow.to_box2d();
+        if scrolling_direction.rightward {
+            clipping_box.max.x = MAX_AU;
+        } else {
+            clipping_box.min.x = MIN_AU;
+        }
 
-                overflow_box.min.x.max_assign(clipping_rect.min_x());
-                overflow_box.min.y.max_assign(clipping_rect.min_y());
+        if scrolling_direction.downward {
+            clipping_box.max.y = MAX_AU;
+        } else {
+            clipping_box.min.y = MIN_AU;
+        }
 
-                match overflow_box.is_negative() {
-                    false => overflow_box.to_rect(),
-                    true => PhysicalRect::zero(),
-                }
-            },
-            // TODO(stevennovaryo): should wait for scrolling in other direction to work before adding new cases.
-            (_, _) => scrollable_overflow,
+        scrollable_overflow_box = scrollable_overflow_box.intersection_unchecked(&clipping_box);
+
+        match scrollable_overflow_box.is_negative() {
+            true => PhysicalRect::zero(),
+            false => scrollable_overflow_box.to_rect(),
         }
     }
 
