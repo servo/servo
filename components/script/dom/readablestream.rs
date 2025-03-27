@@ -6,6 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::ptr::{self};
 use std::rc::Rc;
+use std::collections::HashMap;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -45,10 +46,15 @@ use crate::dom::defaultteeunderlyingsource::TeeCancelAlgorithm;
 use crate::dom::types::DefaultTeeUnderlyingSource;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
+use crate::dom::messageport::MessagePort;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+use base::id::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
+use script_traits::transferable::MessagePortImpl;
+use crate::dom::bindings::transferable::{ExtractComponents, IdFromComponents, Transferable};
+use crate::dom::bindings::structuredclone::{self, StructuredData, StructuredDataReader};
 
 use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
@@ -1987,5 +1993,41 @@ pub(crate) fn get_read_promise_bytes(
             Ok(false) => Err(Error::Type("Promise has no value property.".to_string())),
             Err(()) => Err(Error::JSFailed),
         }
+    }
+}
+
+/// https://streams.spec.whatwg.org/#rs-transfer
+impl Transferable for ReadableStream {
+    type Id = MessagePortId;
+    type Data = MessagePortImpl;
+
+    /// The transfer steps
+    /// <https://html.spec.whatwg.org/multipage/#transfer-steps>
+    fn transfer(&self) -> Result<(MessagePortId, MessagePortImpl), ()> {
+        // If ! IsReadableStreamLocked(value) is true, throw a "DataCloneError" DOMException.
+        if self.is_locked() {
+            return Err(());
+        }
+
+        todo!()
+    }
+
+    fn transfer_receive(
+        owner: &GlobalScope,
+        id: MessagePortId,
+        port_impl: MessagePortImpl,
+    ) -> Result<DomRoot<Self>, ()> {
+        todo!()
+    }
+
+    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+        match data {
+            StructuredData::Reader(r) => &mut r.port_impls,
+            StructuredData::Writer(w) => &mut w.ports,
+        }
+    }
+
+    fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>> {
+        &mut reader.streams
     }
 }
