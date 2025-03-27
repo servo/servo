@@ -2991,7 +2991,10 @@ fn compile_pattern(cx: SafeJSContext, pattern_str: &str, out_regex: MutableHandl
     if check_js_regex_syntax(cx, pattern_str) {
         // ...and if it does make pattern that matches only the entirety of string
         let pattern_str = format!("^(?:{})$", pattern_str);
-        new_js_regex(cx, &pattern_str, out_regex)
+        let flags = RegExpFlags {
+            flags_: RegExpFlag_Unicode,
+        };
+        new_js_regex(cx, &pattern_str, flags, out_regex)
     } else {
         false
     }
@@ -3026,17 +3029,22 @@ fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
     }
 }
 
+// TODO: This is also used in the URLPattern implementation. Consider moving it into mozjs or some other
+// shared module
 #[allow(unsafe_code)]
-fn new_js_regex(cx: SafeJSContext, pattern: &str, mut out_regex: MutableHandleObject) -> bool {
+pub(crate) fn new_js_regex(
+    cx: SafeJSContext,
+    pattern: &str,
+    flags: RegExpFlags,
+    mut out_regex: MutableHandleObject,
+) -> bool {
     let pattern: Vec<u16> = pattern.encode_utf16().collect();
     unsafe {
         out_regex.set(NewUCRegExpObject(
             *cx,
             pattern.as_ptr(),
             pattern.len(),
-            RegExpFlags {
-                flags_: RegExpFlag_Unicode,
-            },
+            flags,
         ));
         if out_regex.is_null() {
             JS_ClearPendingException(*cx);

@@ -1726,7 +1726,7 @@ impl ScriptThread {
         let task_duration = start.elapsed();
         for (doc_id, doc) in self.documents.borrow().iter() {
             if let Some(pipeline_id) = pipeline_id {
-                if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS.into() {
+                if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS {
                     if self.print_pwm {
                         println!(
                             "Task took longer than max allowed ({:?}) {:?}",

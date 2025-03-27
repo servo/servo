@@ -68,6 +68,7 @@ test_interfaces([
   "TextDecoder",
   "TextEncoder",
   "URL",
+  "URLPattern",
   "URLSearchParams",
   "WebGLActiveInfo",
   "WebGLBuffer",
