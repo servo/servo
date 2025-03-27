@@ -79,12 +79,6 @@ impl<'a> CanvasPaintThread<'a> {
                                         canvas_paint_thread.canvas(canvas_id).send_pixels(chan);
                                     },
                                 },
-                                Ok(CanvasMsg::FromLayout(message, canvas_id)) => match message {
-                                    FromLayoutMsg::UpdateImage(sender) => {
-                                        canvas_paint_thread.canvas(canvas_id).update_image_rendering();
-                                        sender.send(()).unwrap();
-                                    },
-                                },
                                 Err(e) => {
                                     warn!("Error on CanvasPaintThread receive ({})", e);
                                 },
@@ -145,14 +139,26 @@ impl<'a> CanvasPaintThread<'a> {
                 self.canvas(canvas_id).set_fill_style(style);
                 self.canvas(canvas_id).fill();
             },
+            Canvas2dMsg::FillPath(style, path) => {
+                self.canvas(canvas_id).set_fill_style(style);
+                self.canvas(canvas_id).fill_path(&path[..]);
+            },
             Canvas2dMsg::Stroke(style) => {
                 self.canvas(canvas_id).set_stroke_style(style);
                 self.canvas(canvas_id).stroke();
             },
+            Canvas2dMsg::StrokePath(style, path) => {
+                self.canvas(canvas_id).set_stroke_style(style);
+                self.canvas(canvas_id).stroke_path(&path[..]);
+            },
             Canvas2dMsg::Clip => self.canvas(canvas_id).clip(),
-            Canvas2dMsg::IsPointInPath(x, y, fill_rule, chan) => self
+            Canvas2dMsg::ClipPath(path) => self.canvas(canvas_id).clip_path(&path[..]),
+            Canvas2dMsg::IsPointInCurrentPath(x, y, fill_rule, chan) => self
                 .canvas(canvas_id)
                 .is_point_in_path(x, y, fill_rule, chan),
+            Canvas2dMsg::IsPointInPath(path, x, y, fill_rule, chan) => self
+                .canvas(canvas_id)
+                .is_point_in_path_(&path[..], x, y, fill_rule, chan),
             Canvas2dMsg::DrawImage(
                 ref image_data,
                 image_size,
@@ -255,6 +261,10 @@ impl<'a> CanvasPaintThread<'a> {
             },
             Canvas2dMsg::SetTextBaseline(text_baseline) => {
                 self.canvas(canvas_id).set_text_baseline(text_baseline)
+            },
+            Canvas2dMsg::UpdateImage(sender) => {
+                self.canvas(canvas_id).update_image_rendering();
+                sender.send(()).unwrap();
             },
         }
     }

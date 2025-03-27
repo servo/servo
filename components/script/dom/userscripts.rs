@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fs::{File, read_dir};
-use std::io::Read;
-use std::path::PathBuf;
 use std::rc::Rc;
 
 use js::jsval::UndefinedValue;
@@ -19,37 +16,24 @@ use crate::script_runtime::CanGc;
 
 pub(crate) fn load_script(head: &HTMLHeadElement) {
     let doc = head.owner_document();
-    let path_str = match doc.window().get_userscripts_path() {
-        Some(p) => p,
-        None => return,
-    };
+    let userscripts = doc.window().userscripts().to_owned();
+    if userscripts.is_empty() {
+        return;
+    }
     let window = Trusted::new(doc.window());
     doc.add_delayed_task(task!(UserScriptExecute: move || {
         let win = window.root();
         let cx = win.get_cx();
         rooted!(in(*cx) let mut rval = UndefinedValue());
 
-        let path = PathBuf::from(&path_str);
-        let mut files = read_dir(path)
-            .expect("Bad path passed to --userscripts")
-            .filter_map(|e| e.ok())
-            .map(|e| e.path())
-            .collect::<Vec<_>>();
-
-        files.sort();
-
-        for file in files {
-            let mut f = File::open(&file).unwrap();
-            let mut contents = vec![];
-            f.read_to_end(&mut contents).unwrap();
+        for user_script in userscripts {
             let script_text = SourceCode::Text(
-                Rc::new(DOMString::from_string(String::from_utf8_lossy(&contents).to_string()))
+                Rc::new(DOMString::from_string(user_script.script))
             );
-
             let global_scope = win.as_global_scope();
             global_scope.evaluate_script_on_global_with_result(
                 &script_text,
-                &file.to_string_lossy(),
+                &user_script.source_file.map(|path| path.to_string_lossy().to_string()).unwrap_or_default(),
                 rval.handle_mut(),
                 1,
                 ScriptFetchOptions::default_classic_script(global_scope),

@@ -11,7 +11,7 @@ use constellation_traits::UntrustedNodeAddress;
 use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
 use js::jsapi::JSObject;
 use script_layout_interface::wrapper_traits::{
-    LayoutNode, PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{LayoutNodeType, StyleData};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
@@ -785,9 +785,9 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
 pub struct ServoThreadSafeLayoutElement<'dom> {
     pub(super) element: ServoLayoutElement<'dom>,
 
-    /// The pseudo-element type, with (optionally)
-    /// a specified display value to override the stylesheet.
-    pub(super) pseudo: PseudoElementType,
+    /// The pseudo-element type for this element, or `None` if it is the non-pseudo
+    /// version of the element.
+    pub(super) pseudo: Option<PseudoElement>,
 }
 
 impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> {
@@ -801,14 +801,14 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
         }
     }
 
-    fn get_pseudo_element_type(&self) -> PseudoElementType {
+    fn pseudo_element(&self) -> Option<PseudoElement> {
         self.pseudo
     }
 
-    fn with_pseudo(&self, pseudo: PseudoElementType) -> Self {
+    fn with_pseudo(&self, pseudo: PseudoElement) -> Self {
         ServoThreadSafeLayoutElement {
             element: self.element,
-            pseudo,
+            pseudo: Some(pseudo),
         }
     }
 

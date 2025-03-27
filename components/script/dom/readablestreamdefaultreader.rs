@@ -60,7 +60,7 @@ impl Callback for ReadLoopFulFillmentHandler {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let global = self.reader.global();
-        let is_done = match get_read_promise_done(cx, &v) {
+        let is_done = match get_read_promise_done(cx, &v, can_gc) {
             Ok(is_done) => is_done,
             Err(err) => {
                 self.reader
@@ -82,7 +82,7 @@ impl Callback for ReadLoopFulFillmentHandler {
                 .expect("Releasing the reader should succeed");
         } else {
             // <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A6>
-            let chunk = match get_read_promise_bytes(cx, &v) {
+            let chunk = match get_read_promise_bytes(cx, &v, can_gc) {
                 Ok(chunk) => chunk,
                 Err(err) => {
                     //  If chunk is not a Uint8Array object, call failureSteps with a TypeError and abort these steps.

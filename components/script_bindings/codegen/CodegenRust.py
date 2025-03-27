@@ -3960,7 +3960,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = "global.upcast::<D::GlobalScope>()"
             else:
-                glob = "&this.global()"
+                glob = "&this.global_(InRealm::already(&AlreadyInRealm::assert_for_cx(cx)))"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"
@@ -7394,8 +7394,9 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         conversion = (
             "{\n"
             "    rooted!(in(*cx) let mut rval = UndefinedValue());\n"
-            f'    if get_dictionary_property(*cx, object.handle(), "{member.identifier.name}", rval.handle_mut())?'
-            " && !rval.is_undefined() {\n"
+            "    if get_dictionary_property(*cx, object.handle(), "
+            f'"{member.identifier.name}", '
+            "rval.handle_mut(), CanGc::note())? && !rval.is_undefined() {\n"
             f"{indent(conversion)}\n"
             "    } else {\n"
             f"{indent(default)}\n"
@@ -8453,7 +8454,8 @@ class CGIterableMethodGenerator(CGGeneric):
             return
         CGGeneric.__init__(self, fill(
             """
-            let result = ${iterClass}::new(this, IteratorType::${itrMethod});
+            let realm = AlreadyInRealm::assert_for_cx(cx);
+            let result = ${iterClass}::new(this, IteratorType::${itrMethod}, InRealm::already(&realm));
             """,
             iterClass=iteratorNativeType(descriptor, True),
             ifaceName=descriptor.interface.identifier.name,

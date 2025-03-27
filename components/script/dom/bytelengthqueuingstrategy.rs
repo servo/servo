@@ -78,7 +78,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
         let fun = native_fn!(byte_length_queuing_strategy_size, c"size", 1, 0);
         // Step 3. Set globalObject’s byte length queuing strategy size function to
         // a Function that represents a reference to F,
-        // with callback context equal to globalObject’s relevant settings object.
+        // with callback context equal to globalObject's relevant settings object.
         global.set_byte_length_queuing_strategy_size(fun.clone());
         Ok(fun)
     }
@@ -109,6 +109,7 @@ pub(crate) unsafe fn byte_length_queuing_strategy_size(
         object.handle(),
         "byteLength",
         MutableHandleValue::from_raw(args.rval()),
+        CanGc::note(),
     )
     .unwrap_or(false)
 }

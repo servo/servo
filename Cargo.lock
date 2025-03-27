@@ -324,9 +324,9 @@ dependencies = [
 
 [[package]]
 name = "async-compression"
-version = "0.4.21"
+version = "0.4.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0cf008e5e1a9e9e22a7d3c9a4992e21a350290069e36d8fb72304ed17e8f2d2"
+checksum = "59a194f9d963d8099596278594b3107448656ba73831c9d8c783e613ce86da64"
 dependencies = [
  "brotli",
  "flate2",
@@ -520,7 +520,7 @@ dependencies = [
  "bitflags 2.9.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "regex",
@@ -1065,7 +1065,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1803,9 +1803,9 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "dwrote"
-version = "0.11.2"
+version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70182709525a3632b2ba96b6569225467b18ecb4a77f46d255f713a6bebf05fd"
+checksum = "bfe1f192fcce01590bd8d839aca53ce0d11d803bf291b2a6c4ad925a8f0024be"
 dependencies = [
  "lazy_static",
  "libc",
@@ -2031,7 +2031,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2557,7 +2557,7 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3439,14 +3439,15 @@ dependencies = [
 
 [[package]]
 name = "iana-time-zone"
-version = "0.1.61"
+version = "0.1.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "235e081f3925a06703c2d0117ea8b91f042756fd6e7a6e5d901e8ca1a996b220"
+checksum = "b2fd658b06e56721792c5df4475705b6cda790e9298d19d2f8af083457bcd127"
 dependencies = [
  "android_system_properties",
  "core-foundation-sys",
  "iana-time-zone-haiku",
  "js-sys",
+ "log",
  "wasm-bindgen",
  "windows-core 0.52.0",
 ]
@@ -3479,9 +3480,9 @@ dependencies = [
 
 [[package]]
 name = "icu_calendar_data"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e009b7f0151ee6fb28c40b1283594397e0b7183820793e9ace3dcd13db126d0"
+checksum = "820499e77e852162190608b4f444e7b4552619150eafc39a9e39333d9efae9e1"
 
 [[package]]
 name = "icu_capi"
@@ -3534,9 +3535,9 @@ dependencies = [
 
 [[package]]
 name = "icu_casemap_data"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d57966d5ab748f74513be4046867f9a20e801e2775d41f91d04a0f560b61f08"
+checksum = "02bd9f6276270c85a5cd54611adbbf94e993ec464a2a86a452a6c565b7ded5d9"
 
 [[package]]
 name = "icu_collator"
@@ -3559,9 +3560,9 @@ dependencies = [
 
 [[package]]
 name = "icu_collator_data"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ee3f88741364b7d6269cce6827a3e6a8a2cf408a78f766c9224ab479d5e4ae5"
+checksum = "7b353986d77d28991eca4dea5ef2b8982f639342ae19ca81edc44f048bc38ebb"
 
 [[package]]
 name = "icu_collections"
@@ -3656,9 +3657,9 @@ dependencies = [
 
 [[package]]
 name = "icu_experimental_data"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c178b9a34083fca5bd70d61f647575335e9c197d0f30c38e8ccd187babc69d0"
+checksum = "121df92eafb8f5286d4e8ff401c1e7db8384377f806db3f8db77b91e5b7bd4dd"
 
 [[package]]
 name = "icu_list"
@@ -3676,9 +3677,9 @@ dependencies = [
 
 [[package]]
 name = "icu_list_data"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1825170d2c6679cb20dbd96a589d034e49f698aed9a2ef4fafc9a0101ed298f"
+checksum = "52b1a7fbdbf3958f1be8354cb59ac73f165b7b7082d447ff2090355c9a069120"
 
 [[package]]
 name = "icu_locid"
@@ -3733,9 +3734,9 @@ dependencies = [
 
 [[package]]
 name = "icu_normalizer_data"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8cafbf7aa791e9b22bec55a167906f9e1215fd475cd22adfcf660e03e989516"
+checksum = "c5e8338228bdc8ab83303f16b797e177953730f601a96c25d10cb3ab0daa0cb7"
 
 [[package]]
 name = "icu_pattern"
@@ -3852,9 +3853,9 @@ dependencies = [
 
 [[package]]
 name = "icu_segmenter_data"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f739ee737260d955e330bc83fdeaaf1631f7fb7ed218761d3c04bb13bb7d79df"
+checksum = "a1e52775179941363cc594e49ce99284d13d6948928d8e72c755f55e98caa1eb"
 
 [[package]]
 name = "icu_timezone"
@@ -4017,7 +4018,7 @@ checksum = "e04d7f318608d35d4b61ddd75cbdaee86b023ebe2bd5a66ee0915f0bf93095a9"
 dependencies = [
  "hermit-abi 0.5.0",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4052,9 +4053,9 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
 name = "jiff"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d699bc6dfc879fb1bf9bdff0d4c56f0884fc6f0d0eb0fba397a6d00cd9a6b85e"
+checksum = "c102670231191d07d37a35af3eb77f1f0dbf7a71be51a962dcd57ea607be7260"
 dependencies = [
  "jiff-static",
  "log",
@@ -4065,9 +4066,9 @@ dependencies = [
 
 [[package]]
 name = "jiff-static"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d16e75759ee0aa64c57a56acbf43916987b20c77373cb7e808979e02b93c9f9"
+checksum = "4cdde31a9d349f1b1f51a0b3714a5940ac022976f4b49485fc04be052b183b4c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4311,7 +4312,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -4451,9 +4452,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.26"
+version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30bde2b3dc3671ae49d8e2e9f044c7c005836e7a023ee57cffa25ab82764bb9e"
+checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
 name = "lyon_geom"
@@ -4702,7 +4703,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#26c35182c1b2b7fb2fbfa93b82669533d92c3a60"
+source = "git+https://github.com/servo/mozjs#39db84352d79ffa3e4fe756c8034af9def788f22"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
@@ -4714,7 +4715,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.128.9-0"
-source = "git+https://github.com/servo/mozjs#26c35182c1b2b7fb2fbfa93b82669533d92c3a60"
+source = "git+https://github.com/servo/mozjs#39db84352d79ffa3e4fe756c8034af9def788f22"
 dependencies = [
  "bindgen 0.71.1",
  "cc",
@@ -5904,9 +5905,9 @@ dependencies = [
 
 [[package]]
 name = "quick-xml"
-version = "0.37.2"
+version = "0.37.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "165859e9e55f79d67b96c5d96f4e88b6f2695a1972849c15a6a3f5c59fc2c003"
+checksum = "bf763ab1c7a3aa408be466efc86efe35ed1bd3dd74173ed39d6b0d0a6f0ba148"
 dependencies = [
  "memchr",
 ]
@@ -6189,7 +6190,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6224,9 +6225,9 @@ checksum = "917ce264624a4b4db1c364dcc35bfca9ded014d0a958cd47ad3e960e988ea51c"
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.0"
+version = "0.103.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0aa4eeac2588ffff23e9d7a7e9b3f971c5fb5b7ebc9452745e0c232c64f83b2f"
+checksum = "fef8b8769aaccf73098557a87cd1816b4f9c7c16811c9c77142aa695c16f2c03"
 dependencies = [
  "aws-lc-rs",
  "ring",
@@ -6512,8 +6513,8 @@ dependencies = [
 
 [[package]]
 name = "selectors"
-version = "0.26.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+version = "0.27.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 dependencies = [
  "bitflags 2.9.0",
  "cssparser",
@@ -6798,7 +6799,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -6930,6 +6931,8 @@ dependencies = [
  "net",
  "net_traits",
  "nix",
+ "objc2-app-kit",
+ "objc2-foundation",
  "ohos-ime",
  "ohos-ime-sys",
  "ohos-vsync",
@@ -7247,8 +7250,8 @@ dependencies = [
 
 [[package]]
 name = "stylo"
-version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+version = "0.2.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -7305,8 +7308,8 @@ dependencies = [
 
 [[package]]
 name = "stylo_atoms"
-version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+version = "0.2.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -7314,13 +7317,13 @@ dependencies = [
 
 [[package]]
 name = "stylo_config"
-version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+version = "0.2.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 
 [[package]]
 name = "stylo_derive"
-version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+version = "0.2.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7331,8 +7334,8 @@ dependencies = [
 
 [[package]]
 name = "stylo_dom"
-version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+version = "0.2.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 dependencies = [
  "bitflags 2.9.0",
  "stylo_malloc_size_of",
@@ -7340,8 +7343,8 @@ dependencies = [
 
 [[package]]
 name = "stylo_malloc_size_of"
-version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+version = "0.2.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 dependencies = [
  "app_units",
  "cssparser",
@@ -7357,13 +7360,13 @@ dependencies = [
 
 [[package]]
 name = "stylo_static_prefs"
-version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+version = "0.2.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 
 [[package]]
 name = "stylo_traits"
-version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+version = "0.2.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 dependencies = [
  "app_units",
  "bitflags 2.9.0",
@@ -7527,7 +7530,7 @@ dependencies = [
  "getrandom",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7553,9 +7556,9 @@ dependencies = [
 
 [[package]]
 name = "thin-vec"
-version = "0.2.13"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a38c90d48152c236a3ab59271da4f4ae63d678c5d7ad6b7714d7cb9760be5e4b"
+checksum = "144f754d318415ac792f9d69fc87abbbfc043ce2ef041c60f16ad828f638717d"
 
 [[package]]
 name = "thiserror"
@@ -7650,9 +7653,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.40"
+version = "0.3.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d9c75b47bdff86fa3334a3db91356b8d7d86a9b839dab7d0bdc5c3d3a077618"
+checksum = "8a7619e19bc266e0f9c5e6686659d394bc57973859340060a69221e57dbc0c40"
 dependencies = [
  "deranged",
  "itoa",
@@ -7673,9 +7676,9 @@ checksum = "c9e9a38711f559d9e3ce1cdb06dd7c5b8ea546bc90052da6d06bb76da74bb07c"
 
 [[package]]
 name = "time-macros"
-version = "0.2.21"
+version = "0.2.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29aa485584182073ed57fd5004aa09c371f021325014694e432313345865fd04"
+checksum = "3526739392ec93fd8b359c8e98514cb3e8e021beb4e5f597b00a0221f8ed8a49"
 dependencies = [
  "num-conv",
  "time-core",
@@ -7745,8 +7748,8 @@ dependencies = [
 
 [[package]]
 name = "to_shmem"
-version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+version = "0.2.0"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -7759,7 +7762,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#bd0a7031b68ed87f9dbba0714e735fa5cf9df676"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#bc4717c7842ad59243f00ae76ba23f998c749b94"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -8836,7 +8839,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

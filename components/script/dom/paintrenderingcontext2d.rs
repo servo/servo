@@ -4,10 +4,8 @@
 
 use std::cell::Cell;
 
-use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
-use ipc_channel::ipc;
 use script_bindings::reflector::Reflector;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -31,6 +29,7 @@ use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
+use crate::dom::path2d::Path2D;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -61,16 +60,9 @@ impl PaintRenderingContext2D {
         )
     }
 
-    pub(crate) fn get_canvas_id(&self) -> CanvasId {
-        self.canvas_state.get_canvas_id()
-    }
-
     /// Send update to canvas paint thread and returns [`ImageKey`]
     pub(crate) fn image_key(&self) -> ImageKey {
-        let (sender, receiver) = ipc::channel().unwrap();
-        let msg = CanvasMsg::FromLayout(FromLayoutMsg::UpdateImage(sender), self.get_canvas_id());
-        let _ = self.canvas_state.get_ipc_renderer().send(msg);
-        receiver.recv().unwrap();
+        self.canvas_state.update_rendering();
         self.canvas_state.image_key()
     }
 
@@ -201,9 +193,19 @@ impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingCont
         self.canvas_state.fill(fill_rule)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-fill
+    fn Fill_(&self, path: &Path2D, fill_rule: CanvasFillRule) {
+        self.canvas_state.fill_(path.segments(), fill_rule)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
     fn Stroke(&self) {
         self.canvas_state.stroke()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-stroke
+    fn Stroke_(&self, path: &Path2D) {
+        self.canvas_state.stroke_(path.segments())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
@@ -211,10 +213,21 @@ impl PaintRenderingContext2DMethods<crate::DomTypeHolder> for PaintRenderingCont
         self.canvas_state.clip(fill_rule)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-clip
+    fn Clip_(&self, path: &Path2D, fill_rule: CanvasFillRule) {
+        self.canvas_state.clip_(path.segments(), fill_rule)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
     fn IsPointInPath(&self, x: f64, y: f64, fill_rule: CanvasFillRule) -> bool {
         self.canvas_state
             .is_point_in_path(&self.global(), x, y, fill_rule)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-ispointinpath
+    fn IsPointInPath_(&self, path: &Path2D, x: f64, y: f64, fill_rule: CanvasFillRule) -> bool {
+        self.canvas_state
+            .is_point_in_path_(&self.global(), path.segments(), x, y, fill_rule)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage

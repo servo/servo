@@ -856,3 +856,11 @@ fn test_select_all() {
         textinput.selection_end()
     );
 }
+
+#[test]
+fn test_backspace_in_textarea_at_beginning_of_line() {
+    let mut textinput = text_input(Lines::Multiple, "first line\n");
+    textinput.handle_keydown_aux(Key::ArrowDown, Modifiers::empty(), false);
+    textinput.handle_keydown_aux(Key::Backspace, Modifiers::empty(), false);
+    assert_eq!(textinput.get_content(), DOMString::from("first line"));
+}

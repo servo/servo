@@ -13,7 +13,7 @@ use std::time::Duration;
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
-use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, WebRenderDebugOption, WindowMethods,
 };
@@ -37,6 +37,11 @@ use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
+#[cfg(target_os = "macos")]
+use {
+    objc2_app_kit::{NSColorSpace, NSView},
+    objc2_foundation::MainThreadMarker,
+};
 
 use super::app_state::RunningAppState;
 use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
@@ -100,6 +105,8 @@ impl Window {
             let icon_bytes = include_bytes!("../../../resources/servo_64.png");
             winit_window.set_window_icon(Some(load_icon(icon_bytes)));
         }
+
+        Window::force_srgb_color_space(winit_window.window_handle().unwrap().as_raw());
 
         let monitor = winit_window
             .current_monitor()
@@ -419,6 +426,22 @@ impl Window {
 
     pub(crate) fn offscreen_rendering_context(&self) -> Rc<OffscreenRenderingContext> {
         self.rendering_context.clone()
+    }
+
+    #[allow(unused_variables)]
+    fn force_srgb_color_space(window_handle: RawWindowHandle) {
+        #[cfg(target_os = "macos")]
+        {
+            if let RawWindowHandle::AppKit(handle) = window_handle {
+                assert!(MainThreadMarker::new().is_some());
+                unsafe {
+                    let view = handle.ns_view.cast::<NSView>().as_ref();
+                    view.window()
+                        .unwrap()
+                        .setColorSpace(Some(&NSColorSpace::sRGBColorSpace()));
+                }
+            }
+        }
     }
 }
 

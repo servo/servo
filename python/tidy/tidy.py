@@ -90,6 +90,7 @@ WEBIDL_STANDARDS = [
     b"//html.spec.whatwg.org",
     b"//streams.spec.whatwg.org",
     b"//url.spec.whatwg.org",
+    b"//urlpattern.spec.whatwg.org",
     b"//xhr.spec.whatwg.org",
     b"//w3c.github.io",
     b"//heycam.github.io/webidl",
@@ -215,6 +216,9 @@ def uncomment(line):
 
 
 def is_apache_licensed(header):
+    if "SPDX-License-Identifier: Apache-2.0 OR MIT" in header:
+        return True
+
     if APACHE in header:
         return any(c in header for c in COPYRIGHT)
 

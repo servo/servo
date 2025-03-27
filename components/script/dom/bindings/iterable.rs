@@ -30,6 +30,7 @@ use crate::dom::bindings::reflector::{
 };
 use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::{JSTraceable, NoTrace, RootedTraceableBox};
+use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
 
 /// An iterator over the iterable entries of a given DOM interface.
@@ -46,8 +47,8 @@ pub(crate) struct IterableIterator<
 }
 
 impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable> IterableIterator<D, T> {
-    pub fn global(&self) -> DomRoot<D::GlobalScope> {
-        <Self as DomGlobalGeneric<D>>::global(self)
+    pub fn global_(&self, realm: InRealm) -> DomRoot<D::GlobalScope> {
+        <Self as DomGlobalGeneric<D>>::global_(self, realm)
     }
 }
 
@@ -70,7 +71,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
     IterableIterator<D, T>
 {
     /// Create a new iterator instance for the provided iterable DOM interface.
-    pub(crate) fn new(iterable: &T, type_: IteratorType) -> DomRoot<Self> {
+    pub(crate) fn new(iterable: &T, type_: IteratorType, realm: InRealm) -> DomRoot<Self> {
         let iterator = Box::new(IterableIterator {
             reflector: Reflector::new(),
             type_,
@@ -78,7 +79,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
             index: Cell::new(0),
             _marker: NoTrace(PhantomData),
         });
-        reflect_dom_object(iterator, &*iterable.global(), CanGc::note())
+        reflect_dom_object(iterator, &*iterable.global_(realm), CanGc::note())
     }
 
     /// Return the next value from the iterable object.

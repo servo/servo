@@ -18,7 +18,7 @@ use servo_url::ServoUrl;
 
 /// TODO make this configurable
 /// maximum task time is 50ms (in ns)
-pub const MAX_TASK_NS: u64 = 50000000;
+pub const MAX_TASK_NS: u128 = 50000000;
 /// 10 second window
 const INTERACTIVE_WINDOW_SECONDS: Duration = Duration::from_secs(10);
 

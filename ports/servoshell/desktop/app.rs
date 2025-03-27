@@ -6,6 +6,7 @@
 
 use std::cell::Cell;
 use std::collections::HashMap;
+use std::path::Path;
 use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
@@ -16,6 +17,7 @@ use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
+use servo::user_content_manager::{UserContentManager, UserScript};
 use servo::webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use servo::webxr::openxr::{AppInfo, OpenXrDiscovery};
@@ -146,6 +148,13 @@ impl App {
             }
         }
 
+        let mut user_content_manager = UserContentManager::new();
+        for script in load_userscripts(self.servoshell_preferences.userscripts_directory.as_deref())
+            .expect("Loading userscripts failed")
+        {
+            user_content_manager.add_script(script);
+        }
+
         let servo = Servo::new(
             self.opts.clone(),
             self.preferences.clone(),
@@ -153,6 +162,7 @@ impl App {
             embedder,
             Rc::new(UpcastedWindow(window.clone())),
             self.servoshell_preferences.user_agent.clone(),
+            user_content_manager,
         );
         servo.setup_logging();
 
@@ -441,4 +451,21 @@ impl ApplicationHandler<WakerEvent> for App {
     fn suspended(&mut self, _: &ActiveEventLoop) {
         self.suspended.set(true);
     }
+}
+
+fn load_userscripts(userscripts_directory: Option<&Path>) -> std::io::Result<Vec<UserScript>> {
+    let mut userscripts = Vec::new();
+    if let Some(userscripts_directory) = &userscripts_directory {
+        let mut files = std::fs::read_dir(userscripts_directory)?
+            .map(|e| e.map(|entry| entry.path()))
+            .collect::<Result<Vec<_>, _>>()?;
+        files.sort();
+        for file in files {
+            userscripts.push(UserScript {
+                script: std::fs::read_to_string(&file)?,
+                source_file: Some(file),
+            });
+        }
+    }
+    Ok(userscripts)
 }

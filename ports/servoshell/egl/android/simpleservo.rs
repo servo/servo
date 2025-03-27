@@ -99,6 +99,7 @@ pub fn init(
         embedder_callbacks,
         window_callbacks.clone(),
         None,
+        Default::default(),
     );
 
     APP.with(|app| {

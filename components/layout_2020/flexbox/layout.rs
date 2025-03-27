@@ -2619,11 +2619,14 @@ impl FlexItemBox {
         auto_cross_size_stretches_to_container_size: bool,
         intrinsic_sizing_mode: IntrinsicSizingMode,
     ) -> Au {
-        let mut positioning_context = PositioningContext::new_for_subtree(
-            flex_context
-                .positioning_context
-                .collects_for_nearest_positioned_ancestor(),
-        );
+        let mut positioning_context = PositioningContext::new_for_style(self.style())
+            .unwrap_or_else(|| {
+                PositioningContext::new_for_subtree(
+                    flex_context
+                        .positioning_context
+                        .collects_for_nearest_positioned_ancestor(),
+                )
+            });
 
         let style = self.independent_formatting_context.style();
         match &self.independent_formatting_context.contents {

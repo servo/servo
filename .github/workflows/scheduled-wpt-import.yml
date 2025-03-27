@@ -16,7 +16,7 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       wpt-sync-from-upstream: true
-      wpt-layout: 'all'
+      wpt: true
       unit-tests: false
 
   sync:

@@ -18,24 +18,7 @@ import unittest
 import logging
 
 from dataclasses import dataclass
-from enum import Enum, Flag, auto
-
-
-class Layout(Flag):
-    none = 0
-    layout2020 = auto()
-
-    @staticmethod
-    def all():
-        return Layout.layout2020
-
-    def to_string(self):
-        if Layout.all() in self:
-            return "all"
-        elif Layout.layout2020 in self:
-            return "2020"
-        else:
-            return "none"
+from enum import Enum
 
 
 class Workflow(str, Enum):
@@ -51,7 +34,7 @@ class Workflow(str, Enum):
 class JobConfig(object):
     name: str
     workflow: Workflow = Workflow.LINUX
-    wpt_layout: Layout = Layout.none
+    wpt: bool = False
     profile: str = "release"
     unit_tests: bool = False
     build_libservo: bool = False
@@ -68,7 +51,7 @@ class JobConfig(object):
             if getattr(self, field) != getattr(other, field):
                 return False
 
-        self.wpt_layout |= other.wpt_layout
+        self.wpt |= other.wpt
         self.unit_tests |= other.unit_tests
         self.build_libservo |= other.build_libservo
         self.bencher |= other.bencher
@@ -93,7 +76,7 @@ class JobConfig(object):
             modifier.append("Unit Tests")
         if self.build_libservo:
             modifier.append("Build libservo")
-        if self.wpt_layout != Layout.none:
+        if self.wpt:
             modifier.append("WPT")
         if self.bencher:
             modifier.append("Bencher")
@@ -116,7 +99,7 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("OpenHarmony", Workflow.OHOS)
     elif any(word in s for word in ["webgpu"]):
         return JobConfig("WebGPU CTS", Workflow.LINUX,
-                         wpt_layout=Layout.layout2020,  # reftests are mode for new layout
+                         wpt=True,  # reftests are mode for new layout
                          wpt_args="_webgpu",  # run only webgpu cts
                          profile="production",  # WebGPU works to slow with debug assert
                          unit_tests=False)  # production profile does not work with unit-tests
@@ -138,10 +121,8 @@ def handle_modifier(config: JobConfig, s: str) -> Optional[JobConfig]:
         config.profile = "production"
     if "bencher" in s:
         config.bencher = True
-    elif "wpt-2020" in s:
-        config.wpt_layout = Layout.layout2020
     elif "wpt" in s:
-        config.wpt_layout = Layout.all()
+        config.wpt = True
     config.update_name()
     return config
 
@@ -150,8 +131,6 @@ class Encoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, (Config, JobConfig)):
             return o.__dict__
-        if isinstance(o, Layout):
-            return o.to_string()
         return json.JSONEncoder.default(self, o)
 
 
@@ -176,7 +155,7 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-unit-tests", "linux-wpt-2020", "linux-bencher"])
+                words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
                 words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
                 continue  # skip over keyword
             if word == "bencher":
@@ -223,7 +202,7 @@ class TestParser(unittest.TestCase):
                                   'unit_tests': True,
                                   'build_libservo': False,
                                   'workflow': 'linux',
-                                  'wpt_layout': 'none',
+                                  'wpt': False,
                                   'wpt_args': ''
                               }]
                               })
@@ -234,7 +213,7 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "Linux (Unit Tests, WPT, Bencher)",
                                   "workflow": "linux",
-                                  "wpt_layout": "all",
+                                  "wpt": True,
                                   "profile": "release",
                                   "unit_tests": True,
                                   'build_libservo': False,
@@ -244,7 +223,7 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "MacOS (Unit Tests)",
                                   "workflow": "macos",
-                                  "wpt_layout": "none",
+                                  "wpt": False,
                                   "profile": "release",
                                   "unit_tests": True,
                                   'build_libservo': False,
@@ -254,7 +233,7 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "Windows (Unit Tests)",
                                   "workflow": "windows",
-                                  "wpt_layout": "none",
+                                  "wpt": False,
                                   "profile": "release",
                                   "unit_tests": True,
                                   'build_libservo': False,
@@ -264,7 +243,7 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "Android",
                                   "workflow": "android",
-                                  "wpt_layout": "none",
+                                  "wpt": False,
                                   "profile": "release",
                                   "unit_tests": False,
                                   'build_libservo': False,
@@ -274,7 +253,7 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "OpenHarmony",
                                   "workflow": "ohos",
-                                  "wpt_layout": "none",
+                                  "wpt": False,
                                   "profile": "release",
                                   "unit_tests": False,
                                   'build_libservo': False,
@@ -284,7 +263,7 @@ class TestParser(unittest.TestCase):
                               {
                                   "name": "Lint",
                                   "workflow": "lint",
-                                  "wpt_layout": "none",
+                                  "wpt": False,
                                   "profile": "release",
                                   "unit_tests": False,
                                   'build_libservo': False,
@@ -293,7 +272,7 @@ class TestParser(unittest.TestCase):
                               ]})
 
     def test_job_merging(self):
-        self.assertDictEqual(json.loads(Config("linux-wpt-2020").to_json()),
+        self.assertDictEqual(json.loads(Config("linux-wpt").to_json()),
                              {'fail_fast': False,
                               'matrix': [{
                                   'bencher': False,
@@ -302,7 +281,7 @@ class TestParser(unittest.TestCase):
                                   'unit_tests': False,
                                   'build_libservo': False,
                                   'workflow': 'linux',
-                                  'wpt_layout': 'all',
+                                  'wpt': True,
                                   'wpt_args': ''
                               }]
                               })
@@ -314,11 +293,11 @@ class TestParser(unittest.TestCase):
 
         a = handle_preset("linux-unit-tests")
         a = handle_modifier(a, "linux-unit-tests")
-        b = handle_preset("linux-wpt-2020")
-        b = handle_modifier(b, "linux-wpt-2020")
+        b = handle_preset("linux-wpt")
+        b = handle_modifier(b, "linux-wpt")
         self.assertTrue(a.merge(b), "Should merge jobs that have different unit test configurations.")
         self.assertEqual(a, JobConfig("Linux (Unit Tests, WPT)", Workflow.LINUX,
-                                      unit_tests=True, wpt_layout=Layout.layout2020))
+                                      unit_tests=True, wpt=True))
 
         a = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Mac", Workflow.MACOS, unit_tests=True)

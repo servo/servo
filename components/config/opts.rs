@@ -35,11 +35,6 @@ pub struct Opts {
     /// True to turn off incremental layout.
     pub nonincremental_layout: bool,
 
-    /// Where to load userscripts from, if any. An empty string will load from
-    /// the resources/user-agent-js directory, and if the option isn't passed userscripts
-    /// won't be loaded
-    pub userscripts: Option<String>,
-
     pub user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,
 
     /// True to exit on thread failure instead of displaying about:failure.
@@ -191,7 +186,6 @@ impl Default for Opts {
             time_profiling: None,
             time_profiler_trace_path: None,
             nonincremental_layout: false,
-            userscripts: None,
             user_stylesheets: Vec::new(),
             hard_fail: true,
             webdriver_port: None,

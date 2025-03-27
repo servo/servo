@@ -196,7 +196,7 @@ pub(crate) unsafe fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) 
     let first_char = char::decode_utf16(chars.iter().cloned())
         .next()
         .map_or('\0', |r| r.unwrap_or('\0'));
-    if !first_char.is_ascii_lowercase() {
+    if first_char.is_ascii_lowercase() {
         return None;
     }
 
@@ -303,6 +303,7 @@ pub(crate) fn get_dictionary_property(
     object: HandleObject,
     property: &str,
     rval: MutableHandleValue,
+    _can_gc: CanGc,
 ) -> Result<bool, ()> {
     fn has_property(
         cx: *mut JSContext,

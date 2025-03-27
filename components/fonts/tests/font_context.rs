@@ -29,11 +29,9 @@ mod font_context {
     use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
     use style::properties::style_structs::Font as FontStyleStruct;
     use style::values::computed::font::{
-        FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSize, FontStretch,
-        FontStyle, FontWeight, SingleFontFamily,
+        FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontStretch, FontStyle,
+        FontWeight, SingleFontFamily,
     };
-    use style::values::computed::{FontLanguageOverride, XLang};
-    use style::values::generics::font::LineHeight;
     use stylo_atoms::Atom;
     use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
     use webrender_traits::CrossProcessCompositorApi;
@@ -194,18 +192,7 @@ mod font_context {
     }
 
     fn style() -> FontStyleStruct {
-        let mut style = FontStyleStruct {
-            font_family: FontFamily::serif(),
-            font_style: FontStyle::NORMAL,
-            font_variant_caps: FontVariantCaps::Normal,
-            font_weight: FontWeight::normal(),
-            font_size: FontSize::medium(),
-            font_stretch: FontStretch::hundred(),
-            hash: 0,
-            font_language_override: FontLanguageOverride::normal(),
-            line_height: LineHeight::Normal,
-            _x_lang: XLang::get_initial_value(),
-        };
+        let mut style = FontStyleStruct::initial_values();
         style.compute_font_hash();
         style
     }

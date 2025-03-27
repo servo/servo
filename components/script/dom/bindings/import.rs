@@ -44,6 +44,7 @@ pub(crate) mod base {
     };
     pub(crate) use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
     pub(crate) use crate::dom::promise::PromiseHelpers;
+    pub(crate) use crate::realms::{AlreadyInRealm, InRealm};
     pub(crate) use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 }
 

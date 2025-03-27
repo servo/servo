@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use bitflags::bitflags;
-use script_layout_interface::{FragmentType, combine_id_with_fragment_type};
+use script_layout_interface::combine_id_with_fragment_type;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
 
@@ -132,11 +132,6 @@ impl Tag {
     }
 
     pub(crate) fn to_display_list_fragment_id(self) -> u64 {
-        let fragment_type = match self.pseudo {
-            Some(PseudoElement::Before) => FragmentType::BeforePseudoContent,
-            Some(PseudoElement::After) => FragmentType::AfterPseudoContent,
-            _ => FragmentType::FragmentBody,
-        };
-        combine_id_with_fragment_type(self.node.id(), fragment_type)
+        combine_id_with_fragment_type(self.node.id(), self.pseudo.into())
     }
 }

@@ -479,6 +479,7 @@ interface TestBinding {
   sequence<sequence<long>> returnSequenceSequence();
   undefined passUnionSequenceSequence((long or sequence<sequence<long>>) seq);
 
+  undefined passRecordPromise(record<DOMString, Promise<undefined>> arg);
   undefined passRecord(record<DOMString, long> arg);
   undefined passRecordWithUSVStringKey(record<USVString, long> arg);
   undefined passRecordWithByteStringKey(record<ByteString, long> arg);

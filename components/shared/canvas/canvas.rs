@@ -13,6 +13,59 @@ use serde_bytes::ByteBuf;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum PathSegment {
+    ClosePath,
+    MoveTo {
+        x: f32,
+        y: f32,
+    },
+    LineTo {
+        x: f32,
+        y: f32,
+    },
+    Quadratic {
+        cpx: f32,
+        cpy: f32,
+        x: f32,
+        y: f32,
+    },
+    Bezier {
+        cp1x: f32,
+        cp1y: f32,
+        cp2x: f32,
+        cp2y: f32,
+        x: f32,
+        y: f32,
+    },
+    ArcTo {
+        cp1x: f32,
+        cp1y: f32,
+        cp2x: f32,
+        cp2y: f32,
+        radius: f32,
+    },
+    Ellipse {
+        x: f32,
+        y: f32,
+        radius_x: f32,
+        radius_y: f32,
+        rotation: f32,
+        start_angle: f32,
+        end_angle: f32,
+        anticlockwise: bool,
+    },
+    SvgArc {
+        radius_x: f32,
+        radius_y: f32,
+        rotation: f32,
+        large_arc: bool,
+        sweep: bool,
+        x: f32,
+        y: f32,
+    },
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FillRule {
     Nonzero,
@@ -25,7 +78,6 @@ pub struct CanvasId(pub u64);
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
-    FromLayout(FromLayoutMsg, CanvasId),
     FromScript(FromScriptMsg, CanvasId),
     Recreate(Option<Size2D<u64>>, CanvasId),
     Close(CanvasId),
@@ -42,14 +94,17 @@ pub enum Canvas2dMsg {
     BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
     ClearRect(Rect<f32>),
     Clip,
+    ClipPath(Vec<PathSegment>),
     ClosePath,
     Ellipse(Point2D<f32>, f32, f32, f32, f32, f32, bool),
     Fill(FillOrStrokeStyle),
+    FillPath(FillOrStrokeStyle, Vec<PathSegment>),
     FillText(String, f64, f64, Option<f64>, FillOrStrokeStyle, bool),
     FillRect(Rect<f32>, FillOrStrokeStyle),
     GetImageData(Rect<u64>, Size2D<u64>, IpcBytesSender),
     GetTransform(IpcSender<Transform2D<f32>>),
-    IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
+    IsPointInCurrentPath(f64, f64, FillRule, IpcSender<bool>),
+    IsPointInPath(Vec<PathSegment>, f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
     MeasureText(String, IpcSender<TextMetrics>),
@@ -60,6 +115,7 @@ pub enum Canvas2dMsg {
     SaveContext,
     StrokeRect(Rect<f32>, FillOrStrokeStyle),
     Stroke(FillOrStrokeStyle),
+    StrokePath(FillOrStrokeStyle, Vec<PathSegment>),
     SetLineWidth(f32),
     SetLineCap(LineCapStyle),
     SetLineJoin(LineJoinStyle),
@@ -74,10 +130,6 @@ pub enum Canvas2dMsg {
     SetFont(FontStyleStruct),
     SetTextAlign(TextAlign),
     SetTextBaseline(TextBaseline),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum FromLayoutMsg {
     UpdateImage(IpcSender<()>),
 }
 
