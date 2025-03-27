@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-    "ports/servoshell",
+members = ["ports/servoshell",
     "tests/unit/*",
 ]
 default-members = ["ports/servoshell"]

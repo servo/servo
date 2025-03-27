@@ -477,24 +477,6 @@ impl HTMLInputElement {
         textinput.set_content(value);
     }
 
-    fn does_readonly_apply(&self) -> bool {
-        matches!(
-            self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Email |
-                InputType::Password |
-                InputType::Date |
-                InputType::Month |
-                InputType::Week |
-                InputType::Time |
-                InputType::DatetimeLocal |
-                InputType::Number
-        )
-    }
-
     fn does_minmaxlength_apply(&self) -> bool {
         matches!(
             self.input_type(),
@@ -886,14 +868,13 @@ impl HTMLInputElement {
         let cx = GlobalScope::get_cx();
         let _ac = enter_realm(self);
         rooted!(in(*cx) let mut pattern = ptr::null_mut::<JSObject>());
-        let can_gc = CanGc::note();
 
-        if compile_pattern(cx, &pattern_str, pattern.handle_mut(), can_gc) {
+        if compile_pattern(cx, &pattern_str, pattern.handle_mut()) {
             if self.Multiple() && self.does_multiple_apply() {
                 !split_commas(value)
-                    .all(|s| matches_js_regex(cx, pattern.handle(), s, can_gc).unwrap_or(true))
+                    .all(|s| matches_js_regex(cx, pattern.handle(), s).unwrap_or(true))
             } else {
-                !matches_js_regex(cx, pattern.handle(), value, CanGc::note()).unwrap_or(true)
+                !matches_js_regex(cx, pattern.handle(), value).unwrap_or(true)
             }
         } else {
             // Element doesn't suffer from pattern mismatch if pattern is invalid.
@@ -2339,9 +2320,7 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
-        self.super_type()
-            .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+        self.super_type().unwrap().attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -2565,11 +2544,10 @@ impl VirtualMethods for HTMLInputElement {
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
-
         for r in radio_group_iter(self, self.radio_group_name().as_ref()) {
             r.validity_state()
                 .perform_validation_and_update(ValidationFlags::all(), can_gc);
-    
+        }
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
@@ -2759,23 +2737,14 @@ impl Validatable for HTMLInputElement {
         match self.input_type() {
             InputType::Hidden | InputType::Button | InputType::Reset => false,
             _ => {
-
-               
-
-                !(self.upcast::<Element>().disabled_state()
-                    || (self.ReadOnly() && self.does_readonly_apply())
-                    || is_barred_by_datalist_ancestor(self.upcast()))
-
-
+                !(self.upcast::<Element>().disabled_state() ||
+                    self.ReadOnly() ||
+                    is_barred_by_datalist_ancestor(self.upcast()))
             },
         }
     }
 
-    fn perform_validation(
-        &self,
-        validate_flags: ValidationFlags,
-        _can_gc: CanGc,
-    ) -> ValidationFlags {
+    fn perform_validation(&self, validate_flags: ValidationFlags, _can_gc: CanGc) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
 
@@ -3018,17 +2987,12 @@ fn round_halves_positive(n: f64) -> f64 {
 // This is used to compile JS-compatible regex provided in pattern attribute
 // that matches only the entirety of string.
 // https://html.spec.whatwg.org/multipage/#compiled-pattern-regular-expression
-fn compile_pattern(
-    cx: SafeJSContext,
-    pattern_str: &str,
-    out_regex: MutableHandleObject,
-    can_gc: CanGc,
-) -> bool {
+fn compile_pattern(cx: SafeJSContext, pattern_str: &str, out_regex: MutableHandleObject) -> bool {
     // First check if pattern compiles...
     if check_js_regex_syntax(cx, pattern_str) {
         // ...and if it does make pattern that matches only the entirety of string
         let pattern_str = format!("^(?:{})$", pattern_str);
-        new_js_regex(cx, &pattern_str, out_regex, can_gc)
+        new_js_regex(cx, &pattern_str, out_regex)
     } else {
         false
     }
@@ -3064,12 +3028,7 @@ fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
 }
 
 #[allow(unsafe_code)]
-fn new_js_regex(
-    cx: SafeJSContext,
-    pattern: &str,
-    mut out_regex: MutableHandleObject,
-    _can_gc: CanGc,
-) -> bool {
+fn new_js_regex(cx: SafeJSContext, pattern: &str, mut out_regex: MutableHandleObject) -> bool {
     let pattern: Vec<u16> = pattern.encode_utf16().collect();
     unsafe {
         out_regex.set(NewUCRegExpObject(
@@ -3089,12 +3048,7 @@ fn new_js_regex(
 }
 
 #[allow(unsafe_code)]
-fn matches_js_regex(
-    cx: SafeJSContext,
-    regex_obj: HandleObject,
-    value: &str,
-    _can_gc: CanGc,
-) -> Result<bool, ()> {
+fn matches_js_regex(cx: SafeJSContext, regex_obj: HandleObject, value: &str) -> Result<bool, ()> {
     let mut value: Vec<u16> = value.encode_utf16().collect();
 
     unsafe {
@@ -3122,6 +3076,4 @@ fn matches_js_regex(
             Err(())
         }
     }
-}
-
 }
