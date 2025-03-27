@@ -1,0 +1,95 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scrollable Overflow of a Scroll Container with Transformed Child in Unreachable Scrollable Overflow Region.</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#unreachable-scrollable-overflow-region">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+body { margin: 0 }
+.wrapper {
+  width: 100px;
+  height: 200px;
+  overflow: scroll;
+}
+.inner {
+  width: 100px;
+  height: 200px;
+  background-color: lime;
+  transform: translate(-3px, -6px) scale(1.10);
+}
+</style>
+<div class="wrapper">
+  <div class="inner"></div>
+</div>
+<script>
+const wrapper = document.querySelector(".wrapper");
+const contentBox = {
+  width: 100,
+  height: 200,
+};
+
+function getCurrentTestName(display, direction, writingMode, flexDirection, flexWrap) {
+  return `display: ${display}; ` +
+         `direction: ${direction}; ` +
+         `writing-mode: ${writingMode}; ` +
+         `flex-direction: ${flexDirection}; ` +
+         `flex-wrap: ${flexWrap};`;
+}
+
+for (let display of ["flow-root", "flex", "grid"]) {
+  for (let flexDirection of ["row", "row-reverse", "column", "column-reverse"]) {
+    if (flexDirection != "row" && display != "flex") {
+      // Don't bother retesting with all flexDirection values unless we're actually a flex container
+      continue;
+    }
+    for (let flexWrap of ["nowrap", "wrap-reverse"]) {
+      if (flexWrap != "nowrap" && display != "flex") {
+        // Don't bother retesting with all flexWrap values unless we're actually a flex container
+        continue;
+      }
+      for (let direction of ["ltr", "rtl"]) {
+        for (let writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl"]) {
+          wrapper.style.display = display;
+          wrapper.style.direction = direction;
+          wrapper.style.writingMode = writingMode;
+          wrapper.style.flexDirection = flexDirection;
+          wrapper.style.flexWrap = flexWrap;
+          // Suppress scrollbars because they get added to the padding are
+          // and would need to account for them in flexbox.
+          wrapper.style.scrollbarWidth = display == "flex" ? "none" : "";
+          let vertical = writingMode.startsWith("vertical");
+          let scrollToTop = vertical && direction == "rtl";
+          let scrollToLeft = (!vertical && direction == "rtl") || writingMode == "vertical-rl";
+          let flexMainAxisIsVertical = flexDirection.startsWith("row") == vertical;
+          if (display == "flex") {
+            if (flexDirection.endsWith("-reverse")) {
+              if (flexMainAxisIsVertical) {
+                scrollToTop = !scrollToTop;
+              } else {
+                scrollToLeft = !scrollToLeft;
+              }
+            }
+            if (flexWrap == "wrap-reverse") {
+              if (flexMainAxisIsVertical) {
+                scrollToLeft = !scrollToLeft;
+              } else {
+                scrollToTop = !scrollToTop;
+              }
+            }
+          }
+          currentTestName = getCurrentTestName(display, direction, writingMode, flexDirection, flexWrap);
+          test(function() {
+            assert_equals(wrapper.scrollWidth, (scrollToLeft ? 108 : 102), "scrollWidth");
+          }, "scrollWidth of " + currentTestName);
+          test(function() {
+            assert_equals(wrapper.scrollHeight, (scrollToTop ? 216 : 204), "scrollHeight");
+          }, "scrollHeight of " + currentTestName);
+        }
+      }
+    }
+  }
+}
+</script>
