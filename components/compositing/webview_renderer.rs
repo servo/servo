@@ -8,6 +8,7 @@ use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
+use compositing_traits::viewport_description::ViewportDescription;
 use compositing_traits::{SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, ScrollState, WindowSizeType};
 use embedder_traits::{
@@ -58,7 +59,7 @@ pub(crate) struct ScrollResult {
     pub offset: LayoutVector2D,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(crate) enum PinchZoomResult {
     DidPinchZoom,
     DidNotPinchZoom,
@@ -102,6 +103,8 @@ pub(crate) struct WebViewRenderer {
     pending_point_input_events: RefCell<VecDeque<InputEvent>>,
     /// WebRender is not ready between `SendDisplayList` and `WebRenderFrameReady` messages.
     pub webrender_frame_ready: Cell<bool>,
+    /// Viewport Description
+    viewport_description: Option<ViewportDescription>,
 }
 
 impl Drop for WebViewRenderer {
@@ -138,6 +141,7 @@ impl WebViewRenderer {
             animating: false,
             pending_point_input_events: Default::default(),
             webrender_frame_ready: Cell::default(),
+            viewport_description: None,
         }
     }
 
@@ -1041,6 +1045,10 @@ impl WebViewRenderer {
     pub(crate) fn available_screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
         let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
         (screen_geometry.available_size.to_f32() / self.hidpi_scale_factor).to_i32()
+    }
+
+    pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
+        self.viewport_description = Some(viewport_description);
     }
 }
 

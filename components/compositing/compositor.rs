@@ -973,7 +973,11 @@ impl IOCompositor {
                     warn!("Sending response to get screen size failed ({error:?}).");
                 }
             },
-            CompositorMsg::Viewport(_webview_id, _viewport_description) => {},
+            CompositorMsg::Viewport(webview_id, viewport_description) => {
+                if let Some(webview) = self.webview_renderers.get_mut(webview_id) {
+                    webview.set_viewport_description(viewport_description);
+                }
+            },
         }
     }
 
