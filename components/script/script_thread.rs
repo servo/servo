@@ -174,7 +174,7 @@ pub(crate) fn with_script_thread<R: Default>(f: impl FnOnce(&ScriptThread) -> R)
 pub(crate) unsafe fn trace_thread(tr: *mut JSTracer) {
     with_script_thread(|script_thread| {
         trace!("tracing fields of ScriptThread");
-        unsafe { script_thread.trace(tr) };
+        script_thread.trace(tr);
     })
 }
 
