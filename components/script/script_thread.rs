@@ -2530,7 +2530,7 @@ impl ScriptThread {
                 // FIXME: synchronously talks to constellation.
                 // send the required info as part of postmessage instead.
                 let source = match self.remote_window_proxy(
-                    &window.global(),
+                    window.upcast::<GlobalScope>(),
                     source_browsing_context,
                     source_pipeline_id,
                     None,
