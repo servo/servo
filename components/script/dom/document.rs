@@ -2248,13 +2248,13 @@ impl Document {
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
-                        fragment.AppendChild(&node, can_gc)?;
+                        fragment.AppendChild(&node)?;
                     },
                     NodeOrString::String(string) => {
                         let node = DomRoot::upcast::<Node>(self.CreateTextNode(string, can_gc));
                         // No try!() here because appending a text node
                         // should not fail.
-                        fragment.AppendChild(&node, can_gc).unwrap();
+                        fragment.AppendChild(&node).unwrap();
                     },
                 }
             }
@@ -5211,7 +5211,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-adoptnode
-    fn AdoptNode(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+    fn AdoptNode(&self, node: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() {
             return Err(Error::NotSupported);
@@ -5223,7 +5223,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 3.
-        Node::adopt(node, self, can_gc);
+        Node::adopt(node, self, CanGc::note());
 
         // Step 4.
         Ok(DomRoot::from_ref(node))
@@ -5358,7 +5358,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().as_deref(), can_gc)
+                        .InsertBefore(child, parent.GetFirstChild().as_deref())
                         .unwrap()
                 },
             }
@@ -5381,9 +5381,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                             None,
                             can_gc,
                         );
-                        head.upcast::<Node>()
-                            .AppendChild(elem.upcast(), can_gc)
-                            .unwrap()
+                        head.upcast::<Node>().AppendChild(elem.upcast()).unwrap()
                     },
                     None => return,
                 },
@@ -5430,7 +5428,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-body
-    fn SetBody(&self, new_body: Option<&HTMLElement>, can_gc: CanGc) -> ErrorResult {
+    fn SetBody(&self, new_body: Option<&HTMLElement>) -> ErrorResult {
         // Step 1.
         let new_body = match new_body {
             Some(new_body) => new_body,
@@ -5456,7 +5454,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Step 3.
             (Some(ref root), Some(child)) => {
                 let root = root.upcast::<Node>();
-                root.ReplaceChild(new_body.upcast(), child.upcast(), can_gc)
+                root.ReplaceChild(new_body.upcast(), child.upcast())
                     .unwrap();
             },
 
@@ -5466,7 +5464,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Step 5.
             (Some(ref root), &None) => {
                 let root = root.upcast::<Node>();
-                root.AppendChild(new_body.upcast(), can_gc).unwrap();
+                root.AppendChild(new_body.upcast()).unwrap();
             },
         }
         Ok(())

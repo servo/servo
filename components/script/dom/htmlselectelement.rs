@@ -223,9 +223,8 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         &self,
         element: HTMLOptionElementOrHTMLOptGroupElement,
         before: Option<HTMLElementOrLong>,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        self.Options().Add(element, before, can_gc)
+        self.Options().Add(element, before)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
@@ -321,13 +320,13 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-remove
-    fn Remove_(&self, index: i32, can_gc: CanGc) {
-        self.Options().Remove(index, can_gc)
+    fn Remove_(&self, index: i32) {
+        self.Options().Remove(index)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-remove
-    fn Remove(&self, can_gc: CanGc) {
-        self.upcast::<Element>().Remove(can_gc)
+    fn Remove(&self) {
+        self.upcast::<Element>().Remove()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-value
@@ -340,7 +339,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-value
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetValue(&self, value: DOMString) {
         let mut opt_iter = self.list_of_options();
         // Reset until we find an <option> with a matching value
         for opt in opt_iter.by_ref() {
@@ -357,7 +356,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::VALUE_MISSING, can_gc);
+            .perform_validation_and_update(ValidationFlags::VALUE_MISSING, CanGc::note());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-selectedindex

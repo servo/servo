@@ -1008,7 +1008,7 @@ impl Node {
             .node_from_nodes_and_strings(nodes, can_gc)?;
         if self.parent_node == Some(&*parent) {
             // Step 5.
-            parent.ReplaceChild(&node, self, can_gc)?;
+            parent.ReplaceChild(&node, self)?;
         } else {
             // Step 6.
             Node::pre_insert(&node, &parent, viable_next_sibling.as_deref(), can_gc)?;
@@ -1032,7 +1032,7 @@ impl Node {
         let doc = self.owner_doc();
         let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
         // Step 2.
-        self.AppendChild(&node, can_gc).map(|_| ())
+        self.AppendChild(&node).map(|_| ())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
@@ -1267,7 +1267,7 @@ impl Node {
         index: i32,
         get_items: F,
         new_child: G,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) -> Fallible<DomRoot<HTMLElement>>
     where
         F: Fn() -> DomRoot<HTMLCollection>,
@@ -1283,7 +1283,7 @@ impl Node {
         {
             let tr_node = tr.upcast::<Node>();
             if index == -1 {
-                self.InsertBefore(tr_node, None, can_gc)?;
+                self.InsertBefore(tr_node, None)?;
             } else {
                 let items = get_items();
                 let node = match items
@@ -1296,7 +1296,7 @@ impl Node {
                     None => return Err(Error::IndexSize),
                     Some(node) => node,
                 };
-                self.InsertBefore(tr_node, node.as_deref(), can_gc)?;
+                self.InsertBefore(tr_node, node.as_deref())?;
             }
         }
 
@@ -3081,11 +3081,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-nodevalue>
-    fn SetNodeValue(&self, val: Option<DOMString>, can_gc: CanGc) {
+    fn SetNodeValue(&self, val: Option<DOMString>) {
         match self.type_id() {
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(val.unwrap_or_default(), can_gc);
+                attr.SetValue(val.unwrap_or_default());
             },
             NodeTypeId::CharacterData(_) => {
                 let character_data = self.downcast::<CharacterData>().unwrap();
@@ -3131,7 +3131,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             },
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(value, can_gc);
+                attr.SetValue(value);
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();
@@ -3142,22 +3142,17 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-insertbefore>
-    fn InsertBefore(
-        &self,
-        node: &Node,
-        child: Option<&Node>,
-        can_gc: CanGc,
-    ) -> Fallible<DomRoot<Node>> {
-        Node::pre_insert(node, self, child, can_gc)
+    fn InsertBefore(&self, node: &Node, child: Option<&Node>) -> Fallible<DomRoot<Node>> {
+        Node::pre_insert(node, self, child, CanGc::note())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-appendchild>
-    fn AppendChild(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
-        Node::pre_insert(node, self, None, can_gc)
+    fn AppendChild(&self, node: &Node) -> Fallible<DomRoot<Node>> {
+        Node::pre_insert(node, self, None, CanGc::note())
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace>
-    fn ReplaceChild(&self, node: &Node, child: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+    fn ReplaceChild(&self, node: &Node, child: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
         match self.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
@@ -3255,11 +3250,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         // Step 10.
         let document = self.owner_document();
-        Node::adopt(node, &document, can_gc);
+        Node::adopt(node, &document, CanGc::note());
 
         let removed_child = if node != child {
             // Step 11.
-            Node::remove(child, self, SuppressObserver::Suppressed, can_gc);
+            Node::remove(child, self, SuppressObserver::Suppressed, CanGc::note());
             Some(child)
         } else {
             None
@@ -3283,7 +3278,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             self,
             reference_child,
             SuppressObserver::Suppressed,
-            can_gc,
+            CanGc::note(),
         );
 
         // Step 14.
@@ -3308,19 +3303,19 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-removechild>
-    fn RemoveChild(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
-        Node::pre_remove(node, self, can_gc)
+    fn RemoveChild(&self, node: &Node) -> Fallible<DomRoot<Node>> {
+        Node::pre_remove(node, self, CanGc::note())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
-    fn Normalize(&self, can_gc: CanGc) {
+    fn Normalize(&self) {
         let mut children = self.children().enumerate().peekable();
         while let Some((_, node)) = children.next() {
             if let Some(text) = node.downcast::<Text>() {
                 let cdata = text.upcast::<CharacterData>();
                 let mut length = cdata.Length();
                 if length == 0 {
-                    Node::remove(&node, self, SuppressObserver::Unsuppressed, can_gc);
+                    Node::remove(&node, self, SuppressObserver::Unsuppressed, CanGc::note());
                     continue;
                 }
                 while children
@@ -3336,10 +3331,15 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
                     cdata.append_data(&sibling_cdata.data());
-                    Node::remove(&sibling, self, SuppressObserver::Unsuppressed, can_gc);
+                    Node::remove(
+                        &sibling,
+                        self,
+                        SuppressObserver::Unsuppressed,
+                        CanGc::note(),
+                    );
                 }
             } else {
-                node.Normalize(can_gc);
+                node.Normalize();
             }
         }
     }

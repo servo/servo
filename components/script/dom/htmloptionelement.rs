@@ -282,11 +282,11 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-selected
-    fn SetSelected(&self, selected: bool, can_gc: CanGc) {
+    fn SetSelected(&self, selected: bool) {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
         self.pick_if_selected_and_reset();
-        self.update_select_validity(can_gc);
+        self.update_select_validity(CanGc::note());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-option-index

@@ -137,12 +137,12 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
 
             // Step 4.
             if let Some(doc_type) = maybe_doctype {
-                doc_node.AppendChild(doc_type.upcast(), can_gc).unwrap();
+                doc_node.AppendChild(doc_type.upcast()).unwrap();
             }
 
             // Step 5.
             if let Some(ref elem) = maybe_elem {
-                doc_node.AppendChild(elem.upcast(), can_gc).unwrap();
+                doc_node.AppendChild(elem.upcast()).unwrap();
             }
         }
 
@@ -183,7 +183,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             // Step 3.
             let doc_node = doc.upcast::<Node>();
             let doc_type = DocumentType::new(DOMString::from("html"), None, None, &doc, can_gc);
-            doc_node.AppendChild(doc_type.upcast(), can_gc).unwrap();
+            doc_node.AppendChild(doc_type.upcast()).unwrap();
         }
 
         {
@@ -196,9 +196,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 None,
                 can_gc,
             ));
-            doc_node
-                .AppendChild(&doc_html, can_gc)
-                .expect("Appending failed");
+            doc_node.AppendChild(&doc_html).expect("Appending failed");
 
             {
                 // Step 5.
@@ -209,7 +207,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                     None,
                     can_gc,
                 ));
-                doc_html.AppendChild(&doc_head, can_gc).unwrap();
+                doc_html.AppendChild(&doc_head).unwrap();
 
                 // Step 6.
                 if let Some(title_str) = title {
@@ -221,17 +219,17 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                         None,
                         can_gc,
                     ));
-                    doc_head.AppendChild(&doc_title, can_gc).unwrap();
+                    doc_head.AppendChild(&doc_title).unwrap();
 
                     // Step 6.2.
                     let title_text = Text::new(title_str, &doc, can_gc);
-                    doc_title.AppendChild(title_text.upcast(), can_gc).unwrap();
+                    doc_title.AppendChild(title_text.upcast()).unwrap();
                 }
             }
 
             // Step 7.
             let doc_body = HTMLBodyElement::new(local_name!("body"), None, &doc, None, can_gc);
-            doc_html.AppendChild(doc_body.upcast(), can_gc).unwrap();
+            doc_html.AppendChild(doc_body.upcast()).unwrap();
         }
 
         // Step 8.

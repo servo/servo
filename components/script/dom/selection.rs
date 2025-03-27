@@ -453,11 +453,11 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     // https://w3c.github.io/selection-api/#dom-selection-deletecontents
-    fn DeleteFromDocument(&self, can_gc: CanGc) -> ErrorResult {
+    fn DeleteFromDocument(&self) -> ErrorResult {
         if let Some(range) = self.range.get() {
             // Since the range is changing, it should trigger a
             // selectionchange event as it would if if mutated any other way
-            return range.DeleteContents(can_gc);
+            return range.DeleteContents();
         }
         Ok(())
     }

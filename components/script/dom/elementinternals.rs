@@ -234,7 +234,6 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         flags: &ValidityStateFlags,
         message: Option<DOMString>,
         anchor: Option<&HTMLElement>,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Steps 1-2: Check form-associated custom element
         if !self.is_target_form_associated() {
@@ -254,7 +253,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         // Step 4: For each entry `flag` → `value` of `flags`, set element's validity flag with the name
         // `flag` to `value`.
         self.validity_state().update_invalid_flags(bits);
-        self.validity_state().update_pseudo_classes(can_gc);
+        self.validity_state().update_pseudo_classes(CanGc::note());
 
         // Step 5: Set element's validation message to the empty string if message is not given
         // or all of element's validity flags are false, or to message otherwise.

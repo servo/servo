@@ -532,13 +532,11 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         if fragment.upcast::<Node>().children_count() == 0 {
             let text_node = Text::new(DOMString::from("".to_owned()), &document, can_gc);
 
-            fragment
-                .upcast::<Node>()
-                .AppendChild(text_node.upcast(), can_gc)?;
+            fragment.upcast::<Node>().AppendChild(text_node.upcast())?;
         }
 
         // Step 6: Replace this with fragment within this's parent.
-        parent.ReplaceChild(fragment.upcast(), node, can_gc)?;
+        parent.ReplaceChild(fragment.upcast(), node)?;
 
         // Step 7: If next is non-null and next's previous sibling is a Text node, then merge with
         // the next text node given next's previous sibling.
@@ -672,7 +670,7 @@ fn append_text_node_to_fragment(
     let text = Text::new(DOMString::from(text), document, can_gc);
     fragment
         .upcast::<Node>()
-        .AppendChild(text.upcast(), can_gc)
+        .AppendChild(text.upcast())
         .unwrap();
 }
 
@@ -1018,10 +1016,7 @@ impl HTMLElement {
                     }
 
                     let br = HTMLBRElement::new(local_name!("br"), None, &document, None, can_gc);
-                    fragment
-                        .upcast::<Node>()
-                        .AppendChild(br.upcast(), can_gc)
-                        .unwrap();
+                    fragment.upcast::<Node>().AppendChild(br.upcast()).unwrap();
                 },
                 _ => {
                     // Collect a sequence of code points that are not U+000A LF or U+000D CR from

@@ -64,7 +64,7 @@ impl HTMLOptionsCollection {
             let element =
                 HTMLOptionElement::new(local_name!("option"), None, &document, None, can_gc);
             let node = element.upcast::<Node>();
-            root.AppendChild(node, can_gc)?;
+            root.AppendChild(node)?;
         }
         Ok(())
     }
@@ -122,11 +122,11 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
                 let child = self.upcast().IndexedGetter(index).unwrap();
                 let child_node = child.upcast::<Node>();
 
-                root.ReplaceChild(node, child_node, can_gc).map(|_| ())
+                root.ReplaceChild(node, child_node).map(|_| ())
             }
         } else {
             // Step 1
-            self.Remove(index as i32, can_gc);
+            self.Remove(index as i32);
             Ok(())
         }
     }
@@ -161,7 +161,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
                 // Step 3.1. Let n be current − value.
                 // Step 3.2 Remove the last n nodes in the collection from their parent nodes.
                 for index in (length..current).rev() {
-                    self.Remove(index as i32, can_gc)
+                    self.Remove(index as i32)
                 }
             },
             _ => {},
@@ -173,7 +173,6 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
         &self,
         element: HTMLOptionElementOrHTMLOptGroupElement,
         before: Option<HTMLElementOrLong>,
-        can_gc: CanGc,
     ) -> ErrorResult {
         let root = self.upcast().root_node();
 
@@ -221,13 +220,13 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
         };
 
         // Step 6
-        Node::pre_insert(node, &parent, reference_node.as_deref(), can_gc).map(|_| ())
+        Node::pre_insert(node, &parent, reference_node.as_deref(), CanGc::note()).map(|_| ())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove>
-    fn Remove(&self, index: i32, can_gc: CanGc) {
+    fn Remove(&self, index: i32) {
         if let Some(element) = self.upcast().IndexedGetter(index as u32) {
-            element.Remove(can_gc);
+            element.Remove();
         }
     }
 

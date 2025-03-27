@@ -112,10 +112,10 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetValue(&self, value: DOMString) {
         if let Some(owner) = self.owner() {
             let value = owner.parse_attribute(self.namespace(), self.local_name(), value);
-            self.set_value(value, &owner, can_gc);
+            self.set_value(value, &owner, CanGc::note());
         } else {
             *self.value.borrow_mut() = AttrValue::String(value.into());
         }

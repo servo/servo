@@ -96,7 +96,7 @@ impl HTMLProgressElement {
             .upcast::<Element>()
             .SetId("-servo-progress-bar".into(), can_gc);
         root.upcast::<Node>()
-            .AppendChild(progress_bar.upcast::<Node>(), can_gc)
+            .AppendChild(progress_bar.upcast::<Node>())
             .unwrap();
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {

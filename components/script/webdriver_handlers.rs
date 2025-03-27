@@ -1234,11 +1234,10 @@ pub(crate) fn handle_element_click(
                             match parent_node.downcast::<HTMLSelectElement>() {
                                 Some(select_element) => {
                                     if select_element.Multiple() {
-                                        option_element
-                                            .SetSelected(!option_element.Selected(), can_gc);
+                                        option_element.SetSelected(!option_element.Selected());
                                     }
                                 },
-                                None => option_element.SetSelected(true, can_gc),
+                                None => option_element.SetSelected(true),
                             }
 
                             // Step 8.6.4

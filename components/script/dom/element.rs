@@ -2171,10 +2171,7 @@ impl Element {
         let fragment = DocumentFragment::new(&context_document, can_gc);
         // Step 4.
         for child in new_children {
-            fragment
-                .upcast::<Node>()
-                .AppendChild(&child, can_gc)
-                .unwrap();
+            fragment.upcast::<Node>().AppendChild(&child).unwrap();
         }
         // Step 5.
         Ok(fragment)
@@ -2516,7 +2513,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattributenode
-    fn SetAttributeNode(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
+    fn SetAttributeNode(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
         // Step 1.
         if let Some(owner) = attr.GetOwnerElement() {
             if &*owner != self {
@@ -2566,7 +2563,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 vtable.attribute_mutated(
                     attr,
                     AttributeMutation::Set(Some(&old_attr.value())),
-                    can_gc,
+                    CanGc::note(),
                 );
             }
 
@@ -2575,7 +2572,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         } else {
             // Step 5.
             attr.set_owner(Some(self));
-            self.push_attribute(attr, can_gc);
+            self.push_attribute(attr, CanGc::note());
 
             // Step 6.
             Ok(None)
@@ -2583,31 +2580,26 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattributenodens
-    fn SetAttributeNodeNS(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
-        self.SetAttributeNode(attr, can_gc)
+    fn SetAttributeNodeNS(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
+        self.SetAttributeNode(attr)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattribute
-    fn RemoveAttribute(&self, name: DOMString, can_gc: CanGc) {
+    fn RemoveAttribute(&self, name: DOMString) {
         let name = self.parsed_name(name);
-        self.remove_attribute_by_name(&name, can_gc);
+        self.remove_attribute_by_name(&name, CanGc::note());
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattributens
-    fn RemoveAttributeNS(
-        &self,
-        namespace: Option<DOMString>,
-        local_name: DOMString,
-        can_gc: CanGc,
-    ) {
+    fn RemoveAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) {
         let namespace = namespace_from_domstring(namespace);
         let local_name = LocalName::from(local_name);
-        self.remove_attribute(&namespace, &local_name, can_gc);
+        self.remove_attribute(&namespace, &local_name, CanGc::note());
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattributenode
-    fn RemoveAttributeNode(&self, attr: &Attr, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
-        self.remove_first_matching_attribute(|a| a == attr, can_gc)
+    fn RemoveAttributeNode(&self, attr: &Attr) -> Fallible<DomRoot<Attr>> {
+        self.remove_first_matching_attribute(|a| a == attr, CanGc::note())
             .ok_or(Error::NotFound)
     }
 
@@ -2977,7 +2969,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // For each node in newChildren, append node to fragment.
         for child in new_children {
-            frag.upcast::<Node>().AppendChild(&child, can_gc).unwrap();
+            frag.upcast::<Node>().AppendChild(&child).unwrap();
         }
 
         // Replace all with fragment within target.
@@ -3097,7 +3089,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 5.
         let frag = parent.parse_fragment(value, can_gc)?;
         // Step 6.
-        context_parent.ReplaceChild(frag.upcast(), context_node, can_gc)?;
+        context_parent.ReplaceChild(frag.upcast(), context_node)?;
         Ok(())
     }
 
@@ -3184,8 +3176,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
-    fn Remove(&self, can_gc: CanGc) {
-        self.upcast::<Node>().remove_self(can_gc);
+    fn Remove(&self) {
+        self.upcast::<Node>().remove_self(CanGc::note());
     }
 
     // https://dom.spec.whatwg.org/#dom-element-matches
@@ -3241,10 +3233,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         &self,
         where_: DOMString,
         element: &Element,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<Element>>> {
         let where_ = where_.parse::<AdjacentPosition>()?;
-        let inserted_node = self.insert_adjacent(where_, element.upcast(), can_gc)?;
+        let inserted_node = self.insert_adjacent(where_, element.upcast(), CanGc::note())?;
         Ok(inserted_node.map(|node| DomRoot::downcast(node).unwrap()))
     }
 

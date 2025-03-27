@@ -118,22 +118,22 @@ impl HTMLDetailsElement {
 
         let summary = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
         root.upcast::<Node>()
-            .AppendChild(summary.upcast::<Node>(), can_gc)
+            .AppendChild(summary.upcast::<Node>())
             .unwrap();
 
         let fallback_summary =
-            HTMLElement::new(local_name!("summary"), None, &document, None, can_gc);
+            HTMLElement::new(local_name!("summary"), None, &document, None, CanGc::note());
         fallback_summary
             .upcast::<Node>()
             .SetTextContent(Some(DEFAULT_SUMMARY.into()), can_gc);
         summary
             .upcast::<Node>()
-            .AppendChild(fallback_summary.upcast::<Node>(), can_gc)
+            .AppendChild(fallback_summary.upcast::<Node>())
             .unwrap();
 
         let descendants = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
         root.upcast::<Node>()
-            .AppendChild(descendants.upcast::<Node>(), can_gc)
+            .AppendChild(descendants.upcast::<Node>())
             .unwrap();
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {

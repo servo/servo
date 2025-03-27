@@ -437,7 +437,7 @@ pub(crate) fn handle_modify_attribute(
                     can_gc,
                 );
             },
-            None => elem.RemoveAttribute(DOMString::from(modification.attribute_name), can_gc),
+            None => elem.RemoveAttribute(DOMString::from(modification.attribute_name)),
         }
     }
 }

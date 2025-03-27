@@ -2320,7 +2320,9 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation, can_gc);
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -2744,7 +2746,11 @@ impl Validatable for HTMLInputElement {
         }
     }
 
-    fn perform_validation(&self, validate_flags: ValidationFlags, _can_gc: CanGc) -> ValidationFlags {
+    fn perform_validation(
+        &self,
+        validate_flags: ValidationFlags,
+        _can_gc: CanGc,
+    ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
 

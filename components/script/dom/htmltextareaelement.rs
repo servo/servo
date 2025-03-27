@@ -327,7 +327,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-value
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetValue(&self, value: DOMString) {
         {
             let mut textinput = self.textinput.borrow_mut();
 
@@ -347,7 +347,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::note());
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
