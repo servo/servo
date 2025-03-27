@@ -8,6 +8,7 @@ use std::collections::hash_map::Keys;
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
+use compositing_traits::viewport_description::{self, ViewportDescription};
 use compositing_traits::{RendererWebView, SendableFrameTree};
 use constellation_traits::{EmbedderToConstellationMessage, ScrollState};
 use embedder_traits::{
@@ -65,6 +66,8 @@ pub(crate) struct WebView {
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
     /// Touch input state machine
     touch_handler: TouchHandler,
+    /// Viewport Description
+    viewport_description: Option<ViewportDescription>,
 }
 
 impl Drop for WebView {
@@ -91,6 +94,7 @@ impl WebView {
             touch_handler: TouchHandler::new(),
             global,
             pending_scroll_zoom_events: Default::default(),
+            viewport_description: None,
         }
     }
 
@@ -827,6 +831,10 @@ impl WebView {
         // TODO: Scroll to keep the center in view?
         self.pending_scroll_zoom_events
             .push(ScrollZoomEvent::PinchZoom(magnification));
+    }
+
+    pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
+        self.viewport_description = Some(viewport_description);
     }
 }
 
