@@ -23,6 +23,7 @@ use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector
 use webrender_api::{
     ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
+use webrender_traits::viewport_description::{self, ViewportDescription};
 
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};
@@ -61,6 +62,8 @@ pub(crate) struct WebView {
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
     /// Touch input state machine
     touch_handler: TouchHandler,
+    /// Viewport Description
+    viewport_description: Option<ViewportDescription>,
 }
 
 impl Drop for WebView {
@@ -82,6 +85,7 @@ impl WebView {
             touch_handler: TouchHandler::new(),
             global,
             pending_scroll_zoom_events: Default::default(),
+            viewport_description: None,
         }
     }
 
@@ -831,6 +835,10 @@ impl WebView {
         // TODO: Scroll to keep the center in view?
         self.pending_scroll_zoom_events
             .push(ScrollZoomEvent::PinchZoom(magnification));
+    }
+
+    pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
+        self.viewport_description = Some(viewport_description);
     }
 }
 #[derive(Debug)]

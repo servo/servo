@@ -920,7 +920,11 @@ impl IOCompositor {
                     );
                 }
             },
-            CrossProcessCompositorMessage::Viewport(_webview_id, _viewport_description) => {},
+            CrossProcessCompositorMessage::Viewport(webview_id, viewport_description) => {
+                if let Some(webview) = self.webviews.get_mut(webview_id) {
+                    webview.set_viewport_description(viewport_description);
+                }
+            },
         }
     }
 
