@@ -551,6 +551,7 @@ pub(crate) fn handle_find_element_tag_name(
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(
@@ -618,6 +619,7 @@ pub(crate) fn handle_find_elements_tag_name(
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(
@@ -675,6 +677,7 @@ pub(crate) fn handle_find_element_element_tag_name(
     element_id: String,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(
@@ -737,6 +740,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
     element_id: String,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(

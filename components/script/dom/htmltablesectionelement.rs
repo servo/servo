@@ -64,10 +64,15 @@ impl HTMLTableSectionElement {
 impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionElement {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
     fn Rows(&self) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(&self.owner_window(), self.upcast(), |element, root| {
-            element.is::<HTMLTableRowElement>() &&
-                element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
-        })
+        HTMLCollection::new_with_filter_fn(
+            &self.owner_window(),
+            self.upcast(),
+            |element, root| {
+                element.is::<HTMLTableRowElement>() &&
+                    element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+            },
+            CanGc::note(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
