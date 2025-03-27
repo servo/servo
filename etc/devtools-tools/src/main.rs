@@ -76,32 +76,52 @@ fn main() -> eyre::Result<()> {
     struct Type(String);
     let mut transactions: BTreeMap<(Actor, Type), Vec<(&Message, &Message)>> = BTreeMap::default();
     let mut spontaneous_messages: BTreeMap<Actor, Vec<&Message>> = BTreeMap::default();
+    let mut target_available_form_messages = vec![];
+    let mut frame_update_messages = vec![];
+    let mut resources_available_array_messages = vec![];
     for message in subsequent_messages.iter() {
         if let server_message @ Message::Server { from, r#type, .. } = message {
-            if r#type.is_some() {
-                // Server messages with types are probably spontaneous messages
-                // For example, request/reply/notify watcher target-available-form, thread newSource
-                // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#common-patterns-of-actor-communication>
-                // TODO: figure out how to realistically replay spontaneous messages at the right time
-                //       (maybe the client will be completely deterministic, but if not, we need some way to anchor them)
-                spontaneous_messages
-                    .entry(Actor(from.clone()))
-                    .or_default()
-                    .push(server_message);
-                warn!(?server_message, "Spontaneous");
-            } else {
-                let client_message = requests.entry(Actor(from.clone())).or_default().remove(0);
-                let Message::Client { to, r#type, .. } = client_message else {
-                    unreachable!("Guaranteed by code populating it")
-                };
-                let Some(r#type) = r#type else {
-                    panic!("Message from client has no type! {client_message:?}")
-                };
-                assert_eq!(to, from);
-                transactions
-                    .entry((Actor(from.clone()), Type(r#type.clone())))
-                    .or_default()
-                    .push((client_message, server_message));
+            // Server messages with types are probably spontaneous messages (often in request/reply/notify pattern),
+            // e.g. watcher resources-available-array, watcher target-available-form, thread newSource.
+            // Each of these messages need custom logic defining when they should be replayed, but this logic may not
+            // be perfect, so it’s always a *model* of the real behaviour.
+            // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#common-patterns-of-actor-communication>
+            match r#type.as_deref() {
+                Some("target-available-form") => {
+                    // watcher target-available-form model: send all on watcher watchTargets
+                    target_available_form_messages.push(message);
+                },
+                Some("frameUpdate") => {
+                    // watcher frameUpdate model: send all on watcher watchTargets, after all watcher target-available-form
+                    frame_update_messages.push(message);
+                },
+                Some("resources-available-array") => {
+                    // watcher resources-available-array model: send all on watcher watchResources
+                    resources_available_array_messages.push(message);
+                },
+                Some(r#type) => {
+                    // TODO: figure out how to realistically replay other spontaneous messages at the right time
+                    //       (maybe the client will be completely deterministic, but if not, we need some way to anchor them)
+                    spontaneous_messages
+                        .entry(Actor(from.clone()))
+                        .or_default()
+                        .push(server_message);
+                    warn!(%r#type, ?server_message, "Spontaneous");
+                },
+                None => {
+                    let client_message = requests.entry(Actor(from.clone())).or_default().remove(0);
+                    let Message::Client { to, r#type, .. } = client_message else {
+                        unreachable!("Guaranteed by code populating it")
+                    };
+                    let Some(r#type) = r#type else {
+                        panic!("Message from client has no type! {client_message:?}")
+                    };
+                    assert_eq!(to, from);
+                    transactions
+                        .entry((Actor(from.clone()), Type(r#type.clone())))
+                        .or_default()
+                        .push((client_message, server_message));
+                },
             }
         }
     }
@@ -129,6 +149,23 @@ fn main() -> eyre::Result<()> {
         // The key idea here is that for each actor and type, the client will send us the same requests.
         assert_eq!(&message, expected_message);
         stream.write_json_packet(reply_message)?;
+
+        match &**r#type {
+            "watchTargets" => {
+                for spontaneous_message in target_available_form_messages.drain(..) {
+                    stream.write_json_packet(spontaneous_message)?;
+                }
+                for spontaneous_message in frame_update_messages.drain(..) {
+                    stream.write_json_packet(spontaneous_message)?;
+                }
+            },
+            "watchResources" => {
+                for spontaneous_message in resources_available_array_messages.drain(..) {
+                    stream.write_json_packet(spontaneous_message)?;
+                }
+            },
+            _ => {},
+        }
     }
 }
 
