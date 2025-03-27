@@ -165,8 +165,8 @@ impl Serializable for DOMPoint {
 
     fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
         match data {
-            StructuredData::Reader(r) => &mut r.points,
-            StructuredData::Writer(w) => &mut w.points,
+            StructuredData::Reader(reader) => &mut reader.points,
+            StructuredData::Writer(writer) => &mut writer.points,
         }
     }
 
