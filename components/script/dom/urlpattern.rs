@@ -22,7 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlinputelement::new_js_regex;
 
 /// <https://urlpattern.spec.whatwg.org/#full-wildcard-regexp-value>
-const FULL_WILDCARD_REGEXP_VALUE: &str = "*";
+const FULL_WILDCARD_REGEXP_VALUE: &str = ".*";
 
 /// <https://urlpattern.spec.whatwg.org/#urlpattern>
 #[dom_struct]
