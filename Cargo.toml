@@ -43,7 +43,7 @@ compositing_traits = { path = "components/shared/compositing" }
 content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
-cssparser = { version = "0.35", features = ["serde"] }
+cssparser = { git = "https://github.com/servo/rust-cssparser", rev = "958a3f098acb92ddacdce18a7ef2c4a87ac3326f", features = ["serde"] }
 ctr = "0.9.2"
 darling = { version = "0.20", default-features = false }
 data-url = "0.3"
@@ -124,7 +124,7 @@ serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
-servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
+servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-03-15", features = ["servo"] }
 stylo_atoms = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
 smallbitvec = "2.6.0"
 smallvec = "1.14"
@@ -133,11 +133,11 @@ string_cache = "0.8"
 string_cache_codegen = "0.5"
 strum = "0.26"
 strum_macros = "0.26"
-stylo = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
+style = { git = "https://github.com/servo/stylo", branch = "2025-03-15", features = ["servo"], package = "stylo" }
 stylo_config = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
 stylo_dom = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
-stylo_traits = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
+style_malloc_size_of = { package = "stylo_malloc_size_of", git = "https://github.com/servo/stylo", branch = "2025-03-15", features = ["servo"] }
+style_traits = { git = "https://github.com/servo/stylo", branch = "2025-03-15", features = ["servo"], package = "stylo_traits" }
 surfman = { git = "https://github.com/servo/surfman", rev = "f7688b4585f9e0b5d4bf8ee8e4a91e82349610b1", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
@@ -217,11 +217,11 @@ codegen-units = 1
 # selectors = { path = "../stylo/selectors" }
 # servo_arc = { path = "../stylo/servo_arc" }
 # stylo_atoms = { path = "../stylo/stylo_atoms" }
-# stylo = { path = "../stylo/style" }
+# style = { path = "../stylo/style", package = "stylo" }
 # stylo_config = { path = "../stylo/stylo_config" }
 # stylo_dom = { path = "../stylo/stylo_dom" }
-# stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
-# stylo_traits = { path = "../stylo/style_traits" }
+# style_malloc_size_of = { path = "../stylo/malloc_size_of", package = "stylo_malloc_size_of" }
+# style_traits = { path = "../stylo/style_traits", package = "stylo_traits" }
 #
 # Or for WebRender:
 #
