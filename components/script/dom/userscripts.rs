@@ -16,7 +16,7 @@ use crate::script_runtime::CanGc;
 
 pub(crate) fn load_script(head: &HTMLHeadElement) {
     let doc = head.owner_document();
-    let userscripts = doc.window().get_userscripts().clone();
+    let userscripts = doc.window().userscripts().to_owned();
     if userscripts.is_empty() {
         return;
     }

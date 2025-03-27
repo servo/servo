@@ -1,10 +1,14 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::path::PathBuf;
 
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, MallocSizeOf)]
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct UserContentManager {
     user_scripts: Vec<UserScript>,
 }
@@ -18,12 +22,12 @@ impl UserContentManager {
         self.user_scripts.push(script.into());
     }
 
-    pub fn get_scripts(&self) -> &Vec<UserScript> {
+    pub fn scripts(&self) -> &[UserScript] {
         &self.user_scripts
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UserScript {
     pub script: String,
     pub source_file: Option<PathBuf>,

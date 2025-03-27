@@ -624,8 +624,8 @@ impl Window {
         &self.compositor_api
     }
 
-    pub(crate) fn get_userscripts(&self) -> &Vec<UserScript> {
-        self.user_content_manager.get_scripts()
+    pub(crate) fn userscripts(&self) -> &[UserScript] {
+        self.user_content_manager.scripts()
     }
 
     pub(crate) fn get_player_context(&self) -> WindowGLContext {
