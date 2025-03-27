@@ -2009,7 +2009,43 @@ impl Transferable for ReadableStream {
             return Err(());
         }
 
-        todo!()
+        // TODO: move up the call stack.
+        let global = self.global();
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+        let cx = GlobalScope::get_cx();
+
+        // TODO: move up the call stack.
+        let can_gc = CanGc::note();
+
+        // Let port1 be a new MessagePort in the current Realm.
+        let port_1 = MessagePort::new(&global, can_gc);
+        global.track_message_port(&port_1, None);
+
+        // Let port2 be a new MessagePort in the current Realm.
+        let port_2 = MessagePort::new(&global, can_gc);
+        global.track_message_port(&port_2, None);
+
+        // Entangle port1 and port2.
+        global.entangle_ports(*port_1.message_port_id(), *port_2.message_port_id());
+
+        // Let writable be a new WritableStream in the current Realm.
+        let writable = WritableStream::new_with_proto(&global, None, can_gc);
+
+        // Perform ! SetUpCrossRealmTransformWritable(writable, port1).
+        // TODO
+
+        // Let promise be ! ReadableStreamPipeTo(value, writable, false, false, false).
+        let promise = self.pipe_to(cx, &global, &writable, false, false, false, comp, can_gc);
+
+        // Set promise.[[PromiseIsHandled]] to true.
+        promise.set_promise_is_handled();
+
+        // Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
+        // Done as in the port transfer steps implementation.
+        let id = port_2.message_port_id();
+        let transferred_port = global.mark_port_as_transferred(id);
+        Ok((*id, transferred_port))
     }
 
     fn transfer_receive(
