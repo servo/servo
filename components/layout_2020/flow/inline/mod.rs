@@ -174,6 +174,11 @@ pub(crate) struct InlineFormattingContext {
 /// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
 #[derive(Debug)]
 pub(crate) struct FontKeyAndMetrics {
+    // Font instance key allows us to get font from system
+    // However this font doesn't contain information that
+    // stored in font_descriptor, only about template.descriptor.
+    // Nevertheless it seems that
+    // created keys would be unique for the font files.
     pub key: FontInstanceKey,
     pub pt_size: Au,
     pub metrics: FontMetrics,

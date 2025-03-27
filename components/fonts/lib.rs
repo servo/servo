@@ -21,6 +21,7 @@ pub use font_context::*;
 pub use font_store::*;
 pub use font_template::*;
 pub use glyph::*;
+use icu_locid::LanguageIdentifier;
 use ipc_channel::ipc::IpcSharedMemory;
 pub use platform::LocalFontIdentifier;
 pub use shaper::*;
@@ -52,16 +53,18 @@ impl AsRef<[u8]> for FontData {
 /// Whether or not font fallback selection prefers the emoji or text representation
 /// of a character. If `None` then either presentation is acceptable.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(u8)]
 pub enum EmojiPresentationPreference {
     None,
     Text,
     Emoji,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct FallbackFontSelectionOptions {
     pub character: char,
     pub presentation_preference: EmojiPresentationPreference,
+    pub language: LanguageIdentifier,
 }
 
 impl Default for FallbackFontSelectionOptions {
@@ -69,12 +72,17 @@ impl Default for FallbackFontSelectionOptions {
         Self {
             character: ' ',
             presentation_preference: EmojiPresentationPreference::None,
+            language: LanguageIdentifier::default(),
         }
     }
 }
 
 impl FallbackFontSelectionOptions {
-    pub fn new(character: char, next_character: Option<char>) -> Self {
+    pub fn new(
+        character: char,
+        next_character: Option<char>,
+        language: LanguageIdentifier,
+    ) -> Self {
         let presentation_preference = match next_character {
             Some(next_character) if emoji::is_emoji_presentation_selector(next_character) => {
                 EmojiPresentationPreference::Emoji
@@ -102,6 +110,7 @@ impl FallbackFontSelectionOptions {
         Self {
             character,
             presentation_preference,
+            language,
         }
     }
 }

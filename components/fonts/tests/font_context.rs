@@ -19,7 +19,7 @@ mod font_context {
         FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,
         FontIdentifier, FontSearchScope, FontTemplate, FontTemplates, LocalFontIdentifier,
         PlatformFontMethods, SystemFontServiceMessage, SystemFontServiceProxy,
-        SystemFontServiceProxySender, fallback_font_families,
+        SystemFontServiceProxySender, os_fallback_families,
     };
     use ipc_channel::ipc::{self, IpcReceiver};
     use net_traits::ResourceThreads;
@@ -77,7 +77,7 @@ mod font_context {
     }
 
     struct MockSystemFontService {
-        families: Mutex<HashMap<String, FontTemplates>>,
+        templates: Mutex<HashMap<String, FontTemplates>>,
         find_font_count: AtomicI32,
     }
 
@@ -113,11 +113,11 @@ mod font_context {
                         };
 
                         let _ = result_sender.send(
-                            self.families
+                            self.templates
                                 .lock()
                                 .get_mut(&*family_name.name)
-                                .map(|family| {
-                                    family.find_for_descriptor(descriptor_to_match.as_ref())
+                                .map(|template| {
+                                    template.find_for_descriptor(descriptor_to_match.as_ref())
                                 })
                                 .unwrap()
                                 .into_iter()
@@ -143,7 +143,7 @@ mod font_context {
 
         fn new() -> Self {
             let proxy = Self {
-                families: Default::default(),
+                templates: Default::default(),
                 find_font_count: AtomicI32::new(0),
             };
 
@@ -157,11 +157,11 @@ mod font_context {
             proxy.add_face(&mut fallback, "csstest-basic-regular");
 
             {
-                let mut families = proxy.families.lock();
-                families.insert("CSSTest ASCII".to_owned(), csstest_ascii);
-                families.insert("CSSTest Basic".to_owned(), csstest_basic);
-                families.insert(
-                    fallback_font_families(FallbackFontSelectionOptions::default())[0].to_owned(),
+                let mut templates = proxy.templates.lock();
+                templates.insert("CSSTest ASCII".to_owned(), csstest_ascii);
+                templates.insert("CSSTest Basic".to_owned(), csstest_basic);
+                templates.insert(
+                    os_fallback_families(FallbackFontSelectionOptions::default())[0].to_owned(),
                     fallback,
                 );
             }

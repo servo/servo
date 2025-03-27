@@ -101,7 +101,7 @@ where
 /// Get the list of fallback fonts given an optional codepoint. This is
 /// based on `gfxPlatformMac::GetCommonFallbackFonts()` in Gecko from
 /// <https://searchfox.org/mozilla-central/source/gfx/thebes/gfxPlatformMac.cpp>.
-pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+pub fn os_fallback_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = Vec::new();
     if options.presentation_preference == EmojiPresentationPreference::Emoji {
         families.push("Apple Color Emoji");

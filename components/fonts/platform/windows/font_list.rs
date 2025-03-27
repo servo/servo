@@ -104,7 +104,7 @@ where
 }
 
 // Based on gfxWindowsPlatform::GetCommonFallbackFonts() in Gecko
-pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+pub fn os_fallback_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = Vec::new();
     if options.presentation_preference == EmojiPresentationPreference::Emoji {
         families.push("Segoe UI Emoji");

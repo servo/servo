@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::CString;
+use std::error::Error;
+use std::ffi::{CString, NulError};
 use std::os::raw::c_long;
 use std::{mem, ptr};
 
@@ -32,6 +33,7 @@ use crate::font::{
 };
 use crate::font_template::FontTemplateDescriptor;
 use crate::glyph::GlyphId;
+use crate::platform::freetype::freetype_errors::CustomFtErrorMethods;
 use crate::system_font_service::FontIdentifier;
 
 // This constant is not present in the freetype
@@ -117,6 +119,14 @@ impl PlatformFontMethods for PlatformFont {
         };
 
         if 0 != result || face.is_null() {
+            // We want to have more logs on OpenHarmony,
+            // Linux and Android must not be affected;
+            #[cfg(any(target_env = "ohos", ohos_mock))]
+            {
+                let ft_error_code: FT_Error = result as FT_Error;
+                let error_string = ft_error_code.ft_get_error_message();
+                log::error!("Could not create FreeType face. FT_error: {}", error_string);
+            }
             return Err("Could not create FreeType face");
         }
 
@@ -138,7 +148,19 @@ impl PlatformFontMethods for PlatformFont {
     ) -> Result<PlatformFont, &'static str> {
         let mut face: FT_Face = ptr::null_mut();
         let library = FreeTypeLibraryHandle::get().lock();
-        let filename = CString::new(&*font_identifier.path).expect("filename contains NUL byte!");
+        let filename = match CString::new(&*font_identifier.path) {
+            Err(e)  => {
+                let e: NulError = e;
+                // We want to have more logs on OpenHarmony,
+                // Linux and Android must not be affected;
+                #[cfg(any(target_env = "ohos", ohos_mock))]
+                {
+                    log::error!("{}\nCaused by: {}", e, e.source().unwrap());
+                }
+                return Err("filename contains NUL byte!");
+            },
+            Ok(data) => data,
+        };
 
         let result = unsafe {
             FT_New_Face(
@@ -150,6 +172,14 @@ impl PlatformFontMethods for PlatformFont {
         };
 
         if 0 != result || face.is_null() {
+            // We want to have more logs on OpenHarmony,
+            // Linux and Android must not be affected;
+            #[cfg(any(target_env = "ohos", ohos_mock))]
+            {
+                let ft_error_code: FT_Error = result as FT_Error;
+                let error_string = ft_error_code.ft_get_error_message();
+                log::error!("Could not create FreeType face. FT_error: {}", error_string);
+            }
             return Err("Could not create FreeType face");
         }
 

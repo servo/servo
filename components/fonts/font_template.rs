@@ -7,6 +7,7 @@ use std::ops::RangeInclusive;
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
+use icu_locid::LanguageIdentifier;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::computed_values::font_stretch::T as FontStretch;
@@ -31,6 +32,9 @@ pub struct FontTemplateDescriptor {
     pub weight: (FontWeight, FontWeight),
     pub stretch: (FontStretch, FontStretch),
     pub style: (FontStyle, FontStyle),
+
+    #[ignore_malloc_size_of = "MallocSizeOf does not yet support LanguageIdentifier"]
+    pub language: LanguageIdentifier,
     #[ignore_malloc_size_of = "MallocSizeOf does not yet support RangeInclusive"]
     pub unicode_range: Option<Vec<RangeInclusive<u32>>>,
 }
@@ -52,6 +56,7 @@ impl FontTemplateDescriptor {
             weight: (weight, weight),
             stretch: (stretch, stretch),
             style: (style, style),
+            language: LanguageIdentifier::default(),
             unicode_range: None,
         }
     }
@@ -63,7 +68,7 @@ impl FontTemplateDescriptor {
     }
 
     /// Returns a score indicating how far apart visually the two font descriptors are. This is
-    /// used for implmenting the CSS Font Matching algorithm:
+    /// used for implmenting step 4 of the CSS Font Matching algorithm:
     /// <https://drafts.csswg.org/css-fonts/#font-matching-algorithm>.
     ///
     /// The smaller the score, the better the fonts match. 0 indicates an exact match. This must

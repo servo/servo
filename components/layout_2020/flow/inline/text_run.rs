@@ -415,6 +415,8 @@ impl TextRun {
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
     ) -> Vec<(TextRunSegment, FontRef)> {
+        // In propper language implementation script should also be provided from style
+        // We should get it from language of html element. :lang()
         let font_group = font_context.font_group(self.parent_style.clone_font());
         let mut current: Option<(TextRunSegment, FontRef)> = None;
         let mut results = Vec::new();

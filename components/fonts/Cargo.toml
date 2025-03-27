@@ -22,11 +22,13 @@ atomic_refcell = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
 euclid = { workspace = true }
+embedder_traits = { workspace = true }
 fnv = { workspace = true }
 fonts_traits = { workspace = true }
 fontsan = { git = "https://github.com/servo/fontsan" }
 # FIXME (#34517): macOS only needs this when building libservo without `--features media-gstreamer`
 harfbuzz-sys = { workspace = true, features = ["bundled"] }
+icu_locid = { workspace = true, features = ["serde"] }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
 libc = { workspace = true }
@@ -67,6 +69,12 @@ fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 xml-rs = "0.8"
+
+[target.'cfg(target_env = "ohos")'.dependencies]
+serde_json = "1.0"
+# Don't use until status of maintanence is clear. Fork and start mantain
+codes-iso-15924 = { version = "0.1.3" }
+codes-iso-639 = { version = "0.1.5", features = ["part_3"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.11.2"
