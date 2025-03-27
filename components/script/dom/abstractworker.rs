@@ -16,7 +16,7 @@ pub(crate) enum WorkerScriptMsg {
     /// Message sent through Worker.postMessage
     DOMMessage {
         origin: ImmutableOrigin,
-        data: StructuredSerializedData,
+        data: Box<StructuredSerializedData>,
     },
 }
 
