@@ -34,7 +34,7 @@ pub struct FontTemplateDescriptor {
     pub style: (FontStyle, FontStyle),
 
     #[ignore_malloc_size_of = "MallocSizeOf does not yet support LanguageIdentifier"]
-    pub language: LanguageIdentifier,
+    pub languages: Option<Vec<LanguageIdentifier>>,
     #[ignore_malloc_size_of = "MallocSizeOf does not yet support RangeInclusive"]
     pub unicode_range: Option<Vec<RangeInclusive<u32>>>,
 }
@@ -56,7 +56,7 @@ impl FontTemplateDescriptor {
             weight: (weight, weight),
             stretch: (stretch, stretch),
             style: (style, style),
-            language: LanguageIdentifier::default(),
+            languages: None,
             unicode_range: None,
         }
     }

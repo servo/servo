@@ -50,6 +50,7 @@ stylo_atoms = { workspace = true }
 tracing = { workspace = true, optional = true }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
+unicode-language = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
