@@ -124,7 +124,7 @@ use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
 pub use crate::webview_delegate::{
-    AllowOrDenyRequest, AuthenticationRequest, NavigationRequest, PermissionRequest,
+    AllowOrDenyRequest, AuthenticationRequest, FormControl, NavigationRequest, PermissionRequest,
     SelectElementPrompt, WebResourceLoad, WebViewDelegate,
 };
 
@@ -983,7 +983,7 @@ impl Servo {
                         SelectElementPrompt::new(options, selected_option, position, ipc_sender);
                     webview
                         .delegate()
-                        .show_select_element_prompt(webview, prompt);
+                        .show_form_control(webview, FormControl::SelectElement(prompt));
                 }
             },
         }

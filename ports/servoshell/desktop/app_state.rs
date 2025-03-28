@@ -17,9 +17,9 @@ use servo::ipc_channel::ipc::IpcSender;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::{
-    AllowOrDenyRequest, AuthenticationRequest, FilterPattern, GamepadHapticEffectType, LoadStatus,
-    PermissionRequest, SelectElementPrompt, Servo, ServoDelegate, ServoError, SimpleDialog,
-    TouchEventType, WebView, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
+    LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEventType,
+    WebView, WebViewDelegate,
 };
 use url::Url;
 
@@ -584,14 +584,18 @@ impl WebViewDelegate for RunningAppState {
         self.inner().window.hide_ime();
     }
 
-    fn show_select_element_prompt(&self, webview: WebView, prompt: SelectElementPrompt) {
+    fn show_form_control(&self, webview: WebView, form_control: FormControl) {
         if self.servoshell_preferences.headless {
             return;
         }
 
-        // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
-        // But if the toolbar height changes while the dialog is open then the position won't be updated
-        let offset = self.inner().window.toolbar_height();
-        self.add_dialog(webview, Dialog::new_select_element_dialog(prompt, offset));
+        match form_control {
+            FormControl::SelectElement(prompt) => {
+                // FIXME: Reading the toolbar height is needed here to properly position the select dialog.
+                // But if the toolbar height changes while the dialog is open then the position won't be updated
+                let offset = self.inner().window.toolbar_height();
+                self.add_dialog(webview, Dialog::new_select_element_dialog(prompt, offset));
+            },
+        }
     }
 }

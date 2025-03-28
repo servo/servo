@@ -296,6 +296,12 @@ impl Drop for InterceptedWebResourceLoad {
     }
 }
 
+/// The controls of an interactive form element.
+pub enum FormControl {
+    /// The picker of a `<select>` element.
+    SelectElement(SelectElementPrompt),
+}
+
 /// Represents a dialog triggered by clicking a `<select>` element.
 pub struct SelectElementPrompt {
     pub(crate) options: Vec<SelectElementOptionOrOptgroup>,
@@ -515,13 +521,7 @@ pub trait WebViewDelegate {
     /// Request to stop a haptic effect on a connected gamepad.
     fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: IpcSender<bool>) {}
 
-    fn show_select_element_prompt(
-        &self,
-        _webview: WebView,
-        select_element_prompt: SelectElementPrompt,
-    ) {
-        select_element_prompt.submit();
-    }
+    fn show_form_control(&self, _webview: WebView, _form_control: FormControl) {}
 
     /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling
