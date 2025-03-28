@@ -55,6 +55,20 @@ impl DOMRectReadOnly {
         )
     }
 
+    pub(crate) fn new_from_dictionary(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        dictionary: &DOMRectInit,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMRectReadOnly> {
+        reflect_dom_object_with_proto(
+            Box::new(create_a_domrectreadonly_from_the_dictionary(dictionary)),
+            global,
+            proto,
+            can_gc,
+        )
+    }
+
     pub(crate) fn set_x(&self, value: f64) {
         self.x.set(value);
     }

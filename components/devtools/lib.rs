@@ -19,7 +19,7 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use base::id::{BrowsingContextId, PipelineId};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleMessage, ConsoleMessageBuilder, DevtoolScriptControlMsg,
@@ -343,13 +343,13 @@ impl DevtoolsInstance {
     // TODO: move this into the root or target modules?
     fn handle_new_global(
         &mut self,
-        ids: (BrowsingContextId, PipelineId, Option<WorkerId>),
+        ids: (BrowsingContextId, PipelineId, Option<WorkerId>, WebViewId),
         script_sender: IpcSender<DevtoolScriptControlMsg>,
         page_info: DevtoolsPageInfo,
     ) {
         let mut actors = self.actors.lock().unwrap();
 
-        let (browsing_context_id, pipeline_id, worker_id) = ids;
+        let (browsing_context_id, pipeline_id, worker_id, webview_id) = ids;
 
         let console_name = actors.new_name("console");
 
@@ -387,6 +387,7 @@ impl DevtoolsInstance {
                 .or_insert_with(|| {
                     let browsing_context_actor = BrowsingContextActor::new(
                         console_name.clone(),
+                        webview_id,
                         browsing_context_id,
                         page_info,
                         pipeline_id,

@@ -5,7 +5,7 @@
 use crate::Servo;
 use crate::webview_delegate::{AllowOrDenyRequest, WebResourceLoad};
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq)]
+#[derive(Debug)]
 pub enum ServoError {
     /// The channel to the off-the-main-thread web engine has been lost. No further
     /// attempts to communicate will happen. This is an unrecoverable error in Servo.
@@ -13,6 +13,8 @@ pub enum ServoError {
     /// The devtools server, used to expose pages to remote web inspectors has failed
     /// to start.
     DevtoolsFailedToStart,
+    /// Failed to send response to delegate request.
+    ResponseFailedToSend(bincode::Error),
 }
 
 pub trait ServoDelegate {

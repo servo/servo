@@ -508,24 +508,25 @@ impl Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn attach_shadow(
         &self,
         // TODO: remove is_ua_widget argument
         is_ua_widget: IsUserAgentWidget,
         mode: ShadowRootMode,
         clonable: bool,
+        serializable: bool,
+        delegates_focus: bool,
         slot_assignment_mode: SlotAssignmentMode,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ShadowRoot>> {
-        // Step 1.
-        // If element’s namespace is not the HTML namespace,
+        // Step 1. If element’s namespace is not the HTML namespace,
         // then throw a "NotSupportedError" DOMException.
         if self.namespace != ns!(html) {
             return Err(Error::NotSupported);
         }
 
-        // Step 2.
-        // If element’s local name is not a valid shadow host name,
+        // Step 2. If element’s local name is not a valid shadow host name,
         // then throw a "NotSupportedError" DOMException.
         if !is_valid_shadow_host_name(self.local_name()) {
             // UA shadow roots may be attached to anything
@@ -534,13 +535,51 @@ impl Element {
             }
         }
 
-        // TODO: Update the following steps to align with the newer spec.
-        // Step 3.
-        if self.is_shadow_host() {
-            return Err(Error::InvalidState);
+        // Step 3. If element’s local name is a valid custom element name,
+        // or element’s is value is non-null
+        if is_valid_custom_element_name(self.local_name()) || self.get_is().is_some() {
+            // Step 3.1. Let definition be the result of looking up a custom element definition
+            // given element’s node document, its namespace, its local name, and its is value.
+
+            let definition = self.get_custom_element_definition();
+            // Step 3.2. If definition is not null and definition’s disable shadow
+            //  is true, then throw a "NotSupportedError" DOMException.
+            if definition.is_some_and(|definition| definition.disable_shadow) {
+                return Err(Error::NotSupported);
+            }
         }
 
-        // Steps 4, 5 and 6.
+        // Step 4. If element is a shadow host:
+        // Step 4.1. Let currentShadowRoot be element’s shadow root.
+        if let Some(current_shadow_root) = self.shadow_root() {
+            // Step 4.2. If currentShadowRoot’s declarative is false
+            // or currentShadowRoot’s mode is not mode
+            // then throw a "NotSupportedError" DOMException.
+            if !current_shadow_root.is_declarative() ||
+                current_shadow_root.shadow_root_mode() != mode
+            {
+                return Err(Error::NotSupported);
+            }
+
+            // Step 4.3.1. Remove all of currentShadowRoot’s children, in tree order.
+            let node = self.upcast::<Node>();
+            for child in node.children() {
+                child.remove_self();
+            }
+
+            // Step 4.3.2. Set currentShadowRoot’s declarative to false.
+            current_shadow_root.set_declarative(false);
+
+            // Step 4.3.3. Return
+            return Ok(current_shadow_root);
+        }
+
+        // Step 5. Let shadow be a new shadow root whose node document
+        // is element’s node document, host is element, and mode is mode
+        //
+        // Step 8. Set shadow’s slot assignment to slotAssignment
+        //
+        // Step 10. Set shadow’s clonable to clonable
         let shadow_root = ShadowRoot::new(
             self,
             &self.node.owner_doc(),
@@ -551,6 +590,9 @@ impl Element {
             can_gc,
         );
 
+        // Step 6. Set shadow's delegates focus to delegatesFocus
+        shadow_root.set_delegates_focus(delegates_focus);
+
         // Step 7. If element’s custom element state is "precustomized" or "custom",
         // then set shadow’s available to element internals to true.
         if matches!(
@@ -560,6 +602,13 @@ impl Element {
             shadow_root.set_available_to_element_internals(true);
         }
 
+        // Step 9. Set shadow's declarative to false
+        shadow_root.set_declarative(false);
+
+        // Step 11. Set shadow's serializable to serializable
+        shadow_root.set_serializable(serializable);
+
+        // Step 12. Set element’s shadow root to shadow
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
@@ -653,15 +702,28 @@ impl Element {
         }))
     }
 
-    /// Add a new IntersectionObserverRegistration to the element.
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn add_intersection_observer_registration(
+    pub(crate) fn get_intersection_observer_registration(
         &self,
-        registration: IntersectionObserverRegistration,
+        observer: &IntersectionObserver,
+    ) -> Option<Ref<IntersectionObserverRegistration>> {
+        if let Some(registrations) = self.registered_intersection_observers() {
+            registrations
+                .iter()
+                .position(|reg_obs| reg_obs.observer == observer)
+                .map(|index| Ref::map(registrations, |registrations| &registrations[index]))
+        } else {
+            None
+        }
+    }
+
+    /// Add a new IntersectionObserverRegistration with initial value to the element.
+    pub(crate) fn add_initial_intersection_observer_registration(
+        &self,
+        observer: &IntersectionObserver,
     ) {
         self.ensure_rare_data()
             .registered_intersection_observers
-            .push(registration);
+            .push(IntersectionObserverRegistration::new_initial(observer));
     }
 
     /// Removes a certain IntersectionObserver.
@@ -3221,6 +3283,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             IsUserAgentWidget::No,
             init.mode,
             init.clonable,
+            init.serializable,
+            init.delegatesFocus,
             init.slotAssignment,
             CanGc::note(),
         )?;
