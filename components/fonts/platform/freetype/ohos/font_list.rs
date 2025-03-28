@@ -598,9 +598,7 @@ where
             weight: (weight, weight),
             stretch: (stretch, stretch),
             style: (style, style),
-            language: font.language.clone(),
-            // It is impossible for us to get Unicode ranges on OpenHarmony
-            // We must create IPC communication with FontLoader (WebRenderer)
+            languages: Some(vec![font.language.clone()]),
             unicode_range: None,
         };
         callback(FontTemplate::new(
@@ -720,13 +718,13 @@ pub fn os_fallback_families(options: FallbackFontSelectionOptions) -> Vec<&'stat
             .map(|entry| entry.name.as_str()),
     );
 
-    if log::log_enabled!(log::Level::Debug) {
-        log::warn!(
-            "character: {} generated following fallback list\n{:?}",
-            options.character,
-            families
-        );
-    }
+    // if log::log_enabled!(log::Level::Debug) {
+    //     log::warn!(
+    //         "character: {} generated following fallback list\n{:?}",
+    //         options.character,
+    //         families
+    //     );
+    // }
     families
 }
 

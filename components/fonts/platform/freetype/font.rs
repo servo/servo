@@ -4,6 +4,7 @@
 
 use std::error::Error;
 use std::ffi::{CString, NulError};
+use std::ops::RangeInclusive;
 use std::os::raw::c_long;
 use std::{mem, ptr};
 
@@ -12,20 +13,14 @@ use euclid::default::{Point2D, Rect, Size2D};
 use freetype_sys::{
     FT_Byte, FT_Done_Face, FT_Error, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES,
     FT_FACE_FLAG_MULTIPLE_MASTERS, FT_FACE_FLAG_SCALABLE, FT_Face, FT_Fixed, FT_Get_Char_Index,
-    FT_Get_Kerning, FT_Get_Sfnt_Table, FT_Get_Var_Design_Coordinates, FT_GlyphSlot, FT_Int32,
-    FT_KERNING_DEFAULT, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Long,
+    FT_Get_Kerning, FT_Get_MM_Var, FT_Get_Sfnt_Table, FT_GlyphSlot, FT_Int32, FT_KERNING_DEFAULT,
+    FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Long, FT_MM_Var,
     FT_MulFix, FT_New_Face, FT_New_Memory_Face, FT_Pos, FT_STYLE_FLAG_ITALIC, FT_Select_Size,
     FT_Set_Char_Size, FT_Short, FT_Size_Metrics, FT_SizeRec, FT_UInt, FT_UInt32, FT_UInt64,
-    FT_ULong, FT_UShort, FT_Vector, TT_OS2, ft_sfnt_head, ft_sfnt_os2,
+    FT_ULong, FT_UShort, FT_Var_Axis, FT_Vector, FTErrorMethods, TT_OS2, ft_sfnt_head, ft_sfnt_os2,
 };
-
-use crate::platform::freetype::{
-    freetype_truetype_unicode_ranges::convert_unicode_ranges,
-    freetype_errors::CustomFtErrorMethods
-};
-
 use icu_locid::LanguageIdentifier;
-
+use icu_locid::subtags::Language;
 use log::debug;
 use parking_lot::ReentrantMutex;
 use style::Zero;
@@ -33,6 +28,7 @@ use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
 use style::values::generics::Optional;
+use unicode_language::{Match as LanguageMatch, detect};
 use webrender_api::FontInstanceFlags;
 
 use super::LocalFontIdentifier;
@@ -43,6 +39,8 @@ use crate::font::{
 };
 use crate::font_template::FontTemplateDescriptor;
 use crate::glyph::GlyphId;
+use crate::platform::freetype::freetype_errors::CustomFtErrorMethods;
+use crate::platform::freetype::freetype_truetype_unicode_ranges::convert_unicode_ranges;
 use crate::system_font_service::FontIdentifier;
 
 // This constant is not present in the freetype
@@ -209,6 +207,11 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
+        if face.has_axes() {
+            log::warn!("ddesyatkin: Attempt to set font weight.");
+            face.set_weight(app_units::Au(0));
+        };
+
         Ok(PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
@@ -228,7 +231,10 @@ impl PlatformFontMethods for PlatformFont {
         let weight = os2_table
             .as_ref()
             .map(|os2| {
-                log::warn!("ddesyatkin: Freetype us_weight_class {}", os2.us_weight_class as f32);
+                log::warn!(
+                    "ddesyatkin: Freetype us_weight_class {}",
+                    os2.us_weight_class as f32
+                );
                 FontWeight::from_float(os2.us_weight_class as f32)
             })
             .unwrap_or_else(FontWeight::normal);
@@ -248,7 +254,7 @@ impl PlatformFontMethods for PlatformFont {
             })
             .unwrap_or(FontStretch::NORMAL);
 
-        let unicode_range = os2_table
+        let unicode_ranges = os2_table
             .as_ref()
             .map(|os2| {
                 Some(convert_unicode_ranges(
@@ -260,12 +266,35 @@ impl PlatformFontMethods for PlatformFont {
             })
             .unwrap_or(None);
 
+        // Constant bellow decides the required overlap of ranges required by language
+        // and ranges supported by font.
+        // Check unicode_language crate
+        // TODO(ddesyatkin): Choose correct constant here.
+        const LANGUAGE_DETECTION_THRESHOLD: f64 = 0.8;
+        let language_matches = unicode_language::detect(
+            unicode_ranges
+                .as_ref()
+                .unwrap_or(&Vec::<RangeInclusive<u32>>::new())
+                .iter()
+                .map(|unicode_range| [unicode_range.start().clone(), unicode_range.end().clone()])
+                .collect::<Vec<[u32; 2]>>(),
+            LANGUAGE_DETECTION_THRESHOLD,
+        );
+
+        let languages: Vec<LanguageIdentifier> = language_matches
+            .into_iter()
+            .filter_map(|language_match: LanguageMatch| {
+                Some(language_match.tag.parse::<Language>().ok()?)
+            })
+            .map(|language| LanguageIdentifier::from(language))
+            .collect();
+
         FontTemplateDescriptor {
             weight: (weight, weight),
             stretch: (stretch, stretch),
             style: (style, style),
-            language: LanguageIdentifier::default(),
-            unicode_range: unicode_range
+            languages: languages.into(),
+            unicode_range: unicode_ranges,
         }
     }
 
@@ -584,8 +613,27 @@ impl FreeTypeFaceHelpers for FT_Face {
     }
 
     fn set_weight(self, weight: Au) -> FT_Error {
-        let coords: *mut FT_Fixed = ptr::null_mut();
-        let result: FT_Error = unsafe { FT_Get_Var_Design_Coordinates(self, 0, coords) };
+        let var_axes: *mut *mut FT_MM_Var = ptr::null_mut();
+        let result: FT_Error = unsafe { FT_Get_MM_Var(self, var_axes) };
+        if !result.succeeded() {
+            let error_string = result.ft_get_error_message();
+            log::error!("We was not able to setup variation axis. FT_error: {}", error_string);
+            return result;
+        }
+        let axes_count: u32 = unsafe { (*(*var_axes)).num_axis };
+        let mut parsed_axes = Vec::<FT_Var_Axis>::new();
+        unsafe {
+            for i in 0..axes_count as usize {
+                let single_axis: *mut FT_Var_Axis = (*(*var_axes)).axis.wrapping_add(i);
+                parsed_axes.push(*single_axis);
+            }
+        }
+
+        for axis in parsed_axes {
+            log::warn!("ddesyatkin: Freetype2 variation {:?}", axis);
+        }
+
+        // FT_Set_Var_Design_Coordinates
 
         0
     }

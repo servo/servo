@@ -686,10 +686,17 @@ impl FontGroup {
         // that is steps 1, 2, 3, 5, 6 of font matching algorithm
         let strong_template_predicate = |template: FontTemplateRef| {
             let char_in_range = template.char_in_unicode_range(options.character);
-            let lang_match =
-                font_group_language.language == template.descriptor().language.language;
-            let lang_is_und = font_group_language.language == language!("und");
-            let script_match = font_group_language.script == template.descriptor().language.script;
+            let mut lang_match = false;
+            let mut script_match = false;
+            if let Some(template_supported_languages) = template.descriptor().languages {
+                lang_match = template_supported_languages
+                    .iter()
+                    .any(|lang_id| lang_id.language == font_group_language.language);
+                script_match = template_supported_languages
+                    .iter()
+                    .any(|lang_id| lang_id.script == font_group_language.script);
+            };
+            let lang_is_und = !lang_match;
             if !char_in_range {
                 return false;
             }
