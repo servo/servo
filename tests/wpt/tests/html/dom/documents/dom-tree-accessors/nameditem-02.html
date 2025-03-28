@@ -25,6 +25,14 @@
 <iframe name="fail" id="test7"></iframe>
 
 <iframe name="42"></iframe>
+
+<iframe name="test9" id="test9"></iframe>
+
+<iframe></iframe>
+
+<iframe name="test11a"></iframe>
+
+<iframe name="test12"></iframe>
 </div>
 <script>
 test(function() {
@@ -96,4 +104,71 @@ test(function() {
   assert_true(42 in document, '42 in document should be true');
   assert_equals(document[42], iframe.contentWindow);
 }, "An iframe whose name looks like an array index should work.");
+
+test(function() {
+  var iframe = document.getElementsByTagName("iframe")[9];
+  assert_equals(iframe.name, "test9");
+
+  assert_true("test9" in document, 'test9 in document should be true');
+  assert_equals(document["test9"], iframe.contentWindow);
+  assert_equals(document.test9, iframe.contentWindow);
+
+  iframe.removeAttribute("name");
+  assert_false("test9" in document, 'test9 in document should be false');
+  assert_equals(document["test9"], undefined);
+  assert_equals(document.test9, undefined);
+}, "Dynamically removing the name attribute from iframe elements, should not be accessible.");
+
+test(function() {
+  var iframe = document.getElementsByTagName("iframe")[10];
+  iframe.setAttribute("name", "test10a");
+
+  assert_true("test10a" in document, 'test10a in document should be true');
+  assert_equals(document["test10a"], iframe.contentWindow);
+  assert_equals(document.test10a, iframe.contentWindow);
+
+  iframe.setAttribute("name", "test10b");
+  assert_false("test10a" in document, 'test10a in document should be false');
+  assert_equals(document["test10a"], undefined);
+  assert_equals(document.test10a, undefined);
+  assert_true("test10b" in document, 'test10b in document should be true');
+  assert_equals(document["test10b"], iframe.contentWindow);
+  assert_equals(document.test10b, iframe.contentWindow);
+}, "Dynamically updating the name attribute from iframe elements, should be accessible by its name.");
+
+test(function() {
+  var iframe = document.getElementsByTagName("iframe")[11];
+  assert_equals(iframe.name, "test11a");
+
+  assert_true("test11a" in document, 'test11a in document should be true');
+  assert_equals(document["test11a"], iframe.contentWindow);
+  assert_equals(document.test11a, iframe.contentWindow);
+
+  iframe.setAttribute("id", "test11a");
+  assert_true("test11a" in document, 'test11a in document should be true');
+  assert_equals(document["test11a"], iframe.contentWindow);
+  assert_equals(document.test11a, iframe.contentWindow);
+
+  iframe.setAttribute("id", "test11b");
+  assert_true("test11a" in document, 'test11a in document should be true');
+  assert_equals(document["test11a"], iframe.contentWindow);
+  assert_equals(document.test11a, iframe.contentWindow);
+  assert_false("test11b" in document, 'test11b in document should be false');
+  assert_equals(document["test11b"], undefined);
+  assert_equals(document.test11b, undefined);
+}, "Dynamically updating the id attribute from iframe elements, should be accessible only by its name.");
+
+test(function() {
+  var iframe = document.getElementsByTagName("iframe")[12];
+  assert_equals(iframe.name, "test12");
+
+  assert_true("test12" in document, 'test12 in document should be true');
+  assert_equals(document["test12"], iframe.contentWindow);
+  assert_equals(document.test12, iframe.contentWindow);
+
+  iframe.remove();
+  assert_false("test12" in document, 'test12 in document should be false');
+  assert_equals(document["test12"], undefined);
+  assert_equals(document.test12, undefined);
+}, "iframe elements that is removed, should not be accessible.");
 </script>

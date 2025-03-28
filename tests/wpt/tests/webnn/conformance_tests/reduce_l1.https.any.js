@@ -74,6 +74,29 @@ const reduceL1Tests = [
     }
   },
   {
+    'name': 'reduceL1 float32 1D constant tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceL1Input': {
+          'data': [-5.50882625579834, 5.50882625579833],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceL1',
+        'arguments': [{'input': 'reduceL1Input'}, {'options': {'axes': []}}],
+        'outputs': 'reduceL1Output'
+      }],
+      'expectedOutputs': {
+        'reduceL1Output': {
+          'data': [5.50882625579834, 5.50882625579833],
+          'descriptor': {shape: [2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'reduceL1 float32 1D constant tensor all positive default options',
     'graph': {
       'inputs': {

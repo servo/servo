@@ -1,0 +1,17 @@
+<!doctype html>
+<h2>Child Frame</h2>
+<script>
+onload = () => {
+  let count = 0;
+  const loop = () => {
+    if (++count < 10) {
+      requestIdleCallback(loop);
+    } else {
+      const target = location.href.replace('www1.', '')
+          .replace('resources/child.html', '');
+      window.parent.postMessage('done', target);
+    }
+  };
+  requestIdleCallback(loop);
+}
+</script>

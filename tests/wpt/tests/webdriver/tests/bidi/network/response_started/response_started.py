@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+import random
 
 from webdriver.bidi.modules.script import ContextTarget
 
@@ -216,7 +217,7 @@ async def test_response_status(
     wait_for_event, wait_for_future_safe, url, fetch, setup_network_test, status, status_text
 ):
     status_url = url(
-        f"/webdriver/tests/support/http_handlers/status.py?status={status}&nocache={RESPONSE_STARTED_EVENT}"
+        f"/webdriver/tests/support/http_handlers/status.py?status={status}&nocache={random.random()}"
     )
 
     network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])

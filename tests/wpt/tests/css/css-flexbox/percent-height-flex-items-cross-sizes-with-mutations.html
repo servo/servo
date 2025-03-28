@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#layout-algorithm">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<meta name="assert" content="Tests that the cross size of flexboxes and flex items with % height are computed correctly with various mutations.">
+<style>
+.flexbox {
+  display: flex;
+  font: 10px/1 Ahem;
+  outline: 1px solid black;
+}
+.grid {
+  display: grid;
+  outline: 1px solid magenta;
+}
+.flexbox > div {
+  width: min-content;
+  outline: 1px solid blue;
+}
+.percent-height {
+  min-height: 100%;
+}
+.fixed-height {
+  height: 100px;
+}
+.align-start {
+  align-items: start;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function mutateContent() {
+  document.querySelectorAll("#one, #two, #three").forEach((element) => {
+    element.innerHTML += " a";
+  });
+
+  document.querySelector("#four").style.width = "auto";
+  document.querySelector("#five").style.height = "auto";
+  document.querySelector("#six").style.height = "100px";
+
+  document.querySelectorAll("#seven, #eight").forEach((element) => {
+    element.style.alignItems = "start";
+  });
+}
+</script>
+</head>
+<body>
+
+<!-- Non-percent height flex item is mutated and percent height flex item should be
+     stretched up. -->
+<div class="flexbox test" data-expected-height="40">
+  <div id="one" class="test" data-expected-height="40">a a a</div>
+  <div class="percent-height test" data-expected-height="40">a</div>
+</div>
+
+<!-- Non-percent height flex item content is mutated and should be stretched to percent
+     height flex item's size. -->
+<div class="flexbox test" data-expected-height="40">
+  <div id="two" class="min-content percent-height test" data-expected-height="40">a a a</div>
+  <div class="test" data-expected-height="40">a</div>
+</div>
+
+<!-- Percent height flex item content is mutated and increased flexbox's cross axis size. -->
+<div class="flexbox test" data-expected-height="30">
+  <div class="min-content percent-height test" data-expected-height="30">a a a</div>
+  <div id="three" data-expected-height="30">a</div>
+</div>
+
+<!-- Percent height flex item's main axis size changes from min-content to auto which
+     should result in different cross size. -->
+<div class="flexbox test" data-expected-height="10">
+  <div class="min-content percent-height test" id="four" data-expected-height="10">a a a</div>
+</div>
+
+<!-- Flexbox with align-items: flex-start changes from definite to indefinite cross size
+     which results in different hypothetical cross size for flex item.-->
+<div class="flexbox fixed-height align-start test" id="five" data-expected-height="30">
+  <div class="min-content percent-height test" data-expected-height="30">a a a</div>
+  <div class="test" data-expected-height="10">a</div>
+</div>
+
+
+<!-- Flexbox with align-items: flex-start changes from indefinite to definite cross size
+     which results in different hypothetical cross size for the flex item. -->
+<div class="flexbox align-start test" id="six" data-expected-height="100">
+  <div class="min-content percent-height test" data-expected-height="100">a a a</div>
+</div>
+
+<!-- Outer flexbox goes from stretching its content to no longer stretching with a
+     definite cross size. The inner flexbox is no longer stretching which affects the
+     hypothetical cross axis size of its flex item. -->
+<div class="flexbox fixed-height test" id="seven" data-expected-height="100"">
+  <div class="flexbox align-start test" data-expected-height="30">
+    <div class="min-content percent-height test" data-expected-height="30">a a a</div>
+  </div>
+</div>
+
+<!-- Grid goes from stretching its content to no longer stretching with a definite cross
+     size. The flexbox is no longer stretching which affects the hypothetical cross axis
+     size of tis flex item.-->
+<div class="grid fixed-height test" id="eight" data-expected-height="100">
+  <div class="flexbox align-start test" data-expected-height="30">
+    <div class="min-content percent-height test" data-expected-height="30">a a a</div>
+  </div>
+</div>
+
+</body>
+<script>
+document.body.offsetHeight;
+mutateContent();
+document.body.offsetHeight;
+
+let tests = document.querySelectorAll(".test");
+tests.forEach((element) => {
+  test(function() {
+    let expectedHeight = element.getAttribute("data-expected-height");
+    assert_equals(element.offsetHeight, Number(expectedHeight), "height");
+  });
+});
+</script>
+</html>
+

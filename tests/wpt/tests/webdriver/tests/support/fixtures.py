@@ -41,16 +41,24 @@ def pytest_sessionfinish():
 
 
 @pytest.fixture
-def capabilities():
+def default_capabilities():
     """Default capabilities to use for a new WebDriver session."""
     return {}
 
 
-def pytest_generate_tests(metafunc):
-    if "capabilities" in metafunc.fixturenames:
-        marker = metafunc.definition.get_closest_marker(name="capabilities")
-        if marker:
-            metafunc.parametrize("capabilities", marker.args, ids=None)
+@pytest.fixture
+def capabilities(request, default_capabilities):
+    """Merges default capabilities with any test-specific capabilities from a marker."""
+    marker = request.node.get_closest_marker("capabilities")
+    if marker and marker.args:
+        # Ensure the first positional argument is a dictionary
+        assert isinstance(
+            marker.args[0], dict), "capabilities marker must use a dictionary"
+        caps = copy.deepcopy(default_capabilities)
+        deep_update(caps, marker.args[0])
+        return caps
+
+    return default_capabilities  # Use defaults if no marker is present
 
 
 @pytest.fixture

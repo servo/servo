@@ -6,7 +6,7 @@
 // META: timeout=long
 // META: variant=?1-last
 
-"use strict;"
+"use strict";
 
 const SERVICE_WORKER_SCRIPT = "resources/service-worker-helper.js";
 

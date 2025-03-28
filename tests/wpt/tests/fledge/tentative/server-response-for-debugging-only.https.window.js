@@ -9,6 +9,8 @@
 // META: timeout=long
 // META: variant=?1-last
 
+"use strict";
+
 // These tests focus on the debugReports field in AuctionConfig's
 // serverResponse, i.e. auctions involving forDebuggingOnly reports.
 // NOTE: Due to DB's fDO lockout/cooldown tables are not cleaned after each run

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<meta name="assert" content="Position-visibility: anchors-visible should hide an element with an out-of-view anchor and a relpos scroller." />
+<meta name="assert" content="Position-visibility: anchors-visible should not hide an element with an out-of-view anchor and a relpos scroller." />
 <title>CSS Anchor Positioning Test: position-visibility: anchors-visible</title>
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
-<link rel="match" href="position-visibility-anchors-visible-ref.html">
+<link rel="match" href="position-visibility-anchors-visible-with-position-ref.html">
 <style>
   #scroll-container {
     overflow: hidden scroll;
@@ -30,7 +30,7 @@
     position-area: bottom right;
     width: 100px;
     height: 100px;
-    background: red;
+    background: green;
     position: absolute;
     top: 0;
     left: 0;
@@ -46,5 +46,5 @@
 <script>
   const scroller = document.getElementById('scroll-container');
   scroller.scrollTop = 100;
-  // #target should not be visible because #anchor is scrolled out of view.
+  // #target should be visible because there are no intervening clips.
 </script>

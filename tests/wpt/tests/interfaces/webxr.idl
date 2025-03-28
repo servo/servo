@@ -70,6 +70,7 @@ enum XRVisibilityState {
 dictionary XRRenderStateInit {
   double depthNear;
   double depthFar;
+  boolean passthroughFullyObscured;
   double inlineVerticalFieldOfView;
   XRWebGLLayer? baseLayer;
   sequence<XRLayer>? layers;
@@ -78,6 +79,7 @@ dictionary XRRenderStateInit {
 [SecureContext, Exposed=Window] interface XRRenderState {
   readonly attribute double depthNear;
   readonly attribute double depthFar;
+  readonly attribute boolean? passthroughFullyObscured;
   readonly attribute double? inlineVerticalFieldOfView;
   readonly attribute XRWebGLLayer? baseLayer;
 };

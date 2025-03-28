@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>CSS UI Test: Allow complex calc expressions in cursor hotspot</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui/#cursor">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #t1 {
+    font-size: 20px;
+    cursor: url(cur.ico) calc(7 * sign(1em - 18px)) 0, auto;
+  }
+  #t2 {
+    cursor: url(cur.ico) calc(4 * sibling-index()) 0, auto;
+  }
+</style>
+<div>
+  <div id="t1"></div>
+  <div id="t2"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(t1).cursor, "url(cur.ico) 7 0, auto");
+  }, "cursor hotspot with sign() depending on font relative units");
+
+  test(() => {
+    assert_equals(getComputedStyle(t2).cursor, "url(cur.ico) 8 0, auto");
+  }, "cursor hotspot depending on sibling-index()");
+</script>

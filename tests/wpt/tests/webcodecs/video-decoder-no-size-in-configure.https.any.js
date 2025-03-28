@@ -72,6 +72,11 @@ promise_test(async t => {
   decoder.decode(encodedResult.chunk);
   await decoder.flush();
 
-  assert_equals(decodedResult.codedWidth, encoderConfig.width, 'decoded frame width');
-  assert_equals(decodedResult.codedHeight, encoderConfig.height, 'decoded frame height');
+  // Note: Coded size may vary based on decoder requirements.
+  assert_equals(
+      decodedResult.visibleRect.width, encoderConfig.width,
+      'decoded frame width');
+  assert_equals(
+      decodedResult.visibleRect.height, encoderConfig.height,
+      'decoded frame height');
 }, 'Test configure() without setting width and height');

@@ -1,5 +1,5 @@
 <!doctype HTML>
-<html lang="tr">
+<html lang="tr" class="reftest-wait">
   <meta charset="utf-8">
   <title>HTML5 Canvas Test: The lang attribute inherits the unknown lang when disconnected and no lang attribute</title>
   <link rel="match" href="canvas.2d.unknown.lang-ref.html"/>
@@ -7,6 +7,7 @@
   <link rel="help"
     href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
   <meta name="assert" content="Verify that a disconnected canvas with no lang attribute uses the unknown lang."/>
+  <script src="/common/reftest-wait.js"></script>
   <style>
     #canvas-tr {
       position: absolute;
@@ -46,6 +47,7 @@
         drawText('tr');
         document.documentElement.setAttribute('lang', 'en');
         drawText('en');
+        takeScreenshot();
       });
     </script>
   </body>

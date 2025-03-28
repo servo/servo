@@ -1,4 +1,4 @@
-"use strict;"
+"use strict";
 
 // Service workers, once activated, will use 'clients.claim()'
 // so that clients loaded in the same scope do not need to be reloaded

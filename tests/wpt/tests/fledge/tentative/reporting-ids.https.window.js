@@ -8,7 +8,7 @@
 // META: variant=?6-last
 
 
-"use strict;"
+"use strict";
 
 const makeTest = ({
   // Name of the test.

@@ -26,6 +26,14 @@
 <embed id=test7 name=fail></embed>
 
 <embed name=test8 id=fail></embed>
+
+<embed name="test9" id="test9"></embed>
+
+<embed></embed>
+
+<embed name="test11a"></embed>
+
+<embed name="test12"></embed>
 </div>
 <script>
 test(function() {
@@ -101,4 +109,71 @@ test(function() {
   assert_true("test8" in document, '"test8" in document should be true');
   assert_equals(document.test8, embed);
 }, "An id shouldn't affect getting an embed by name");
+
+test(function() {
+  var embed = document.getElementsByTagName("embed")[12];
+  assert_equals(embed.name, "test9");
+
+  assert_true("test9" in document, 'test9 in document should be true');
+  assert_equals(document["test9"], embed);
+  assert_equals(document.test9, embed);
+
+  embed.removeAttribute("name");
+  assert_false("test9" in document, 'test9 in document should be false');
+  assert_equals(document["test9"], undefined);
+  assert_equals(document.test9, undefined);
+}, "Dynamically removing the name attribute from embed elements, should not be accessible.");
+
+test(function() {
+  var embed = document.getElementsByTagName("embed")[13];
+  embed.setAttribute("name", "test10a");
+
+  assert_true("test10a" in document, 'test10a in document should be true');
+  assert_equals(document["test10a"], embed);
+  assert_equals(document.test10a, embed);
+
+  embed.setAttribute("name", "test10b");
+  assert_false("test10a" in document, 'test10a in document should be false');
+  assert_equals(document["test10a"], undefined);
+  assert_equals(document.test10a, undefined);
+  assert_true("test10b" in document, 'test10b in document should be true');
+  assert_equals(document["test10b"], embed);
+  assert_equals(document.test10b, embed);
+}, "Dynamically updating the name attribute from embed elements, should be accessible by its name.");
+
+test(function() {
+  var embed = document.getElementsByTagName("embed")[14];
+  assert_equals(embed.name, "test11a");
+
+  assert_true("test11a" in document, 'test11a in document should be true');
+  assert_equals(document["test11a"], embed);
+  assert_equals(document.test11a, embed);
+
+  embed.setAttribute("id", "test11a");
+  assert_true("test11a" in document, 'test11a in document should be true');
+  assert_equals(document["test11a"], embed);
+  assert_equals(document.test11a, embed);
+
+  embed.setAttribute("id", "test11b");
+  assert_true("test11a" in document, 'test11a in document should be true');
+  assert_equals(document["test11a"], embed);
+  assert_equals(document.test11a, embed);
+  assert_false("test11b" in document, 'test11b in document should be false');
+  assert_equals(document["test11b"], undefined);
+  assert_equals(document.test11b, undefined);
+}, "Dynamically updating the id attribute from embed elements, should be accessible only by its name.");
+
+test(function() {
+  var embed = document.getElementsByTagName("embed")[15];
+  assert_equals(embed.name, "test12");
+
+  assert_true("test12" in document, 'test12 in document should be true');
+  assert_equals(document["test12"], embed);
+  assert_equals(document.test12, embed);
+
+  embed.remove();
+  assert_false("test12" in document, 'test12 in document should be false');
+  assert_equals(document["test12"], undefined);
+  assert_equals(document.test12, undefined);
+}, "embed elements that is removed, should not be accessible.");
 </script>

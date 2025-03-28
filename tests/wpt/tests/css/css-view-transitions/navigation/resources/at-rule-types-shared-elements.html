@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View Transitions: @view-transition opt in with types and elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/common/reftest-wait.js"></script>
+
+<link rel=expect href="#target">
+
+<style>
+@view-transition {
+  navigation:auto;
+  types:mode;
+}
+
+:root { view-transition-name: none }
+html:active-view-transition-type(mode) {
+  .target {
+    view-transition-name: target;
+  }
+}
+
+.target {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  background: green;
+  left: 200px;
+}
+
+::view-transition-group(target) {
+  animation-play-state: paused;
+}
+
+::view-transition-old(target) {
+  animation: unset;
+  opacity: 1;
+}
+::view-transition-new(target) {
+  animation: unset;
+  opacity: 0;
+}
+</style>
+</head>
+
+<div id=target class=target></div>
+
+<script>
+  onload = takeScreenshot;
+</script>
+
+</html>

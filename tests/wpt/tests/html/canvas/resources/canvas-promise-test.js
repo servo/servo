@@ -83,18 +83,20 @@ function canvasPromiseTest(
       }
       const canvas = document.createElement('canvas');
       document.body.appendChild(canvas);
-      await testBody(canvas);
+      await testBody(canvas, {canvasType: CanvasTestType.HTML});
       document.body.removeChild(canvas);
     }, 'HTMLCanvasElement: ' + description);
   }
 
   if (testTypes.includes(CanvasTestType.DETACHED_HTML)) {
-    promise_test(() => testBody(document.createElement('canvas')),
+    promise_test(() => testBody(document.createElement('canvas'),
+                                {canvasType: CanvasTestType.DETACHED_HTML}),
                  'Detached HTMLCanvasElement: ' + description);
   }
 
   if (testTypes.includes(CanvasTestType.OFFSCREEN)) {
-    promise_test(() => testBody(new OffscreenCanvas(300, 150)),
+    promise_test(() => testBody(new OffscreenCanvas(300, 150),
+                                {canvasType: CanvasTestType.OFFSCREEN}),
                  'OffscreenCanvas: ' + description);
   }
 }

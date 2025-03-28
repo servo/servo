@@ -7,14 +7,28 @@ function offset_for_curvature(curvature) {
   // Find the superellipse's control point.
   // we do that by approximating the superellipse as a quadratic
   // curve that has the same point at t = 0.5.
-  if (curvature <= 0.001) return [1, -1];
-  const { x } = superellipse(curvature);
+  if (curvature <= 0.001)
+    return [1, -1];
+  const {x} = superellipse(Math.min(2, Math.max(0.5, curvature)));
   const [a, b] = [x, 1 - x].map((m) => 2 * m - 0.5);
   const magnitude = Math.hypot(a, b);
   // Normalize a & b
   const norm_a = a / magnitude;
   const norm_b = b / magnitude;
   return [norm_a, -norm_b];
+}
+
+function compute_inner_curvature(curvature, outer_length, inner_length) {
+  if (curvature === 0)
+    return 0;
+  if (curvature < 1)
+    return 1 /
+        compute_inner_curvature(1 / curvature, outer_length, inner_length);
+  const target_length = (inner_length - outer_length) / Math.SQRT2;
+  return Math.log(0.5) /
+      Math.log(
+          (Math.pow(0.5, 1 / curvature) * outer_length + target_length) /
+          inner_length);
 }
 
 /**
@@ -91,36 +105,49 @@ function resolve_corner_params(style, width, height, outset = null) {
   };
 
   return Object.fromEntries(
-    Object.entries(params).map(([corner, { outer, inset }]) => {
-      if (outset !== null) inset = [-outset, -outset];
-      const shape = style[`corner-${corner}-shape`];
-      const s1 = Math.sign(outer[2] - outer[0]);
-      const s2 = Math.sign(outer[3] - outer[1]);
-      const [sw1, sw2] = inset;
-      const inner_offset = [s1 * sw1, s2 * sw1, -s1 * sw2, -s2 * sw2];
+      Object.entries(params).map(([corner, {outer, inset}]) => {
+        const outer_rect = outer;
+        if (outset !== null)
+          inset = [-outset, -outset];
+        const shape = style[`corner-${corner}-shape`];
+        const s1 = Math.sign(outer[2] - outer[0]);
+        const s2 = Math.sign(outer[3] - outer[1]);
+        const [sw1, sw2] = inset;
+        const inner_offset = [s1 * sw1, s2 * sw1, -s1 * sw2, -s2 * sw2];
 
-      const offset = offset_for_curvature(shape);
-      if (Math.sign(inner_offset[0]) === Math.sign(inner_offset[1])) {
-        offset.reverse();
-      }
+        const offset = offset_for_curvature(shape);
+        if (Math.sign(inner_offset[0]) === Math.sign(inner_offset[1])) {
+          offset.reverse();
+        }
 
-      const inner_rect = [
-        outer[0] + inner_offset[0] * offset[0],
-        outer[1] + inner_offset[1] * offset[1],
-        outer[2] + inner_offset[2] * offset[1],
-        outer[3] + inner_offset[3] * offset[0],
-      ];
+        const inner_rect = [
+          outer_rect[0] + inner_offset[0] * offset[0],
+          outer_rect[1] + inner_offset[1] * offset[1],
+          outer_rect[2] + inner_offset[2] * offset[1],
+          outer_rect[3] + inner_offset[3] * offset[0],
+        ];
 
-      return [
-        corner,
-        {
-          outer_rect: outer,
-          shape,
-          inset,
-          inner_rect,
-          inner_offset,
-        },
-      ];
-    })
-  );
+        let inner_shape = shape;
+        if (shape > 2 || shape < 0.5) {
+          const outer_length = Math.hypot(
+            outer_rect[2] - outer_rect[0], outer_rect[3] - outer_rect[1]);
+          const inner_length = Math.hypot(
+            inner_rect[2] - inner_rect[0], inner_rect[3] - inner_rect[1])
+          inner_shape =
+            compute_inner_curvature(shape, outer_length, inner_length);
+        }
+
+        return [
+          corner,
+          {
+            outer_rect,
+            shape,
+            inner_shape,
+            inset,
+            inner_rect,
+            inner_offset,
+            inner_shape
+          },
+        ];
+      }));
 }
