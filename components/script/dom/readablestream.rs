@@ -1770,6 +1770,31 @@ impl ReadableStream {
         // pullAlgorithm, cancelAlgorithm, highWaterMark, autoAllocateChunkSize).
         controller.setup(global, stream, can_gc)
     }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+    fn setup_cross_realm_transform_readable(&self, can_gc: CanGc) {
+        // Perform ! InitializeReadableStream(stream).
+        // Done in `new_inherited`.
+
+        // Let sizeAlgorithm be an algorithm that returns 1.
+        let size_algorithm = extract_size_algorithm(&QueuingStrategy::default(), can_gc);
+
+        // Note: other algorithms defined in the underlying source container.
+
+        // Let controller be a new ReadableStreamDefaultController.
+        let controller = ReadableStreamDefaultController::new(
+            &self.global(),
+            UnderlyingSourceType::Transfer,
+            1.0,
+            size_algorithm,
+            can_gc,
+        );
+
+        // Perform ! SetUpReadableStreamDefaultController
+        controller
+            .setup(DomRoot::from_ref(self), can_gc)
+            .expect("Setting up controller for transfer cannot fail.");
+    }
 }
 
 impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
@@ -2035,7 +2060,8 @@ impl Transferable for ReadableStream {
         // TODO
 
         // Let promise be ! ReadableStreamPipeTo(value, writable, false, false, false).
-        let promise = self.pipe_to(cx, &global, &writable, false, false, false, comp, can_gc);
+        // TODO: let promise = self.pipe_to(cx, &global, &writable, false, false, false, comp, can_gc);
+        let promise = Promise::new(&global, can_gc);
 
         // Set promise.[[PromiseIsHandled]] to true.
         promise.set_promise_is_handled();
@@ -2068,7 +2094,7 @@ impl Transferable for ReadableStream {
         owner.track_message_port(&transferred_port, Some(port_impl));
 
         // Perform ! SetUpCrossRealmTransformReadable(value, port).
-        // TODO
+        value.setup_cross_realm_transform_readable(can_gc);
 
         Ok(value)
     }

@@ -59,6 +59,7 @@ pub(super) enum StructuredCloneTags {
     Principals = 0xFFFF8003,
     DomPointReadOnly = 0xFFFF8004,
     DomPoint = 0xFFFF8005,
+    ReadableStream = 0xFFFF8006,
     Max = 0xFFFFFFFF,
 }
 
@@ -76,6 +77,7 @@ impl From<TransferrableInterface> for StructuredCloneTags {
     fn from(v: TransferrableInterface) -> Self {
         match v {
             TransferrableInterface::MessagePort => StructuredCloneTags::MessagePort,
+            TransferrableInterface::ReadableStream => StructuredCloneTags::ReadableStream,
         }
     }
 }
@@ -252,6 +254,7 @@ fn receiver_for_type(
 ) -> fn(&GlobalScope, &mut StructuredDataReader, u64, RawMutableHandleObject) -> Result<(), ()> {
     match val {
         TransferrableInterface::MessagePort => receive_object::<MessagePort>,
+        TransferrableInterface::ReadableStream => receive_object::<ReadableStream>,
     }
 }
 
@@ -376,6 +379,7 @@ type TransferOperation = unsafe fn(
 fn transfer_for_type(val: TransferrableInterface) -> TransferOperation {
     match val {
         TransferrableInterface::MessagePort => try_transfer::<MessagePort>,
+        TransferrableInterface::ReadableStream => try_transfer::<ReadableStream>,
     }
 }
 
@@ -422,6 +426,7 @@ unsafe fn can_transfer_for_type(
     }
     match transferable {
         TransferrableInterface::MessagePort => can_transfer::<MessagePort>(obj, cx),
+        TransferrableInterface::ReadableStream => can_transfer::<ReadableStream>(obj, cx),
     }
 }
 
