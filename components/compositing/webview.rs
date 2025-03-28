@@ -574,11 +574,13 @@ impl WebView {
                         self.touch_handler
                             .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
                         if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) {
-                            info.prevent_move = TouchMoveAllowed::Allowed;
-                            if let TouchSequenceState::PendingFling { velocity, cursor } =
-                                info.state
-                            {
-                                info.state = TouchSequenceState::Flinging { velocity, cursor }
+                            if info.prevent_move == TouchMoveAllowed::Pending {
+                                info.prevent_move = TouchMoveAllowed::Allowed;
+                                if let TouchSequenceState::PendingFling { velocity, cursor } =
+                                    info.state
+                                {
+                                    info.state = TouchSequenceState::Flinging { velocity, cursor }
+                                }
                             }
                         }
                     },
