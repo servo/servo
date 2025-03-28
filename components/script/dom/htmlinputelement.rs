@@ -810,6 +810,9 @@ impl HTMLInputElement {
             InputType::Checkbox => self.Required() && !self.Checked(),
             // https://html.spec.whatwg.org/multipage/#radio-button-state-(type%3Dradio)%3Asuffering-from-being-missing
             InputType::Radio => {
+                if self.radio_group_name().is_none() {
+                    return false;
+                }
                 let mut is_required = self.Required();
                 let mut is_checked = self.Checked();
                 for other in radio_group_iter(self, self.radio_group_name().as_ref()) {
