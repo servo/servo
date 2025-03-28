@@ -33,6 +33,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::blob::{Blob, normalize_type_string};
 use crate::dom::formdata::FormData;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -729,7 +730,7 @@ fn run_package_data_algorithm(
         BodyType::Text => run_text_data_algorithm(bytes),
         BodyType::Json => run_json_data_algorithm(cx, bytes),
         BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime, can_gc),
-        BodyType::FormData => run_form_data_algorithm(&global, bytes, mime, can_gc),
+        BodyType::FormData => run_form_data_algorithm(global.as_window(), bytes, mime, can_gc),
         BodyType::ArrayBuffer => run_array_buffer_data_algorithm(cx, bytes, can_gc),
         BodyType::Bytes => run_bytes_data_algorithm(cx, bytes, can_gc),
     }
@@ -792,7 +793,7 @@ fn run_blob_data_algorithm(
 
 /// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A2>
 fn run_form_data_algorithm(
-    root: &GlobalScope,
+    window: &Window,
     bytes: Vec<u8>,
     mime: &[u8],
     can_gc: CanGc,

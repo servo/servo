@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourcesChangeEventBinding::{
     self, XRInputSourcesChangeEventMethods,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
@@ -85,7 +85,7 @@ impl XRInputSourcesChangeEvent {
             let event = changeevent.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
         }
-        let _ac = enter_realm(global);
+        let _ac = enter_realm(window);
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut frozen_val: JSVal);
         to_frozen_array(added, cx, frozen_val.handle_mut(), can_gc);

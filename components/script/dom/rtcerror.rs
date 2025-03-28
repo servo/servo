@@ -8,11 +8,10 @@ use js::rust::HandleObject;
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{
     RTCErrorDetailType, RTCErrorInit, RTCErrorMethods,
 };
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domexception::DOMException;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

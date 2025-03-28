@@ -141,6 +141,7 @@ impl RTCDataChannel {
 
     pub(crate) fn on_error(&self, error: WebRtcError, can_gc: CanGc) {
         let global = self.global();
+        let window = global.as_window();
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
         let init = RTCErrorInit {

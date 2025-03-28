@@ -12,11 +12,10 @@ use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceEventBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
