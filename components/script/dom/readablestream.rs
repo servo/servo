@@ -2053,7 +2053,24 @@ impl Transferable for ReadableStream {
         id: MessagePortId,
         port_impl: MessagePortImpl,
     ) -> Result<DomRoot<Self>, ()> {
-        todo!()
+        let can_gc = CanGc::note();
+
+        // Their transfer-receiving steps, given dataHolder and value, are:
+        // Note: dataHolder is used in `structuredclone.rs`, and value is created here.
+        let value = ReadableStream::new_with_proto(owner, None, can_gc);
+
+        // Let deserializedRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[port]], the current Realm).
+        // Done with the `Deserialize` derive of `MessagePortImpl`.
+
+        // Let port be deserializedRecord.[[Deserialized]].
+        let transferred_port =
+            MessagePort::new_transferred(owner, id, port_impl.entangled_port_id(), can_gc);
+        owner.track_message_port(&transferred_port, Some(port_impl));
+
+        // Perform ! SetUpCrossRealmTransformReadable(value, port).
+        // TODO
+
+        Ok(value)
     }
 
     fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {

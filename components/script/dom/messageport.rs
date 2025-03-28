@@ -58,7 +58,7 @@ impl MessagePort {
     }
 
     /// Create a new port for an incoming transfer-received one.
-    fn new_transferred(
+    pub(crate) fn new_transferred(
         owner: &GlobalScope,
         transferred_port: MessagePortId,
         entangled_port: Option<MessagePortId>,
