@@ -641,4 +641,28 @@ a=rtcp-rsize
           usernameFragment: usernameFragment1
         })));
   }, 'Add candidate with sdpMid belonging to different usernameFragment should reject with OperationError');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    await pc.setRemoteDescription(sessionDesc);
+    const recognized = [];
+    await pc.addIceCandidate({
+      candidate: candidateStr1,
+      sdpMid: sdpMid1,
+      get relayProtocol() {
+        recognized.push("relayProtocol");
+        return null;
+      },
+      get url() {
+        recognized.push("url");
+        return null;
+      },
+      get usernameFragment() {
+        recognized.push("usernameFragment");
+        return null;
+      },
+    });
+    assert_array_equals(recognized, ['usernameFragment']);
+  }, 'addIceCandidate should not recognize relayProtocol or url');
 </script>

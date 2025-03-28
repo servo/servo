@@ -1,11 +1,12 @@
 <!doctype HTML>
-<html>
+<html class="reftest-wait">
   <meta charset="utf-8">
   <title>HTML5 Canvas Test: The empty string lang attribute uses the unknown language</title>
   <link rel="match" href="canvas.2d.lang.empty-ref.html" />
   <link rel="author" href="mailto:schenney@chromium.org"/>
   <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
   <meta name="assert" content="When the lang attribute is the empty string, use the unknown language." />
+  <script src="/common/reftest-wait.js"></script>
   <script type="text/javascript">
     function runTest() {
       let test_font = new FontFace(
@@ -24,6 +25,7 @@
         ctx.font = '25px Lato-Medium';
         ctx.lang = '';
         ctx.fillText('fi', 5, 50);
+        takeScreenshot();
       });
     }
   </script>

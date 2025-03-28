@@ -104,14 +104,18 @@
           const expected_htmlFor_property_behavior = (referencing_element_type == "output") ? Behavior.ReflectsHostIDInDOMTokenList : Behavior.ReflectsHostID;
           test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "for", "htmlFor", expected_htmlFor_property_behavior);
 
-          // It's unclear whether `form` and `list` should return null or should return the
-          // shadow host. See https://github.com/WICG/webcomponents/issues/1072.
-          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "form", "form", Behavior.IsNull);
-          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "list", "list", Behavior.IsNull);
+          // The form property of <label>, <legend>, and <option> reflects the form property of the associated labelable element,
+          // the associated <fieldset>, and the associated <select>, respectively. Here since we don't have those associated elements,
+          // the form property would return null.
+          const expected_form_property_behavior = (referenced_element_type == 'form' &&
+                                                   referencing_element_type != "label" &&
+                                                   referencing_element_type != "legend" &&
+                                                   referencing_element_type != "option") ? Behavior.ReflectsHost : Behavior.IsNull;
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "form", "form", expected_form_property_behavior);
 
-          // It's unclear whether this should always reflect the host even if the underlying
-          // referenced element isn't labelable. See
-          // https://github.com/WICG/webcomponents/issues/1072#issuecomment-2305875929
+          const expected_list_property_behavior = (referenced_element_type == 'datalist') ? Behavior.ReflectsHost : Behavior.IsNull;
+          test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "list", "list", expected_list_property_behavior);
+
           const expected_control_property_behavior = HTML5_LABELABLE_ELEMENTS.includes(referenced_element_type) ? Behavior.ReflectsHost : Behavior.IsNull;
           test_property_reflection(element_creation_method, referencing_element_type, referenced_element_type, "for", "control", expected_control_property_behavior);
         }

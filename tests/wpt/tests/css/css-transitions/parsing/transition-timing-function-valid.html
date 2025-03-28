@@ -34,6 +34,7 @@ test_valid_value("transition-timing-function", "steps(2, jump-start)");
 test_valid_value("transition-timing-function", "steps(2, jump-end)", "steps(2)");
 test_valid_value("transition-timing-function", "steps(2, jump-both)");
 test_valid_value("transition-timing-function", "steps(2, jump-none)");
+test_valid_value("transition-timing-function", "steps(sibling-index(), jump-none)");
 
 test_valid_value("transition-timing-function", "linear, ease, linear");
 </script>

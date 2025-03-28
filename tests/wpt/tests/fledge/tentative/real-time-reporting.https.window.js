@@ -8,7 +8,7 @@
 // META: variant=?1-5
 // META: variant=?6-last
 
-'use strict;'
+'use strict';
 
 // The tests in this file focus on real time reporting.
 

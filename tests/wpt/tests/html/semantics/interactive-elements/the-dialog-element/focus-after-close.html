@@ -167,7 +167,12 @@ async function test_move_focus_dont_scroll_viewport(showModal) {
   document.body.appendChild(outViewPortButton);
 
   await new Promise(resolve => {
-    document.addEventListener("scroll", resolve, { once: true });
+    document.addEventListener("scroll", () => {
+      if (resolve && document.documentElement.scrollTop) {
+        resolve();
+        resolve = null;
+      }
+    });
     outViewPortButton.focus();
   });
 

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: ::scroll-marker with ::scroll-marker-group on root element scroll tracking</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  :root {
+    scroll-marker-group: before;
+  }
+
+  :root::scroll-marker-group {
+    border: 3px solid black;
+    padding: 5px;
+    height: 20px;
+    display: block;
+    position: fixed;
+    top: 0;
+  }
+
+  div {
+    width: 600px;
+    height: 300px;
+    margin-bottom: 20px;
+    background: blue;
+  }
+
+  div:first-of-type {
+    margin-top: 40px;
+  }
+
+  div::scroll-marker {
+    content: "";
+    width: 20px;
+    height: 20px;
+    background-color: red;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  div::scroll-marker:target-current {
+    background-color: green;
+  }
+
+  div:last-of-type::scroll-marker {
+    margin-right: 0px;
+  }
+</style>
+<div></div>
+<div></div>
+<div id="target"></div>
+<script>
+  promise_test(async t => {
+    await new test_driver.Actions()
+    .pointerMove(65, 20)
+    .pointerDown()
+    .pointerUp()
+    .pointerDown()
+    .pointerUp()
+    .send();
+    assert_equals(window.scrollY, 380);
+    assert_equals(getComputedStyle(target, "::scroll-marker").backgroundColor, "rgb(0, 128, 0)");
+  });
+</script>

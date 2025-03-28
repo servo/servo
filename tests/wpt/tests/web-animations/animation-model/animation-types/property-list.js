@@ -439,6 +439,12 @@ const gCSSProperties1 = {
       { type: 'discrete', options: [ [ 'auto', 'balance' ] ] }
     ]
   },
+  'column-wrap': {
+    // https://drafts.csswg.org/css-multicol-2/#cwr
+    types: [
+      { type: 'discrete', options: [ [ 'nowrap', 'wrap' ] ] }
+    ]
+  },
   'column-rule-style': {
     // https://drafts.csswg.org/css-multicol/#propdef-column-rule-style
     types: [
@@ -456,6 +462,12 @@ const gCSSProperties1 = {
   },
   'column-width': {
     // https://drafts.csswg.org/css-multicol/#propdef-column-width
+    types: [ 'length',
+      { type: 'discrete', options: [ [ 'auto', '1px' ] ] }
+    ]
+  },
+  'column-height': {
+    // https://drafts.csswg.org/css-multicol-2/#ch
     types: [ 'length',
       { type: 'discrete', options: [ [ 'auto', '1px' ] ] }
     ]

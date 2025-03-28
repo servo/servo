@@ -1,0 +1,9 @@
+<!doctype html>
+<title>SVG image that uses an HTTP URL</title>
+<link rel="mismatch" href="../struct/reftests/reference/green-100x100.html">
+<!-- Even better would be a blank page expected match. -->
+<img src="data:image/svg+xml,
+  <svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'>
+    <image href='{{location[scheme]}}://{{location[host]}}/svg/embedded/reference/green-rect-100x100.svg'/>
+  </svg>
+">

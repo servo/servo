@@ -17,6 +17,8 @@ test_valid_value("text-size-adjust", 'none');
 test_valid_value("text-size-adjust", '200%');
 test_valid_value("text-size-adjust", '100%');
 test_valid_value("text-size-adjust", '0%');
+test_valid_value("text-size-adjust", 'calc(10% + 5%)', 'calc(15%)');
+test_valid_value("text-size-adjust", 'calc(10% * sibling-index())');
 </script>
 </body>
 </html>

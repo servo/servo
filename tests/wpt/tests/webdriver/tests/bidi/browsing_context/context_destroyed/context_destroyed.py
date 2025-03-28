@@ -363,3 +363,25 @@ async def test_with_user_context_subscription(
             parent=None,
             user_context=user_context,
         )
+
+
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+async def test_client_window(bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, type_hint):
+    await subscribe_events([CONTEXT_DESTROYED_EVENT])
+
+    on_entry = wait_for_event(CONTEXT_DESTROYED_EVENT)
+    top_level_context = await bidi_session.browsing_context.create(type_hint=type_hint)
+    contexts = await bidi_session.browsing_context.get_tree(root=top_level_context["context"])
+
+    await bidi_session.browsing_context.close(context=top_level_context["context"])
+    context_info = await wait_for_future_safe(on_entry)
+
+    assert_browsing_context(
+        context_info,
+        top_level_context["context"],
+        children=None,
+        url="about:blank",
+        parent=None,
+        user_context="default",
+        client_window=contexts[0]["clientWindow"]
+    )

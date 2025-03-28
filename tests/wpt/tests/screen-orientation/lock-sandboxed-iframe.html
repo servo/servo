@@ -18,14 +18,13 @@
             resolve(evt.data.orientation);
             break;
           case "errored":
-            resolve(evt.data.name);
+            resolve(evt.data);
             break;
           default:
             assert_unreached(`Unexpected message: ${evt.data.result}`);
             return;
         }
         window.removeEventListener("message", callback);
-        resolve(evt.data.msg);
       }
       window.addEventListener("message", callback);
     });
@@ -38,9 +37,14 @@
     });
     const message = await wait_result();
     assert_equals(
-      message,
+      message.lock_name,
       "SecurityError",
       "screen.lockOrientation() throws a SecurityError"
+    );
+    assert_equals(
+      message.unlock_name,
+      "SecurityError",
+      "screen.orientation.unlock() throws a SecurityError"
     );
   }, "Test without 'allow-orientation-lock' sandboxing directive");
 

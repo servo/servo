@@ -13,7 +13,7 @@
 // META: variant=?25-28
 // META: variant=?29-last
 
-"use strict;"
+"use strict";
 
 // These tests focus on the browserSignals argument passed to generateBid().
 // Note that "topLevelSeller" is covered by component auction tests,

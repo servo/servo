@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<!-- The CSP spec says a sandbox directive in a <meta> tag is ignored, so we set
+     it and other rules in the .headers file. Please refer to that file. -->
+<p>Sandboxed frame without allow-scripts</p>
+<script>
+  parent.postMessage("I can execute scripts", "*");
+</script>

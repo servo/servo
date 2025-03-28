@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+async function pollGetStatsUntil(t, pc, condition, pollingMs = 100) {
+  while (true) {
+    const report = await pc.getStats();
+    for (const stats of report.values()) {
+      if (condition(report, stats) == true) {
+        // Condition satisfied, stop polling.
+        return;
+      }
+    }
+    await new Promise(r => t.step_timeout(r, pollingMs));
+  }
+}
+
+function isRtpWithCodec(report, stats, mimeType) {
+  if (stats.type != 'outbound-rtp' && stats.type != 'inbound-rtp') {
+    return false;  // Not an RTP stats object.
+  }
+  const codec = report.get(stats.codecId);
+  return codec && codec.mimeType == mimeType;
+}
+
+promise_test(async t => {
+  const sendCodec = RTCRtpSender.getCapabilities('video').codecs.find(
+      codec => codec.mimeType == 'video/H265');
+  const recvCodec = RTCRtpReceiver.getCapabilities('video').codecs.find(
+      codec => codec.mimeType == 'video/H265');
+  assert_implements_optional(
+      sendCodec != undefined && recvCodec != undefined,
+      'H265 not available for sending or receiving. Loopback requires both.');
+
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.onicecandidate = (e) => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = (e) => pc1.addIceCandidate(e.candidate);
+
+  const stream = await getNoiseStream({video:{width:640, height:360}});
+  const [track] = stream.getVideoTracks();
+  t.add_cleanup(() => track.stop());
+
+  // Negotiate H265.
+  const transceiver = pc1.addTransceiver(track);
+  transceiver.setCodecPreferences([sendCodec]);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  // Wait for H265 frames to be encoded and sent.
+  await pollGetStatsUntil(t, pc1, (report, stats) => {
+    if (!isRtpWithCodec(report, stats, 'video/H265')) {
+      return false;
+    }
+    assert_equals(stats.type, 'outbound-rtp');
+    return stats.framesEncoded > 0 && stats.framesSent > 0;
+  });
+  // Wait for H265 frames to be received and decoded.
+  await pollGetStatsUntil(t, pc2, (report, stats) => {
+    if (!isRtpWithCodec(report, stats, 'video/H265')) {
+      return false;
+    }
+    assert_equals(stats.type, 'inbound-rtp');
+    return stats.framesReceived > 0 && stats.framesDecoded > 0;
+  });
+}, `Negotiate H265 loopback and verify frames are flowing`);
+</script>

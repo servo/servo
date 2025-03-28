@@ -1,0 +1,60 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+</head>
+
+<body>
+  <button id="reset-button-1" type="reset" form="fancy-form-1"></button>
+  <fancy-form-1 id="fancy-form-1">
+    <template shadowrootmode="open" shadowrootreferencetarget="real-form">
+      <form id="real-form">
+        <input type="text" value="default value">
+      </form>
+    </template>
+  </fancy-form-1>
+
+  <button id="reset-button-2" type="reset" form="fancy-form-2"></button>
+  <fancy-form-2 id="fancy-form-2"></fancy-form-2>
+  <script>
+    const fancyForm2 = document.querySelector('fancy-form-2');
+    fancyForm2.attachShadow({ mode: 'open', referenceTarget: 'real-form' });
+    fancyForm2.shadowRoot.innerHTML = '<form id="real-form"><input type="text" value="default value"></form>';
+  </script>
+
+  <button id="reset-button-3" type="reset"></button>
+  <fancy-form-3 id="fancy-form-3">
+    <template shadowrootmode="open" shadowrootreferencetarget="real-form">
+      <form id="real-form">
+        <input type="text" value="default value">
+      </form>
+    </template>
+  </fancy-form-3>
+
+  <script>
+    function testFormWithReferenceTarget(formId, resetButtonId, name) {
+      test(function () {
+        const fancyForm = document.getElementById(formId);
+        const realForm = fancyForm.shadowRoot.getElementById("real-form");
+        const input = realForm.firstElementChild;
+
+        input.value = "new value";
+        const resetButton = document.getElementById(resetButtonId);
+        assert_equals(input.value, "new value", "The input value should be updated to the new value.");
+        resetButton.click();
+        assert_equals(input.value, "default value", "The input value should be reset to the default value.");
+      }, name);
+    }
+
+    testFormWithReferenceTarget('fancy-form-1', 'reset-button-1', "Reference target works with form attribute.");
+    testFormWithReferenceTarget('fancy-form-2', 'reset-button-2', "Reference target works with form attribute via options.");
+
+    document.getElementById('reset-button-3').setAttribute('form', "fancy-form-3");
+    testFormWithReferenceTarget('fancy-form-3', 'reset-button-3', "Reference target works with setAttribute('form')");
+  </script>
+</body>
+</html>

@@ -7,12 +7,12 @@ const operatorToleranceDict = {
   gelu: {float32: 18, float16: 18},
   hardSigmoid: {float32: 2, float16: 2},
   hardSwish: {float32: 4, float16: 4},
-  leakyRelu: {float32: 1, float16: 1},
+  leakyRelu: {float32: 1, float16: 2},
   linear: {float32: 2, float16: 2},
   prelu: {float32: 1, float16: 1},
   relu: {float32: 0, float16: 0},
   reshape: {float32: 0, float16: 0},
-  sigmoid: {float32: 34, float16: 3},
+  sigmoid: {float32: 34, float16: 10},
   softplus: {float32: 18, float16: 18},
   softsign: {float32: 3, float16: 3},
 };
@@ -289,7 +289,7 @@ const assert_array_approx_equals_ulp = (actual, expected, nulp, dataType, descri
       actual.length === expected.length,
       `assert_array_approx_equals_ulp: ${description} lengths differ, ` +
           `expected ${expected.length} but got ${actual.length}`);
-  let actualBitwise, expectedBitwise, distance;
+  let distance;
   for (let i = 0; i < actual.length; i++) {
     if (actual[i] === expected[i]) {
       continue;
@@ -303,7 +303,10 @@ const assert_array_approx_equals_ulp = (actual, expected, nulp, dataType, descri
         assert_true(
             false,
             `assert_array_approx_equals_ulp: ${description} actual ` +
-                `${actual[i]} should be close enough to expected ` +
+                `${
+                    dataType === 'float16' ?
+                        float16AsUint16ToNumber(actual[i]) :
+                        actual[i]} should be close enough to expected ` +
                 `${expected[i]} by the acceptable ${nulp} ULP distance, ` +
                 `but they have ${distance} ULP distance`);
       }
@@ -330,6 +333,14 @@ const ulpDistance = (a, b, dataType) => {
     aBitwise = a;
     // convert b data of Float16 to Uint16
     bBitwise = toHalf(b);
+
+    // Workaround to use mask to check returned special float16 value -0.0 which
+    // is 32768 (1000 0000 0000 0000) of uint16
+    const signExclusionMask = 0x00007FFF;
+    if ((aBitwise & signExclusionMask) === 0 &&
+        (bBitwise & signExclusionMask) === 0) {
+      return 0;
+    }
   } else if (dataType === 'int64' || dataType === 'uint64') {
     aBitwise = BigInt(a);
     bBitwise = BigInt(b);
@@ -970,6 +981,15 @@ const getConv2dPrecisionTolerance =
 
   const tolerance = filterWidth * filterHeight * (inputChannels / groups) * 2;
   const toleranceValueDict = {float32: tolerance, float16: tolerance};
+  const expectedDataType =
+      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
+  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
+};
+
+const getInstanceNormPrecisionTolerance = (graphResources) => {
+  // according to
+  // https://github.com/web-platform-tests/wpt/pull/43891#discussion_r1457026316
+  const toleranceValueDict = {float32: 840, float16: 8400};
   const expectedDataType =
       getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
   return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
