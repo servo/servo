@@ -40,12 +40,11 @@ use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
 use servo_config::opts;
-use servo_geometry::DeviceIndependentPixel;
-use style_traits::{CSSPixel, PinchZoomFactor};
+use style_traits::CSSPixel;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
-    LayoutSize, LayoutVector2D, WorldPoint,
+    DeviceIntPoint, DeviceIntRect, DevicePoint, DeviceRect, LayoutPoint, LayoutRect, LayoutSize,
+    LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
@@ -71,10 +70,6 @@ enum NotReadyToPaint {
     JustNotifiedConstellation,
     WaitingOnConstellation,
 }
-
-// Default viewport constraints
-const MAX_ZOOM: f32 = 8.0;
-const MIN_ZOOM: f32 = 0.1;
 
 /// Holds the state when running reftests that determines when it is
 /// safe to save the output image.
@@ -138,16 +133,6 @@ pub struct IOCompositor {
     /// The application window.
     pub window: Rc<dyn WindowMethods>,
 
-    /// "Mobile-style" zoom that does not reflow the page.
-    viewport_zoom: PinchZoomFactor,
-
-    /// Viewport zoom constraints provided by @viewport.
-    min_viewport_zoom: Option<PinchZoomFactor>,
-    max_viewport_zoom: Option<PinchZoomFactor>,
-
-    /// "Desktop-style" zoom that resizes the viewport to fit the window.
-    page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
-
     /// Tracks whether or not the view needs to be repainted.
     needs_repaint: Cell<RepaintReason>,
 
@@ -166,10 +151,6 @@ pub struct IOCompositor {
 
     /// The surfman instance that webrender targets
     rendering_context: Rc<dyn RenderingContext>,
-
-    /// The HighDPI factor of the native window, its view and the screen.
-    /// TODO: Eventually this should be a property of the `WebView`.
-    hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 
     /// The number of frames pending to receive from WebRender.
     pending_frames: usize,
@@ -445,13 +426,8 @@ impl IOCompositor {
                 cursor_pos: DevicePoint::new(0.0, 0.0),
             })),
             webviews: WebViewManager::default(),
-            hidpi_factor: window.hidpi_factor(),
             window,
             needs_repaint: Cell::default(),
-            page_zoom: Scale::new(1.0),
-            viewport_zoom: PinchZoomFactor::new(1.0),
-            min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
-            max_viewport_zoom: None,
             zoom_action: false,
             zoom_time: 0f64,
             ready_to_save_state: ReadyState::Unknown,
@@ -578,8 +554,8 @@ impl IOCompositor {
                 webview.on_touch_event_processed(result);
             },
 
-            CompositorMsg::CreatePng(page_rect, reply) => {
-                let res = self.render_to_shared_memory(page_rect);
+            CompositorMsg::CreatePng(webview_id, page_rect, reply) => {
+                let res = self.render_to_shared_memory(webview_id, page_rect);
                 if let Err(ref e) = res {
                     info!("Error retrieving PNG: {:?}", e);
                 }
@@ -647,12 +623,12 @@ impl IOCompositor {
             },
 
             CompositorMsg::WebDriverMouseButtonEvent(webview_id, action, button, x, y) => {
-                let dppx = self.device_pixels_per_page_pixel();
-                let point = dppx.transform_point(Point2D::new(x, y));
                 let Some(webview) = self.webviews.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
+                let dppx = webview.device_pixels_per_page_pixel();
+                let point = dppx.transform_point(Point2D::new(x, y));
                 webview.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
                     point,
                     action,
@@ -661,12 +637,12 @@ impl IOCompositor {
             },
 
             CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y) => {
-                let dppx = self.device_pixels_per_page_pixel();
-                let point = dppx.transform_point(Point2D::new(x, y));
                 let Some(webview) = self.webviews.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
+                let dppx = webview.device_pixels_per_page_pixel();
+                let point = dppx.transform_point(Point2D::new(x, y));
                 webview.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
             },
 
@@ -916,7 +892,7 @@ impl IOCompositor {
                     self.rendering_context.size2d().to_i32(),
                 )
                 .to_f32() /
-                    self.hidpi_factor;
+                    self.window.hidpi_factor();
 
                 if let Err(error) = response_sender.send(rect.to_i32()) {
                     warn!("Sending response to get client window failed ({error:?}).");
@@ -924,7 +900,7 @@ impl IOCompositor {
             },
             CrossProcessCompositorMessage::GetScreenSize(webview_id, response_sender) => {
                 let screen_geometry = self.webview_screen_geometry(webview_id);
-                let screen_size = screen_geometry.size.to_f32() / self.hidpi_factor;
+                let screen_size = screen_geometry.size.to_f32() / self.window.hidpi_factor();
 
                 if let Err(error) = response_sender.send(screen_size.to_i32()) {
                     warn!("Sending response to get screen size failed ({error:?}).");
@@ -933,7 +909,7 @@ impl IOCompositor {
             CrossProcessCompositorMessage::GetAvailableScreenSize(webview_id, response_sender) => {
                 let screen_geometry = self.webview_screen_geometry(webview_id);
                 let available_screen_size =
-                    screen_geometry.available_size.to_f32() / self.hidpi_factor;
+                    screen_geometry.available_size.to_f32() / self.window.hidpi_factor();
 
                 if let Err(error) = response_sender.send(available_screen_size.to_i32()) {
                     warn!("Sending response to get screen size failed ({error:?}).");
@@ -1036,9 +1012,9 @@ impl IOCompositor {
     /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
     /// for each visible top-level browsing context, applying a transformation on the root for
     /// pinch zoom, page zoom, and HiDPI scaling.
-    fn send_root_pipeline_display_list(&mut self) {
+    fn send_root_pipeline_display_list(&mut self, webview_id: WebViewId) {
         let mut transaction = Transaction::new();
-        self.send_root_pipeline_display_list_in_transaction(&mut transaction);
+        self.send_root_pipeline_display_list_in_transaction(webview_id, &mut transaction);
         self.generate_frame(&mut transaction, RenderReasons::SCENE);
         self.global.borrow_mut().send_transaction(transaction);
     }
@@ -1048,6 +1024,7 @@ impl IOCompositor {
     /// pinch zoom, page zoom, and HiDPI scaling.
     pub(crate) fn send_root_pipeline_display_list_in_transaction(
         &self,
+        webview_id: WebViewId,
         transaction: &mut Transaction,
     ) {
         // Every display list needs a pipeline, but we'd like to choose one that is unlikely
@@ -1059,7 +1036,10 @@ impl IOCompositor {
         let mut builder = webrender_api::DisplayListBuilder::new(root_pipeline);
         builder.begin();
 
-        let zoom_factor = self.device_pixels_per_page_pixel().0;
+        let mut zoom_factor = 1.0;
+        if let Some(webview) = self.webviews.get(webview_id) {
+            zoom_factor = webview.device_pixels_per_page_pixel().0;
+        }
         let zoom_reference_frame = builder.push_reference_frame(
             LayoutPoint::zero(),
             SpatialId::root_reference_frame(root_pipeline),
@@ -1143,6 +1123,7 @@ impl IOCompositor {
             webview,
             Box2D::from_origin_and_size(Point2D::origin(), size),
             self.global.clone(),
+            self.window.hidpi_factor(),
         ));
     }
 
@@ -1158,7 +1139,7 @@ impl IOCompositor {
         };
 
         webview.set_frame_tree(frame_tree);
-        self.send_root_pipeline_display_list();
+        self.send_root_pipeline_display_list(webview_id);
     }
 
     fn remove_webview(&mut self, webview_id: WebViewId) {
@@ -1168,7 +1149,7 @@ impl IOCompositor {
             return;
         };
 
-        self.send_root_pipeline_display_list();
+        self.send_root_pipeline_display_list(webview_id);
     }
 
     pub fn move_resize_webview(&mut self, webview_id: WebViewId, rect: DeviceRect) {
@@ -1192,7 +1173,7 @@ impl IOCompositor {
                 self.send_window_size_message_for_top_level_browser_context(rect, webview_id);
             }
 
-            self.send_root_pipeline_display_list();
+            self.send_root_pipeline_display_list(webview_id);
         }
     }
 
@@ -1215,7 +1196,7 @@ impl IOCompositor {
             self.webviews.show(webview_id)?
         };
         if painting_order_changed {
-            self.send_root_pipeline_display_list();
+            self.send_root_pipeline_display_list(webview_id);
         }
         Ok(())
     }
@@ -1223,7 +1204,7 @@ impl IOCompositor {
     pub fn hide_webview(&mut self, webview_id: WebViewId) -> Result<(), UnknownWebView> {
         debug!("{webview_id}: Hiding webview");
         if self.webviews.hide(webview_id)? {
-            self.send_root_pipeline_display_list();
+            self.send_root_pipeline_display_list(webview_id);
         }
         Ok(())
     }
@@ -1247,7 +1228,7 @@ impl IOCompositor {
             self.webviews.raise_to_top(webview_id)?
         };
         if painting_order_changed {
-            self.send_root_pipeline_display_list();
+            self.send_root_pipeline_display_list(webview_id);
         }
         Ok(())
     }
@@ -1259,7 +1240,10 @@ impl IOCompositor {
     ) {
         // The device pixel ratio used by the style system should include the scale from page pixels
         // to device pixels, but not including any pinch zoom.
-        let hidpi_scale_factor = self.device_pixels_per_page_pixel_not_including_page_zoom();
+        let mut hidpi_scale_factor = Scale::new(1.0);
+        if let Some(webview) = self.webviews.get(webview_id) {
+            hidpi_scale_factor = webview.device_pixels_per_page_pixel_not_including_page_zoom();
+        }
         let size = rect.size().to_f32() / hidpi_scale_factor;
         let msg = EmbedderToConstellationMessage::ChangeViewportDetails(
             webview_id,
@@ -1274,15 +1258,22 @@ impl IOCompositor {
         }
     }
 
-    pub fn resize_rendering_context(&mut self, new_size: PhysicalSize<u32>) -> bool {
+    pub fn resize_rendering_context(
+        &mut self,
+        webview_id: WebViewId,
+        new_size: PhysicalSize<u32>,
+    ) -> bool {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return false;
         }
 
-        let old_hidpi_factor = self.hidpi_factor;
-        self.hidpi_factor = self.window.hidpi_factor();
-        if self.hidpi_factor == old_hidpi_factor && self.rendering_context.size() == new_size {
-            return false;
+        let old_size = self.rendering_context.size();
+        let hidpi_factor = self.window.hidpi_factor();
+        if let Some(webview) = self.webviews.get(webview_id) {
+            let old_hidpi_factor = webview.hidpi_factor();
+            if old_hidpi_factor == hidpi_factor && old_size == new_size {
+                return false;
+            }
         }
 
         self.rendering_context.resize(new_size);
@@ -1295,7 +1286,7 @@ impl IOCompositor {
         transaction.set_document_view(output_region);
         self.global.borrow_mut().send_transaction(transaction);
 
-        self.update_after_zoom_or_hidpi_change();
+        self.update_after_zoom_or_hidpi_change(webview_id);
         self.set_needs_repaint(RepaintReason::Resize);
         true
     }
@@ -1332,42 +1323,35 @@ impl IOCompositor {
         self.window.set_animation_state(animation_state);
     }
 
-    pub(crate) fn device_pixels_per_page_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.device_pixels_per_page_pixel_not_including_page_zoom() * self.pinch_zoom_level()
-    }
-
-    fn device_pixels_per_page_pixel_not_including_page_zoom(
-        &self,
-    ) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.page_zoom * self.hidpi_factor
-    }
-
-    pub fn on_zoom_reset_window_event(&mut self) {
+    pub fn on_zoom_reset_window_event(&mut self, webview_id: WebViewId) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
-        self.page_zoom = Scale::new(1.0);
-        self.update_after_zoom_or_hidpi_change();
+        if let Some(webview) = self.webviews.get_mut(webview_id) {
+            webview.set_page_zoom(1.0);
+        }
+        self.update_after_zoom_or_hidpi_change(webview_id);
     }
 
-    pub fn on_zoom_window_event(&mut self, magnification: f32) {
+    pub fn on_zoom_window_event(&mut self, webview_id: WebViewId, magnification: f32) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
 
-        self.page_zoom =
-            Scale::new((self.page_zoom.get() * magnification).clamp(MIN_ZOOM, MAX_ZOOM));
-        self.update_after_zoom_or_hidpi_change();
+        if let Some(webview) = self.webviews.get_mut(webview_id) {
+            webview.set_page_zoom(magnification);
+        }
+        self.update_after_zoom_or_hidpi_change(webview_id);
     }
 
-    fn update_after_zoom_or_hidpi_change(&mut self) {
+    fn update_after_zoom_or_hidpi_change(&mut self, webview_id: WebViewId) {
         for (webview_id, webview) in self.webviews.painting_order() {
             self.send_window_size_message_for_top_level_browser_context(webview.rect, *webview_id);
         }
 
         // Update the root transform in WebRender to reflect the new zoom.
-        self.send_root_pipeline_display_list();
+        self.send_root_pipeline_display_list(webview_id);
     }
 
     fn details_for_pipeline(&self, pipeline_id: PipelineId) -> Option<&PipelineDetails> {
@@ -1466,22 +1450,27 @@ impl IOCompositor {
     /// [`IOCompositor`]. If succesful return the output image in shared memory.
     fn render_to_shared_memory(
         &mut self,
+        webview_id: WebViewId,
         page_rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
         self.render_inner()?;
 
         let size = self.rendering_context.size2d().to_i32();
         let rect = if let Some(rect) = page_rect {
-            let rect = self.device_pixels_per_page_pixel().transform_rect(&rect);
+            if let Some(webview) = self.webviews.get_mut(webview_id) {
+                let rect = webview.device_pixels_per_page_pixel().transform_rect(&rect);
 
-            let x = rect.origin.x as i32;
-            // We need to convert to the bottom-left origin coordinate
-            // system used by OpenGL
-            let y = (size.height as f32 - rect.origin.y - rect.size.height) as i32;
-            let w = rect.size.width as i32;
-            let h = rect.size.height as i32;
+                let x = rect.origin.x as i32;
+                // We need to convert to the bottom-left origin coordinate
+                // system used by OpenGL
+                let y = (size.height as f32 - rect.origin.y - rect.size.height) as i32;
+                let w = rect.size.width as i32;
+                let h = rect.size.height as i32;
 
-            DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
+                DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
+            } else {
+                DeviceIntRect::from_origin_and_size(Point2D::origin(), size)
+            }
         } else {
             DeviceIntRect::from_origin_and_size(Point2D::origin(), size)
         };
@@ -1726,22 +1715,6 @@ impl IOCompositor {
         }
         self.webviews = webviews;
         self.global.borrow().shutdown_state() != ShutdownState::FinishedShuttingDown
-    }
-
-    pub fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {
-        Scale::new(self.viewport_zoom.get())
-    }
-
-    pub(crate) fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
-        if let Some(min) = self.min_viewport_zoom {
-            zoom = f32::max(min.get(), zoom);
-        }
-        if let Some(max) = self.max_viewport_zoom {
-            zoom = f32::min(max.get(), zoom);
-        }
-
-        let old_zoom = std::mem::replace(&mut self.viewport_zoom, PinchZoomFactor::new(zoom));
-        old_zoom != self.viewport_zoom
     }
 
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {

@@ -596,10 +596,6 @@ impl Servo {
             .retain(|_webview_id, webview| webview.strong_count() > 0);
     }
 
-    pub fn pinch_zoom_level(&self) -> f32 {
-        self.compositor.borrow_mut().pinch_zoom_level().get()
-    }
-
     pub fn setup_logging(&self) {
         let constellation_chan = self.constellation_proxy.sender();
         let env = env_logger::Env::default();
