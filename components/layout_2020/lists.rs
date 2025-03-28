@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use log::warn;
 use style::properties::longhands::list_style_type::computed_value::T as ListStyleType;
 use style::properties::style_structs;
 use style::values::computed::Image;
@@ -16,24 +15,25 @@ use crate::replaced::ReplacedContents;
 pub(crate) fn make_marker<'dom, Node>(
     context: &LayoutContext,
     info: &NodeAndStyleInfo<Node>,
-) -> Option<Vec<PseudoElementContentItem>>
+) -> Option<(NodeAndStyleInfo<Node>, Vec<PseudoElementContentItem>)>
 where
     Node: NodeExt<'dom>,
 {
-    let style = info.style.get_list();
-    let node = match info.node {
-        Some(node) => node,
-        None => {
-            warn!("Tried to make a marker for an anonymous node!");
-            return None;
-        },
-    };
+    // TODO: use `PseudoElement::Marker` when we add it.
+    let marker_info = info.pseudo(
+        context,
+        style::selector_parser::PseudoElement::ServoLegacyText,
+    )?;
+    let style = &marker_info.style;
+    let list_style = style.get_list();
 
     // https://drafts.csswg.org/css-lists/#marker-image
-    let marker_image = || match &style.list_style_image {
+    let marker_image = || match &list_style.list_style_image {
         Image::Url(url) => Some(vec![
             PseudoElementContentItem::Replaced(ReplacedContents::from_image_url(
-                node, context, url,
+                marker_info.node,
+                context,
+                url,
             )?),
             PseudoElementContentItem::Text(" ".into()),
         ]),
@@ -44,11 +44,13 @@ where
         Image::PaintWorklet(..) |
         Image::None => None,
     };
-    marker_image().or_else(|| {
+    let content = marker_image().or_else(|| {
         Some(vec![PseudoElementContentItem::Text(
-            marker_string(style)?.into(),
+            marker_string(list_style)?.into(),
         )])
-    })
+    })?;
+
+    Some((marker_info, content))
 }
 
 /// <https://drafts.csswg.org/css-lists/#marker-string>

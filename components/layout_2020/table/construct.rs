@@ -95,26 +95,16 @@ impl Table {
         parent_info: &NodeAndStyleInfo<Node>,
         contents: Vec<AnonymousTableContent<'dom, Node>>,
         propagated_data: PropagatedBoxTreeData,
-    ) -> IndependentFormattingContext
+    ) -> (NodeAndStyleInfo<Node>, IndependentFormattingContext)
     where
         Node: crate::dom::NodeExt<'dom>,
     {
-        let grid_and_wrapper_style = context
-            .shared_context()
-            .stylist
-            .style_for_anonymous::<Node::ConcreteElement>(
-                &context.shared_context().guards,
-                &PseudoElement::ServoAnonymousTable,
-                &parent_info.style,
-            );
-        let anonymous_info = parent_info.new_anonymous(grid_and_wrapper_style.clone());
-
-        let mut table_builder = TableBuilderTraversal::new(
-            context,
-            &anonymous_info,
-            grid_and_wrapper_style.clone(),
-            propagated_data,
-        );
+        let table_info = parent_info
+            .pseudo(context, PseudoElement::ServoAnonymousTable)
+            .expect("Should never fail to create anonymous table info.");
+        let table_style = table_info.style.clone();
+        let mut table_builder =
+            TableBuilderTraversal::new(context, &table_info, table_style.clone(), propagated_data);
 
         for content in contents {
             match content {
@@ -137,12 +127,14 @@ impl Table {
         let mut table = table_builder.finish();
         table.anonymous = true;
 
-        IndependentFormattingContext {
-            base: LayoutBoxBase::new((&anonymous_info).into(), grid_and_wrapper_style),
+        let ifc = IndependentFormattingContext {
+            base: LayoutBoxBase::new((&table_info).into(), table_style),
             contents: IndependentFormattingContextContents::NonReplaced(
                 IndependentNonReplacedContents::Table(table),
             ),
-        }
+        };
+
+        (table_info, ifc)
     }
 
     /// Push a new slot into the last row of this table.
@@ -686,17 +678,10 @@ where
         }
 
         let row_content = std::mem::take(&mut self.current_anonymous_row_content);
-        let context = self.context;
-        let anonymous_style = self
-            .context
-            .shared_context()
-            .stylist
-            .style_for_anonymous::<Node::ConcreteElement>(
-                &context.shared_context().guards,
-                &PseudoElement::ServoAnonymousTableRow,
-                &self.info.style,
-            );
-        let anonymous_info = self.info.new_anonymous(anonymous_style.clone());
+        let anonymous_info = self
+            .info
+            .pseudo(self.context, PseudoElement::ServoAnonymousTableRow)
+            .expect("Should never fail to create anonymous row info.");
         let mut row_builder =
             TableRowBuilder::new(self, &anonymous_info, self.current_propagated_data);
 
@@ -718,9 +703,10 @@ where
 
         row_builder.finish();
 
+        let style = anonymous_info.style.clone();
         self.push_table_row(TableTrack {
             base_fragment_info: (&anonymous_info).into(),
-            style: anonymous_style,
+            style,
             group_index: self.current_row_group_index,
             is_anonymous: true,
         });
@@ -958,16 +944,10 @@ where
         }
 
         let context = self.table_traversal.context;
-        let anonymous_style = context
-            .shared_context()
-            .stylist
-            .style_for_anonymous::<Node::ConcreteElement>(
-                &context.shared_context().guards,
-                &PseudoElement::ServoAnonymousTableCell,
-                &self.info.style,
-            );
-        let anonymous_info = self.info.new_anonymous(anonymous_style);
-
+        let anonymous_info = self
+            .info
+            .pseudo(context, PseudoElement::ServoAnonymousTableCell)
+            .expect("Should never fail to create anonymous table cell info");
         let propagated_data = self.propagated_data.disallowing_percentage_table_columns();
         let mut builder = BlockContainerBuilder::new(context, &anonymous_info, propagated_data);
 
@@ -1025,12 +1005,14 @@ where
                     // 65534 and `colspan` to 1000, so we also enforce the same limits
                     // when dealing with arbitrary DOM elements (perhaps created via
                     // script).
-                    let (rowspan, colspan) = info.node.map_or((1, 1), |node| {
-                        let node = node.to_threadsafe();
+                    let (rowspan, colspan) = if info.pseudo_element_type.is_none() {
+                        let node = info.node.to_threadsafe();
                         let rowspan = node.get_rowspan().unwrap_or(1).min(65534) as usize;
                         let colspan = node.get_colspan().unwrap_or(1).min(1000) as usize;
                         (rowspan, colspan)
-                    });
+                    } else {
+                        (1, 1)
+                    };
 
                     let propagated_data =
                         self.propagated_data.disallowing_percentage_table_columns();
@@ -1139,10 +1121,16 @@ fn add_column<'dom, Node>(
 ) where
     Node: NodeExt<'dom>,
 {
-    let span = column_info
-        .node
-        .and_then(|node| node.to_threadsafe().get_span())
-        .map_or(1, |span| span.min(1000) as usize);
+    let span = if column_info.pseudo_element_type.is_none() {
+        column_info
+            .node
+            .to_threadsafe()
+            .get_span()
+            .unwrap_or(1)
+            .min(1000) as usize
+    } else {
+        1
+    };
 
     collection.extend(
         repeat(TableTrack {

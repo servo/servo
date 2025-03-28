@@ -116,19 +116,19 @@ pub fn process_resolved_style_request<'dom>(
     // We call process_resolved_style_request after performing a whole-document
     // traversal, so in the common case, the element is styled.
     let layout_element = node.to_threadsafe().as_element().unwrap();
-    let layout_element = pseudo.map_or_else(
-        || Some(layout_element),
-        |pseudo_element| layout_element.get_pseudo(pseudo_element),
-    );
-
-    let layout_element = match layout_element {
-        None => {
-            // The pseudo doesn't exist, return nothing.  Chrome seems to query
-            // the element itself in this case, Firefox uses the resolved value.
-            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
-            return String::new();
+    let layout_element = match pseudo {
+        Some(pseudo_element_type) => {
+            match layout_element.with_pseudo(*pseudo_element_type) {
+                Some(layout_element) => layout_element,
+                None => {
+                    // The pseudo doesn't exist, return nothing.  Chrome seems to query
+                    // the element itself in this case, Firefox uses the resolved value.
+                    // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
+                    return String::new();
+                },
+            }
         },
-        Some(layout_element) => layout_element,
+        None => layout_element,
     };
 
     let style = &*layout_element.resolved_style();
