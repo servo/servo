@@ -539,7 +539,7 @@ impl Extractable for FormData {
         let bytes = encode_multipart_form_data(&mut self.datums(), boundary.clone(), UTF_8);
         let total_bytes = bytes.len();
         let content_type = Some(DOMString::from(format!(
-            "multipart/form-data;boundary={}",
+            "multipart/form-data; boundary={}",
             boundary
         )));
         let stream = ReadableStream::new_from_bytes(global, bytes, can_gc)?;
