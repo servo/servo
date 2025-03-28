@@ -17,8 +17,8 @@ function resolve_corner_style(style, w, h) {
         style['corner-shape'] || 'round';
     const match = shape.match(/superellipse\((\.?[0-9]+(.[0-9]+)?)\)/);
     shape = match ? +match[1] : keywords[shape];
-    const hWidth = style[`border-${hSide}-width`] || style['border-width'] || 0;
-    const vWidth = style[`border-${vSide}-width`] || style['border-width'] || 0;
+    const hWidth = parseFloat(style[`border-${hSide}-width`] || style['border-width'] || 0);
+    const vWidth = parseFloat(style[`border-${vSide}-width`] || style['border-width'] || 0);
     let radius =
         style[`border-${vSide}-${hSide}-radius`] || style['border-radius'] || 0;
     if (!Array.isArray(radius))
@@ -34,6 +34,18 @@ function resolve_corner_style(style, w, h) {
     style[`border-${vSide}-${hSide}-radius`] = radius;
     style[`border-${hSide}-width`] = hWidth;
     style[`border-${vSide}-width`] = vWidth;
+    style[`border-${hSide}-color`] = style[`border-${hSide}-color`] || style[`border-color`];
+    style[`border-${vSide}-color`] = style[`border-${vSide}-color`] || style[`border-color`];
+    if ('box-shadow' in style) {
+      const shadows = style['box-shadow'].split(",");
+      style.shadow = [];
+      const boxShadowRegex = /(?:(-?\d+(?:\.\d+)?)px)\s+(?:(-?\d+(?:\.\d+)?)px)\s+(?:(-?\d+(?:\.\d+)?)(?:px)?)?(?:\s+(?:(-?\d+(?:\.\d+)?)px))?\s+([^\$]*)/i;
+      for (const shadow of shadows.toReversed()) {
+        const parsed = shadow.match(boxShadowRegex)
+        if (parsed)
+          style.shadow.push({offset: [parseFloat(parsed[1]), parseFloat(parsed[2])], blur: parsed[3], spread: parsed[4], color: parsed[5] || "black" });
+      }
+    }
   }));
   return style;
 }

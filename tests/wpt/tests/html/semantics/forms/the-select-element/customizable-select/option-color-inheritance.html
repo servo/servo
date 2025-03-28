@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/404464591">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select>
+  <option>option</option>
+</select>
+<style>
+select {
+  color: rgb(12, 34, 56);
+}
+</style>
+
+<script>
+test(() => {
+  const style = getComputedStyle(document.querySelector('option'));
+  assert_equals(style.color, 'rgb(12, 34, 56)', 'color');
+}, 'option elements should inherit color from their parent select element.');
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/web-animations-2#animation-trigger">
+    <link rel="match" href="animation-trigger-fill-mode-none-ref.html">
+  </head>
+  <body>
+    <style>
+      .scroller {
+        overflow-y: scroll;
+        border: solid 1px;
+        place-self: center;
+        height: 300px;
+        width: 200px;
+      }
+      @keyframes slide-in {
+        from {
+          transform: translateX(-50px);
+        }
+      }
+      .target {
+        height: 100px;
+        width: 100%;
+        background-color: blue;
+        animation: slide-in 3s none;
+        animation-trigger: view() alternate contain 0% contain 100%;
+      }
+      .space {
+        height: 250px;
+        width: 50%;
+      }
+
+    </style>
+    <div id="scroller" class="scroller">
+      <div class="space"></div>
+      <div id="target" class="target"></div>
+      <div class="space"></div>
+    </div>
+  </body>
+</html>

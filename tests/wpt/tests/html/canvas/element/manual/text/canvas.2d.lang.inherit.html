@@ -1,11 +1,12 @@
 <!doctype HTML>
-<html lang="en">
+<html lang="en" class="reftest-wait">
   <meta charset="utf-8">
   <title>HTML5 Canvas Test:  The lang attribute inherits from the canvas rather than the document</title>
   <link rel="match" href="canvas.2d.lang-ref.html" />
   <link rel="author" href="mailto:schenney@chromium.org"/>
   <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
   <meta name="assert" content="When the canvas element has a lang attribute, override the document." />
+  <script src="/common/reftest-wait.js"></script>
   <style>
     #canvas-tr {
       position: absolute;
@@ -41,6 +42,7 @@
 
         ctxEN.font = '25px Lato-Medium';
         ctxEN.fillText('fi', 5, 50);
+        takeScreenshot();
       });
     }
   </script>

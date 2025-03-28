@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <body>
-<meta name="assert" content="Selection's getComposedRanges should be updated when its associated live range changes">
+<meta name="assert" content="Selection's composed range should be updated when its associated legacy uncomposed range changes">
 <link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-getcomposedranges">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -17,6 +17,7 @@
   </div>
 </template>
 </div>
+<div id="lightEnd">End outside shadow DOM</div>
 
 <script>
 
@@ -27,48 +28,150 @@ const innerHost = outerRoot.getElementById('innerHost');
 const innerRoot = innerHost.shadowRoot;
 
 test(() => {
-  // Step 1: Setting a composed live range that crosses boundaries
+  // Setting a selction crossing to shadow tree
   selection.setBaseAndExtent(light.firstChild, 10, innerHost.firstChild, 5);
-  const liveRange = selection.getRangeAt(0);
-  const composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
+  assert_throws_dom("INDEX_SIZE_ERR", function () { selection.getRangeAt(0) });
+}, 'If selection crosses shadow boundaries, getRangeAt(0) should throw an IndexSizeError because the end is not in the document tree.');
 
+test(() => {
+  // Setting a selection within light tree
+  selection.setBaseAndExtent(light.firstChild, 10, lightEnd.firstChild, 20);
+  const liveRange = selection.getRangeAt(0);
+  const newSpan = document.createElement("span");
+  liveRange.setStart(newSpan, 0);
+
+  assert_true(liveRange.collapsed);
+  assert_equals(liveRange.startContainer, newSpan);
+  assert_equals(liveRange.startOffset, 0);
+
+  assert_true(selection.isCollapsed);
+  assert_equals(selection.anchorNode, null);
+  assert_equals(selection.anchorOffset, 0);
+
+  assert_throws_dom("INDEX_SIZE_ERR", function () { selection.getRangeAt(0) });
+  assert_equals(selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] }).length, 0);
+
+}, 'modify getRangeAt() range: setStart() to disconnected node will collapse and remove the live range from the selection.');
+
+test(() => {
+  // Setting a selection within light tree
+  selection.setBaseAndExtent(light.firstChild, 10, light.firstChild, 20);
+  const liveRange = selection.getRangeAt(0);
+  let composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
+
+  assert_equals(liveRange.startContainer, light.firstChild);
+  assert_equals(liveRange.startOffset, 10);
+  assert_equals(liveRange.endContainer, light.firstChild);
+  assert_equals(liveRange.endOffset, 20);
+
+  assert_equals(selection.anchorNode, light.firstChild);
+  assert_equals(selection.anchorOffset, 10);
+  assert_equals(selection.focusNode, light.firstChild);
+  assert_equals(selection.focusOffset, 20);
+
+  assert_equals(composedRange.startContainer, light.firstChild);
+  assert_equals(composedRange.startOffset, 10);
+  assert_equals(composedRange.endContainer, light.firstChild);
+  assert_equals(composedRange.endOffset, 20);
+
+  liveRange.setEnd(innerHost.firstChild, 5);
+  composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
+
+  assert_true(liveRange.collapsed);
   assert_equals(liveRange.startContainer, innerHost.firstChild);
   assert_equals(liveRange.startOffset, 5);
-  assert_equals(liveRange.endContainer, innerHost.firstChild);
-  assert_equals(liveRange.endOffset, 5);
 
+  assert_true(selection.isCollapsed);
   assert_equals(selection.anchorNode, innerHost.firstChild);
   assert_equals(selection.anchorOffset, 5);
-  assert_equals(selection.focusNode, innerHost.firstChild);
-  assert_equals(selection.focusOffset, 5);
 
   assert_equals(composedRange.startContainer, light.firstChild);
   assert_equals(composedRange.startOffset, 10);
   assert_equals(composedRange.endContainer, innerHost.firstChild);
   assert_equals(composedRange.endOffset, 5);
+}, 'modify getRangeAt() range: setEnd() crosses shadow boundary into the shadow DOM and after start, which collapses live range. Composed selection range is not collapsed.');
 
-  // Step 2: Update the live range only using setEnd
-  liveRange.setEnd(innerHost.firstChild, 6);
-  const composedRange2 = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
+test(() => {
+  // Setting a selection within light tree
+  selection.setBaseAndExtent(lightEnd.firstChild, 10, lightEnd.firstChild, 20);
+  const liveRange = selection.getRangeAt(0);
+  let composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
 
+  assert_equals(liveRange.startContainer, lightEnd.firstChild);
+  assert_equals(liveRange.startOffset, 10);
+  assert_equals(liveRange.endContainer, lightEnd.firstChild);
+  assert_equals(liveRange.endOffset, 20);
+
+  assert_equals(selection.anchorNode, lightEnd.firstChild);
+  assert_equals(selection.anchorOffset, 10);
+  assert_equals(selection.focusNode, lightEnd.firstChild);
+  assert_equals(selection.focusOffset, 20);
+
+  assert_equals(composedRange.startContainer, lightEnd.firstChild);
+  assert_equals(composedRange.startOffset, 10);
+  assert_equals(composedRange.endContainer, lightEnd.firstChild);
+  assert_equals(composedRange.endOffset, 20);
+
+  liveRange.setStart(innerHost.firstChild, 5);
+  composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
+
+  assert_true(liveRange.collapsed);
   assert_equals(liveRange.startContainer, innerHost.firstChild);
   assert_equals(liveRange.startOffset, 5);
-  assert_equals(liveRange.endContainer, innerHost.firstChild);
-  assert_equals(liveRange.endOffset, 6);
 
+  assert_true(selection.isCollapsed);
   assert_equals(selection.anchorNode, innerHost.firstChild);
   assert_equals(selection.anchorOffset, 5);
-  assert_equals(selection.focusNode, innerHost.firstChild);
-  assert_equals(selection.focusOffset, 6);
 
-  assert_equals(composedRange2.startContainer, light.firstChild);
-  assert_equals(composedRange2.startOffset, 10);
-  assert_equals(composedRange2.endContainer, innerHost.firstChild);
-  assert_equals(composedRange2.endOffset, 6);
+  assert_equals(composedRange.startContainer, innerHost.firstChild);
+  assert_equals(composedRange.startOffset, 5);
+  assert_equals(composedRange.endContainer, lightEnd.firstChild);
+  assert_equals(composedRange.endOffset, 20);
+}, 'modify getRangeAt() range: setStart() crosses shadow boundary into the shadow DOM and before end, which collapses live range. Composed selection range is not collapsed.');
 
-  // Step 3: selectNode() calls both setStart/setEnd
+test(() => {
+  // Setting a selection within light tree
+  selection.setBaseAndExtent(light.firstChild, 10, light.firstChild, 20);
+  const liveRange = selection.getRangeAt(0);
+  let composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
+
+  assert_equals(liveRange.startContainer, light.firstChild);
+  assert_equals(liveRange.startOffset, 10);
+  assert_equals(liveRange.endContainer, light.firstChild);
+  assert_equals(liveRange.endOffset, 20);
+
+  assert_equals(selection.anchorNode, light.firstChild);
+  assert_equals(selection.anchorOffset, 10);
+  assert_equals(selection.focusNode, light.firstChild);
+  assert_equals(selection.focusOffset, 20);
+
+  assert_equals(composedRange.startContainer, light.firstChild);
+  assert_equals(composedRange.startOffset, 10);
+  assert_equals(composedRange.endContainer, light.firstChild);
+  assert_equals(composedRange.endOffset, 20);
+
+  liveRange.setStart(innerHost.firstChild, 5);
+  composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
+
+  assert_true(liveRange.collapsed);
+  assert_equals(liveRange.startContainer, innerHost.firstChild);
+  assert_equals(liveRange.startOffset, 5);
+
+  assert_true(selection.isCollapsed);
+  assert_equals(selection.anchorNode, innerHost.firstChild);
+  assert_equals(selection.anchorOffset, 5);
+
+  assert_true(composedRange.collapsed);
+  assert_equals(composedRange.startContainer, innerHost.firstChild);
+  assert_equals(composedRange.startOffset, 5);
+}, 'modify getRangeAt() range: setStart() crosses shadow boundary into the shadow DOM and after end, which collapses both live range and composed selection range.');
+
+test(() => {
+  // Setting a selection within light tree
+  selection.setBaseAndExtent(light.firstChild, 10, lightEnd.firstChild, 20);
+  const liveRange = selection.getRangeAt(0);
   liveRange.selectNode(innerHost);
-  const composedRange3 = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
+  const composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
 
   assert_equals(liveRange.startContainer, outerRoot);
   assert_equals(liveRange.startOffset, 3);
@@ -80,30 +183,31 @@ test(() => {
   assert_equals(selection.focusNode, outerRoot);
   assert_equals(selection.focusOffset, 4);
 
-  assert_equals(composedRange3.startContainer, outerRoot);
-  assert_equals(composedRange3.startOffset, 3);
-  assert_equals(composedRange3.endContainer, outerRoot);
-  assert_equals(composedRange3.endOffset, 4);
+  assert_equals(composedRange.startContainer, outerRoot);
+  assert_equals(composedRange.startOffset, 3);
+  assert_equals(composedRange.endContainer, outerRoot);
+  assert_equals(composedRange.endOffset, 4);
+}, 'modify getRangeAt() range: selectNode() innerHost for all ranges.');
 
-  // Step 4: collapse(false) calls setEnd only
+test(() => {
+  // Setting a selection within light tree
+  selection.setBaseAndExtent(light.firstChild, 10, lightEnd.firstChild, 20);
+  const liveRange = selection.getRangeAt(0);
   liveRange.collapse();
-  const composedRange4 = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
+  const composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
 
-  assert_equals(liveRange.startContainer, outerRoot);
-  assert_equals(liveRange.startOffset, 4);
-  assert_equals(liveRange.endContainer, outerRoot);
-  assert_equals(liveRange.endOffset, 4);
+  assert_true(liveRange.collapsed);
+  assert_equals(liveRange.startContainer, lightEnd.firstChild);
+  assert_equals(liveRange.startOffset, 20);
 
-  assert_equals(selection.anchorNode, outerRoot);
-  assert_equals(selection.anchorOffset, 4);
-  assert_equals(selection.focusNode, outerRoot);
-  assert_equals(selection.focusOffset, 4);
+  assert_true(selection.isCollapsed);
+  assert_equals(selection.anchorNode, lightEnd.firstChild);
+  assert_equals(selection.anchorOffset, 20);
 
-  assert_equals(composedRange4.startContainer, outerRoot);
-  assert_equals(composedRange4.startOffset, 4);
-  assert_equals(composedRange4.endContainer, outerRoot);
-  assert_equals(composedRange4.endOffset, 4);
-}, 'modify getRangeAt() range.');
+  assert_true(composedRange.collapsed);
+  assert_equals(composedRange.startContainer, lightEnd.firstChild);
+  assert_equals(composedRange.startOffset, 20);
+ }, 'modify getRangeAt() range: collapse() collapses all ranges.');
 
 test(() => {
   // Step 1: Creating a live range and only setting its end/anchor
@@ -112,37 +216,32 @@ test(() => {
   liveRange.setEnd(innerHost.firstChild, 5);
   const composedRanges = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] });
 
+  assert_true(liveRange.collapsed);
   assert_equals(liveRange.startContainer, innerHost.firstChild);
   assert_equals(liveRange.startOffset, 5);
-  assert_equals(liveRange.endContainer, innerHost.firstChild);
-  assert_equals(liveRange.endOffset, 5);
 
+  assert_true(selection.isCollapsed);
   assert_equals(selection.anchorNode, null);
   assert_equals(selection.anchorOffset, 0);
-  assert_equals(selection.focusNode, null);
-  assert_equals(selection.focusOffset, 0);
 
-  assert_equals(composedRanges.length, 0);
+  assert_equals(composedRanges.length, 0, 'range is not added to selection yet.');
 
   // Step 2: Add range to selection so range API updates will change selection
   selection.addRange(liveRange);
   const composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
 
-  assert_equals(liveRange.startContainer, innerHost.firstChild);
-  assert_equals(liveRange.startOffset, 5);
+  assert_true(liveRange.collapsed);
   assert_equals(liveRange.endContainer, innerHost.firstChild);
   assert_equals(liveRange.endOffset, 5);
 
+  assert_true(selection.isCollapsed);
   assert_equals(selection.anchorNode, innerHost.firstChild);
   assert_equals(selection.anchorOffset, 5);
-  assert_equals(selection.focusNode, innerHost.firstChild);
-  assert_equals(selection.focusOffset, 5);
 
+  assert_true(composedRange.collapsed);
   assert_equals(composedRange.startContainer, innerHost.firstChild);
   assert_equals(composedRange.startOffset, 5);
-  assert_equals(composedRange.endContainer, innerHost.firstChild);
-  assert_equals(composedRange.endOffset, 5);
-}, 'modify createRange() range added to selection after setEnd call.');
+}, 'modify createRange() range: adding to selection sets the selection');
 
 test(() => {
   // Step 1: Creating a live range and only setting its end/anchor
@@ -151,17 +250,15 @@ test(() => {
   // Add range to selection so range API updates will change selection
   selection.addRange(liveRange);
   liveRange.setEnd(innerHost.firstChild, 5);
-  const composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
+  let composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
 
+  assert_true(liveRange.collapsed);
   assert_equals(liveRange.startContainer, innerHost.firstChild);
   assert_equals(liveRange.startOffset, 5);
-  assert_equals(liveRange.endContainer, innerHost.firstChild);
-  assert_equals(liveRange.endOffset, 5);
 
+  assert_true(selection.isCollapsed);
   assert_equals(selection.anchorNode, innerHost.firstChild);
   assert_equals(selection.anchorOffset, 5);
-  assert_equals(selection.focusNode, innerHost.firstChild);
-  assert_equals(selection.focusOffset, 5);
 
   assert_equals(composedRange.startContainer, document);
   assert_equals(composedRange.startOffset, 0);
@@ -170,21 +267,19 @@ test(() => {
 
   // Step 2: Update the live range by setting its start/focus
   liveRange.setStart(light.firstChild, 10);
-  const composedRangeAfter = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
+  composedRange = selection.getComposedRanges({ shadowRoots: [outerRoot, innerRoot] })[0];
 
+  assert_true(liveRange.collapsed);
   assert_equals(liveRange.startContainer, light.firstChild);
   assert_equals(liveRange.startOffset, 10);
-  assert_equals(liveRange.endContainer, light.firstChild);
-  assert_equals(liveRange.endOffset, 10);
 
+  assert_true(selection.isCollapsed);
   assert_equals(selection.anchorNode, light.firstChild);
   assert_equals(selection.anchorOffset, 10);
-  assert_equals(selection.focusNode, light.firstChild);
-  assert_equals(selection.focusOffset, 10);
 
-  assert_equals(composedRangeAfter.startContainer, light.firstChild);
-  assert_equals(composedRangeAfter.startOffset, 10);
-  assert_equals(composedRangeAfter.endContainer, innerHost.firstChild);
-  assert_equals(composedRangeAfter.endOffset, 5);
-}, 'modify createRange() range added to selection before setStart/setEnd calls.');
+  assert_equals(composedRange.startContainer, light.firstChild);
+  assert_equals(composedRange.startOffset, 10);
+  assert_equals(composedRange.endContainer, innerHost.firstChild);
+  assert_equals(composedRange.endOffset, 5);
+}, 'modify createRange() range: added to selection before setStart/setEnd calls.');
 </script>

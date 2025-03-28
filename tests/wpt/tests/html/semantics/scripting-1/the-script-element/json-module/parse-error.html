@@ -11,8 +11,16 @@ setup({
 async_test(t => {
   window.addEventListener("error", t.step_func_done(e => {
     assert_true(e instanceof ErrorEvent, "ErrorEvent");
-    assert_equals(e.filename, new URL("parse-error.json", location).href);
     assert_true(e.error instanceof SyntaxError, "SyntaxError");
+
+    // The specific values of these properties are implementation-defined
+    // per https://html.spec.whatwg.org/#report-an-exception
+    // and https://html.spec.whatwg.org/#extract-error.
+    // But, we can at least check that they exist.
+    assert_not_equals(e.message, undefined);
+    assert_not_equals(e.filename, undefined);
+    assert_not_equals(e.lineno, undefined);
+    assert_not_equals(e.colno, undefined);
   }));
 });
 </script>

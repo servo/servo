@@ -1,11 +1,12 @@
 <!doctype HTML>
-<html lang="en-US">
+<html lang="en-US" class="reftest-wait">
   <meta charset="utf-8">
   <title>HTML5 Canvas Test: The lang attribute functions in a transferred offscreen</title>
   <link rel="match" href="canvas.2d.offscreen.lang-ref.html" />
   <link rel="author" href="mailto:schenney@chromium.org"/>
   <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
   <meta name="assert" content="Verify that setting lang in a transferred offscreen works." />
+  <script src="/common/reftest-wait.js"></script>
   <style>
     #canvas-tr {
       position: absolute;
@@ -39,6 +40,7 @@
         document.fonts.add(font);
         drawText('tr');
         drawText('en');
+        takeScreenshot();
       });
     }
   </script>

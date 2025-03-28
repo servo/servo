@@ -151,12 +151,15 @@
     assert_equals(candidate.usernameFragment, null, 'usernameFragment');
   }, 'new RTCIceCandidate({ ... }) with invalid candidate string and sdpMid');
 
+["most", "all"].forEach(howMany => {
   test(t => {
     const candidate = new RTCIceCandidate({
       candidate: candidateString,
       sdpMid: 'video',
       sdpMLineIndex: 1,
-      usernameFragment: 'test'
+      usernameFragment: 'test',
+      relayProtocol: 'udp',
+      url: 'stun:stun.example.org'
     });
 
     assert_equals(candidate.candidate, candidateString, 'candidate');
@@ -175,14 +178,21 @@
     assert_equals(candidate.tcpType, null, 'tcpType');
     assert_equals(candidate.relatedAddress, null, 'relatedAddress');
     assert_equals(candidate.relatedPort, null, 'relatedPort');
-  }, 'new RTCIceCandidate({ ... }) with nondefault values for all fields');
+    // The remaining fields are newer, so test them seperately
+    if (howMany != "most") {
+      assert_equals(candidate.relayProtocol, 'udp', 'relayProtocol');
+      assert_equals(candidate.url, 'stun:stun.example.org', 'url');
+    }
+  }, `new RTCIceCandidate({ ... }) with nondefault values for ${howMany} fields`);
 
   test(t => {
     const candidate = new RTCIceCandidate({
       candidate: candidateString2,
       sdpMid: 'video',
       sdpMLineIndex: 1,
-      usernameFragment: 'user1'
+      usernameFragment: 'user1',
+      relayProtocol: 'tcp',
+      url: 'turn:turn.example.net'
     });
 
     assert_equals(candidate.candidate, candidateString2, 'candidate');
@@ -201,7 +211,28 @@
     assert_equals(candidate.tcpType, 'active', 'tcpType');
     assert_equals(candidate.relatedAddress, 'www.example.com', 'relatedAddress');
     assert_equals(candidate.relatedPort, 22222, 'relatedPort');
-  }, 'new RTCIceCandidate({ ... }) with nondefault values for all fields, tcp candidate');
+    // The remaining fields are newer, so test them seperately
+    if (howMany != "most") {
+      assert_equals(candidate.url, 'turn:turn.example.net', 'url');
+      assert_equals(candidate.relayProtocol, 'tcp', 'relayProtocol');
+    }
+  }, `new RTCIceCandidate({ ... }) with nondefault values for ${howMany} fields, tcp candidate`);
+});
+
+  test(t => {
+    let candidate = new RTCIceCandidate(new RTCIceCandidate({
+      sdpMid: 'video',
+      relayProtocol: 'tls',
+      url: 'turn:turn.example.net'
+    }));
+
+    assert_equals(candidate.relayProtocol, 'tls', 'relayProtocol cloned');
+    assert_equals(candidate.url, 'turn:turn.example.net', 'url cloned');
+
+    candidate = new RTCIceCandidate(JSON.parse(JSON.stringify(candidate)));
+    assert_equals(candidate.relayProtocol, null, 'relayProtocol not signaled');
+    assert_equals(candidate.url, null, 'url not signaled');
+  }, `new RTCIceCandidate({ relayProtocol, url }) cloned vs signaled`);
 
   test(t => {
     // sdpMid is not validated in RTCIceCandidate

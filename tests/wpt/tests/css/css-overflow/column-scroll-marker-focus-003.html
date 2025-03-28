@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<title>Tab focus from ::colum::scroll-marker to non-atomic inline</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-next-focus">
+<style>
+  body {
+    margin: 0;
+  }
+  #container {
+    scroll-marker-group: before;
+    overflow: scroll;
+    columns: 7;
+    column-gap: 10px;
+    column-fill: auto;
+    column-rule: solid;
+    height: 100px;
+    line-height: 20px;
+    orphans: 1;
+    widows: 1;
+  }
+  #container::scroll-marker-group {
+    display: flex;
+    height: 20px;
+    background: hotpink;
+  }
+  #container::column::scroll-marker {
+    content: "";
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+    background: blue;
+  }
+  #container::column::scroll-marker:focus {
+    background: cyan;
+  }
+</style>
+<div id="container">
+  <div id="wrapper">
+    <div tabindex="0" style="display:inline-block; width:100%; height:85px;"></div>
+    <span tabindex="0" id="inlineElm1">
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      inline<br>
+      <span tabindex="0" id="inlineElm2">inline2</span>
+    </span>
+    <div tabindex="0" id="inlineBlock1" style="display:inline-block; width:100%; height:85px; background:brown;"></div>
+    <span tabindex="0" id="inlineElm3" style="border:1px solid;">
+      inline3<br>
+      <div tabindex="0" id="inlineBlock2" style="display:inline-block; width:100%; height:15px; background:brown;"></div>
+      inline3<br>
+      inline3<br>
+      inline3<br>
+      inline3<br>
+    </span>
+    <span tabindex="0" id="inlineElm4" style="border:1px solid;">
+      inline4<br>
+    </span>
+  </div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+  async function activateMarker(idx) {
+    await new test_driver.Actions()
+      .pointerMove(5 + idx*25, 5)
+      .pointerDown()
+      .pointerUp()
+      .send();
+  }
+
+  // Redisplay an element, to reset state. This makes the test harder to pass
+  // with Blink's "culled inlines" concept.
+  function redisplay(elm) {
+    let old_display = elm.style.display;
+    elm.style.display = "none";
+    document.body.offsetTop;
+    elm.style.display = old_display;
+  }
+
+  async function focusNext() {
+    // https://w3c.github.io/webdriver/#keyboard-actions
+    const kTab = '\uE004';
+
+    await new test_driver.Actions()
+      .keyDown(kTab)
+      .keyUp(kTab)
+      .send();
+  }
+
+  promise_test(async t => {
+    await activateMarker(1);
+    await focusNext();
+    assert_equals(document.activeElement, inlineElm1);
+    await focusNext();
+    assert_equals(document.activeElement, inlineElm2);
+    redisplay(wrapper);
+  }, "Focus second column");
+
+  promise_test(async t => {
+    await activateMarker(2);
+    await focusNext();
+    assert_equals(document.activeElement, inlineElm2);
+    await focusNext();
+    assert_equals(document.activeElement, inlineBlock1);
+    redisplay(wrapper);
+  }, "Focus third column");
+
+  promise_test(async t => {
+    await activateMarker(3);
+    await focusNext();
+    assert_equals(document.activeElement, inlineBlock1);
+    await focusNext();
+    let collection = document.activeElement;
+    assert_equals(document.activeElement, inlineElm3);
+    redisplay(wrapper);
+  }, "Focus fourth column");
+
+  promise_test(async t => {
+    await activateMarker(4);
+    await focusNext();
+    assert_equals(document.activeElement, inlineElm3);
+    await focusNext();
+    assert_equals(document.activeElement, inlineBlock2);
+    await focusNext();
+    assert_equals(document.activeElement, inlineElm4);
+    redisplay(wrapper);
+  }, "Focus fifth column");
+
+  promise_test(async t => {
+    await activateMarker(5);
+    await focusNext();
+    assert_equals(document.activeElement, inlineElm4);
+    redisplay(wrapper);
+  }, "Focus sixth column");
+</script>

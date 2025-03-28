@@ -10,7 +10,7 @@
 // META: variant=?16-last
 
 
-"use strict;"
+"use strict";
 
 // This test ensures proper handling of deprecatedRenderURLReplacements within auctionConfigOverrides.
 // It validates that these replacements are correctly applied to the winning bid's renderURL by

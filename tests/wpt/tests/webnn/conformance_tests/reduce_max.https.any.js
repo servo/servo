@@ -74,6 +74,29 @@ const reduceMaxTests = [
     }
   },
   {
+    'name': 'reduceMax float32 1D constant tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceMaxInput': {
+          'data': [32.16658401489258, 32.16658401489257],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceMax',
+        'arguments': [{'input': 'reduceMaxInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceMaxOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMaxOutput': {
+          'data': [32.16658401489258, 32.16658401489257],
+          'descriptor': {shape: [2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'reduceMax float32 1D constant tensor default options',
     'graph': {
       'inputs': {

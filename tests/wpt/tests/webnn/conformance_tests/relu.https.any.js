@@ -374,6 +374,213 @@ const reluTests = [
         }
       }
     }
+  },
+
+  // float16 tests
+  {
+    'name': 'relu float16 1D constant tensor',
+    'graph': {
+      'inputs': {
+        'reluInput': {
+          'data': [
+            79.0625,   2.25,      80.75,    63.90625,   77.6875,    -71.0625,
+            -82.75,    -26.8125,  -99.1875, -35.71875,  18.359375,  -37.375,
+            -52.84375, -10.40625, 60.59375, -13.640625, -76.5625,   -8.1328125,
+            51.5,      -51.625,   -64.5625, -5.09375,   15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput': {
+          'data': [
+            79.0625, 2.25,      80.75, 63.90625, 77.6875,    0,        0, 0, 0,
+            0,       18.359375, 0,     0,        0,          60.59375, 0, 0, 0,
+            51.5,    0,         0,     0,        15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'relu float16 0D tensor',
+    'graph': {
+      'inputs': {
+        'reluInput':
+            {'data': [79.0625], 'descriptor': {shape: [], dataType: 'float16'}}
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput':
+            {'data': [79.0625], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'relu float16 1D tensor',
+    'graph': {
+      'inputs': {
+        'reluInput': {
+          'data': [
+            79.0625,   2.25,      80.75,    63.90625,   77.6875,    -71.0625,
+            -82.75,    -26.8125,  -99.1875, -35.71875,  18.359375,  -37.375,
+            -52.84375, -10.40625, 60.59375, -13.640625, -76.5625,   -8.1328125,
+            51.5,      -51.625,   -64.5625, -5.09375,   15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput': {
+          'data': [
+            79.0625, 2.25,      80.75, 63.90625, 77.6875,    0,        0, 0, 0,
+            0,       18.359375, 0,     0,        0,          60.59375, 0, 0, 0,
+            51.5,    0,         0,     0,        15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'relu float16 2D tensor',
+    'graph': {
+      'inputs': {
+        'reluInput': {
+          'data': [
+            79.0625,   2.25,      80.75,    63.90625,   77.6875,    -71.0625,
+            -82.75,    -26.8125,  -99.1875, -35.71875,  18.359375,  -37.375,
+            -52.84375, -10.40625, 60.59375, -13.640625, -76.5625,   -8.1328125,
+            51.5,      -51.625,   -64.5625, -5.09375,   15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput': {
+          'data': [
+            79.0625, 2.25,      80.75, 63.90625, 77.6875,    0,        0, 0, 0,
+            0,       18.359375, 0,     0,        0,          60.59375, 0, 0, 0,
+            51.5,    0,         0,     0,        15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'relu float16 3D tensor',
+    'graph': {
+      'inputs': {
+        'reluInput': {
+          'data': [
+            79.0625,   2.25,      80.75,    63.90625,   77.6875,    -71.0625,
+            -82.75,    -26.8125,  -99.1875, -35.71875,  18.359375,  -37.375,
+            -52.84375, -10.40625, 60.59375, -13.640625, -76.5625,   -8.1328125,
+            51.5,      -51.625,   -64.5625, -5.09375,   15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput': {
+          'data': [
+            79.0625, 2.25,      80.75, 63.90625, 77.6875,    0,        0, 0, 0,
+            0,       18.359375, 0,     0,        0,          60.59375, 0, 0, 0,
+            51.5,    0,         0,     0,        15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'relu float16 4D tensor',
+    'graph': {
+      'inputs': {
+        'reluInput': {
+          'data': [
+            79.0625,   2.25,      80.75,    63.90625,   77.6875,    -71.0625,
+            -82.75,    -26.8125,  -99.1875, -35.71875,  18.359375,  -37.375,
+            -52.84375, -10.40625, 60.59375, -13.640625, -76.5625,   -8.1328125,
+            51.5,      -51.625,   -64.5625, -5.09375,   15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput': {
+          'data': [
+            79.0625, 2.25,      80.75, 63.90625, 77.6875,    0,        0, 0, 0,
+            0,       18.359375, 0,     0,        0,          60.59375, 0, 0, 0,
+            51.5,    0,         0,     0,        15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'relu float16 5D tensor',
+    'graph': {
+      'inputs': {
+        'reluInput': {
+          'data': [
+            79.0625,   2.25,      80.75,    63.90625,   77.6875,    -71.0625,
+            -82.75,    -26.8125,  -99.1875, -35.71875,  18.359375,  -37.375,
+            -52.84375, -10.40625, 60.59375, -13.640625, -76.5625,   -8.1328125,
+            51.5,      -51.625,   -64.5625, -5.09375,   15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'relu',
+        'arguments': [{'input': 'reluInput'}],
+        'outputs': 'reluOutput'
+      }],
+      'expectedOutputs': {
+        'reluOutput': {
+          'data': [
+            79.0625, 2.25,      80.75, 63.90625, 77.6875,    0,        0, 0, 0,
+            0,       18.359375, 0,     0,        0,          60.59375, 0, 0, 0,
+            51.5,    0,         0,     0,        15.3515625, 90.0625
+          ],
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
+        }
+      }
+    }
   }
 ];
 

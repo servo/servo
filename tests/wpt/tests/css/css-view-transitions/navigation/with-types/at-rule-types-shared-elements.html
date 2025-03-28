@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View Transitions: @view-transition opt in with types and elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="at-rule-types-shared-elements-ref.html">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+@view-transition {
+  navigation:auto;
+  types:mode;
+}
+
+:root { view-transition-name: none }
+html:active-view-transition-type(mode) {
+  .target {
+    view-transition-name: target;
+  }
+}
+
+.target {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  background: blue;
+}
+</style>
+
+<div class=target></div>
+<script>
+  function runTest() {
+    const url = "../resources/at-rule-types-shared-elements.html";
+    window.location.replace(new URL(url, window.location));
+  }
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+</html>

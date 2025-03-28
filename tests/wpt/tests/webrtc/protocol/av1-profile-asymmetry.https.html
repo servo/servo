@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../third_party/sdp/sdp.js"></script>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const av1SendCodec = RTCRtpSender.getCapabilities('video').codecs.find(
+      codec => codec.mimeType == 'video/AV1');
+  assert_not_equals(av1SendCodec, undefined);
+
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const transceiver = pc1.addTransceiver('video');
+  transceiver.setCodecPreferences([av1SendCodec]);
+
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  // Modify the profile ID of `av1SendCodec` to ensure a strict codec comparison
+  // matcher would no longer consider them the same.
+  const sdpFmtpMap = SDPUtils.parseFmtp(av1SendCodec.sdpFmtpLine);
+  const profileId = Number(sdpFmtpMap['profile']);
+  av1SendCodec.sdpFmtpLine =
+      av1SendCodec.sdpFmtpLine.replace(`profile=${profileId}`,
+                                       `profile=${profileId + 1}`);
+
+  const sender = transceiver.sender;
+  let params = sender.getParameters();
+  params.encodings[0].codec = av1SendCodec;
+  // Set parameters should not reject because the codec dictionary match
+  // algorithm[1] is able to ignore asymmetrical parameters such as AV1's
+  // `profile` parameter, see [2].
+  //
+  // [1] https://w3c.github.io/webrtc-pc/#dfn-codec-dictionary-match
+  // [2] https://aomediacodec.github.io/av1-rtp-spec/#723-usage-with-the-sdp-offeranswer-model
+  await sender.setParameters(params);
+  // getParameters() returns `av1SendCodec` now.
+  params = sender.getParameters();
+  assert_equals(params.encodings[0].codec.mimeType, 'video/AV1');
+  assert_equals(params.encodings[0].codec.sdpFmtpLine,
+                av1SendCodec.sdpFmtpLine);
+}, `setParameters() ignores the asymmetrical AV1 parameter 'profile'`);
+</script>

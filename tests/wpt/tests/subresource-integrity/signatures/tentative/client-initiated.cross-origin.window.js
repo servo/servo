@@ -26,14 +26,14 @@
 // Unsigned responses are blocked when integrity is asserted:
 generate_fetch_test({},
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       integrity: `ed25519-${kValidKeys['rfc']}`,
                     },
                     EXPECT_BLOCKED,
                     "No signature, valid integrity check, w/o cors: blocked.");
 generate_fetch_test({ cors: true },
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: 'cors',
                       integrity: `ed25519-${kValidKeys['rfc']}`,
                     },
@@ -51,7 +51,7 @@ const kRequestWithValidSignature = {
 };
 generate_fetch_test(kRequestWithValidSignature,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       integrity: `ed25519-${kValidKeys['rfc']}`,
                     },
                     EXPECT_BLOCKED,
@@ -59,7 +59,7 @@ generate_fetch_test(kRequestWithValidSignature,
 
 generate_fetch_test(kRequestWithValidSignature,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       integrity: `ed25519-${kInvalidKey}`,
                     },
                     EXPECT_BLOCKED,
@@ -67,7 +67,7 @@ generate_fetch_test(kRequestWithValidSignature,
 
 generate_fetch_test(kRequestWithValidSignature,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       integrity:`ed25519-${kValidKeys['rfc']} ed25519-${kInvalidKey}`
                     },
                     EXPECT_BLOCKED,
@@ -83,7 +83,7 @@ const kRequestWithValidSignatureAndCORS = {
 };
 generate_fetch_test(kRequestWithValidSignatureAndCORS,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "cors",
                       integrity: `ed25519-${kValidKeys['rfc']}`,
                     },
@@ -92,7 +92,7 @@ generate_fetch_test(kRequestWithValidSignatureAndCORS,
 
 generate_fetch_test(kRequestWithValidSignatureAndCORS,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "cors",
                       integrity: `ed25519-${kInvalidKey}`,
                     },
@@ -101,7 +101,7 @@ generate_fetch_test(kRequestWithValidSignatureAndCORS,
 
 generate_fetch_test(kRequestWithValidSignatureAndCORS,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       mode: "cors",
                       integrity:`ed25519-${kValidKeys['rfc']} ed25519-${kInvalidKey}`
                     },
@@ -118,7 +118,7 @@ const kRequestWithInvalidSignature = {
 };
 generate_fetch_test(kRequestWithInvalidSignature,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       integrity: `ed25519-${kValidKeys['rfc']}`,
                     },
                     EXPECT_BLOCKED,
@@ -126,7 +126,7 @@ generate_fetch_test(kRequestWithInvalidSignature,
 
 generate_fetch_test(kRequestWithInvalidSignature,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       integrity: `ed25519-${kInvalidKey}`,
                     },
                     EXPECT_BLOCKED,
@@ -134,7 +134,7 @@ generate_fetch_test(kRequestWithInvalidSignature,
 
 generate_fetch_test(kRequestWithInvalidSignature,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       integrity:`ed25519-${kValidKeys['rfc']} ed25519-${kInvalidKey}`
                     },
                     EXPECT_BLOCKED,
@@ -149,7 +149,7 @@ const kRequestWithInvalidSignatureAndCORS = {
 };
 generate_fetch_test(kRequestWithInvalidSignatureAndCORS,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       integrity: `ed25519-${kValidKeys['rfc']}`,
                       mode: "cors",
                     },
@@ -158,7 +158,7 @@ generate_fetch_test(kRequestWithInvalidSignatureAndCORS,
 
 generate_fetch_test(kRequestWithInvalidSignatureAndCORS,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       integrity: `ed25519-${kInvalidKey}`,
                       mode: "cors",
                     },
@@ -167,7 +167,7 @@ generate_fetch_test(kRequestWithInvalidSignatureAndCORS,
 
 generate_fetch_test(kRequestWithInvalidSignatureAndCORS,
                     {
-                      host: get_host_info().REMOTE_HOST,
+                      origin: get_host_info().REMOTE_ORIGIN,
                       integrity:`ed25519-${kValidKeys['rfc']} ed25519-${kInvalidKey}`,
                       mode: "cors",
                     },
