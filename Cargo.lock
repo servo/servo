@@ -6426,6 +6426,7 @@ dependencies = [
  "fnv",
  "fonts",
  "fonts_traits",
+ "fxhash",
  "html5ever",
  "ipc-channel",
  "libc",

@@ -199,6 +199,7 @@ use crate::dom::xpathevaluator::XPathEvaluator;
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
+use crate::image_animation::ImageAnimationManager;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
@@ -484,6 +485,8 @@ pub(crate) struct Document {
     animation_timeline: DomRefCell<AnimationTimeline>,
     /// Animations for this Document
     animations: DomRefCell<Animations>,
+    /// Image Animation Manager for this Document
+    image_animation_manager: DomRefCell<ImageAnimationManager>,
     /// The nearest inclusive ancestors to all the nodes that require a restyle.
     dirty_root: MutNullableDom<Element>,
     /// <https://html.spec.whatwg.org/multipage/#will-declaratively-refresh>
@@ -3877,6 +3880,7 @@ impl Document {
                 DomRefCell::new(AnimationTimeline::new())
             },
             animations: DomRefCell::new(Animations::new()),
+            image_animation_manager: DomRefCell::new(ImageAnimationManager::new()),
             dirty_root: Default::default(),
             declarative_refresh: Default::default(),
             pending_animation_ticks: Default::default(),
@@ -4713,6 +4717,13 @@ impl Document {
         // Steps 4 through 7 occur inside `send_pending_events().`
         let _realm = enter_realm(self);
         self.animations().send_pending_events(self.window(), can_gc);
+    }
+
+    pub(crate) fn image_animation_manager(&self) -> Ref<ImageAnimationManager> {
+        self.image_animation_manager.borrow()
+    }
+    pub(crate) fn image_animation_manager_mut(&self) -> RefMut<ImageAnimationManager> {
+        self.image_animation_manager.borrow_mut()
     }
 
     pub(crate) fn will_declaratively_refresh(&self) -> bool {

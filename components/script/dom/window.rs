@@ -1967,6 +1967,9 @@ impl Window {
             pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
+            node_to_image_animation_map: document
+                .image_animation_manager_mut()
+                .take_image_animate_set(),
             theme: self.theme.get(),
         };
 
@@ -2017,7 +2020,9 @@ impl Window {
         if !size_messages.is_empty() {
             self.send_to_constellation(ScriptMsg::IFrameSizes(size_messages));
         }
-
+        document
+            .image_animation_manager_mut()
+            .restore_image_animate_set(results.node_to_image_animation_map);
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
 

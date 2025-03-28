@@ -182,6 +182,10 @@ impl ReplacedContents {
             }
         };
 
+        if let ReplacedContentKind::Image(Some(ref image)) = kind {
+            context.handle_animated_image(element.opaque(), image.clone());
+        }
+
         let natural_size = if let Some(naturalc_size_in_dots) = natural_size_in_dots {
             // FIXME: should 'image-resolution' (when implemented) be used *instead* of
             // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?

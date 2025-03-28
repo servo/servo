@@ -7,11 +7,13 @@ use std::sync::Arc;
 use base::id::PipelineId;
 use fnv::FnvHashMap;
 use fonts::FontContext;
+use fxhash::FxHashMap;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
 };
 use parking_lot::{Mutex, RwLock};
-use script_layout_interface::{IFrameSizes, PendingImage, PendingImageState};
+use pixels::Image;
+use script_layout_interface::{IFrameSizes, ImageAnimationState, PendingImage, PendingImageState};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
@@ -40,6 +42,8 @@ pub struct LayoutContext<'a> {
 
     pub webrender_image_cache:
         Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
+
+    pub node_image_animation_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
 }
 
 impl Drop for LayoutContext<'_> {
@@ -100,6 +104,26 @@ impl LayoutContext<'_> {
         }
     }
 
+    pub fn handle_animated_image(&self, node: OpaqueNode, image: Arc<Image>) {
+        let mut store = self.node_image_animation_map.write();
+
+        // 1. first check whether node previously being track for animated image.
+        if let Some(image_state) = store.get(&node) {
+            // a. if the node is not containing the same image as before.
+            if image_state.image_key() != image.id {
+                if image.should_animate() {
+                    // i. Register/Replace tracking item in image_animation_manager.
+                    store.insert(node, ImageAnimationState::new(image));
+                } else {
+                    // ii. Cancel Action if the node's image is no longer animated.
+                    store.remove(&node);
+                }
+            }
+        } else if image.should_animate() {
+            store.insert(node, ImageAnimationState::new(image));
+        }
+    }
+
     pub fn get_webrender_image_for_url(
         &self,
         node: OpaqueNode,
@@ -116,6 +140,7 @@ impl LayoutContext<'_> {
 
         match self.get_or_request_image_or_meta(node, url.clone(), use_placeholder) {
             Some(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {
+                self.handle_animated_image(node, image.clone());
                 let image_info = WebRenderImageInfo {
                     width: image.width,
                     height: image.height,
