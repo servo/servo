@@ -2285,7 +2285,7 @@ impl Node {
         // Step 4. If node is a DocumentFragment node:
         if let NodeTypeId::DocumentFragment(_) = node.type_id() {
             // Step 4.1. Remove its children with the suppress observers flag set.
-            for new_node in &*new_nodes {
+            for new_node in new_nodes {
                 Node::remove(new_node, node, SuppressObserver::Suppressed);
             }
             vtable_for(node).children_changed(&ChildrenMutation::replace_all(new_nodes, &[]));
@@ -2318,7 +2318,7 @@ impl Node {
         };
 
         // Step 7. For each node in nodes, in tree order:
-        for node in &*new_nodes {
+        for node in new_nodes {
             // Step 7.1. Adopt node into parent’s node document.
             Node::adopt(node, &parent.owner_document());
 
@@ -2580,13 +2580,6 @@ impl Node {
 
         // Step 16.
         if let SuppressObserver::Unsuppressed = suppress_observers {
-            vtable_for(parent).children_changed(&ChildrenMutation::replace(
-                old_previous_sibling.as_deref(),
-                &Some(node),
-                &[],
-                old_next_sibling.as_deref(),
-            ));
-
             let removed = [node];
             let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: None,
@@ -2596,6 +2589,15 @@ impl Node {
             });
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
+
+        // Step 17.
+        vtable_for(parent).children_changed(&ChildrenMutation::replace(
+            old_previous_sibling.as_deref(),
+            &Some(node),
+            &[],
+            old_next_sibling.as_deref(),
+        ));
+
         parent.owner_doc().remove_script_and_layout_blocker();
     }
 
