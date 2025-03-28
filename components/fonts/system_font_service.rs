@@ -20,8 +20,7 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use style::font_face::{FontFaceRuleData, FontStyle as FontFaceStyle};
 use style::values::computed::font::{
-    FixedPoint, FontFamilyNameSyntax, FontStyleFixedPoint, GenericFontFamily,
-    SingleFontFamily,
+    FixedPoint, FontFamilyNameSyntax, FontStyleFixedPoint, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;

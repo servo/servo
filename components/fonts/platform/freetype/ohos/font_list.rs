@@ -11,9 +11,9 @@ use std::sync::LazyLock;
 use std::{fmt, fs, io, thread, time};
 
 use base::text::{UnicodeBlock, UnicodeBlockMethod};
-// Proper locale handling
-    use icu_locid::subtags::{Language, Script};
 use icu_locid::LanguageIdentifier;
+// Proper locale handling
+use icu_locid::subtags::{Language, Script};
 use log::{debug, warn};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
@@ -33,9 +33,7 @@ use crate::platform::font_list::fallback_local_font_resolution::{
     generate_default_fallback_font_aliases, generate_default_fallback_font_families,
     generate_hardcoded_font_families,
 };
-use crate::platform::freetype::ohos::iso_values_converter::{
-    convert_language, convert_script,
-};
+use crate::platform::freetype::ohos::iso_values_converter::{convert_language, convert_script};
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontIdentifier, FontTemplate,
     FontTemplateDescriptor, LocalFontIdentifier, LowercaseFontFamilyName,

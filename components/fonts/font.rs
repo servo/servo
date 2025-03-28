@@ -14,6 +14,7 @@ use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D};
 use euclid::num::Zero;
 use icu_locid::LanguageIdentifier;
+use icu_locid::subtags::language;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
@@ -684,9 +685,27 @@ impl FontGroup {
         // On initial pass we will try to find symbol considering the language.
         // that is steps 1, 2, 3, 5, 6 of font matching algorithm
         let strong_template_predicate = |template: FontTemplateRef| {
-            let res: bool = template.char_in_unicode_range(options.character) &&
+            let char_in_range = template.char_in_unicode_range(options.character);
+            let lang_match =
                 font_group_language.language == template.descriptor().language.language;
-            res
+            let lang_is_und = font_group_language.language == language!("und");
+            let script_match = font_group_language.script == template.descriptor().language.script;
+            if !char_in_range {
+                return false;
+            }
+            if char_in_range && lang_match && script_match {
+                // First we should try exact match
+                return true;
+            }
+            if char_in_range && lang_match {
+                // Then Language match. That is what most users will rely on
+                return true;
+            }
+            if char_in_range && lang_is_und && script_match {
+                // In the end we check match against script wildcards: "*-Hans"
+                return true;
+            }
+            false
         };
 
         // During Installed font fallback we have weaker requirements to the fonts. We don't care about language
@@ -1122,7 +1141,10 @@ pub struct FontBaseline {
 /// ];
 /// let mapped_weight = apply_font_config_to_style_mapping(&mapping, weight as f64);
 /// ```
-#[cfg(all(any(target_os = "linux", target_os = "macos"), not(target_env = "ohos")))]
+#[cfg(all(
+    any(target_os = "linux", target_os = "macos"),
+    not(target_env = "ohos")
+))]
 pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value: f64) -> f64 {
     if value < mapping[0].0 {
         return mapping[0].1;
