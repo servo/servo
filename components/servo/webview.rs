@@ -379,7 +379,7 @@ impl WebView {
         self.inner()
             .compositor
             .borrow_mut()
-            .resize_rendering_context(new_size);
+            .resize_rendering_context(new_size, self.id());
     }
 
     pub fn notify_embedder_window_moved(&self) {
@@ -393,14 +393,14 @@ impl WebView {
         self.inner()
             .compositor
             .borrow_mut()
-            .on_zoom_window_event(new_zoom);
+            .on_zoom_window_event(self.id(), new_zoom);
     }
 
     pub fn reset_zoom(&self) {
         self.inner()
             .compositor
             .borrow_mut()
-            .on_zoom_reset_window_event();
+            .on_zoom_reset_window_event(self.id());
     }
 
     pub fn set_pinch_zoom(&self, new_pinch_zoom: f32) {
