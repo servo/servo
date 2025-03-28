@@ -21,6 +21,7 @@ euclid = { workspace = true }
 fnv = { workspace = true }
 fonts = { path = "../../fonts" }
 fonts_traits = { workspace = true }
+fxhash = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
