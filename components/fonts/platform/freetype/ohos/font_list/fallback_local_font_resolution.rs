@@ -7,9 +7,9 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 use base::text::UnicodeBlock;
+use icu_locid::LanguageIdentifier;
 // Proper locale handling
 use icu_locid::subtags::script;
-use icu_locid::LanguageIdentifier;
 use log::{error, warn};
 
 use crate::EmojiPresentationPreference;

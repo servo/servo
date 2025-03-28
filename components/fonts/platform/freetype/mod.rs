@@ -36,6 +36,7 @@ mod ohos {
 pub use self::ohos::font_list;
 
 mod freetype_errors;
+mod freetype_truetype_unicode_ranges;
 mod library_handle;
 
 /// An identifier for a local font on systems using Freetype.

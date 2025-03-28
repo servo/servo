@@ -4,9 +4,9 @@
 
 use std::collections::HashSet;
 
+use icu_locid::LanguageIdentifier;
 // Proper locale handling
 use icu_locid::subtags::{language, script};
-use icu_locid::LanguageIdentifier;
 
 use super::FallbackOptionsKey;
 use crate::platform::font_list::{

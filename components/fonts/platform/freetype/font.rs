@@ -11,18 +11,28 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use freetype_sys::{
     FT_Byte, FT_Done_Face, FT_Error, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES,
-    FT_FACE_FLAG_SCALABLE, FT_Face, FT_Fixed, FT_Get_Char_Index, FT_Get_Kerning, FT_Get_Sfnt_Table,
-    FT_GlyphSlot, FT_Int32, FT_KERNING_DEFAULT, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING,
-    FT_Load_Glyph, FT_Long, FT_MulFix, FT_New_Face, FT_New_Memory_Face, FT_Pos,
-    FT_STYLE_FLAG_ITALIC, FT_Select_Size, FT_Set_Char_Size, FT_Short, FT_Size_Metrics, FT_SizeRec,
-    FT_UInt, FT_ULong, FT_UShort, FT_Vector, TT_OS2, ft_sfnt_head, ft_sfnt_os2,
+    FT_FACE_FLAG_MULTIPLE_MASTERS, FT_FACE_FLAG_SCALABLE, FT_Face, FT_Fixed, FT_Get_Char_Index,
+    FT_Get_Kerning, FT_Get_Sfnt_Table, FT_Get_Var_Design_Coordinates, FT_GlyphSlot, FT_Int32,
+    FT_KERNING_DEFAULT, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Long,
+    FT_MulFix, FT_New_Face, FT_New_Memory_Face, FT_Pos, FT_STYLE_FLAG_ITALIC, FT_Select_Size,
+    FT_Set_Char_Size, FT_Short, FT_Size_Metrics, FT_SizeRec, FT_UInt, FT_UInt32, FT_UInt64,
+    FT_ULong, FT_UShort, FT_Vector, TT_OS2, ft_sfnt_head, ft_sfnt_os2,
 };
+
+use crate::platform::freetype::{
+    freetype_truetype_unicode_ranges::convert_unicode_ranges,
+    freetype_errors::CustomFtErrorMethods
+};
+
+use icu_locid::LanguageIdentifier;
+
 use log::debug;
 use parking_lot::ReentrantMutex;
 use style::Zero;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
+use style::values::generics::Optional;
 use webrender_api::FontInstanceFlags;
 
 use super::LocalFontIdentifier;
@@ -33,7 +43,6 @@ use crate::font::{
 };
 use crate::font_template::FontTemplateDescriptor;
 use crate::glyph::GlyphId;
-use crate::platform::freetype::freetype_errors::CustomFtErrorMethods;
 use crate::system_font_service::FontIdentifier;
 
 // This constant is not present in the freetype
@@ -61,14 +70,26 @@ impl FontTableMethods for FontTable {
 /// See <https://www.microsoft.com/typography/otspec/os2.htm>
 #[derive(Debug)]
 struct OS2Table {
+    version: FT_UShort,
     x_average_char_width: FT_Short,
     us_weight_class: FT_UShort,
     us_width_class: FT_UShort,
     y_strikeout_size: FT_Short,
     y_strikeout_position: FT_Short,
+    // According to specs OS/2 unicode ranges should be FT_UInt32.
+    // <https://learn.microsoft.com/en-us/typography/opentype/spec/os2>
+    // <https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6OS2.html>
+    // However freetype choses FT_UInt64. Understand why?
+    // https://freetype.org/freetype2/docs/reference/ft2-truetype_tables.html#tt_os2
+    ul_unicode_range1: FT_UInt64,
+    ul_unicode_range2: FT_UInt64,
+    ul_unicode_range3: FT_UInt64,
+    ul_unicode_range4: FT_UInt64,
     sx_height: FT_Short,
 }
 
+// TODO(ddesyatkin): Should we store platform related information in CSS Au units?
+// Maybe we should have better separation of abstractions layers...
 #[derive(Debug)]
 #[allow(unused)]
 pub struct PlatformFont {
@@ -149,7 +170,7 @@ impl PlatformFontMethods for PlatformFont {
         let mut face: FT_Face = ptr::null_mut();
         let library = FreeTypeLibraryHandle::get().lock();
         let filename = match CString::new(&*font_identifier.path) {
-            Err(e)  => {
+            Err(e) => {
                 let e: NulError = e;
                 // We want to have more logs on OpenHarmony,
                 // Linux and Android must not be affected;
@@ -206,7 +227,10 @@ impl PlatformFontMethods for PlatformFont {
         let os2_table = face.os2_table();
         let weight = os2_table
             .as_ref()
-            .map(|os2| FontWeight::from_float(os2.us_weight_class as f32))
+            .map(|os2| {
+                log::warn!("ddesyatkin: Freetype us_weight_class {}", os2.us_weight_class as f32);
+                FontWeight::from_float(os2.us_weight_class as f32)
+            })
             .unwrap_or_else(FontWeight::normal);
         let stretch = os2_table
             .as_ref()
@@ -224,7 +248,25 @@ impl PlatformFontMethods for PlatformFont {
             })
             .unwrap_or(FontStretch::NORMAL);
 
-        FontTemplateDescriptor::new(weight, stretch, style)
+        let unicode_range = os2_table
+            .as_ref()
+            .map(|os2| {
+                Some(convert_unicode_ranges(
+                    os2.ul_unicode_range1,
+                    os2.ul_unicode_range2,
+                    os2.ul_unicode_range3,
+                    os2.ul_unicode_range4,
+                ))
+            })
+            .unwrap_or(None);
+
+        FontTemplateDescriptor {
+            weight: (weight, weight),
+            stretch: (stretch, stretch),
+            style: (style, style),
+            language: LanguageIdentifier::default(),
+            unicode_range: unicode_range
+        }
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
@@ -479,7 +521,9 @@ impl PlatformFont {
 trait FreeTypeFaceHelpers {
     fn scalable(self) -> bool;
     fn color(self) -> bool;
+    fn has_axes(self) -> bool;
     fn set_size(self, pt_size: Au) -> Result<Au, &'static str>;
+    fn set_weight(self, weight: Au) -> FT_Error;
     fn glyph_load_flags(self) -> FT_Int32;
     fn os2_table(self) -> Option<OS2Table>;
 }
@@ -491,6 +535,10 @@ impl FreeTypeFaceHelpers for FT_Face {
 
     fn color(self) -> bool {
         unsafe { (*self).face_flags & FT_FACE_FLAG_COLOR as c_long != 0 }
+    }
+
+    fn has_axes(self) -> bool {
+        unsafe { (*self).face_flags & FT_FACE_FLAG_MULTIPLE_MASTERS as c_long != 0 }
     }
 
     fn set_size(self, requested_size: Au) -> Result<Au, &'static str> {
@@ -535,6 +583,13 @@ impl FreeTypeFaceHelpers for FT_Face {
         }
     }
 
+    fn set_weight(self, weight: Au) -> FT_Error {
+        let coords: *mut FT_Fixed = ptr::null_mut();
+        let result: FT_Error = unsafe { FT_Get_Var_Design_Coordinates(self, 0, coords) };
+
+        0
+    }
+
     fn glyph_load_flags(self) -> FT_Int32 {
         let mut load_flags = FT_LOAD_DEFAULT;
 
@@ -565,11 +620,16 @@ impl FreeTypeFaceHelpers for FT_Face {
             }
 
             Some(OS2Table {
+                version: (*os2).version,
                 x_average_char_width: (*os2).xAvgCharWidth,
                 us_weight_class: (*os2).usWeightClass,
                 us_width_class: (*os2).usWidthClass,
                 y_strikeout_size: (*os2).yStrikeoutSize,
                 y_strikeout_position: (*os2).yStrikeoutPosition,
+                ul_unicode_range1: (*os2).ulUnicodeRange1,
+                ul_unicode_range2: (*os2).ulUnicodeRange2,
+                ul_unicode_range3: (*os2).ulUnicodeRange3,
+                ul_unicode_range4: (*os2).ulUnicodeRange4,
                 sx_height: (*os2).sxHeight,
             })
         }
