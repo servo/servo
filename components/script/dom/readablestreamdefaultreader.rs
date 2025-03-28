@@ -98,8 +98,7 @@ impl Callback for ReadLoopFulFillmentHandler {
             };
 
             // Append the bytes represented by chunk to bytes.
-            let mut bytes = self.bytes.borrow_mut();
-            bytes.extend_from_slice(&chunk);
+            self.bytes.borrow_mut().extend_from_slice(&chunk);
 
             // Read-loop given reader, bytes, successSteps, and failureSteps.
             rooted!(in(*cx) let mut this = Some(self.clone()));
