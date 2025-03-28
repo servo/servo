@@ -266,8 +266,14 @@ impl RTCPeerConnection {
             return;
         }
         let track = MediaStreamTrack::new(&self.global(), id, ty, can_gc);
-        let event =
-            RTCTrackEvent::new(self.global().as_window(), atom!("track"), false, false, &track, can_gc);
+        let event = RTCTrackEvent::new(
+            self.global().as_window(),
+            atom!("track"),
+            false,
+            false,
+            &track,
+            can_gc,
+        );
         event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
@@ -501,12 +507,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         can_gc: CanGc,
         config: &RTCConfiguration,
     ) -> Fallible<DomRoot<RTCPeerConnection>> {
-        Ok(RTCPeerConnection::new(
-            window,
-            proto,
-            config,
-            can_gc,
-        ))
+        Ok(RTCPeerConnection::new(window, proto, config, can_gc))
     }
 
     // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate

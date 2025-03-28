@@ -289,8 +289,14 @@ impl XRSession {
                     promise.resolve_native(&(), can_gc);
                 }
                 // Step 7
-                let event =
-                    XRSessionEvent::new(&self.global().as_window(), atom!("end"), false, false, self, can_gc);
+                let event = XRSessionEvent::new(
+                    &self.global().as_window(),
+                    atom!("end"),
+                    false,
+                    false,
+                    self,
+                    can_gc,
+                );
                 event.upcast::<Event>().fire(self.upcast(), can_gc);
             },
             XREvent::Select(input, kind, ty, frame) => {
@@ -393,7 +399,8 @@ impl XRSession {
                         base == base_space
                     })
                     .for_each(|space| {
-                        let offset = XRRigidTransform::new(&self.global().as_window(), transform, can_gc);
+                        let offset =
+                            XRRigidTransform::new(&self.global().as_window(), transform, can_gc);
                         let event = XRReferenceSpaceEvent::new(
                             &self.global().as_window(),
                             atom!("reset"),
@@ -862,7 +869,8 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                     }
                 }
                 if ty == XRReferenceSpaceType::Bounded_floor {
-                    let space = XRBoundedReferenceSpace::new(&self.global().as_window(), self, can_gc);
+                    let space =
+                        XRBoundedReferenceSpace::new(&self.global().as_window(), self, can_gc);
                     self.reference_spaces
                         .borrow_mut()
                         .push(Dom::from_ref(space.reference_space()));

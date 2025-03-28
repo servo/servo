@@ -51,6 +51,10 @@ impl XRHitTestResultMethods<crate::DomTypeHolder> for XRHitTestResult {
     fn GetPose(&self, base: &XRSpace, can_gc: CanGc) -> Option<DomRoot<XRPose>> {
         let base = self.frame.get_pose(base)?;
         let pose = self.result.space.then(&base.inverse());
-        Some(XRPose::new(&self.global().as_window(), pose.cast_unit(), can_gc))
+        Some(XRPose::new(
+            &self.global().as_window(),
+            pose.cast_unit(),
+            can_gc,
+        ))
     }
 }

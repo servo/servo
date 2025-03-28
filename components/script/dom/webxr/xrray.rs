@@ -81,12 +81,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
         )
         .normalize();
 
-        Ok(Self::new(
-            window,
-            proto,
-            Ray { origin, direction },
-            can_gc,
-        ))
+        Ok(Self::new(window, proto, Ray { origin, direction }, can_gc))
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-xrray-transform>
@@ -102,12 +97,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
             .rotation
             .transform_vector3d(Vector3D::new(0., 0., -1.));
 
-        Ok(Self::new(
-            window,
-            proto,
-            Ray { origin, direction },
-            can_gc,
-        ))
+        Ok(Self::new(window, proto, Ray { origin, direction }, can_gc))
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-origin>

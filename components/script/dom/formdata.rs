@@ -15,7 +15,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
-use crate::dom::window::Window;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -27,6 +26,7 @@ use crate::dom::htmlformelement::{
     FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement,
 };
 use crate::dom::htmlinputelement::HTMLInputElement;
+use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -134,7 +134,12 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             };
         }
 
-        Ok(FormData::new_with_proto(None, global.as_window(), proto, can_gc))
+        Ok(FormData::new_with_proto(
+            None,
+            global.as_window(),
+            proto,
+            can_gc,
+        ))
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-append
