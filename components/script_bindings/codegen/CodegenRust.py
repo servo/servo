@@ -3004,8 +3004,8 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineLegacyUnforgeableAttrs = "define_guarded_properties(cx, unforgeable_holder.handle(), %s, global);"
-    defineLegacyUnforgeableMethods = "define_guarded_methods(cx, unforgeable_holder.handle(), %s, global);"
+    defineLegacyUnforgeableAttrs = "define_guarded_properties::<D>(cx, unforgeable_holder.handle(), %s, global);"
+    defineLegacyUnforgeableMethods = "define_guarded_methods::<D>(cx, unforgeable_holder.handle(), %s, global);"
 
     unforgeableMembers = [
         (defineLegacyUnforgeableAttrs, properties.unforgeable_attrs),
@@ -3175,7 +3175,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = [f"{function}(cx, obj.handle(), {array.variableName()}.get(), obj.handle());"
+        members = [f"{function}::<D>(cx, obj.handle(), {array.variableName()}.get(), obj.handle());"
                    for (function, array) in pairs if array.length() > 0]
         membersStr = "\n".join(members)
 
@@ -3413,7 +3413,7 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                     """
                     let conditions = ${conditions};
                     let is_satisfied = conditions.iter().any(|c|
-                         c.is_satisfied(
+                         c.is_satisfied::<D>(
                            SafeJSContext::from_ptr(cx),
                            HandleObject::from_raw(obj),
                            global));
@@ -3469,7 +3469,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 rooted!(in(*cx) let proto = {proto});
 assert!(!proto.is_null());
 rooted!(in(*cx) let mut namespace = ptr::null_mut::<JSObject>());
-create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
+create_namespace_object::<D>(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
                         {methods}, {constants}, {str_to_cstr(name)}, namespace.handle_mut());
 assert!(!namespace.is_null());
 assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
@@ -3483,7 +3483,7 @@ assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
             cName = str_to_cstr(name)
             return CGGeneric(f"""
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
-create_callback_interface_object(cx, global, sConstants.get(), {cName}, interface.handle_mut());
+create_callback_interface_object::<D>(cx, global, sConstants.get(), {cName}, interface.handle_mut());
 assert!(!interface.is_null());
 assert!((*cache)[PrototypeList::Constructor::{name} as usize].is_null());
 (*cache)[PrototypeList::Constructor::{name} as usize] = interface.get();
@@ -3544,7 +3544,7 @@ assert!(!prototype_proto.is_null());"""))
 
         code.append(CGGeneric(f"""
 rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
-create_interface_prototype_object(cx,
+create_interface_prototype_object::<D>(cx,
                                   global,
                                   prototype_proto.handle(),
                                   &PrototypeClass,
@@ -3579,7 +3579,7 @@ assert!((*cache)[PrototypeList::ID::{proto_properties['id']} as usize].is_null()
 assert!(!interface_proto.is_null());
 
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
-create_noncallback_interface_object(cx,
+create_noncallback_interface_object::<D>(cx,
                                     global,
                                     interface_proto.handle(),
                                     INTERFACE_OBJECT_CLASS.get(),

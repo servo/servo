@@ -3348,6 +3348,8 @@ pub(crate) trait GlobalScopeHelpers<D: crate::DomTypes> {
     fn perform_a_microtask_checkpoint(&self, can_gc: CanGc);
 
     fn get_url(&self) -> ServoUrl;
+
+    fn is_secure_context(&self) -> bool;
 }
 
 #[allow(unsafe_code)]
@@ -3386,5 +3388,9 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
 
     fn get_url(&self) -> ServoUrl {
         self.get_url()
+    }
+
+    fn is_secure_context(&self) -> bool {
+        self.is_secure_context()
     }
 }
