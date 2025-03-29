@@ -2696,7 +2696,7 @@ impl GlobalScope {
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
-        let in_realm_proof = AlreadyInRealm::assert();
+        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
         if options.resizeWidth.is_some_and(|w| w == 0) {
             p.reject_error(Error::InvalidState, can_gc);
