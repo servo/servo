@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::CString;
-use std::os::raw::c_void;
+use std::os::raw::{c_char, c_void};
 use std::ptr::{self, NonNull};
 
 use js::conversions::ToJSValConvertible;
@@ -549,5 +549,16 @@ pub trait AsVoidPtr {
 impl<T> AsVoidPtr for T {
     fn as_void_ptr(&self) -> *const libc::c_void {
         self as *const T as *const libc::c_void
+    }
+}
+
+// Generic method for returning c_char from caller
+pub trait AsCCharPtrPtr {
+    fn as_c_char_ptr(&self) -> *const c_char;
+}
+
+impl AsCCharPtrPtr for [u8] {
+    fn as_c_char_ptr(&self) -> *const c_char {
+        self as *const [u8] as *const c_char
     }
 }

@@ -5,7 +5,6 @@
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
 use std::cell::RefCell;
-use std::os::raw::c_char;
 use std::thread::LocalKey;
 use std::{ptr, slice};
 
@@ -173,17 +172,6 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(
 pub(crate) const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
-
-// Generic method for returning c_char from caller
-pub(crate) trait AsCCharPtrPtr {
-    fn as_c_char_ptr(&self) -> *const c_char;
-}
-
-impl AsCCharPtrPtr for [u8] {
-    fn as_c_char_ptr(&self) -> *const c_char {
-        self as *const [u8] as *const c_char
-    }
-}
 
 /// Operations that must be invoked from the generated bindings.
 pub(crate) trait DomHelpers<D: DomTypes> {
