@@ -529,6 +529,10 @@ pub unsafe fn exception_to_promise(
 }
 
 /// Trace the resources held by reserved slots of a global object
+///
+/// # Safety
+/// `tracer` must point to a valid, non-null JSTracer.
+/// `obj` must point to a valid, non-null JSObject.
 pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
     let array = get_proto_or_iface_array(obj);
     for proto in (*array).iter() {
