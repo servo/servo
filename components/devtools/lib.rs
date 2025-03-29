@@ -153,6 +153,7 @@ impl DevtoolsInstance {
             performance: performance.name(),
             preference: preference.name(),
             process: process.name(),
+            active_tab: None.into(),
         });
 
         registry.register(root);
