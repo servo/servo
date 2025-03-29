@@ -2279,8 +2279,6 @@ class CGImports(CGWrapper):
             if t.isInterface() or t.isNamespace():
                 name = getIdentifier(t).name
                 descriptor = descriptorProvider.getDescriptor(name)
-                if name != 'GlobalScope':
-                    extras += [descriptor.path]
                 parentName = descriptor.getParentName()
                 while parentName:
                     descriptor = descriptorProvider.getDescriptor(parentName)
@@ -2289,7 +2287,7 @@ class CGImports(CGWrapper):
             elif t.isType() and t.isRecord():
                 extras += ['script_bindings::record::Record']
             elif isinstance(t, IDLPromiseType):
-                extras += ['crate::dom::promise::Promise']
+                pass
             else:
                 if t.isEnum():
                     extras += [f'{getModuleFromObject(t)}::{getIdentifier(t).name}Values']
@@ -2423,7 +2421,7 @@ pub(crate) fn init_class_ops<D: DomTypes>() {{
     }});
 }}
 
-static Class: ThreadUnsafeOnceLock<DOMJSClass> = ThreadUnsafeOnceLock::new();
+pub(crate) static Class: ThreadUnsafeOnceLock<DOMJSClass> = ThreadUnsafeOnceLock::new();
 
 pub(crate) fn init_domjs_class<D: DomTypes>() {{
     init_class_ops::<D>();
@@ -3229,14 +3227,15 @@ class CGIDLInterface(CGThing):
     def define(self):
         interface = self.descriptor.interface
         name = interface.identifier.name
+        bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
         if (interface.getUserData("hasConcreteDescendant", False)
                 or interface.getUserData("hasProxyDescendant", False)):
             depth = self.descriptor.prototypeDepth
             check = f"class.interface_chain[{depth}] == PrototypeList::ID::{name}"
         elif self.descriptor.proxy:
-            check = "ptr::eq(class, unsafe { Class.get() })"
+            check = f"ptr::eq(class, unsafe {{ {bindingModule}::Class.get() }})"
         else:
-            check = "ptr::eq(class, unsafe { &Class.get().dom_class })"
+            check = f"ptr::eq(class, unsafe {{ &{bindingModule}::Class.get().dom_class }})"
         return f"""
 impl IDLInterface for {name} {{
     #[inline]
@@ -3279,6 +3278,7 @@ class CGDomObjectWrap(CGThing):
 
     def define(self):
         ifaceName = self.descriptor.interface.identifier.name
+        bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
         return f"""
 impl DomObjectWrap<crate::DomTypeHolder> for {firstCap(ifaceName)} {{
     const WRAP: unsafe fn(
@@ -3287,7 +3287,7 @@ impl DomObjectWrap<crate::DomTypeHolder> for {firstCap(ifaceName)} {{
         Option<HandleObject>,
         Box<Self>,
         CanGc,
-    ) -> Root<Dom<Self>> = Wrap::<crate::DomTypeHolder>;
+    ) -> Root<Dom<Self>> = {bindingModule}::Wrap::<crate::DomTypeHolder>;
 }}
 """
 
@@ -3303,6 +3303,7 @@ class CGDomObjectIteratorWrap(CGThing):
     def define(self):
         assert self.descriptor.interface.isIteratorInterface()
         name = self.descriptor.interface.iterableInterface.identifier.name
+        bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
         return f"""
 impl DomObjectIteratorWrap<crate::DomTypeHolder> for {name} {{
     const ITER_WRAP: unsafe fn(
@@ -3311,7 +3312,7 @@ impl DomObjectIteratorWrap<crate::DomTypeHolder> for {name} {{
         Option<HandleObject>,
         Box<IterableIterator<crate::DomTypeHolder, Self>>,
         CanGc,
-    ) -> Root<Dom<IterableIterator<crate::DomTypeHolder, Self>>> = Wrap::<crate::DomTypeHolder>;
+    ) -> Root<Dom<IterableIterator<crate::DomTypeHolder, Self>>> = {bindingModule}::Wrap::<crate::DomTypeHolder>;
 }}
 """
 
@@ -6589,7 +6590,7 @@ class CGDOMJSProxyHandlerDOMClass(CGThing):
 
     def define(self):
         return f"""
-static Class: ThreadUnsafeOnceLock<DOMClass> = ThreadUnsafeOnceLock::new();
+pub(crate) static Class: ThreadUnsafeOnceLock<DOMClass> = ThreadUnsafeOnceLock::new();
 
 pub(crate) fn init_proxy_handler_dom_class<D: DomTypes>() {{
     Class.set({DOMClass(self.descriptor)});
@@ -6990,18 +6991,11 @@ class CGDescriptor(CGThing):
                 pass
             else:
                 cgThings.append(CGDOMJSClass(descriptor))
-                if not descriptor.interface.isIteratorInterface():
-                    cgThings.append(CGAssertInheritance(descriptor))
-                pass
 
             if descriptor.isGlobal():
                 cgThings.append(CGWrapGlobalMethod(descriptor, properties))
             else:
                 cgThings.append(CGWrapMethod(descriptor))
-                if descriptor.interface.isIteratorInterface():
-                    cgThings.append(CGDomObjectIteratorWrap(descriptor))
-                else:
-                    cgThings.append(CGDomObjectWrap(descriptor))
             reexports.append('Wrap')
 
         haveUnscopables = False
@@ -7013,16 +7007,6 @@ class CGDescriptor(CGThing):
                             CGIndenter(CGList([CGGeneric(str_to_cstr(name)) for
                                                name in unscopableNames], ",\n")),
                             CGGeneric("];\n")], "\n"))
-            if (
-                (descriptor.concrete or descriptor.hasDescendants())
-                and not descriptor.interface.isIteratorInterface()
-            ):
-                cgThings.append(CGIDLInterface(descriptor))
-            if descriptor.interface.isIteratorInterface():
-                cgThings.append(CGIteratorDerives(descriptor))
-
-            if descriptor.weakReferenceable:
-                cgThings.append(CGWeakReferenceableTrait(descriptor))
 
         if not descriptor.interface.isCallback():
             interfaceTrait = CGInterfaceTrait(descriptor, config.getDescriptorProvider())
@@ -7590,6 +7574,27 @@ class CGConcreteBindingRoot(CGThing):
                     f"pub(crate) use {originalBinding}::{firstCap(ifaceName)}_Binding as {firstCap(ifaceName)}_Binding;"
                 ),
             ]
+
+            if d.concrete:
+                if not d.interface.isIteratorInterface():
+                    cgthings.append(CGAssertInheritance(d))
+                else:
+                    cgthings.append(CGIteratorDerives(d))
+
+            if (
+                (d.concrete or d.hasDescendants())
+                and not d.interface.isIteratorInterface()
+            ):
+                cgthings.append(CGIDLInterface(d))
+
+            if d.interface.isIteratorInterface():
+                cgthings.append(CGDomObjectIteratorWrap(d))
+            elif d.concrete and not d.isGlobal():
+                cgthings.append(CGDomObjectWrap(d))
+
+            if d.weakReferenceable:
+                cgthings.append(CGWeakReferenceableTrait(d))
+
             if not d.interface.isCallback():
                 traitName = f"{ifaceName}Methods"
                 cgthings += [
@@ -7625,7 +7630,7 @@ pub(crate) fn GetConstructorObject(
         curr = CGImports(curr, descriptors=[], callbacks=[],
                          dictionaries=[], enums=[], typedefs=[],
                          imports=[
-                             'crate::dom::bindings::import::base::*',
+                             'crate::dom::bindings::import::module::*',
                              'crate::dom::types::*'],
                          config=config)
 

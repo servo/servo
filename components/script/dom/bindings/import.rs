@@ -107,6 +107,7 @@ pub(crate) mod module {
     };
     pub(crate) use script_bindings::interfaces::*;
     pub(crate) use script_bindings::record::Record;
+    pub(crate) use script_bindings::reflector::DomObject;
     pub(crate) use servo_config::pref;
 
     pub(crate) use super::base::*;
@@ -140,7 +141,7 @@ pub(crate) mod module {
         define_guarded_properties, get_desired_proto, get_per_interface_object_handle,
         is_exposed_in,
     };
-    pub(crate) use crate::dom::bindings::iterable::{Iterable, IteratorType};
+    pub(crate) use crate::dom::bindings::iterable::{Iterable, IteratorType, IterableIterator};
     pub(crate) use crate::dom::bindings::like::{Maplike, Setlike};
     pub(crate) use crate::dom::bindings::namespace::{
         NamespaceObjectClass, create_namespace_object,
