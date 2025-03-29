@@ -39,8 +39,9 @@ pub(crate) mod base {
     pub(crate) use crate::dom::bindings::root::DomRoot;
     pub(crate) use crate::dom::bindings::str::{ByteString, DOMString, USVString};
     pub(crate) use crate::dom::bindings::trace::RootedTraceableBox;
+    pub(crate) use script_bindings::lock::ThreadUnsafeOnceLock;
     pub(crate) use crate::dom::bindings::utils::{
-        DomHelpers, ThreadUnsafeOnceLock, get_dictionary_property, set_dictionary_property,
+        DomHelpers, get_dictionary_property, set_dictionary_property,
     };
     pub(crate) use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
     pub(crate) use crate::dom::promise::PromiseHelpers;
