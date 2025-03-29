@@ -12,11 +12,12 @@ use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
 };
 use parking_lot::{Mutex, RwLock};
-use pixels::Image;
+use pixels::Image as PixelImage;
 use script_layout_interface::{IFrameSizes, ImageAnimationState, PendingImage, PendingImageState};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
+use style::values::computed::image::{Gradient, Image};
 
 use crate::display_list::WebRenderImageInfo;
 
@@ -44,6 +45,11 @@ pub struct LayoutContext<'a> {
         Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
 
     pub node_image_animation_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
+}
+
+pub enum ResolvedImage<'a> {
+    Gradient(&'a Gradient),
+    Image(WebRenderImageInfo),
 }
 
 impl Drop for LayoutContext<'_> {
@@ -104,7 +110,7 @@ impl LayoutContext<'_> {
         }
     }
 
-    pub fn handle_animated_image(&self, node: OpaqueNode, image: Arc<Image>) {
+    pub fn handle_animated_image(&self, node: OpaqueNode, image: Arc<PixelImage>) {
         let mut store = self.node_image_animation_map.write();
 
         // 1. first check whether node previously being track for animated image.
@@ -124,7 +130,7 @@ impl LayoutContext<'_> {
         }
     }
 
-    pub fn get_webrender_image_for_url(
+    fn get_webrender_image_for_url(
         &self,
         node: OpaqueNode,
         url: ServoUrl,
@@ -155,6 +161,37 @@ impl LayoutContext<'_> {
                 }
             },
             None | Some(ImageOrMetadataAvailable::MetadataAvailable(..)) => None,
+        }
+    }
+
+    pub fn resolve_image<'a>(
+        &self,
+        node: Option<OpaqueNode>,
+        image: &'a Image,
+    ) -> Option<ResolvedImage<'a>> {
+        match image {
+            // TODO: Add support for PaintWorklet and CrossFade rendering.
+            Image::None | Image::CrossFade(_) | Image::PaintWorklet(_) => None,
+            Image::Gradient(gradient) => Some(ResolvedImage::Gradient(gradient)),
+            Image::Url(image_url) => {
+                // FIXME: images won’t always have in intrinsic width or
+                // height when support for SVG is added, or a WebRender
+                // `ImageKey`, for that matter.
+                //
+                // FIXME: It feels like this should take into account the pseudo
+                // element and not just the node.
+                let image_url = image_url.url()?;
+                let webrender_info = self.get_webrender_image_for_url(
+                    node?,
+                    image_url.clone().into(),
+                    UsePlaceholder::No,
+                )?;
+                Some(ResolvedImage::Image(webrender_info))
+            },
+            Image::ImageSet(image_set) => image_set
+                .items
+                .get(image_set.selected_index)
+                .and_then(|image| self.resolve_image(node, &image.image)),
         }
     }
 }
