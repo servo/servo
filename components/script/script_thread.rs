@@ -2128,6 +2128,7 @@ impl ScriptThread {
                     pipeline_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementsCSS(selector, reply) => {
@@ -2153,6 +2154,7 @@ impl ScriptThread {
                     pipeline_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementElementCSS(selector, element_id, reply) => {
@@ -2184,6 +2186,7 @@ impl ScriptThread {
                     element_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementElementsCSS(selector, element_id, reply) => {
@@ -2215,6 +2218,7 @@ impl ScriptThread {
                     element_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FocusElement(element_id, reply) => {

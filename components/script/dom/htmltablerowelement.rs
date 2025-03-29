@@ -93,6 +93,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
                     (element.is::<HTMLTableCellElement>()) &&
                         element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
+                CanGc::note(),
             )
         })
     }
