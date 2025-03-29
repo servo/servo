@@ -134,17 +134,21 @@ impl Fragment {
         }
     }
 
-    pub fn scrolling_area(&self, containing_block: &PhysicalRect<Au>) -> PhysicalRect<Au> {
+    pub fn scrolling_area(
+        &self,
+        containing_block: &PhysicalRect<Au>,
+        clipping_rect: Option<PhysicalRect<Au>>,
+    ) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
                 .borrow()
-                .scrollable_overflow()
+                .reachable_scrollable_overflow_region(clipping_rect)
                 .translate(containing_block.origin.to_vector()),
-            _ => self.scrollable_overflow(),
+            _ => self.scrollable_overflow_for_parent(),
         }
     }
 
-    pub fn scrollable_overflow(&self) -> PhysicalRect<Au> {
+    pub fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 fragment.borrow().scrollable_overflow_for_parent()
