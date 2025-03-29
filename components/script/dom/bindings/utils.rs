@@ -14,7 +14,7 @@ use std::{ptr, slice, str};
 use js::JS_CALLEE;
 use js::conversions::ToJSValConvertible;
 use js::glue::{
-    CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper, JS_GetReservedSlot,
+    CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper,
     RUST_FUNCTION_VALUE_TO_JITINFO, UnwrapObjectDynamic, UnwrapObjectStatic,
 };
 use js::jsapi::{
@@ -70,21 +70,7 @@ impl GlobalStaticData {
     }
 }
 
-/// The index of the slot where the object holder of that interface's
-/// unforgeable members are defined.
-pub(crate) const DOM_PROTO_UNFORGEABLE_HOLDER_SLOT: u32 = 0;
-
-/// The index of the slot that contains a reference to the ProtoOrIfaceArray.
-// All DOM globals must have a slot at DOM_PROTOTYPE_SLOT.
-pub(crate) const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
-
-/// The flag set on the `JSClass`es for DOM global objects.
-// NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
-// LSetDOMProperty. Those constants need to be changed accordingly if this value
-// changes.
-pub(crate) const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
-
-pub(crate) use script_bindings::utils::{DOMClass, DOMJSClass};
+pub(crate) use script_bindings::utils::*;
 
 /// Returns a JSVal representing the frozen JavaScript array
 pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
@@ -98,20 +84,6 @@ pub(crate) fn to_frozen_array<T: ToJSValConvertible>(
     rooted!(in(*cx) let obj = rval.to_object());
     unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
 }
-
-/// Returns the ProtoOrIfaceArray for the given global object.
-/// Fails if `global` is not a DOM global object.
-pub(crate) fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray {
-    unsafe {
-        assert_ne!(((*get_object_class(global)).flags & JSCLASS_DOM_GLOBAL), 0);
-        let mut slot = UndefinedValue();
-        JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT, &mut slot);
-        slot.to_private() as *mut ProtoOrIfaceArray
-    }
-}
-
-/// An array of *mut JSObject of size PROTO_OR_IFACE_LENGTH.
-pub(crate) type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
 
 /// Gets the property `id` on  `proxy`'s prototype. If it exists, `*found` is
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
