@@ -5,11 +5,12 @@
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
 use base::id::WebViewId;
+use embedder_traits::resources::{self, Resource};
 use fnv::FnvHasher;
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use log::{debug, trace};
@@ -131,6 +132,12 @@ impl FontContext {
     fn get_font_data(&self, identifier: &FontIdentifier) -> Option<FontData> {
         match identifier {
             FontIdentifier::Web(_) => self.font_data.read().get(identifier).cloned(),
+            FontIdentifier::LastResortFont => {
+                // TODO(ddesyatkin): Find better place to store Last Resort data
+                static LAST_RESORT_FONT_DATA: LazyLock<Vec<u8>> =
+                    LazyLock::new(|| resources::read_bytes(Resource::LastResortFont));
+                Some(FontData::from_bytes(&LAST_RESORT_FONT_DATA))
+            },
             FontIdentifier::Local(_) => None,
         }
     }
@@ -229,12 +236,13 @@ impl FontContext {
         font
     }
 
-    fn matching_web_font_templates(
+    pub fn matching_web_font_templates(
         &self,
         descriptor_to_match: &FontDescriptor,
         family_descriptor: &FontFamilyDescriptor,
     ) -> Option<Vec<FontTemplateRef>> {
-        if family_descriptor.scope != FontSearchScope::Any {
+        if family_descriptor.scope == FontSearchScope::Local {
+            // Both other procedures are fine for us.
             return None;
         }
 
@@ -250,6 +258,21 @@ impl FontContext {
             .map(|templates| templates.find_for_descriptor(Some(descriptor_to_match)))
     }
 
+    pub fn matching_local_font_templates(
+        &self,
+        descriptor_to_match: &FontDescriptor,
+        family_descriptor: &FontFamilyDescriptor,
+    ) -> Option<Vec<FontTemplateRef>> {
+        if family_descriptor.scope == FontSearchScope::Web {
+            // Both other procedures are fine for us.
+            return None;
+        }
+
+        self.system_font_service_proxy
+            .find_matching_font_templates(Some(descriptor_to_match), &family_descriptor.family)
+            .into()
+    }
+
     /// Try to find matching templates in this [`FontContext`], first looking in the list of web fonts and
     /// falling back to asking the [`super::SystemFontService`] for a matching system font.
     pub fn matching_templates(
@@ -257,13 +280,20 @@ impl FontContext {
         descriptor_to_match: &FontDescriptor,
         family_descriptor: &FontFamilyDescriptor,
     ) -> Vec<FontTemplateRef> {
-        self.matching_web_font_templates(descriptor_to_match, family_descriptor)
-            .unwrap_or_else(|| {
-                self.system_font_service_proxy.find_matching_font_templates(
-                    Some(descriptor_to_match),
-                    &family_descriptor.family,
-                )
-            })
+        match family_descriptor.scope {
+            FontSearchScope::Any => self
+                .matching_web_font_templates(descriptor_to_match, family_descriptor)
+                .unwrap_or_else(|| {
+                    self.matching_local_font_templates(descriptor_to_match, family_descriptor)
+                        .unwrap_or_default()
+                }),
+            FontSearchScope::Web => self
+                .matching_web_font_templates(descriptor_to_match, family_descriptor)
+                .unwrap_or_default(),
+            FontSearchScope::Local => self
+                .matching_local_font_templates(descriptor_to_match, family_descriptor)
+                .unwrap_or_default(),
+        }
     }
 
     /// Create a `Font` for use in layout calculations, from a `FontTemplateData` returned by the
@@ -298,6 +328,11 @@ impl FontContext {
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
             ),
+            FontIdentifier::LastResortFont => self.create_last_resort_font_instance(
+                font.template.clone(),
+                font.descriptor.pt_size,
+                font.webrender_font_instance_flags(),
+            ),
         }
     }
 
@@ -311,6 +346,48 @@ impl FontContext {
         let font_data = self
             .get_font_data(&identifier)
             .expect("Web font should have associated font data");
+        let font_key = *self
+            .webrender_font_keys
+            .write()
+            .entry(identifier.clone())
+            .or_insert_with(|| {
+                let font_key = self.system_font_service_proxy.generate_font_key();
+                self.compositor_api.lock().add_font(
+                    font_key,
+                    font_data.as_ipc_shared_memory(),
+                    identifier.index(),
+                );
+                font_key
+            });
+
+        let key = *self
+            .webrender_font_instance_keys
+            .write()
+            .entry((font_key, pt_size))
+            .or_insert_with(|| {
+                let font_instance_key = self.system_font_service_proxy.generate_font_instance_key();
+                self.compositor_api.lock().add_font_instance(
+                    font_instance_key,
+                    font_key,
+                    pt_size.to_f32_px(),
+                    flags,
+                );
+                font_instance_key
+            });
+        key
+    }
+
+    fn create_last_resort_font_instance(
+        &self,
+        font_template: FontTemplateRef,
+        pt_size: Au,
+        flags: FontInstanceFlags,
+    ) -> FontInstanceKey {
+        // Understand how to propperly rewrite this method...
+        let identifier = font_template.identifier().clone();
+        let font_data = self
+            .get_font_data(&identifier)
+            .expect("Last resort font must be loaded from resource");
         let font_key = *self
             .webrender_font_keys
             .write()

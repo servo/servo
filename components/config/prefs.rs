@@ -59,6 +59,7 @@ pub struct Preferences {
     pub fonts_monospace: String,
     pub fonts_default_size: i64,
     pub fonts_default_monospace_size: i64,
+    pub fonts_use_last_resort: bool,
     pub css_animations_testing_enabled: bool,
     /// Start the devtools server at startup
     pub devtools_server_enabled: bool,
@@ -315,6 +316,7 @@ impl Preferences {
             fonts_monospace: String::new(),
             fonts_sans_serif: String::new(),
             fonts_serif: String::new(),
+            fonts_use_last_resort: true,
             gfx_precache_shaders: false,
             gfx_text_antialiasing_enabled: true,
             gfx_subpixel_text_antialiasing_enabled: true,
