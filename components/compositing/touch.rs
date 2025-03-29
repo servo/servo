@@ -329,10 +329,7 @@ impl TouchHandler {
                 .active_touch_points
                 .push(TouchPoint::new(id, point));
             match touch_sequence.active_touch_points.len() {
-                2 => {
-                    touch_sequence.state = Pinching;
-                },
-                3.. => {
+                2.. => {
                     touch_sequence.state = MultiTouch;
                 },
                 0..2 => {
