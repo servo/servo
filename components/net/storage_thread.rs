@@ -56,38 +56,54 @@ impl StorageManager {
 }
 
 impl StorageManager {
+    fn process_thread(&mut self, message: StorageThreadMsg) -> bool {
+        match message {
+            StorageThreadMsg::Length(sender, url, storage_type) => {
+                self.length(sender, url, storage_type)
+            },
+            StorageThreadMsg::Key(sender, url, storage_type, index) => {
+                self.key(sender, url, storage_type, index)
+            },
+            StorageThreadMsg::Keys(sender, url, storage_type) => {
+                self.keys(sender, url, storage_type)
+            },
+            StorageThreadMsg::SetItem(sender, url, storage_type, name, value) => {
+                self.set_item(sender, url, storage_type, name, value);
+            },
+            StorageThreadMsg::GetItem(sender, url, storage_type, name) => {
+                self.request_item(sender, url, storage_type, name)
+            },
+            StorageThreadMsg::RemoveItem(sender, url, storage_type, name) => {
+                self.remove_item(sender, url, storage_type, name);
+            },
+            StorageThreadMsg::Clear(sender, url, storage_type) => {
+                self.clear(sender, url, storage_type);
+            },
+            StorageThreadMsg::Exit(sender) => {
+                self.save_state();
+                let _ = sender.send(());
+                return false;
+            },
+        }
+        true
+    }
+
     fn start(&mut self) {
-        loop {
-            match self.port.recv().unwrap() {
-                StorageThreadMsg::Length(sender, url, storage_type) => {
-                    self.length(sender, url, storage_type)
-                },
-                StorageThreadMsg::Key(sender, url, storage_type, index) => {
-                    self.key(sender, url, storage_type, index)
-                },
-                StorageThreadMsg::Keys(sender, url, storage_type) => {
-                    self.keys(sender, url, storage_type)
-                },
-                StorageThreadMsg::SetItem(sender, url, storage_type, name, value) => {
-                    self.set_item(sender, url, storage_type, name, value);
-                    self.save_state()
-                },
-                StorageThreadMsg::GetItem(sender, url, storage_type, name) => {
-                    self.request_item(sender, url, storage_type, name)
-                },
-                StorageThreadMsg::RemoveItem(sender, url, storage_type, name) => {
-                    self.remove_item(sender, url, storage_type, name);
-                    self.save_state()
-                },
-                StorageThreadMsg::Clear(sender, url, storage_type) => {
-                    self.clear(sender, url, storage_type);
-                    self.save_state()
-                },
-                StorageThreadMsg::Exit(sender) => {
-                    // Nothing to do since we save localstorage set eagerly.
-                    let _ = sender.send(());
-                    break;
-                },
+        'all_receive: loop {
+            let message = self.port.recv().unwrap();
+            if !self.process_thread(message) {
+                break;
+            }
+
+            'nonblocking_receive: loop {
+                match self.port.try_recv() {
+                    Ok(message) => {
+                        if !self.process_thread(message) {
+                            break 'all_receive;
+                        }
+                    },
+                    Err(_) => break 'nonblocking_receive,
+                };
             }
         }
     }
