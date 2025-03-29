@@ -3,24 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::PathBuf;
-use std::sync::{LazyLock, RwLock};
+use std::sync::RwLock;
 
-use cfg_if::cfg_if;
-
-static RES: LazyLock<RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>>> =
-    LazyLock::new(|| {
-        cfg_if! {
-            if #[cfg(any(servo_production, target_env = "ohos"))] {
-                RwLock::new(None)
-            } else {
-                // Static assert that this is really a non-production build, rather
-                // than a failure of the build script’s production check.
-                const _: () = assert!(cfg!(servo_do_not_use_in_production));
-
-                RwLock::new(Some(resources_for_tests()))
-            }
-        }
-    });
+static RES: RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>> = RwLock::new(None);
 
 pub fn set(reader: Box<dyn ResourceReaderMethods + Sync + Send>) {
     *RES.write().unwrap() = Some(reader);
@@ -143,61 +128,4 @@ pub trait ResourceReaderMethods {
     fn read(&self, res: Resource) -> Vec<u8>;
     fn sandbox_access_files(&self) -> Vec<PathBuf>;
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf>;
-}
-
-/// Bake all of our resources into this crate for tests, unless we are `cfg!(servo_production)`.
-///
-/// Local non-production embedder builds (e.g. servoshell) can still override these with [`set`].
-/// On OpenHarmony we never want to include files, since we ship all the files in the application
-/// bundle anyway.
-#[cfg(not(any(servo_production, target_env = "ohos")))]
-fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
-    struct ResourceReader;
-    impl ResourceReaderMethods for ResourceReader {
-        fn sandbox_access_files(&self) -> Vec<PathBuf> {
-            vec![]
-        }
-        fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
-            vec![]
-        }
-        fn read(&self, file: Resource) -> Vec<u8> {
-            match file {
-                Resource::BluetoothBlocklist => {
-                    &include_bytes!("../../../resources/gatt_blocklist.txt")[..]
-                },
-                Resource::DomainList => {
-                    &include_bytes!("../../../resources/public_domains.txt")[..]
-                },
-                Resource::HstsPreloadList => {
-                    &include_bytes!("../../../resources/hsts_preload.json")[..]
-                },
-                Resource::BadCertHTML => &include_bytes!("../../../resources/badcert.html")[..],
-                Resource::NetErrorHTML => &include_bytes!("../../../resources/neterror.html")[..],
-                Resource::UserAgentCSS => &include_bytes!("../../../resources/user-agent.css")[..],
-                Resource::ServoCSS => &include_bytes!("../../../resources/servo.css")[..],
-                Resource::PresentationalHintsCSS => {
-                    &include_bytes!("../../../resources/presentational-hints.css")[..]
-                },
-                Resource::QuirksModeCSS => {
-                    &include_bytes!("../../../resources/quirks-mode.css")[..]
-                },
-                Resource::RippyPNG => &include_bytes!("../../../resources/rippy.png")[..],
-                Resource::MediaControlsCSS => {
-                    &include_bytes!("../../../resources/media-controls.css")[..]
-                },
-                Resource::MediaControlsJS => {
-                    &include_bytes!("../../../resources/media-controls.js")[..]
-                },
-                Resource::CrashHTML => &include_bytes!("../../../resources/crash.html")[..],
-                Resource::DirectoryListingHTML => {
-                    &include_bytes!("../../../resources/directory-listing.html")[..]
-                },
-                Resource::AboutMemoryHTML => {
-                    &include_bytes!("../../../resources/about-memory.html")[..]
-                },
-            }
-            .to_owned()
-        }
-    }
-    Box::new(ResourceReader)
 }
