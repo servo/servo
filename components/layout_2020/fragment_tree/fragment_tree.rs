@@ -2,16 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+use std::hash::RandomState;
+
 use app_units::Au;
+use base::id::PipelineId;
 use base::print_tree::PrintTree;
+use euclid::Vector2D;
 use euclid::default::{Point2D, Rect, Size2D};
 use fxhash::FxHashSet;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
-use webrender_api::units;
+use webrender_api::units::LayoutPixel;
+use webrender_api::{ExternalScrollId, units};
 use webrender_traits::display_list::AxesScrollSensitivity;
 
-use super::{ContainingBlockManager, Fragment, Tag};
+use super::{
+    ContainingBlockInfoContext, ContainingBlockInfoData, ContainingBlockManager,
+    ContainingBlockQueryInfo, Fragment, FragmentTreeQueryContext, Tag,
+};
 use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
 use crate::geom::{PhysicalPoint, PhysicalRect};
@@ -92,35 +101,70 @@ impl FragmentTree {
         });
     }
 
+    pub(crate) fn find_v2(
+        &self,
+        find_context: &ContainingBlockInfoContext,
+        process_func: &mut impl FnMut(
+            &Fragment,
+            &ContainingBlockInfoContext,
+        ) -> Option<ContainingBlockQueryInfo>,
+    ) -> Option<ContainingBlockQueryInfo> {
+        self.root_fragments
+            .iter()
+            .find_map(|child| child.find_v2(find_context, process_func))
+    }
+
     /// Get the vector of rectangles that surrounds the fragments of the node with the given address.
     /// This function answers the `getClientRects()` query and the union of the rectangles answers
     /// the `getBoundingClientRect()` query.
     ///
-    /// TODO: This function is supposed to handle scroll offsets, but that isn't happening at all.
-    pub fn get_content_boxes_for_node(&self, requested_node: OpaqueNode) -> Vec<Rect<Au>> {
+    /// TODO: The `getClientRects()` query is supposed to consider result from Webrender display list,
+    ///       but that isn't happening, except for scroll offset.
+    pub fn get_content_boxes_for_node(
+        &self,
+        requested_node: OpaqueNode,
+        pipeline_id: PipelineId,
+        scroll_offsets: &HashMap<ExternalScrollId, Vector2D<f32, LayoutPixel>, RandomState>,
+    ) -> Vec<Rect<Au>> {
         let mut content_boxes = Vec::new();
         let tag_to_find = Tag::new(requested_node);
-        self.find(|fragment, _, containing_block| {
-            if fragment.tag() != Some(tag_to_find) {
-                return None::<()>;
-            }
 
-            let fragment_relative_rect = match fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                    fragment.borrow().border_rect()
-                },
-                Fragment::Positioning(fragment) => fragment.borrow().rect,
-                Fragment::Text(fragment) => fragment.borrow().rect,
-                Fragment::AbsoluteOrFixedPositioned(_) |
-                Fragment::Image(_) |
-                Fragment::IFrame(_) => return None,
-            };
+        let context_additional_data = ContainingBlockInfoData {
+            scroll_offsets,
+            pipeline_id,
+        };
 
-            let rect = fragment_relative_rect.translate(containing_block.origin.to_vector());
+        FragmentTreeQueryContext::for_fragment_tree_and_then(
+            self,
+            context_additional_data,
+            |find_context| {
+                self.find_v2(find_context, &mut |fragment, find_context| {
+                    if fragment.tag() != Some(tag_to_find) {
+                        return None;
+                    }
+                    let containing_block = find_context.get_payload(fragment);
 
-            content_boxes.push(rect.to_untyped());
-            None::<()>
-        });
+                    let fragment_relative_rect = match fragment {
+                        Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                            fragment.borrow().border_rect()
+                        },
+                        Fragment::Positioning(fragment) => fragment.borrow().rect,
+                        Fragment::Text(fragment) => fragment.borrow().rect,
+                        Fragment::AbsoluteOrFixedPositioned(_) |
+                        Fragment::Image(_) |
+                        Fragment::IFrame(_) => return None,
+                    };
+
+                    let rect = fragment_relative_rect.translate(
+                        containing_block.rect.origin.to_vector() + containing_block.scroll_offset,
+                    );
+
+                    content_boxes.push(rect.to_untyped());
+                    None
+                })
+            },
+        );
+
         content_boxes
     }
 

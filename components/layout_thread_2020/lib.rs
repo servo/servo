@@ -232,7 +232,12 @@ impl Layout for LayoutThread {
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_content_box(&self, node: OpaqueNode) -> Option<UntypedRect<Au>> {
-        process_content_box_request(node, self.fragment_tree.borrow().clone())
+        process_content_box_request(
+            node,
+            self.fragment_tree.borrow().clone(),
+            self.id,
+            &self.scroll_offsets.borrow(),
+        )
     }
 
     #[cfg_attr(
@@ -240,7 +245,12 @@ impl Layout for LayoutThread {
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn query_content_boxes(&self, node: OpaqueNode) -> Vec<UntypedRect<Au>> {
-        process_content_boxes_request(node, self.fragment_tree.borrow().clone())
+        process_content_boxes_request(
+            node,
+            self.fragment_tree.borrow().clone(),
+            self.id,
+            &self.scroll_offsets.borrow(),
+        )
     }
 
     #[cfg_attr(
