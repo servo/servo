@@ -135,7 +135,7 @@ impl InterfaceConstructorBehavior {
 pub(crate) type TraceHook = unsafe extern "C" fn(trc: *mut JSTracer, obj: *mut JSObject);
 
 /// Create a global object with the given class.
-pub(crate) unsafe fn create_global_object(
+pub(crate) unsafe fn create_global_object<D: DomTypes>(
     cx: SafeJSContext,
     class: &'static JSClass,
     private: *const libc::c_void,
@@ -150,7 +150,7 @@ pub(crate) unsafe fn create_global_object(
     options.creationOptions_.sharedMemoryAndAtomics_ = false;
     select_compartment(cx, &mut options);
 
-    let principal = ServoJSPrincipals::new(origin);
+    let principal = ServoJSPrincipals::new::<D>(origin);
 
     rval.set(JS_NewGlobalObject(
         *cx,

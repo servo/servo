@@ -10,7 +10,7 @@ use std::thread::LocalKey;
 use std::{ptr, slice};
 
 use js::conversions::ToJSValConvertible;
-use js::glue::{IsWrapper, UnwrapObjectDynamic, UnwrapObjectStatic};
+use js::glue::{IsWrapper, JSPrincipalsCallbacks, UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{
     CallArgs, DOMCallbacks, HandleId as RawHandleId, HandleObject as RawHandleObject, Heap,
     JS_DeprecatedStringHasLatin1Chars, JS_EnumerateStandardClasses, JS_FreezeObject,
@@ -24,6 +24,7 @@ use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList};
 use crate::dom::bindings::constructor::call_html_constructor;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, throw_dom_exception};
+use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::settings_stack::{self, StackEntry};
 use crate::dom::bindings::trace::trace_object;
@@ -219,6 +220,8 @@ pub(crate) trait DomHelpers<D: DomTypes> {
     ) -> bool;
 
     fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<D>>>>;
+
+    fn principals_callbacks() -> &'static JSPrincipalsCallbacks;
 }
 
 impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
@@ -245,5 +248,9 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
 
     fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<crate::DomTypeHolder>>>> {
         &settings_stack::STACK
+    }
+
+    fn principals_callbacks() -> &'static JSPrincipalsCallbacks {
+        &PRINCIPALS_CALLBACKS
     }
 }

@@ -3185,7 +3185,7 @@ let raw = Root::new(MaybeUnreflectedDom::from_box(object));
 let origin = (*raw.as_ptr()).upcast::<D::GlobalScope>().origin();
 
 rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
-create_global_object(
+create_global_object::<D>(
     cx,
     &Class.get().base,
     raw.as_ptr() as *const libc::c_void,
