@@ -173,7 +173,7 @@ impl WritableStream {
         }
     }
 
-    fn new_with_proto(
+    pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         can_gc: CanGc,

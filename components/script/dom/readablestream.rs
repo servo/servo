@@ -6,6 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::ptr::{self};
 use std::rc::Rc;
+use std::collections::HashMap;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -45,10 +46,15 @@ use crate::dom::defaultteeunderlyingsource::TeeCancelAlgorithm;
 use crate::dom::types::DefaultTeeUnderlyingSource;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
+use crate::dom::messageport::MessagePort;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+use base::id::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
+use script_traits::transferable::MessagePortImpl;
+use crate::dom::bindings::transferable::{ExtractComponents, IdFromComponents, Transferable};
+use crate::dom::bindings::structuredclone::{self, StructuredData, StructuredDataReader};
 
 use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
@@ -1769,6 +1775,31 @@ impl ReadableStream {
         // pullAlgorithm, cancelAlgorithm, highWaterMark, autoAllocateChunkSize).
         controller.setup(global, stream, can_gc)
     }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+    fn setup_cross_realm_transform_readable(&self, can_gc: CanGc) {
+        // Perform ! InitializeReadableStream(stream).
+        // Done in `new_inherited`.
+
+        // Let sizeAlgorithm be an algorithm that returns 1.
+        let size_algorithm = extract_size_algorithm(&QueuingStrategy::default(), can_gc);
+
+        // Note: other algorithms defined in the underlying source container.
+
+        // Let controller be a new ReadableStreamDefaultController.
+        let controller = ReadableStreamDefaultController::new(
+            &self.global(),
+            UnderlyingSourceType::Transfer,
+            1.0,
+            size_algorithm,
+            can_gc,
+        );
+
+        // Perform ! SetUpReadableStreamDefaultController
+        controller
+            .setup(DomRoot::from_ref(self), can_gc)
+            .expect("Setting up controller for transfer cannot fail.");
+    }
 }
 
 impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
@@ -1992,5 +2023,95 @@ pub(crate) fn get_read_promise_bytes(
             Ok(false) => Err(Error::Type("Promise has no value property.".to_string())),
             Err(()) => Err(Error::JSFailed),
         }
+    }
+}
+
+/// https://streams.spec.whatwg.org/#rs-transfer
+impl Transferable for ReadableStream {
+    type Id = MessagePortId;
+    type Data = MessagePortImpl;
+
+    /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A1%E2%91%A0>
+    fn transfer(&self) -> Result<(MessagePortId, MessagePortImpl), ()> {
+        // If ! IsReadableStreamLocked(value) is true, throw a "DataCloneError" DOMException.
+        if self.is_locked() {
+            return Err(());
+        }
+
+        // TODO: move up the call stack.
+        let global = self.global();
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+        let cx = GlobalScope::get_cx();
+
+        // TODO: move up the call stack.
+        let can_gc = CanGc::note();
+
+        // Let port1 be a new MessagePort in the current Realm.
+        let port_1 = MessagePort::new(&global, can_gc);
+        global.track_message_port(&port_1, None);
+
+        // Let port2 be a new MessagePort in the current Realm.
+        let port_2 = MessagePort::new(&global, can_gc);
+        global.track_message_port(&port_2, None);
+
+        // Entangle port1 and port2.
+        global.entangle_ports(*port_1.message_port_id(), *port_2.message_port_id());
+
+        // Let writable be a new WritableStream in the current Realm.
+        let writable = WritableStream::new_with_proto(&global, None, can_gc);
+
+        // Perform ! SetUpCrossRealmTransformWritable(writable, port1).
+        // TODO
+
+        // Let promise be ! ReadableStreamPipeTo(value, writable, false, false, false).
+        // TODO: let promise = self.pipe_to(cx, &global, &writable, false, false, false, comp, can_gc);
+        let promise = Promise::new(&global, can_gc);
+
+        // Set promise.[[PromiseIsHandled]] to true.
+        promise.set_promise_is_handled();
+
+        // Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
+        // Done as in the port transfer steps implementation.
+        let id = port_2.message_port_id();
+        let transferred_port = global.mark_port_as_transferred(id);
+        Ok((*id, transferred_port))
+    }
+
+    /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A1%E2%91%A0>
+    fn transfer_receive(
+        owner: &GlobalScope,
+        id: MessagePortId,
+        port_impl: MessagePortImpl,
+    ) -> Result<DomRoot<Self>, ()> {
+        let can_gc = CanGc::note();
+
+        // Their transfer-receiving steps, given dataHolder and value, are:
+        // Note: dataHolder is used in `structuredclone.rs`, and value is created here.
+        let value = ReadableStream::new_with_proto(owner, None, can_gc);
+
+        // Let deserializedRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[port]], the current Realm).
+        // Done with the `Deserialize` derive of `MessagePortImpl`.
+
+        // Let port be deserializedRecord.[[Deserialized]].
+        let transferred_port =
+            MessagePort::new_transferred(owner, id, port_impl.entangled_port_id(), can_gc);
+        owner.track_message_port(&transferred_port, Some(port_impl));
+
+        // Perform ! SetUpCrossRealmTransformReadable(value, port).
+        value.setup_cross_realm_transform_readable(can_gc);
+
+        Ok(value)
+    }
+
+    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+        match data {
+            StructuredData::Reader(r) => &mut r.port_impls,
+            StructuredData::Writer(w) => &mut w.ports,
+        }
+    }
+
+    fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>> {
+        &mut reader.streams
     }
 }
