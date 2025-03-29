@@ -18,9 +18,9 @@ use js::jsapi::{
 use js::rust::Runtime;
 use servo_url::MutableOrigin;
 
-use crate::{DomTypes, DomTypeHolder};
-use crate::dom::bindings::utils::DomHelpers;
 use super::structuredclone::StructuredCloneTags;
+use crate::dom::bindings::utils::DomHelpers;
+use crate::{DomTypeHolder, DomTypes};
 
 /// An owned reference to Servo's `JSPrincipals` instance.
 #[repr(transparent)]

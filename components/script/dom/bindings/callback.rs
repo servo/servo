@@ -282,7 +282,12 @@ impl<D: DomTypes> Drop for CallSetup<D> {
         }
         if self.handling == ExceptionHandling::Report {
             let ar = enter_realm(&*self.exception_global);
-            <D as DomHelpers<D>>::report_pending_exception(self.cx, true, InRealm::Entered(&ar), CanGc::note());
+            <D as DomHelpers<D>>::report_pending_exception(
+                self.cx,
+                true,
+                InRealm::Entered(&ar),
+                CanGc::note(),
+            );
         }
         drop(self.incumbent_script.take());
         drop(self.entry_script.take().unwrap());

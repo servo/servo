@@ -8,18 +8,15 @@ use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::ptr;
 
-use js::rooted;
 use js::glue::{GetProxyHandlerFamily, GetProxyPrivate, SetProxyPrivate};
-use js::jsapi;
 use js::jsapi::{
-    DOMProxyShadowsResult, GetStaticPrototype,
-    GetWellKnownSymbol, Handle as RawHandle, HandleId as RawHandleId,
-    HandleObject as RawHandleObject, JS_AtomizeAndPinString,
-    JS_DefinePropertyById, JS_GetOwnPropertyDescriptorById,
-    JSContext, JSErrNum, JSFunctionSpec, JSObject, JSPropertySpec,
-    MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
-    MutableHandleObject as RawMutableHandleObject,
-    ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
+    DOMProxyShadowsResult, GetStaticPrototype, GetWellKnownSymbol, Handle as RawHandle,
+    HandleId as RawHandleId, HandleObject as RawHandleObject, JS_AtomizeAndPinString,
+    JS_DefinePropertyById, JS_GetOwnPropertyDescriptorById, JSContext, JSErrNum, JSFunctionSpec,
+    JSObject, JSPropertySpec, MutableHandle as RawMutableHandle,
+    MutableHandleIdVector as RawMutableHandleIdVector,
+    MutableHandleObject as RawMutableHandleObject, ObjectOpResult, PropertyDescriptor,
+    SetDOMProxyInformation, SymbolCode, jsid,
 };
 use js::jsid::SymbolId;
 use js::jsval::{ObjectValue, UndefinedValue};
@@ -27,9 +24,8 @@ use js::rust::wrappers::{
     AppendToIdVector, JS_AlreadyHasOwnPropertyById, JS_NewObjectWithGivenProto,
     RUST_INTERNED_STRING_TO_JSID, SetDataPropertyDescriptor,
 };
-use js::rust::{
-    Handle, HandleObject, HandleValue, MutableHandle, MutableHandleObject,
-};
+use js::rust::{Handle, HandleObject, HandleValue, MutableHandle, MutableHandleObject};
+use js::{jsapi, rooted};
 
 use crate::conversions::{is_dom_proxy, jsid_to_string, jsstring_to_str};
 use crate::script_runtime::JSContext as SafeJSContext;

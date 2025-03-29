@@ -13,16 +13,14 @@ use js::glue::{GetProxyHandler, InvokeGetOwnPropertyDescriptor};
 use js::jsapi;
 use js::jsapi::{
     GetObjectRealmOrNull, GetRealmPrincipals, HandleId as RawHandleId,
-    HandleObject as RawHandleObject, HandleValue as RawHandleValue,
-    JS_IsExceptionPending, JSAutoRealm, JSContext, JSObject,
-    MutableHandle as RawMutableHandle,
+    HandleObject as RawHandleObject, HandleValue as RawHandleValue, JS_IsExceptionPending,
+    JSAutoRealm, JSContext, JSObject, MutableHandle as RawMutableHandle,
     MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
     ObjectOpResult, PropertyDescriptor,
 };
 use js::jsval::UndefinedValue;
-use js::rust::{
-    HandleObject, HandleValue, MutableHandle, MutableHandleObject, get_context_realm,
-};
+use js::rust::{HandleObject, HandleValue, MutableHandle, MutableHandleObject, get_context_realm};
+pub(crate) use script_bindings::proxyhandler::*;
 
 use crate::DomTypes;
 use crate::dom::bindings::error::Error;
@@ -32,8 +30,6 @@ use crate::dom::bindings::utils::DomHelpers;
 use crate::dom::globalscope::GlobalScopeHelpers;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-
-pub(crate) use script_bindings::proxyhandler::*;
 
 /// <https://html.spec.whatwg.org/multipage/#isplatformobjectsameorigin-(-o-)>
 pub(crate) unsafe fn is_platform_object_same_origin(

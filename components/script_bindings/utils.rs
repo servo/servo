@@ -13,9 +13,9 @@ use js::glue::{
 };
 use js::jsapi::{
     AtomToLinearString, CallArgs, ExceptionStackBehavior, GetLinearStringCharAt,
-    GetLinearStringLength, GetNonCCWObjectGlobal, HandleObject as RawHandleObject,
+    GetLinearStringLength, GetNonCCWObjectGlobal, HandleObject as RawHandleObject, Heap,
     JS_ClearPendingException, JS_IsExceptionPending, JSAtom, JSContext, JSJitInfo, JSObject,
-    MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex, JSTracer, Heap,
+    JSTracer, MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex,
 };
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{

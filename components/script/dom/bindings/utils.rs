@@ -20,7 +20,9 @@ use js::rust::{Handle, HandleObject, MutableHandleValue, get_object_class, is_do
 
 use crate::DomTypes;
 use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList};
-use crate::dom::bindings::constructor::{call_html_constructor, pop_current_element_queue, push_new_element_queue};
+use crate::dom::bindings::constructor::{
+    call_html_constructor, pop_current_element_queue, push_new_element_queue,
+};
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
@@ -114,7 +116,7 @@ pub(crate) unsafe extern "C" fn enumerate_global<D: DomTypes>(
     if !JS_EnumerateStandardClasses(cx, obj) {
         return false;
     }
-    for init_fun in  <D as DomHelpers<D>>::interface_map().values() {
+    for init_fun in <D as DomHelpers<D>>::interface_map().values() {
         init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
     }
     true
@@ -175,7 +177,12 @@ pub(crate) const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
 
 /// Operations that must be invoked from the generated bindings.
 pub(crate) trait DomHelpers<D: DomTypes> {
-    fn throw_dom_exception(cx: SafeJSContext, global: &D::GlobalScope, result: Error, can_gc: CanGc);
+    fn throw_dom_exception(
+        cx: SafeJSContext,
+        global: &D::GlobalScope,
+        result: Error,
+        can_gc: CanGc,
+    );
 
     unsafe fn call_html_constructor<T: DerivedFrom<D::Element> + DomObject>(
         cx: SafeJSContext,
@@ -197,9 +204,17 @@ pub(crate) trait DomHelpers<D: DomTypes> {
     fn push_new_element_queue();
     fn pop_current_element_queue(can_gc: CanGc);
 
-    fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T> where T: DomObject + DomObjectWrap<D>, U: DerivedFrom<D::GlobalScope>;
+    fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
+    where
+        T: DomObject + DomObjectWrap<D>,
+        U: DerivedFrom<D::GlobalScope>;
 
-    fn report_pending_exception(cx: SafeJSContext, dispatch_event: bool, realm: InRealm, can_gc: CanGc);
+    fn report_pending_exception(
+        cx: SafeJSContext,
+        dispatch_event: bool,
+        realm: InRealm,
+        can_gc: CanGc,
+    );
 }
 
 impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
@@ -237,7 +252,8 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         unsafe { is_platform_object_same_origin(cx, obj) }
     }
 
-    fn interface_map() -> &'static phf::Map<&'static [u8], for<'a> fn(SafeJSContext, HandleObject)> {
+    fn interface_map() -> &'static phf::Map<&'static [u8], for<'a> fn(SafeJSContext, HandleObject)>
+    {
         &InterfaceObjectMap::MAP
     }
 
@@ -248,11 +264,20 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         pop_current_element_queue(can_gc)
     }
 
-    fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T> where T: DomObject + DomObjectWrap<crate::DomTypeHolder>, U: DerivedFrom<GlobalScope> {
+    fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
+    where
+        T: DomObject + DomObjectWrap<crate::DomTypeHolder>,
+        U: DerivedFrom<GlobalScope>,
+    {
         reflect_dom_object(obj, global, can_gc)
     }
 
-    fn report_pending_exception(cx: SafeJSContext, dispatch_event: bool, realm: InRealm, can_gc: CanGc) {
+    fn report_pending_exception(
+        cx: SafeJSContext,
+        dispatch_event: bool,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         report_pending_exception(cx, dispatch_event, realm, can_gc)
     }
 }
