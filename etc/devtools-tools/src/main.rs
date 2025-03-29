@@ -162,8 +162,8 @@ fn main() -> eyre::Result<()> {
             panic!("Message from client has no type! {message:?}")
         };
         let queue = transactions
-            .get_mut(&(Actor(to.clone()), Type(r#type.clone())))
-            .expect("No queue for actor and type");
+            .entry((Actor(to.clone()), Type(r#type.clone())))
+            .or_default();
 
         let Some((expected_message, reply_message)) = (!queue.is_empty()).then(|| queue.remove(0))
         else {
