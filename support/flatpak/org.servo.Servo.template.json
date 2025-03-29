@@ -1,0 +1,118 @@
+{
+  "app-id": "org.servo.Servo",
+  "runtime": "org.freedesktop.Platform",
+  "runtime-version": "22.08",
+  "sdk": "org.freedesktop.Sdk",
+  "command": "servo",
+  "finish-args" : [
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--device=dri",
+    "--socket=pulseaudio",
+    "--share=ipc",
+    "--share=network"
+  ],
+  "build-options" : {
+    "append-path": "/app/lib/sdk/rust-nightly/bin",
+    "no-debuginfo": true,
+    "no-debuginfo-compression": true,
+    "strip": false
+  },
+  "modules": [
+    {
+      "name": "rust",
+      "buildsystem": "simple",
+      "cleanup": [ "*" ],
+      "build-commands": [
+        "./rust-nightly/install.sh --prefix=/app/lib/sdk/rust-nightly --disable-ldconfig --without=rust-docs",
+        "./rustc-dev/install.sh --prefix=/app/lib/sdk/rust-nightly --disable-ldconfig"
+      ],
+      "sources": [
+        {
+          "type": "archive",
+          "only-arches": [ "aarch64" ],
+          "url": "_REPLACE_1_",
+          "sha256": "_REPLACE_SHA_1_",
+          "dest": "rust-nightly"
+        },
+        {
+          "type": "archive",
+          "only-arches": [ "x86_64" ],
+          "url": "_REPLACE_2_",
+          "sha256": "_REPLACE_SHA_2_",
+          "dest": "rust-nightly"
+        },
+        {
+          "type": "archive",
+          "only-arches": [ "aarch64" ],
+          "url": "_REPLACE_3_",
+          "sha256": "_REPLACE_SHA_3_",
+          "dest": "rustc-dev"
+        },
+        {
+          "type": "archive",
+          "only-arches": [ "x86_64" ],
+          "url": "_REPLACE_4_",
+          "sha256": "_REPLACE_SHA_4_",
+          "dest": "rustc-dev"
+        }
+      ]
+    },
+    "python3-flit_core.json",
+    "python3-setuptools_rust.json",
+    "python3-cryptography.json",
+    "python3-requirements.json",
+    "python3-requests.json",
+    "python3-setuptools.json",
+    "python3-pathspec.json",
+    "python3-pluggy.json",
+    "python3-tomli.json",
+    "python3-trove_classifiers.json",
+    "python3-packaging.json",
+    "python3-hatch-vcs.json",
+    "python3-virtualenv.json",
+    {
+      "name": "autoconf-2.13",
+       "config-opts": ["--program-suffix=2.13"],
+      "cleanup": [ "*" ],
+      "sources": [
+      {
+        "type": "archive",
+        "url": "https://ftp.gnu.org/gnu/autoconf/autoconf-2.13.tar.gz",
+        "sha256": "f0611136bee505811e9ca11ca7ac188ef5323a8e2ef19cffd3edb3cf08fd791e"
+      }
+      ]
+    },
+    {
+      "name": "servo",
+      "buildsystem": "simple",
+      "build-options" : {
+        "env": {
+          "CARGO_HOME": "/run/build/servo/cargo",
+          "CARGO_NET_OFFLINE": "true"
+        }
+      },
+      "build-commands": [
+        "mv servobuild.example .servobuild",
+        "sed -i 's|use-rustup = true|use-rustup = false|' .servobuild",
+	"sed -i -e '/need_pip_upgrade = True/d;/req_path\]/d' python/mach_bootstrap.py",
+        "python3 ./mach build -d -p servo",
+        "install -Dm 644 data/org.servo.Servo.desktop -t /app/share/applications",
+        "install -Dm 644 data/org.servo.Servo.metainfo.xml -t /app/share/metainfo",
+        "install -Dm 755 target/debug/servo /app/bin/servo",
+        "install -Dm 644 resources/servo.svg /app/share/icons/hicolor/scalable/apps/org.servo.Servo.svg",
+        "install -Dm 644 resources/servo_64.png /app/share/icons/hicolor/64x64/apps/org.servo.Servo.png",
+        "cp -r resources /app/bin/"
+      ],
+      "sources": [
+        "cargo-sources.json",
+        "fontsan-deps-sources.json",
+        {
+          "type": "git",
+          "url": "https://github.com/okias/servo.git",
+          "branch": "flatpak"
+        }
+      ]
+    }
+  ]
+}

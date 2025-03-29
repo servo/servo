@@ -1,0 +1,33 @@
+{
+    "name": "python3-cryptography",
+    "buildsystem": "simple",
+    "build-options" : {
+      "env": {
+	"CARGO_HOME": "/run/build/python3-cryptography/cargo",
+	"CARGO_NET_OFFLINE": "true",
+	"RUST_BACKTRACE": "1"
+      }
+    },
+    "build-commands": [
+        "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"cffi\" --no-build-isolation",
+        "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"cryptography\" --no-build-isolation"
+    ],
+    "sources": [
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/5e/0b/95d387f5f4433cb0f53ff7ad859bd2c6051051cebbb564f139a999ab46de/pycparser-2.21.tar.gz",
+            "sha256": "e644fdec12f7872f86c58ff790da456218b10f863970249516d60a5eaca77206"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/2b/a8/050ab4f0c3d4c1b8aaa805f70e26e84d0e27004907c5b8ecc1d31815f92a/cffi-1.15.1.tar.gz",
+            "sha256": "d400bfb9a37b1351253cb402671cea7e89bdecc294e8016a707f6d1d8ac934f9"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/8e/5d/2bf54672898375d081cb24b30baeb7793568ae5d958ef781349e9635d1c8/cryptography-41.0.3.tar.gz",
+            "sha256": "6d192741113ef5e30d89dcb5b956ef4e1578f304708701b8b73d38e3e1461f34"
+        },
+	"python3-cargo-sources.json"
+    ]
+}
