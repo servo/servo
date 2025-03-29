@@ -48,11 +48,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
-use crate::dom::filelist::FileList;
-use crate::dom::htmlcollection::HTMLCollection;
-use crate::dom::htmlformcontrolscollection::HTMLFormControlsCollection;
-use crate::dom::htmloptionscollection::HTMLOptionsCollection;
-use crate::dom::nodelist::NodeList;
 
 impl<T: ToJSValConvertible + JSTraceable> ToJSValConvertible for RootedTraceableBox<T> {
     #[inline]
@@ -112,7 +107,7 @@ where
 /// Returns whether `value` is an array-like object (Array, FileList,
 /// HTMLCollection, HTMLFormControlsCollection, HTMLOptionsCollection,
 /// NodeList).
-pub(crate) unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
+pub(crate) unsafe fn is_array_like<D: crate::DomTypes>(cx: *mut JSContext, value: HandleValue) -> bool {
     let mut is_array = false;
     assert!(IsArrayObject(cx, value, &mut is_array));
     if is_array {
@@ -124,19 +119,19 @@ pub(crate) unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bo
         _ => return false,
     };
 
-    if root_from_object::<FileList>(object, cx).is_ok() {
+    if root_from_object::<D::FileList>(object, cx).is_ok() {
         return true;
     }
-    if root_from_object::<HTMLCollection>(object, cx).is_ok() {
+    if root_from_object::<D::HTMLCollection>(object, cx).is_ok() {
         return true;
     }
-    if root_from_object::<HTMLFormControlsCollection>(object, cx).is_ok() {
+    if root_from_object::<D::HTMLFormControlsCollection>(object, cx).is_ok() {
         return true;
     }
-    if root_from_object::<HTMLOptionsCollection>(object, cx).is_ok() {
+    if root_from_object::<D::HTMLOptionsCollection>(object, cx).is_ok() {
         return true;
     }
-    if root_from_object::<NodeList>(object, cx).is_ok() {
+    if root_from_object::<D::NodeList>(object, cx).is_ok() {
         return true;
     }
 
