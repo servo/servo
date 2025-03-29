@@ -2339,15 +2339,15 @@ def DOMClassTypeId(desc):
     inner = ""
     if desc.hasDescendants():
         if desc.interface.getExtendedAttribute("Abstract"):
-            return "crate::dom::bindings::codegen::InheritTypes::TopTypeId { abstract_: () }"
+            return "script_bindings::codegen::InheritTypes::TopTypeId { abstract_: () }"
         name = desc.interface.identifier.name
-        inner = f"(crate::dom::bindings::codegen::InheritTypes::{name}TypeId::{name})"
+        inner = f"(script_bindings::codegen::InheritTypes::{name}TypeId::{name})"
     elif len(protochain) == 1:
-        return "crate::dom::bindings::codegen::InheritTypes::TopTypeId { alone: () }"
+        return "script_bindings::codegen::InheritTypes::TopTypeId { alone: () }"
     reversed_protochain = list(reversed(protochain))
     for (child, parent) in zip(reversed_protochain, reversed_protochain[1:]):
-        inner = f"(crate::dom::bindings::codegen::InheritTypes::{parent}TypeId::{child}{inner})"
-    return f"crate::dom::bindings::codegen::InheritTypes::TopTypeId {{ {protochain[0].lower()}: {inner} }}"
+        inner = f"(script_bindings::codegen::InheritTypes::{parent}TypeId::{child}{inner})"
+    return f"script_bindings::codegen::InheritTypes::TopTypeId {{ {protochain[0].lower()}: {inner} }}"
 
 
 def DOMClass(descriptor):

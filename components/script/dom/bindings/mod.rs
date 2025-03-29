@@ -191,7 +191,6 @@ pub(crate) mod codegen {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceObjectMap.rs"));
         pub(crate) use script_bindings::codegen::Globals::Globals;
     }
-    pub(crate) use script_bindings::codegen::InheritTypes;
     #[allow(dead_code)]
     pub(crate) mod ConcreteInheritTypes {
         include!(concat!(
