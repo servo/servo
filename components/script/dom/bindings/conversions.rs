@@ -90,7 +90,7 @@ pub(crate) fn root_from_object_static<T>(obj: *mut JSObject) -> Result<DomRoot<T
 where
     T: DomObject + IDLInterface,
 {
-    native_from_object_static(obj).map(|ptr| unsafe { DomRoot::from_ref(&*ptr) })
+    unsafe { native_from_object_static(obj).map(|ptr| DomRoot::from_ref(&*ptr)) }
 }
 
 /// Get a `DomRoot<T>` for a DOM object accessible from a `HandleObject`.

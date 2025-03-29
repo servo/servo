@@ -90,13 +90,14 @@ pub const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 
 /// Returns the ProtoOrIfaceArray for the given global object.
 /// Fails if `global` is not a DOM global object.
-pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray {
-    unsafe {
-        assert_ne!(((*get_object_class(global)).flags & JSCLASS_DOM_GLOBAL), 0);
-        let mut slot = UndefinedValue();
-        JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT, &mut slot);
-        slot.to_private() as *mut ProtoOrIfaceArray
-    }
+///
+/// # Safety
+/// `global` must point to a valid, non-null JS object.
+pub unsafe fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray {
+    assert_ne!(((*get_object_class(global)).flags & JSCLASS_DOM_GLOBAL), 0);
+    let mut slot = UndefinedValue();
+    JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT, &mut slot);
+    slot.to_private() as *mut ProtoOrIfaceArray
 }
 
 /// An array of *mut JSObject of size PROTO_OR_IFACE_LENGTH.
@@ -106,6 +107,10 @@ pub type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
 ///
 /// Returns false on JSAPI failure.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+/// `found` must point to a valid, non-null bool.
 pub unsafe fn get_property_on_prototype(
     cx: *mut JSContext,
     proxy: HandleObject,
@@ -133,7 +138,7 @@ pub unsafe fn get_property_on_prototype(
 
 /// Get an array index from the given `jsid`. Returns `None` if the given
 /// `jsid` is not an integer.
-pub unsafe fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32> {
+pub fn get_array_index_from_id(id: HandleId) -> Option<u32> {
     let raw_id = *id;
     if raw_id.is_int() {
         return Some(raw_id.to_int() as u32);
@@ -143,25 +148,27 @@ pub unsafe fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Opti
         return None;
     }
 
-    let atom = raw_id.to_string() as *mut JSAtom;
-    let s = AtomToLinearString(atom);
-    if GetLinearStringLength(s) == 0 {
-        return None;
-    }
+    unsafe {
+        let atom = raw_id.to_string() as *mut JSAtom;
+        let s = AtomToLinearString(atom);
+        if GetLinearStringLength(s) == 0 {
+            return None;
+        }
 
-    let chars = [GetLinearStringCharAt(s, 0)];
-    let first_char = char::decode_utf16(chars.iter().cloned())
-        .next()
-        .map_or('\0', |r| r.unwrap_or('\0'));
-    if first_char.is_ascii_lowercase() {
-        return None;
-    }
+        let chars = [GetLinearStringCharAt(s, 0)];
+        let first_char = char::decode_utf16(chars.iter().cloned())
+            .next()
+            .map_or('\0', |r| r.unwrap_or('\0'));
+        if first_char.is_ascii_lowercase() {
+            return None;
+        }
 
-    let mut i = 0;
-    if StringIsArrayIndex(s, &mut i) {
-        Some(i)
-    } else {
-        None
+        let mut i = 0;
+        if StringIsArrayIndex(s, &mut i) {
+            Some(i)
+        } else {
+            None
+        }
     }
 
     /*let s = jsstr_to_string(cx, RUST_JSID_TO_STRING(raw_id));
@@ -194,6 +201,10 @@ pub unsafe fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Opti
 /// Find the enum equivelent of a string given by `v` in `pairs`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok((None, value))` if there was no matching string.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+#[allow(clippy::result_unit_err)]
 pub unsafe fn find_enum_value<'a, T>(
     cx: *mut JSContext,
     v: HandleValue,
@@ -217,28 +228,32 @@ pub unsafe fn find_enum_value<'a, T>(
 /// Get the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok(false)` if there was no property with the given name.
-pub fn get_dictionary_property(
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn get_dictionary_property(
     cx: *mut JSContext,
     object: HandleObject,
     property: &str,
     rval: MutableHandleValue,
     _can_gc: CanGc,
 ) -> Result<bool, ()> {
-    fn has_property(
+    unsafe fn has_property(
         cx: *mut JSContext,
         object: HandleObject,
         property: &CString,
         found: &mut bool,
     ) -> bool {
-        unsafe { JS_HasProperty(cx, object, property.as_ptr(), found) }
+        JS_HasProperty(cx, object, property.as_ptr(), found)
     }
-    fn get_property(
+    unsafe fn get_property(
         cx: *mut JSContext,
         object: HandleObject,
         property: &CString,
         value: MutableHandleValue,
     ) -> bool {
-        unsafe { JS_GetProperty(cx, object, property.as_ptr(), value) }
+        JS_GetProperty(cx, object, property.as_ptr(), value)
     }
 
     let property = CString::new(property).unwrap();
@@ -265,7 +280,11 @@ pub fn get_dictionary_property(
 /// Set the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure, or null object,
 /// and Ok(()) otherwise
-pub fn set_dictionary_property(
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn set_dictionary_property(
     cx: *mut JSContext,
     object: HandleObject,
     property: &str,
@@ -276,16 +295,17 @@ pub fn set_dictionary_property(
     }
 
     let property = CString::new(property).unwrap();
-    unsafe {
-        if !JS_SetProperty(cx, object, property.as_ptr(), value) {
-            return Err(());
-        }
+    if !JS_SetProperty(cx, object, property.as_ptr(), value) {
+        return Err(());
     }
 
     Ok(())
 }
 
 /// Returns whether `proxy` has a property `id` on its prototype.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
 pub unsafe fn has_property_on_prototype(
     cx: *mut JSContext,
     proxy: HandleObject,
@@ -301,6 +321,9 @@ pub unsafe fn has_property_on_prototype(
 }
 
 /// Deletes the property `id` from `object`.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
 pub unsafe fn delete_property_by_id(
     cx: *mut JSContext,
     object: HandleObject,
@@ -376,6 +399,10 @@ unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
 }
 
 /// Generic method of IDL interface.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+/// `vp` must point to a VALID, non-null JSVal.
 pub unsafe extern "C" fn generic_method<const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
@@ -385,6 +412,10 @@ pub unsafe extern "C" fn generic_method<const EXCEPTION_TO_REJECTION: bool>(
 }
 
 /// Generic getter of IDL interface.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+/// `vp` must point to a VALID, non-null JSVal.
 pub unsafe extern "C" fn generic_getter<const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
@@ -394,6 +425,10 @@ pub unsafe extern "C" fn generic_getter<const EXCEPTION_TO_REJECTION: bool>(
 }
 
 /// Generic lenient getter of IDL interface.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+/// `vp` must point to a VALID, non-null JSVal.
 pub unsafe extern "C" fn generic_lenient_getter<const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
@@ -418,6 +453,10 @@ unsafe extern "C" fn call_setter(
 }
 
 /// Generic setter of IDL interface.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+/// `vp` must point to a VALID, non-null JSVal.
 pub unsafe extern "C" fn generic_setter(
     cx: *mut JSContext,
     argc: libc::c_uint,
@@ -427,6 +466,10 @@ pub unsafe extern "C" fn generic_setter(
 }
 
 /// Generic lenient setter of IDL interface.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+/// `vp` must point to a VALID, non-null JSVal.
 pub unsafe extern "C" fn generic_lenient_setter(
     cx: *mut JSContext,
     argc: libc::c_uint,
@@ -436,6 +479,10 @@ pub unsafe extern "C" fn generic_lenient_setter(
 }
 
 /// <https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/BindingUtils.cpp#3300>
+/// # Safety
+///
+/// `cx` must point to a valid, non-null JSContext.
+/// `vp` must point to a VALID, non-null JSVal.
 pub unsafe extern "C" fn generic_static_promise_method(
     cx: *mut JSContext,
     argc: libc::c_uint,
@@ -457,6 +504,9 @@ pub unsafe extern "C" fn generic_static_promise_method(
 /// Coverts exception to promise rejection
 ///
 /// <https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/BindingUtils.cpp#3315>
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
 pub unsafe fn exception_to_promise(
     cx: *mut JSContext,
     rval: RawMutableHandleValue,

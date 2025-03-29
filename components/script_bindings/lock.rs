@@ -13,6 +13,7 @@ use std::sync::OnceLock;
 pub struct ThreadUnsafeOnceLock<T>(OnceLock<T>);
 
 impl<T> ThreadUnsafeOnceLock<T> {
+    #[allow(clippy::new_without_default)]
     pub const fn new() -> Self {
         Self(OnceLock::new())
     }
@@ -24,7 +25,7 @@ impl<T> ThreadUnsafeOnceLock<T> {
 
     /// Get a reference to the value inside this lock. Panics if the lock has not been initialized.
     ///
-    /// SAFETY:
+    /// # Safety
     ///   The caller must ensure that it does not mutate value contained inside this lock
     ///   (using interior mutability).
     pub unsafe fn get(&self) -> &T {

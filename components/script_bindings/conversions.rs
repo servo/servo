@@ -468,23 +468,29 @@ unsafe fn private_from_proto_check_static(
 
 /// Get a `*const T` for a DOM object accessible from a `JSObject`, where the DOM object
 /// is guaranteed not to be a wrapper.
+///
+/// # Safety
+/// `obj` must point to a valid, non-null JSObject.
 #[allow(clippy::result_unit_err)]
-pub fn native_from_object_static<T>(obj: *mut JSObject) -> Result<*const T, ()>
+pub unsafe fn native_from_object_static<T>(obj: *mut JSObject) -> Result<*const T, ()>
 where
     T: DomObject + IDLInterface,
 {
-    unsafe { private_from_proto_check_static(obj, T::derives).map(|ptr| ptr as *const T) }
+    private_from_proto_check_static(obj, T::derives).map(|ptr| ptr as *const T)
 }
 
 /// Get a `*const T` for a DOM object accessible from a `HandleValue`.
 /// Caller is responsible for throwing a JS exception if needed in case of error.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
 #[allow(clippy::result_unit_err)]
-pub fn native_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<*const T, ()>
+pub unsafe fn native_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<*const T, ()>
 where
     T: DomObject + IDLInterface,
 {
     if !v.get().is_object() {
         return Err(());
     }
-    unsafe { native_from_object(v.get().to_object(), cx) }
+    native_from_object(v.get().to_object(), cx)
 }

@@ -5928,7 +5928,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 """)
 
         if indexedGetter:
-            get += "let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
+            get += "let index = get_array_index_from_id(Handle::from_raw(id));\n"
 
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
@@ -6043,7 +6043,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
 
         indexedSetter = self.descriptor.operations['IndexedSetter']
         if indexedSetter:
-            set += ("let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
+            set += ("let index = get_array_index_from_id(Handle::from_raw(id));\n"
                     "if let Some(index) = index {\n"
                     "    let this = UnwrapProxy::<D>(proxy);\n"
                     "    let this = &*this;\n"
@@ -6051,7 +6051,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    return (*opresult).succeed();\n"
                     "}\n")
         elif self.descriptor.operations['IndexedGetter']:
-            set += ("if get_array_index_from_id(*cx, Handle::from_raw(id)).is_some() {\n"
+            set += ("if get_array_index_from_id(Handle::from_raw(id)).is_some() {\n"
                     "    return (*opresult).failNoIndexedSetter();\n"
                     "}\n")
 
@@ -6266,7 +6266,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                 """)
 
         if indexedGetter:
-            indexed += ("let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
+            indexed += ("let index = get_array_index_from_id(Handle::from_raw(id));\n"
                         "if let Some(index) = index {\n"
                         "    let this = UnwrapProxy::<D>(proxy);\n"
                         "    let this = &*this;\n"
@@ -6358,7 +6358,7 @@ if !expando.is_null() {
 
         indexedGetter = self.descriptor.operations['IndexedGetter']
         if indexedGetter:
-            getIndexedOrExpando = ("let index = get_array_index_from_id(*cx, id_lt);\n"
+            getIndexedOrExpando = ("let index = get_array_index_from_id(id_lt);\n"
                                    "if let Some(index) = index {\n"
                                    "    let this = UnwrapProxy::<D>(proxy);\n"
                                    "    let this = &*this;\n"

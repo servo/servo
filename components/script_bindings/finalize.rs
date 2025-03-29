@@ -28,6 +28,8 @@ unsafe fn do_finalize_global(obj: *mut JSObject) {
     let _: Box<ProtoOrIfaceArray> = Box::from_raw(protolist);
 }
 
+/// # Safety
+/// `this` must point to a valid, non-null instance of T.
 pub unsafe fn finalize_common<T>(this: *const T) {
     if !this.is_null() {
         // The pointer can be null if the object is the unforgeable holder of that interface.
@@ -36,11 +38,17 @@ pub unsafe fn finalize_common<T>(this: *const T) {
     debug!("{} finalize: {:p}", type_name::<T>(), this);
 }
 
+/// # Safety
+/// `obj` must point to a valid, non-null JS object.
+/// `this` must point to a valid, non-null instance of T.
 pub unsafe fn finalize_global<T>(obj: *mut JSObject, this: *const T) {
     do_finalize_global(obj);
     finalize_common::<T>(this);
 }
 
+/// # Safety
+/// `obj` must point to a valid, non-null JS object.
+/// `this` must point to a valid, non-null instance of T.
 pub unsafe fn finalize_weak_referenceable<T: WeakReferenceable>(
     obj: *mut JSObject,
     this: *const T,
