@@ -3183,6 +3183,7 @@ impl ScriptThread {
             is_initial_about_blank,
             true,
             incomplete.load_data.inherited_insecure_requests_policy,
+            incomplete.load_data.has_trustworthy_ancestor_origin,
             can_gc,
         );
 

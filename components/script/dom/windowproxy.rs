@@ -306,6 +306,7 @@ impl WindowProxy {
             document.get_referrer_policy(),
             None, // Doesn't inherit secure context
             None,
+            false,
         );
         let load_info = AuxiliaryWebViewCreationRequest {
             load_data: load_data.clone(),
@@ -516,6 +517,7 @@ impl WindowProxy {
                 referrer_policy,
                 Some(secure),
                 Some(target_document.insecure_requests_policy()),
+                target_document.has_trustworthy_ancestor_origin(), // sebsebmc: is this context non-nested?
             );
             let history_handling = if new {
                 NavigationHistoryBehavior::Replace

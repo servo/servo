@@ -130,6 +130,8 @@ pub(crate) struct WorkerGlobalScope {
 
     #[no_trace]
     insecure_requests_policy: InsecureRequestsPolicy,
+
+    has_trustworthy_ancestor_origin: bool,
 }
 
 impl WorkerGlobalScope {
@@ -144,6 +146,7 @@ impl WorkerGlobalScope {
         closing: Arc<AtomicBool>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         insecure_requests_policy: InsecureRequestsPolicy,
+        has_trustworthy_ancestor_origin: bool,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();
@@ -185,12 +188,18 @@ impl WorkerGlobalScope {
             performance: Default::default(),
             timer_scheduler: RefCell::default(),
             insecure_requests_policy,
+            has_trustworthy_ancestor_origin,
         }
     }
 
     /// Returns a policy value that should be used by fetches initiated by this worker.
     pub(crate) fn insecure_requests_policy(&self) -> InsecureRequestsPolicy {
         self.insecure_requests_policy
+    }
+
+    /// Returns if any ancestor of this worker has a trustowrthy origin.
+    pub(crate) fn has_trustworthy_ancestor_origin(&self) -> bool {
+        self.has_trustworthy_ancestor_origin
     }
 
     /// Clear various items when the worker event-loop shuts-down.
@@ -298,6 +307,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             .use_url_credentials(true)
             .origin(global_scope.origin().immutable().clone())
             .insecure_requests_policy(self.insecure_requests_policy())
+            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin())
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
             let (url, source) = match fetch::load_whole_resource(
