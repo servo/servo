@@ -38,6 +38,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, get_read_promise_bytes, get_read_promise_done};
 use crate::dom::urlsearchparams::URLSearchParams;
+use crate::dom::window::Window;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::SendableTaskSource;
@@ -729,7 +730,7 @@ fn run_package_data_algorithm(
         BodyType::Text => run_text_data_algorithm(bytes),
         BodyType::Json => run_json_data_algorithm(cx, bytes),
         BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime, can_gc),
-        BodyType::FormData => run_form_data_algorithm(&global, bytes, mime, can_gc),
+        BodyType::FormData => run_form_data_algorithm(global.as_window(), bytes, mime, can_gc),
         BodyType::ArrayBuffer => run_array_buffer_data_algorithm(cx, bytes, can_gc),
         BodyType::Bytes => run_bytes_data_algorithm(cx, bytes, can_gc),
     }
@@ -799,7 +800,7 @@ fn run_blob_data_algorithm(
 
 /// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A2>
 fn run_form_data_algorithm(
-    root: &GlobalScope,
+    window: &Window,
     bytes: Vec<u8>,
     mime: &[u8],
     can_gc: CanGc,
@@ -814,7 +815,7 @@ fn run_form_data_algorithm(
     // ... is not fully determined yet.
     if mime.type_() == mime::APPLICATION && mime.subtype() == mime::WWW_FORM_URLENCODED {
         let entries = form_urlencoded::parse(&bytes);
-        let formdata = FormData::new(None, root, can_gc);
+        let formdata = FormData::new(None, window, can_gc);
         for (k, e) in entries {
             formdata.Append(USVString(k.into_owned()), USVString(e.into_owned()));
         }

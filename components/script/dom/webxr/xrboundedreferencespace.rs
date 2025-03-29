@@ -12,6 +12,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
@@ -40,12 +41,13 @@ impl XRBoundedReferenceSpace {
 
     #[allow(unused)]
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         session: &XRSession,
         can_gc: CanGc,
     ) -> DomRoot<XRBoundedReferenceSpace> {
-        let offset = XRRigidTransform::identity(global, can_gc);
-        Self::new_offset(global, session, &offset, can_gc)
+        let offset = XRRigidTransform::identity(window, can_gc);
+        let global = window.global();
+        Self::new_offset(&global, session, &offset, can_gc)
     }
 
     #[allow(unused)]

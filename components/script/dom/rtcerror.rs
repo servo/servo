@@ -8,11 +8,10 @@ use js::rust::HandleObject;
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{
     RTCErrorDetailType, RTCErrorInit, RTCErrorMethods,
 };
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domexception::DOMException;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -41,16 +40,16 @@ impl RTCError {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         init: &RTCErrorInit,
         message: DOMString,
         can_gc: CanGc,
     ) -> DomRoot<RTCError> {
-        Self::new_with_proto(global, None, init, message, can_gc)
+        Self::new_with_proto(window, None, init, message, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         init: &RTCErrorInit,
         message: DOMString,
@@ -58,7 +57,7 @@ impl RTCError {
     ) -> DomRoot<RTCError> {
         reflect_dom_object_with_proto(
             Box::new(RTCError::new_inherited(init, message)),
-            global,
+            window,
             proto,
             can_gc,
         )
@@ -74,7 +73,7 @@ impl RTCErrorMethods<crate::DomTypeHolder> for RTCError {
         init: &RTCErrorInit,
         message: DOMString,
     ) -> DomRoot<RTCError> {
-        RTCError::new_with_proto(&window.global(), proto, init, message, can_gc)
+        RTCError::new_with_proto(window, proto, init, message, can_gc)
     }
 
     // https://www.w3.org/TR/webrtc/#dom-rtcerror-errordetail
