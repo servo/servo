@@ -6,7 +6,7 @@ use js::error::throw_type_error;
 use js::jsapi::JS_IsExceptionPending;
 
 use crate::codegen::PrototypeList::proto_id_to_name;
-use crate::script_runtime::{JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 
 /// DOM exceptions that can be thrown by a native DOM method.
 #[derive(Clone, Debug, MallocSizeOf)]

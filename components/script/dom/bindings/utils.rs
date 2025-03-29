@@ -12,21 +12,15 @@ use std::{ptr, slice};
 use js::conversions::ToJSValConvertible;
 use js::glue::{IsWrapper, UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{
-    CallArgs, DOMCallbacks, HandleId as RawHandleId,
-    HandleObject as RawHandleObject, Heap,
+    CallArgs, DOMCallbacks, HandleId as RawHandleId, HandleObject as RawHandleObject, Heap,
     JS_DeprecatedStringHasLatin1Chars, JS_EnumerateStandardClasses, JS_FreezeObject,
-    JS_GetLatin1StringCharsAndLength, JS_IsGlobalObject,
-    JS_ResolveStandardClass, JSContext, JSObject, JSTracer,
-    MutableHandleIdVector as RawMutableHandleIdVector,
+    JS_GetLatin1StringCharsAndLength, JS_IsGlobalObject, JS_ResolveStandardClass, JSContext,
+    JSObject, JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
 };
-use js::rust::{
-    Handle, HandleObject, MutableHandleValue,
-    get_object_class, is_dom_class,
-};
+use js::rust::{Handle, HandleObject, MutableHandleValue, get_object_class, is_dom_class};
 
 use crate::DomTypes;
-use crate::dom::bindings::codegen::InterfaceObjectMap;
-use crate::dom::bindings::codegen::PrototypeList;
+use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList};
 use crate::dom::bindings::constructor::call_html_constructor;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, throw_dom_exception};

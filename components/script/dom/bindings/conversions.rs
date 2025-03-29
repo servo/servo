@@ -107,7 +107,10 @@ where
 /// Returns whether `value` is an array-like object (Array, FileList,
 /// HTMLCollection, HTMLFormControlsCollection, HTMLOptionsCollection,
 /// NodeList).
-pub(crate) unsafe fn is_array_like<D: crate::DomTypes>(cx: *mut JSContext, value: HandleValue) -> bool {
+pub(crate) unsafe fn is_array_like<D: crate::DomTypes>(
+    cx: *mut JSContext,
+    value: HandleValue,
+) -> bool {
     let mut is_array = false;
     assert!(IsArrayObject(cx, value, &mut is_array));
     if is_array {

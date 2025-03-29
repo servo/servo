@@ -5,8 +5,7 @@
 //! Generic finalizer implementations for DOM binding implementations.
 
 use std::any::type_name;
-use std::mem;
-use std::ptr;
+use std::{mem, ptr};
 
 use js::glue::JS_GetReservedSlot;
 use js::jsapi::JSObject;
@@ -14,7 +13,7 @@ use js::jsval::UndefinedValue;
 use js::rust::GCMethods;
 
 use crate::codegen::PrototypeList::PROTO_OR_IFACE_LENGTH;
-use crate::utils::{get_proto_or_iface_array, ProtoOrIfaceArray};
+use crate::utils::{ProtoOrIfaceArray, get_proto_or_iface_array};
 use crate::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable};
 
 /// Drop the resources held by reserved slots of a global object

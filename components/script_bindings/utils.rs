@@ -6,27 +6,36 @@ use std::ffi::CString;
 use std::os::raw::c_void;
 use std::ptr::{self, NonNull};
 
-use js::JS_CALLEE;
 use js::conversions::ToJSValConvertible;
-use js::glue::{JS_GetReservedSlot, RUST_FUNCTION_VALUE_TO_JITINFO, CallJitMethodOp, CallJitGetterOp, CallJitSetterOp};
-use js::jsapi::{JSAtom, JSContext, JSObject, GetLinearStringLength, GetLinearStringCharAt, StringIsArrayIndex, ObjectOpResult, JSJitInfo, HandleObject as RawHandleObject, CallArgs, JS_IsExceptionPending, MutableHandleValue as RawMutableHandleValue, JS_ClearPendingException, ExceptionStackBehavior, AtomToLinearString, GetNonCCWObjectGlobal};
+use js::glue::{
+    CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, JS_GetReservedSlot,
+    RUST_FUNCTION_VALUE_TO_JITINFO,
+};
+use js::jsapi::{
+    AtomToLinearString, CallArgs, ExceptionStackBehavior, GetLinearStringCharAt,
+    GetLinearStringLength, GetNonCCWObjectGlobal, HandleObject as RawHandleObject,
+    JS_ClearPendingException, JS_IsExceptionPending, JSAtom, JSContext, JSJitInfo, JSObject,
+    MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex,
+};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rooted;
-use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleValue, get_object_class, ToString};
 use js::rust::wrappers::{
     CallOriginalPromiseReject, JS_DeletePropertyById, JS_ForwardGetPropertyTo,
     JS_GetPendingException, JS_GetProperty, JS_GetPrototype, JS_HasProperty, JS_HasPropertyById,
     JS_SetPendingException, JS_SetProperty,
 };
+use js::rust::{
+    HandleId, HandleObject, HandleValue, MutableHandleValue, ToString, get_object_class,
+};
+use js::{JS_CALLEE, rooted};
 use malloc_size_of::MallocSizeOfOps;
 
 use crate::codegen::Globals::Globals;
 use crate::codegen::InheritTypes::TopTypeId;
 use crate::codegen::PrototypeList::{self, MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
-use crate::conversions::{PrototypeCheck, private_from_proto_check, jsstring_to_str};
+use crate::conversions::{PrototypeCheck, jsstring_to_str, private_from_proto_check};
 use crate::error::throw_invalid_this;
-use crate::str::DOMString;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::str::DOMString;
 
 /// The struct that holds inheritance information for DOM object reflectors.
 #[derive(Clone, Copy)]

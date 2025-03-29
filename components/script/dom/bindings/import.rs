@@ -16,6 +16,7 @@ pub(crate) mod base {
     pub(crate) use js::panic::maybe_resume_unwind;
     pub(crate) use js::rust::wrappers::{Call, JS_WrapValue};
     pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
+    pub(crate) use script_bindings::lock::ThreadUnsafeOnceLock;
 
     pub(crate) use crate::dom::bindings::callback::{
         CallSetup, CallbackContainer, CallbackFunction, CallbackInterface, CallbackObject,
@@ -39,7 +40,6 @@ pub(crate) mod base {
     pub(crate) use crate::dom::bindings::root::DomRoot;
     pub(crate) use crate::dom::bindings::str::{ByteString, DOMString, USVString};
     pub(crate) use crate::dom::bindings::trace::RootedTraceableBox;
-    pub(crate) use script_bindings::lock::ThreadUnsafeOnceLock;
     pub(crate) use crate::dom::bindings::utils::{
         DomHelpers, get_dictionary_property, set_dictionary_property,
     };
@@ -100,7 +100,12 @@ pub(crate) mod module {
         JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL,
         JSCLASS_RESERVED_SLOTS_MASK, jsapi, typedarray,
     };
+    pub(crate) use script_bindings::codegen::Globals::Globals;
     pub(crate) use script_bindings::constant::{ConstantSpec, ConstantVal};
+    pub(crate) use script_bindings::finalize::{
+        finalize_common, finalize_global, finalize_weak_referenceable,
+    };
+    pub(crate) use script_bindings::interfaces::*;
     pub(crate) use script_bindings::record::Record;
     pub(crate) use servo_config::pref;
 
@@ -111,8 +116,6 @@ pub(crate) mod module {
         ChannelInterpretationValues,
     };
     pub(crate) use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTarget_Binding;
-    pub(crate) use script_bindings::codegen::Globals::Globals;
-    pub(crate) use script_bindings::interfaces::*;
     pub(crate) use crate::dom::bindings::codegen::{
         InterfaceObjectMap, PrototypeList, RegisterBindings,
     };
@@ -126,9 +129,6 @@ pub(crate) mod module {
     };
     pub(crate) use crate::dom::bindings::error::{
         Error, ErrorResult, throw_constructor_without_new,
-    };
-    pub(crate) use script_bindings::finalize::{
-        finalize_common, finalize_global, finalize_weak_referenceable,
     };
     pub(crate) use crate::dom::bindings::guard::{Condition, Guard};
     pub(crate) use crate::dom::bindings::inheritance::Castable;
