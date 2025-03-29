@@ -57,26 +57,6 @@ impl Drop for ThreadLocalStackRoots<'_> {
     }
 }
 
-/// Get a slice of references to DOM objects.
-pub(crate) trait DomSlice<T>
-where
-    T: JSTraceable + DomObject,
-{
-    /// Returns the slice of `T` references.
-    fn r(&self) -> &[&T];
-}
-
-impl<T> DomSlice<T> for [Dom<T>]
-where
-    T: JSTraceable + DomObject,
-{
-    #[inline]
-    fn r(&self) -> &[&T] {
-        let _ = mem::transmute::<Dom<T>, &T>;
-        unsafe { &*(self as *const [Dom<T>] as *const [&T]) }
-    }
-}
-
 pub(crate) trait ToLayout<T> {
     /// Returns `LayoutDom<T>` containing the same pointer.
     ///
