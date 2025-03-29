@@ -436,8 +436,8 @@ impl<'dom> ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
     pub fn new(parent: ServoThreadSafeLayoutNode<'dom>) -> Self {
         let first_child = match parent.pseudo_element() {
             None => parent
-                .get_pseudo(PseudoElement::Before)
-                .or_else(|| parent.get_details_summary_pseudo())
+                .with_pseudo(PseudoElement::Before)
+                .or_else(|| parent.with_pseudo(PseudoElement::DetailsSummary))
                 .or_else(|| unsafe { parent.dangerous_first_child() }),
             Some(PseudoElement::DetailsContent) | Some(PseudoElement::DetailsSummary) => unsafe {
                 parent.dangerous_first_child()
@@ -503,18 +503,18 @@ impl<'dom> Iterator for ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
                     self.current_node = match node.pseudo_element() {
                         Some(PseudoElement::Before) => self
                             .parent_node
-                            .get_details_summary_pseudo()
+                            .with_pseudo(PseudoElement::DetailsSummary)
                             .or_else(|| unsafe { self.parent_node.dangerous_first_child() })
-                            .or_else(|| self.parent_node.get_pseudo(PseudoElement::After)),
+                            .or_else(|| self.parent_node.with_pseudo(PseudoElement::After)),
                         Some(PseudoElement::DetailsSummary) => {
-                            self.parent_node.get_details_content_pseudo()
+                            self.parent_node.with_pseudo(PseudoElement::DetailsContent)
                         },
                         Some(PseudoElement::DetailsContent) => {
-                            self.parent_node.get_pseudo(PseudoElement::After)
+                            self.parent_node.with_pseudo(PseudoElement::After)
                         },
                         Some(PseudoElement::After) => None,
                         None | Some(_) => unsafe { node.dangerous_next_sibling() }
-                            .or_else(|| self.parent_node.get_pseudo(PseudoElement::After)),
+                            .or_else(|| self.parent_node.with_pseudo(PseudoElement::After)),
                     };
                 }
                 node

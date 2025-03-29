@@ -83,6 +83,7 @@ enum BlockLevelCreator {
         contents: Contents,
     },
     OutsideMarker {
+        list_item_style: Arc<ComputedValues>,
         contents: Vec<PseudoElementContentItem>,
     },
     AnonymousTable {
@@ -141,9 +142,9 @@ pub(crate) struct BlockContainerBuilder<'dom, 'style, Node> {
 
     inline_formatting_context_builder: InlineFormattingContextBuilder,
 
-    /// The style of the anonymous block boxes pushed to the list of block-level
-    /// boxes, if any (see `end_ongoing_inline_formatting_context`).
-    anonymous_style: Option<Arc<ComputedValues>>,
+    /// The [`NodeAndStyleInfo`] to use for anonymous block boxes pushed to the list of
+    /// block-level boxes, lazily initialized (see `end_ongoing_inline_formatting_context`).
+    anonymous_box_info: Option<NodeAndStyleInfo<Node>>,
 
     /// A collection of content that is being added to an anonymous table. This is
     /// composed of any sequence of internal table elements or table captions that
@@ -165,14 +166,16 @@ impl BlockContainer {
         let mut builder = BlockContainerBuilder::new(context, info, propagated_data);
 
         if is_list_item {
-            if let Some(marker_contents) = crate::lists::make_marker(context, info) {
-                match info.style.clone_list_style_position() {
+            if let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info) {
+                match marker_info.style.clone_list_style_position() {
                     ListStylePosition::Inside => {
-                        builder.handle_list_item_marker_inside(info, marker_contents)
+                        builder.handle_list_item_marker_inside(&marker_info, marker_contents)
                     },
-                    ListStylePosition::Outside => {
-                        builder.handle_list_item_marker_outside(info, marker_contents)
-                    },
+                    ListStylePosition::Outside => builder.handle_list_item_marker_outside(
+                        &marker_info,
+                        marker_contents,
+                        info.style.clone(),
+                    ),
                 }
             }
         }
@@ -197,7 +200,7 @@ where
             block_level_boxes: Vec::new(),
             propagated_data: propagated_data.union(&info.style),
             have_already_seen_first_line_for_text_indent: false,
-            anonymous_style: None,
+            anonymous_box_info: None,
             anonymous_table_content: Vec::new(),
             inline_formatting_context_builder: InlineFormattingContextBuilder::new(),
         }
@@ -277,16 +280,16 @@ where
             _ => None,
         };
 
-        let ifc = Table::construct_anonymous(self.context, self.info, contents, propagated_data);
+        let (table_info, ifc) =
+            Table::construct_anonymous(self.context, self.info, contents, propagated_data);
 
         if inline_table {
             self.inline_formatting_context_builder.push_atomic(ifc);
         } else {
-            let anonymous_info = self.info.new_anonymous(ifc.style().clone());
             let table_block = ArcRefCell::new(BlockLevelBox::Independent(ifc));
             self.end_ongoing_inline_formatting_context();
             self.block_level_boxes.push(BlockLevelJob {
-                info: anonymous_info,
+                info: table_info,
                 box_slot: BoxSlot::dummy(),
                 kind: BlockLevelCreator::AnonymousTable { table_block },
                 propagated_data,
@@ -384,17 +387,8 @@ where
         info: &NodeAndStyleInfo<Node>,
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
     ) {
-        let marker_style = self
-            .context
-            .shared_context()
-            .stylist
-            .style_for_anonymous::<Node::ConcreteElement>(
-                &self.context.shared_context().guards,
-                &PseudoElement::ServoLegacyText, // FIMXE: use `PseudoElement::Marker` when we add it
-                &info.style,
-            );
         self.handle_inline_level_element(
-            &info.new_replacing_style(marker_style),
+            info,
             DisplayInside::Flow {
                 is_list_item: false,
             },
@@ -407,11 +401,15 @@ where
         &mut self,
         info: &NodeAndStyleInfo<Node>,
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
+        list_item_style: Arc<ComputedValues>,
     ) {
         self.block_level_boxes.push(BlockLevelJob {
             info: info.clone(),
             box_slot: BoxSlot::dummy(),
-            kind: BlockLevelCreator::OutsideMarker { contents },
+            kind: BlockLevelCreator::OutsideMarker {
+                contents,
+                list_item_style,
+            },
             propagated_data: self.propagated_data.without_text_decorations(),
         });
     }
@@ -448,11 +446,13 @@ where
             .start_inline_box(InlineBox::new(info));
 
         if is_list_item {
-            if let Some(marker_contents) = crate::lists::make_marker(self.context, info) {
+            if let Some((marker_info, marker_contents)) =
+                crate::lists::make_marker(self.context, info)
+            {
                 // Ignore `list-style-position` here:
                 // “If the list item is an inline box: this value is equivalent to `inside`.”
                 // https://drafts.csswg.org/css-lists/#list-style-position-outside
-                self.handle_list_item_marker_inside(info, marker_contents)
+                self.handle_list_item_marker_inside(&marker_info, marker_contents)
             }
         }
 
@@ -616,20 +616,16 @@ where
         &mut self,
         inline_formatting_context: InlineFormattingContext,
     ) {
-        let block_container_style = &self.info.style;
         let layout_context = self.context;
-        let anonymous_style = self.anonymous_style.get_or_insert_with(|| {
-            layout_context
-                .shared_context()
-                .stylist
-                .style_for_anonymous::<Node::ConcreteElement>(
-                    &layout_context.shared_context().guards,
-                    &PseudoElement::ServoAnonymousBox,
-                    block_container_style,
-                )
-        });
+        let info = self
+            .anonymous_box_info
+            .get_or_insert_with(|| {
+                self.info
+                    .pseudo(layout_context, PseudoElement::ServoAnonymousBox)
+                    .expect("Should never fail to create anonymous box")
+            })
+            .clone();
 
-        let info = self.info.new_anonymous(anonymous_style.clone());
         self.block_level_boxes.push(BlockLevelJob {
             info,
             // FIXME(nox): We should be storing this somewhere.
@@ -696,27 +692,23 @@ where
                 contents,
                 self.propagated_data,
             ))),
-            BlockLevelCreator::OutsideMarker { contents } => {
-                let marker_style = context
-                    .shared_context()
-                    .stylist
-                    .style_for_anonymous::<Node::ConcreteElement>(
-                        &context.shared_context().guards,
-                        &PseudoElement::ServoLegacyText, // FIMXE: use `PseudoElement::Marker` when we add it
-                        &info.style,
-                    );
+            BlockLevelCreator::OutsideMarker {
+                contents,
+                list_item_style,
+            } => {
                 let contents = NonReplacedContents::OfPseudoElement(contents);
                 let block_container = BlockContainer::construct(
                     context,
-                    &info.new_replacing_style(marker_style.clone()),
+                    info,
                     contents,
                     self.propagated_data.without_text_decorations(),
                     false, /* is_list_item */
                 );
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
-                    marker_style,
+                    marker_style: info.style.clone(),
                     base: LayoutBoxBase::new(info.into(), info.style.clone()),
                     block_container,
+                    list_item_style,
                 }))
             },
             BlockLevelCreator::AnonymousTable { table_block } => table_block,
