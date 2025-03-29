@@ -26,8 +26,10 @@ use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
 use crate::dom::bindings::proxyhandler::is_platform_object_same_origin;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack::{self, StackEntry};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxyHandler;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -205,6 +207,8 @@ pub(crate) trait DomHelpers<D: DomTypes> {
 
     fn push_new_element_queue();
     fn pop_current_element_queue(can_gc: CanGc);
+
+    fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T> where T: DomObject + DomObjectWrap<D>, U: DerivedFrom<D::GlobalScope>;
 }
 
 impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
@@ -251,5 +255,9 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
     }
     fn pop_current_element_queue(can_gc: CanGc) {
         pop_current_element_queue(can_gc)
+    }
+
+    fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T> where T: DomObject + DomObjectWrap<crate::DomTypeHolder>, U: DerivedFrom<GlobalScope> {
+        reflect_dom_object(obj, global, can_gc)
     }
 }
