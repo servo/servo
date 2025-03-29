@@ -51,6 +51,7 @@ use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
+use script_bindings::interfaces::DocumentHelpers;
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{
     AnimationState, ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType, ScriptMsg,
@@ -78,7 +79,6 @@ use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMet
 use super::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use super::clipboardevent::ClipboardEventType;
 use super::performancepainttiming::PerformancePaintTiming;
-use crate::DomTypes;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::canvas_context::CanvasContext as _;
@@ -6398,11 +6398,7 @@ fn is_named_element_with_id_attribute(elem: &Element) -> bool {
     elem.is::<HTMLImageElement>() && elem.get_name().is_some_and(|name| !name.is_empty())
 }
 
-pub(crate) trait DocumentHelpers<D: DomTypes> {
-    fn ensure_safe_to_run_script_or_layout(&self);
-}
-
-impl DocumentHelpers<crate::DomTypeHolder> for Document {
+impl DocumentHelpers for Document {
     fn ensure_safe_to_run_script_or_layout(&self) {
         Document::ensure_safe_to_run_script_or_layout(self)
     }

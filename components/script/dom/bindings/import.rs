@@ -111,6 +111,8 @@ pub(crate) mod module {
         ChannelInterpretationValues,
     };
     pub(crate) use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTarget_Binding;
+    pub(crate) use script_bindings::codegen::Globals::Globals;
+    pub(crate) use script_bindings::interfaces::*;
     pub(crate) use crate::dom::bindings::codegen::{
         InterfaceObjectMap, PrototypeList, RegisterBindings,
     };

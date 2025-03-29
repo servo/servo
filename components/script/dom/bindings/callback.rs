@@ -15,6 +15,7 @@ use js::jsapi::{
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
 use js::rust::{MutableHandleValue, Runtime};
+use script_bindings::interfaces::DocumentHelpers;
 
 use crate::DomTypes;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
@@ -23,7 +24,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::{GenericAutoEntryScript, GenericAutoIncumbentScript};
 use crate::dom::bindings::utils::AsCCharPtrPtr;
-use crate::dom::document::DocumentHelpers;
 use crate::dom::globalscope::GlobalScopeHelpers;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext};

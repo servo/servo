@@ -1565,10 +1565,10 @@ def MemberCondition(pref, func, exposed, secure):
     if pref:
         conditions.append(f'Condition::Pref("{pref}")')
     if func:
-        conditions.append(f'Condition::Func({func})')
+        conditions.append(f'Condition::Func(D::{func})')
     if exposed:
         conditions.extend([
-            f"Condition::Exposed(InterfaceObjectMap::Globals::{camel_to_upper_snake(i)})" for i in exposed
+            f"Condition::Exposed(Globals::{camel_to_upper_snake(i)})" for i in exposed
         ])
     if len(conditions) == 0:
         conditions.append("Condition::Satisfied")
@@ -2369,7 +2369,7 @@ DOMClass {{
     depth: {descriptor.prototypeDepth},
     type_id: {DOMClassTypeId(descriptor)},
     malloc_size_of: {mallocSizeOf} as unsafe fn(&mut _, _) -> _,
-    global: InterfaceObjectMap::Globals::{globals_},
+    global: Globals::{globals_},
 }}"""
 
 
@@ -2962,14 +2962,15 @@ class CGConstructorEnabled(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
                                   [Argument("SafeJSContext", "aCx"),
-                                   Argument("HandleObject", "aObj")])
+                                   Argument("HandleObject", "aObj")],
+                                  templateArgs=['D: DomTypes'])
 
     def definition_body(self):
         conditions = []
         iface = self.descriptor.interface
 
         bits = " | ".join(sorted(
-            f"InterfaceObjectMap::Globals::{camel_to_upper_snake(i)}" for i in iface.exposureSet
+            f"Globals::{camel_to_upper_snake(i)}" for i in iface.exposureSet
         ))
         conditions.append(f"is_exposed_in(aObj, {bits})")
 
@@ -2981,14 +2982,14 @@ class CGConstructorEnabled(CGAbstractMethod):
         func = iface.getExtendedAttribute("Func")
         if func:
             assert isinstance(func, list) and len(func) == 1
-            conditions.append(f"{func[0]}(aCx, aObj)")
+            conditions.append(f"D::{func[0]}(aCx, aObj)")
 
         secure = iface.getExtendedAttribute("SecureContext")
         if secure:
             conditions.append("""
 unsafe {
     let in_realm_proof = AlreadyInRealm::assert_for_cx(aCx);
-    GlobalScope::from_context(*aCx, InRealm::Already(&in_realm_proof)).is_secure_context()
+    D::GlobalScope::from_context(*aCx, InRealm::Already(&in_realm_proof)).is_secure_context()
 }
 """)
 
@@ -3870,7 +3871,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGGeneric(
             "define_dom_interface"
             f"(cx, global, ProtoOrIfaceIndex::{self.variant}({self.id}),"
-            "CreateInterfaceObjects::<D>, ConstructorEnabled)"
+            "CreateInterfaceObjects::<D>, ConstructorEnabled::<D>)"
         )
 
 

@@ -23,6 +23,7 @@ pub mod conversions;
 pub mod error;
 pub mod finalize;
 pub mod inheritance;
+pub mod interfaces;
 pub mod iterable;
 pub mod like;
 pub mod lock;

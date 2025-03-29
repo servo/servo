@@ -21,6 +21,7 @@ use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
+use script_bindings::interfaces::WebGL2RenderingContextHelpers;
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::pref;
 use url::Host;
@@ -4707,5 +4708,11 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGL2RenderingContex
     fn canvas_data_source(self) -> HTMLCanvasDataSource {
         let this = self.unsafe_get();
         unsafe { (*this.base.to_layout().unsafe_get()).layout_handle() }
+    }
+}
+
+impl WebGL2RenderingContextHelpers for WebGL2RenderingContext {
+    fn is_webgl2_enabled(cx: JSContext, global: HandleObject) -> bool {
+        Self::is_webgl2_enabled(cx, global)
     }
 }

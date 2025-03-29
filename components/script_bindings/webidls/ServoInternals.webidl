@@ -8,12 +8,12 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 [Exposed=Window,
-Func="dom::bindings::interface::is_servo_internal"]
+Func="ServoInternals::is_servo_internal"]
 interface ServoInternals {
     Promise<object> reportMemory();
 };
 
 partial interface Navigator {
-    [Func="dom::bindings::interface::is_servo_internal"]
+    [Func="ServoInternals::is_servo_internal"]
     readonly attribute ServoInternals servo;
 };
