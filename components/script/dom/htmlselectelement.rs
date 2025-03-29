@@ -356,7 +356,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::VALUE_MISSING);
+            .perform_validation_and_update(ValidationFlags::VALUE_MISSING, CanGc::note());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-selectedindex
@@ -421,12 +421,14 @@ impl VirtualMethods for HTMLSelectElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("required") => {
                 self.validity_state()
-                    .perform_validation_and_update(ValidationFlags::VALUE_MISSING);
+                    .perform_validation_and_update(ValidationFlags::VALUE_MISSING, can_gc);
             },
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -443,26 +445,26 @@ impl VirtualMethods for HTMLSelectElement {
                 }
 
                 self.validity_state()
-                    .perform_validation_and_update(ValidationFlags::VALUE_MISSING);
+                    .perform_validation_and_update(ValidationFlags::VALUE_MISSING, can_gc);
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation);
+                self.form_attribute_mutated(mutation, can_gc);
             },
             _ => {},
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
@@ -517,7 +519,11 @@ impl Validatable for HTMLSelectElement {
         !self.upcast::<Element>().disabled_state() && !is_barred_by_datalist_ancestor(self.upcast())
     }
 
-    fn perform_validation(&self, validate_flags: ValidationFlags) -> ValidationFlags {
+    fn perform_validation(
+        &self,
+        validate_flags: ValidationFlags,
+        _can_gc: CanGc,
+    ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
 
         // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing

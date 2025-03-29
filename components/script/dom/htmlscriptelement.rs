@@ -1242,8 +1242,10 @@ impl VirtualMethods for HTMLScriptElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         if *attr.local_name() == local_name!("src") {
             if let AttributeMutation::Set(_) = mutation {
                 if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
@@ -1288,9 +1290,10 @@ impl VirtualMethods for HTMLScriptElement {
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
+        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children);
+            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
         }
 
         // https://html.spec.whatwg.org/multipage/#already-started

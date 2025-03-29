@@ -1340,7 +1340,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         Ok(())
     }
@@ -2322,8 +2322,10 @@ impl VirtualMethods for HTMLInputElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -2513,13 +2515,13 @@ impl VirtualMethods for HTMLInputElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation);
+                self.form_attribute_mutated(mutation, can_gc);
             },
             _ => {},
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -2540,21 +2542,21 @@ impl VirtualMethods for HTMLInputElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
         for r in radio_group_iter(self, self.radio_group_name().as_ref()) {
             r.validity_state()
-                .perform_validation_and_update(ValidationFlags::all());
+                .perform_validation_and_update(ValidationFlags::all(), can_gc);
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
@@ -2568,7 +2570,7 @@ impl VirtualMethods for HTMLInputElement {
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
     // This represents behavior for which the UIEvents spec and the
@@ -2576,9 +2578,9 @@ impl VirtualMethods for HTMLInputElement {
     // Compare:
     // https://w3c.github.io/uievents/#default-action
     // https://dom.spec.whatwg.org/#action-versus-occurance
-    fn handle_event(&self, event: &Event) {
+    fn handle_event(&self, event: &Event, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.handle_event(event);
+            s.handle_event(event, can_gc);
         }
 
         if event.type_() == atom!("click") && !event.DefaultPrevented() {
@@ -2679,7 +2681,7 @@ impl VirtualMethods for HTMLInputElement {
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext
@@ -2688,9 +2690,10 @@ impl VirtualMethods for HTMLInputElement {
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
+        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children);
+            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
         }
         let elem = copy.downcast::<HTMLInputElement>().unwrap();
         elem.value_dirty.set(self.value_dirty.get());
@@ -2701,7 +2704,7 @@ impl VirtualMethods for HTMLInputElement {
             .borrow_mut()
             .set_content(self.textinput.borrow().get_content());
         elem.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 }
 
@@ -2746,7 +2749,11 @@ impl Validatable for HTMLInputElement {
         }
     }
 
-    fn perform_validation(&self, validate_flags: ValidationFlags) -> ValidationFlags {
+    fn perform_validation(
+        &self,
+        validate_flags: ValidationFlags,
+        _can_gc: CanGc,
+    ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
 

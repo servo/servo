@@ -117,7 +117,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
             let node = value.upcast::<Node>();
             let root = self.upcast().root_node();
             if n >= 0 {
-                Node::pre_insert(node, &root, None).map(|_| ())
+                Node::pre_insert(node, &root, None, can_gc).map(|_| ())
             } else {
                 let child = self.upcast().IndexedGetter(index).unwrap();
                 let child_node = child.upcast::<Node>();
@@ -220,7 +220,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
         };
 
         // Step 6
-        Node::pre_insert(node, &parent, reference_node.as_deref()).map(|_| ())
+        Node::pre_insert(node, &parent, reference_node.as_deref(), CanGc::note()).map(|_| ())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove>

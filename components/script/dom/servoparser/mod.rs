@@ -713,7 +713,7 @@ where
 
     fn next(&mut self) -> Option<DomRoot<Node>> {
         let next = self.inner.next()?;
-        next.remove_self();
+        next.remove_self(CanGc::note());
         Some(next)
     }
 
@@ -1264,7 +1264,7 @@ impl TreeSink for Sink {
         let control = elem.and_then(|e| e.as_maybe_form_control());
 
         if let Some(control) = control {
-            control.set_form_owner_from_parser(&form);
+            control.set_form_owner_from_parser(&form, CanGc::note());
         }
     }
 

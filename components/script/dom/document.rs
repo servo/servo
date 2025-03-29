@@ -920,14 +920,14 @@ impl Document {
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
-    pub(crate) fn unregister_element_id(&self, to_unregister: &Element, id: Atom) {
+    pub(crate) fn unregister_element_id(&self, to_unregister: &Element, id: Atom, can_gc: CanGc) {
         self.document_or_shadow_root
             .unregister_named_element(&self.id_map, to_unregister, &id);
-        self.reset_form_owner_for_listeners(&id);
+        self.reset_form_owner_for_listeners(&id, can_gc);
     }
 
     /// Associate an element present in this document with the provided id.
-    pub(crate) fn register_element_id(&self, element: &Element, id: Atom) {
+    pub(crate) fn register_element_id(&self, element: &Element, id: Atom, can_gc: CanGc) {
         let root = self.GetDocumentElement().expect(
             "The element is in the document, so there must be a document \
              element.",
@@ -938,7 +938,7 @@ impl Document {
             &id,
             DomRoot::from_ref(root.upcast::<Node>()),
         );
-        self.reset_form_owner_for_listeners(&id);
+        self.reset_form_owner_for_listeners(&id, can_gc);
     }
 
     /// Remove any existing association between the provided name and any elements in this document.
@@ -3265,10 +3265,10 @@ impl Document {
         id
     }
 
-    pub(crate) fn unregister_media_controls(&self, id: &str) {
+    pub(crate) fn unregister_media_controls(&self, id: &str, can_gc: CanGc) {
         if let Some(ref media_controls) = self.media_controls.borrow_mut().remove(id) {
             let media_controls = DomRoot::from_ref(&**media_controls);
-            media_controls.Host().detach_shadow();
+            media_controls.Host().detach_shadow(can_gc);
         } else {
             debug_assert!(false, "Trying to unregister unknown media controls");
         }
@@ -4512,14 +4512,14 @@ impl Document {
         }
     }
 
-    fn reset_form_owner_for_listeners(&self, id: &Atom) {
+    fn reset_form_owner_for_listeners(&self, id: &Atom, can_gc: CanGc) {
         let map = self.form_id_listener_map.borrow();
         if let Some(listeners) = map.get(id) {
             for listener in listeners {
                 listener
                     .as_maybe_form_control()
                     .expect("Element must be a form control")
-                    .reset_form_owner();
+                    .reset_form_owner(can_gc);
             }
         }
     }
@@ -5234,7 +5234,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 3.
-        Node::adopt(node, self);
+        Node::adopt(node, self, CanGc::note());
 
         // Step 4.
         Ok(DomRoot::from_ref(node))
@@ -5945,7 +5945,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 11. Replace all with null within document.
-        Node::replace_all(None, self.upcast::<Node>());
+        Node::replace_all(None, self.upcast::<Node>(), can_gc);
 
         // Specs and tests are in a state of flux about whether
         // we want to clear the selection when we remove the contents;

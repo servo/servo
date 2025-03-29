@@ -712,9 +712,11 @@ impl HTMLFormElement {
         result
     }
 
-    pub(crate) fn update_validity(&self) {
+    pub(crate) fn update_validity(&self, can_gc: CanGc) {
         let controls = self.controls.borrow();
-        let is_any_invalid = controls.iter().any(|control| control.is_invalid(false));
+        let is_any_invalid = controls
+            .iter()
+            .any(|control| control.is_invalid(false, can_gc));
 
         self.upcast::<Element>()
             .set_state(ElementState::VALID, !is_any_invalid);
@@ -1087,7 +1089,7 @@ impl HTMLFormElement {
             .iter()
             .filter_map(|field| {
                 if let Some(element) = field.downcast::<Element>() {
-                    if element.is_invalid(true) {
+                    if element.is_invalid(true, can_gc) {
                         Some(DomRoot::from_ref(element))
                     } else {
                         None
@@ -1306,17 +1308,17 @@ impl HTMLFormElement {
         self.marked_for_reset.set(false);
     }
 
-    fn add_control<T: ?Sized + FormControl>(&self, control: &T) {
+    fn add_control<T: ?Sized + FormControl>(&self, control: &T, can_gc: CanGc) {
         {
             let root = self.upcast::<Element>().root_element();
             let root = root.upcast::<Node>();
             let mut controls = self.controls.borrow_mut();
             controls.insert_pre_order(control.to_element(), root);
         }
-        self.update_validity();
+        self.update_validity(can_gc);
     }
 
-    fn remove_control<T: ?Sized + FormControl>(&self, control: &T) {
+    fn remove_control<T: ?Sized + FormControl>(&self, control: &T, can_gc: CanGc) {
         {
             let control = control.to_element();
             let mut controls = self.controls.borrow_mut();
@@ -1332,7 +1334,7 @@ impl HTMLFormElement {
             let mut past_names_map = self.past_names_map.borrow_mut();
             past_names_map.0.retain(|_k, v| v.0 != control);
         }
-        self.update_validity();
+        self.update_validity(can_gc);
     }
 }
 
@@ -1518,16 +1520,16 @@ pub(crate) trait FormControl: DomObject {
     // Part of step 12.
     // '..suppress the running of the reset the form owner algorithm
     // when the parser subsequently attempts to insert the element..'
-    fn set_form_owner_from_parser(&self, form: &HTMLFormElement) {
+    fn set_form_owner_from_parser(&self, form: &HTMLFormElement, can_gc: CanGc) {
         let elem = self.to_element();
         let node = elem.upcast::<Node>();
         node.set_flag(NodeFlags::PARSER_ASSOCIATED_FORM_OWNER, true);
-        form.add_control(self);
+        form.add_control(self, can_gc);
         self.set_form_owner(Some(form));
     }
 
     // https://html.spec.whatwg.org/multipage/#reset-the-form-owner
-    fn reset_form_owner(&self) {
+    fn reset_form_owner(&self, can_gc: CanGc) {
         let elem = self.to_element();
         let node = elem.upcast::<Node>();
         let old_owner = self.form_owner();
@@ -1558,10 +1560,10 @@ pub(crate) trait FormControl: DomObject {
 
         if old_owner != new_owner {
             if let Some(o) = old_owner {
-                o.remove_control(self);
+                o.remove_control(self, can_gc);
             }
             if let Some(ref new_owner) = new_owner {
-                new_owner.add_control(self);
+                new_owner.add_control(self, can_gc);
             }
             // https://html.spec.whatwg.org/multipage/#custom-element-reactions:reset-the-form-owner
             if let Some(html_elem) = elem.downcast::<HTMLElement>() {
@@ -1580,7 +1582,7 @@ pub(crate) trait FormControl: DomObject {
     }
 
     // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
-    fn form_attribute_mutated(&self, mutation: AttributeMutation) {
+    fn form_attribute_mutated(&self, mutation: AttributeMutation, can_gc: CanGc) {
         match mutation {
             AttributeMutation::Set(_) => {
                 self.register_if_necessary();
@@ -1590,7 +1592,7 @@ pub(crate) trait FormControl: DomObject {
             },
         }
 
-        self.reset_form_owner();
+        self.reset_form_owner(can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
@@ -1616,7 +1618,7 @@ pub(crate) trait FormControl: DomObject {
     }
 
     // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
-    fn bind_form_control_to_tree(&self) {
+    fn bind_form_control_to_tree(&self, can_gc: CanGc) {
         let elem = self.to_element();
         let node = elem.upcast::<Node>();
 
@@ -1628,12 +1630,12 @@ pub(crate) trait FormControl: DomObject {
         node.set_flag(NodeFlags::PARSER_ASSOCIATED_FORM_OWNER, false);
 
         if !must_skip_reset {
-            self.form_attribute_mutated(AttributeMutation::Set(None));
+            self.form_attribute_mutated(AttributeMutation::Set(None), can_gc);
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
-    fn unbind_form_control_from_tree(&self) {
+    fn unbind_form_control_from_tree(&self, can_gc: CanGc) {
         let elem = self.to_element();
         let has_form_attr = elem.has_attribute(&local_name!("form"));
         let same_subtree = self
@@ -1648,7 +1650,7 @@ pub(crate) trait FormControl: DomObject {
         // subtree) if it appears later in the tree order. Hence invoke
         // reset from here if this control has the form attribute set.
         if !same_subtree || (self.is_listed() && has_form_attr) {
-            self.reset_form_owner();
+            self.reset_form_owner(can_gc);
         }
     }
 
@@ -1698,8 +1700,8 @@ impl VirtualMethods for HTMLFormElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         // Collect the controls to reset because reset_form_owner
         // will mutably borrow self.controls
@@ -1716,7 +1718,7 @@ impl VirtualMethods for HTMLFormElement {
             control
                 .as_maybe_form_control()
                 .expect("Element must be a form control")
-                .reset_form_owner();
+                .reset_form_owner(can_gc);
         }
     }
 
@@ -1730,8 +1732,10 @@ impl VirtualMethods for HTMLFormElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
 
         match *attr.local_name() {
             local_name!("rel") | local_name!("rev") => {
@@ -1742,9 +1746,9 @@ impl VirtualMethods for HTMLFormElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
         self.relations

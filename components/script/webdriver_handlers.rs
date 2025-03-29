@@ -1148,6 +1148,7 @@ pub(crate) fn handle_get_url(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<ServoUrl>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(

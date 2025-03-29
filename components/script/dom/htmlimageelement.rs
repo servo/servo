@@ -1743,13 +1743,15 @@ impl VirtualMethods for HTMLImageElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn adopting_steps(&self, old_doc: &Document) {
-        self.super_type().unwrap().adopting_steps(old_doc);
+    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
+        self.super_type().unwrap().adopting_steps(old_doc, can_gc);
         self.update_the_image_data(CanGc::note());
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match attr.local_name() {
             &local_name!("src") |
             &local_name!("srcset") |
@@ -1774,7 +1776,7 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn handle_event(&self, event: &Event) {
+    fn handle_event(&self, event: &Event, _can_gc: CanGc) {
         if event.type_() != atom!("click") {
             return;
         }
@@ -1814,9 +1816,9 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
         let document = self.owner_document();
         if context.tree_connected {
@@ -1832,8 +1834,8 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
         let document = self.owner_document();
         document.unregister_responsive_image(self);
 

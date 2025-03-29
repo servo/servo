@@ -1956,9 +1956,9 @@ impl HTMLMediaElement {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
-    fn remove_controls(&self) {
+    fn remove_controls(&self, can_gc: CanGc) {
         if let Some(id) = self.media_controls_id.borrow_mut().take() {
-            self.owner_document().unregister_media_controls(&id);
+            self.owner_document().unregister_media_controls(&id, can_gc);
         }
     }
 
@@ -2486,8 +2486,10 @@ impl VirtualMethods for HTMLMediaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
 
         match *attr.local_name() {
             local_name!("muted") => {
@@ -2502,9 +2504,9 @@ impl VirtualMethods for HTMLMediaElement {
             },
             local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
-                    self.render_controls(CanGc::note());
+                    self.render_controls(can_gc);
                 } else {
-                    self.remove_controls();
+                    self.remove_controls(can_gc);
                 }
             },
             _ => (),
@@ -2512,10 +2514,10 @@ impl VirtualMethods for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#playing-the-media-resource:remove-an-element-from-a-document
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
-        self.remove_controls();
+        self.remove_controls(can_gc);
 
         if context.tree_connected {
             let task = MediaElementMicrotask::PauseIfNotInDocument {

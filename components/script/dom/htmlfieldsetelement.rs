@@ -71,12 +71,12 @@ impl HTMLFieldSetElement {
         )
     }
 
-    pub(crate) fn update_validity(&self) {
+    pub(crate) fn update_validity(&self, can_gc: CanGc) {
         let has_invalid_child = self
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .flat_map(DomRoot::downcast::<Element>)
-            .any(|element| element.is_invalid(false));
+            .any(|element| element.is_invalid(false, can_gc));
 
         self.upcast::<Element>()
             .set_state(ElementState::VALID, !has_invalid_child);
@@ -153,8 +153,10 @@ impl VirtualMethods for HTMLFieldSetElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -243,7 +245,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                 element.update_sequentially_focusable_status(CanGc::note());
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation);
+                self.form_attribute_mutated(mutation, can_gc);
             },
             _ => {},
         }
