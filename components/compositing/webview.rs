@@ -18,8 +18,10 @@ use euclid::{Point2D, Scale, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
 use script_traits::{AnimationState, TouchEventResult};
+use servo_geometry::DeviceIndependentPixel;
+use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender::Transaction;
-use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector2D};
+use webrender_api::units::{DeviceIntPoint, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{
     ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
@@ -27,6 +29,10 @@ use webrender_api::{
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
+
+// Default viewport constraints
+const MAX_ZOOM: f32 = 8.0;
+const MIN_ZOOM: f32 = 0.1;
 
 #[derive(Clone, Copy)]
 struct ScrollEvent {
@@ -61,6 +67,13 @@ pub(crate) struct WebView {
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
     /// Touch input state machine
     touch_handler: TouchHandler,
+    /// "Mobile-style" zoom that does not reflow the page.
+    viewport_zoom: PinchZoomFactor,
+    /// Viewport zoom constraints provided by @viewport.
+    min_viewport_zoom: Option<PinchZoomFactor>,
+    max_viewport_zoom: Option<PinchZoomFactor>,
+    /// "Desktop-style" zoom that resizes the viewport to fit the window.
+    pub page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
 }
 
 impl Drop for WebView {
@@ -82,6 +95,10 @@ impl WebView {
             touch_handler: TouchHandler::new(),
             global,
             pending_scroll_zoom_events: Default::default(),
+            page_zoom: Scale::new(1.0),
+            viewport_zoom: PinchZoomFactor::new(1.0),
+            min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
+            max_viewport_zoom: None,
         }
     }
 
@@ -733,8 +750,8 @@ impl WebView {
             }
         }
 
-        let zoom_changed = compositor
-            .set_pinch_zoom_level(compositor.pinch_zoom_level().get() * combined_magnification);
+        let zoom_changed =
+            self.set_pinch_zoom_level(self.pinch_zoom_level().get() * combined_magnification);
         let scroll_result = combined_scroll_event.and_then(|combined_event| {
             self.scroll_node_at_device_point(
                 combined_event.cursor.to_f32(),
@@ -748,7 +765,7 @@ impl WebView {
 
         let mut transaction = Transaction::new();
         if zoom_changed {
-            compositor.send_root_pipeline_display_list_in_transaction(&mut transaction);
+            compositor.send_root_pipeline_display_list_in_transaction(self.id, &mut transaction);
         }
 
         if let Some((pipeline_id, external_id, offset)) = scroll_result {
@@ -779,7 +796,8 @@ impl WebView {
     ) -> Option<(PipelineId, ExternalScrollId, LayoutVector2D)> {
         let scroll_location = match scroll_location {
             ScrollLocation::Delta(delta) => {
-                let device_pixels_per_page = compositor.device_pixels_per_page_pixel();
+                let device_pixels_per_page =
+                    self.device_pixels_per_page_pixel(compositor.hidpi_factor());
                 let scaled_delta = (Vector2D::from_untyped(delta.to_untyped()) /
                     device_pixels_per_page)
                     .to_untyped();
@@ -822,6 +840,38 @@ impl WebView {
             }
         }
         None
+    }
+
+    pub(crate) fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {
+        Scale::new(self.viewport_zoom.get())
+    }
+
+    fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
+        if let Some(min) = self.min_viewport_zoom {
+            zoom = f32::max(min.get(), zoom);
+        }
+        if let Some(max) = self.max_viewport_zoom {
+            zoom = f32::min(max.get(), zoom);
+        }
+
+        let old_zoom = std::mem::replace(&mut self.viewport_zoom, PinchZoomFactor::new(zoom));
+        old_zoom != self.viewport_zoom
+    }
+
+    pub fn get_page_zoom(&self) -> Scale<f32, CSSPixel, DeviceIndependentPixel> {
+        self.page_zoom
+    }
+
+    pub(crate) fn set_page_zoom(&mut self, magnification: f32) {
+        self.page_zoom =
+            Scale::new((self.page_zoom.get() * magnification).clamp(MIN_ZOOM, MAX_ZOOM));
+    }
+
+    pub(crate) fn device_pixels_per_page_pixel(
+        &self,
+        hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    ) -> Scale<f32, CSSPixel, DevicePixel> {
+        self.get_page_zoom() * hidpi_factor * self.pinch_zoom_level()
     }
 
     /// Simulate a pinch zoom
