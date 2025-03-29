@@ -21,8 +21,10 @@ use js::rust::{
     HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
     is_dom_object, maybe_wrap_value,
 };
+use num_traits::Float;
 
 use crate::inheritance::Castable;
+use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
 use crate::root::DomRoot;
 use crate::str::{ByteString, DOMString, USVString};
@@ -407,4 +409,88 @@ pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMStri
     }
 
     None
+}
+
+impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
+    #[inline]
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        let value = **self;
+        value.to_jsval(cx, rval);
+    }
+}
+
+impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Finite<T> {
+    type Config = ();
+
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        option: (),
+    ) -> Result<ConversionResult<Finite<T>>, ()> {
+        let result = match FromJSValConvertible::from_jsval(cx, value, option)? {
+            ConversionResult::Success(v) => v,
+            ConversionResult::Failure(error) => {
+                // FIXME(emilio): Why throwing instead of propagating the error?
+                throw_type_error(cx, &error);
+                return Err(());
+            },
+        };
+        match Finite::new(result) {
+            Some(v) => Ok(ConversionResult::Success(v)),
+            None => {
+                throw_type_error(cx, "this argument is not a finite floating-point value");
+                Err(())
+            },
+        }
+    }
+}
+
+/// Get a `*const libc::c_void` for the given DOM object, unless it is a DOM
+/// wrapper, and checking if the object is of the correct type.
+///
+/// Returns Err(()) if `obj` is a wrapper or if the object is not an object
+/// for a DOM object of the given type (as defined by the proto_id and proto_depth).
+#[inline]
+#[allow(clippy::result_unit_err)]
+unsafe fn private_from_proto_check_static(
+    obj: *mut JSObject,
+    proto_check: fn(&'static DOMClass) -> bool,
+) -> Result<*const libc::c_void, ()> {
+    let dom_class = get_dom_class(obj).map_err(|_| ())?;
+    if proto_check(dom_class) {
+        trace!("good prototype");
+        Ok(private_from_object(obj))
+    } else {
+        trace!("bad prototype");
+        Err(())
+    }
+}
+
+/// Get a `*const T` for a DOM object accessible from a `JSObject`, where the DOM object
+/// is guaranteed not to be a wrapper.
+///
+/// # Safety
+/// `obj` must point to a valid, non-null JSObject.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn native_from_object_static<T>(obj: *mut JSObject) -> Result<*const T, ()>
+where
+    T: DomObject + IDLInterface,
+{
+    private_from_proto_check_static(obj, T::derives).map(|ptr| ptr as *const T)
+}
+
+/// Get a `*const T` for a DOM object accessible from a `HandleValue`.
+/// Caller is responsible for throwing a JS exception if needed in case of error.
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+#[allow(clippy::result_unit_err)]
+pub unsafe fn native_from_handlevalue<T>(v: HandleValue, cx: *mut JSContext) -> Result<*const T, ()>
+where
+    T: DomObject + IDLInterface,
+{
+    if !v.get().is_object() {
+        return Err(());
+    }
+    native_from_object(v.get().to_object(), cx)
 }

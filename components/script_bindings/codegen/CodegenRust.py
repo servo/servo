@@ -498,7 +498,7 @@ class CGMethodCall(CGThing):
             # XXXbz Now we're supposed to check for distinguishingArg being
             # an array or a platform object that supports indexed
             # properties... skip that last for now.  It's a bit of a pain.
-            pickFirstSignature(f"{distinguishingArg}.get().is_object() && is_array_like(*cx, {distinguishingArg})",
+            pickFirstSignature(f"{distinguishingArg}.get().is_object() && is_array_like::<D>(*cx, {distinguishingArg})",
                                lambda s:
                                    (s[1][distinguishingIndex].type.isSequence()
                                     or s[1][distinguishingIndex].type.isObject()))
@@ -1565,10 +1565,10 @@ def MemberCondition(pref, func, exposed, secure):
     if pref:
         conditions.append(f'Condition::Pref("{pref}")')
     if func:
-        conditions.append(f'Condition::Func({func})')
+        conditions.append(f'Condition::Func(D::{func})')
     if exposed:
         conditions.extend([
-            f"Condition::Exposed(InterfaceObjectMap::Globals::{camel_to_upper_snake(i)})" for i in exposed
+            f"Condition::Exposed(Globals::{camel_to_upper_snake(i)})" for i in exposed
         ])
     if len(conditions) == 0:
         conditions.append("Condition::Satisfied")
@@ -2369,7 +2369,7 @@ DOMClass {{
     depth: {descriptor.prototypeDepth},
     type_id: {DOMClassTypeId(descriptor)},
     malloc_size_of: {mallocSizeOf} as unsafe fn(&mut _, _) -> _,
-    global: InterfaceObjectMap::Globals::{globals_},
+    global: Globals::{globals_},
 }}"""
 
 
@@ -2962,14 +2962,15 @@ class CGConstructorEnabled(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
                                   [Argument("SafeJSContext", "aCx"),
-                                   Argument("HandleObject", "aObj")])
+                                   Argument("HandleObject", "aObj")],
+                                  templateArgs=['D: DomTypes'])
 
     def definition_body(self):
         conditions = []
         iface = self.descriptor.interface
 
         bits = " | ".join(sorted(
-            f"InterfaceObjectMap::Globals::{camel_to_upper_snake(i)}" for i in iface.exposureSet
+            f"Globals::{camel_to_upper_snake(i)}" for i in iface.exposureSet
         ))
         conditions.append(f"is_exposed_in(aObj, {bits})")
 
@@ -2981,14 +2982,14 @@ class CGConstructorEnabled(CGAbstractMethod):
         func = iface.getExtendedAttribute("Func")
         if func:
             assert isinstance(func, list) and len(func) == 1
-            conditions.append(f"{func[0]}(aCx, aObj)")
+            conditions.append(f"D::{func[0]}(aCx, aObj)")
 
         secure = iface.getExtendedAttribute("SecureContext")
         if secure:
             conditions.append("""
 unsafe {
     let in_realm_proof = AlreadyInRealm::assert_for_cx(aCx);
-    GlobalScope::from_context(*aCx, InRealm::Already(&in_realm_proof)).is_secure_context()
+    D::GlobalScope::from_context(*aCx, InRealm::Already(&in_realm_proof)).is_secure_context()
 }
 """)
 
@@ -3004,8 +3005,8 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineLegacyUnforgeableAttrs = "define_guarded_properties(cx, unforgeable_holder.handle(), %s, global);"
-    defineLegacyUnforgeableMethods = "define_guarded_methods(cx, unforgeable_holder.handle(), %s, global);"
+    defineLegacyUnforgeableAttrs = "define_guarded_properties::<D>(cx, unforgeable_holder.handle(), %s, global);"
+    defineLegacyUnforgeableMethods = "define_guarded_methods::<D>(cx, unforgeable_holder.handle(), %s, global);"
 
     unforgeableMembers = [
         (defineLegacyUnforgeableAttrs, properties.unforgeable_attrs),
@@ -3175,7 +3176,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = [f"{function}(cx, obj.handle(), {array.variableName()}.get(), obj.handle());"
+        members = [f"{function}::<D>(cx, obj.handle(), {array.variableName()}.get(), obj.handle());"
                    for (function, array) in pairs if array.length() > 0]
         membersStr = "\n".join(members)
 
@@ -3413,7 +3414,7 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                     """
                     let conditions = ${conditions};
                     let is_satisfied = conditions.iter().any(|c|
-                         c.is_satisfied(
+                         c.is_satisfied::<D>(
                            SafeJSContext::from_ptr(cx),
                            HandleObject::from_raw(obj),
                            global));
@@ -3469,7 +3470,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 rooted!(in(*cx) let proto = {proto});
 assert!(!proto.is_null());
 rooted!(in(*cx) let mut namespace = ptr::null_mut::<JSObject>());
-create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
+create_namespace_object::<D>(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
                         {methods}, {constants}, {str_to_cstr(name)}, namespace.handle_mut());
 assert!(!namespace.is_null());
 assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
@@ -3483,7 +3484,7 @@ assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
             cName = str_to_cstr(name)
             return CGGeneric(f"""
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
-create_callback_interface_object(cx, global, sConstants.get(), {cName}, interface.handle_mut());
+create_callback_interface_object::<D>(cx, global, sConstants.get(), {cName}, interface.handle_mut());
 assert!(!interface.is_null());
 assert!((*cache)[PrototypeList::Constructor::{name} as usize].is_null());
 (*cache)[PrototypeList::Constructor::{name} as usize] = interface.get();
@@ -3544,7 +3545,7 @@ assert!(!prototype_proto.is_null());"""))
 
         code.append(CGGeneric(f"""
 rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
-create_interface_prototype_object(cx,
+create_interface_prototype_object::<D>(cx,
                                   global,
                                   prototype_proto.handle(),
                                   &PrototypeClass,
@@ -3579,7 +3580,7 @@ assert!((*cache)[PrototypeList::ID::{proto_properties['id']} as usize].is_null()
 assert!(!interface_proto.is_null());
 
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
-create_noncallback_interface_object(cx,
+create_noncallback_interface_object::<D>(cx,
                                     global,
                                     interface_proto.handle(),
                                     INTERFACE_OBJECT_CLASS.get(),
@@ -3870,7 +3871,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGGeneric(
             "define_dom_interface"
             f"(cx, global, ProtoOrIfaceIndex::{self.variant}({self.id}),"
-            "CreateInterfaceObjects::<D>, ConstructorEnabled)"
+            "CreateInterfaceObjects::<D>, ConstructorEnabled::<D>)"
         )
 
 
@@ -5927,7 +5928,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 """)
 
         if indexedGetter:
-            get += "let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
+            get += "let index = get_array_index_from_id(Handle::from_raw(id));\n"
 
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
@@ -6042,7 +6043,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
 
         indexedSetter = self.descriptor.operations['IndexedSetter']
         if indexedSetter:
-            set += ("let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
+            set += ("let index = get_array_index_from_id(Handle::from_raw(id));\n"
                     "if let Some(index) = index {\n"
                     "    let this = UnwrapProxy::<D>(proxy);\n"
                     "    let this = &*this;\n"
@@ -6050,7 +6051,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    return (*opresult).succeed();\n"
                     "}\n")
         elif self.descriptor.operations['IndexedGetter']:
-            set += ("if get_array_index_from_id(*cx, Handle::from_raw(id)).is_some() {\n"
+            set += ("if get_array_index_from_id(Handle::from_raw(id)).is_some() {\n"
                     "    return (*opresult).failNoIndexedSetter();\n"
                     "}\n")
 
@@ -6265,7 +6266,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                 """)
 
         if indexedGetter:
-            indexed += ("let index = get_array_index_from_id(*cx, Handle::from_raw(id));\n"
+            indexed += ("let index = get_array_index_from_id(Handle::from_raw(id));\n"
                         "if let Some(index) = index {\n"
                         "    let this = UnwrapProxy::<D>(proxy);\n"
                         "    let this = &*this;\n"
@@ -6357,7 +6358,7 @@ if !expando.is_null() {
 
         indexedGetter = self.descriptor.operations['IndexedGetter']
         if indexedGetter:
-            getIndexedOrExpando = ("let index = get_array_index_from_id(*cx, id_lt);\n"
+            getIndexedOrExpando = ("let index = get_array_index_from_id(id_lt);\n"
                                    "if let Some(index) = index {\n"
                                    "    let this = UnwrapProxy::<D>(proxy);\n"
                                    "    let this = &*this;\n"

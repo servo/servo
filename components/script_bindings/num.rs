@@ -12,11 +12,11 @@ use num_traits::Float;
 
 /// Encapsulates the IDL restricted float type.
 #[derive(Clone, Copy, Eq, JSTraceable, PartialEq)]
-pub(crate) struct Finite<T: Float>(T);
+pub struct Finite<T: Float>(T);
 
 impl<T: Float> Finite<T> {
     /// Create a new `Finite<T: Float>` safely.
-    pub(crate) fn new(value: T) -> Option<Finite<T>> {
+    pub fn new(value: T) -> Option<Finite<T>> {
         if value.is_finite() {
             Some(Finite(value))
         } else {
@@ -26,7 +26,7 @@ impl<T: Float> Finite<T> {
 
     /// Create a new `Finite<T: Float>`.
     #[inline]
-    pub(crate) fn wrap(value: T) -> Finite<T> {
+    pub fn wrap(value: T) -> Finite<T> {
         assert!(
             value.is_finite(),
             "Finite<T> doesn't encapsulate unrestricted value."

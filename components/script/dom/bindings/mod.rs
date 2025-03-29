@@ -141,7 +141,6 @@ pub(crate) mod cell;
 pub(crate) mod constructor;
 pub(crate) mod conversions;
 pub(crate) mod error;
-pub(crate) mod finalize;
 pub(crate) mod frozenarray;
 pub(crate) mod function;
 pub(crate) mod guard;
@@ -151,7 +150,6 @@ pub(crate) mod interface;
 pub(crate) mod iterable;
 pub(crate) mod like;
 pub(crate) mod namespace;
-pub(crate) mod num;
 pub(crate) mod principals;
 pub(crate) mod proxyhandler;
 pub(crate) mod refcounted;
@@ -166,6 +164,8 @@ pub(crate) mod transferable;
 pub(crate) mod utils;
 pub(crate) mod weakref;
 pub(crate) mod xmlname;
+
+pub(crate) use script_bindings::num;
 
 /// Generated JS-Rust bindings.
 #[allow(missing_docs, non_snake_case)]

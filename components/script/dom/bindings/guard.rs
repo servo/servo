@@ -5,11 +5,12 @@
 //! Machinery to conditionally expose things.
 
 use js::rust::HandleObject;
+use script_bindings::codegen::Globals::Globals;
 use servo_config::prefs::get;
 
-use crate::dom::bindings::codegen::InterfaceObjectMap;
+use crate::DomTypes;
 use crate::dom::bindings::interface::is_exposed_in;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::GlobalScopeHelpers;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
 
@@ -28,7 +29,7 @@ impl<T: Clone + Copy> Guard<T> {
     /// Expose the value if the conditions are satisfied.
     ///
     /// The passed handle is the object on which the value may be exposed.
-    pub(crate) fn expose(
+    pub(crate) fn expose<D: DomTypes>(
         &self,
         cx: JSContext,
         obj: HandleObject,
@@ -45,7 +46,7 @@ impl<T: Clone + Copy> Guard<T> {
                 exposed_on_global |= is_exposed_in(global, *globals);
                 true
             },
-            _ => c.is_satisfied(cx, obj, global),
+            _ => c.is_satisfied::<D>(cx, obj, global),
         });
 
         if conditions_satisfied && exposed_on_global {
@@ -64,21 +65,21 @@ pub(crate) enum Condition {
     /// The condition is satisfied if the preference is set.
     Pref(&'static str),
     // The condition is satisfied if the interface is exposed in the global.
-    Exposed(InterfaceObjectMap::Globals),
+    Exposed(Globals),
     SecureContext(),
     /// The condition is always satisfied.
     Satisfied,
 }
 
-fn is_secure_context(cx: JSContext) -> bool {
+fn is_secure_context<D: DomTypes>(cx: JSContext) -> bool {
     unsafe {
         let in_realm_proof = AlreadyInRealm::assert_for_cx(JSContext::from_ptr(*cx));
-        GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)).is_secure_context()
+        D::GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)).is_secure_context()
     }
 }
 
 impl Condition {
-    pub(crate) fn is_satisfied(
+    pub(crate) fn is_satisfied<D: DomTypes>(
         &self,
         cx: JSContext,
         obj: HandleObject,
@@ -88,7 +89,7 @@ impl Condition {
             Condition::Pref(name) => get().get_value(name).try_into().unwrap_or(false),
             Condition::Func(f) => f(cx, obj),
             Condition::Exposed(globals) => is_exposed_in(global, globals),
-            Condition::SecureContext() => is_secure_context(cx),
+            Condition::SecureContext() => is_secure_context::<D>(cx),
             Condition::Satisfied => true,
         }
     }

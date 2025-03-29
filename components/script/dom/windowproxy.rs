@@ -852,7 +852,7 @@ unsafe fn GetSubframeWindowProxy(
     proxy: RawHandleObject,
     id: RawHandleId,
 ) -> Option<(DomRoot<WindowProxy>, u32)> {
-    let index = get_array_index_from_id(cx, Handle::from_raw(id));
+    let index = get_array_index_from_id(Handle::from_raw(id));
     if let Some(index) = index {
         let mut slot = UndefinedValue();
         GetProxyPrivate(*proxy, &mut slot);
@@ -934,7 +934,7 @@ unsafe extern "C" fn defineProperty(
     desc: RawHandle<PropertyDescriptor>,
     res: *mut ObjectOpResult,
 ) -> bool {
-    if get_array_index_from_id(cx, Handle::from_raw(id)).is_some() {
+    if get_array_index_from_id(Handle::from_raw(id)).is_some() {
         // Spec says to Reject whether this is a supported index or not,
         // since we have no indexed setter or indexed creator.  That means
         // throwing in strict mode (FIXME: Bug 828137), doing nothing in
@@ -1003,7 +1003,7 @@ unsafe extern "C" fn set(
     receiver: RawHandleValue,
     res: *mut ObjectOpResult,
 ) -> bool {
-    if get_array_index_from_id(cx, Handle::from_raw(id)).is_some() {
+    if get_array_index_from_id(Handle::from_raw(id)).is_some() {
         // Reject (which means throw if and only if strict) the set.
         (*res).code_ = JSErrNum::JSMSG_READ_ONLY as ::libc::uintptr_t;
         return true;
