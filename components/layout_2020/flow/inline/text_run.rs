@@ -46,6 +46,8 @@ pub(crate) struct TextRun {
     /// The text of this [`TextRun`] with a font selected, broken into unbreakable
     /// segments, and shaped.
     pub shaped_text: Vec<TextRunSegment>,
+    pub selection_range: Option<ServoRange<ByteIndex>>,
+    pub selected_style: Arc<ComputedValues>,
 }
 
 // There are two reasons why we might want to break at the start:
@@ -140,6 +142,7 @@ impl TextRunSegment {
             soft_wrap_policy = SegmentStartSoftWrapPolicy::Force;
         }
 
+        let mut byte_processed = 0;
         for (run_index, run) in self.runs.iter().enumerate() {
             ifc.possibly_flush_deferred_forced_line_break();
 
@@ -147,6 +150,7 @@ impl TextRunSegment {
             // see any content. We don't line break immediately, because we'd like to finish processing
             // any ongoing inline boxes before ending the line.
             if run.is_single_preserved_newline() {
+                byte_processed += run.range.length().0;
                 ifc.defer_forced_line_break();
                 continue;
             }
@@ -160,7 +164,12 @@ impl TextRunSegment {
                 text_run,
                 self.font_index,
                 self.bidi_level,
+                ServoRange::<ByteIndex>::new(
+                    ByteIndex(byte_processed + self.range.start as isize),
+                    ByteIndex(run.range.length().0),
+                ),
             );
+            byte_processed += run.range.length().0;
         }
     }
 
@@ -327,12 +336,16 @@ impl TextRun {
         base_fragment_info: BaseFragmentInfo,
         parent_style: Arc<ComputedValues>,
         text_range: Range<usize>,
+        selection_range: Option<ServoRange<ByteIndex>>,
+        selected_style: Arc<ComputedValues>,
     ) -> Self {
         Self {
             base_fragment_info,
             parent_style,
             text_range,
             shaped_text: Vec::new(),
+            selection_range,
+            selected_style,
         }
     }
 

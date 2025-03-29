@@ -245,6 +245,9 @@ impl InlineFormattingContextBuilder {
             return;
         }
 
+        let selection_range = info.get_selection_range();
+        let selected_style = info.get_selected_style();
+
         if let Some(last_character) = new_text.chars().next_back() {
             self.on_word_boundary = last_character.is_whitespace();
             self.last_inline_box_ended_with_collapsible_white_space =
@@ -264,7 +267,13 @@ impl InlineFormattingContextBuilder {
 
         self.inline_items
             .push(ArcRefCell::new(InlineItem::TextRun(ArcRefCell::new(
-                TextRun::new(info.into(), info.style.clone(), new_range),
+                TextRun::new(
+                    info.into(),
+                    info.style.clone(),
+                    new_range,
+                    selection_range,
+                    selected_style,
+                ),
             ))));
     }
 

@@ -81,13 +81,14 @@ use std::rc::Rc;
 use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
-use fonts::{FontMetrics, GlyphStore};
+use fonts::{ByteIndex, FontMetrics, GlyphStore};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
 use line::{
     AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem, LineItem, LineItemLayout,
     TextRunLineItem,
 };
 use line_breaker::LineBreaker;
+use range::Range;
 use servo_arc::Arc;
 use style::Zero;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
@@ -1264,6 +1265,7 @@ impl InlineFormattingContextLayout<'_> {
         text_run: &TextRun,
         font_index: usize,
         bidi_level: Level,
+        range: range::Range<ByteIndex>,
     ) {
         let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
@@ -1320,6 +1322,33 @@ impl InlineFormattingContextLayout<'_> {
             _ => {},
         }
 
+        let selection_range = if let Some(selection) = &text_run.selection_range {
+            let intersection = selection.intersect(&range);
+            if intersection.is_empty() {
+                let insertion_point_index = selection.begin();
+                // We only allow the caret to be shown in the start of the fragment if it is the first fragment.
+                // Otherwise this will cause duplicate caret, especially apparent when encountered line break.
+                if insertion_point_index >= range.begin() &&
+                    insertion_point_index <= range.end() &&
+                    (range.begin() != insertion_point_index || range.begin().0 == 0)
+                {
+                    Some(Range::new(
+                        insertion_point_index - range.begin(),
+                        ByteIndex(0),
+                    ))
+                } else {
+                    None
+                }
+            } else {
+                Some(Range::new(
+                    intersection.begin() - range.begin(),
+                    intersection.length(),
+                ))
+            }
+        } else {
+            None
+        };
+
         self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
             current_inline_box_identifier,
             TextRunLineItem {
@@ -1330,6 +1359,8 @@ impl InlineFormattingContextLayout<'_> {
                 font_key: ifc_font_info.key,
                 text_decoration_line: self.current_inline_container_state().text_decoration_line,
                 bidi_level,
+                selection_range,
+                selected_style: text_run.selected_style.clone(),
             },
         ));
     }
