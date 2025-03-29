@@ -102,20 +102,6 @@ fn is_platform_object(
     }
 }
 
-/// Trace the resources held by reserved slots of a global object
-pub(crate) unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
-    let array = get_proto_or_iface_array(obj);
-    for proto in (*array).iter() {
-        if !proto.is_null() {
-            trace_object(
-                tracer,
-                "prototype",
-                &*(proto as *const *mut JSObject as *const Heap<*mut JSObject>),
-            );
-        }
-    }
-}
-
 /// Enumerate lazy properties of a global object.
 pub(crate) unsafe extern "C" fn enumerate_global(
     cx: *mut JSContext,
@@ -185,16 +171,6 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(
 pub(crate) const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
-
-// Generic method for returning libc::c_void from caller
-pub(crate) trait AsVoidPtr {
-    fn as_void_ptr(&self) -> *const libc::c_void;
-}
-impl<T> AsVoidPtr for T {
-    fn as_void_ptr(&self) -> *const libc::c_void {
-        self as *const T as *const libc::c_void
-    }
-}
 
 // Generic method for returning c_char from caller
 pub(crate) trait AsCCharPtrPtr {
