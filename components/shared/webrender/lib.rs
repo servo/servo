@@ -6,6 +6,7 @@
 
 pub mod display_list;
 pub mod rendering_context;
+pub mod viewport_description;
 
 use core::fmt;
 use std::collections::HashMap;
@@ -19,6 +20,7 @@ use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use log::warn;
 use serde::{Deserialize, Serialize};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
+use viewport_description::ViewportDescription;
 use webrender_api::units::{DevicePoint, LayoutPoint, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
@@ -88,6 +90,8 @@ pub enum CrossProcessCompositorMessage {
     /// Get the available screen size (without toolbars and docks) for the screen
     /// the client window inhabits.
     GetAvailableScreenSize(IpcSender<DeviceIndependentIntSize>),
+    /// ViewportDescription
+    Viewport(WebViewId, ViewportDescription),
 }
 
 impl fmt::Debug for CrossProcessCompositorMessage {
@@ -108,6 +112,7 @@ impl fmt::Debug for CrossProcessCompositorMessage {
             Self::GetClientWindowRect(..) => f.write_str("GetClientWindowRect"),
             Self::GetScreenSize(..) => f.write_str("GetScreenSize"),
             Self::GetAvailableScreenSize(..) => f.write_str("GetAvailableScreenSize"),
+            Self::Viewport(..) => f.write_str("Viewport"),
         }
     }
 }

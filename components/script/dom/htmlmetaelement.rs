@@ -7,12 +7,13 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use regex::bytes::Regex;
 use script_traits::NavigationHistoryBehavior;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
+use webrender_traits::viewport_description::ViewportDescription;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
@@ -90,6 +91,9 @@ impl HTMLMetaElement {
             if name == "referrer" {
                 self.apply_referrer();
             }
+            if name == "viewport" {
+                self.apply_viewport_description();
+            }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
         } else if !self.HttpEquiv().is_empty() {
             // TODO: Implement additional http-equiv candidates
@@ -118,6 +122,22 @@ impl HTMLMetaElement {
         if let Some(parent) = self.upcast::<Node>().GetParentElement() {
             if let Some(head) = parent.downcast::<HTMLHeadElement>() {
                 head.set_document_referrer();
+            }
+        }
+    }
+
+    /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
+    fn apply_viewport_description(&self) {
+        let element = self.upcast::<Element>();
+        if let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) {
+            if let Ok(viewport) = ViewportDescription::from_str(&content.value()) {
+                let document = self.owner_window();
+                let _ = document.compositor_api().sender().send(
+                    webrender_traits::CrossProcessCompositorMessage::Viewport(
+                        document.webview_id(),
+                        viewport,
+                    ),
+                );
             }
         }
     }

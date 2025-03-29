@@ -55,6 +55,7 @@ use webrender_api::{
 };
 use webrender_traits::display_list::{HitTestInfo, ScrollTree};
 use webrender_traits::rendering_context::RenderingContext;
+use webrender_traits::viewport_description::{DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM};
 use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate};
 
 use crate::InitialCompositorState;
@@ -72,10 +73,6 @@ enum NotReadyToPaint {
     JustNotifiedConstellation,
     WaitingOnConstellation,
 }
-
-// Default viewport constraints
-const MAX_ZOOM: f32 = 8.0;
-const MIN_ZOOM: f32 = 0.1;
 
 /// Holds the state when running reftests that determines when it is
 /// safe to save the output image.
@@ -142,13 +139,6 @@ pub struct IOCompositor {
 
     /// The application window.
     pub window: Rc<dyn WindowMethods>,
-
-    /// "Mobile-style" zoom that does not reflow the page.
-    viewport_zoom: PinchZoomFactor,
-
-    /// Viewport zoom constraints provided by @viewport.
-    min_viewport_zoom: Option<PinchZoomFactor>,
-    max_viewport_zoom: Option<PinchZoomFactor>,
 
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
     page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
@@ -452,10 +442,7 @@ impl IOCompositor {
             embedder_coordinates: window.get_coordinates(),
             window,
             needs_repaint: Cell::default(),
-            page_zoom: Scale::new(1.0),
-            viewport_zoom: PinchZoomFactor::new(1.0),
-            min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
-            max_viewport_zoom: None,
+            page_zoom: Scale::new(DEFAULT_ZOOM),
             zoom_action: false,
             zoom_time: 0f64,
             ready_to_save_state: ReadyState::Unknown,
@@ -920,6 +907,11 @@ impl IOCompositor {
                     );
                 }
             },
+            CrossProcessCompositorMessage::Viewport(webview_id, viewport_description) => {
+                if let Some(webview) = self.webviews.get_mut(webview_id) {
+                    webview.set_viewport_description(viewport_description);
+                }
+            },
         }
     }
 
@@ -1315,7 +1307,7 @@ impl IOCompositor {
     }
 
     pub(crate) fn device_pixels_per_page_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.device_pixels_per_page_pixel_not_including_page_zoom() * self.pinch_zoom_level()
+        self.device_pixels_per_page_pixel_not_including_page_zoom()
     }
 
     fn device_pixels_per_page_pixel_not_including_page_zoom(
@@ -1329,7 +1321,7 @@ impl IOCompositor {
             return;
         }
 
-        self.page_zoom = Scale::new(1.0);
+        self.page_zoom = Scale::new(DEFAULT_ZOOM);
         self.update_after_zoom_or_hidpi_change();
     }
 
@@ -1708,22 +1700,6 @@ impl IOCompositor {
         }
         self.webviews = webviews;
         self.global.borrow().shutdown_state() != ShutdownState::FinishedShuttingDown
-    }
-
-    pub fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {
-        Scale::new(self.viewport_zoom.get())
-    }
-
-    pub(crate) fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
-        if let Some(min) = self.min_viewport_zoom {
-            zoom = f32::max(min.get(), zoom);
-        }
-        if let Some(max) = self.max_viewport_zoom {
-            zoom = f32::min(max.get(), zoom);
-        }
-
-        let old_zoom = std::mem::replace(&mut self.viewport_zoom, PinchZoomFactor::new(zoom));
-        old_zoom != self.viewport_zoom
     }
 
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
