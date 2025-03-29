@@ -34,13 +34,13 @@ use js::rust::wrappers::{
     JS_SetPendingException, JS_SetProperty,
 };
 use js::rust::{
-    GCMethods, Handle, HandleId, HandleObject, HandleValue, MutableHandleValue, ToString,
+    Handle, HandleId, HandleObject, HandleValue, MutableHandleValue, ToString,
     get_object_class, is_dom_class,
 };
 
 use crate::DomTypes;
 use crate::dom::bindings::codegen::InterfaceObjectMap;
-use crate::dom::bindings::codegen::PrototypeList::{self, PROTO_OR_IFACE_LENGTH};
+use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::constructor::call_html_constructor;
 use crate::dom::bindings::conversions::{
     DerivedFrom, PrototypeCheck, jsstring_to_str, private_from_proto_check,
@@ -319,18 +319,6 @@ pub(crate) unsafe fn has_property_on_prototype(
     }
     assert!(!proto.is_null());
     JS_HasPropertyById(cx, proto.handle(), id, found)
-}
-
-/// Drop the resources held by reserved slots of a global object
-pub(crate) unsafe fn finalize_global(obj: *mut JSObject) {
-    let protolist = get_proto_or_iface_array(obj);
-    let list = (*protolist).as_mut_ptr();
-    for idx in 0..PROTO_OR_IFACE_LENGTH as isize {
-        let entry = list.offset(idx);
-        let value = *entry;
-        <*mut JSObject>::post_barrier(entry, value, ptr::null_mut());
-    }
-    let _: Box<ProtoOrIfaceArray> = Box::from_raw(protolist);
 }
 
 /// Trace the resources held by reserved slots of a global object

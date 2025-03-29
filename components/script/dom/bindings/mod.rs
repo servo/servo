@@ -141,7 +141,6 @@ pub(crate) mod cell;
 pub(crate) mod constructor;
 pub(crate) mod conversions;
 pub(crate) mod error;
-pub(crate) mod finalize;
 pub(crate) mod frozenarray;
 pub(crate) mod function;
 pub(crate) mod guard;

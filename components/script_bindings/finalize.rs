@@ -6,15 +6,30 @@
 
 use std::any::type_name;
 use std::mem;
+use std::ptr;
 
 use js::glue::JS_GetReservedSlot;
 use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
+use js::rust::GCMethods;
 
-use crate::dom::bindings::utils::finalize_global as do_finalize_global;
-use crate::dom::bindings::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable};
+use crate::codegen::PrototypeList::PROTO_OR_IFACE_LENGTH;
+use crate::utils::{get_proto_or_iface_array, ProtoOrIfaceArray};
+use crate::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable};
 
-pub(crate) unsafe fn finalize_common<T>(this: *const T) {
+/// Drop the resources held by reserved slots of a global object
+unsafe fn do_finalize_global(obj: *mut JSObject) {
+    let protolist = get_proto_or_iface_array(obj);
+    let list = (*protolist).as_mut_ptr();
+    for idx in 0..PROTO_OR_IFACE_LENGTH as isize {
+        let entry = list.offset(idx);
+        let value = *entry;
+        <*mut JSObject>::post_barrier(entry, value, ptr::null_mut());
+    }
+    let _: Box<ProtoOrIfaceArray> = Box::from_raw(protolist);
+}
+
+pub unsafe fn finalize_common<T>(this: *const T) {
     if !this.is_null() {
         // The pointer can be null if the object is the unforgeable holder of that interface.
         let _ = Box::from_raw(this as *mut T);
@@ -22,12 +37,12 @@ pub(crate) unsafe fn finalize_common<T>(this: *const T) {
     debug!("{} finalize: {:p}", type_name::<T>(), this);
 }
 
-pub(crate) unsafe fn finalize_global<T>(obj: *mut JSObject, this: *const T) {
+pub unsafe fn finalize_global<T>(obj: *mut JSObject, this: *const T) {
     do_finalize_global(obj);
     finalize_common::<T>(this);
 }
 
-pub(crate) unsafe fn finalize_weak_referenceable<T: WeakReferenceable>(
+pub unsafe fn finalize_weak_referenceable<T: WeakReferenceable>(
     obj: *mut JSObject,
     this: *const T,
 ) {

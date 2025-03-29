@@ -21,6 +21,7 @@ pub mod callback;
 pub mod constant;
 pub mod conversions;
 pub mod error;
+pub mod finalize;
 pub mod inheritance;
 pub mod iterable;
 pub mod like;

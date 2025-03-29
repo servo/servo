@@ -125,7 +125,7 @@ pub(crate) mod module {
     pub(crate) use crate::dom::bindings::error::{
         Error, ErrorResult, throw_constructor_without_new,
     };
-    pub(crate) use crate::dom::bindings::finalize::{
+    pub(crate) use script_bindings::finalize::{
         finalize_common, finalize_global, finalize_weak_referenceable,
     };
     pub(crate) use crate::dom::bindings::guard::{Condition, Guard};
