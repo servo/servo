@@ -28,7 +28,7 @@ use devtools_traits::{
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
-use log::trace;
+use log::{trace, warn};
 use serde::Serialize;
 use servo_rand::RngCore;
 
@@ -310,6 +310,7 @@ impl DevtoolsInstance {
         script_sender: IpcSender<DevtoolScriptControlMsg>,
         page_info: DevtoolsPageInfo,
     ) {
+        warn!("new global");
         let mut actors = self.actors.lock().unwrap();
 
         let (browsing_context_id, pipeline_id, worker_id, webview_id) = ids;
@@ -356,6 +357,7 @@ impl DevtoolsInstance {
                         pipeline_id,
                         script_sender,
                         &mut actors,
+                        &mut self.connections,
                     );
                     let name = browsing_context_actor.name();
                     actors.register(Box::new(browsing_context_actor));

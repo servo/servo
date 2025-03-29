@@ -21,6 +21,7 @@ use serde_json::{Map, Value};
 use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
+use crate::actors::thread::{Source, SpontaneousNewSource};
 use crate::actors::watcher::target_configuration::{
     TargetConfigurationActor, TargetConfigurationActorMsg,
 };
@@ -29,6 +30,8 @@ use crate::actors::watcher::thread_configuration::{
 };
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
+
+use super::thread::ThreadActor;
 
 pub mod network_parent;
 pub mod target_configuration;
@@ -77,13 +80,13 @@ impl SessionContext {
                 ("network-event", false),
                 ("network-event-stacktrace", false),
                 ("reflow", false),
-                ("stylesheet", false),
-                ("source", false),
-                ("thread-state", false),
+                ("stylesheet", true),
+                ("source", true),
+                ("thread-state", true),
                 ("server-sent-event", false),
                 ("websocket", false),
-                ("jstracer-trace", false),
-                ("jstracer-state", false),
+                ("jstracer-trace", true),
+                ("jstracer-state", true),
                 ("last-private-context-exit", false),
             ]),
             context_type,
@@ -147,6 +150,27 @@ struct DocumentEvent {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ThreadState {
+    actor: String,
+    state: String,
+    #[serde(rename = "type")]
+    type_: String,
+    /// URL of the page? At least when testing on page with inline script
+    url: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SourceInfo {
+    actor: String,
+    /// URL of the script, at least on a page with external scripts
+    url: String,
+    #[serde(rename = "isBlackBoxed")]
+    is_black_boxed: bool,
+}
+
+#[derive(Serialize)]
 struct WatcherTraits {
     resources: HashMap<&'static str, bool>,
     #[serde(flatten)]
@@ -207,6 +231,20 @@ impl Actor for WatcherActor {
                 };
                 let _ = stream.write_json_packet(&msg);
 
+                if let Err(error) = stream.write_json_packet(&SpontaneousNewSource {
+                    from: target.thread.clone(), // TODO: rename to thread_actor
+                    r#type: "newSource".to_owned(),
+                    source: Source {
+                        // TODO: register this actor
+                        actor: registry.new_name("source"),
+                        // TODO: use JS URL, not page URL
+                        url: target.url.borrow().clone(),
+                        is_black_boxed: false,
+                    },
+                }) {
+                    warn!("Failed to send message: {error:?}");
+                }
+
                 target.frame_update(stream);
 
                 // Messages that contain a `type` field are used to send event callbacks, but they
@@ -248,6 +286,32 @@ impl Actor for WatcherActor {
                                 };
                                 target.resource_available(event, "document-event".into());
                             }
+                        },
+                        "thread-state" => {
+                            let thread_actor = registry.find::<ThreadActor>(&target.thread);
+                            let state = ThreadState {
+                                actor: thread_actor.name(),
+                                state: "paused".to_owned(),  // does it make any difference if we change from "running" to "paused"
+                                type_: "paused".to_owned(), // what if it is resumed?
+                                url: target.url.borrow().clone(),
+                            };
+                            target.resource_available(state, "thread-state".into());
+                        },
+                        "source" => {
+                            let thread_actor = registry.find::<ThreadActor>(&target.thread);
+                            let source_actor = thread_actor.name();
+
+                            // current URL for the file
+                            let url = target.url.borrow().clone();
+
+                            // Create a source info object
+                            let source_info = SourceInfo {
+                                actor: source_actor,
+                                url: url.clone(),
+                                is_black_boxed: false,
+                            };
+
+                            target.resource_available(source_info, "source".into());
                         },
                         "console-message" | "error-message" => {},
                         _ => warn!("resource {} not handled yet", resource),
