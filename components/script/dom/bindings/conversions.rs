@@ -37,17 +37,14 @@ use std::ffi;
 pub(crate) use js::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, ToJSValConvertible,
 };
-use js::error::throw_type_error;
 use js::glue::GetProxyReservedSlot;
 use js::jsapi::{Heap, IsWindowProxy, JS_IsExceptionPending, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasProperty};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use num_traits::Float;
 pub(crate) use script_bindings::conversions::*;
 
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
@@ -57,40 +54,6 @@ use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlformcontrolscollection::HTMLFormControlsCollection;
 use crate::dom::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::nodelist::NodeList;
-
-impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
-    #[inline]
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        let value = **self;
-        value.to_jsval(cx, rval);
-    }
-}
-
-impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Finite<T> {
-    type Config = ();
-
-    unsafe fn from_jsval(
-        cx: *mut JSContext,
-        value: HandleValue,
-        option: (),
-    ) -> Result<ConversionResult<Finite<T>>, ()> {
-        let result = match FromJSValConvertible::from_jsval(cx, value, option)? {
-            ConversionResult::Success(v) => v,
-            ConversionResult::Failure(error) => {
-                // FIXME(emilio): Why throwing instead of propagating the error?
-                throw_type_error(cx, &error);
-                return Err(());
-            },
-        };
-        match Finite::new(result) {
-            Some(v) => Ok(ConversionResult::Success(v)),
-            None => {
-                throw_type_error(cx, "this argument is not a finite floating-point value");
-                Err(())
-            },
-        }
-    }
-}
 
 impl<T: ToJSValConvertible + JSTraceable> ToJSValConvertible for RootedTraceableBox<T> {
     #[inline]

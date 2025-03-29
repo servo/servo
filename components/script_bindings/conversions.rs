@@ -21,8 +21,10 @@ use js::rust::{
     HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
     is_dom_object, maybe_wrap_value,
 };
+use num_traits::Float;
 
 use crate::inheritance::Castable;
+use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
 use crate::root::DomRoot;
 use crate::str::{ByteString, DOMString, USVString};
@@ -407,4 +409,38 @@ pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMStri
     }
 
     None
+}
+
+impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
+    #[inline]
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        let value = **self;
+        value.to_jsval(cx, rval);
+    }
+}
+
+impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Finite<T> {
+    type Config = ();
+
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        option: (),
+    ) -> Result<ConversionResult<Finite<T>>, ()> {
+        let result = match FromJSValConvertible::from_jsval(cx, value, option)? {
+            ConversionResult::Success(v) => v,
+            ConversionResult::Failure(error) => {
+                // FIXME(emilio): Why throwing instead of propagating the error?
+                throw_type_error(cx, &error);
+                return Err(());
+            },
+        };
+        match Finite::new(result) {
+            Some(v) => Ok(ConversionResult::Success(v)),
+            None => {
+                throw_type_error(cx, "this argument is not a finite floating-point value");
+                Err(())
+            },
+        }
+    }
 }

@@ -24,6 +24,7 @@ pub mod error;
 pub mod inheritance;
 pub mod iterable;
 pub mod like;
+pub mod num;
 pub mod record;
 pub mod reflector;
 pub mod root;
