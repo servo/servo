@@ -9,7 +9,7 @@ use constellation_traits::ConstellationMsg;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
-    PermissionFeature, SimpleDialog, WebResourceRequest, WebResourceResponse,
+    PermissionFeature, ScreenGeometry, SimpleDialog, WebResourceRequest, WebResourceResponse,
     WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
@@ -297,6 +297,12 @@ impl Drop for InterceptedWebResourceLoad {
 }
 
 pub trait WebViewDelegate {
+    /// Get the [`ScreenGeometry`] for this [`WebView`]. If this is unimplemented or returns `None`
+    /// the screen will have the size of the [`WebView`]'s `RenderingContext` and `WebView` will be
+    /// considered to be positioned at the screen's origin.
+    fn screen_geometry(&self, _webview: WebView) -> Option<ScreenGeometry> {
+        None
+    }
     /// The URL of the currently loaded page in this [`WebView`] has changed. The new
     /// URL can accessed via [`WebView::url`].
     fn notify_url_changed(&self, _webview: WebView, _url: Url) {}

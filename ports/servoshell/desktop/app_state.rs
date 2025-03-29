@@ -392,6 +392,10 @@ impl ServoDelegate for ServoShellServoDelegate {
 }
 
 impl WebViewDelegate for RunningAppState {
+    fn screen_geometry(&self, _webview: WebView) -> Option<servo::ScreenGeometry> {
+        Some(self.inner().window.screen_geometry())
+    }
+
     fn notify_status_text_changed(&self, _webview: servo::WebView, _status: Option<String>) {
         self.inner_mut().need_update = true;
     }

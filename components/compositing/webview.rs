@@ -23,6 +23,7 @@ use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector
 use webrender_api::{
     ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
+use webrender_traits::RendererWebView;
 
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};
@@ -50,6 +51,10 @@ enum ScrollZoomEvent {
 pub(crate) struct WebView {
     /// The [`WebViewId`] of the `WebView` associated with this [`WebViewDetails`].
     pub id: WebViewId,
+    /// The renderer's view of the embedding layer `WebView` as a trait implementation,
+    /// so that the renderer doesn't need to depend on the embedding layer. This avoids
+    /// a dependency cycle.
+    pub renderer_webview: Box<dyn RendererWebView>,
     /// The root [`PipelineId`] of the currently displayed page in this WebView.
     pub root_pipeline_id: Option<PipelineId>,
     pub rect: DeviceRect,
@@ -73,9 +78,14 @@ impl Drop for WebView {
 }
 
 impl WebView {
-    pub(crate) fn new(id: WebViewId, rect: DeviceRect, global: Rc<RefCell<ServoRenderer>>) -> Self {
+    pub(crate) fn new(
+        renderer_webview: Box<dyn RendererWebView>,
+        rect: DeviceRect,
+        global: Rc<RefCell<ServoRenderer>>,
+    ) -> Self {
         Self {
-            id,
+            id: renderer_webview.id(),
+            renderer_webview,
             root_pipeline_id: None,
             rect,
             pipelines: Default::default(),

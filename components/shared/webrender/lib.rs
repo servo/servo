@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex};
 use base::id::WebViewId;
 use constellation_traits::CompositorHitTestResult;
 use display_list::CompositorDisplayListInfo;
+use embedder_traits::ScreenGeometry;
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use log::warn;
@@ -82,12 +83,12 @@ pub enum CrossProcessCompositorMessage {
     RemoveFonts(Vec<FontKey>, Vec<FontInstanceKey>),
 
     /// Get the client window size and position.
-    GetClientWindowRect(IpcSender<DeviceIndependentIntRect>),
+    GetClientWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the size of the screen that the client window inhabits.
-    GetScreenSize(IpcSender<DeviceIndependentIntSize>),
+    GetScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
     /// Get the available screen size (without toolbars and docks) for the screen
     /// the client window inhabits.
-    GetAvailableScreenSize(IpcSender<DeviceIndependentIntSize>),
+    GetAvailableScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
 }
 
 impl fmt::Debug for CrossProcessCompositorMessage {
@@ -477,4 +478,12 @@ impl From<SerializableImageData> for ImageData {
             SerializableImageData::External(image) => ImageData::External(image),
         }
     }
+}
+
+/// A trait that exposes the embedding layer's `WebView` to the Servo renderer.
+/// This is to prevent a dependency cycle between the renderer and the embedding
+/// layer.
+pub trait RendererWebView {
+    fn id(&self) -> WebViewId;
+    fn screen_geometry(&self) -> Option<ScreenGeometry>;
 }

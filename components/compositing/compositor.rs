@@ -26,7 +26,8 @@ use constellation_traits::{
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ShutdownState, TouchEventType,
+    Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ScreenGeometry, ShutdownState,
+    TouchEventType,
 };
 use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Transform3D};
 use fnv::FnvHashMap;
@@ -54,11 +55,11 @@ use webrender_api::{
 };
 use webrender_traits::display_list::{HitTestInfo, ScrollTree};
 use webrender_traits::rendering_context::RenderingContext;
-use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate};
+use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate, RendererWebView};
 
 use crate::InitialCompositorState;
 use crate::webview::{UnknownWebView, WebView, WebViewManager};
-use crate::windowing::{self, EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
+use crate::windowing::{self, WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -167,8 +168,9 @@ pub struct IOCompositor {
     /// The surfman instance that webrender targets
     rendering_context: Rc<dyn RenderingContext>,
 
-    /// The coordinates of the native window, its view and the screen.
-    embedder_coordinates: EmbedderCoordinates,
+    /// The HighDPI factor of the native window, its view and the screen.
+    /// TODO: Eventually this should be a property of the `WebView`.
+    hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 
     /// The number of frames pending to receive from WebRender.
     pending_frames: usize,
@@ -442,7 +444,7 @@ impl IOCompositor {
                 cursor_pos: DevicePoint::new(0.0, 0.0),
             })),
             webviews: WebViewManager::default(),
-            embedder_coordinates: window.get_coordinates(),
+            hidpi_factor: window.hidpi_factor(),
             window,
             needs_repaint: Cell::default(),
             page_zoom: Scale::new(1.0),
@@ -895,25 +897,44 @@ impl IOCompositor {
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
             },
-            CrossProcessCompositorMessage::GetClientWindowRect(req) => {
-                if let Err(e) = req.send(self.embedder_coordinates.window_rect) {
-                    warn!("Sending response to get client window failed ({:?}).", e);
+            CrossProcessCompositorMessage::GetClientWindowRect(webview_id, response_sender) => {
+                let screen_geometry = self.webview_screen_geometry(webview_id);
+                let rect = DeviceIntRect::from_origin_and_size(
+                    screen_geometry.offset,
+                    self.rendering_context.size2d().to_i32(),
+                )
+                .to_f32() /
+                    self.hidpi_factor;
+
+                if let Err(error) = response_sender.send(rect.to_i32()) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
-            CrossProcessCompositorMessage::GetScreenSize(req) => {
-                if let Err(e) = req.send(self.embedder_coordinates.screen_size) {
-                    warn!("Sending response to get screen size failed ({:?}).", e);
+            CrossProcessCompositorMessage::GetScreenSize(webview_id, response_sender) => {
+                let screen_geometry = self.webview_screen_geometry(webview_id);
+                let screen_size = screen_geometry.size.to_f32() / self.hidpi_factor;
+
+                if let Err(error) = response_sender.send(screen_size.to_i32()) {
+                    warn!("Sending response to get screen size failed ({error:?}).");
                 }
             },
-            CrossProcessCompositorMessage::GetAvailableScreenSize(req) => {
-                if let Err(e) = req.send(self.embedder_coordinates.available_screen_size) {
-                    warn!(
-                        "Sending response to get screen avail size failed ({:?}).",
-                        e
-                    );
+            CrossProcessCompositorMessage::GetAvailableScreenSize(webview_id, response_sender) => {
+                let screen_geometry = self.webview_screen_geometry(webview_id);
+                let available_screen_size =
+                    screen_geometry.available_size.to_f32() / self.hidpi_factor;
+
+                if let Err(error) = response_sender.send(available_screen_size.to_i32()) {
+                    warn!("Sending response to get screen size failed ({error:?}).");
                 }
             },
         }
+    }
+
+    fn webview_screen_geometry(&self, webview_id: WebViewId) -> ScreenGeometry {
+        self.webviews
+            .get(webview_id)
+            .and_then(|webview| webview.renderer_webview.screen_geometry())
+            .unwrap_or_default()
     }
 
     /// Handle messages sent to the compositor during the shutdown process. In general,
@@ -961,25 +982,27 @@ impl IOCompositor {
                 let _ = result_sender.send((font_keys, font_instance_keys));
             },
             CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetClientWindowRect(
-                req,
+                _,
+                response_sender,
             )) => {
-                if let Err(e) = req.send(self.embedder_coordinates.window_rect) {
-                    warn!("Sending response to get client window failed ({:?}).", e);
+                if let Err(error) = response_sender.send(Default::default()) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetScreenSize(req)) => {
-                if let Err(e) = req.send(self.embedder_coordinates.screen_size) {
-                    warn!("Sending response to get screen size failed ({:?}).", e);
+            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetScreenSize(
+                _,
+                response_sender,
+            )) => {
+                if let Err(error) = response_sender.send(Default::default()) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
             CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetAvailableScreenSize(
-                req,
+                _,
+                response_sender,
             )) => {
-                if let Err(e) = req.send(self.embedder_coordinates.available_screen_size) {
-                    warn!(
-                        "Sending response to get screen avail size failed ({:?}).",
-                        e
-                    );
+                if let Err(error) = response_sender.send(Default::default()) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
             CompositorMsg::NewWebRenderFrameReady(..) => {
@@ -1102,10 +1125,10 @@ impl IOCompositor {
         }
     }
 
-    pub fn add_webview(&mut self, webview_id: WebViewId) {
+    pub fn add_webview(&mut self, webview: Box<dyn RendererWebView>) {
         let size = self.rendering_context.size2d().to_f32();
-        self.webviews.entry(webview_id).or_insert(WebView::new(
-            webview_id,
+        self.webviews.entry(webview.id()).or_insert(WebView::new(
+            webview,
             Box2D::from_origin_and_size(Point2D::origin(), size),
             self.global.clone(),
         ));
@@ -1239,20 +1262,14 @@ impl IOCompositor {
         }
     }
 
-    pub fn on_embedder_window_moved(&mut self) {
-        self.embedder_coordinates = self.window.get_coordinates();
-    }
-
     pub fn resize_rendering_context(&mut self, new_size: PhysicalSize<u32>) -> bool {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return false;
         }
 
-        let old_hidpi_factor = self.embedder_coordinates.hidpi_factor;
-        self.embedder_coordinates = self.window.get_coordinates();
-        if self.embedder_coordinates.hidpi_factor == old_hidpi_factor &&
-            self.rendering_context.size() == new_size
-        {
+        let old_hidpi_factor = self.hidpi_factor;
+        self.hidpi_factor = self.window.hidpi_factor();
+        if self.hidpi_factor == old_hidpi_factor && self.rendering_context.size() == new_size {
             return false;
         }
 
@@ -1303,10 +1320,6 @@ impl IOCompositor {
         self.window.set_animation_state(animation_state);
     }
 
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.embedder_coordinates.hidpi_factor
-    }
-
     pub(crate) fn device_pixels_per_page_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.device_pixels_per_page_pixel_not_including_page_zoom() * self.pinch_zoom_level()
     }
@@ -1314,7 +1327,7 @@ impl IOCompositor {
     fn device_pixels_per_page_pixel_not_including_page_zoom(
         &self,
     ) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.page_zoom * self.hidpi_factor()
+        self.page_zoom * self.hidpi_factor
     }
 
     pub fn on_zoom_reset_window_event(&mut self) {
