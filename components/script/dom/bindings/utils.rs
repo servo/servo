@@ -12,10 +12,10 @@ use std::{ptr, slice};
 use js::conversions::ToJSValConvertible;
 use js::glue::{IsWrapper, JSPrincipalsCallbacks, UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{
-    CallArgs, DOMCallbacks, HandleId as RawHandleId, HandleObject as RawHandleObject, Heap,
+    CallArgs, DOMCallbacks, HandleId as RawHandleId, HandleObject as RawHandleObject,
     JS_DeprecatedStringHasLatin1Chars, JS_EnumerateStandardClasses, JS_FreezeObject,
     JS_GetLatin1StringCharsAndLength, JS_IsGlobalObject, JS_ResolveStandardClass, JSContext,
-    JSObject, JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
+    JSObject, MutableHandleIdVector as RawMutableHandleIdVector,
 };
 use js::rust::{Handle, HandleObject, MutableHandleValue, get_object_class, is_dom_class};
 
@@ -28,7 +28,6 @@ use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
 use crate::dom::bindings::proxyhandler::is_platform_object_same_origin;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::settings_stack::{self, StackEntry};
-use crate::dom::bindings::trace::trace_object;
 use crate::dom::windowproxy::WindowProxyHandler;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -103,7 +102,7 @@ fn is_platform_object(
 }
 
 /// Enumerate lazy properties of a global object.
-pub(crate) unsafe extern "C" fn enumerate_global(
+pub(crate) unsafe extern "C" fn enumerate_global<D: DomTypes>(
     cx: *mut JSContext,
     obj: RawHandleObject,
     _props: RawMutableHandleIdVector,
@@ -113,14 +112,14 @@ pub(crate) unsafe extern "C" fn enumerate_global(
     if !JS_EnumerateStandardClasses(cx, obj) {
         return false;
     }
-    for init_fun in InterfaceObjectMap::MAP.values() {
+    for init_fun in  <D as DomHelpers<D>>::interface_map().values() {
         init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
     }
     true
 }
 
 /// Resolve a lazy global property, for interface objects and named constructors.
-pub(crate) unsafe extern "C" fn resolve_global(
+pub(crate) unsafe extern "C" fn resolve_global<D: DomTypes>(
     cx: *mut JSContext,
     obj: RawHandleObject,
     id: RawHandleId,
@@ -148,7 +147,7 @@ pub(crate) unsafe extern "C" fn resolve_global(
     assert!(!ptr.is_null());
     let bytes = slice::from_raw_parts(ptr, length);
 
-    if let Some(init_fun) = InterfaceObjectMap::MAP.get(bytes) {
+    if let Some(init_fun) = <D as DomHelpers<D>>::interface_map().get(bytes) {
         init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
         *rval = true;
     } else {
@@ -201,6 +200,8 @@ pub(crate) trait DomHelpers<D: DomTypes> {
     fn principals_callbacks() -> &'static JSPrincipalsCallbacks;
 
     fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleObject) -> bool;
+
+    fn interface_map() -> &'static phf::Map<&'static [u8], for<'a> fn(SafeJSContext, HandleObject)>;
 }
 
 impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
@@ -236,5 +237,9 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
 
     fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleObject) -> bool {
         unsafe { is_platform_object_same_origin(cx, obj) }
+    }
+
+    fn interface_map() -> &'static phf::Map<&'static [u8], for<'a> fn(SafeJSContext, HandleObject)> {
+        &InterfaceObjectMap::MAP
     }
 }
