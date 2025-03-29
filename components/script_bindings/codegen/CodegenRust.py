@@ -3517,7 +3517,7 @@ assert!(!prototype_proto.is_null());""")]
             assert not self.haveUnscopables
             code.append(CGGeneric(f"""
 rooted!(in(*cx) let mut prototype_proto_proto = prototype_proto.get());
-dom::types::{name}::create_named_properties_object(cx, prototype_proto_proto.handle(), prototype_proto.handle_mut());
+D::{name}::create_named_properties_object(cx, prototype_proto_proto.handle(), prototype_proto.handle_mut());
 assert!(!prototype_proto.is_null());"""))
 
         properties = {
@@ -3945,7 +3945,7 @@ class CGCallGenerator(CGThing):
         call = CGList([call, CGWrapper(args, pre="(", post=")")])
 
         if hasCEReactions:
-            self.cgRoot.append(CGGeneric("push_new_element_queue();\n"))
+            self.cgRoot.append(CGGeneric("<D as DomHelpers<D>>::push_new_element_queue();\n"))
 
         self.cgRoot.append(CGList([
             CGGeneric("let result: "),
@@ -3956,7 +3956,7 @@ class CGCallGenerator(CGThing):
         ]))
 
         if hasCEReactions:
-            self.cgRoot.append(CGGeneric("pop_current_element_queue(CanGc::note());\n"))
+            self.cgRoot.append(CGGeneric("<D as DomHelpers<D>>::pop_current_element_queue(CanGc::note());\n"))
 
         if isFallible:
             if static:

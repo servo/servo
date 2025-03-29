@@ -21,7 +21,7 @@ use js::rust::{Handle, HandleObject, MutableHandleValue, get_object_class, is_do
 
 use crate::DomTypes;
 use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList};
-use crate::dom::bindings::constructor::call_html_constructor;
+use crate::dom::bindings::constructor::{call_html_constructor, pop_current_element_queue, push_new_element_queue};
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
@@ -202,6 +202,9 @@ pub(crate) trait DomHelpers<D: DomTypes> {
     fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleObject) -> bool;
 
     fn interface_map() -> &'static phf::Map<&'static [u8], for<'a> fn(SafeJSContext, HandleObject)>;
+
+    fn push_new_element_queue();
+    fn pop_current_element_queue(can_gc: CanGc);
 }
 
 impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
@@ -241,5 +244,12 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
 
     fn interface_map() -> &'static phf::Map<&'static [u8], for<'a> fn(SafeJSContext, HandleObject)> {
         &InterfaceObjectMap::MAP
+    }
+
+    fn push_new_element_queue() {
+        push_new_element_queue()
+    }
+    fn pop_current_element_queue(can_gc: CanGc) {
+        pop_current_element_queue(can_gc)
     }
 }
