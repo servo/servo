@@ -24,10 +24,12 @@ use js::rust::{
     HandleObject, HandleValue, MutableHandle, MutableHandleObject, get_context_realm,
 };
 
-use crate::dom::bindings::error::{Error, throw_dom_exception};
+use crate::DomTypes;
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::principals::ServoJSPrincipalsRef;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
+use crate::dom::bindings::utils::DomHelpers;
+use crate::dom::globalscope::GlobalScopeHelpers;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -73,7 +75,7 @@ pub(crate) unsafe fn is_platform_object_same_origin(
 /// What this function does corresponds to the operations in
 /// <https://html.spec.whatwg.org/multipage/#the-location-interface> denoted as
 /// "Throw a `SecurityError` DOMException".
-pub(crate) unsafe fn report_cross_origin_denial(
+pub(crate) unsafe fn report_cross_origin_denial<D: DomTypes>(
     cx: SafeJSContext,
     id: RawHandleId,
     access: &str,
@@ -85,9 +87,9 @@ pub(crate) unsafe fn report_cross_origin_denial(
     );
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     if !JS_IsExceptionPending(*cx) {
-        let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
+        let global = D::GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
         // TODO: include `id` and `access` in the exception message
-        throw_dom_exception(cx, &global, Error::Security, CanGc::note());
+        <D as DomHelpers<D>>::throw_dom_exception(cx, &global, Error::Security, CanGc::note());
     }
     false
 }
@@ -95,7 +97,7 @@ pub(crate) unsafe fn report_cross_origin_denial(
 /// Implementation of `[[Set]]` for [`Location`].
 ///
 /// [`Location`]: https://html.spec.whatwg.org/multipage/#location-set
-pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx(
+pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
     cx: *mut JSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -105,8 +107,8 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx(
 ) -> bool {
     let cx = SafeJSContext::from_ptr(cx);
 
-    if !is_platform_object_same_origin(cx, proxy) {
-        return cross_origin_set(cx, proxy, id, v, receiver, result);
+    if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
+        return cross_origin_set::<D>(cx, proxy, id, v, receiver, result);
     }
 
     // Safe to enter the Realm of proxy now.
@@ -141,7 +143,7 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx(
 /// Implementation of `[[GetPrototypeOf]]` for [`Location`].
 ///
 /// [`Location`]: https://html.spec.whatwg.org/multipage/#location-getprototypeof
-pub(crate) unsafe fn maybe_cross_origin_get_prototype<D: crate::DomTypes>(
+pub(crate) unsafe fn maybe_cross_origin_get_prototype<D: DomTypes>(
     cx: SafeJSContext,
     proxy: RawHandleObject,
     get_proto_object: unsafe fn(cx: SafeJSContext, global: HandleObject, rval: MutableHandleObject),
@@ -170,7 +172,7 @@ pub(crate) unsafe fn maybe_cross_origin_get_prototype<D: crate::DomTypes>(
 /// for a maybe-cross-origin object.
 ///
 /// [`CrossOriginGet`]: https://html.spec.whatwg.org/multipage/#crossoriginget-(-o,-p,-receiver-)
-pub(crate) unsafe fn cross_origin_get(
+pub(crate) unsafe fn cross_origin_get<D: DomTypes>(
     cx: SafeJSContext,
     proxy: RawHandleObject,
     receiver: RawHandleValue,
@@ -214,7 +216,7 @@ pub(crate) unsafe fn cross_origin_get(
     rooted!(in(*cx) let mut getter = ptr::null_mut::<JSObject>());
     get_getter_object(&descriptor, getter.handle_mut().into());
     if getter.get().is_null() {
-        return report_cross_origin_denial(cx, id, "get");
+        return report_cross_origin_denial::<D>(cx, id, "get");
     }
 
     rooted!(in(*cx) let mut getter_jsval = UndefinedValue());
@@ -236,7 +238,7 @@ pub(crate) unsafe fn cross_origin_get(
 /// for a maybe-cross-origin object.
 ///
 /// [`CrossOriginSet`]: https://html.spec.whatwg.org/multipage/#crossoriginset-(-o,-p,-v,-receiver-)
-pub(crate) unsafe fn cross_origin_set(
+pub(crate) unsafe fn cross_origin_set<D: DomTypes>(
     cx: SafeJSContext,
     proxy: RawHandleObject,
     id: RawHandleId,
@@ -271,7 +273,7 @@ pub(crate) unsafe fn cross_origin_set(
     get_setter_object(&descriptor, setter.handle_mut().into());
     if setter.get().is_null() {
         // > 4. Throw a "SecurityError" DOMException.
-        return report_cross_origin_denial(cx, id, "set");
+        return report_cross_origin_denial::<D>(cx, id, "set");
     }
 
     rooted!(in(*cx) let mut setter_jsval = UndefinedValue());
@@ -306,7 +308,7 @@ pub(crate) unsafe fn cross_origin_set(
 /// for a maybe-cross-origin object.
 ///
 /// [`CrossOriginPropertyFallback`]: https://html.spec.whatwg.org/multipage/#crossoriginpropertyfallback-(-p-)
-pub(crate) unsafe fn cross_origin_property_fallback(
+pub(crate) unsafe fn cross_origin_property_fallback<D: DomTypes>(
     cx: SafeJSContext,
     _proxy: RawHandleObject,
     id: RawHandleId,
@@ -330,5 +332,5 @@ pub(crate) unsafe fn cross_origin_property_fallback(
     }
 
     // > 2. Throw a `SecurityError` `DOMException`.
-    report_cross_origin_denial(cx, id, "access")
+    report_cross_origin_denial::<D>(cx, id, "access")
 }

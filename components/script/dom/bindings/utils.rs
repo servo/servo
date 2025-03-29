@@ -25,6 +25,7 @@ use crate::dom::bindings::constructor::call_html_constructor;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
+use crate::dom::bindings::proxyhandler::is_platform_object_same_origin;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::settings_stack::{self, StackEntry};
 use crate::dom::bindings::trace::trace_object;
@@ -208,7 +209,7 @@ impl AsCCharPtrPtr for [u8] {
 
 /// Operations that must be invoked from the generated bindings.
 pub(crate) trait DomHelpers<D: DomTypes> {
-    fn throw_dom_exception(cx: SafeJSContext, global: &D::GlobalScope, result: Error);
+    fn throw_dom_exception(cx: SafeJSContext, global: &D::GlobalScope, result: Error, can_gc: CanGc);
 
     unsafe fn call_html_constructor<T: DerivedFrom<D::Element> + DomObject>(
         cx: SafeJSContext,
@@ -222,6 +223,8 @@ pub(crate) trait DomHelpers<D: DomTypes> {
     fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<D>>>>;
 
     fn principals_callbacks() -> &'static JSPrincipalsCallbacks;
+
+    fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleObject) -> bool;
 }
 
 impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
@@ -229,8 +232,9 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         cx: SafeJSContext,
         global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
         result: Error,
+        can_gc: CanGc,
     ) {
-        throw_dom_exception(cx, global, result, CanGc::note())
+        throw_dom_exception(cx, global, result, can_gc)
     }
 
     unsafe fn call_html_constructor<
@@ -252,5 +256,9 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
 
     fn principals_callbacks() -> &'static JSPrincipalsCallbacks {
         &PRINCIPALS_CALLBACKS
+    }
+
+    fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleObject) -> bool {
+        unsafe { is_platform_object_same_origin(cx, obj) }
     }
 }

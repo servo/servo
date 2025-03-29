@@ -3797,7 +3797,7 @@ class CGDefineProxyHandler(CGAbstractMethod):
             # `[[Set]]` (https://heycam.github.io/webidl/#legacy-platform-object-set) (yet).
             assert not self.descriptor.operations['IndexedGetter']
             assert not self.descriptor.operations['NamedGetter']
-            customSet = 'Some(proxyhandler::maybe_cross_origin_set_rawcx)'
+            customSet = 'Some(proxyhandler::maybe_cross_origin_set_rawcx::<D>)'
 
         getOwnEnumerablePropertyKeys = "own_property_keys::<D>"
         if self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties") or \
@@ -3967,7 +3967,7 @@ class CGCallGenerator(CGThing):
                 "let result = match result {\n"
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
-                f"        <D as DomHelpers<D>>::throw_dom_exception(cx, {glob}, e);\n"
+                f"        <D as DomHelpers<D>>::throw_dom_exception(cx, {glob}, e, CanGc::note());\n"
                 f"        return{errorResult};\n"
                 "    },\n"
                 "};"))
@@ -5911,14 +5911,14 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             get += dedent(
                 """
-                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     if !proxyhandler::cross_origin_get_own_property_helper(
                         cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), id, desc, &mut *is_none
                     ) {
                         return false;
                     }
                     if *is_none {
-                        return proxyhandler::cross_origin_property_fallback(cx, proxy, id, desc, &mut *is_none);
+                        return proxyhandler::cross_origin_property_fallback::<D>(cx, proxy, id, desc, &mut *is_none);
                     }
                     return true;
                 }
@@ -6033,8 +6033,8 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             set += dedent(
                 """
-                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::report_cross_origin_denial(cx, id, "define");
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
+                    return proxyhandler::report_cross_origin_denial::<D>(cx, id, "define");
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -6092,8 +6092,8 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             set += dedent(
                 """
-                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::report_cross_origin_denial(cx, id, "delete");
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
+                    return proxyhandler::report_cross_origin_denial::<D>(cx, id, "delete");
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -6131,7 +6131,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             body += dedent(
                 """
-                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::cross_origin_own_property_keys(
                         cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), props
                     );
@@ -6204,7 +6204,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             body += dedent(
                 """
-                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     // There are no enumerable cross-origin props, so we're done.
                     return true;
                 }
@@ -6255,7 +6255,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             indexed += dedent(
                 """
-                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
                     return proxyhandler::cross_origin_has_own(
                         cx, proxy, CROSS_ORIGIN_PROPERTIES.get(), id, bp
                     );
@@ -6328,8 +6328,8 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             maybeCrossOriginGet = dedent(
                 """
-                if !proxyhandler::is_platform_object_same_origin(cx, proxy) {
-                    return proxyhandler::cross_origin_get(cx, proxy, receiver, id, vp);
+                if !<D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
+                    return proxyhandler::cross_origin_get::<D>(cx, proxy, receiver, id, vp);
                 }
 
                 // Safe to enter the Realm of proxy now.
