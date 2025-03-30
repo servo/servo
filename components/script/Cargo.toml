@@ -30,13 +30,14 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
 unsafe_op_in_unsafe_fn = { level = "allow" }
 
 [dependencies]
-aes = { workspace = true }
-aes-kw = { workspace = true }
-aes-gcm = { workspace = true }
 accountable-refcell = { workspace = true, optional = true }
+aes = { workspace = true }
+aes-gcm = { workspace = true }
+aes-kw = { workspace = true }
 app_units = { workspace = true }
 arrayvec = { workspace = true }
 atomic_refcell = { workspace = true }
+aws-lc-rs = { workspace = true }
 background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
 base = { workspace = true }
@@ -45,10 +46,10 @@ bincode = { workspace = true }
 bitflags = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
-constellation_traits = { workspace = true }
 cbc = { workspace = true }
-cipher = { workspace = true }
 chrono = { workspace = true }
+cipher = { workspace = true }
+constellation_traits = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -63,9 +64,10 @@ embedder_traits = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
-fxhash = { workspace = true }
-fonts_traits = { workspace = true }
 fonts = { path = "../fonts" }
+fonts_traits = { workspace = true }
+fxhash = { workspace = true }
+glow = { workspace = true }
 headers = { workspace = true }
 html5ever = { workspace = true }
 http = { workspace = true }
@@ -86,8 +88,9 @@ metrics = { path = "../metrics" }
 mime = { workspace = true }
 mime_guess = { workspace = true }
 net_traits = { workspace = true }
-num_cpus = { workspace = true }
+nom = "7.1.3"
 num-traits = { workspace = true }
+num_cpus = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
 phf = "0.11"
@@ -96,7 +99,6 @@ profile_traits = { workspace = true }
 range = { path = "../range" }
 ref_filter_map = "1.0.1"
 regex = { workspace = true }
-aws-lc-rs = { workspace = true }
 script_bindings = { path = "../script_bindings" }
 script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
@@ -106,18 +108,17 @@ serde_json = { workspace = true }
 servo-media = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_arc = { workspace = true }
-stylo_atoms = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
-stylo_malloc_size_of = { workspace = true }
-glow = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 stylo = { workspace = true }
+stylo_atoms = { workspace = true }
 stylo_dom = { workspace = true }
+stylo_malloc_size_of = { workspace = true }
 stylo_traits = { workspace = true }
 swapper = "0.1"
 tempfile = "3"
@@ -136,7 +137,6 @@ webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }
 xml5ever = { workspace = true }
-nom = "7.1.3"
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 mozangle = { workspace = true }
