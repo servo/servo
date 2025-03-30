@@ -25,6 +25,12 @@ const gCSSProperties1 = {
       { type: 'discrete', options: [ [ 'flex-start', 'flex-end' ] ] }
     ]
   },
+  'anchor-name': {
+    // https://drafts.csswg.org/css-anchor-position-1/#name
+    types: [
+      { type: 'discrete', options: [ [ 'none', '--anchor' ] ] }
+    ]
+  },
   'anchor-scope': {
     // https://drafts.csswg.org/css-anchor-position-1/#anchor-scope
     types: [
@@ -1277,6 +1283,30 @@ const gCSSProperties2 = {
     // https://drafts.csswg.org/css-position/#propdef-position
     types: [
       { type: 'discrete', options: [ [ 'absolute', 'fixed' ] ] }
+    ]
+  },
+  'position-anchor': {
+    // https://drafts.csswg.org/css-anchor-position-1/#position-anchor
+    types: [
+      { type: 'discrete', options: [ [ 'auto', '--anchor' ] ] }
+    ]
+  },
+  'position-visibility': {
+    // https://drafts.csswg.org/css-anchor-position-1/#position-visibility
+    types: [
+      { type: 'discrete', options: [ [ 'always', 'anchors-valid' ] ] }
+    ]
+  },
+  'position-try-fallbacks': {
+    // https://drafts.csswg.org/css-anchor-position-1/#position-try-fallbacks
+    types: [
+      { type: 'discrete', options: [ [ 'none', 'flip-block' ] ] }
+    ]
+  },
+  'position-try-order': {
+    // https://drafts.csswg.org/css-anchor-position-1/#position-try-order-property
+    types: [
+      { type: 'discrete', options: [ [ 'normal', 'most-width' ] ] }
     ]
   },
   'quotes': {

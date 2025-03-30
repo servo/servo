@@ -24,13 +24,13 @@
       .target {
         animation: myAnim linear 0.5s forwards;
       }
-      .scroll_target {
+      #scroll_target {
         animation-trigger: repeat scroll(inline) 150px 200px 100px 250px;
       }
-      .view_target {
+      #view_target {
         animation-trigger: state view(x) contain 10% contain 90% cover 10% cover 90%;
       }
-      .deferred_target {
+      #deferred_target {
         animation-trigger: alternate --viewtimeline contain 5% contain 80% cover 5% cover 80%;
       }
       .scroller {
@@ -108,15 +108,7 @@
 
       promise_test(async() => {
         await waitForNextFrame();
-        // Grabbing a reference to the animation and *then* adding the class
-        // which confers the trigger properties is a workaround to the fact that
-        // if the scroll-based trigger were already in place, the animation
-        // would be idle, getAnimations would not include it, and we would not
-        // be able to get a reference to it.
-        // TODO: if the definition for getAnimations changes such that it should
-        // include un-triggered animations, we should remove this workaround.
         const animation = scroll_target.getAnimations()[0];
-        scroll_target.classList.add("scroll_target");
         const trigger = animation.trigger;
         await waitForNextFrame();
 
@@ -136,7 +128,6 @@
       promise_test(async() => {
         await waitForNextFrame();
         const animation = view_target.getAnimations()[0];
-        view_target.classList.add("view_target");
         const trigger = animation.trigger;
         await waitForNextFrame();
 
@@ -157,7 +148,6 @@
       promise_test(async() => {
         await waitForNextFrame();
         const animation = deferred_target.getAnimations()[0];
-        deferred_target.classList.add("deferred_target");
         const trigger = animation.trigger;
         await waitForNextFrame();
 

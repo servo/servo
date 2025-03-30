@@ -1437,7 +1437,7 @@
          * @param {String} sample - A `virtual pressure state
          *                          <https://w3c.github.io/compute-pressure/#dom-pressurestate>`_
          *                          such as "critical".
-         * @param {number} estimate - Optional, A `virtual own contribution estimate`
+         * @param {number} own_contribution_estimate - Optional, A `virtual own contribution estimate`
          *                          <https://w3c.github.io/compute-pressure/?experimental=1#the-owncontributionestimate-attribute>`_
          * @param {WindowProxy} [context=null] - Browsing context in which to
          *                                       run the call, or null for the
@@ -1449,8 +1449,8 @@
          *                    virtual pressure source of the given type does not
          *                    exist).
          */
-        update_virtual_pressure_source: function(source_type, sample, estimate, context=null) {
-            return window.test_driver_internal.update_virtual_pressure_source(source_type, sample, estimate, context);
+        update_virtual_pressure_source: function(source_type, sample, own_contribution_estimate, context=null) {
+            return window.test_driver_internal.update_virtual_pressure_source(source_type, sample, own_contribution_estimate, context);
         },
 
         /**
@@ -1748,7 +1748,7 @@
             throw new Error("create_virtual_pressure_source() is not implemented by testdriver-vendor.js");
         },
 
-        async update_virtual_pressure_source(source_type, sample, estimate, context=null) {
+        async update_virtual_pressure_source(source_type, sample, own_contribution_estimate, context=null) {
             throw new Error("update_virtual_pressure_source() is not implemented by testdriver-vendor.js");
         },
 

@@ -35,7 +35,7 @@ def get_permissions(request, response):
   - 天気の良い日 / élève: allow both join and leave
   - anything else (including no subdomain): returns a 404
   """
-  if fledge_http_server_util.handle_cors_headers_and_preflight(request, response):
+  if fledge_http_server_util.handle_cors_headers_fail_if_preflight(request, response):
     return
 
   first_domain_label = re.search(r"[^.]*", request.url_parts.netloc).group(0)
