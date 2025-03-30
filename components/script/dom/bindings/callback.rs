@@ -16,14 +16,15 @@ use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
 use js::rust::{MutableHandleValue, Runtime};
 use script_bindings::interfaces::DocumentHelpers;
+use script_bindings::utils::AsCCharPtrPtr;
 
 use crate::DomTypes;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::error::{Error, Fallible, report_pending_exception};
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::{GenericAutoEntryScript, GenericAutoIncumbentScript};
-use crate::dom::bindings::utils::AsCCharPtrPtr;
+use crate::dom::bindings::utils::DomHelpers;
 use crate::dom::globalscope::GlobalScopeHelpers;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext};
@@ -281,7 +282,12 @@ impl<D: DomTypes> Drop for CallSetup<D> {
         }
         if self.handling == ExceptionHandling::Report {
             let ar = enter_realm(&*self.exception_global);
-            report_pending_exception(self.cx, true, InRealm::Entered(&ar), CanGc::note());
+            <D as DomHelpers<D>>::report_pending_exception(
+                self.cx,
+                true,
+                InRealm::Entered(&ar),
+                CanGc::note(),
+            );
         }
         drop(self.incumbent_script.take());
         drop(self.entry_script.take().unwrap());

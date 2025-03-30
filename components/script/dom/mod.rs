@@ -205,6 +205,7 @@
 #[macro_use]
 pub(crate) mod macros;
 
+#[allow(unused_imports)]
 pub(crate) mod types {
     include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceTypes.rs"));
 }

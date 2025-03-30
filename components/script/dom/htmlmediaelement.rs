@@ -27,6 +27,9 @@ use net_traits::{
     ResourceTimingType,
 };
 use pixels::Image;
+use script_bindings::codegen::InheritTypes::{
+    ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
+};
 use script_layout_interface::MediaFrame;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
@@ -60,9 +63,6 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::codegen::InheritTypes::{
-    ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
-};
 use crate::dom::bindings::codegen::UnionTypes::{
     MediaStreamOrBlob, VideoTrackOrAudioTrackOrTextTrack,
 };

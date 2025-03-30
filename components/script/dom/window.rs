@@ -57,6 +57,7 @@ use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use script_bindings::interfaces::WindowHelpers;
 use script_layout_interface::{
     FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
     TrustedNodeAddress, combine_id_with_fragment_type,
@@ -3120,5 +3121,15 @@ fn is_named_element_with_id_attribute(elem: &Element) -> bool {
 unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {
     unsafe {
         DumpJSStack(cx, true, false, false);
+    }
+}
+
+impl WindowHelpers for Window {
+    fn create_named_properties_object(
+        cx: JSContext,
+        proto: HandleObject,
+        object: MutableHandleObject,
+    ) {
+        Self::create_named_properties_object(cx, proto, object)
     }
 }
