@@ -11,9 +11,6 @@ rust-version.workspace = true
 name = "devtools"
 path = "lib.rs"
 
-[build-dependencies]
-chrono = { workspace = true }
-
 [dependencies]
 base = { workspace = true }
 chrono = { workspace = true }
@@ -31,3 +28,6 @@ servo_config = { path = "../config" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 uuid = { workspace = true }
+
+[build-dependencies]
+chrono = { workspace = true }

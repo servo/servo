@@ -19,8 +19,8 @@ tracing = ["dep:tracing"]
 webgpu = ["script_traits/webgpu"]
 
 [dependencies]
-background_hang_monitor_api = { workspace = true }
 background_hang_monitor = { path = "../background_hang_monitor" }
+background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
 base = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
