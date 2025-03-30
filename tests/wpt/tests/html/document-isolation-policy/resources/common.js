@@ -1,5 +1,8 @@
+
 const executor_path = '/common/dispatcher/executor.html?pipe=';
+const remote_executor_path = '/common/dispatcher/remote-executor.html?pipe=';
 const executor_worker_path = '/common/dispatcher/executor-worker.js?pipe=';
+const remote_executor_worker_path = '/common/dispatcher/remote-executor-worker.js?pipe=';
 const executor_service_worker_path = '/common/dispatcher/executor-service-worker.js?pipe=';
 
 // COEP
@@ -92,6 +95,79 @@ const newCredentiallessIframe = (parent_token, child_origin) => {
   `)
   return sub_document_token;
 };
+
+// The following functions create remote execution contexts with the matching
+// origins and headers. The first return value is the uuid that can be used
+// to instantiate a RemoteContext object. The second return value is the URL of
+// the context that was created.
+async function createIframeContext(t, origin, header) {
+  const uuid = token();
+  const frame_url = origin + remote_executor_path + header + '&uuid=' + uuid;
+  const frame = await with_iframe(frame_url);
+  t.add_cleanup(() => frame.remove());
+  return [uuid, frame_url];
+}
+
+async function createDedicatedWorkerContext(t, origin, header) {
+  const iframe_uuid = token();
+  const frame_url = origin + remote_executor_path + header + '&uuid=' + iframe_uuid;
+  const frame = await with_iframe(frame_url);
+  t.add_cleanup(() => frame.remove());
+
+  const uuid = token();
+  const worker_url = origin + remote_executor_worker_path + '&uuid=' + uuid;
+  const ctx = new RemoteContext(iframe_uuid);
+  await ctx.execute_script(
+    (url) => {
+      const worker = new Worker(url);
+    }, [worker_url]);
+  return [uuid, worker_url];
+}
+
+async function createSharedWorkerContext(t, origin, header) {
+  const uuid = token();
+  const worker_url = origin + remote_executor_worker_path + header + '&uuid=' + uuid;
+  const worker = new SharedWorker(worker_url);
+  worker.addEventListener('error', t.unreached_func('Worker.onerror'));
+  return [uuid, worker_url];
+}
+
+async function createIframeWithSWContext(t, origin, header) {
+  // Register a service worker with no headers.
+  const uuid = token();
+  const frame_url = origin + remote_executor_path + header + '&uuid=' + uuid;
+  const service_worker_url = origin + executor_service_worker_path;
+  const reg = await service_worker_unregister_and_register(
+    t, service_worker_url, frame_url);
+  const worker = reg.installing || reg.waiting || reg.active;
+  worker.addEventListener('error', t.unreached_func('Worker.onerror'));
+
+  const frame = await with_iframe(frame_url);
+  t.add_cleanup(() => {
+    reg.unregister();
+    frame.remove();
+  });
+  return [uuid, frame_url];
+}
+
+// A common interface for building the 4 type of execution contexts. Outputs the
+// token needed to create the RemoteContext.
+async function getTokenFromEnvironment(t,  environment, headers) {
+  switch(environment) {
+    case "document":
+      const iframe_context = await createIframeContext(t, window.origin, headers);
+      return iframe_context[0];
+    case "dedicated_worker":
+      const dedicated_worker_context = await createDedicatedWorkerContext(t, window.origin, headers);
+      return dedicated_worker_context[0];
+    case "shared_worker":
+      const shared_worker_context = await createSharedWorkerContext(t, window.origin, headers);
+      return shared_worker_context[0];
+    case "service_worker":
+      const sw_context = await createIframeWithSWContext(t, window.origin, headers);
+      return sw_context[0];
+  }
+}
 
 // A common interface for building the 4 type of execution contexts:
 // It outputs: [

@@ -6,22 +6,38 @@
 <style>
   #t1 {
     font-size: 20px;
-    cursor: url(cur.ico) calc(7 * sign(1em - 18px)) 0, auto;
+    cursor: url(data:image/x-icon,) calc(7 * sign(1em - 18px)) 0, auto;
   }
   #t2 {
-    cursor: url(cur.ico) calc(4 * sibling-index()) 0, auto;
+    cursor: url(data:image/x-icon,) calc(4 * sibling-index()) 0, auto;
+  }
+  #t3 {
+    cursor: url(data:image/x-icon,) calc(9) 0, auto;
+  }
+  #t4 {
+    cursor: url(data:image/x-icon,) calc(10 * sign(2px)) 0, auto;
   }
 </style>
 <div>
   <div id="t1"></div>
   <div id="t2"></div>
+  <div id="t3"></div>
+  <div id="t4"></div>
 </div>
 <script>
   test(() => {
-    assert_equals(getComputedStyle(t1).cursor, "url(cur.ico) 7 0, auto");
+    assert_equals(getComputedStyle(t1).cursor, 'url("data:image/x-icon,") 7 0, auto');
   }, "cursor hotspot with sign() depending on font relative units");
 
   test(() => {
-    assert_equals(getComputedStyle(t2).cursor, "url(cur.ico) 8 0, auto");
+    assert_equals(getComputedStyle(t2).cursor, 'url("data:image/x-icon,") 8 0, auto');
   }, "cursor hotspot depending on sibling-index()");
+
+  test(() => {
+    assert_equals(getComputedStyle(t3).cursor, 'url("data:image/x-icon,") 9 0, auto');
+  }, "cursor hotspot depending on simplified numeric calc()");
+
+  test(() => {
+    assert_equals(getComputedStyle(t4).cursor, 'url("data:image/x-icon,") 10 0, auto');
+  }, "cursor hotspot depending on simplified numeric calc() with sign()");
 </script>
