@@ -14,7 +14,7 @@ use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
-use http::header::{self, HeaderMap, HeaderName};
+use http::header::{self, HeaderMap, HeaderName, RANGE};
 use http::{HeaderValue, Method, StatusCode};
 use ipc_channel::ipc;
 use log::{debug, trace, warn};
@@ -46,6 +46,9 @@ use crate::http_loader::{HttpState, determine_requests_referrer, http_fetch, set
 use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;
+
+const PARTIAL_RESPONSE_TO_NON_RANGE_REQUEST_ERROR: &str = "Refusing to provide partial response\
+from earlier ranged request to API that did not make a range request";
 
 pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
 
@@ -484,21 +487,28 @@ pub async fn main_fetch(
             .get_network_error()
             .cloned()
             .map(Response::network_error);
+
+        // Step 15. Let internalResponse be response, if response is a network error;
+        // otherwise response’s internal response.
+        let response_type = response.response_type.clone(); // Needed later after the mutable borrow
         let internal_response = if let Some(error_response) = network_error_response.as_mut() {
             error_response
         } else {
             response.actual_response_mut()
         };
 
-        // Step 16.
+        // Step 16. If internalResponse’s URL list is empty, then set it to a clone of request’s URL list.
         if internal_response.url_list.is_empty() {
             internal_response.url_list.clone_from(&request.url_list)
         }
 
-        // Step 17.
-        // TODO: handle blocking as mixed content.
-        // TODO: handle blocking by content security policy.
-        let blocked_error_response;
+        // Step 19. If response is not a network error and any of the following returns blocked
+        // TODO: * should internalResponse to request be blocked as mixed content
+        // TODO: * should internalResponse to request be blocked by Content Security Policy
+        // * should internalResponse to request be blocked due to its MIME type
+        // * should internalResponse to request be blocked due to nosniff
+        let mut blocked_error_response;
+
         let internal_response = if should_replace_with_nosniff_error {
             // Defer rebinding result
             blocked_error_response =
@@ -513,9 +523,27 @@ pub async fn main_fetch(
             internal_response
         };
 
-        // Step 18.
-        // We check `internal_response` since we did not mutate `response`
-        // in the previous step.
+        // Step 20. If response’s type is "opaque", internalResponse’s status is 206, internalResponse’s
+        // range-requested flag is set, and request’s header list does not contain `Range`, then set
+        // response and internalResponse to a network error.
+        let internal_response = if response_type == ResponseType::Opaque &&
+            internal_response.status.code() == StatusCode::PARTIAL_CONTENT &&
+            internal_response.range_requested &&
+            !request.headers.contains_key(RANGE)
+        {
+            // Defer rebinding result
+            blocked_error_response = Response::network_error(NetworkError::Internal(
+                PARTIAL_RESPONSE_TO_NON_RANGE_REQUEST_ERROR.into(),
+            ));
+            &blocked_error_response
+        } else {
+            internal_response
+        };
+
+        // Step 21. If response is not a network error and either request’s method is `HEAD` or `CONNECT`,
+        // or internalResponse’s status is a null body status, set internalResponse’s body to null and
+        // disregard any enqueuing toward it (if any).
+        // NOTE: We check `internal_response` since we did not mutate `response` in the previous steps.
         let not_network_error = !response_is_network_error && !internal_response.is_network_error();
         if not_network_error &&
             (is_null_body_status(&internal_response.status) ||
