@@ -378,7 +378,8 @@ impl TouchHandler {
         {
             Some(i) => i,
             None => {
-                unreachable!("Got a touchmove event for a non-active touch point");
+                error!("Got a touchmove event for a non-active touch point");
+                return TouchMoveAction::NoAction;
             },
         };
         let old_point = touch_sequence.active_touch_points[idx].point;
