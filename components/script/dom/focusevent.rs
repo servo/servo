@@ -15,7 +15,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::event::{EventBubbles, EventCancelable};
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
@@ -118,6 +118,9 @@ impl FocusEventMethods<crate::DomTypeHolder> for FocusEvent {
             init.relatedTarget.as_deref(),
             can_gc,
         );
+        event
+            .upcast::<Event>()
+            .set_composed(init.parent.parent.composed);
         Ok(event)
     }
 
