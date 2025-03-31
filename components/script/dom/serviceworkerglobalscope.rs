@@ -376,11 +376,11 @@ impl ServiceWorkerGlobalScope {
 
                 {
                     // TODO: use AutoWorkerReset as in dedicated worker?
-                    let _ac = enter_realm(scope);
+                    let realm = enter_realm(scope);
                     scope.execute_script(DOMString::from(source), CanGc::note());
+                    global.dispatch_activate(CanGc::note(), InRealm::entered(&realm));
                 }
 
-                global.dispatch_activate(CanGc::note());
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
                 scope
                     .upcast::<GlobalScope>()
@@ -476,7 +476,7 @@ impl ServiceWorkerGlobalScope {
         ScriptEventLoopSender::ServiceWorker(self.own_sender.clone())
     }
 
-    fn dispatch_activate(&self, can_gc: CanGc) {
+    fn dispatch_activate(&self, can_gc: CanGc, _realm: InRealm) {
         let event = ExtendableEvent::new(self, atom!("activate"), false, false, can_gc);
         let event = (*event).upcast::<Event>();
         self.upcast::<EventTarget>().dispatch_event(event, can_gc);
