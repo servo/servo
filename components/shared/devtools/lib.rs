@@ -258,6 +258,8 @@ pub enum DevtoolScriptControlMsg {
     Reload(PipelineId),
     /// Gets the list of all allowed CSS rules and possible values.
     GetCssDatabase(IpcSender<HashMap<String, CssDatabaseProperty>>),
+    /// Simulates a light or dark color scheme for the given pipeline (true for light, false for dark)
+    SimulateColorScheme(PipelineId, bool),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
