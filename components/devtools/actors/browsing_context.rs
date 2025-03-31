@@ -178,6 +178,7 @@ impl Actor for BrowsingContextActor {
 }
 
 impl BrowsingContextActor {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         console: String,
         browser_id: DevtoolsBrowserId,
