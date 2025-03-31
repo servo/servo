@@ -3214,7 +3214,7 @@ impl GlobalScope {
 
         let data = structuredclone::write(cx, value, Some(guard))?;
 
-        structuredclone::read(self, data, retval).map_err(|_| Error::DataClone)?;
+        structuredclone::read(self, data, retval).map_err(|_| Error::DataClone(None))?;
 
         Ok(())
     }

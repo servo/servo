@@ -8,7 +8,7 @@ use std::slice::from_raw_parts;
 
 #[cfg(feature = "js_backtrace")]
 use backtrace::Backtrace;
-use js::error::{throw_range_error, throw_type_error};
+use js::error::{throw_internal_error, throw_range_error, throw_type_error};
 #[cfg(feature = "js_backtrace")]
 use js::jsapi::StackFormat as JSStackFormat;
 use js::jsapi::{ExceptionStackBehavior, JS_ClearPendingException, JS_IsExceptionPending};
@@ -70,7 +70,22 @@ pub(crate) fn throw_dom_exception(
         Error::Abort => DOMErrorName::AbortError,
         Error::Timeout => DOMErrorName::TimeoutError,
         Error::InvalidNodeType => DOMErrorName::InvalidNodeTypeError,
-        Error::DataClone => DOMErrorName::DataCloneError,
+        Error::DataClone(message) => match message {
+            Some(custom_message) => unsafe {
+                assert!(!JS_IsExceptionPending(*cx));
+                let exception = DOMException::new_with_custom_message(
+                    global,
+                    DOMErrorName::DataCloneError,
+                    custom_message,
+                    can_gc,
+                );
+                rooted!(in(*cx) let mut thrown = UndefinedValue());
+                exception.to_jsval(*cx, thrown.handle_mut());
+                JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
+                return;
+            },
+            None => DOMErrorName::DataCloneError,
+        },
         Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
         Error::QuotaExceeded => DOMErrorName::QuotaExceededError,
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
