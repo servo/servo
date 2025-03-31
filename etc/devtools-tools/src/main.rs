@@ -48,6 +48,11 @@ struct ResourcesAvailableArray {
     array: Vec<(String, Vec<Value>)>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+struct EmptyResponse {
+    from: String,
+}
+
 fn main() -> eyre::Result<()> {
     jane_eyre::install()?;
     tracing_subscriber::registry()
@@ -186,6 +191,19 @@ fn main() -> eyre::Result<()> {
             warn!(?message, "No reply found for message");
             continue;
         };
+
+        match &**r#type {
+            "updateConfiguration" => {
+                // thread-configuration updateConfiguration is sometimes sent in groups of non-deterministic order,
+                // such as one for shouldPauseOnDebuggerStatement, one for observeWasm and pauseWorkersUntilAttach, and
+                // one for ignoreCaughtExceptions and pauseOnExceptions. It looks like the response is always empty, so
+                // let’s just send an empty response without checking that the requests came in the correct order.
+                // TODO: this could make thread-configuration queues go out of sync, if there are other request types
+                stream.write_json_packet(&EmptyResponse { from: to.clone() })?;
+                continue;
+            },
+            _ => {},
+        }
 
         // The key idea here is that for each actor and type, the client will send us the same requests.
         assert_eq!(&message, expected_message);
