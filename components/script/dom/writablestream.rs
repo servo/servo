@@ -22,13 +22,15 @@ use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::UnderlyingSi
 use crate::dom::bindings::codegen::Bindings::WritableStreamBinding::WritableStreamMethods;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::writablestreamdefaultcontroller::WritableStreamDefaultController;
+use crate::dom::writablestreamdefaultcontroller::{
+    UnderlyingSinkType, WritableStreamDefaultController,
+};
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -155,7 +157,7 @@ pub struct WritableStream {
 
 impl WritableStream {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    /// <https://streams.spec.whatwg.org/#initialize-readable-stream>
+    /// <https://streams.spec.whatwg.org/#initialize-writable-stream>
     fn new_inherited() -> WritableStream {
         WritableStream {
             reflector_: Reflector::new(),
@@ -832,6 +834,35 @@ impl WritableStream {
         // Set stream.[[backpressure]] to backpressure.
         self.set_backpressure(backpressure);
     }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    pub(crate) fn setup_cross_realm_transform_writable(&self, cx: SafeJSContext, can_gc: CanGc) {
+        let global = self.global();
+
+        // Perform ! InitializeWritableStream(stream).
+        // Done in `new_inherited`.
+
+        // Let sizeAlgorithm be an algorithm that returns 1.
+        // Re-ordered because of the need to pass it to `new`. x
+        let size_algorithm = extract_size_algorithm(&QueuingStrategy::default(), can_gc);
+
+        // Note: other algorithms defined in the controller at call site.
+
+        // Let controller be a new WritableStreamDefaultController.
+        let controller = WritableStreamDefaultController::new(
+            &global,
+            UnderlyingSinkType::Transfer,
+            &UnderlyingSink::empty(),
+            1.0,
+            size_algorithm,
+            can_gc,
+        );
+
+        // Perform ! SetUpWritableStreamDefaultController
+        controller
+            .setup(cx, &global, self, &None, can_gc)
+            .expect("Setup for transfer cannot fail");
+    }
 }
 
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
@@ -879,6 +910,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // Perform ? SetUpWritableStreamDefaultControllerFromUnderlyingSink
         let controller = WritableStreamDefaultController::new(
             global,
+            UnderlyingSinkType::Js,
             &underlying_sink_dict,
             high_water_mark,
             size_algorithm,
