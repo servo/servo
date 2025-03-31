@@ -541,6 +541,8 @@ pub(crate) struct Document {
     /// The active keyboard modifiers for the WebView. This is updated when receiving any input event.
     #[no_trace]
     active_keyboard_modifiers: Cell<Modifiers>,
+    /// The node that is currently highlighted by the devtools
+    highlighted_dom_node: MutNullableDom<Node>,
 }
 
 #[allow(non_snake_case)]
@@ -3896,6 +3898,7 @@ impl Document {
             intersection_observer_task_queued: Cell::new(false),
             intersection_observers: Default::default(),
             active_keyboard_modifiers: Cell::new(Modifiers::empty()),
+            highlighted_dom_node: Default::default(),
         }
     }
 
@@ -4792,6 +4795,15 @@ impl Document {
 
     pub fn set_allow_declarative_shadow_roots(&self, value: bool) {
         self.allow_declarative_shadow_roots.set(value)
+    }
+
+    pub(crate) fn highlight_dom_node(&self, node: Option<&Node>) {
+        self.highlighted_dom_node.set(node);
+        self.set_needs_paint(true);
+    }
+
+    pub(crate) fn highlighted_dom_node(&self) -> Option<DomRoot<Node>> {
+        self.highlighted_dom_node.get()
     }
 }
 

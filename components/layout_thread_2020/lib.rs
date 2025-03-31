@@ -563,6 +563,7 @@ impl LayoutThread {
             ))),
             iframe_sizes: Mutex::default(),
             use_rayon,
+            highlighted_dom_node: reflow_request.highlighted_dom_node,
         }
     }
 
