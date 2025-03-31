@@ -15,7 +15,7 @@ mod pipeline;
 mod sandboxing;
 mod serviceworker;
 mod session_history;
-mod webview;
+mod webview_manager;
 
 pub use crate::constellation::{Constellation, InitialConstellationState};
 pub use crate::logging::{FromCompositorLogger, FromScriptLogger};
