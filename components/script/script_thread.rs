@@ -2063,10 +2063,9 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetCssDatabase(reply) => {
                 devtools::handle_get_css_database(reply)
             },
-            DevtoolScriptControlMsg::SimulateColorScheme(id, is_light) => {
+            DevtoolScriptControlMsg::SimulateColorScheme(id, theme) => {
                 match documents.find_window(id) {
                     Some(window) => {
-                        let theme = if is_light { "light" } else { "dark" };
                         window.handle_theme_change(theme);
                     },
                     None => warn!("Message sent to closed pipeline {}.", id),
