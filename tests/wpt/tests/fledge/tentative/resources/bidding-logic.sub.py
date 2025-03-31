@@ -8,7 +8,7 @@ from fledge.tentative.resources import fledge_http_server_util
 # injected in them. generateBid() will by default return a bid of 9 for the
 # first ad.
 def main(request, response):
-  if fledge_http_server_util.handle_cors_headers_and_preflight(request, response):
+  if fledge_http_server_util.handle_cors_headers_fail_if_preflight(request, response):
     return
 
   error = request.GET.first(b"error", None)

@@ -19,16 +19,21 @@ use js::rust::Runtime;
 use servo_url::MutableOrigin;
 
 use super::structuredclone::StructuredCloneTags;
+use crate::dom::bindings::utils::DomHelpers;
+use crate::{DomTypeHolder, DomTypes};
 
 /// An owned reference to Servo's `JSPrincipals` instance.
 #[repr(transparent)]
 pub(crate) struct ServoJSPrincipals(NonNull<JSPrincipals>);
 
 impl ServoJSPrincipals {
-    pub(crate) fn new(origin: &MutableOrigin) -> Self {
+    pub(crate) fn new<D: DomTypes>(origin: &MutableOrigin) -> Self {
         unsafe {
             let private: Box<MutableOrigin> = Box::new(origin.clone());
-            let raw = CreateRustJSPrincipals(&PRINCIPALS_CALLBACKS, Box::into_raw(private) as _);
+            let raw = CreateRustJSPrincipals(
+                <D as DomHelpers<D>>::principals_callbacks(),
+                Box::into_raw(private) as _,
+            );
             // The created `JSPrincipals` object has an initial reference
             // count of zero, so the following code will set it to one
             Self::from_raw_nonnull(NonNull::new_unchecked(raw))
@@ -175,14 +180,14 @@ pub(crate) unsafe extern "C" fn read_jsprincipal(
     let Ok(origin) = bincode::deserialize(&bytes[..]) else {
         return false;
     };
-    let principal = ServoJSPrincipals::new(&origin);
+    let principal = ServoJSPrincipals::new::<DomTypeHolder>(&origin);
     *principals = principal.as_raw();
     // we transferred ownership of principal to the caller
     std::mem::forget(principal);
     true
 }
 
-const PRINCIPALS_CALLBACKS: JSPrincipalsCallbacks = JSPrincipalsCallbacks {
+pub(crate) const PRINCIPALS_CALLBACKS: JSPrincipalsCallbacks = JSPrincipalsCallbacks {
     write: Some(write_jsprincipal),
     isSystemOrAddonPrincipal: Some(principals_is_system_or_addon_principal),
 };

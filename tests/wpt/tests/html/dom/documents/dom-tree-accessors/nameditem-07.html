@@ -22,9 +22,15 @@
 <object id=test6></object>
 <object name=test6></object>
 
-<object id=test7 name=fail></object>
+<object name=test7></object>
 
-<object name=test8 id=fail></object>
+<object id=test8></object>
+
+<object id=test9a></object>
+
+<object name=test10a></object>
+
+<object name=test11a id=test11b></object>
 </div>
 <script>
 test(function() {
@@ -93,17 +99,114 @@ test(function() {
 
 test(function() {
   var object = document.getElementsByTagName("object")[10];
-  assert_equals(object.id, "test7");
+  assert_equals(object.name, "test7");
 
-  assert_true("test7" in document, '"test7" in document should be true');
+  assert_true("test7" in document, 'test7 in document should be true');
+  assert_equals(document["test7"], object);
   assert_equals(document.test7, object);
-}, "A name shouldn't affect getting an object by id");
+
+  object.removeAttribute("name");
+  assert_false("test7" in document, 'test7 in document should be false');
+  assert_equals(document["test7"], undefined);
+  assert_equals(document.test7, undefined);
+}, "Dynamically removing the name attribute from object elements, should not be accessible.");
 
 test(function() {
   var object = document.getElementsByTagName("object")[11];
-  assert_equals(object.name, "test8");
+  assert_equals(object.id, "test8");
 
-  assert_true("test8" in document, '"test8" in document should be true');
+  assert_true("test8" in document, 'test8 in document should be true');
+  assert_equals(document["test8"], object);
   assert_equals(document.test8, object);
-}, "An id shouldn't affect getting an object by name");
+
+  object.removeAttribute("id");
+  assert_false("test8" in document, 'test8 in document should be false');
+  assert_equals(document["test8"], undefined);
+  assert_equals(document.test8, undefined);
+}, "Dynamically removing the id attribute from object elements, should not be accessible.");
+
+test(function() {
+  var object = document.getElementsByTagName("object")[12];
+  assert_equals(object.id, "test9a");
+  assert_true("test9a" in document, 'test9a in document should be true');
+  assert_equals(document["test9a"], object);
+  assert_equals(document.test9a, object);
+
+  object.setAttribute("name", "test9a");
+  assert_true("test9a" in document, 'test9a in document should be true');
+  assert_equals(document["test9a"], object);
+  assert_equals(document.test9a, object);
+
+  object.setAttribute("name", "test9b");
+  assert_true("test9a" in document, 'test9a in document should be true');
+  assert_equals(document["test9a"], object);
+  assert_equals(document.test9a, object);
+  assert_true("test9b" in document, 'test9b in document should be true');
+  assert_equals(document["test9b"], object);
+  assert_equals(document.test9b, object);
+
+  object.setAttribute("name", "test9c");
+  assert_true("test9a" in document, 'test9a in document should be true');
+  assert_equals(document["test9a"], object);
+  assert_equals(document.test9a, object);
+  assert_false("test9b" in document, 'test9b in document should be false');
+  assert_equals(document["test9b"], undefined);
+  assert_equals(document.test9b, undefined);
+  assert_true("test9c" in document, 'test9c in document should be true');
+  assert_equals(document["test9c"], object);
+  assert_equals(document.test9c, object);
+}, "Dynamically updating the name attribute from object elements, should be accessible by its name and id.");
+
+test(function() {
+  var object = document.getElementsByTagName("object")[13];
+  assert_equals(object.name, "test10a");
+  assert_true("test10a" in document, 'test11a in document should be true');
+  assert_equals(document["test10a"], object);
+  assert_equals(document.test10a, object);
+
+  object.setAttribute("id", "test10a");
+  assert_true("test10a" in document, 'test10a in document should be true');
+  assert_equals(document["test10a"], object);
+  assert_equals(document.test10a, object);
+
+  object.setAttribute("id", "test10b");
+  assert_true("test10a" in document, 'test10a in document should be true');
+  assert_equals(document["test10a"], object);
+  assert_equals(document.test10a, object);
+  assert_true("test10b" in document, 'test10b in document should be false');
+  assert_equals(document["test10b"], object);
+  assert_equals(document.test10b, object);
+
+  object.setAttribute("id", "test10c");
+  assert_true("test10a" in document, 'test10a in document should be true');
+  assert_equals(document["test10a"], object);
+  assert_equals(document.test10a, object);
+  assert_false("test10b" in document, 'test10b in document should be false');
+  assert_equals(document["test10b"], undefined);
+  assert_equals(document.test10b, undefined);
+  assert_true("test10c" in document, 'test10b in document should be false');
+  assert_equals(document["test10c"], object);
+  assert_equals(document.test10c, object);
+}, "Dynamically updating the id attribute from object elements, should be accessible by its name and id.");
+
+test(function() {
+  var object = document.getElementsByTagName("object")[14];
+  assert_equals(object.name, "test11a");
+  assert_equals(object.id, "test11b");
+
+  assert_true("test11a" in document, 'test11a in document should be true');
+  assert_equals(document["test11a"], object);
+  assert_equals(document.test11a, object);
+  assert_true("test11b" in document, 'test11b in document should be true');
+  assert_equals(document["test11b"], object);
+  assert_equals(document.test11b, object);
+
+  object.remove();
+  assert_false("test11a" in document, 'test11a in document should be false');
+  assert_equals(document["test11a"], undefined);
+  assert_equals(document.test11a, undefined);
+  assert_false("test11b" in document, 'test11b in document should be false');
+  assert_equals(document["test11b"], undefined);
+  assert_equals(document.test11b, undefined);
+}, "object elements that is removed, should not be accessible.");
 </script>

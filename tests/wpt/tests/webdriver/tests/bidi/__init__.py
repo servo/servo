@@ -68,6 +68,14 @@ def any_list_or_null(actual: Any) -> None:
         any_list(actual)
 
 
+def any_positive_int(actual):
+    def _(actual: Any) -> None:
+        any_int(actual)
+        assert actual > 0
+
+    return _
+
+
 def any_string(actual: Any) -> None:
     assert isinstance(actual, str)
 

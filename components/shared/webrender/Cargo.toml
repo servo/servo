@@ -18,19 +18,19 @@ no-wgl = ["surfman/sm-angle-default"]
 [dependencies]
 base = { workspace = true }
 constellation_traits = { workspace = true }
+dpi = { version = "0.1" }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-image = { workspace = true }
-ipc-channel = { workspace = true }
-log = { workspace = true }
-libc = { workspace = true }
 gleam = { workspace = true }
 glow = { workspace = true }
-webrender_api = { workspace = true }
+image = { workspace = true }
+ipc-channel = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
+raw-window-handle = { version = "0.6" }
 serde = { workspace = true }
-servo_geometry = { path = "../../geometry" }
 servo-media = { workspace = true }
+servo_geometry = { path = "../../geometry" }
 stylo = { workspace = true }
 surfman = { workspace = true, features = ["sm-x11"] }
-raw-window-handle = { version = "0.6" }
-dpi = { version = "0.1" }
+webrender_api = { workspace = true }

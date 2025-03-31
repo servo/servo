@@ -45,6 +45,7 @@ from .protocol import (BaseProtocolPart,
                        DevicePostureProtocolPart,
                        StorageProtocolPart,
                        VirtualPressureSourceProtocolPart,
+                       ProtectedAudienceProtocolPart,
                        merge_dicts)
 
 from typing import Any, List, Optional, Tuple
@@ -684,13 +685,20 @@ class WebDriverVirtualPressureSourceProtocolPart(VirtualPressureSourceProtocolPa
         body.update(metadata)
         return self.webdriver.send_session_command("POST", "pressuresource", body)
 
-    def update_virtual_pressure_source(self, source_type, sample):
-        body = {"sample": sample}
+    def update_virtual_pressure_source(self, source_type, sample, own_contribution_estimate):
+        body = {"sample": sample, "own_contribution_estimate": own_contribution_estimate}
         return self.webdriver.send_session_command("POST", "pressuresource/%s" % source_type, body)
 
     def remove_virtual_pressure_source(self, source_type):
         return self.webdriver.send_session_command("DELETE", "pressuresource/%s" % source_type)
 
+class WebDriverProtectedAudienceProtocolPart(ProtectedAudienceProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def set_k_anonymity(self, owner, name, hashes):
+        body = {"owner": owner, "name": name, "hashes": hashes}
+        return self.webdriver.send_session_command("POST", "protected_audience/set_k_anonymity", body)
 
 class WebDriverProtocol(Protocol):
     enable_bidi = False
@@ -715,7 +723,8 @@ class WebDriverProtocol(Protocol):
                   WebDriverVirtualSensorPart,
                   WebDriverDevicePostureProtocolPart,
                   WebDriverStorageProtocolPart,
-                  WebDriverVirtualPressureSourceProtocolPart]
+                  WebDriverVirtualPressureSourceProtocolPart,
+                  WebDriverProtectedAudienceProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         super().__init__(executor, browser)
@@ -987,6 +996,14 @@ class WebDriverTestharnessExecutor(TestharnessExecutor, TestDriverExecutorMixin)
 
         self.close_after_done = close_after_done
         self.cleanup_after_test = cleanup_after_test
+        self.initial_window_size = None
+
+    def setup(self, runner, protocol=None):
+        super().setup(runner, protocol)
+        try:
+            self.initial_window_size = self.protocol.window.get_rect()
+        except Exception:
+            pass
 
     def on_environment_change(self, new_environment):
         if new_environment["protocol"] != self.last_environment["protocol"]:
@@ -1016,6 +1033,13 @@ class WebDriverTestharnessExecutor(TestharnessExecutor, TestDriverExecutorMixin)
             # The previous test may not have closed its old windows (if something
             # went wrong or if cleanup_after_test was False), so clean up here.
             protocol.testharness.close_old_windows()
+            # Restore the window to the initial position
+            if self.initial_window_size:
+                try:
+                    self.protocol.window.set_rect(self.initial_window_size)
+                except Exception:
+                    pass
+
             raw_results = self.run_testdriver(protocol, url, timeout)
             extra = {}
             if counters := self._check_for_leaks(protocol):

@@ -157,10 +157,12 @@ impl VirtualMethods for HTMLLabelElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         if *attr.local_name() == local_name!("form") {
-            self.form_attribute_mutated(mutation);
+            self.form_attribute_mutated(mutation, can_gc);
         }
     }
 }

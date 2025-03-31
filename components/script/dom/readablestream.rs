@@ -155,6 +155,7 @@ impl Callback for PipeTo {
     /// - the current state.
     /// - the type of `result`.
     /// - the state of a stored promise(in some cases).
+    #[allow(unsafe_code)]
     fn callback(&self, cx: SafeJSContext, result: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
         let global = self.reader.global();
 
@@ -197,14 +198,16 @@ impl Callback for PipeTo {
                         } else {
                             rooted!(in(*cx) let object = result.to_object());
                             rooted!(in(*cx) let mut done = UndefinedValue());
-                            get_dictionary_property(
-                                *cx,
-                                object.handle(),
-                                "done",
-                                done.handle_mut(),
-                                can_gc,
-                            )
-                            .unwrap()
+                            unsafe {
+                                get_dictionary_property(
+                                    *cx,
+                                    object.handle(),
+                                    "done",
+                                    done.handle_mut(),
+                                    can_gc,
+                                )
+                                .unwrap()
+                            }
                         }
                     };
                     // If any chunks have been read but not yet written, write them to dest.
@@ -342,6 +345,7 @@ impl PipeTo {
 
     /// Try to write a chunk using the jsval, and returns wether it succeeded
     // It will fail if it is the last `done` chunk, or if it is not a chunk at all.
+    #[allow(unsafe_code)]
     fn write_chunk(
         &self,
         cx: SafeJSContext,
@@ -352,9 +356,10 @@ impl PipeTo {
         if chunk.is_object() {
             rooted!(in(*cx) let object = chunk.to_object());
             rooted!(in(*cx) let mut bytes = UndefinedValue());
-            let has_value =
+            let has_value = unsafe {
                 get_dictionary_property(*cx, object.handle(), "value", bytes.handle_mut(), can_gc)
-                    .expect("Chunk should have a value.");
+                    .expect("Chunk should have a value.")
+            };
             if !bytes.is_undefined() && has_value {
                 // Write the chunk.
                 let write_promise = self.writer.write(cx, global, bytes.handle(), can_gc);

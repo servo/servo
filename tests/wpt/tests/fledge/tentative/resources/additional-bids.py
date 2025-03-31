@@ -23,7 +23,7 @@ class BadRequestError(Exception):
 
 def main(request, response):
   try:
-    if fledge_http_server_util.handle_cors_headers_and_preflight(request, response):
+    if fledge_http_server_util.handle_cors_headers_fail_if_preflight(request, response):
       return
 
     # Verify that Sec-Ad-Auction-Fetch is present

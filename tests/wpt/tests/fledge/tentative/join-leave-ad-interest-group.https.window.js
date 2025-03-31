@@ -14,7 +14,7 @@
 // META: variant=?71-80
 // META: variant=?81-last
 
-"use strict;"
+"use strict";
 
 // These tests are focused on joinAdInterestGroup() and leaveAdInterestGroup().
 // Most join tests do not run auctions, but instead only check the result of
@@ -460,7 +460,7 @@ const SIMPLE_JOIN_LEAVE_TEST_CASES = [
   },
 ];
 
-for (testCase of SIMPLE_JOIN_LEAVE_TEST_CASES) {
+for (let testCase of SIMPLE_JOIN_LEAVE_TEST_CASES) {
   var test_name = 'Join and leave interest group: ';
   if ('testCaseName' in testCase) {
     test_name += testCase.testCaseName;

@@ -377,7 +377,8 @@ class FirefoxInstanceManager:
                           self.e10s)
 
         args = self.binary_args[:] if self.binary_args else []
-        args += [cmd_arg("marionette"), "about:blank"]
+        args += [cmd_arg("marionette"),
+                 cmd_arg("remote-allow-system-access"), "about:blank"]
 
         debug_args, cmd = browser_command(self.binary,
                                           args,
@@ -906,7 +907,8 @@ class FirefoxBrowser(Browser):
             extensions.append(self.specialpowers_path)
         return ExecutorBrowser, {"marionette_port": self.instance.marionette_port,
                                  "extensions": extensions,
-                                 "supports_devtools": True}
+                                 "supports_devtools": True,
+                                 "supports_window_resize": True}
 
     def check_crash(self, process, test):
         return log_gecko_crashes(self.logger,

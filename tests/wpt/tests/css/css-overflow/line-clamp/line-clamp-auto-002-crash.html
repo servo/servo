@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` box containing float after margins should not crash</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://crbug.com/404288146">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<style>
+  .parent {
+    line-height: 1.2em;
+    line-clamp: auto;
+    max-height: 3lh;
+  }
+  .float {
+    float: left;
+  }
+  .margins {
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+  }
+</style>
+<div class="parent">
+  <div class="margins">A</div>
+  <div>
+    <div class="float"></div>
+    B
+  </div>
+</div>

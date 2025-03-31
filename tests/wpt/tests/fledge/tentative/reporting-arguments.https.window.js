@@ -9,7 +9,7 @@
 // META: variant=?11-15
 // META: variant=?16-last
 
-"use strict;"
+"use strict";
 
 // Simplified version of reportTest() for validating arguments to reporting
 // methods. Only takes expressions to check in reporting methods. "uuid" is

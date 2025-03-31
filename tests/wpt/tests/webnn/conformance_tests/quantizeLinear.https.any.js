@@ -202,7 +202,7 @@ const quantizeLinearTests = [
           'constant': true
         },
         'quantizeLinearScale': {
-          'data': [0.2800687253475189, -4.617084980010986],
+          'data': [0.2800687253475189, 4.617084980010986],
           'descriptor': {shape: [2, 1], dataType: 'float32'},
           'constant': true
         },
@@ -222,7 +222,7 @@ const quantizeLinearTests = [
       }],
       'expectedOutputs': {
         'quantizeLinearOutput': {
-          'data': [119, 111, 126, 127],
+          'data': [119, 111, 130, 129],
           'descriptor': {shape: [1, 1, 2, 2], dataType: 'uint8'}
         }
       }

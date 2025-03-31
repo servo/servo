@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use html5ever::LocalName;
+use script_bindings::script_runtime::CanGc;
 use style::attr::AttrValue;
 
 use crate::dom::attr::Attr;
@@ -72,9 +73,9 @@ pub(crate) trait VirtualMethods {
     /// Called when attributes of a node are mutated.
     /// <https://dom.spec.whatwg.org/#attribute-is-set>
     /// <https://dom.spec.whatwg.org/#attribute-is-removed>
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.attribute_mutated(attr, mutation);
+            s.attribute_mutated(attr, mutation, can_gc);
         }
     }
 
@@ -107,9 +108,9 @@ pub(crate) trait VirtualMethods {
 
     /// Called when a Node is appended to a tree, where 'tree_connected' indicates
     /// whether the tree is part of a Document.
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
     }
 
@@ -117,9 +118,9 @@ pub(crate) trait VirtualMethods {
     /// indicates whether the tree is part of a Document.
     /// Implements removing steps:
     /// <https://dom.spec.whatwg.org/#concept-node-remove-ext>
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context);
+            s.unbind_from_tree(context, can_gc);
         }
     }
 
@@ -131,16 +132,16 @@ pub(crate) trait VirtualMethods {
     }
 
     /// Called during event dispatch after the bubbling phase completes.
-    fn handle_event(&self, event: &Event) {
+    fn handle_event(&self, event: &Event, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.handle_event(event);
+            s.handle_event(event, can_gc);
         }
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-adopt-ext>
-    fn adopting_steps(&self, old_doc: &Document) {
+    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.adopting_steps(old_doc);
+            s.adopting_steps(old_doc, can_gc);
         }
     }
 
@@ -150,9 +151,10 @@ pub(crate) trait VirtualMethods {
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
+        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children);
+            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
         }
     }
 

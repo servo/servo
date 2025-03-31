@@ -57,6 +57,7 @@ use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use script_bindings::interfaces::WindowHelpers;
 use script_layout_interface::{
     FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
     TrustedNodeAddress, combine_id_with_fragment_type,
@@ -1967,6 +1968,9 @@ impl Window {
             pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
+            node_to_image_animation_map: document
+                .image_animation_manager_mut()
+                .take_image_animate_set(),
             theme: self.theme.get(),
         };
 
@@ -2017,7 +2021,9 @@ impl Window {
         if !size_messages.is_empty() {
             self.send_to_constellation(ScriptMsg::IFrameSizes(size_messages));
         }
-
+        document
+            .image_animation_manager_mut()
+            .restore_image_animate_set(results.node_to_image_animation_map);
         document.update_animations_post_reflow();
         self.update_constellation_epoch();
 
@@ -3115,5 +3121,15 @@ fn is_named_element_with_id_attribute(elem: &Element) -> bool {
 unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {
     unsafe {
         DumpJSStack(cx, true, false, false);
+    }
+}
+
+impl WindowHelpers for Window {
+    fn create_named_properties_object(
+        cx: JSContext,
+        proto: HandleObject,
+        object: MutableHandleObject,
+    ) {
+        Self::create_named_properties_object(cx, proto, object)
     }
 }

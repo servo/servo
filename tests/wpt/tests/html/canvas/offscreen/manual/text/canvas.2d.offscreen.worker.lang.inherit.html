@@ -20,44 +20,50 @@
     }
   </style>
   <script type="text/javascript">
+    function createWorker(language) {
+      const placeholder_canvas = document.createElement('canvas');
+      placeholder_canvas.setAttribute('width', '300');
+      placeholder_canvas.setAttribute('height', '100');
+      placeholder_canvas.setAttribute('lang', language);
+      const offscreen = placeholder_canvas.transferControlToOffscreen();
+
+      const worker = new Worker('text-lang-worker-inherit.js');
+      worker.postMessage({canvas: offscreen}, [offscreen]);
+
+      return placeholder_canvas;
+    }
+
     function runTest() {
-      const placeholder_canvas_tr = document.createElement('canvas');
-      placeholder_canvas_tr.setAttribute('width', '300');
-      placeholder_canvas_tr.setAttribute('height', '100');
-      placeholder_canvas_tr.setAttribute('lang', 'tr');
-      const offscreen_tr = placeholder_canvas_tr.transferControlToOffscreen();
-
-      const worker_tr = new Worker('text-lang-worker-inherit.js');
-      worker_tr.postMessage({canvas: offscreen_tr}, [offscreen_tr]);
-
-      const placeholder_canvas_en = document.createElement('canvas');
-      placeholder_canvas_en.setAttribute('width', '300');
-      placeholder_canvas_en.setAttribute('height', '100');
-      placeholder_canvas_en.setAttribute('lang', 'en');
-      const offscreen_en = placeholder_canvas_en.transferControlToOffscreen();
-
-      const worker_en = new Worker('text-lang-worker-inherit.js');
-      worker_en.postMessage({canvas: offscreen_en}, [offscreen_en]);
-
+      const placeholder_canvas_tr = createWorker('tr');
       const canvas_tr = document.getElementById('canvas-tr');
       const ctx_tr = canvas_tr.getContext('2d', {willReadFrequently: true});
-      const canvas_en = document.getElementById('canvas-en');
-      const ctx_en = canvas_en.getContext('2d', {willReadFrequently: true});
-      function checkResult() {
+      function checkFirstResult() {
         // Wait until frame propagates.
         ctx_tr.drawImage(placeholder_canvas_tr, 0, 0);
         const pixel_tr = ctx_tr.getImageData(0, 0, 1, 1).data;
-        ctx_en.drawImage(placeholder_canvas_en, 0, 0);
-        const pixel_en = ctx_en.getImageData(0, 0, 1, 1).data;
 
-        if (pixel_tr[3] == 0 || pixel_en[3] == 0) {
+        if (pixel_tr[3] == 0) {
           // Results not available, wait longer.
-          requestAnimationFrame(checkResult);
+          requestAnimationFrame(checkFirstResult);
         } else {
-          takeScreenshot();
+          const placeholder_canvas_en = createWorker('en');
+          const canvas_en = document.getElementById('canvas-en');
+          const ctx_en = canvas_en.getContext('2d', {willReadFrequently: true});
+          function checkSecondResult() {
+            ctx_en.drawImage(placeholder_canvas_en, 0, 0);
+            const pixel_en = ctx_en.getImageData(0, 0, 1, 1).data;
+
+            if (pixel_en[3] == 0) {
+              // Results not available, wait longer.
+              requestAnimationFrame(checkSecondResult);
+            } else {
+              takeScreenshot();
+            }
+          }
+          requestAnimationFrame(checkSecondResult);
         }
       }
-      requestAnimationFrame(checkResult);
+      requestAnimationFrame(checkFirstResult);
     }
   </script>
   <body onload="runTest()">

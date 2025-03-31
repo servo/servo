@@ -44,7 +44,7 @@
       scroller.scrollLeft = 100;
       // Allow for an animation frame that might be needed for the update to take
       // place.
-      await requestAnimationFrame(() => { });
+      await new Promise(r => requestAnimationFrame(r));
       assert_equals(scroller.scrollTop, 200,
         "vertical scroll position is programmatically adjusted");
       assert_equals(scroller.scrollLeft, 100,

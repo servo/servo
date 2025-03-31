@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Gradient powerless hue component converting tests - hwb</title>
+    <link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+    <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+    <style>
+       .test {
+            display: flex;
+            align-items: center;
+            width: 200px;
+            height: 50px;
+            position: relative;
+            border: 1px solid black;
+            margin: 10px;
+
+            /* Expected */
+            background-image: linear-gradient(to right in oklch, red, oklch(86.64396175234369% 0.295 142.4953450414439 / 0) );
+        }
+
+        .info {
+            position: absolute;
+            right: -10px;
+            transform: translateX(100%);
+        }
+    </style>
+</head>
+<p>They should be the same as the first box.</p>
+<ol>
+  <li class="test"><div class="info">oklch() Expected</div></li>
+  <li class="test"><div class="info">hwb()</div></li>
+  <li class="test"><div class="info">rgba()</div></li>
+  <li class="test"><div class="info">hsl()</div></li>
+  <li class="test"><div class="info">color()</div></li>
+</ol>
+</html>

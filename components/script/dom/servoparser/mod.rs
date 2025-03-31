@@ -713,7 +713,7 @@ where
 
     fn next(&mut self) -> Option<DomRoot<Node>> {
         let next = self.inner.next()?;
-        next.remove_self();
+        next.remove_self(CanGc::note());
         Some(next)
     }
 
@@ -1264,7 +1264,7 @@ impl TreeSink for Sink {
         let control = elem.and_then(|e| e.as_maybe_form_control());
 
         if let Some(control) = control {
-            control.set_form_owner_from_parser(&form);
+            control.set_form_owner_from_parser(&form, CanGc::note());
         }
     }
 
@@ -1476,6 +1476,9 @@ impl TreeSink for Sink {
                 // Set 8.4. Set template's template contents property to shadow.
                 let shadow = shadow_root.upcast::<DocumentFragment>();
                 template_element.set_contents(Some(shadow));
+
+                // Step 8.5. Set shadow’s available to element internals to true.
+                shadow_root.set_available_to_element_internals(true);
 
                 Ok(())
             },

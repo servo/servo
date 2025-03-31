@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Gradient analogous missing components carry forward logic tests</title>
+    <link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+    <link rel="author" title="一丝" href="mailto:yiorsi@gmail.com">
+    <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+    <meta name="assert" content="Tests that analogous missing components logic works.">
+    <link rel="match" href="gradient-analogous-missing-components-004-ref.html">
+    <style>
+        div {
+            display: flex;
+            align-items: center;
+            width: 200px;
+            height: 50px;
+            background: red;
+        }
+        .test1 {
+            background: linear-gradient(to right in oklab, rgb(none 255 0), rgb(255, 0, 0) );
+        }
+        .test2 {
+            background: linear-gradient(to right in oklab, rgb(none 255 0), rgb(255 none 0) );
+        }
+        .test3 {
+            background: linear-gradient(to right, rgb(none 255 0), rgb(255 none 0) );
+        }
+        .test4 {
+            background: linear-gradient(to right, rgb(none 255 0), rgb(255, 0, 0) );
+        }
+        .test5 {
+            background: linear-gradient(to right in oklab, rgb(0 255 0), rgb(255 0 0) );
+        }
+    </style>
+</head>
+<body>
+    <p>The background of all boxes should use the oklab color space, with a gradient from lime to red.</p>
+    <div class="test1">rgb() contains none</div>
+    <div class="test2">rgb() contains none</div>
+    <div class="test3">rgb() contains none</div>
+    <div class="test4">rgb() contains none</div>
+    <div class="test5">rgb() contains none</div>
+</body>
+</html>

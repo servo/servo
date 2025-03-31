@@ -93,6 +93,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
                     (element.is::<HTMLTableCellElement>()) &&
                         element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
                 },
+                CanGc::note(),
             )
         })
     }
@@ -104,13 +105,19 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
             index,
             || self.Cells(),
             || HTMLTableCellElement::new(local_name!("td"), None, &node.owner_doc(), None, can_gc),
+            can_gc,
         )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
     fn DeleteCell(&self, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
-        node.delete_cell_or_row(index, || self.Cells(), |n| n.is::<HTMLTableCellElement>())
+        node.delete_cell_or_row(
+            index,
+            || self.Cells(),
+            |n| n.is::<HTMLTableCellElement>(),
+            CanGc::note(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-rowindex

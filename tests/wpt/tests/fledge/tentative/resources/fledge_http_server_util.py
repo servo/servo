@@ -2,6 +2,17 @@
 from collections import namedtuple
 from urllib.parse import unquote_plus, urlparse
 
+def fail(response, body):
+    """Sets up response to fail with the provided response body.
+
+    Args:
+      response: the wptserve Response that was passed to main
+      body: the HTTP response body to use
+    """
+    response.status = (400, "Bad Request")
+    response.headers.set(b"Content-Type", b"text/plain")
+    response.content = body
+
 def headers_to_ascii(headers):
   """Converts a header map with binary values to one with ASCII values.
 
@@ -22,18 +33,15 @@ def headers_to_ascii(headers):
       header_map[pair[0].decode("ASCII")] = values
   return header_map
 
-
-def handle_cors_headers_and_preflight(request, response):
-  """Applies CORS logic common to many entrypoints.
+def attach_origin_and_credentials_headers(request, response):
+  """Attaches Access-Control-Allow-Origin and Access-Control-Allow-Credentials
+  response headers to a response, if the request indicates they're needed.
+  Only intended for internal use.
 
   Args:
     request: the wptserve Request that was passed to main
     response: the wptserve Response that was passed to main
-
-  Returns True if the request is a CORS preflight, which is entirely handled by
-  this function, so that the calling function should immediately return.
   """
-  # Append CORS headers if needed
   if b"origin" in request.headers:
     response.headers.set(b"Access-Control-Allow-Origin",
                         request.headers.get(b"origin"))
@@ -42,20 +50,50 @@ def handle_cors_headers_and_preflight(request, response):
     response.headers.set(b"Access-Control-Allow-Credentials",
                         request.headers.get(b"credentials"))
 
+def handle_cors_headers_fail_if_preflight(request, response):
+  """Adds CORS headers if necessary. In the case of CORS preflights, generates
+  a failure response. To be used when CORS preflights are not expected.
+
+  Args:
+    request: the wptserve Request that was passed to main
+    response: the wptserve Response that was passed to main
+
+  Returns True if the request is a CORS preflight, in which case the calling
+  function should immediately return.
+  """
+  # Handle CORS preflight requests.
+  if request.method == u"OPTIONS":
+    fail(response, "CORS preflight unexpectedly received.")
+    return True
+
+  # Append CORS headers if needed
+  attach_origin_and_credentials_headers(request, response)
+  return False
+
+def handle_cors_headers_and_preflight(request, response):
+  """Applies CORS logic, either adding CORS headers to response or generating
+  an entire response to preflights.
+
+  Args:
+    request: the wptserve Request that was passed to main
+    response: the wptserve Response that was passed to main
+
+  Returns True if the request is a CORS preflight, in which case the calling
+  function should immediately return.
+  """
+  # Append CORS headers if needed
+  attach_origin_and_credentials_headers(request, response)
+
   # Handle CORS preflight requests.
   if not request.method == u"OPTIONS":
     return False
 
   if not b"Access-Control-Request-Method" in request.headers:
-    response.status = (400, b"Bad Request")
-    response.headers.set(b"Content-Type", b"text/plain")
-    response.content = "Failed to get access-control-request-method in preflight!"
+    fail(response, "Failed to get access-control-request-method in preflight!")
     return True
 
   if not b"Access-Control-Request-Headers" in request.headers:
-    response.status = (400, b"Bad Request")
-    response.headers.set(b"Content-Type", b"text/plain")
-    response.content = "Failed to get access-control-request-headers in preflight!"
+    fail(response, "Failed to get access-control-request-headers in preflight!")
     return True
 
   response.headers.set(b"Access-Control-Allow-Methods",

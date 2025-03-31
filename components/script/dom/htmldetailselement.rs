@@ -122,7 +122,7 @@ impl HTMLDetailsElement {
             .unwrap();
 
         let fallback_summary =
-            HTMLElement::new(local_name!("summary"), None, &document, None, can_gc);
+            HTMLElement::new(local_name!("summary"), None, &document, None, CanGc::note());
         fallback_summary
             .upcast::<Node>()
             .SetTextContent(Some(DEFAULT_SUMMARY.into()), can_gc);
@@ -232,8 +232,10 @@ impl VirtualMethods for HTMLDetailsElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
 
         if attr.local_name() == &local_name!("open") {
             self.update_shadow_tree_styles(CanGc::note());
@@ -261,8 +263,8 @@ impl VirtualMethods for HTMLDetailsElement {
         self.update_shadow_tree_contents(CanGc::note());
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
-        self.super_type().unwrap().bind_to_tree(context);
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+        self.super_type().unwrap().bind_to_tree(context, can_gc);
 
         self.update_shadow_tree_contents(CanGc::note());
         self.update_shadow_tree_styles(CanGc::note());

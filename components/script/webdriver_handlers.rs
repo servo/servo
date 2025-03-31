@@ -224,7 +224,7 @@ pub(crate) unsafe fn jsval_to_webdriver(
         });
         let _ac = JSAutoRealm::new(cx, *object);
 
-        if is_array_like(cx, val) || is_arguments_object(cx, val) {
+        if is_array_like::<crate::DomTypeHolder>(cx, val) || is_arguments_object(cx, val) {
             let mut result: Vec<WebDriverJSValue> = Vec::new();
 
             let length = match get_property::<u32>(
@@ -551,6 +551,7 @@ pub(crate) fn handle_find_element_tag_name(
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(
@@ -618,6 +619,7 @@ pub(crate) fn handle_find_elements_tag_name(
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(
@@ -675,6 +677,7 @@ pub(crate) fn handle_find_element_element_tag_name(
     element_id: String,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(
@@ -737,6 +740,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
     element_id: String,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(
@@ -1148,6 +1152,7 @@ pub(crate) fn handle_get_url(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<ServoUrl>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(

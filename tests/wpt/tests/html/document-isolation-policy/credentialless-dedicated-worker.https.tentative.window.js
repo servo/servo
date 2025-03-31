@@ -2,6 +2,7 @@
 // META: script=/common/get-host-info.sub.js
 // META: script=/common/utils.js
 // META: script=/common/dispatcher/dispatcher.js
+// META: script=/service-workers/service-worker/resources/test-helpers.sub.js
 // META: script=./resources/common.js
 
 const same_origin = get_host_info().HTTPS_ORIGIN;
@@ -19,112 +20,63 @@ promise_test(async test => {
       cookie_same_site_none),
   ]);
 
-  // One window with DIP:none. (control)
-  const w_control_token = token();
-  const w_control_url = same_origin + executor_path +
-    coep_none + `&uuid=${w_control_token}`
-  const w_control = window.open(w_control_url);
-  add_completion_callback(() => w_control.close());
-
-  // One window with DIP:isolate-and-credentialless. (experiment)
-  const w_credentialless_token = token();
-  const w_credentialless_url = same_origin + executor_path +
-    dip_credentialless + `&uuid=${w_credentialless_token}`;
-  const w_credentialless = window.open(w_credentialless_url);
-  add_completion_callback(() => w_credentialless.close());
-
   let GetCookie = (response) => {
     const headers_credentialless = JSON.parse(response);
     return parseCookies(headers_credentialless)[cookie_key];
   }
 
+  async function fetchInRemoteContext(ctx, request_url) {
+    // The fail might fail in when a DedicatedWorker with DIP
+    // isolate-and-require-corp tries to fetch a cross-origin resource. Silently
+    // catch the error as we're only interested in whether the cookies were sent
+    // with the fetch in the first place.
+    try {
+    await ctx.execute_script(
+        async (url) => {
+          await fetch(url, {mode: 'no-cors', credentials: 'include'});
+        }, [request_url]);
+    } catch(error) {}
+  }
+
   const dedicatedWorkerTest = function(
-    description, origin, coep_for_worker,
-    expected_cookies_control,
-    expected_cookies_credentialless) {
+    description, origin, dip_for_worker,
+    expected_cookies) {
     promise_test_parallel(async t => {
-      // Create workers for both window.
-      const worker_token_1 = token();
-      const worker_token_2 = token();
+      // Create one iframe with the specified DIP isolate-and-credentialless.
+      // Then start a DedicatedWorker. The DedicatedWorker will inherit the DIP
+      // of its creator.
+      const worker = await createDedicatedWorkerContext(test, same_origin, dip_for_worker);
+      const worker_context = new RemoteContext(worker[0]);
 
-      // Used to check for errors creating the DedicatedWorker.
-      const worker_error = token();
+      // Fetch resources with the worker.
+      const request_token = token();
+      const request_url = showRequestHeaders(origin, request_token);
 
-      const w_worker_src_1 = same_origin + executor_worker_path +
-        coep_for_worker + `&uuid=${worker_token_1}`;
-      send(w_control_token, `
-        const worker = new Worker("${w_worker_src_1}", {});
-      `);
-
-      const w_worker_src_2 = same_origin + executor_worker_path +
-        coep_for_worker + `&uuid=${worker_token_2}`;
-      send(w_credentialless_token, `
-        const worker = new Worker("${w_worker_src_2}", {});
-        worker.onerror = () => {
-          send("${worker_error}", "Worker blocked");
-        }
-      `);
-
-      // Fetch resources with the workers.
-      const request_token_1 = token();
-      const request_token_2 = token();
-      const request_url_1 = showRequestHeaders(origin, request_token_1);
-      const request_url_2 = showRequestHeaders(origin, request_token_2);
-
-      send(worker_token_1, `
-        fetch("${request_url_1}", {mode: 'no-cors', credentials: 'include'})
-      `);
-      send(worker_token_2, `
-        fetch("${request_url_2}", {mode: 'no-cors', credentials: 'include'});
-      `);
-
-      const response_control = await receive(request_token_1).then(GetCookie);
-      assert_equals(response_control,
-        expected_cookies_control,
-        "coep:none => ");
-
-      const response_credentialless = await Promise.race([
-        receive(worker_error),
-        receive(request_token_2).then(GetCookie)
-      ]);
-      assert_equals(response_credentialless,
-        expected_cookies_credentialless,
-        "coep:credentialless => ");
+      await fetchInRemoteContext(worker_context, request_url);
+      const response_worker = await receive(request_token).then(GetCookie);
+      assert_equals(response_worker,
+        expected_cookies,
+        "dip => ");
     }, `fetch ${description}`)
   };
 
   dedicatedWorkerTest("same-origin + credentialless worker",
     same_origin, dip_credentialless,
-    cookie_same_origin,
     cookie_same_origin);
 
   dedicatedWorkerTest("same-origin + require_corp worker",
     same_origin, dip_require_corp,
-    cookie_same_origin,
     cookie_same_origin);
-
-  dedicatedWorkerTest("same-origin",
-    same_origin, dip_none,
-    cookie_same_origin,
-    "Worker blocked");
-
-  dedicatedWorkerTest("cross-origin",
-    cross_origin, dip_none,
-    cookie_cross_origin,
-    "Worker blocked" // Owner's policy is credentialless, so we can't
-                     // create a worker with coep_none.
-  );
 
   dedicatedWorkerTest("cross-origin + credentialless worker",
     cross_origin, dip_credentialless,
-    undefined, // Worker created successfully with credentialless, and fetch doesn't get credentials
     undefined // Worker created successfully with credentialless, and fetch doesn't get credentials
   );
 
   dedicatedWorkerTest("cross-origin + require_corp worker",
     cross_origin, dip_require_corp,
-    cookie_cross_origin,
-    cookie_cross_origin // The worker's policy is require_corp and doing a
-                        // fetch within it has nothing to do with the Owner's policy.
+    cookie_cross_origin // The worker's policy is require_corp, so the resource will be requested with cookies
+                        // but the load will fail because the response does not
+                        // have CORP cross-origin.
   );
 })

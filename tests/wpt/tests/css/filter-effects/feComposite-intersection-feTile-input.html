@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://crbug.com/373759987">
+<link rel="match"  href="feComposite-intersection-feTile-input-ref.html">
+<svg width="0" height="0">
+  <filter id="test" color-interpolation-filters="sRGB" x="0" y="0">
+    <feColorMatrix width="5" height="5"></feColorMatrix>
+    <feTile result="fill"></feTile>
+    <feColorMatrix in="SourceGraphic" values="0 0 0 0 0
+                                              0 0 0 0 0
+                                              0 0 0 0 0
+                                              0 1 0 0 0">
+    </feColorMatrix>
+    <feComposite in="fill" operator="in"></feComposite>
+  </filter>
+</svg>
+<div></div>
+<style>
+body {
+  margin: 0;
+}
+div {
+  position: absolute;
+  top: 0;
+  border: solid 20px;
+  width: 100px; height: 100px;
+  filter: url(#test);
+}
+div::after {
+  opacity: 0.5;
+  position: absolute;
+  inset: 0;
+  background: #0f0;
+  content: '';
+}
+</style>

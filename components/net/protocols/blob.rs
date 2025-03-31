@@ -54,6 +54,7 @@ impl ProtocolHandler for BlobProtocolHander {
         response.status = HttpStatus::default();
 
         if is_range_request {
+            response.range_requested = true;
             partial_content(&mut response);
         }
 

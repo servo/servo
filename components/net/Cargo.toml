@@ -21,6 +21,7 @@ async-tungstenite = { workspace = true }
 base = { workspace = true }
 base64 = { workspace = true }
 bytes = "1"
+chrono = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -36,8 +37,8 @@ http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true, features = ["client", "http1", "http2"] }
 hyper-rustls = { workspace = true }
-hyper_serde = { workspace = true }
 hyper-util = { workspace = true }
+hyper_serde = { workspace = true }
 imsz = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
@@ -59,26 +60,25 @@ servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 sha2 = "0.10"
-chrono = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true, features = ["sync", "macros", "rt-multi-thread"] }
-tokio-util = { version = "0.7.12", default-features = false, features = ["codec", "io"] }
 tokio-rustls = { workspace = true }
 tokio-stream = "0.1"
+tokio-util = { version = "0.7.12", default-features = false, features = ["codec", "io"] }
 tower-service = { workspace = true }
 tungstenite = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
+webpki-roots = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-webpki-roots = { workspace = true }
 
 [dev-dependencies]
 flate2 = "1"
 futures = { version = "0.3", features = ["compat"] }
 hyper = { workspace = true, features = ["full"] }
 hyper-util = { workspace = true, features = ["server-graceful"] }
-rustls = { workspace = true }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
 
 [[test]]
 name = "main"

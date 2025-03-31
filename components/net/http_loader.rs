@@ -26,7 +26,7 @@ use headers::{
 };
 use http::header::{
     self, ACCEPT, AUTHORIZATION, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
-    CONTENT_TYPE, HeaderValue,
+    CONTENT_TYPE, HeaderValue, RANGE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
 use http_body_util::combinators::BoxBody;
@@ -1123,7 +1123,7 @@ pub async fn http_redirect_fetch(
     fetch_response
 }
 
-/// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
+/// [HTTP network or cache fetch](https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch)
 #[async_recursion]
 async fn http_network_or_cache_fetch(
     fetch_params: &mut FetchParams,
@@ -1598,8 +1598,12 @@ async fn http_network_or_cache_fetch(
     }
 
     // TODO(#33616): Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
-    // TODO(#33616): Step 12. If httpRequest’s header list contains `Range`,
-    // then set response’s range-requested flag.
+
+    // Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
+    if http_request.headers.contains_key(RANGE) {
+        response.range_requested = true;
+    }
+
     // TODO(#33616): Step 13 Set response’s request-includes-credentials to includeCredentials.
 
     // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors",

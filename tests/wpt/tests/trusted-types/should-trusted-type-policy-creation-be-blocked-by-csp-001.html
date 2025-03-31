@@ -345,4 +345,19 @@
     });
   }, `single report-only policy with directive "trusted-type tt-policy-name1 tt-policy-name2 tt-policy-name3"`);
 
+  // Verify unquoted none is treated as a tt-policy-names.
+  ['none', 'allow-duplicates'].forEach(unquoted_keyword => {
+    promise_test(async t => {
+      let results = await tryCreatingTrustedTypePoliciesWithCSP(
+        [unquoted_keyword, "other-tt-policy-name"],
+        `header(Content-Security-Policy,trusted-types ${unquoted_keyword},True)`
+      );
+      assert_equals(results.length, 2);
+      assert_equals(results[0].exception, null);
+      assert_equals(results[0].violatedPolicies.length, 0);
+      assert_true(results[1].exception instanceof TypeError);
+      assert_equals(results[1].violatedPolicies.length, 1);
+    }, `Single enforce policy with directive "trusted-type ${unquoted_keyword}"`);
+  });
+
 </script>

@@ -2128,6 +2128,7 @@ impl ScriptThread {
                     pipeline_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementsCSS(selector, reply) => {
@@ -2153,6 +2154,7 @@ impl ScriptThread {
                     pipeline_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementElementCSS(selector, element_id, reply) => {
@@ -2184,6 +2186,7 @@ impl ScriptThread {
                     element_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementElementsCSS(selector, element_id, reply) => {
@@ -2215,6 +2218,7 @@ impl ScriptThread {
                     element_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FocusElement(element_id, reply) => {
@@ -2311,7 +2315,7 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetUrl(reply) => {
-                webdriver_handlers::handle_get_url(&documents, pipeline_id, reply)
+                webdriver_handlers::handle_get_url(&documents, pipeline_id, reply, can_gc)
             },
             WebDriverScriptCommand::IsEnabled(element_id, reply) => {
                 webdriver_handlers::handle_is_enabled(&documents, pipeline_id, element_id, reply)
@@ -2530,7 +2534,7 @@ impl ScriptThread {
                 // FIXME: synchronously talks to constellation.
                 // send the required info as part of postmessage instead.
                 let source = match self.remote_window_proxy(
-                    &window.global(),
+                    window.upcast::<GlobalScope>(),
                     source_browsing_context,
                     source_pipeline_id,
                     None,

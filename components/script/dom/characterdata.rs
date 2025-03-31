@@ -6,12 +6,12 @@
 use std::cell::LazyCell;
 
 use dom_struct::dom_struct;
+use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
-use crate::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -262,7 +262,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     // https://dom.spec.whatwg.org/#dom-childnode-remove
     fn Remove(&self) {
         let node = self.upcast::<Node>();
-        node.remove_self();
+        node.remove_self(CanGc::note());
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling

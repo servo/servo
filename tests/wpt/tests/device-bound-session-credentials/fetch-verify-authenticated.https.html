@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+  <script>
+    async function onload() {
+      let base_origin = get_host_info().ORIGIN;
+      let response = await fetch(`${base_origin}/device-bound-session-credentials/verify_authenticated.py`, {credentials: "omit"});
+      window.parent.postMessage(response.status, base_origin);
+    }
+    onload();
+  </script>
+</body>

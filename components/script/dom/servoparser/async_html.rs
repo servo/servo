@@ -546,7 +546,7 @@ impl Tokenizer {
                 let control = elem.and_then(|e| e.as_maybe_form_control());
 
                 if let Some(control) = control {
-                    control.set_form_owner_from_parser(&form);
+                    control.set_form_owner_from_parser(&form, can_gc);
                 }
             },
             ParseOperation::Pop { node } => {

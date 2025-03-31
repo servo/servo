@@ -6,7 +6,6 @@ use std::borrow::Cow;
 use std::iter::FusedIterator;
 
 use html5ever::{LocalName, local_name};
-use log::warn;
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use selectors::Element as SelectorsElement;
@@ -24,29 +23,23 @@ use crate::quotes::quotes_for_lang;
 use crate::replaced::ReplacedContents;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 
-#[derive(Clone, Copy, Debug)]
-pub(crate) enum WhichPseudoElement {
-    Before,
-    After,
-}
-
 /// A data structure used to pass and store related layout information together to
 /// avoid having to repeat the same arguments in argument lists.
 #[derive(Clone)]
 pub(crate) struct NodeAndStyleInfo<Node> {
-    pub node: Option<Node>,
-    pub pseudo_element_type: Option<WhichPseudoElement>,
+    pub node: Node,
+    pub pseudo_element_type: Option<PseudoElement>,
     pub style: ServoArc<ComputedValues>,
 }
 
 impl<'dom, Node: NodeExt<'dom>> NodeAndStyleInfo<Node> {
     fn new_with_pseudo(
         node: Node,
-        pseudo_element_type: WhichPseudoElement,
+        pseudo_element_type: PseudoElement,
         style: ServoArc<ComputedValues>,
     ) -> Self {
         Self {
-            node: Some(node),
+            node,
             pseudo_element_type: Some(pseudo_element_type),
             style,
         }
@@ -54,34 +47,32 @@ impl<'dom, Node: NodeExt<'dom>> NodeAndStyleInfo<Node> {
 
     pub(crate) fn new(node: Node, style: ServoArc<ComputedValues>) -> Self {
         Self {
-            node: Some(node),
+            node,
             pseudo_element_type: None,
             style,
         }
     }
 
     pub(crate) fn is_single_line_text_input(&self) -> bool {
-        self.node.is_some_and(|node| {
-            node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
+        self.node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
+    }
+
+    pub(crate) fn pseudo(
+        &self,
+        context: &LayoutContext,
+        pseudo_element_type: PseudoElement,
+    ) -> Option<Self> {
+        let style = self
+            .node
+            .to_threadsafe()
+            .as_element()?
+            .with_pseudo(pseudo_element_type)?
+            .style(context.shared_context());
+        Some(NodeAndStyleInfo {
+            node: self.node,
+            pseudo_element_type: Some(pseudo_element_type),
+            style,
         })
-    }
-}
-
-impl<Node: Clone> NodeAndStyleInfo<Node> {
-    pub(crate) fn new_anonymous(&self, style: ServoArc<ComputedValues>) -> Self {
-        Self {
-            node: None,
-            pseudo_element_type: self.pseudo_element_type,
-            style,
-        }
-    }
-
-    pub(crate) fn new_replacing_style(&self, style: ServoArc<ComputedValues>) -> Self {
-        Self {
-            node: self.node.clone(),
-            pseudo_element_type: self.pseudo_element_type,
-            style,
-        }
     }
 }
 
@@ -90,18 +81,25 @@ where
     Node: NodeExt<'dom>,
 {
     fn from(info: &NodeAndStyleInfo<Node>) -> Self {
-        let node = match info.node {
-            Some(node) => node,
-            None => return Self::anonymous(),
-        };
-
-        let pseudo = info.pseudo_element_type.map(|pseudo| match pseudo {
-            WhichPseudoElement::Before => PseudoElement::Before,
-            WhichPseudoElement::After => PseudoElement::After,
-        });
-
+        let node = info.node;
+        let pseudo = info.pseudo_element_type;
         let threadsafe_node = node.to_threadsafe();
         let mut flags = FragmentFlags::empty();
+
+        // Anonymous boxes should not have a tag, because they should not take part in hit testing.
+        //
+        // TODO(mrobinson): It seems that anonymous boxes should take part in hit testing in some
+        // cases, but currently this means that the order of hit test results isn't as expected for
+        // some WPT tests. This needs more investigation.
+        if matches!(
+            pseudo,
+            Some(PseudoElement::ServoAnonymousBox) |
+                Some(PseudoElement::ServoAnonymousTable) |
+                Some(PseudoElement::ServoAnonymousTableCell) |
+                Some(PseudoElement::ServoAnonymousTableRow)
+        ) {
+            return Self::anonymous();
+        }
 
         if let Some(element) = threadsafe_node.as_html_element() {
             if element.is_body_element_of_html_element_root() {
@@ -184,7 +182,7 @@ fn traverse_children_of<'dom, Node>(
 ) where
     Node: NodeExt<'dom>,
 {
-    traverse_pseudo_element(WhichPseudoElement::Before, parent_element, context, handler);
+    traverse_eager_pseudo_element(PseudoElement::Before, parent_element, context, handler);
 
     let is_text_input_element = matches!(
         parent_element.type_id(),
@@ -223,7 +221,7 @@ fn traverse_children_of<'dom, Node>(
         }
     }
 
-    traverse_pseudo_element(WhichPseudoElement::After, parent_element, context, handler);
+    traverse_eager_pseudo_element(PseudoElement::After, parent_element, context, handler);
 }
 
 fn traverse_element<'dom, Node>(
@@ -268,33 +266,46 @@ fn traverse_element<'dom, Node>(
     }
 }
 
-fn traverse_pseudo_element<'dom, Node>(
-    which: WhichPseudoElement,
-    element: Node,
+fn traverse_eager_pseudo_element<'dom, Node>(
+    pseudo_element_type: PseudoElement,
+    node: Node,
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom, Node>,
 ) where
     Node: NodeExt<'dom>,
 {
-    if let Some(style) = pseudo_element_style(which, element, context) {
-        let info = NodeAndStyleInfo::new_with_pseudo(element, which, style);
-        match Display::from(info.style.get_box().display) {
-            Display::None => element.unset_pseudo_element_box(which),
-            Display::Contents => {
-                let items = generate_pseudo_element_content(&info.style, element, context);
-                let box_slot = element.pseudo_element_box_slot(which);
-                box_slot.set(LayoutBox::DisplayContents);
-                traverse_pseudo_element_contents(&info, context, handler, items);
-            },
-            Display::GeneratingBox(display) => {
-                let items = generate_pseudo_element_content(&info.style, element, context);
-                let box_slot = element.pseudo_element_box_slot(which);
-                let contents = NonReplacedContents::OfPseudoElement(items).into();
-                handler.handle_element(&info, display, contents, box_slot);
-            },
-        }
-    } else {
-        element.unset_pseudo_element_box(which)
+    assert!(pseudo_element_type.is_eager());
+
+    // First clear any old contents from the node.
+    node.unset_pseudo_element_box(pseudo_element_type);
+
+    let Some(element) = node.to_threadsafe().as_element() else {
+        return;
+    };
+    let Some(pseudo_element) = element.with_pseudo(pseudo_element_type) else {
+        return;
+    };
+
+    let style = pseudo_element.style(context.shared_context());
+    if style.ineffective_content_property() {
+        return;
+    }
+
+    let info = NodeAndStyleInfo::new_with_pseudo(node, pseudo_element_type, style);
+    match Display::from(info.style.get_box().display) {
+        Display::None => {},
+        Display::Contents => {
+            let items = generate_pseudo_element_content(&info.style, node, context);
+            let box_slot = node.pseudo_element_box_slot(pseudo_element_type);
+            box_slot.set(LayoutBox::DisplayContents);
+            traverse_pseudo_element_contents(&info, context, handler, items);
+        },
+        Display::GeneratingBox(display) => {
+            let items = generate_pseudo_element_content(&info.style, node, context);
+            let box_slot = node.pseudo_element_box_slot(pseudo_element_type);
+            let contents = NonReplacedContents::OfPseudoElement(items).into();
+            handler.handle_element(&info, display, contents, box_slot);
+        },
     }
 }
 
@@ -306,20 +317,14 @@ fn traverse_pseudo_element_contents<'dom, Node>(
 ) where
     Node: NodeExt<'dom>,
 {
-    let mut anonymous_style = None;
+    let mut anonymous_info = None;
     for item in items {
         match item {
             PseudoElementContentItem::Text(text) => handler.handle_text(info, text.into()),
             PseudoElementContentItem::Replaced(contents) => {
-                let item_style = anonymous_style.get_or_insert_with(|| {
-                    context
-                        .shared_context()
-                        .stylist
-                        .style_for_anonymous::<Node::ConcreteElement>(
-                            &context.shared_context().guards,
-                            &PseudoElement::ServoAnonymousBox,
-                            &info.style,
-                        )
+                let anonymous_info = anonymous_info.get_or_insert_with(|| {
+                    info.pseudo(context, PseudoElement::ServoAnonymousBox)
+                        .unwrap_or_else(|| info.clone())
                 });
                 let display_inline = DisplayGeneratingBox::OutsideInside {
                     outside: DisplayOutside::Inline,
@@ -329,12 +334,11 @@ fn traverse_pseudo_element_contents<'dom, Node>(
                 };
                 // `display` is not inherited, so we get the initial value
                 debug_assert!(
-                    Display::from(item_style.get_box().display) ==
+                    Display::from(anonymous_info.style.get_box().display) ==
                         Display::GeneratingBox(display_inline)
                 );
-                let info = info.new_replacing_style(item_style.clone());
                 handler.handle_element(
-                    &info,
+                    anonymous_info,
                     display_inline,
                     Contents::Replaced(contents),
                     // We don’t keep pointers to boxes generated by contents of pseudo-elements
@@ -380,44 +384,15 @@ impl NonReplacedContents {
     ) where
         Node: NodeExt<'dom>,
     {
-        let node = match info.node {
-            Some(node) => node,
-            None => {
-                warn!("Tried to traverse an anonymous node!");
-                return;
-            },
-        };
         match self {
             NonReplacedContents::OfElement | NonReplacedContents::OfTextControl => {
-                traverse_children_of(node, context, handler)
+                traverse_children_of(info.node, context, handler)
             },
             NonReplacedContents::OfPseudoElement(items) => {
                 traverse_pseudo_element_contents(info, context, handler, items)
             },
         }
     }
-}
-
-fn pseudo_element_style<'dom, Node>(
-    which: WhichPseudoElement,
-    element: Node,
-    context: &LayoutContext,
-) -> Option<ServoArc<ComputedValues>>
-where
-    Node: NodeExt<'dom>,
-{
-    match which {
-        WhichPseudoElement::After => element.to_threadsafe().get_pseudo(PseudoElement::After),
-        WhichPseudoElement::Before => element.to_threadsafe().get_pseudo(PseudoElement::Before),
-    }
-    .and_then(|pseudo_element| {
-        let style = pseudo_element.style(context.shared_context());
-        if style.ineffective_content_property() {
-            None
-        } else {
-            Some(style)
-        }
-    })
 }
 
 fn get_quote_from_pair<I, S>(item: &ContentItem<I>, opening: &S, closing: &S) -> String

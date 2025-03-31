@@ -265,6 +265,7 @@ var unspecified_properties = {
     'column-rule-color': ['color'],
     'column-rule-width': ['length'],
     'column-width': ['length'],
+    'column-height': ['length'],
     'transform': ['transform'],
     'transform-origin': ['horizontal'],
     'display': ['display'],

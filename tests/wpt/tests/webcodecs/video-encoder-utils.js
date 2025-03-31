@@ -81,13 +81,21 @@ function validateBlackDots(frame, count) {
   return true;
 }
 
-function createFrame(width, height, ts = 0) {
+function createFrame(width, height, ts = 0, additionalOptions = {}) {
   let duration = 33333;  // 30fps
   let text = ts.toString();
   let cnv = new OffscreenCanvas(width, height);
   var ctx = cnv.getContext('2d');
   fourColorsFrame(ctx, width, height, text);
-  return new VideoFrame(cnv, { timestamp: ts, duration });
+
+  // Merge the default options with the provided additionalOptions
+  const videoFrameOptions = {
+    timestamp: ts,
+    duration,
+    ...additionalOptions, // Spread the additional options to merge them
+  };
+
+  return new VideoFrame(cnv, videoFrameOptions);
 }
 
 function createDottedFrame(width, height, dots, ts) {

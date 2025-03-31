@@ -12,6 +12,8 @@
 // META: variant=?13-16
 // META: variant=?17-last
 
+"use strict";
+
 // These tests focus on the navigator.getInterestGroupAdAuctionData() method.
 
 // Checks various fields for decoded InterestGroupAdAuctionData that's
