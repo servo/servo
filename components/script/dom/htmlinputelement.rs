@@ -17,7 +17,7 @@ use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
-    NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
+    NewUCRegExpObject, ObjectIsDate, RegExpFlag_UnicodeSets, RegExpFlags,
 };
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
@@ -3002,7 +3002,7 @@ fn compile_pattern(cx: SafeJSContext, pattern_str: &str, out_regex: MutableHandl
         // ...and if it does make pattern that matches only the entirety of string
         let pattern_str = format!("^(?:{})$", pattern_str);
         let flags = RegExpFlags {
-            flags_: RegExpFlag_Unicode,
+            flags_: RegExpFlag_UnicodeSets,
         };
         new_js_regex(cx, &pattern_str, flags, out_regex)
     } else {
@@ -3023,7 +3023,7 @@ fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
             pattern.as_ptr(),
             pattern.len(),
             RegExpFlags {
-                flags_: RegExpFlag_Unicode,
+                flags_: RegExpFlag_UnicodeSets,
             },
             exception.handle_mut(),
         );
