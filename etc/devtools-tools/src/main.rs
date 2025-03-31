@@ -144,7 +144,12 @@ fn main() -> eyre::Result<()> {
         let queue = transactions
             .get_mut(&(Actor(to.clone()), Type(r#type.clone())))
             .expect("No queue for actor and type");
-        let (expected_message, reply_message) = queue.remove(0);
+
+        let Some((expected_message, reply_message)) = (!queue.is_empty()).then(|| queue.remove(0))
+        else {
+            warn!(?message, "No reply found for message");
+            continue;
+        };
 
         // The key idea here is that for each actor and type, the client will send us the same requests.
         assert_eq!(&message, expected_message);
