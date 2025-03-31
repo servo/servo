@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::rc::Rc;
 
 use app_units::Au;
@@ -98,12 +97,12 @@ impl ResizeObserver {
 
                 // Step 2.2.1.2 If targetDepth is greater than depth then add observation to [[activeTargets]].
                 if target_depth > *depth {
-                    observation.state = ObservationState::Active(size).into();
+                    observation.state = ObservationState::Active(size);
                     *has_active = true;
                 }
                 // Step 2.2.1.3 Else add observation to [[skippedTargets]].
                 else {
-                    observation.state = ObservationState::Skipped.into();
+                    observation.state = ObservationState::Skipped;
                 }
             }
         }
@@ -125,12 +124,12 @@ impl ResizeObserver {
         let mut entries: Vec<DomRoot<ResizeObserverEntry>> = Default::default();
 
         // Step 2.3 For each observation in [[activeTargets]] perform these steps:
-        for (observation, target) in self.observation_targets.borrow().iter() {
+        for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
             let box_size = {
-                let ObservationState::Active(box_size) = &*observation.state.borrow() else {
+                let ObservationState::Active(box_size) = observation.state else {
                     continue;
                 };
-                *box_size
+                box_size
             };
             has_active_observation_targets = true;
 
@@ -168,8 +167,8 @@ impl ResizeObserver {
             // initialized with one reported size (zero).
             // The spec plans to store multiple reported sizes,
             // but for now there can be only one.
-            observation.last_reported_sizes.borrow_mut()[0] = size_impl;
-            *observation.state.borrow_mut() = ObservationState::Done;
+            observation.last_reported_sizes[0] = size_impl;
+            observation.state = ObservationState::Done;
             let target_depth = calculate_depth_for_node(target);
             if target_depth < *shallowest_target_depth {
                 *shallowest_target_depth = target_depth;
@@ -194,7 +193,7 @@ impl ResizeObserver {
         self.observation_targets
             .borrow()
             .iter()
-            .any(|(observation, _)| *observation.state.borrow() == ObservationState::Skipped)
+            .any(|(observation, _)| observation.state == ObservationState::Skipped)
     }
 }
 
@@ -263,12 +262,12 @@ enum ObservationState {
 #[derive(JSTraceable, MallocSizeOf)]
 struct ResizeObservation {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-observedbox>
-    observed_box: RefCell<ResizeObserverBoxOptions>,
+    observed_box: ResizeObserverBoxOptions,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-lastreportedsizes>
-    last_reported_sizes: RefCell<Vec<ResizeObserverSizeImpl>>,
+    last_reported_sizes: Vec<ResizeObserverSizeImpl>,
     /// State machine mimicking the "active" and "skipped" targets slots of the observer.
     #[no_trace]
-    state: RefCell<ObservationState>,
+    state: ObservationState,
 }
 
 impl ResizeObservation {
@@ -276,9 +275,9 @@ impl ResizeObservation {
     pub(crate) fn new(observed_box: ResizeObserverBoxOptions) -> ResizeObservation {
         let size_impl = ResizeObserverSizeImpl::new(0.0, 0.0);
         ResizeObservation {
-            observed_box: RefCell::new(observed_box),
-            last_reported_sizes: RefCell::new(vec![size_impl]),
-            state: RefCell::new(Default::default()),
+            observed_box,
+            last_reported_sizes: vec![size_impl],
+            state: Default::default(),
         }
     }
 
@@ -286,8 +285,8 @@ impl ResizeObservation {
     /// Returning an optional calculated size, instead of a boolean,
     /// to avoid recalculating the size in the subsequent broadcast.
     fn is_active(&self, target: &Element, can_gc: CanGc) -> Option<Rect<Au>> {
-        let last_reported_size = self.last_reported_sizes.borrow()[0];
-        let box_size = calculate_box_size(target, &self.observed_box.borrow(), can_gc);
+        let last_reported_size = self.last_reported_sizes[0];
+        let box_size = calculate_box_size(target, &self.observed_box, can_gc);
         let is_active = box_size.width().to_f64_px() != last_reported_size.inline_size() ||
             box_size.height().to_f64_px() != last_reported_size.block_size();
         if is_active { Some(box_size) } else { None }
