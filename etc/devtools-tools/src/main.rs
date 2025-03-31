@@ -1,7 +1,8 @@
 use core::str;
 use std::{
     collections::BTreeMap,
-    io::{self, BufRead, BufReader, Read, Write},
+    fs::File,
+    io::{BufRead, BufReader, Read, Write},
     net::{TcpListener, TcpStream},
 };
 
@@ -9,7 +10,7 @@ use clap::Parser;
 use jane_eyre::eyre;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use serde_jsonlines::json_lines;
+use serde_jsonlines::BufReadExt;
 use tracing::{debug, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -55,10 +56,21 @@ fn main() -> eyre::Result<()> {
         .init();
     let args = Args::parse();
 
+    // Allow records to be commented out by prefixing the line with `//`.
+    let mut file = String::default();
+    File::open(args.json_path)?.read_to_string(&mut file)?;
+    let file = file
+        .split_terminator('\n')
+        .filter(|x| !x.starts_with("//"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let file = BufReader::new(file.as_bytes());
+
     // Collect messages by parsing and unwrapping records from `devtools_parser.py --json`.
-    let messages = json_lines::<WrappedMessage, _>(args.json_path)?
-        .map(|result| result.map(|record| record.message))
-        .collect::<io::Result<Vec<_>>>()?;
+    let mut messages = vec![];
+    for line in file.json_lines::<WrappedMessage>() {
+        messages.push(line?.message);
+    }
 
     let Some((initial_message, subsequent_messages)) = messages.split_first() else {
         warn!("No initial message! Exiting");
