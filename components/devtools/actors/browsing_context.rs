@@ -26,11 +26,9 @@ use crate::actors::stylesheets::StyleSheetsActor;
 use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
+use crate::id::{DevtoolsBrowserId, DevtoolsBrowsingContextId, DevtoolsOuterWindowId, IdMap};
 use crate::protocol::JsonPacketStream;
-use crate::{
-    DevtoolsBrowserId, DevtoolsBrowsingContextId, DevtoolsOuterWindowId, EmptyReplyMsg, IdMap,
-    StreamId,
-};
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 struct FrameUpdateReply {
