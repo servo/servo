@@ -772,7 +772,7 @@ impl HTMLFormElement {
 
             // Step 6.5
             let event = SubmitEvent::new(
-                &self.global().as_window(),
+                self.global().as_window(),
                 atom!("submit"),
                 true,
                 true,

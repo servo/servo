@@ -290,7 +290,7 @@ impl XRSession {
                 }
                 // Step 7
                 let event = XRSessionEvent::new(
-                    &self.global().as_window(),
+                    self.global().as_window(),
                     atom!("end"),
                     false,
                     false,
@@ -309,11 +309,11 @@ impl XRSession {
                 let source = self.input_sources.find(input);
                 let atom_index = if kind == SelectKind::Squeeze { 1 } else { 0 };
                 if let Some(source) = source {
-                    let frame = XRFrame::new(&self.global().as_window(), self, frame, can_gc);
+                    let frame = XRFrame::new(self.global().as_window(), self, frame, can_gc);
                     frame.set_active(true);
                     if ty == SelectEvent::Start {
                         let event = XRInputSourceEvent::new(
-                            &self.global().as_window(),
+                            self.global().as_window(),
                             START_ATOMS[atom_index].clone(),
                             false,
                             false,
@@ -325,7 +325,7 @@ impl XRSession {
                     } else {
                         if ty == SelectEvent::Select {
                             let event = XRInputSourceEvent::new(
-                                &self.global().as_window(),
+                                self.global().as_window(),
                                 EVENT_ATOMS[atom_index].clone(),
                                 false,
                                 false,
@@ -336,7 +336,7 @@ impl XRSession {
                             event.upcast::<Event>().fire(self.upcast(), can_gc);
                         }
                         let event = XRInputSourceEvent::new(
-                            &self.global().as_window(),
+                            self.global().as_window(),
                             END_ATOMS[atom_index].clone(),
                             false,
                             false,
@@ -357,7 +357,7 @@ impl XRSession {
                 };
                 self.visibility_state.set(v);
                 let event = XRSessionEvent::new(
-                    &self.global().as_window(),
+                    self.global().as_window(),
                     atom!("visibilitychange"),
                     false,
                     false,
@@ -400,9 +400,9 @@ impl XRSession {
                     })
                     .for_each(|space| {
                         let offset =
-                            XRRigidTransform::new(&self.global().as_window(), transform, can_gc);
+                            XRRigidTransform::new(self.global().as_window(), transform, can_gc);
                         let event = XRReferenceSpaceEvent::new(
-                            &self.global().as_window(),
+                            self.global().as_window(),
                             atom!("reset"),
                             false,
                             false,
@@ -469,7 +469,7 @@ impl XRSession {
         }
 
         let time = self.global().performance().to_dom_high_res_time_stamp(time);
-        let frame = XRFrame::new(&self.global().as_window(), self, frame, CanGc::note());
+        let frame = XRFrame::new(self.global().as_window(), self, frame, CanGc::note());
 
         // Step 8-9
         frame.set_active(true);
@@ -610,7 +610,7 @@ impl XRSession {
         self.framerate.set(rate);
 
         let event = XRSessionEvent::new(
-            &self.global().as_window(),
+            self.global().as_window(),
             Atom::from("frameratechange"),
             false,
             false,
@@ -870,13 +870,13 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                 }
                 if ty == XRReferenceSpaceType::Bounded_floor {
                     let space =
-                        XRBoundedReferenceSpace::new(&self.global().as_window(), self, can_gc);
+                        XRBoundedReferenceSpace::new(self.global().as_window(), self, can_gc);
                     self.reference_spaces
                         .borrow_mut()
                         .push(Dom::from_ref(space.reference_space()));
                     p.resolve_native(&space, can_gc);
                 } else {
-                    let space = XRReferenceSpace::new(&self.global().as_window(), self, ty, can_gc);
+                    let space = XRReferenceSpace::new(self.global().as_window(), self, ty, can_gc);
                     self.reference_spaces
                         .borrow_mut()
                         .push(Dom::from_ref(&*space));

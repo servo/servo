@@ -158,7 +158,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
     fn Inverse(&self, can_gc: CanGc) -> DomRoot<XRRigidTransform> {
         self.inverse.or_init(|| {
             let transform =
-                XRRigidTransform::new(&self.global().as_window(), self.transform.inverse(), can_gc);
+                XRRigidTransform::new(self.global().as_window(), self.transform.inverse(), can_gc);
             transform.inverse.set(Some(self));
             transform
         })

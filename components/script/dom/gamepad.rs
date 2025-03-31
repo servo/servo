@@ -249,7 +249,7 @@ impl Gamepad {
 
     pub(crate) fn notify_event(&self, event_type: GamepadEventType, can_gc: CanGc) {
         let event =
-            GamepadEvent::new_with_type(&self.global().as_window(), event_type, self, can_gc);
+            GamepadEvent::new_with_type(self.global().as_window(), event_type, self, can_gc);
         event
             .upcast::<Event>()
             .fire(self.global().as_window().upcast::<EventTarget>(), can_gc);

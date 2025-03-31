@@ -1631,7 +1631,7 @@ impl HTMLMediaElement {
 
                         // Steps 7.
                         let event = TrackEvent::new(
-                            &self.global().as_window(),
+                            self.global().as_window(),
                             atom!("addtrack"),
                             false,
                             false,
@@ -1689,7 +1689,7 @@ impl HTMLMediaElement {
 
                         // Steps 7.
                         let event = TrackEvent::new(
-                            &self.global().as_window(),
+                            self.global().as_window(),
                             atom!("addtrack"),
                             false,
                             false,

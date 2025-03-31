@@ -79,7 +79,7 @@ impl FormDataEventMethods<crate::DomTypeHolder> for FormDataEvent {
         let cancelable = EventCancelable::from(init.parent.cancelable);
 
         let event = FormDataEvent::new_with_proto(
-            &window,
+            window,
             proto,
             Atom::from(type_),
             bubbles,

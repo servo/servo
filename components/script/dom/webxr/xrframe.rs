@@ -123,7 +123,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             return Ok(None);
         };
         Ok(Some(XRViewerPose::new(
-            &self.global().as_window(),
+            self.global().as_window(),
             &self.session,
             to_base,
             viewer_pose,
@@ -155,7 +155,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             return Ok(None);
         };
         let pose = space.then(&base_space.inverse());
-        Ok(Some(XRPose::new(&self.global().as_window(), pose, can_gc)))
+        Ok(Some(XRPose::new(self.global().as_window(), pose, can_gc)))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrframe-getpose>
@@ -185,7 +185,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
         };
         let pose = joint_frame.pose.then(&base_space.inverse());
         Ok(Some(XRJointPose::new(
-            &self.global().as_window(),
+            self.global().as_window(),
             pose.cast_unit(),
             Some(joint_frame.radius),
             can_gc,
@@ -198,7 +198,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             .hit_test_results
             .iter()
             .filter(|r| r.id == source.id())
-            .map(|r| XRHitTestResult::new(&self.global().as_window(), *r, self, CanGc::note()))
+            .map(|r| XRHitTestResult::new(self.global().as_window(), *r, self, CanGc::note()))
             .collect()
     }
 
