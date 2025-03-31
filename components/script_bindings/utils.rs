@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::CString;
-use std::os::raw::c_void;
+use std::os::raw::{c_char, c_void};
 use std::ptr::{self, NonNull};
 
 use js::conversions::ToJSValConvertible;
@@ -13,9 +13,9 @@ use js::glue::{
 };
 use js::jsapi::{
     AtomToLinearString, CallArgs, ExceptionStackBehavior, GetLinearStringCharAt,
-    GetLinearStringLength, GetNonCCWObjectGlobal, HandleObject as RawHandleObject,
+    GetLinearStringLength, GetNonCCWObjectGlobal, HandleObject as RawHandleObject, Heap,
     JS_ClearPendingException, JS_IsExceptionPending, JSAtom, JSContext, JSJitInfo, JSObject,
-    MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex,
+    JSTracer, MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex,
 };
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{
@@ -36,6 +36,7 @@ use crate::conversions::{PrototypeCheck, jsstring_to_str, private_from_proto_che
 use crate::error::throw_invalid_this;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::str::DOMString;
+use crate::trace::trace_object;
 
 /// The struct that holds inheritance information for DOM object reflectors.
 #[derive(Clone, Copy)]
@@ -524,5 +525,44 @@ pub unsafe fn exception_to_promise(
         // We just give up.  Put the exception back.
         JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
         false
+    }
+}
+
+/// Trace the resources held by reserved slots of a global object
+///
+/// # Safety
+/// `tracer` must point to a valid, non-null JSTracer.
+/// `obj` must point to a valid, non-null JSObject.
+pub unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
+    let array = get_proto_or_iface_array(obj);
+    for proto in (*array).iter() {
+        if !proto.is_null() {
+            trace_object(
+                tracer,
+                "prototype",
+                &*(proto as *const *mut JSObject as *const Heap<*mut JSObject>),
+            );
+        }
+    }
+}
+
+// Generic method for returning libc::c_void from caller
+pub trait AsVoidPtr {
+    fn as_void_ptr(&self) -> *const libc::c_void;
+}
+impl<T> AsVoidPtr for T {
+    fn as_void_ptr(&self) -> *const libc::c_void {
+        self as *const T as *const libc::c_void
+    }
+}
+
+// Generic method for returning c_char from caller
+pub trait AsCCharPtrPtr {
+    fn as_c_char_ptr(&self) -> *const c_char;
+}
+
+impl AsCCharPtrPtr for [u8] {
+    fn as_c_char_ptr(&self) -> *const c_char {
+        self as *const [u8] as *const c_char
     }
 }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use js::rust::HandleObject;
+use js::rust::{HandleObject, MutableHandleObject};
 
 use crate::script_runtime::JSContext;
 
@@ -21,4 +21,12 @@ pub trait TestBindingHelpers {
 
 pub trait WebGL2RenderingContextHelpers {
     fn is_webgl2_enabled(cx: JSContext, global: HandleObject) -> bool;
+}
+
+pub trait WindowHelpers {
+    fn create_named_properties_object(
+        cx: JSContext,
+        proto: HandleObject,
+        object: MutableHandleObject,
+    );
 }

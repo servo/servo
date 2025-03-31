@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::gc::RootedVec;
 use js::rust::HandleObject;
+use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 
 use crate::ScriptThread;
 use crate::dom::attr::Attr;
@@ -19,7 +20,6 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Bindi
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
 };
-use crate::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::codegen::UnionTypes::ElementOrText;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -35,7 +35,7 @@ use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#the-slot-element>
 #[dom_struct]
-pub struct HTMLSlotElement {
+pub(crate) struct HTMLSlotElement {
     htmlelement: HTMLElement,
 
     /// <https://dom.spec.whatwg.org/#slot-assigned-nodes>

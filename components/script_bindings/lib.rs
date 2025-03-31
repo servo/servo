@@ -28,6 +28,7 @@ pub mod iterable;
 pub mod like;
 pub mod lock;
 pub mod num;
+pub mod proxyhandler;
 pub mod record;
 pub mod reflector;
 pub mod root;

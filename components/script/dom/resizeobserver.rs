@@ -42,10 +42,17 @@ impl ResizeObservationDepth {
 #[dom_struct]
 pub(crate) struct ResizeObserver {
     reflector_: Reflector,
+
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-callback-slot>
     #[ignore_malloc_size_of = "Rc are hard"]
     callback: Rc<ResizeObserverCallback>,
+
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observationtargets-slot>
+    ///
+    /// This list simultaneously also represents the
+    /// [`[[activeTargets]]`](https://drafts.csswg.org/resize-observer/#dom-resizeobserver-activetargets-slot)
+    /// and [`[[skippedTargets]]`](https://drafts.csswg.org/resize-observer/#dom-resizeobserver-skippedtargets-slot)
+    /// internal slots.
     observation_targets: DomRefCell<Vec<(ResizeObservation, Dom<Element>)>>,
 }
 
@@ -68,7 +75,8 @@ impl ResizeObserver {
         reflect_dom_object_with_proto(observer, window, proto, can_gc)
     }
 
-    /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
+    /// Step 2 of <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
+    ///
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub(crate) fn gather_active_resize_observations_at_depth(
         &self,
@@ -76,27 +84,47 @@ impl ResizeObserver {
         has_active: &mut bool,
         can_gc: CanGc,
     ) {
+        // Step 2.1 Clear observer’s [[activeTargets]], and [[skippedTargets]].
+        // NOTE: This happens as part of Step 2.2
+
+        // Step 2.2 For each observation in observer.[[observationTargets]] run this step:
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
             observation.state = Default::default();
+
+            // Step 2.2.1 If observation.isActive() is true
             if let Some(size) = observation.is_active(target, can_gc) {
+                // Step 2.2.1.1 Let targetDepth be result of calculate depth for node for observation.target.
                 let target_depth = calculate_depth_for_node(target);
+
+                // Step 2.2.1.2 If targetDepth is greater than depth then add observation to [[activeTargets]].
                 if target_depth > *depth {
                     observation.state = ObservationState::Active(size).into();
                     *has_active = true;
-                } else {
+                }
+                // Step 2.2.1.3 Else add observation to [[skippedTargets]].
+                else {
                     observation.state = ObservationState::Skipped.into();
                 }
             }
         }
     }
 
-    /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
+    /// Step 2 of <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
     pub(crate) fn broadcast_active_resize_observations(
         &self,
         shallowest_target_depth: &mut ResizeObservationDepth,
         can_gc: CanGc,
     ) {
+        // Step 2.1 If observer.[[activeTargets]] slot is empty, continue.
+        // NOTE: Due to the way we implement the activeTarges internal slot we can't easily
+        // know if it's empty. Instead we remember whether there were any active observation
+        // targets during the following traversal and return if there were none.
+        let mut has_active_observation_targets = false;
+
+        // Step 2.2 Let entries be an empty list of ResizeObserverEntryies.
         let mut entries: Vec<DomRoot<ResizeObserverEntry>> = Default::default();
+
+        // Step 2.3 For each observation in [[activeTargets]] perform these steps:
         for (observation, target) in self.observation_targets.borrow().iter() {
             let box_size = {
                 let ObservationState::Active(box_size) = &*observation.state.borrow() else {
@@ -104,6 +132,7 @@ impl ResizeObserver {
                 };
                 *box_size
             };
+            has_active_observation_targets = true;
 
             // #create-and-populate-a-resizeobserverentry
 
@@ -146,9 +175,18 @@ impl ResizeObserver {
                 *shallowest_target_depth = target_depth;
             }
         }
+
+        if !has_active_observation_targets {
+            return;
+        }
+
+        // Step 2.4 Invoke observer.[[callback]] with entries.
         let _ = self
             .callback
             .Call_(self, entries, self, ExceptionHandling::Report, can_gc);
+
+        // Step 2.5 Clear observer.[[activeTargets]].
+        // NOTE: The observation state was modified in Step 2.2
     }
 
     /// <https://drafts.csswg.org/resize-observer/#has-skipped-observations-h>
