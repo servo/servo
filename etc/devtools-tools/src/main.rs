@@ -52,7 +52,11 @@ fn main() -> eyre::Result<()> {
     jane_eyre::install()?;
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
-        .with(tracing_subscriber::EnvFilter::from_default_env())
+        .with(
+            tracing_subscriber::EnvFilter::builder()
+                .with_default_directive("trace".parse()?)
+                .from_env()?,
+        )
         .init();
     let args = Args::parse();
 
