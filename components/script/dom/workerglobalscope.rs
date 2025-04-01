@@ -129,7 +129,6 @@ pub(crate) struct WorkerGlobalScope {
 
     #[no_trace]
     insecure_requests_policy: InsecureRequestsPolicy,
-
 }
 
 impl WorkerGlobalScope {
@@ -297,7 +296,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             .use_url_credentials(true)
             .origin(global_scope.origin().immutable().clone())
             .insecure_requests_policy(self.insecure_requests_policy())
-            .has_trustworthy_ancestor_origin(global_scope.has_trustworthy_ancestor_or_current_origin())
+            .has_trustworthy_ancestor_origin(
+                global_scope.has_trustworthy_ancestor_or_current_origin(),
+            )
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
             let (url, source) = match fetch::load_whole_resource(

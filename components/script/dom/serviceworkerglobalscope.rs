@@ -227,7 +227,7 @@ impl ServiceWorkerGlobalScope {
                 #[cfg(feature = "webgpu")]
                 Arc::new(IdentityHub::default()),
                 InsecureRequestsPolicy::DoNotUpgrade, // FIXME: investigate what environment this value comes from for
-                // service workers.
+                                                      // service workers.
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
@@ -351,7 +351,6 @@ impl ServiceWorkerGlobalScope {
                     .pipeline_id(Some(pipeline_id))
                     .referrer_policy(referrer_policy)
                     .insecure_requests_policy(scope.insecure_requests_policy())
-                    // .has_trustworthy_ancestor_origin()
                     .origin(origin);
 
                 let (_url, source) = match load_whole_resource(

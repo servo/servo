@@ -42,10 +42,12 @@ impl ImmutableOrigin {
     pub fn new_opaque() -> ImmutableOrigin {
         ImmutableOrigin::Opaque(OpaqueOrigin::Opaque(servo_rand::random_uuid()))
     }
-    
+
     // For use in mixed security context tests because data: URL workers inherit contexts
     pub fn new_opaque_data_url_worker() -> ImmutableOrigin {
-        ImmutableOrigin::Opaque(OpaqueOrigin::SecureWorkerFromDataUrl(servo_rand::random_uuid()))
+        ImmutableOrigin::Opaque(OpaqueOrigin::SecureWorkerFromDataUrl(
+            servo_rand::random_uuid(),
+        ))
     }
 
     pub fn scheme(&self) -> Option<&str> {
@@ -87,33 +89,38 @@ impl ImmutableOrigin {
 
     /// <https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy>
     pub fn is_potentially_trustworthy(&self) -> bool {
-        // Step 1
+        // 1. If origin is an opaque origin return "Not Trustworthy"
         if matches!(self, ImmutableOrigin::Opaque(_)) {
             return false;
         }
 
         if let ImmutableOrigin::Tuple(scheme, host, _) = self {
-            // Step 3
+            // 3. If origin’s scheme is either "https" or "wss", return "Potentially Trustworthy"
             if scheme == "https" || scheme == "wss" {
                 return true;
             }
-            // Step 6
+            // 6. If origin’s scheme is "file", return "Potentially Trustworthy".
             if scheme == "file" {
                 return true;
             }
 
-            //Step 4
+            // 4. If origin’s host matches one of the CIDR notations 127.0.0.0/8 or ::1/128,
+            // return "Potentially Trustworthy".
             if let Ok(ip_addr) = host.to_string().parse::<IpAddr>() {
                 return ip_addr.is_loopback();
             }
-            // Step 5
+            // 5. If the user agent conforms to the name resolution rules in
+            // [let-localhost-be-localhost] and one of the following is true:
+            // * origin’s host is "localhost" or "localhost."
+            // * origin’s host ends with ".localhost" or ".localhost."
+            // then return "Potentially Trustworthy".
             if let Host::Domain(domain) = host {
                 if domain == "localhost" || domain.ends_with(".localhost") {
                     return true;
                 }
             }
         }
-
+        // 9. Return "Not Trustworthy".
         false
     }
 

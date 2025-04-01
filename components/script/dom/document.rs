@@ -4814,8 +4814,8 @@ impl Document {
     }
 
     pub fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
-        self.has_trustworthy_ancestor_origin.get() 
-            || self.origin().immutable().is_potentially_trustworthy()
+        self.has_trustworthy_ancestor_origin.get() ||
+            self.origin().immutable().is_potentially_trustworthy()
     }
 }
 

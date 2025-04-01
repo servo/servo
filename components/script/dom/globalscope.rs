@@ -2388,20 +2388,17 @@ impl GlobalScope {
 
     /// Whether this document has ancestor navigables that are trustworthy
     pub(crate) fn has_trustworthy_ancestor_origin(&self) -> bool {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.Document().has_trustworthy_ancestor_origin();
-        }
-
-        false
+        self.downcast::<Window>()
+            .is_some_and(|window| window.Document().has_trustworthy_ancestor_origin())
     }
 
     // Whether this document has a trustworthy origin or has trustowrthy ancestor navigables
     pub(crate) fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.Document().has_trustworthy_ancestor_or_current_origin();
-        }
-
-        false
+        self.downcast::<Window>().is_some_and(|window| {
+            window
+                .Document()
+                .has_trustworthy_ancestor_or_current_origin()
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
