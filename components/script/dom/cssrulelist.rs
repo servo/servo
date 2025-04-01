@@ -190,20 +190,32 @@ impl CSSRuleList {
         self.dom_rules.borrow().get(idx as usize).map(|rule| {
             rule.or_init(|| {
                 let parent_stylesheet = &self.parent_stylesheet;
-                let guard = parent_stylesheet.shared_lock().read();
+                let lock = parent_stylesheet.shared_lock();
                 match self.rules {
-                    RulesSource::Rules(ref rules) => CSSRule::new_specific(
-                        self.global().as_window(),
-                        parent_stylesheet,
-                        rules.read_with(&guard).0[idx as usize].clone(),
-                        can_gc,
-                    ),
-                    RulesSource::Keyframes(ref rules) => DomRoot::upcast(CSSKeyframeRule::new(
-                        self.global().as_window(),
-                        parent_stylesheet,
-                        rules.read_with(&guard).keyframes[idx as usize].clone(),
-                        can_gc,
-                    )),
+                    RulesSource::Rules(ref rules) => {
+                        let rule = {
+                            let guard = lock.read();
+                            rules.read_with(&guard).0[idx as usize].clone()
+                        };
+                        CSSRule::new_specific(
+                            self.global().as_window(),
+                            parent_stylesheet,
+                            rule,
+                            can_gc,
+                        )
+                    },
+                    RulesSource::Keyframes(ref rules) => {
+                        let rule = {
+                            let guard = lock.read();
+                            rules.read_with(&guard).keyframes[idx as usize].clone()
+                        };
+                        DomRoot::upcast(CSSKeyframeRule::new(
+                            self.global().as_window(),
+                            parent_stylesheet,
+                            rule,
+                            can_gc,
+                        ))
+                    },
                 }
             })
         })
