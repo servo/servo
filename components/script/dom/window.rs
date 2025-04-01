@@ -1241,7 +1241,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         element: &Element,
         pseudo: Option<DOMString>,
     ) -> DomRoot<CSSStyleDeclaration> {
-        // Steps 1-4.
+        // Step 2: Let obj be elt.
+        // We don't store CSSStyleOwner directly because it stores a `Dom` which must be
+        // rooted. This avoids the rooting the value temporarily.
+        let mut is_null = false;
+
+        // Step 3: If pseudoElt is provided, is not the empty string, and starts with a colon, then:
+        // Step 3.1: Parse pseudoElt as a <pseudo-element-selector>, and let type be the result.
         let pseudo = pseudo.map(|mut s| {
             s.make_ascii_lowercase();
             s
@@ -1253,13 +1259,38 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             Some(ref pseudo) if pseudo == ":after" || pseudo == "::after" => {
                 Some(PseudoElement::After)
             },
+            Some(ref pseudo) if pseudo == "::selection" => Some(PseudoElement::Selection),
+            Some(ref pseudo) if pseudo.starts_with(':') => {
+                // Step 3.2: If type is failure, or is a ::slotted() or ::part()
+                // pseudo-element, let obj be null.
+                is_null = true;
+                None
+            },
             _ => None,
         };
 
-        // Step 5.
+        // Step 4. Let decls be an empty list of CSS declarations.
+        // Step 5: If obj is not null, and elt is connected, part of the flat tree, and
+        // its shadow-including root has a browsing context which either doesn’t have a
+        // browsing context container, or whose browsing context container is being
+        // rendered, set decls to a list of all longhand properties that are supported CSS
+        // properties, in lexicographical order, with the value being the resolved value
+        // computed for obj using the style rules associated with doc.  Additionally,
+        // append to decls all the custom properties whose computed value for obj is not
+        // the guaranteed-invalid value.
+        //
+        // Note: The specification says to generate the list of declarations beforehand, yet
+        // also says the list should be alive. This is why we do not do step 4 and 5 here.
+        // See: https://github.com/w3c/csswg-drafts/issues/6144
+        //
+        // Step 6:  Return a live CSSStyleProperties object with the following properties:
         CSSStyleDeclaration::new(
             self,
-            CSSStyleOwner::Element(Dom::from_ref(element)),
+            if is_null {
+                CSSStyleOwner::Null
+            } else {
+                CSSStyleOwner::Element(Dom::from_ref(element))
+            },
             pseudo,
             CSSModificationAccess::Readonly,
             CanGc::note(),
