@@ -84,6 +84,7 @@ libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+markup5ever = { workspace = true }
 media = { path = "../media" }
 metrics = { path = "../metrics" }
 mime = { workspace = true }
