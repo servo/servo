@@ -32,16 +32,16 @@ use js::rust::{
     HandleObject, HandleValue, MutableHandleObject, RealmOptions, define_methods,
     define_properties, get_object_class, is_dom_class, maybe_wrap_object,
 };
-use script_bindings::constant::{ConstantSpec, define_constants};
 use servo_url::MutableOrigin;
 
 use crate::DomTypes;
-use crate::dom::bindings::codegen::InterfaceObjectMap::Globals;
-use crate::dom::bindings::codegen::PrototypeList;
-use crate::dom::bindings::conversions::{DOM_OBJECT_SLOT, get_dom_class};
-use crate::dom::bindings::guard::Guard;
-use crate::dom::bindings::principals::ServoJSPrincipals;
-use crate::dom::bindings::utils::{
+use crate::codegen::Globals::Globals;
+use crate::codegen::PrototypeList;
+use crate::constant::{ConstantSpec, define_constants};
+use crate::conversions::{DOM_OBJECT_SLOT, get_dom_class};
+use crate::guard::Guard;
+use crate::principals::ServoJSPrincipals;
+use crate::utils::{
     DOM_PROTOTYPE_SLOT, DOMJSClass, JSCLASS_DOM_GLOBAL, ProtoOrIfaceArray, get_proto_or_iface_array,
 };
 use crate::script_runtime::JSContext as SafeJSContext;
@@ -599,7 +599,7 @@ fn get_proto_id_for_new_target(new_target: HandleObject) -> Option<PrototypeList
     }
 }
 
-pub(crate) fn get_desired_proto(
+pub fn get_desired_proto(
     cx: SafeJSContext,
     args: &CallArgs,
     proto_id: PrototypeList::ID,

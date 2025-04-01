@@ -5,8 +5,10 @@
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
 use std::ptr::{self, NonNull};
+use std::slice;
 
 use js::conversions::ToJSValConvertible;
+use js::gc::Handle;
 use js::glue::{
     CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, JS_GetReservedSlot,
     RUST_FUNCTION_VALUE_TO_JITINFO,
@@ -15,7 +17,7 @@ use js::jsapi::{
     AtomToLinearString, CallArgs, ExceptionStackBehavior, GetLinearStringCharAt,
     GetLinearStringLength, GetNonCCWObjectGlobal, HandleObject as RawHandleObject, Heap,
     JS_ClearPendingException, JS_IsExceptionPending, JSAtom, JSContext, JSJitInfo, JSObject,
-    JSTracer, MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex,
+    JSTracer, MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex, MutableHandleIdVector as RawMutableHandleIdVector, JS_IsGlobalObject, JS_EnumerateStandardClasses, HandleId as RawHandleId, JS_ResolveStandardClass, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
 };
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{
@@ -29,11 +31,13 @@ use js::rust::{
 use js::{JS_CALLEE, rooted};
 use malloc_size_of::MallocSizeOfOps;
 
+use crate::DomTypes;
 use crate::codegen::Globals::Globals;
 use crate::codegen::InheritTypes::TopTypeId;
 use crate::codegen::PrototypeList::{self, MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
 use crate::conversions::{PrototypeCheck, jsstring_to_str, private_from_proto_check};
 use crate::error::throw_invalid_this;
+use crate::interfaces::DomHelpers;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::str::DOMString;
 use crate::trace::trace_object;
@@ -565,4 +569,59 @@ impl AsCCharPtrPtr for [u8] {
     fn as_c_char_ptr(&self) -> *const c_char {
         self as *const [u8] as *const c_char
     }
+}
+
+/// Enumerate lazy properties of a global object.
+pub unsafe extern "C" fn enumerate_global<D: DomTypes>(
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    _props: RawMutableHandleIdVector,
+    _enumerable_only: bool,
+) -> bool {
+    assert!(JS_IsGlobalObject(obj.get()));
+    if !JS_EnumerateStandardClasses(cx, obj) {
+        return false;
+    }
+    for init_fun in <D as DomHelpers<D>>::interface_map().values() {
+        init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
+    }
+    true
+}
+
+/// Resolve a lazy global property, for interface objects and named constructors.
+pub unsafe extern "C" fn resolve_global<D: DomTypes>(
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    id: RawHandleId,
+    rval: *mut bool,
+) -> bool {
+    assert!(JS_IsGlobalObject(obj.get()));
+    if !JS_ResolveStandardClass(cx, obj, id, rval) {
+        return false;
+    }
+    if *rval {
+        return true;
+    }
+    if !id.is_string() {
+        *rval = false;
+        return true;
+    }
+
+    let string = id.to_string();
+    if !JS_DeprecatedStringHasLatin1Chars(string) {
+        *rval = false;
+        return true;
+    }
+    let mut length = 0;
+    let ptr = JS_GetLatin1StringCharsAndLength(cx, ptr::null(), string, &mut length);
+    assert!(!ptr.is_null());
+    let bytes = slice::from_raw_parts(ptr, length);
+
+    if let Some(init_fun) = <D as DomHelpers<D>>::interface_map().get(bytes) {
+        init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
+        *rval = true;
+    } else {
+        *rval = false;
+    }
+    true
 }

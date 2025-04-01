@@ -19,6 +19,9 @@ path = "lib.rs"
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
+deny_public_fields = { path = "../deny_public_fields" }
+dom_struct = { path = "../dom_struct" }
+domobject_derive = { path = "../domobject_derive" }
 html5ever = { workspace = true }
 indexmap = { workspace = true }
 js = { workspace = true }
@@ -29,13 +32,16 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 num-traits = { workspace = true }
 parking_lot = { workspace = true }
+phf = "0.11"
 regex = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }
+servo_url = { path = "../url" }
 smallvec = { workspace = true }
 stylo = { workspace = true }
 stylo_atoms = { workspace = true }
 tendril = { version = "0.4.1", features = ["encoding_rs"] }
+tracing = { workspace = true, optional = true }
 webxr-api = { workspace = true, optional = true }
 xml5ever = { workspace = true }
 
@@ -46,6 +52,7 @@ serde_json = { workspace = true }
 
 [features]
 bluetooth = []
+tracing = ["dep:tracing"]
 webgpu = []
 webxr = ["webxr-api"]
 

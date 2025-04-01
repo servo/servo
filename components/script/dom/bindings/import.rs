@@ -16,17 +16,17 @@ pub(crate) mod base {
     pub(crate) use js::panic::maybe_resume_unwind;
     pub(crate) use js::rust::wrappers::{Call, JS_WrapValue};
     pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
-    pub(crate) use script_bindings::lock::ThreadUnsafeOnceLock;
+    //pub(crate) use script_bindings::lock::ThreadUnsafeOnceLock;
 
-    pub(crate) use crate::dom::bindings::callback::{
+    /*pub(crate) use crate::dom::bindings::callback::{
         CallSetup, CallbackContainer, CallbackFunction, CallbackInterface, CallbackObject,
         ExceptionHandling, ThisReflector, wrap_call_this_value,
-    };
+    };*/
     pub(crate) use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
         ChannelCountMode, ChannelCountModeValues, ChannelInterpretation,
         ChannelInterpretationValues,
     };
-    pub(crate) use crate::dom::bindings::codegen::DomTypes::DomTypes;
+    //pub(crate) use crate::dom::bindings::codegen::DomTypes::DomTypes;
     pub(crate) use crate::dom::bindings::codegen::{GenericUnionTypes, UnionTypes};
     pub(crate) use crate::dom::bindings::conversions::{
         ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
@@ -41,10 +41,10 @@ pub(crate) mod base {
     pub(crate) use crate::dom::bindings::str::{ByteString, DOMString, USVString};
     pub(crate) use crate::dom::bindings::trace::RootedTraceableBox;
     pub(crate) use crate::dom::bindings::utils::{
-        DomHelpers, get_dictionary_property, set_dictionary_property,
+        get_dictionary_property, set_dictionary_property,
     };
-    pub(crate) use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
-    pub(crate) use crate::dom::promise::PromiseHelpers;
+    pub(crate) use crate::dom::globalscope::GlobalScope;
+    pub(crate) use script_bindings::interfaces::{DomHelpers, PromiseHelpers, GlobalScopeHelpers};
     pub(crate) use crate::realms::{AlreadyInRealm, InRealm};
     pub(crate) use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 }
@@ -120,36 +120,36 @@ pub(crate) mod module {
     pub(crate) use crate::dom::bindings::codegen::{
         InterfaceObjectMap, PrototypeList, RegisterBindings,
     };
-    pub(crate) use crate::dom::bindings::constructor::{
+    /*pub(crate) use crate::dom::bindings::constructor::{
         call_default_constructor, call_html_constructor, pop_current_element_queue,
         push_new_element_queue,
-    };
+    };*/
     pub(crate) use crate::dom::bindings::conversions::{
-        DOM_OBJECT_SLOT, IDLInterface, StringificationBehavior, ToJSValConvertible, is_array_like,
+        DOM_OBJECT_SLOT, IDLInterface, StringificationBehavior, ToJSValConvertible, //is_array_like,
         jsid_to_string, native_from_handlevalue, native_from_object_static,
     };
     pub(crate) use crate::dom::bindings::error::{
         Error, ErrorResult, throw_constructor_without_new,
     };
-    pub(crate) use crate::dom::bindings::guard::{Condition, Guard};
+    //pub(crate) use crate::dom::bindings::guard::{Condition, Guard};
     pub(crate) use crate::dom::bindings::inheritance::Castable;
-    pub(crate) use crate::dom::bindings::interface::{
+    /*pub(crate) use crate::dom::bindings::interface::{
         ConstructorClassHook, InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass,
         ProtoOrIfaceIndex, create_callback_interface_object, create_global_object,
         create_interface_prototype_object, create_named_constructors,
         create_noncallback_interface_object, define_dom_interface, define_guarded_methods,
         define_guarded_properties, get_desired_proto, get_per_interface_object_handle,
         is_exposed_in,
-    };
+    };*/
     pub(crate) use crate::dom::bindings::iterable::{Iterable, IterableIterator, IteratorType};
     pub(crate) use crate::dom::bindings::like::{Maplike, Setlike};
-    pub(crate) use crate::dom::bindings::namespace::{
+    /*pub(crate) use crate::dom::bindings::namespace::{
         NamespaceObjectClass, create_namespace_object,
-    };
-    pub(crate) use crate::dom::bindings::proxyhandler;
+    };*/
+    /*pub(crate) use crate::dom::bindings::proxyhandler;
     pub(crate) use crate::dom::bindings::proxyhandler::{
         ensure_expando_object, get_expando_object, set_property_descriptor,
-    };
+    };*/
     pub(crate) use crate::dom::bindings::reflector::{
         DomObjectIteratorWrap, DomObjectWrap, Reflector,
     };
@@ -164,7 +164,7 @@ pub(crate) mod module {
     };
     pub(crate) use crate::dom::bindings::weakref::{DOM_WEAK_SLOT, WeakReferenceable};
     pub(crate) use crate::dom::types::{AnalyserNode, AudioNode, BaseAudioContext, EventTarget};
-    pub(crate) use crate::mem::malloc_size_of_including_raw_self;
+    //pub(crate) use crate::mem::malloc_size_of_including_raw_self;
     pub(crate) use crate::realms::{AlreadyInRealm, InRealm};
     pub(crate) use crate::script_runtime::CanGc;
 }

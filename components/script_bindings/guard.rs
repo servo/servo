@@ -5,12 +5,12 @@
 //! Machinery to conditionally expose things.
 
 use js::rust::HandleObject;
-use script_bindings::codegen::Globals::Globals;
 use servo_config::prefs::get;
 
 use crate::DomTypes;
-use crate::dom::bindings::interface::is_exposed_in;
-use crate::dom::globalscope::GlobalScopeHelpers;
+use crate::codegen::Globals::Globals;
+use crate::interface::is_exposed_in;
+use crate::interfaces::GlobalScopeHelpers;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
 
