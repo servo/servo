@@ -132,6 +132,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
+use crate::dom::writablestream::CrossRealmTransformWritable;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{NetworkListener, PreInvoke};
@@ -458,6 +459,8 @@ pub(crate) struct ManagedMessagePort {
     pending: bool,
     /// Has the port been closed? If closed, it can be dropped and later GC'ed.
     closed: bool,
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    cross_realm_transform_writable: Option<CrossRealmTransformWritable>,
 }
 
 /// State representing whether this global is currently managing broadcast channels.
@@ -1212,6 +1215,29 @@ impl GlobalScope {
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    /// The "Add a handler for port’s message event with the following steps:"
+    /// and "Add a handler for port’s messageerror event with the following steps:" part.
+    pub(crate) fn note_cross_realm_transform_writable(
+        &self,
+        cross_realm_transform_writable: &CrossRealmTransformWritable,
+        port_id: &MessagePortId,
+    ) {
+        let MessagePortState::Managed(_id, message_ports) =
+            &mut *self.message_port_state.borrow_mut()
+        else {
+            unreachable!(
+                "Cross realm transform writable must be called on a global managing ports"
+            );
+        };
+
+        let Some(managed_port) = message_ports.get_mut(port_id) else {
+            unreachable!("Cross realm transform writable must match a managed port");
+        };
+
+        managed_port.cross_realm_transform_writable = Some(cross_realm_transform_writable.clone());
+    }
+
     /// Route the task to be handled by the relevant port.
     pub(crate) fn route_task_to_port(
         &self,
@@ -1459,6 +1485,7 @@ impl GlobalScope {
                         dom_port: Dom::from_ref(dom_port),
                         pending: true,
                         closed: false,
+                        cross_realm_transform_writable: None,
                     },
                 );
 
@@ -1481,6 +1508,7 @@ impl GlobalScope {
                         dom_port: Dom::from_ref(dom_port),
                         pending: false,
                         closed: false,
+                        cross_realm_transform_writable: None,
                     },
                 );
                 let _ = self

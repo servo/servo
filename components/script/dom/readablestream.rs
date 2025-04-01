@@ -2057,7 +2057,7 @@ impl Transferable for ReadableStream {
         let writable = WritableStream::new_with_proto(&global, None, can_gc);
 
         // Perform ! SetUpCrossRealmTransformWritable(writable, port1).
-        writable.setup_cross_realm_transform_writable(cx, can_gc);
+        writable.setup_cross_realm_transform_writable(cx, port_1.message_port_id(), can_gc);
 
         // Let promise be ! ReadableStreamPipeTo(value, writable, false, false, false).
         let promise = self.pipe_to(cx, &global, &writable, false, false, false, comp, can_gc);

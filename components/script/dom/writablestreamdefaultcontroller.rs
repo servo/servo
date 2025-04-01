@@ -215,12 +215,13 @@ impl Callback for WriteAlgorithmRejectionHandler {
 }
 
 /// The type of sink algorithms we are using.
-#[derive(Debug, MallocSizeOf, PartialEq)]
+#[derive(PartialEq)]
 pub enum UnderlyingSinkType {
     /// Algorithms are provided by Js callbacks.
     Js,
-    /// Algorithms supporting streams transfer are implemented in Rust.
-    Transfer,
+    /// Algorithms supporting streams transfer are implemented in Rust,
+    /// and the `backpressure_promise` used in those algorithms is stored here.
+    Transfer(Rc<Promise>),
 }
 
 /// <https://streams.spec.whatwg.org/#ws-default-controller-class>
@@ -229,6 +230,7 @@ pub struct WritableStreamDefaultController {
     reflector_: Reflector,
 
     #[no_trace]
+    #[ignore_malloc_size_of = "Rc is hard"]
     underlying_sink_type: UnderlyingSinkType,
 
     /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortalgorithm>
@@ -482,7 +484,7 @@ impl WritableStreamDefaultController {
                     promise
                 })
             },
-            UnderlyingSinkType::Transfer => {
+            UnderlyingSinkType::Transfer(_) => {
                 // TODO
                 Promise::new_resolved(global, cx, (), can_gc)
             },
@@ -523,7 +525,7 @@ impl WritableStreamDefaultController {
                     promise
                 })
             },
-            UnderlyingSinkType::Transfer => {
+            UnderlyingSinkType::Transfer(_) => {
                 // TODO
                 Promise::new_resolved(global, cx, (), can_gc)
             },
@@ -553,7 +555,7 @@ impl WritableStreamDefaultController {
                     promise
                 })
             },
-            UnderlyingSinkType::Transfer => {
+            UnderlyingSinkType::Transfer(_) => {
                 // TODO
                 Promise::new_resolved(global, cx, (), can_gc)
             },

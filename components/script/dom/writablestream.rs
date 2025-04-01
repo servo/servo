@@ -8,6 +8,7 @@ use std::mem;
 use std::ptr::{self};
 use std::rc::Rc;
 
+use base::id::MessagePortId;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
@@ -836,33 +837,65 @@ impl WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
-    pub(crate) fn setup_cross_realm_transform_writable(&self, cx: SafeJSContext, can_gc: CanGc) {
+    pub(crate) fn setup_cross_realm_transform_writable(
+        &self,
+        cx: SafeJSContext,
+        port_id: &MessagePortId,
+        can_gc: CanGc,
+    ) {
         let global = self.global();
 
         // Perform ! InitializeWritableStream(stream).
         // Done in `new_inherited`.
 
         // Let sizeAlgorithm be an algorithm that returns 1.
-        // Re-ordered because of the need to pass it to `new`. x
+        // Re-ordered because of the need to pass it to `new`.
         let size_algorithm = extract_size_algorithm(&QueuingStrategy::default(), can_gc);
 
         // Note: other algorithms defined in the controller at call site.
 
+        // Let backpressurePromise be a new promise.
+        let backpressure_promise = Promise::new(&global, can_gc);
+
         // Let controller be a new WritableStreamDefaultController.
         let controller = WritableStreamDefaultController::new(
             &global,
-            UnderlyingSinkType::Transfer,
+            UnderlyingSinkType::Transfer(backpressure_promise.clone()),
             &UnderlyingSink::empty(),
             1.0,
             size_algorithm,
             can_gc,
         );
 
+        // Add a handler for port’s message event with the following steps:
+        // Add a handler for port’s messageerror event with the following steps:
+        rooted!(in(*cx) let cross_realm_transform_writable = CrossRealmTransformWritable {
+            controller: Dom::from_ref(&controller),
+            backpressure_promise: backpressure_promise,
+        });
+        global.note_cross_realm_transform_writable(&cross_realm_transform_writable, port_id);
+
         // Perform ! SetUpWritableStreamDefaultController
         controller
             .setup(cx, &global, self, &None, can_gc)
             .expect("Setup for transfer cannot fail");
     }
+}
+
+impl js::gc::Rootable for CrossRealmTransformWritable {}
+
+/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+/// A wrapper to handle `message` and `messageerror` events
+/// for the port used by the transfered stream.
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct CrossRealmTransformWritable {
+    /// The controller used in the algorithm.
+    controller: Dom<WritableStreamDefaultController>,
+
+    /// The `backpressurePromise` used in the algorithm.
+    #[ignore_malloc_size_of = "Rc is hard"]
+    backpressure_promise: Rc<Promise>,
 }
 
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
