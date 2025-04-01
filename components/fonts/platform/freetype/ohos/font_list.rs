@@ -177,10 +177,18 @@ pub fn enumerate_font_files(dir_path: &str) -> io::Result<Vec<PathBuf>> {
             let name = elem.file_name();
             let raw_name = name.as_bytes();
             if raw_name.ends_with(b".ttf".as_ref()) || raw_name.ends_with(b".ttc".as_ref()) {
+                let Ok(canonical_path) = fs::canonicalize(elem.path()) else {
+                    warn!(
+                        "We was not able to canonicalize path for: {} file",
+                        elem.file_name().to_str().unwrap()
+                    );
+                    continue;
+                };
+
                 if log::log_enabled!(log::Level::Debug) {
                     debug!("Found font {}", elem.file_name().to_str().unwrap());
                 }
-                font_list.push(elem.path())
+                font_list.push(canonical_path)
             }
         }
     }

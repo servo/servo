@@ -83,3 +83,6 @@ truetype = { version = "0.47.3", features = ["ignore-invalid-language-ids"] }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(ohos_mock)'] }
+
+[patch.crates-io]
+freetype-sys = { path = "../../../freetype-sys", features = []}
