@@ -44,11 +44,17 @@ impl Tokenizer {
     }
 
     pub(crate) fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
-        match self.inner.run(input) {
-            TokenizerResult::Done => TokenizerResult::Done,
-            TokenizerResult::Script(handle) => TokenizerResult::Script(DomRoot::from_ref(
-                handle.downcast::<HTMLScriptElement>().unwrap(),
-            )),
+        loop {
+            match self.inner.run(input) {
+                TokenizerResult::Done => return TokenizerResult::Done,
+                TokenizerResult::Script(handle) => {
+                    // Apparently the parser can sometimes create <script> elements without a namespace, resulting
+                    // in them not being HTMLScriptElements.
+                    if let Some(script) = handle.downcast::<HTMLScriptElement>() {
+                        return TokenizerResult::Script(DomRoot::from_ref(script));
+                    }
+                },
+            }
         }
     }
 
