@@ -84,7 +84,7 @@
 //!
 //! See <https://github.com/servo/servo/issues/14704>
 
-use std::borrow::{Cow, ToOwned};
+use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
@@ -465,9 +465,6 @@ pub struct Constellation<STF, SWF> {
     /// Pipeline ID of the active media session.
     active_media_session: Option<PipelineId>,
 
-    /// User agent string to report in network requests.
-    user_agent: Cow<'static, str>,
-
     /// The image bytes associated with the RippyPNG embedder resource.
     /// Read during startup and provided to image caches that are created
     /// on an as-needed basis, rather than retrieving it every time.
@@ -521,9 +518,6 @@ pub struct InitialConstellationState {
 
     /// The XR device registry
     pub webxr_registry: Option<webxr_api::Registry>,
-
-    /// User agent string to report in network requests.
-    pub user_agent: Cow<'static, str>,
 
     #[cfg(feature = "webgpu")]
     pub wgpu_image_map: WGPUImageMap,
@@ -744,7 +738,6 @@ where
                     active_keyboard_modifiers: Modifiers::empty(),
                     hard_fail,
                     active_media_session: None,
-                    user_agent: state.user_agent,
                     rippy_data,
                     user_content_manager: state.user_content_manager,
                 };
@@ -988,7 +981,6 @@ where
                 .map(|threads| threads.pipeline()),
             webxr_registry: self.webxr_registry.clone(),
             player_context: WindowGLContext::get(),
-            user_agent: self.user_agent.clone(),
             rippy_data: self.rippy_data.clone(),
             user_content_manager: self.user_content_manager.clone(),
         });

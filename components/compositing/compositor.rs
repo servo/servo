@@ -5,8 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::env;
-use std::fs::{File, create_dir_all};
-use std::io::Write;
+use std::fs::create_dir_all;
 use std::iter::once;
 use std::mem::take;
 use std::rc::Rc;
@@ -113,10 +112,6 @@ pub struct ServoRenderer {
 
     /// The GL bindings for webrender
     webrender_gl: Rc<dyn gleam::gl::Gl>,
-
-    /// The string representing the version of Servo that is running. This is used to tag
-    /// WebRender capture output.
-    version_string: String,
 
     #[cfg(feature = "webxr")]
     /// Some XR devices want to run on the main thread.
@@ -429,7 +424,6 @@ impl IOCompositor {
         window: Rc<dyn WindowMethods>,
         state: InitialCompositorState,
         convert_mouse_to_touch: bool,
-        version_string: String,
     ) -> Self {
         let compositor = IOCompositor {
             global: Rc::new(RefCell::new(ServoRenderer {
@@ -441,7 +435,6 @@ impl IOCompositor {
                 webrender_api: state.webrender_api,
                 webrender_document: state.webrender_document,
                 webrender_gl: state.webrender_gl,
-                version_string,
                 #[cfg(feature = "webxr")]
                 webxr_main_thread: state.webxr_main_thread,
                 convert_mouse_to_touch,
@@ -1773,13 +1766,6 @@ impl IOCompositor {
             .borrow()
             .webrender_api
             .save_capture(capture_path.clone(), CaptureBits::all());
-
-        let version_file_path = capture_path.join("servo-version.txt");
-        if let Err(error) = File::create(version_file_path)
-            .and_then(|mut file| write!(file, "{}", self.global.borrow().version_string))
-        {
-            eprintln!("Unable to write servo version for WebRender Capture: {error:?}");
-        }
     }
 
     fn add_font_instance(

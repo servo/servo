@@ -25,7 +25,6 @@ fn test_exit() {
     let (mtx, _mrx) = ipc::channel().unwrap();
     let (sender, receiver) = ipc::channel().unwrap();
     let (resource_thread, _private_resource_thread) = new_core_resource_thread(
-        "".into(),
         None,
         ProfilerChan(tx),
         MemProfilerChan(mtx),

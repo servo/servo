@@ -102,7 +102,6 @@ impl ApplicationHandler<WakerEvent> for App {
                 }),
                 window_delegate.clone(),
                 Default::default(),
-                Default::default(),
             );
             servo.setup_logging();
 

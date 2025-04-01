@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
@@ -318,9 +317,6 @@ pub(crate) struct GlobalScope {
     // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
     consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
-
-    /// An optional string allowing the user agent to be set for testing.
-    user_agent: Cow<'static, str>,
 
     /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
@@ -720,7 +716,6 @@ impl GlobalScope {
         origin: MutableOrigin,
         creation_url: Option<ServoUrl>,
         microtask_queue: Rc<MicrotaskQueue>,
-        user_agent: Cow<'static, str>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
@@ -754,7 +749,6 @@ impl GlobalScope {
             event_source_tracker: DOMTracker::new(),
             uncaught_rejections: Default::default(),
             consumed_rejections: Default::default(),
-            user_agent,
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
             #[cfg(feature = "webgpu")]
@@ -2918,10 +2912,6 @@ impl GlobalScope {
             retval,
             can_gc,
         );
-    }
-
-    pub(crate) fn get_user_agent(&self) -> Cow<'static, str> {
-        self.user_agent.clone()
     }
 
     pub(crate) fn get_https_state(&self) -> HttpsState {

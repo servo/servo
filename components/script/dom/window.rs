@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::{Cow, ToOwned};
+use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, RefMut};
 use std::cmp;
 use std::collections::hash_map::Entry;
@@ -2804,7 +2804,6 @@ impl Window {
         unminify_css: bool,
         local_script_source: Option<String>,
         user_content_manager: UserContentManager,
-        user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
@@ -2831,7 +2830,6 @@ impl Window {
                 origin,
                 Some(creator_url),
                 microtask_queue,
-                user_agent,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 inherited_secure_context,

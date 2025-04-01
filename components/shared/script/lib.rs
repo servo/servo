@@ -13,7 +13,6 @@ mod script_msg;
 pub mod serializable;
 pub mod transferable;
 
-use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::sync::Arc;
@@ -564,8 +563,6 @@ pub struct WorkerGlobalScopeInit {
     pub origin: ImmutableOrigin,
     /// The creation URL
     pub creation_url: Option<ServoUrl>,
-    /// An optional string allowing the user agnet to be set for testing.
-    pub user_agent: Cow<'static, str>,
     /// True if secure context
     pub inherited_secure_context: Option<bool>,
 }

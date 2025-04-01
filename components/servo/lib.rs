@@ -24,7 +24,6 @@ mod servo_delegate;
 mod webview;
 mod webview_delegate;
 
-use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::cmp::max;
 use std::collections::HashMap;
@@ -264,7 +263,6 @@ impl Servo {
         rendering_context: Rc<dyn RenderingContext>,
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<dyn WindowMethods>,
-        user_agent: Option<String>,
         user_content_manager: UserContentManager,
     ) -> Self {
         // Global configuration options, parsed from the command line.
@@ -287,24 +285,6 @@ impl Servo {
         if !opts.multiprocess {
             media_platform::init();
         }
-
-        let user_agent = match user_agent {
-            Some(ref ua) if ua == "ios" => default_user_agent_string_for(UserAgent::iOS).into(),
-            Some(ref ua) if ua == "android" => {
-                default_user_agent_string_for(UserAgent::Android).into()
-            },
-            Some(ref ua) if ua == "desktop" => {
-                default_user_agent_string_for(UserAgent::Desktop).into()
-            },
-            Some(ref ua) if ua == "ohos" => {
-                default_user_agent_string_for(UserAgent::OpenHarmony).into()
-            },
-            Some(ua) => ua.into(),
-            None => embedder
-                .get_user_agent_string()
-                .map(Into::into)
-                .unwrap_or(default_user_agent_string_for(DEFAULT_USER_AGENT).into()),
-        };
 
         // Get GL bindings
         let webrender_gl = rendering_context.gleam_gl_api();
@@ -486,7 +466,6 @@ impl Servo {
         protocols.merge(embedder.get_protocol_handlers());
 
         let constellation_chan = create_constellation(
-            user_agent,
             opts.config_dir.clone(),
             embedder_proxy,
             compositor_proxy.clone(),
@@ -533,7 +512,6 @@ impl Servo {
                 shutdown_state: shutdown_state.clone(),
             },
             opts.debug.convert_mouse_to_touch,
-            embedder.get_version_string().unwrap_or_default(),
         );
 
         Self {
@@ -1041,7 +1019,6 @@ fn create_compositor_channel(
 
 #[allow(clippy::too_many_arguments)]
 fn create_constellation(
-    user_agent: Cow<'static, str>,
     config_dir: Option<PathBuf>,
     embedder_proxy: EmbedderProxy,
     compositor_proxy: CompositorProxy,
@@ -1066,7 +1043,6 @@ fn create_constellation(
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
     let (public_resource_threads, private_resource_threads) = new_resource_threads(
-        user_agent.clone(),
         devtools_sender.clone(),
         time_profiler_chan.clone(),
         mem_profiler_chan.clone(),
@@ -1105,7 +1081,6 @@ fn create_constellation(
         #[cfg(not(feature = "webxr"))]
         webxr_registry: None,
         webgl_threads,
-        user_agent,
         webrender_external_images: external_images,
         #[cfg(feature = "webgpu")]
         wgpu_image_map,
@@ -1229,71 +1204,3 @@ fn create_sandbox() {
 fn create_sandbox() {
     panic!("Sandboxing is not supported on Windows, iOS, ARM targets and android.");
 }
-
-enum UserAgent {
-    Desktop,
-    Android,
-    OpenHarmony,
-    #[allow(non_camel_case_types)]
-    iOS,
-}
-
-fn get_servo_version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
-}
-
-fn default_user_agent_string_for(agent: UserAgent) -> String {
-    let servo_version = get_servo_version();
-
-    #[cfg(all(target_os = "linux", target_arch = "x86_64", not(target_env = "ohos")))]
-    let desktop_ua_string =
-        format!("Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Servo/{servo_version} Firefox/128.0");
-    #[cfg(all(
-        target_os = "linux",
-        not(target_arch = "x86_64"),
-        not(target_env = "ohos")
-    ))]
-    let desktop_ua_string =
-        format!("Mozilla/5.0 (X11; Linux i686; rv:128.0) Servo/{servo_version} Firefox/128.0");
-
-    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    let desktop_ua_string = format!(
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Servo/{servo_version} Firefox/128.0"
-    );
-    #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
-    let desktop_ua_string =
-        format!("Mozilla/5.0 (Windows NT 10.0; rv:128.0) Servo/{servo_version} Firefox/128.0");
-
-    #[cfg(target_os = "macos")]
-    let desktop_ua_string = format!(
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Servo/{servo_version} Firefox/128.0"
-    );
-
-    #[cfg(any(target_os = "android", target_env = "ohos"))]
-    let desktop_ua_string = "".to_string();
-
-    match agent {
-        UserAgent::Desktop => desktop_ua_string,
-        UserAgent::Android => {
-            format!("Mozilla/5.0 (Android; Mobile; rv:128.0) Servo/{servo_version} Firefox/128.0")
-        },
-        UserAgent::OpenHarmony => format!(
-            "Mozilla/5.0 (OpenHarmony; Mobile; rv:128.0) Servo/{servo_version} Firefox/128.0"
-        ),
-        UserAgent::iOS => format!(
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X; rv:128.0) Servo/{servo_version} Firefox/128.0"
-        ),
-    }
-}
-
-#[cfg(target_os = "android")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
-
-#[cfg(target_env = "ohos")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::OpenHarmony;
-
-#[cfg(target_os = "ios")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::iOS;
-
-#[cfg(not(any(target_os = "android", target_os = "ios", target_env = "ohos")))]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
