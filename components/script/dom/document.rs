@@ -171,7 +171,7 @@ use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::performanceentry::PerformanceEntry;
-use crate::dom::pointerevent::PointerEvent;
+use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
@@ -1402,7 +1402,6 @@ impl Document {
         // <https://w3c.github.io/uievents/#contextmenu>
         let menu_event = PointerEvent::new(
             &self.window,                   // window
-            None,                           // proto
             DOMString::from("contextmenu"), // type
             EventBubbles::Bubbles,          // can_bubble
             EventCancelable::Cancelable,    // cancelable
@@ -1420,22 +1419,20 @@ impl Document {
             pressed_mouse_buttons,          // buttons
             None,                           // related_target
             None,                           // point_in_target
-            // TODO: decide generic pointer id
-            // <https://www.w3.org/TR/pointerevents3/#dom-pointerevent-pointerid>
-            0,                        // pointer_id
-            1,                        // width
-            1,                        // height
-            0.5,                      // pressure
-            0.0,                      // tangential_pressure
-            0,                        // tilt_x
-            0,                        // tilt_y
-            0,                        // twist
-            PI / 2.0,                 // altitude_angle
-            0.0,                      // azimuth_angle
-            DOMString::from("mouse"), // pointer_type
-            true,                     // is_primary
-            vec![],                   // coalesced_events
-            vec![],                   // predicted_events
+            PointerId::Mouse as i32,        // pointer_id
+            1,                              // width
+            1,                              // height
+            0.5,                            // pressure
+            0.0,                            // tangential_pressure
+            0,                              // tilt_x
+            0,                              // tilt_y
+            0,                              // twist
+            PI / 2.0,                       // altitude_angle
+            0.0,                            // azimuth_angle
+            DOMString::from("mouse"),       // pointer_type
+            true,                           // is_primary
+            vec![],                         // coalesced_events
+            vec![],                         // predicted_events
             can_gc,
         );
         let event = menu_event.upcast::<Event>();
@@ -2186,7 +2183,7 @@ impl Document {
             {
                 if let Some(elem) = target.downcast::<Element>() {
                     elem.upcast::<Node>()
-                        .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"), can_gc);
+                        .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
                 }
             }
         }

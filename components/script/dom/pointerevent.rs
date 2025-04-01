@@ -23,6 +23,13 @@ use crate::dom::mouseevent::MouseEvent;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
+/// <https://w3c.github.io/pointerevents/#dom-pointerevent-pointerid>
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+pub(crate) enum PointerId {
+    NonPointerDevice = -1,
+    Mouse,
+}
+
 #[dom_struct]
 pub(crate) struct PointerEvent {
     mouseevent: MouseEvent,
@@ -83,7 +90,6 @@ impl PointerEvent {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
-        proto: Option<HandleObject>,
         type_: DOMString,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
@@ -119,7 +125,7 @@ impl PointerEvent {
     ) -> DomRoot<PointerEvent> {
         Self::new_with_proto(
             window,
-            proto,
+            None,
             type_,
             can_bubble,
             cancelable,
