@@ -558,14 +558,6 @@ impl ServoParser {
     }
 
     fn parse_sync(&self, can_gc: CanGc) {
-        match self.tokenizer {
-            Tokenizer::Html(_) => self.do_parse_sync(can_gc),
-            Tokenizer::AsyncHtml(_) => self.do_parse_sync(can_gc),
-            Tokenizer::Xml(_) => self.do_parse_sync(can_gc),
-        }
-    }
-
-    fn do_parse_sync(&self, can_gc: CanGc) {
         assert!(self.script_input.is_empty());
 
         // This parser will continue to parse while there is either pending input or
