@@ -59,16 +59,6 @@ pub trait EmbedderMethods {
     ) {
     }
 
-    /// Returns the user agent string to report in network requests.
-    fn get_user_agent_string(&self) -> Option<String> {
-        None
-    }
-
-    /// Returns the version string of this embedder.
-    fn get_version_string(&self) -> Option<String> {
-        None
-    }
-
     /// Returns the protocol handlers implemented by that embedder.
     /// They will be merged with the default internal ones.
     fn get_protocol_handlers(&self) -> ProtocolRegistry {

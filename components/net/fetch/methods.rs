@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::{io, mem, str};
@@ -61,7 +60,7 @@ pub enum Data {
 
 pub struct FetchContext {
     pub state: Arc<HttpState>,
-    pub user_agent: Cow<'static, str>,
+    pub user_agent: String,
     pub devtools_chan: Option<Arc<Mutex<Sender<DevtoolsControlMsg>>>>,
     pub filemanager: Arc<Mutex<FileManager>>,
     pub file_token: FileTokenCheck,

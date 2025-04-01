@@ -9,7 +9,7 @@ use servo_config_macro::ServoPreferences;
 
 pub use crate::pref_util::PrefValue;
 
-static PREFERENCES: RwLock<Preferences> = RwLock::new(Preferences::new());
+static PREFERENCES: RwLock<Preferences> = RwLock::new(Preferences::const_default());
 
 #[inline]
 /// Get the current set of global preferences for Servo.
@@ -230,10 +230,13 @@ pub struct Preferences {
     pub threadpools_resource_workers_max: i64,
     /// Maximum number of workers for webrender
     pub threadpools_webrender_workers_max: i64,
+    /// The user-agent to use for Servo. This can also be set via [`UserAgentPlatform`] in
+    /// order to set the value to the default value for the given platform.
+    pub user_agent: String,
 }
 
 impl Preferences {
-    const fn new() -> Self {
+    const fn const_default() -> Self {
         Self {
             css_animations_testing_enabled: false,
             devtools_server_enabled: false,
@@ -389,12 +392,87 @@ impl Preferences {
             threadpools_resource_workers_max: 4,
             threadpools_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
+            user_agent: String::new(),
         }
     }
 }
 
 impl Default for Preferences {
     fn default() -> Self {
-        Self::new()
+        let mut preferences = Self::const_default();
+        preferences.user_agent = UserAgentPlatform::default().to_user_agent_string();
+        preferences
+    }
+}
+
+pub enum UserAgentPlatform {
+    Desktop,
+    Android,
+    OpenHarmony,
+    Ios,
+}
+
+impl UserAgentPlatform {
+    /// Return the default `UserAgentPlatform` for this platform. This is
+    /// not an implementation of `Default` so that it can be `const`.
+    const fn default() -> Self {
+        if cfg!(target_os = "android") {
+            Self::Android
+        } else if cfg!(target_env = "ohos") {
+            Self::OpenHarmony
+        } else if cfg!(target_os = "ios") {
+            Self::Ios
+        } else {
+            Self::Desktop
+        }
+    }
+}
+
+impl UserAgentPlatform {
+    /// Convert this [`UserAgentPlatform`] into its corresponding `String` value, ie the
+    /// default user-agent to use for this platform.
+    pub fn to_user_agent_string(&self) -> String {
+        const SERVO_VERSION: &str = env!("CARGO_PKG_VERSION");
+        match self {
+            UserAgentPlatform::Desktop
+                if cfg!(all(target_os = "windows", target_arch = "x86_64")) =>
+            {
+                #[cfg(target_arch = "x86_64")]
+                const ARCHITECTURE: &str = "x86; ";
+                #[cfg(not(target_arch = "x86_64"))]
+                const ARCHITECTURE: &str = "";
+
+                format!(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; {ARCHITECTURE}rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                )
+            },
+            UserAgentPlatform::Desktop if cfg!(target_os = "macos") => {
+                format!(
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                )
+            },
+            UserAgentPlatform::Desktop => {
+                #[cfg(target_arch = "x86_64")]
+                const ARCHITECTURE: &str = "x86_64";
+                // TODO: This is clearly wrong for other platforms.
+                #[cfg(not(target_arch = "x86_64"))]
+                const ARCHITECTURE: &str = "i686";
+
+                format!(
+                    "Mozilla/5.0 (X11; Linux {ARCHITECTURE}; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                )
+            },
+            UserAgentPlatform::Android => {
+                format!(
+                    "Mozilla/5.0 (Android; Mobile; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+                )
+            },
+            UserAgentPlatform::OpenHarmony => format!(
+                "Mozilla/5.0 (OpenHarmony; Mobile; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+            ),
+            UserAgentPlatform::Ios => format!(
+                "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X; rv:128.0) Servo/{SERVO_VERSION} Firefox/128.0"
+            ),
+        }
     }
 }

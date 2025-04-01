@@ -161,7 +161,6 @@ impl App {
             window.rendering_context(),
             embedder,
             Rc::new(UpcastedWindow(window.clone())),
-            self.servoshell_preferences.user_agent.clone(),
             user_content_manager,
         );
         servo.setup_logging();

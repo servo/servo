@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -192,9 +191,6 @@ pub struct InitialPipelineState {
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
 
-    /// User agent string to report in network requests.
-    pub user_agent: Cow<'static, str>,
-
     /// The image bytes associated with the RippyPNG embedder resource.
     pub rippy_data: Vec<u8>,
 
@@ -294,7 +290,6 @@ impl Pipeline {
                     webgl_chan: state.webgl_chan,
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
-                    user_agent: state.user_agent,
                     rippy_data: state.rippy_data,
                     user_content_manager: state.user_content_manager,
                 };
@@ -501,7 +496,6 @@ pub struct UnprivilegedPipelineContent {
     webgl_chan: Option<WebGLPipeline>,
     webxr_registry: Option<webxr_api::Registry>,
     player_context: WindowGLContext,
-    user_agent: Cow<'static, str>,
     rippy_data: Vec<u8>,
     user_content_manager: UserContentManager,
 }
@@ -554,7 +548,6 @@ impl UnprivilegedPipelineContent {
             layout_factory,
             Arc::new(self.system_font_service.to_proxy()),
             self.load_data.clone(),
-            self.user_agent,
         );
 
         if wait_for_completion {
