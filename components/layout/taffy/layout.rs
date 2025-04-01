@@ -5,6 +5,8 @@
 use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use style::properties::ComputedValues;
+use style::values::computed::CSSPixelLength;
+use style::values::computed::length_percentage::CalcLengthPercentage;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayInside;
 use style::{Atom, Zero};
@@ -112,6 +114,19 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
     fn set_unrounded_layout(&mut self, node_id: taffy::NodeId, layout: &taffy::Layout) {
         let id = usize::from(node_id);
         (*self.source_child_nodes[id]).borrow_mut().taffy_layout = *layout;
+    }
+
+    #[allow(unsafe_code)]
+    fn resolve_calc_value(&self, val: *const (), basis: f32) -> f32 {
+        // SAFETY:
+        // - The calc `val` here is the same pointer we return to Taffy in `convert::length_percentage`
+        //   so it is safe to cast the type back to `*const CalcLengthPercentage`
+        // - Taffy guarantees that it never retains style values beyond the scope of it's style
+        //   computation methods, so we can be sure that the pointer we have passed it is still valid.
+        // - The reference we create here has a lifetime that does not escape this function, so it does
+        //   not matter if the pointer is later destroyed.
+        let calc = unsafe { &*(val as *const CalcLengthPercentage) };
+        calc.resolve(CSSPixelLength::new(basis)).px()
     }
 
     fn compute_child_layout(
