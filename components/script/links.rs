@@ -441,9 +441,6 @@ pub(crate) fn follow_hyperlink(
             Some(secure),
             Some(document.insecure_requests_policy()),
             document.has_trustworthy_ancestor_origin(),
-            // sebsebmc: investigate the ancestor, for a top level load we
-            // probably don't want to inherit the previous document's trustworthiness
-            // this may result in an http page thinking its inside an https context for mixed content.
         );
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {

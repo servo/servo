@@ -40,7 +40,12 @@ impl ImmutableOrigin {
 
     /// Creates a new opaque origin that is only equal to itself.
     pub fn new_opaque() -> ImmutableOrigin {
-        ImmutableOrigin::Opaque(OpaqueOrigin(servo_rand::random_uuid()))
+        ImmutableOrigin::Opaque(OpaqueOrigin::Opaque(servo_rand::random_uuid()))
+    }
+    
+    // For use in mixed security context tests because data: URL workers inherit contexts
+    pub fn new_opaque_data_url_worker() -> ImmutableOrigin {
+        ImmutableOrigin::Opaque(OpaqueOrigin::SecureWorkerFromDataUrl(servo_rand::random_uuid()))
     }
 
     pub fn scheme(&self) -> Option<&str> {
@@ -120,8 +125,13 @@ impl ImmutableOrigin {
 
 /// Opaque identifier for URLs that have file or other schemes
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub struct OpaqueOrigin(Uuid);
-
+pub enum OpaqueOrigin {
+    Opaque(Uuid),
+    // Workers created from `data:` urls will have opaque origins but need to be treated
+    // as inheriting the secure context they were created in. This tracks that the origin
+    // was created in such a context
+    SecureWorkerFromDataUrl(Uuid),
+}
 malloc_size_of_is_0!(OpaqueOrigin);
 
 /// A representation of an [origin](https://html.spec.whatwg.org/multipage/#origin-2).

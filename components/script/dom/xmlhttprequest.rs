@@ -688,7 +688,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .origin(self.global().origin().immutable().clone())
         .referrer_policy(self.referrer_policy)
         .insecure_requests_policy(self.global().insecure_requests_policy())
-        .has_trustworthy_ancestor_origin(self.global().has_trustworthy_ancestor_origin())
+        .has_trustworthy_ancestor_origin(self.global().has_trustworthy_ancestor_or_current_origin())
         .pipeline_id(Some(self.global().pipeline_id()));
 
         // step 4 (second half)

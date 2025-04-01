@@ -2386,16 +2386,22 @@ impl GlobalScope {
         InsecureRequestsPolicy::DoNotUpgrade
     }
 
-    /// Returns a policy that should be used for fetches initiated from this global.
+    /// Whether this document has ancestor navigables that are trustworthy
     pub(crate) fn has_trustworthy_ancestor_origin(&self) -> bool {
         if let Some(window) = self.downcast::<Window>() {
             return window.Document().has_trustworthy_ancestor_origin();
         }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.has_trustworthy_ancestor_origin();
+
+        false
+    }
+
+    // Whether this document has a trustworthy origin or has trustowrthy ancestor navigables
+    pub(crate) fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.Document().has_trustworthy_ancestor_or_current_origin();
         }
-        debug!("unsupported global, defaulting any trustworthy ancestor origin to true");
-        true
+
+        false
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>

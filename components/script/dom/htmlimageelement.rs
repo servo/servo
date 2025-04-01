@@ -424,7 +424,7 @@ impl HTMLImageElement {
             None,
             document.global().get_referrer(),
             document.insecure_requests_policy(),
-            document.has_trustworthy_ancestor_origin(),
+            document.has_trustworthy_ancestor_or_current_origin(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(document.global().pipeline_id()))

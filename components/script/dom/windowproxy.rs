@@ -486,6 +486,11 @@ impl WindowProxy {
             Some(target_document) => target_document,
             None => return Ok(None),
         };
+        let has_trustworthy_ancestor_origin = if new {
+            target_document.has_trustworthy_ancestor_or_current_origin()
+        } else {
+            false
+        };
         let target_window = target_document.window();
         // Step 13, and 14.4, will have happened elsewhere,
         // since we've created a new browsing context and loaded it with about:blank.
@@ -518,7 +523,7 @@ impl WindowProxy {
                 referrer_policy,
                 Some(secure),
                 Some(target_document.insecure_requests_policy()),
-                target_document.has_trustworthy_ancestor_origin(), // sebsebmc: is this context non-nested?
+                has_trustworthy_ancestor_origin,
             );
             let history_handling = if new {
                 NavigationHistoryBehavior::Replace

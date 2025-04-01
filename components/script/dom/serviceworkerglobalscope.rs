@@ -228,8 +228,6 @@ impl ServiceWorkerGlobalScope {
                 Arc::new(IdentityHub::default()),
                 InsecureRequestsPolicy::DoNotUpgrade, // FIXME: investigate what environment this value comes from for
                 // service workers.
-                true, // https://github.com/w3c/ServiceWorker/issues/493#issuecomment-322994867
-                      // Use true for trustworthy origin, SeviceWorkers can't do mixed-content
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
@@ -353,6 +351,7 @@ impl ServiceWorkerGlobalScope {
                     .pipeline_id(Some(pipeline_id))
                     .referrer_policy(referrer_policy)
                     .insecure_requests_policy(scope.insecure_requests_policy())
+                    // .has_trustworthy_ancestor_origin()
                     .origin(origin);
 
                 let (_url, source) = match load_whole_resource(

@@ -336,7 +336,7 @@ impl HTMLLinkElement {
             source_set: None, // FIXME
             base_url: document.borrow().base_url(),
             insecure_requests_policy: document.insecure_requests_policy(),
-            has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_origin(),
+            has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
         };
 
         // Step 3. If el has an href attribute, then set options's href to the value of el's href attribute.

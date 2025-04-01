@@ -867,7 +867,7 @@ impl HTMLFormElement {
             target_document.get_referrer_policy(),
             Some(target_window.as_global_scope().is_secure_context()),
             Some(target_document.insecure_requests_policy()),
-            target_document.has_trustworthy_ancestor_origin(),
+            target_document.has_trustworthy_ancestor_or_current_origin(),
         );
 
         // Step 22

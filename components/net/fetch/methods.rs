@@ -34,7 +34,7 @@ use net_traits::{
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
-use servo_url::{Host, ServoUrl};
+use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use super::fetch_params::FetchParams;
@@ -290,6 +290,7 @@ pub async fn main_fetch(
         )));
     }
     if should_request_be_blocked_as_mixed_content(request) {
+        trace!("Blocking {:?} as mixed content", request.url());
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked as mixed content".into(),
         )));
@@ -525,6 +526,7 @@ pub async fn main_fetch(
                 Response::network_error(NetworkError::Internal("Blocked by mime type".into()));
             &blocked_error_response
         } else if should_replace_with_mixed_content {
+            trace!("Blocking response {:?} as mixed content", response.actual_response().url());
             blocked_error_response =
                 Response::network_error(NetworkError::Internal("Blocked as mixed content".into()));
             &blocked_error_response
@@ -926,21 +928,26 @@ pub fn should_request_be_blocked_due_to_a_bad_port(url: &ServoUrl) -> bool {
 
 /// <https://w3c.github.io/webappsec-mixed-content/#should-block-fetch>
 pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
-    // 1.1
+    // Step 1. Return allowed if one or more of the following conditions are met:
+    // 1.1. Does settings prohibit mixed security contexts?
+    // returns "Does Not Restrict Mixed Security Contexts" when applied to request’s client.
     if does_settings_prohibit_mixed_security_contexts(request) ==
         MixedSecurityProhibited::NotProhibited
     {
+        trace!("request: Settings do not prohibit mixed security");
         return false;
     }
 
-    // 1.2 request url is potentially trustworthy
+    // 1.2. request’s URL is a potentially trustworthy URL.
     if request.url().is_potentially_trustworthy() {
+        trace!("request: URL is potentially trustworthy");
         return false;
     }
 
-    // 1.3 User Agent set to allow mixed content
+    // 1.3. The user agent has been instructed to allow mixed content.
 
-    // 1.4 destination is document
+    // 1.4. request’s destination is "document", and request’s target browsing context has
+    // no parent browsing context.
     if request.destination == Destination::Document {
         //TODO: request's target browsing context has no parent browsing context
         return false;
@@ -951,22 +958,27 @@ pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
 
 /// <https://w3c.github.io/webappsec-mixed-content/#should-block-response>
 pub fn should_response_be_blocked_as_mixed_content(request: &Request, response: &Response) -> bool {
-    // 1.1
+    // Step 1. Return allowed if one or more of the following conditions are met:
+    // 1.1. Does settings prohibit mixed security contexts? returns Does Not Restrict Mixed Content
+    // when applied to request’s client.
     if does_settings_prohibit_mixed_security_contexts(request) ==
         MixedSecurityProhibited::NotProhibited
     {
+        trace!("response: Settings do not prohibit mixed security");
         return false;
     }
-
-    // 1.2
+    // 1.2. response’s url is a potentially trustworthy URL.
     if let Some(response_url) = response.actual_response().url() {
         if response_url.is_potentially_trustworthy() {
+            trace!("response: Settings do not prohibit mixed security");
             return false;
         }
     }
 
-    // 1.3 TODO: UA allows mixed content
-    // 1.4
+    // 1.3. TODO: The user agent has been instructed to allow mixed content.
+
+    // 1.4. request’s destination is "document", and request’s target browsing context
+    // has no parent browsing context.
     if request.destination == Destination::Document {
         // TODO if requests target browsing context has no parent browsing context
         return false;
@@ -1053,14 +1065,24 @@ pub enum MixedSecurityProhibited {
 /// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
 fn does_settings_prohibit_mixed_security_contexts(request: &Request) -> MixedSecurityProhibited {
     if let Origin::Origin(ref origin) = request.origin {
-        // Step 1
-        if origin.is_potentially_trustworthy() {
+
+        // Workers created from a data: url are secure if they were created from secure contexts
+        let is_origin_data_url_worker = 
+            matches!(*origin, ImmutableOrigin::Opaque(servo_url::OpaqueOrigin::SecureWorkerFromDataUrl(_)));
+
+        // Step 1. If settings’ origin is a potentially trustworthy origin,
+        // then return "Prohibits Mixed Security Contexts".
+        trace!("origin {:?}", origin);
+        if origin.is_potentially_trustworthy() || is_origin_data_url_worker {
             return MixedSecurityProhibited::Prohibited;
         }
     }
 
-    // Step 2.2
+    // Step 2.2. For each navigable navigable in document’s ancestor navigables:
+    // Step 2.2.1. If navigable’s active document's origin is a potentially trustworthy origin,
+    // then return "Prohibits Mixed Security Contexts".
     if request.has_trustworthy_ancestor_origin {
+        trace!("has potentially trustworthy origin");
         return MixedSecurityProhibited::Prohibited;
     }
 

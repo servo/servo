@@ -2483,7 +2483,7 @@ impl Document {
     ) {
         request = request
             .insecure_requests_policy(self.insecure_requests_policy())
-            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin());
+            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_or_current_origin());
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
             task_source: self
@@ -2504,7 +2504,7 @@ impl Document {
     ) {
         request = request
             .insecure_requests_policy(self.insecure_requests_policy())
-            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_origin());
+            .has_trustworthy_ancestor_origin(self.has_trustworthy_ancestor_or_current_origin());
         let callback = NetworkListener {
             context: std::sync::Arc::new(Mutex::new(listener)),
             task_source: self
@@ -3745,9 +3745,6 @@ impl Document {
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
-        let has_trustworthy_ancestor_origin =
-            url.origin().is_potentially_trustworthy() || has_trustworthy_ancestor_origin;
-
         let (ready_state, domcontentloaded_dispatched) = if source == DocumentSource::FromParser {
             (DocumentReadyState::Loading, false)
         } else {
@@ -4263,7 +4260,7 @@ impl Document {
                     false,
                     self.allow_declarative_shadow_roots(),
                     Some(self.insecure_requests_policy()),
-                    self.has_trustworthy_ancestor_origin(),
+                    self.has_trustworthy_ancestor_or_current_origin(),
                     can_gc,
                 );
                 new_doc
@@ -4815,6 +4812,11 @@ impl Document {
     pub fn has_trustworthy_ancestor_origin(&self) -> bool {
         self.has_trustworthy_ancestor_origin.get()
     }
+
+    pub fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
+        self.has_trustworthy_ancestor_origin.get() 
+            || self.origin().immutable().is_potentially_trustworthy()
+    }
 }
 
 #[allow(non_snake_case)]
@@ -4845,7 +4847,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             false,
             doc.allow_declarative_shadow_roots(),
             Some(doc.insecure_requests_policy()),
-            doc.has_trustworthy_ancestor_origin(),
+            doc.has_trustworthy_ancestor_or_current_origin(),
             can_gc,
         ))
     }
