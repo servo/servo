@@ -44,6 +44,7 @@ use crate::actors::process::ProcessActor;
 use crate::actors::root::RootActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::worker::{WorkerActor, WorkerType};
+use crate::id::IdMap;
 use crate::network_handler::handle_network_event;
 use crate::protocol::JsonPacketStream;
 
@@ -70,6 +71,7 @@ mod actors {
     pub mod watcher;
     pub mod worker;
 }
+mod id;
 mod network_handler;
 mod protocol;
 
@@ -106,6 +108,7 @@ pub(crate) struct StreamId(u32);
 
 struct DevtoolsInstance {
     actors: Arc<Mutex<ActorRegistry>>,
+    id_map: Arc<Mutex<IdMap>>,
     browsing_contexts: HashMap<BrowsingContextId, String>,
     receiver: Receiver<DevtoolsControlMsg>,
     pipelines: HashMap<PipelineId, BrowsingContextId>,
@@ -167,6 +170,7 @@ impl DevtoolsInstance {
 
         let instance = Self {
             actors,
+            id_map: Arc::new(Mutex::new(IdMap::default())),
             browsing_contexts: HashMap::new(),
             pipelines: HashMap::new(),
             receiver,
@@ -299,7 +303,7 @@ impl DevtoolsInstance {
             .lock()
             .unwrap()
             .find::<BrowsingContextActor>(actor_name)
-            .navigate(state);
+            .navigate(state, &mut self.id_map.lock().expect("Mutex poisoned"));
     }
 
     // We need separate actor representations for each script global that exists;
@@ -314,6 +318,10 @@ impl DevtoolsInstance {
         let mut actors = self.actors.lock().unwrap();
 
         let (browsing_context_id, pipeline_id, worker_id, webview_id) = ids;
+        let id_map = &mut self.id_map.lock().expect("Mutex poisoned");
+        let devtools_browser_id = id_map.browser_id(webview_id);
+        let devtools_browsing_context_id = id_map.browsing_context_id(browsing_context_id);
+        let devtools_outer_window_id = id_map.outer_window_id(pipeline_id);
 
         let console_name = actors.new_name("console");
 
@@ -351,10 +359,11 @@ impl DevtoolsInstance {
                 .or_insert_with(|| {
                     let browsing_context_actor = BrowsingContextActor::new(
                         console_name.clone(),
-                        webview_id,
-                        browsing_context_id,
+                        devtools_browser_id,
+                        devtools_browsing_context_id,
                         page_info,
                         pipeline_id,
+                        devtools_outer_window_id,
                         script_sender,
                         &mut actors,
                     );
