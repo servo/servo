@@ -26,7 +26,6 @@ use crate::dom::htmlformelement::{
     FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement,
 };
 use crate::dom::htmlinputelement::HTMLInputElement;
-use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -53,21 +52,21 @@ impl FormData {
 
     pub(crate) fn new(
         form_datums: Option<Vec<FormDatum>>,
-        window: &Window,
+        global: &GlobalScope,
         can_gc: CanGc,
     ) -> DomRoot<FormData> {
-        Self::new_with_proto(form_datums, window, None, can_gc)
+        Self::new_with_proto(form_datums, global, None, can_gc)
     }
 
     fn new_with_proto(
         form_datums: Option<Vec<FormDatum>>,
-        window: &Window,
+        global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<FormData> {
         reflect_dom_object_with_proto(
             Box::new(FormData::new_inherited(form_datums)),
-            window,
+            global,
             proto,
             can_gc,
         )
@@ -125,7 +124,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             return match opt_form.get_form_dataset(submitter_element, None, can_gc) {
                 Some(form_datums) => Ok(FormData::new_with_proto(
                     Some(form_datums),
-                    global.as_window(),
+                    global,
                     proto,
                     can_gc,
                 )),
@@ -136,7 +135,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
 
         Ok(FormData::new_with_proto(
             None,
-            global.as_window(),
+            global,
             proto,
             can_gc,
         ))

@@ -1227,7 +1227,7 @@ impl HTMLFormElement {
         let window = self.owner_window();
 
         // Step 6
-        let form_data = FormData::new(Some(ret), &window, can_gc);
+        let form_data = FormData::new(Some(ret), &window.global(), can_gc);
 
         // Step 7
         let event = FormDataEvent::new(
