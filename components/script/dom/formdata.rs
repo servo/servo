@@ -133,12 +133,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             };
         }
 
-        Ok(FormData::new_with_proto(
-            None,
-            global,
-            proto,
-            can_gc,
-        ))
+        Ok(FormData::new_with_proto(None, global, proto, can_gc))
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-append
