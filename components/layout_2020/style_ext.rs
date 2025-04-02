@@ -235,6 +235,7 @@ pub(crate) struct ContentBoxSizesAndPBM {
     pub content_box_sizes: LogicalVec2<Sizes>,
     pub pbm: PaddingBorderMargin,
     pub depends_on_block_constraints: bool,
+    pub preferred_size_computes_to_auto: LogicalVec2<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -994,6 +995,8 @@ impl LayoutStyle<'_> {
         let box_size = style.box_size(writing_mode);
         let min_size = style.min_box_size(writing_mode);
         let max_size = style.max_box_size(writing_mode);
+        let preferred_size_computes_to_auto = box_size.map(|size| size.is_initial());
+
         let depends_on_block_constraints = |size: &Size<LengthPercentage>| {
             match size {
                 // fit-content is like clamp(min-content, stretch, max-content), but currently
@@ -1008,7 +1011,6 @@ impl LayoutStyle<'_> {
                 _ => false,
             }
         };
-
         let depends_on_block_constraints = depends_on_block_constraints(&box_size.block) ||
             depends_on_block_constraints(&min_size.block) ||
             depends_on_block_constraints(&max_size.block) ||
@@ -1039,6 +1041,7 @@ impl LayoutStyle<'_> {
             },
             pbm,
             depends_on_block_constraints,
+            preferred_size_computes_to_auto,
         }
     }
 
