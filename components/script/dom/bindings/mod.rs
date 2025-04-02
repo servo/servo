@@ -135,7 +135,6 @@
 #![deny(non_snake_case)]
 
 pub(crate) mod buffer_source;
-//pub(crate) mod callback;
 pub(crate) use script_bindings::callback;
 #[allow(dead_code)]
 pub(crate) mod cell;
@@ -144,14 +143,10 @@ pub(crate) mod conversions;
 pub(crate) mod error;
 pub(crate) mod frozenarray;
 pub(crate) mod function;
-//pub(crate) mod guard;
 pub(crate) mod import;
 pub(crate) mod inheritance;
-//pub(crate) mod interface;
-//pub(crate) mod iterable;
 pub(crate) use script_bindings::iterable;
 pub(crate) mod like;
-//pub(crate) mod namespace;
 pub(crate) mod principals;
 pub(crate) mod proxyhandler;
 pub(crate) mod refcounted;
@@ -195,7 +190,6 @@ pub(crate) mod codegen {
     }
     pub(crate) use script_bindings::codegen::PrototypeList;
     pub(crate) use script_bindings::codegen::RegisterBindings;
-    pub(crate) use script_bindings::codegen::GenericUnionTypes;
     #[allow(dead_code)]
     pub(crate) mod UnionTypes {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/UnionTypes.rs"));
