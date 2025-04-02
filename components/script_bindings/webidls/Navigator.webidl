@@ -70,3 +70,8 @@ partial interface Navigator {
 interface mixin NavigatorConcurrentHardware {
   readonly attribute unsigned long long hardwareConcurrency;
 };
+
+// https://w3c.github.io/clipboard-apis/#navigator-interface
+partial interface Navigator {
+  [SecureContext, SameObject, Pref="dom_async_clipboard_enabled"] readonly attribute Clipboard clipboard;
+};

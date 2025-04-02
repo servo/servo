@@ -250,6 +250,7 @@ pub(crate) mod channelmergernode;
 pub(crate) mod channelsplitternode;
 pub(crate) mod characterdata;
 pub(crate) mod client;
+pub(crate) mod clipboard;
 pub(crate) mod clipboardevent;
 pub(crate) mod clipboarditem;
 pub(crate) mod closeevent;
