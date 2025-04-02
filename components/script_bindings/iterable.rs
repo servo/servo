@@ -33,7 +33,7 @@ use crate::utils::DOMClass;
 
 /// The values that an iterator will iterate over.
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum IteratorType {
+pub(crate) enum IteratorType {
     /// The keys of the iterable object.
     Keys,
     /// The values of the iterable object.
@@ -102,7 +102,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
     IterableIterator<D, T>
 {
     /// Create a new iterator instance for the provided iterable DOM interface.
-    pub fn new(iterable: &T, type_: IteratorType, realm: InRealm) -> DomRoot<Self> {
+    pub(crate) fn new(iterable: &T, type_: IteratorType, realm: InRealm) -> DomRoot<Self> {
         let iterator = Box::new(IterableIterator {
             reflector: Reflector::new(),
             type_,

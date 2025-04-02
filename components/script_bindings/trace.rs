@@ -51,7 +51,7 @@ pub unsafe fn trace_reflector(tracer: *mut JSTracer, description: &str, reflecto
 ///
 /// # Safety
 /// tracer must point to a valid, non-null JS tracer.
-pub unsafe fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
+pub(crate) unsafe fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
     unsafe {
         trace!("tracing {}", description);
         CallObjectTracer(
@@ -386,7 +386,7 @@ impl<T: JSTraceable> DerefMut for RootedTraceableBox<T> {
 /// SAFETY: Inner type must not impl JSTraceable
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(crown, crown::trace_in_no_trace_lint::must_not_have_traceable)]
-pub struct NoTrace<T>(pub T);
+pub(crate) struct NoTrace<T>(pub(crate) T);
 
 impl<T: Display> Display for NoTrace<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

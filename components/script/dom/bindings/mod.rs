@@ -135,7 +135,6 @@
 #![deny(non_snake_case)]
 
 pub(crate) mod buffer_source;
-pub(crate) use script_bindings::callback;
 #[allow(dead_code)]
 pub(crate) mod cell;
 pub(crate) mod constructor;
@@ -145,7 +144,6 @@ pub(crate) mod frozenarray;
 pub(crate) mod function;
 pub(crate) mod import;
 pub(crate) mod inheritance;
-pub(crate) use script_bindings::iterable;
 pub(crate) mod like;
 pub(crate) mod principals;
 pub(crate) mod proxyhandler;
@@ -162,6 +160,8 @@ pub(crate) mod utils;
 pub(crate) mod weakref;
 pub(crate) mod xmlname;
 
+pub(crate) use script_bindings::callback;
+pub(crate) use script_bindings::iterable;
 pub(crate) use script_bindings::num;
 
 /// Generated JS-Rust bindings.
@@ -181,7 +181,6 @@ pub(crate) mod codegen {
     pub(crate) mod InterfaceObjectMap {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceObjectMap.rs"));
     }
-    #[allow(dead_code)]
     pub(crate) mod ConcreteInheritTypes {
         include!(concat!(
             env!("BINDINGS_OUT_DIR"),
