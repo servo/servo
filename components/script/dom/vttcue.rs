@@ -14,11 +14,10 @@ use crate::dom::bindings::codegen::Bindings::VTTCueBinding::{
 };
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::documentfragment::DocumentFragment;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::vttregion::VTTRegion;
 use crate::dom::window::Window;
@@ -62,7 +61,7 @@ impl VTTCue {
     }
 
     fn new(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         start_time: f64,
         end_time: f64,
@@ -71,7 +70,7 @@ impl VTTCue {
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
             Box::new(Self::new_inherited(start_time, end_time, text)),
-            global,
+            window,
             proto,
             can_gc,
         )
@@ -88,14 +87,7 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
         end_time: Finite<f64>,
         text: DOMString,
     ) -> DomRoot<Self> {
-        VTTCue::new(
-            &window.global(),
-            proto,
-            *start_time,
-            *end_time,
-            text,
-            can_gc,
-        )
+        VTTCue::new(window, proto, *start_time, *end_time, text, can_gc)
     }
 
     // https://w3c.github.io/webvtt/#dom-vttcue-region

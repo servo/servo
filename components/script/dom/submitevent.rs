@@ -10,11 +10,10 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::SubmitEventBinding;
 use crate::dom::bindings::codegen::Bindings::SubmitEventBinding::SubmitEventMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -35,18 +34,18 @@ impl SubmitEvent {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         submitter: Option<DomRoot<HTMLElement>>,
         can_gc: CanGc,
     ) -> DomRoot<SubmitEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, submitter, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, submitter, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -56,7 +55,7 @@ impl SubmitEvent {
     ) -> DomRoot<SubmitEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(SubmitEvent::new_inherited(submitter)),
-            global,
+            window,
             proto,
             can_gc,
         );
@@ -78,7 +77,7 @@ impl SubmitEventMethods<crate::DomTypeHolder> for SubmitEvent {
         init: &SubmitEventBinding::SubmitEventInit,
     ) -> DomRoot<SubmitEvent> {
         SubmitEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
