@@ -15,21 +15,19 @@ use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 
-use crate::{DomTypes, JSTraceable};
 use crate::codegen::GenericBindings::IterableIteratorBinding::{
     IterableKeyAndValueResult, IterableKeyOrValueResult,
 };
 use crate::conversions::IDLInterface;
 use crate::error::Fallible;
-use crate::reflector::{
-    DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector,
-};
-use crate::root::{Dom, DomRoot, Root};
-use crate::trace::{NoTrace, RootedTraceableBox};
 use crate::interfaces::DomHelpers;
 use crate::realms::InRealm;
+use crate::reflector::{DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector};
+use crate::root::{Dom, DomRoot, Root};
 use crate::script_runtime::{CanGc, JSContext};
+use crate::trace::{NoTrace, RootedTraceableBox};
 use crate::utils::DOMClass;
+use crate::{DomTypes, JSTraceable};
 
 /// The values that an iterator will iterate over.
 #[derive(JSTraceable, MallocSizeOf)]

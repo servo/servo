@@ -44,8 +44,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
-    get_property, get_property_jsval, jsid_to_string, jsstring_to_str,
-    root_from_object,
+    get_property, get_property_jsval, jsid_to_string, jsstring_to_str, root_from_object,
 };
 use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;

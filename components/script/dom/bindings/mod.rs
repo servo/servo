@@ -160,9 +160,7 @@ pub(crate) mod utils;
 pub(crate) mod weakref;
 pub(crate) mod xmlname;
 
-pub(crate) use script_bindings::callback;
-pub(crate) use script_bindings::iterable;
-pub(crate) use script_bindings::num;
+pub(crate) use script_bindings::{callback, iterable, num};
 
 /// Generated JS-Rust bindings.
 #[allow(missing_docs, non_snake_case)]
@@ -187,8 +185,7 @@ pub(crate) mod codegen {
             "/ConcreteInheritTypes.rs"
         ));
     }
-    pub(crate) use script_bindings::codegen::PrototypeList;
-    pub(crate) use script_bindings::codegen::RegisterBindings;
+    pub(crate) use script_bindings::codegen::{PrototypeList, RegisterBindings};
     #[allow(dead_code)]
     pub(crate) mod UnionTypes {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/UnionTypes.rs"));

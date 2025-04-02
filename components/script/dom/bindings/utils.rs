@@ -10,8 +10,7 @@ use std::thread::LocalKey;
 use js::conversions::ToJSValConvertible;
 use js::glue::{IsWrapper, JSPrincipalsCallbacks, UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{
-    CallArgs, DOMCallbacks, HandleObject as RawHandleObject,
-    JS_FreezeObject, JSContext, JSObject,
+    CallArgs, DOMCallbacks, HandleObject as RawHandleObject, JS_FreezeObject, JSContext, JSObject,
 };
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
 use script_bindings::interfaces::DomHelpers;

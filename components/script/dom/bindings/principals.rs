@@ -4,15 +4,11 @@
 
 use std::ptr::NonNull;
 
-use js::glue::{
-    DestroyRustJSPrincipals, GetRustJSPrincipalsPrivate,
-    JSPrincipalsCallbacks,
-};
+use js::glue::{DestroyRustJSPrincipals, GetRustJSPrincipalsPrivate, JSPrincipalsCallbacks};
 use js::jsapi::{
-    JS_ReadUint32Pair, JSContext, JSPrincipals,
-    JSStructuredCloneReader, JSStructuredCloneWriter,
+    JS_ReadUint32Pair, JSContext, JSPrincipals, JSStructuredCloneReader, JSStructuredCloneWriter,
 };
-use script_bindings::principals::{ServoJSPrincipalsRef, ServoJSPrincipals};
+use script_bindings::principals::{ServoJSPrincipals, ServoJSPrincipalsRef};
 use servo_url::MutableOrigin;
 
 use super::structuredclone::StructuredCloneTags;

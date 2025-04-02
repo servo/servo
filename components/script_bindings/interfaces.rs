@@ -4,13 +4,12 @@
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::thread::LocalKey;
 
 use js::conversions::ToJSValConvertible;
 use js::glue::JSPrincipalsCallbacks;
-use js::jsapi::{HandleObject as RawHandleObject, JSObject, JSContext as RawJSContext, CallArgs};
+use js::jsapi::{CallArgs, HandleObject as RawHandleObject, JSContext as RawJSContext, JSObject};
 use js::rust::{HandleObject, MutableHandleObject};
-
-use std::thread::LocalKey;
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::DomTypes;
@@ -20,18 +19,13 @@ use crate::error::Error;
 use crate::realms::InRealm;
 use crate::reflector::{DomObject, DomObjectWrap};
 use crate::root::DomRoot;
-use crate::script_runtime::{JSContext, CanGc};
+use crate::script_runtime::{CanGc, JSContext};
 use crate::settings_stack::StackEntry;
 use crate::utils::ProtoOrIfaceArray;
 
 /// Operations that must be invoked from the generated bindings.
 pub trait DomHelpers<D: DomTypes> {
-    fn throw_dom_exception(
-        cx: JSContext,
-        global: &D::GlobalScope,
-        result: Error,
-        can_gc: CanGc,
-    );
+    fn throw_dom_exception(cx: JSContext, global: &D::GlobalScope, result: Error, can_gc: CanGc);
 
     unsafe fn call_html_constructor<T: DerivedFrom<D::Element> + DomObject>(
         cx: JSContext,
@@ -58,12 +52,7 @@ pub trait DomHelpers<D: DomTypes> {
         T: DomObject + DomObjectWrap<D>,
         U: DerivedFrom<D::GlobalScope>;
 
-    fn report_pending_exception(
-        cx: JSContext,
-        dispatch_event: bool,
-        realm: InRealm,
-        can_gc: CanGc,
-    );
+    fn report_pending_exception(cx: JSContext, dispatch_event: bool, realm: InRealm, can_gc: CanGc);
 }
 
 /// Operations that must be invoked from the generated bindings.

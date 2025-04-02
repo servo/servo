@@ -13,15 +13,15 @@ use js::glue::{
     JS_GetReservedSlot, UnwrapObjectDynamic,
 };
 use js::jsapi::{
-    JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
-    JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN, JSContext, JSObject, JSString, IsWindowProxy, Heap,
+    Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
+    JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN, JSContext, JSObject, JSString,
 };
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
+use js::rust::wrappers::IsArrayObject;
 use js::rust::{
     HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
     is_dom_object, maybe_wrap_value,
 };
-use js::rust::wrappers::IsArrayObject;
 use num_traits::Float;
 
 use crate::JSTraceable;
@@ -530,10 +530,7 @@ where
 /// Returns whether `value` is an array-like object (Array, FileList,
 /// HTMLCollection, HTMLFormControlsCollection, HTMLOptionsCollection,
 /// NodeList).
-pub unsafe fn is_array_like<D: crate::DomTypes>(
-    cx: *mut JSContext,
-    value: HandleValue,
-) -> bool {
+pub unsafe fn is_array_like<D: crate::DomTypes>(cx: *mut JSContext, value: HandleValue) -> bool {
     let mut is_array = false;
     assert!(IsArrayObject(cx, value, &mut is_array));
     if is_array {

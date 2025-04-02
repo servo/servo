@@ -15,9 +15,13 @@ use js::glue::{
 };
 use js::jsapi::{
     AtomToLinearString, CallArgs, ExceptionStackBehavior, GetLinearStringCharAt,
-    GetLinearStringLength, GetNonCCWObjectGlobal, HandleObject as RawHandleObject, Heap,
-    JS_ClearPendingException, JS_IsExceptionPending, JSAtom, JSContext, JSJitInfo, JSObject,
-    JSTracer, MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex, MutableHandleIdVector as RawMutableHandleIdVector, JS_IsGlobalObject, JS_EnumerateStandardClasses, HandleId as RawHandleId, JS_ResolveStandardClass, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
+    GetLinearStringLength, GetNonCCWObjectGlobal, HandleId as RawHandleId,
+    HandleObject as RawHandleObject, Heap, JS_ClearPendingException,
+    JS_DeprecatedStringHasLatin1Chars, JS_EnumerateStandardClasses,
+    JS_GetLatin1StringCharsAndLength, JS_IsExceptionPending, JS_IsGlobalObject,
+    JS_ResolveStandardClass, JSAtom, JSContext, JSJitInfo, JSObject, JSTracer,
+    MutableHandleIdVector as RawMutableHandleIdVector, MutableHandleValue as RawMutableHandleValue,
+    ObjectOpResult, StringIsArrayIndex,
 };
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{

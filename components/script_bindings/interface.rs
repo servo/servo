@@ -41,10 +41,10 @@ use crate::constant::{ConstantSpec, define_constants};
 use crate::conversions::{DOM_OBJECT_SLOT, get_dom_class};
 use crate::guard::Guard;
 use crate::principals::ServoJSPrincipals;
+use crate::script_runtime::JSContext as SafeJSContext;
 use crate::utils::{
     DOM_PROTOTYPE_SLOT, DOMJSClass, JSCLASS_DOM_GLOBAL, ProtoOrIfaceArray, get_proto_or_iface_array,
 };
-use crate::script_runtime::JSContext as SafeJSContext;
 
 /// The class of a non-callback interface object.
 #[derive(Clone, Copy)]

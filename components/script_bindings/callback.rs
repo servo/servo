@@ -9,27 +9,24 @@ use std::ffi::CString;
 use std::mem::drop;
 use std::rc::Rc;
 
-use js::rust::HandleObject;
 use js::jsapi::{
     AddRawValueRoot, EnterRealm, Heap, IsCallable, JSObject, LeaveRealm, Realm, RemoveRawValueRoot,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
-use js::rust::{MutableHandleValue, Runtime};
+use js::rust::{HandleObject, MutableHandleValue, Runtime};
 
-use crate::reflector::DomObject;
-use crate::interfaces::DocumentHelpers;
-use crate::utils::AsCCharPtrPtr;
 use crate::DomTypes;
 use crate::codegen::GenericBindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::error::{Error, Fallible};
 use crate::inheritance::Castable;
-use crate::root::{Dom, DomRoot};
-use crate::settings_stack::{GenericAutoEntryScript, GenericAutoIncumbentScript};
-use crate::interfaces::DomHelpers;
-use crate::interfaces::GlobalScopeHelpers;
+use crate::interfaces::{DocumentHelpers, DomHelpers, GlobalScopeHelpers};
 use crate::realms::{InRealm, enter_realm};
+use crate::reflector::DomObject;
+use crate::root::{Dom, DomRoot};
 use crate::script_runtime::{CanGc, JSContext};
+use crate::settings_stack::{GenericAutoEntryScript, GenericAutoIncumbentScript};
+use crate::utils::AsCCharPtrPtr;
 
 pub trait ThisReflector {
     fn jsobject(&self) -> *mut JSObject;

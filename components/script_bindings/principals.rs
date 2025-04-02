@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ops::Deref;
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
+use std::ops::Deref;
 use std::ptr::NonNull;
 
-use js::glue::{CreateRustJSPrincipals, GetRustJSPrincipalsPrivate,};
+use js::glue::{CreateRustJSPrincipals, GetRustJSPrincipalsPrivate};
 use js::jsapi::{JS_DropPrincipals, JS_HoldPrincipals, JSPrincipals};
 use js::rust::Runtime;
 use servo_url::MutableOrigin;

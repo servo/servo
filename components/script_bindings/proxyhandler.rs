@@ -9,15 +9,19 @@ use std::os::raw::c_char;
 use std::ptr;
 
 use js::conversions::ToJSValConvertible;
-use js::glue::{GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, InvokeGetOwnPropertyDescriptor, SetProxyPrivate};
+use js::glue::{
+    GetProxyHandler, GetProxyHandlerFamily, GetProxyPrivate, InvokeGetOwnPropertyDescriptor,
+    SetProxyPrivate,
+};
 use js::jsapi::{
     DOMProxyShadowsResult, GetStaticPrototype, GetWellKnownSymbol, Handle as RawHandle,
-    HandleId as RawHandleId, HandleObject as RawHandleObject, HandleValue as RawHandleValue, MutableHandleValue as RawMutableHandleValue, JS_AtomizeAndPinString,
-    JS_DefinePropertyById, JS_GetOwnPropertyDescriptorById, JSContext, JSErrNum, JSFunctionSpec,
-    JSObject, JSPropertySpec, MutableHandle as RawMutableHandle,
+    HandleId as RawHandleId, HandleObject as RawHandleObject, HandleValue as RawHandleValue,
+    JS_AtomizeAndPinString, JS_DefinePropertyById, JS_GetOwnPropertyDescriptorById,
+    JS_IsExceptionPending, JSAutoRealm, JSContext, JSErrNum, JSFunctionSpec, JSObject,
+    JSPropertySpec, MutableHandle as RawMutableHandle,
     MutableHandleIdVector as RawMutableHandleIdVector,
-    MutableHandleObject as RawMutableHandleObject, ObjectOpResult, PropertyDescriptor,
-    SetDOMProxyInformation, SymbolCode, jsid, JSAutoRealm, JS_IsExceptionPending,
+    MutableHandleObject as RawMutableHandleObject, MutableHandleValue as RawMutableHandleValue,
+    ObjectOpResult, PropertyDescriptor, SetDOMProxyInformation, SymbolCode, jsid,
 };
 use js::jsid::SymbolId;
 use js::jsval::{ObjectValue, UndefinedValue};
@@ -34,7 +38,7 @@ use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::reflector::DomObject;
-use crate::script_runtime::{JSContext as SafeJSContext, CanGc};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::str::DOMString;
 use crate::utils::delete_property_by_id;
 

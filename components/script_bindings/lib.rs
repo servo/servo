@@ -88,9 +88,8 @@ pub mod codegen {
 // These trait exports are public, because they are used in the DOM bindings.
 // Since they are used in derive macros,
 // it is useful that they are accessible at the root of the crate.
-pub(crate) use crate::reflector::{DomObject, MutDomObject, Reflector};
 pub(crate) use js::gc::Traceable as JSTraceable;
-pub(crate) use crate::trace::CustomTraceable;
 
 pub use crate::codegen::DomTypes::DomTypes;
-
+pub(crate) use crate::reflector::{DomObject, MutDomObject, Reflector};
+pub(crate) use crate::trace::CustomTraceable;

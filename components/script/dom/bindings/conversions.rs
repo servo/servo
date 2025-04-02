@@ -41,13 +41,11 @@ use js::jsapi::{JS_IsExceptionPending, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_GetProperty, JS_HasProperty};
 use js::rust::{HandleObject, MutableHandleValue};
-pub(crate) use script_bindings::conversions::*;
+pub(crate) use script_bindings::conversions::{is_dom_proxy, *};
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-
-pub(crate) use script_bindings::conversions::is_dom_proxy;
 
 /// Get a `DomRoot<T>` for the given DOM object, unwrapping any wrapper
 /// around it first, and checking if the object is of the correct type.

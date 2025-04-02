@@ -6,13 +6,12 @@ use std::cell::RefCell;
 
 use js::jsapi::{GetScriptedCallerGlobal, JSTracer};
 use js::rust::Runtime;
-//use script_bindings::interfaces::{DomHelpers, GlobalScopeHelpers};
+use script_bindings::settings_stack::*;
 
+//use script_bindings::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
-
-use script_bindings::settings_stack::*;
 
 thread_local!(pub(super) static STACK: RefCell<Vec<StackEntry<crate::DomTypeHolder>>> = const {
     RefCell::new(Vec::new())

@@ -11,7 +11,7 @@ use js::rust::get_context_realm;
 use script_bindings::principals::ServoJSPrincipalsRef;
 pub(crate) use script_bindings::proxyhandler::*;
 
-use crate::script_runtime::{JSContext as SafeJSContext};
+use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://html.spec.whatwg.org/multipage/#isplatformobjectsameorigin-(-o-)>
 pub(crate) unsafe fn is_platform_object_same_origin(
@@ -46,4 +46,3 @@ pub(crate) unsafe fn is_platform_object_same_origin(
 
     result
 }
-

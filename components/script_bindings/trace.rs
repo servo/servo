@@ -51,7 +51,11 @@ pub unsafe fn trace_reflector(tracer: *mut JSTracer, description: &str, reflecto
 ///
 /// # Safety
 /// tracer must point to a valid, non-null JS tracer.
-pub(crate) unsafe fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
+pub(crate) unsafe fn trace_object(
+    tracer: *mut JSTracer,
+    description: &str,
+    obj: &Heap<*mut JSObject>,
+) {
     unsafe {
         trace!("tracing {}", description);
         CallObjectTracer(

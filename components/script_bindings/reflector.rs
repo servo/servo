@@ -6,12 +6,12 @@ use js::jsapi::{Heap, JSObject};
 use js::rust::HandleObject;
 use malloc_size_of_derive::MallocSizeOf;
 
-use crate::{DomTypes, JSTraceable};
 use crate::interfaces::GlobalScopeHelpers;
 use crate::iterable::{Iterable, IterableIterator};
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::root::{DomRoot, Root, Dom};
-use crate::script_runtime::{JSContext, CanGc};
+use crate::root::{Dom, DomRoot, Root};
+use crate::script_runtime::{CanGc, JSContext};
+use crate::{DomTypes, JSTraceable};
 
 /// A struct to store a reference to the reflector of a DOM object.
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -124,9 +124,7 @@ pub trait DomGlobalGeneric<D: DomTypes>: DomObject {
 impl<D: DomTypes, T: DomObject> DomGlobalGeneric<D> for T {}
 
 /// A trait to provide a function pointer to wrap function for DOM objects.
-pub trait DomObjectWrap<D: DomTypes>:
-    Sized + DomObject + DomGlobalGeneric<D>
-{
+pub trait DomObjectWrap<D: DomTypes>: Sized + DomObject + DomGlobalGeneric<D> {
     /// Function pointer to the general wrap function type
     #[allow(clippy::type_complexity)]
     const WRAP: unsafe fn(
@@ -140,9 +138,7 @@ pub trait DomObjectWrap<D: DomTypes>:
 
 /// A trait to provide a function pointer to wrap function for
 /// DOM iterator interfaces.
-pub trait DomObjectIteratorWrap<D: DomTypes>:
-    DomObjectWrap<D> + JSTraceable + Iterable
-{
+pub trait DomObjectIteratorWrap<D: DomTypes>: DomObjectWrap<D> + JSTraceable + Iterable {
     /// Function pointer to the wrap function for `IterableIterator<T>`
     #[allow(clippy::type_complexity)]
     const ITER_WRAP: unsafe fn(
