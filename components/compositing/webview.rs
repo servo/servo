@@ -946,7 +946,7 @@ mod test {
         BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId, WebViewId,
     };
 
-    use crate::webview::{UnknownWebView, WebViewAlreadyExists, WebViewManager};
+    use crate::webview::{UnknownWebView, WebViewManager};
 
     fn top_level_id(namespace_id: u32, index: u32) -> WebViewId {
         WebViewId(BrowsingContextId {
@@ -970,10 +970,13 @@ mod test {
         PipelineNamespace::install(PipelineNamespaceId(0));
         let mut webviews = WebViewManager::default();
 
-        // add() adds the webview to the map, but not the painting order.
-        assert!(webviews.add(WebViewId::new(), 'a').is_ok());
-        assert!(webviews.add(WebViewId::new(), 'b').is_ok());
-        assert!(webviews.add(WebViewId::new(), 'c').is_ok());
+        // entry() adds the webview to the map, but not the painting order.
+        webviews.entry(WebViewId::new()).or_insert('a');
+        webviews.entry(WebViewId::new()).or_insert('b');
+        webviews.entry(WebViewId::new()).or_insert('c');
+        assert!(webviews.get(top_level_id(0, 1)).is_some());
+        assert!(webviews.get(top_level_id(0, 2)).is_some());
+        assert!(webviews.get(top_level_id(0, 3)).is_some());
         assert_eq!(
             webviews_sorted(&webviews),
             vec![
@@ -985,10 +988,8 @@ mod test {
         assert!(webviews.painting_order.is_empty());
 
         // add() returns WebViewAlreadyExists if the webview id already exists.
-        assert_eq!(
-            webviews.add(top_level_id(0, 3), 'd'),
-            Err(WebViewAlreadyExists(top_level_id(0, 3)))
-        );
+        webviews.entry(top_level_id(0, 3)).or_insert('d');
+        assert!(webviews.get(top_level_id(0, 3)).is_some());
 
         // Other methods return UnknownWebView or None if the webview id doesn’t exist.
         assert_eq!(
