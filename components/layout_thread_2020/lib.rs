@@ -24,7 +24,7 @@ use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
-use fxhash::FxHashMap;
+use fxhash::{FxHashMap, FxHashSet};
 use ipc_channel::ipc::IpcSender;
 use layout::context::LayoutContext;
 use layout::display_list::{DisplayList, WebRenderImageInfo};
@@ -46,15 +46,15 @@ use profile_traits::time::{
 use profile_traits::{path, time_profile};
 use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::{
-    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
-    ReflowRequest, ReflowResult, TrustedNodeAddress,
+    ImageAnimationState, Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType,
+    OffsetParentResponse, ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::{self, DebugOptions};
 use servo_config::pref;
 use servo_url::ServoUrl;
-use style::animation::DocumentAnimationSet;
+use style::animation::{AnimationSetKey, DocumentAnimationSet};
 use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
 };
@@ -536,7 +536,7 @@ impl LayoutThread {
         &'a self,
         guards: StylesheetGuards<'a>,
         snapshot_map: &'a SnapshotMap,
-        reflow_request: &ReflowRequest,
+        reflow_request: &mut ReflowRequest,
         use_rayon: bool,
     ) -> LayoutContext<'a> {
         let traversal_flags = match reflow_request.stylesheets_changed {
@@ -558,6 +558,9 @@ impl LayoutThread {
             font_context: self.font_context.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: Mutex::default(),
+            node_image_animation_map: Arc::new(RwLock::new(std::mem::take(
+                &mut reflow_request.node_to_image_animation_map,
+            ))),
             iframe_sizes: Mutex::default(),
             use_rayon,
         }
@@ -696,8 +699,12 @@ impl LayoutThread {
         let rayon_pool = rayon_pool.as_ref();
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context =
-            self.build_layout_context(guards.clone(), &map, &reflow_request, rayon_pool.is_some());
+        let mut layout_context = self.build_layout_context(
+            guards.clone(),
+            &map,
+            &mut reflow_request,
+            rayon_pool.is_some(),
+        );
 
         let dirty_root = unsafe {
             ServoLayoutNode::new(&reflow_request.dirty_root.unwrap())
@@ -791,9 +798,12 @@ impl LayoutThread {
 
         let pending_images = std::mem::take(&mut *layout_context.pending_images.lock());
         let iframe_sizes = std::mem::take(&mut *layout_context.iframe_sizes.lock());
+        let node_to_image_animation_map =
+            std::mem::take(&mut *layout_context.node_image_animation_map.write());
         Some(ReflowResult {
             pending_images,
             iframe_sizes,
+            node_to_image_animation_map,
         })
     }
 
@@ -818,6 +828,11 @@ impl LayoutThread {
     ) {
         Self::cancel_animations_for_nodes_not_in_fragment_tree(
             &context.style_context.animations,
+            &fragment_tree,
+        );
+
+        Self::cancel_image_animation_for_nodes_not_in_fragment_tree(
+            context.node_image_animation_map.clone(),
             &fragment_tree,
         );
 
@@ -917,6 +932,22 @@ impl LayoutThread {
             if let Some(state) = animations.get_mut(node) {
                 state.cancel_all_animations();
             }
+        }
+    }
+
+    fn cancel_image_animation_for_nodes_not_in_fragment_tree(
+        image_animation_set: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
+        root: &FragmentTree,
+    ) {
+        let mut image_animations = image_animation_set.write().to_owned();
+        let mut invalid_nodes: FxHashSet<AnimationSetKey> = image_animations
+            .keys()
+            .cloned()
+            .map(|node| AnimationSetKey::new(node, None))
+            .collect();
+        root.remove_nodes_in_fragment_tree_from_set(&mut invalid_nodes);
+        for node in &invalid_nodes {
+            image_animations.remove(&node.node);
         }
     }
 

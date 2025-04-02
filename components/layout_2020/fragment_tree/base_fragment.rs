@@ -13,8 +13,8 @@ use style::selector_parser::PseudoElement;
 #[derive(Clone, Debug)]
 pub(crate) struct BaseFragment {
     /// A tag which identifies the DOM node and pseudo element of this
-    /// Fragment's content. If this fragment isn't related to any DOM
-    /// node at all, the tag will be None.
+    /// Fragment's content. If this fragment is for an anonymous box,
+    /// the tag will be None.
     pub tag: Option<Tag>,
 
     /// Flags which various information about this fragment used during

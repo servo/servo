@@ -23,6 +23,7 @@ use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector
 use webrender_api::{
     ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
+use webrender_traits::RendererWebView;
 
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};
@@ -50,6 +51,10 @@ enum ScrollZoomEvent {
 pub(crate) struct WebView {
     /// The [`WebViewId`] of the `WebView` associated with this [`WebViewDetails`].
     pub id: WebViewId,
+    /// The renderer's view of the embedding layer `WebView` as a trait implementation,
+    /// so that the renderer doesn't need to depend on the embedding layer. This avoids
+    /// a dependency cycle.
+    pub renderer_webview: Box<dyn RendererWebView>,
     /// The root [`PipelineId`] of the currently displayed page in this WebView.
     pub root_pipeline_id: Option<PipelineId>,
     pub rect: DeviceRect,
@@ -73,9 +78,14 @@ impl Drop for WebView {
 }
 
 impl WebView {
-    pub(crate) fn new(id: WebViewId, rect: DeviceRect, global: Rc<RefCell<ServoRenderer>>) -> Self {
+    pub(crate) fn new(
+        renderer_webview: Box<dyn RendererWebView>,
+        rect: DeviceRect,
+        global: Rc<RefCell<ServoRenderer>>,
+    ) -> Self {
         Self {
-            id,
+            id: renderer_webview.id(),
+            renderer_webview,
             root_pipeline_id: None,
             rect,
             pipelines: Default::default(),
@@ -574,11 +584,13 @@ impl WebView {
                         self.touch_handler
                             .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
                         if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) {
-                            info.prevent_move = TouchMoveAllowed::Allowed;
-                            if let TouchSequenceState::PendingFling { velocity, cursor } =
-                                info.state
-                            {
-                                info.state = TouchSequenceState::Flinging { velocity, cursor }
+                            if info.prevent_move == TouchMoveAllowed::Pending {
+                                info.prevent_move = TouchMoveAllowed::Allowed;
+                                if let TouchSequenceState::PendingFling { velocity, cursor } =
+                                    info.state
+                                {
+                                    info.state = TouchSequenceState::Flinging { velocity, cursor }
+                                }
                             }
                         }
                     },
@@ -944,7 +956,7 @@ mod test {
         BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId, WebViewId,
     };
 
-    use crate::webview::{UnknownWebView, WebViewAlreadyExists, WebViewManager};
+    use crate::webview::{UnknownWebView, WebViewManager};
 
     fn top_level_id(namespace_id: u32, index: u32) -> WebViewId {
         WebViewId(BrowsingContextId {
@@ -968,10 +980,13 @@ mod test {
         PipelineNamespace::install(PipelineNamespaceId(0));
         let mut webviews = WebViewManager::default();
 
-        // add() adds the webview to the map, but not the painting order.
-        assert!(webviews.add(WebViewId::new(), 'a').is_ok());
-        assert!(webviews.add(WebViewId::new(), 'b').is_ok());
-        assert!(webviews.add(WebViewId::new(), 'c').is_ok());
+        // entry() adds the webview to the map, but not the painting order.
+        webviews.entry(WebViewId::new()).or_insert('a');
+        webviews.entry(WebViewId::new()).or_insert('b');
+        webviews.entry(WebViewId::new()).or_insert('c');
+        assert!(webviews.get(top_level_id(0, 1)).is_some());
+        assert!(webviews.get(top_level_id(0, 2)).is_some());
+        assert!(webviews.get(top_level_id(0, 3)).is_some());
         assert_eq!(
             webviews_sorted(&webviews),
             vec![
@@ -983,10 +998,8 @@ mod test {
         assert!(webviews.painting_order.is_empty());
 
         // add() returns WebViewAlreadyExists if the webview id already exists.
-        assert_eq!(
-            webviews.add(top_level_id(0, 3), 'd'),
-            Err(WebViewAlreadyExists(top_level_id(0, 3)))
-        );
+        webviews.entry(top_level_id(0, 3)).or_insert('d');
+        assert!(webviews.get(top_level_id(0, 3)).is_some());
 
         // Other methods return UnknownWebView or None if the webview id doesn’t exist.
         assert_eq!(

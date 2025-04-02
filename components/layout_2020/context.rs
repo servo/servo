@@ -7,14 +7,17 @@ use std::sync::Arc;
 use base::id::PipelineId;
 use fnv::FnvHashMap;
 use fonts::FontContext;
+use fxhash::FxHashMap;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
 };
 use parking_lot::{Mutex, RwLock};
-use script_layout_interface::{IFrameSizes, PendingImage, PendingImageState};
+use pixels::Image as PixelImage;
+use script_layout_interface::{IFrameSizes, ImageAnimationState, PendingImage, PendingImageState};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
+use style::values::computed::image::{Gradient, Image};
 
 use crate::display_list::WebRenderImageInfo;
 
@@ -40,6 +43,13 @@ pub struct LayoutContext<'a> {
 
     pub webrender_image_cache:
         Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
+
+    pub node_image_animation_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
+}
+
+pub enum ResolvedImage<'a> {
+    Gradient(&'a Gradient),
+    Image(WebRenderImageInfo),
 }
 
 impl Drop for LayoutContext<'_> {
@@ -100,7 +110,27 @@ impl LayoutContext<'_> {
         }
     }
 
-    pub fn get_webrender_image_for_url(
+    pub fn handle_animated_image(&self, node: OpaqueNode, image: Arc<PixelImage>) {
+        let mut store = self.node_image_animation_map.write();
+
+        // 1. first check whether node previously being track for animated image.
+        if let Some(image_state) = store.get(&node) {
+            // a. if the node is not containing the same image as before.
+            if image_state.image_key() != image.id {
+                if image.should_animate() {
+                    // i. Register/Replace tracking item in image_animation_manager.
+                    store.insert(node, ImageAnimationState::new(image));
+                } else {
+                    // ii. Cancel Action if the node's image is no longer animated.
+                    store.remove(&node);
+                }
+            }
+        } else if image.should_animate() {
+            store.insert(node, ImageAnimationState::new(image));
+        }
+    }
+
+    fn get_webrender_image_for_url(
         &self,
         node: OpaqueNode,
         url: ServoUrl,
@@ -116,6 +146,7 @@ impl LayoutContext<'_> {
 
         match self.get_or_request_image_or_meta(node, url.clone(), use_placeholder) {
             Some(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {
+                self.handle_animated_image(node, image.clone());
                 let image_info = WebRenderImageInfo {
                     width: image.width,
                     height: image.height,
@@ -130,6 +161,37 @@ impl LayoutContext<'_> {
                 }
             },
             None | Some(ImageOrMetadataAvailable::MetadataAvailable(..)) => None,
+        }
+    }
+
+    pub fn resolve_image<'a>(
+        &self,
+        node: Option<OpaqueNode>,
+        image: &'a Image,
+    ) -> Option<ResolvedImage<'a>> {
+        match image {
+            // TODO: Add support for PaintWorklet and CrossFade rendering.
+            Image::None | Image::CrossFade(_) | Image::PaintWorklet(_) => None,
+            Image::Gradient(gradient) => Some(ResolvedImage::Gradient(gradient)),
+            Image::Url(image_url) => {
+                // FIXME: images won’t always have in intrinsic width or
+                // height when support for SVG is added, or a WebRender
+                // `ImageKey`, for that matter.
+                //
+                // FIXME: It feels like this should take into account the pseudo
+                // element and not just the node.
+                let image_url = image_url.url()?;
+                let webrender_info = self.get_webrender_image_for_url(
+                    node?,
+                    image_url.clone().into(),
+                    UsePlaceholder::No,
+                )?;
+                Some(ResolvedImage::Image(webrender_info))
+            },
+            Image::ImageSet(image_set) => image_set
+                .items
+                .get(image_set.selected_index)
+                .and_then(|image| self.resolve_image(node, &image.image)),
         }
     }
 }

@@ -205,6 +205,7 @@
 #[macro_use]
 pub(crate) mod macros;
 
+#[allow(unused_imports)]
 pub(crate) mod types {
     include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceTypes.rs"));
 }
@@ -270,6 +271,7 @@ pub(crate) mod csslayerblockrule;
 pub(crate) mod csslayerstatementrule;
 pub(crate) mod cssmediarule;
 pub(crate) mod cssnamespacerule;
+pub(crate) mod cssnesteddeclarations;
 pub(crate) mod cssrule;
 pub(crate) mod cssrulelist;
 pub(crate) mod cssstyledeclaration;

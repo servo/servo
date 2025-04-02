@@ -498,8 +498,8 @@ class UpdateVirtualPressureSourceAction:
     def __call__(self, payload):
         source_type = payload["source_type"]
         sample = payload["sample"]
-        estimate = payload["estimate"]
-        return self.protocol.pressure.update_virtual_pressure_source(source_type, sample, estimate)
+        own_contribution_estimate = payload["own_contribution_estimate"]
+        return self.protocol.pressure.update_virtual_pressure_source(source_type, sample, own_contribution_estimate)
 
 class RemoveVirtualPressureSourceAction:
     name = "remove_virtual_pressure_source"

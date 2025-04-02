@@ -11,7 +11,7 @@ use std::sync::Arc as StdArc;
 use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
-use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
+use html5ever::{LocalName, Namespace};
 use pixels::{Image, ImageMetadata};
 use range::Range;
 use servo_arc::Arc;
@@ -157,25 +157,6 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     /// the parent until all the children have been processed.
     fn parent_style(&self) -> Arc<ComputedValues>;
 
-    fn get_pseudo(&self, pseudo_element: PseudoElement) -> Option<Self> {
-        self.as_element()
-            .and_then(|element| element.get_pseudo(pseudo_element))
-            .as_ref()
-            .map(ThreadSafeLayoutElement::as_node)
-    }
-
-    fn get_details_summary_pseudo(&self) -> Option<Self> {
-        self.as_element()
-            .and_then(|el| el.get_details_summary_pseudo())
-            .map(|el| el.as_node())
-    }
-
-    fn get_details_content_pseudo(&self) -> Option<Self> {
-        self.as_element()
-            .and_then(|el| el.get_details_content_pseudo())
-            .map(|el| el.as_node())
-    }
-
     fn debug_id(self) -> usize;
 
     /// Returns an iterator over this node's children.
@@ -266,6 +247,13 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     fn fragment_type(&self) -> FragmentType {
         self.pseudo_element().into()
     }
+
+    fn with_pseudo(&self, pseudo_element_type: PseudoElement) -> Option<Self> {
+        self.as_element()
+            .and_then(|element| element.with_pseudo(pseudo_element_type))
+            .as_ref()
+            .map(ThreadSafeLayoutElement::as_node)
+    }
 }
 
 pub trait ThreadSafeLayoutElement<'dom>:
@@ -283,7 +271,16 @@ pub trait ThreadSafeLayoutElement<'dom>:
 
     /// Creates a new `ThreadSafeLayoutElement` for the same `LayoutElement`
     /// with a different pseudo-element type.
-    fn with_pseudo(&self, pseudo: PseudoElement) -> Self;
+    ///
+    /// Returns `None` if this pseudo doesn't apply to the given element for one of
+    /// the following reasons:
+    ///
+    ///  1. `pseudo` is eager and is not defined in the stylesheet. In this case, there
+    ///     is not reason to process the pseudo element at all.
+    ///  2. `pseudo` is for `::servo-details-summary` or `::servo-details-content` and
+    ///     it doesn't apply to this element, either because it isn't a details or is
+    ///     in the wrong state.
+    fn with_pseudo(&self, pseudo: PseudoElement) -> Option<Self>;
 
     /// Returns the type ID of this node.
     /// Returns `None` if this is a pseudo-element; otherwise, returns `Some`.
@@ -308,42 +305,6 @@ pub trait ThreadSafeLayoutElement<'dom>:
     fn style_data(&self) -> AtomicRef<ElementData>;
 
     fn pseudo_element(&self) -> Option<PseudoElement>;
-
-    #[inline]
-    fn get_pseudo(&self, pseudo_element: PseudoElement) -> Option<Self> {
-        if self
-            .style_data()
-            .styles
-            .pseudos
-            .get(&pseudo_element)
-            .is_some()
-        {
-            Some(self.with_pseudo(pseudo_element))
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    fn get_details_summary_pseudo(&self) -> Option<Self> {
-        if self.has_local_name(&local_name!("details")) && self.has_namespace(&ns!(html)) {
-            Some(self.with_pseudo(PseudoElement::DetailsSummary))
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    fn get_details_content_pseudo(&self) -> Option<Self> {
-        if self.has_local_name(&local_name!("details")) &&
-            self.has_namespace(&ns!(html)) &&
-            self.get_attr(&ns!(), &local_name!("open")).is_some()
-        {
-            Some(self.with_pseudo(PseudoElement::DetailsContent))
-        } else {
-            None
-        }
-    }
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.

@@ -642,6 +642,26 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         self.canvas_state.set_miter_limit(limit)
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-setlinedash>
+    fn SetLineDash(&self, segments: Vec<f64>) {
+        self.canvas_state.set_line_dash(segments);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getlinedash>
+    fn GetLineDash(&self) -> Vec<f64> {
+        self.canvas_state.line_dash()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset>
+    fn LineDashOffset(&self) -> f64 {
+        self.canvas_state.line_dash_offset()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset>
+    fn SetLineDashOffset(&self, offset: f64) {
+        self.canvas_state.set_line_dash_offset(offset);
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx
     fn ShadowOffsetX(&self) -> f64 {
         self.canvas_state.shadow_offset_x()

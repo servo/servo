@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<style>
+    #containing-block {
+        position: relative;
+
+        zoom: 2;
+    }
+
+    #anchor {
+        position: absolute;
+
+        width: 200px;
+        height: 100px;
+
+        background: red;
+    }
+
+    #anchor-positioned {
+        position: absolute;
+
+        width: 200px;
+        height: 100px;
+
+        background: green;
+
+        z-index: 1;
+    }
+</style>
+
+Test passes if no red is visible.
+
+<div id="containing-block">
+    <div id="anchor"></div>
+    <div id="anchor-positioned"></div>
+</div>

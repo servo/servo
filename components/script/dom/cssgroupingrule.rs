@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use servo_arc::Arc;
-use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::{CssRuleType, CssRuleTypes, CssRules as StyleCssRules};
+use style::shared_lock::SharedRwLock;
+use style::stylesheets::{CssRuleType, CssRuleTypes};
 
 use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
@@ -13,28 +12,24 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::cssconditionrule::CSSConditionRule;
+use crate::dom::csslayerblockrule::CSSLayerBlockRule;
 use crate::dom::cssrule::CSSRule;
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
+use crate::dom::cssstylerule::CSSStyleRule;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSGroupingRule {
     cssrule: CSSRule,
-    #[ignore_malloc_size_of = "Arc"]
-    #[no_trace]
-    rules: Arc<Locked<StyleCssRules>>,
     rulelist: MutNullableDom<CSSRuleList>,
 }
 
 impl CSSGroupingRule {
-    pub(crate) fn new_inherited(
-        parent_stylesheet: &CSSStyleSheet,
-        rules: Arc<Locked<StyleCssRules>>,
-    ) -> CSSGroupingRule {
+    pub(crate) fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSGroupingRule {
         CSSGroupingRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            rules,
             rulelist: MutNullableDom::new(None),
         }
     }
@@ -42,10 +37,19 @@ impl CSSGroupingRule {
     fn rulelist(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
         let parent_stylesheet = self.upcast::<CSSRule>().parent_stylesheet();
         self.rulelist.or_init(|| {
+            let rules = if let Some(rule) = self.downcast::<CSSConditionRule>() {
+                rule.clone_rules()
+            } else if let Some(rule) = self.downcast::<CSSLayerBlockRule>() {
+                rule.clone_rules()
+            } else if let Some(rule) = self.downcast::<CSSStyleRule>() {
+                rule.ensure_rules()
+            } else {
+                unreachable!()
+            };
             CSSRuleList::new(
                 self.global().as_window(),
                 parent_stylesheet,
-                RulesSource::Rules(self.rules.clone()),
+                RulesSource::Rules(rules),
                 can_gc,
             )
         })

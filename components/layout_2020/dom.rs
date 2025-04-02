@@ -17,10 +17,10 @@ use script_layout_interface::{
 };
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
+use style::selector_parser::PseudoElement;
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom_traversal::WhichPseudoElement;
 use crate::flexbox::FlexLevelBox;
 use crate::flow::BlockLevelBox;
 use crate::flow::inline::InlineItem;
@@ -108,8 +108,8 @@ pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
     fn layout_data_mut(self) -> AtomicRefMut<'dom, InnerDOMLayoutData>;
     fn layout_data(self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>>;
     fn element_box_slot(&self) -> BoxSlot<'dom>;
-    fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom>;
-    fn unset_pseudo_element_box(self, which: WhichPseudoElement);
+    fn pseudo_element_box_slot(&self, which: PseudoElement) -> BoxSlot<'dom>;
+    fn unset_pseudo_element_box(self, which: PseudoElement);
 
     /// Remove boxes for the element itself, and its `:before` and `:after` if any.
     fn unset_all_boxes(self);
@@ -217,20 +217,28 @@ where
         BoxSlot::new(self.layout_data_mut().self_box.clone())
     }
 
-    fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom> {
+    fn pseudo_element_box_slot(&self, pseudo_element_type: PseudoElement) -> BoxSlot<'dom> {
         let data = self.layout_data_mut();
-        let cell = match which {
-            WhichPseudoElement::Before => &data.pseudo_before_box,
-            WhichPseudoElement::After => &data.pseudo_after_box,
+        let cell = match pseudo_element_type {
+            PseudoElement::Before => &data.pseudo_before_box,
+            PseudoElement::After => &data.pseudo_after_box,
+            _ => unreachable!(
+                "Asked for box slot for unsupported pseudo-element: {:?}",
+                pseudo_element_type
+            ),
         };
         BoxSlot::new(cell.clone())
     }
 
-    fn unset_pseudo_element_box(self, which: WhichPseudoElement) {
+    fn unset_pseudo_element_box(self, pseudo_element_type: PseudoElement) {
         let data = self.layout_data_mut();
-        let cell = match which {
-            WhichPseudoElement::Before => &data.pseudo_before_box,
-            WhichPseudoElement::After => &data.pseudo_after_box,
+        let cell = match pseudo_element_type {
+            PseudoElement::Before => &data.pseudo_before_box,
+            PseudoElement::After => &data.pseudo_after_box,
+            _ => unreachable!(
+                "Asked for box slot for unsupported pseudo-element: {:?}",
+                pseudo_element_type
+            ),
         };
         *cell.borrow_mut() = None;
     }

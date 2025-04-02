@@ -11,7 +11,6 @@
 pub mod wrapper_traits;
 
 use std::any::Any;
-use std::borrow::Cow;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 
@@ -24,10 +23,12 @@ use euclid::Size2D;
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
+use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, PendingImageId};
+use pixels::Image;
 use profile_traits::mem::Report;
 use profile_traits::time;
 use script_traits::{InitialScriptState, LoadData, Painter, ScriptThreadMessage};
@@ -278,7 +279,6 @@ pub trait ScriptThreadFactory {
         layout_factory: Arc<dyn LayoutFactory>,
         system_font_service: Arc<SystemFontServiceProxy>,
         load_data: LoadData,
-        user_agent: Cow<'static, str>,
     );
 }
 #[derive(Clone, Default)]
@@ -400,6 +400,8 @@ pub struct ReflowResult {
     /// to communicate them with the Constellation and also the `Window`
     /// element of their content pages.
     pub iframe_sizes: IFrameSizes,
+    /// The mapping of node to animated image, need to be returned to ImageAnimationManager
+    pub node_to_image_animation_map: FxHashMap<OpaqueNode, ImageAnimationState>,
 }
 
 /// Information needed for a script-initiated reflow.
@@ -427,6 +429,8 @@ pub struct ReflowRequest {
     pub animation_timeline_value: f64,
     /// The set of animations for this document.
     pub animations: DocumentAnimationSet,
+    /// The set of image animations.
+    pub node_to_image_animation_map: FxHashMap<OpaqueNode, ImageAnimationState>,
     /// The theme for the window
     pub theme: PrefersColorScheme,
 }
@@ -500,4 +504,26 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
         return Some(id & !3);
     }
     None
+}
+
+#[derive(Clone, Debug, MallocSizeOf)]
+pub struct ImageAnimationState {
+    #[ignore_malloc_size_of = "Arc is hard"]
+    image: Arc<Image>,
+    active_frame: usize,
+    last_update_time: f64,
+}
+
+impl ImageAnimationState {
+    pub fn new(image: Arc<Image>) -> Self {
+        Self {
+            image,
+            active_frame: 0,
+            last_update_time: 0.,
+        }
+    }
+
+    pub fn image_key(&self) -> Option<ImageKey> {
+        self.image.id
+    }
 }

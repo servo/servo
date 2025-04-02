@@ -1,0 +1,59 @@
+{"_from": "root", "message": {"applicationType": "browser", "from": "root", "traits": {"customHighlighters": true, "highlightable": true, "networkMonitor": false, "sources": true}}}
+{"_to": "root", "message": {"frontendVersion": "135.0.1", "to": "root", "type": "connect"}}
+{"_from": "root", "message": {"from": "root"}}
+{"_to": "root", "message": {"to": "root", "type": "getRoot"}}
+{"_from": "root", "message": {"deviceActor": "server1.conn0.device1", "from": "root", "performanceActor": "server1.conn0.performance0", "preferenceActor": "server1.conn0.preference2", "selected": 0}}
+{"_to": "server1.conn0.device1", "message": {"to": "server1.conn0.device1", "type": "getDescription"}}
+{"_from": "server1.conn0.device1", "message": {"from": "server1.conn0.device1", "value": {"appbuildid": "20250318210028", "apptype": "servo", "brandName": "Servo", "platformversion": "133.0", "version": "0.0.1"}}}
+{"_to": "server1.conn0.device1", "message": {"to": "server1.conn0.device1", "type": "getDescription"}}
+{"_from": "server1.conn0.device1", "message": {"from": "server1.conn0.device1", "value": {"appbuildid": "20250318210028", "apptype": "servo", "brandName": "Servo", "platformversion": "133.0", "version": "0.0.1"}}}
+{"_to": "server1.conn0.preference2", "message": {"to": "server1.conn0.preference2", "type": "getBoolPref", "value": "devtools.debugger.prompt-connection"}}
+{"_from": "server1.conn0.preference2", "message": {"from": "server1.conn0.preference2", "value": false}}
+{"_to": "server1.conn0.preference2", "message": {"to": "server1.conn0.preference2", "type": "getBoolPref", "value": "browser.privatebrowsing.autostart"}}
+{"_from": "server1.conn0.preference2", "message": {"from": "server1.conn0.preference2", "value": false}}
+{"_to": "server1.conn0.preference2", "message": {"to": "server1.conn0.preference2", "type": "getBoolPref", "value": "dom.serviceWorkers.enabled"}}
+{"_from": "server1.conn0.preference2", "message": {"from": "server1.conn0.preference2", "value": false}}
+{"_to": "root", "message": {"iconDataURL": true, "to": "root", "type": "listAddons"}}
+{"_to": "root", "message": {"to": "root", "type": "listTabs"}}
+{"_from": "root", "message": {"addons": [], "from": "root"}}
+{"_from": "root", "message": {"from": "root", "tabs": [{"actor": "server1.conn0.tab-description11", "browserId": 1, "browsingContextID": 1, "isZombieTab": false, "outerWindowID": 1, "selected": false, "title": "", "traits": {"supportsReloadDescriptor": true, "watcher": true}, "url": "file:///cuffs/code/servo/attic/iframe4.html"}]}}
+{"_to": "server1.conn0.tab-description11", "message": {"to": "server1.conn0.tab-description11", "type": "getFavicon"}}
+{"_from": "server1.conn0.tab-description11", "message": {"favicon": "", "from": "server1.conn0.tab-description11"}}
+{"_to": "root", "message": {"to": "root", "type": "listWorkers"}}
+{"_to": "root", "message": {"to": "root", "type": "listProcesses"}}
+{"_to": "root", "message": {"id": 0, "to": "root", "type": "getProcess"}}
+{"_from": "root", "message": {"from": "root", "workers": []}}
+{"_from": "root", "message": {"from": "root", "processes": [{"actor": "server1.conn0.process3", "id": 0, "isParent": true, "isWindowlessParent": false, "traits": {"supportsReloadDescriptor": false, "watcher": false}}]}}
+{"_from": "root", "message": {"from": "root", "processDescriptor": {"actor": "server1.conn0.process3", "id": 0, "isParent": true, "isWindowlessParent": false, "traits": {"supportsReloadDescriptor": false, "watcher": false}}}}
+{"_to": "root", "message": {"to": "root", "type": "listServiceWorkerRegistrations"}}
+{"_from": "root", "message": {"from": "root", "registrations": []}}
+{"_to": "root", "message": {"browserId": 1, "to": "root", "type": "getTab"}}
+{"_from": "root", "message": {"from": "root", "tab": {"actor": "server1.conn0.tab-description11", "browserId": 1, "browsingContextID": 1, "isZombieTab": false, "outerWindowID": 1, "selected": true, "title": "", "traits": {"supportsReloadDescriptor": true, "watcher": true}, "url": "file:///cuffs/code/servo/attic/iframe4.html"}}}
+{"_to": "server1.conn0.tab-description11", "message": {"isPopupDebuggingEnabled": false, "isServerTargetSwitchingEnabled": true, "to": "server1.conn0.tab-description11", "type": "getWatcher"}}
+{"_from": "server1.conn0.tab-description11", "message": {"actor": "server1.conn0.watcher16", "from": "server1.conn0.tab-description11", "traits": {"frame": true, "process": false, "resources": {"Cache": false, "console-message": true, "cookies": false, "css-change": true, "css-message": false, "css-registered-properties": false, "document-event": false, "error-message": true, "extension-storage": false, "indexed-db": false, "jstracer-state": false, "jstracer-trace": false, "last-private-context-exit": false, "local-storage": false, "network-event": false, "network-event-stacktrace": false, "platform-message": false, "reflow": false, "server-sent-event": false, "session-storage": false, "source": true, "stylesheet": false, "thread-state": false, "websocket": false}, "service_worker": false, "shared_worker": false, "worker": false}}}
+{"_to": "server1.conn0.watcher16", "message": {"targetType": "frame", "to": "server1.conn0.watcher16", "type": "watchTargets"}}
+{"_from": "server1.conn0.watcher16", "message": {"from": "server1.conn0.watcher16", "target": {"accessibilityActor": "server1.conn0.accessibility6", "actor": "server1.conn0.target5", "browserId": 1, "browsingContextID": 1, "consoleActor": "server1.conn0.console4", "cssPropertiesActor": "server1.conn0.css-properties7", "inspectorActor": "server1.conn0.inspector8", "isTopLevelTarget": true, "outerWindowID": 1, "reflowActor": "server1.conn0.reflow9", "styleSheetsActor": "server1.conn0.stylesheets10", "threadActor": "server1.conn0.thread12", "title": "", "traits": {"frames": true, "isBrowsingContext": true, "logInPage": false, "navigation": true, "supportsTopLevelTargetFlag": true, "watchpoints": true}, "url": "file:///cuffs/code/servo/attic/iframe4.html"}, "type": "target-available-form"}}
+{"_from": "server1.conn0.target5", "message": {"frames": [{"id": 1, "isTopLevel": true, "title": "", "url": "file:///cuffs/code/servo/attic/iframe4.html"}], "from": "server1.conn0.target5", "type": "frameUpdate"}}
+{"_from": "server1.conn0.watcher16", "message": {"from": "server1.conn0.watcher16"}}
+{"_to": "server1.conn0.console4", "message": {"listeners": ["DocumentEvents"], "to": "server1.conn0.console4", "type": "startListeners"}}
+{"_from": "server1.conn0.console4", "message": {"from": "server1.conn0.console4", "nativeConsoleApi": true, "startedListeners": ["DocumentEvents"], "traits": null}}
+{"_to": "server1.conn0.watcher16", "message": {"to": "server1.conn0.watcher16", "type": "getTargetConfigurationActor"}}
+{"_from": "server1.conn0.watcher16", "message": {"configuration": {"actor": "server1.conn0.target-configuration14", "configuration": {}, "traits": {"supportedOptions": {"cacheDisabled": false, "colorSchemeSimulation": false, "customFormatters": false, "customUserAgent": false, "javascriptEnabled": false, "overrideDPPX": false, "printSimulationEnabled": false, "rdmPaneMaxTouchPoints": false, "rdmPaneOrientation": false, "recordAllocations": false, "reloadOnTouchSimulationToggle": false, "restoreFocus": false, "serviceWorkersTestingEnabled": false, "setTabOffline": false, "touchEventsOverride": false, "tracerOptions": false, "useSimpleHighlightersForReducedMotion": false}}}, "from": "server1.conn0.watcher16"}}
+{"_to": "server1.conn0.target-configuration14", "message": {"configuration": {"cacheDisabled": true, "customFormatters": false, "isTracerFeatureEnabled": false, "serviceWorkersTestingEnabled": false, "useSimpleHighlightersForReducedMotion": false}, "to": "server1.conn0.target-configuration14", "type": "updateConfiguration"}}
+{"_from": "server1.conn0.target-configuration14", "message": {"from": "server1.conn0.target-configuration14"}}
+{"_to": "server1.conn0.watcher16", "message": {"to": "server1.conn0.watcher16", "type": "getThreadConfigurationActor"}}
+{"_from": "server1.conn0.watcher16", "message": {"configuration": {"actor": "server1.conn0.thread-configuration15"}, "from": "server1.conn0.watcher16"}}
+{"_to": "server1.conn0.thread-configuration15", "message": {"configuration": {"ignoreCaughtExceptions": true, "logEventBreakpoints": false, "observeAsmJS": true, "pauseOnExceptions": false, "pauseOverlay": true, "shouldIncludeAsyncLiveFrames": false, "shouldIncludeSavedFrames": true, "shouldPauseOnDebuggerStatement": true, "skipBreakpoints": false}, "to": "server1.conn0.thread-configuration15", "type": "updateConfiguration"}}
+{"_from": "server1.conn0.thread-configuration15", "message": {"from": "server1.conn0.thread-configuration15"}}
+{"_to": "server1.conn0.target5", "message": {"to": "server1.conn0.target5", "type": "listFrames"}}
+{"_to": "server1.conn0.watcher16", "message": {"resourceTypes": ["console-message"], "to": "server1.conn0.watcher16", "type": "watchResources"}}
+{"_from": "server1.conn0.target5", "message": {"from": "server1.conn0.target5"}}
+{"_to": "server1.conn0.watcher16", "message": {"resourceTypes": ["error-message"], "to": "server1.conn0.watcher16", "type": "watchResources"}}
+{"_from": "server1.conn0.target5", "message": {"array": [["console-message", []]], "from": "server1.conn0.target5", "type": "resources-available-array"}}
+{"_from": "server1.conn0.watcher16", "message": {"from": "server1.conn0.watcher16"}}
+{"_from": "server1.conn0.target5", "message": {"array": [["error-message", []]], "from": "server1.conn0.target5", "type": "resources-available-array"}}
+{"_from": "server1.conn0.watcher16", "message": {"from": "server1.conn0.watcher16"}}
+{"_to": "server1.conn0.target5", "message": {"to": "server1.conn0.target5", "type": "listWorkers"}}
+{"_to": "server1.conn0.thread-configuration15", "message": {"configuration": {"shouldPauseOnDebuggerStatement": true}, "to": "server1.conn0.thread-configuration15", "type": "updateConfiguration"}}
+{"_from": "server1.conn0.thread-configuration15", "message": {"from": "server1.conn0.thread-configuration15"}}
+{"_to": "server1.conn0.thread-configuration15", "message": {"configuration": {"ignoreCaughtExceptions": false, "pauseOnExceptions": false}, "to": "server1.conn0.thread-configuration15", "type": "updateConfiguration"}}

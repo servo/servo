@@ -13,11 +13,12 @@ use compositing::windowing::WebRenderDebugOption;
 use constellation_traits::{ConstellationMsg, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, LoadStatus, MediaSessionActionType, Theme, TouchEventType,
+    Cursor, InputEvent, LoadStatus, MediaSessionActionType, ScreenGeometry, Theme, TouchEventType,
 };
 use url::Url;
 use webrender_api::ScrollLocation;
 use webrender_api::units::{DeviceIntPoint, DeviceRect};
+use webrender_traits::RendererWebView;
 
 use crate::ConstellationProxy;
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
@@ -96,11 +97,10 @@ impl WebView {
         compositor: Rc<RefCell<IOCompositor>>,
     ) -> Self {
         let id = WebViewId::new();
-        compositor.borrow_mut().add_webview(id);
-        Self(Rc::new(RefCell::new(WebViewInner {
+        let webview = Self(Rc::new(RefCell::new(WebViewInner {
             id,
             constellation_proxy: constellation_proxy.clone(),
-            compositor,
+            compositor: compositor.clone(),
             delegate: Rc::new(DefaultWebViewDelegate),
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
             rect: DeviceRect::zero(),
@@ -111,7 +111,16 @@ impl WebView {
             favicon_url: None,
             focused: false,
             cursor: Cursor::Pointer,
-        })))
+        })));
+
+        compositor
+            .borrow_mut()
+            .add_webview(Box::new(ServoRendererWebView {
+                weak_handle: webview.weak_handle(),
+                id,
+            }));
+
+        webview
     }
 
     fn inner(&self) -> Ref<'_, WebViewInner> {
@@ -382,13 +391,6 @@ impl WebView {
             .resize_rendering_context(new_size);
     }
 
-    pub fn notify_embedder_window_moved(&self) {
-        self.inner()
-            .compositor
-            .borrow_mut()
-            .on_embedder_window_moved();
-    }
-
     pub fn set_zoom(&self, new_zoom: f32) {
         self.inner()
             .compositor
@@ -450,5 +452,23 @@ impl WebView {
     /// that case, this might do nothing. Returns true if a paint was actually performed.
     pub fn paint(&self) -> bool {
         self.inner().compositor.borrow_mut().render()
+    }
+}
+
+/// A structure used to expose a view of the [`WebView`] to the Servo
+/// renderer, without having the Servo renderer depend on the embedding layer.
+struct ServoRendererWebView {
+    id: WebViewId,
+    weak_handle: Weak<RefCell<WebViewInner>>,
+}
+
+impl RendererWebView for ServoRendererWebView {
+    fn screen_geometry(&self) -> Option<ScreenGeometry> {
+        let webview = WebView::from_weak_handle(&self.weak_handle)?;
+        webview.delegate().screen_geometry(webview)
+    }
+
+    fn id(&self) -> WebViewId {
+        self.id
     }
 }

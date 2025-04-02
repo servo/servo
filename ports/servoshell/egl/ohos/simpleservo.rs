@@ -130,7 +130,6 @@ pub fn init(
         rendering_context.clone(),
         embedder_callbacks,
         window_callbacks.clone(),
-        None, /* user_agent */
         Default::default(),
     );
 

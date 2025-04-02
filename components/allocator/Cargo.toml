@@ -14,9 +14,9 @@ path = "lib.rs"
 use-system-allocator = ["libc"]
 
 [target.'cfg(not(any(windows, target_env = "ohos")))'.dependencies]
-tikv-jemallocator = { workspace = true }
-tikv-jemalloc-sys = { workspace = true }
 libc = { workspace = true, optional = true }
+tikv-jemalloc-sys = { workspace = true }
+tikv-jemallocator = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { workspace = true, features = ["Win32_System_Memory"] }

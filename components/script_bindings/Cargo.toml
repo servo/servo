@@ -15,11 +15,6 @@ links = "script_bindings_crate"
 name = "script_bindings"
 path = "lib.rs"
 
-[build-dependencies]
-phf_codegen = "0.11"
-phf_shared = "0.11"
-serde_json = { workspace = true }
-
 [dependencies]
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -36,13 +31,18 @@ num-traits = { workspace = true }
 parking_lot = { workspace = true }
 regex = { workspace = true }
 servo_arc = { workspace = true }
-smallvec = { workspace = true }
-stylo_atoms = { workspace = true }
 servo_config = { path = "../config" }
+smallvec = { workspace = true }
 stylo = { workspace = true }
+stylo_atoms = { workspace = true }
 tendril = { version = "0.4.1", features = ["encoding_rs"] }
 webxr-api = { workspace = true, optional = true }
 xml5ever = { workspace = true }
+
+[build-dependencies]
+phf_codegen = "0.11"
+phf_shared = "0.11"
+serde_json = { workspace = true }
 
 [features]
 bluetooth = []

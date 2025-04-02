@@ -227,15 +227,12 @@ pub(crate) struct CollapsibleWithParentStartMargin(bool);
 #[derive(Debug)]
 pub(crate) struct OutsideMarker {
     pub marker_style: Arc<ComputedValues>,
+    pub list_item_style: Arc<ComputedValues>,
     pub base: LayoutBoxBase,
     pub block_container: BlockContainer,
 }
 
 impl OutsideMarker {
-    fn list_item_style(&self) -> &ComputedValues {
-        &self.base.style
-    }
-
     fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
@@ -313,7 +310,7 @@ impl OutsideMarker {
         // TODO: This should use the LayoutStyle of the list item, not the default one. Currently
         // they are the same, but this could change in the future.
         let pbm_of_list_item =
-            LayoutStyle::Default(self.list_item_style()).padding_border_margin(containing_block);
+            LayoutStyle::Default(&self.list_item_style).padding_border_margin(containing_block);
         let content_rect = LogicalRect {
             start_corner: LogicalVec2 {
                 inline: -max_inline_size -
@@ -1015,7 +1012,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     let end_margin_can_collapse_with_children = collapsed_through ||
         (pbm.padding.block_end == Au::zero() &&
             pbm.border.block_end == Au::zero() &&
-            computed_block_size.is_auto());
+            !containing_block_for_children.size.block.is_definite());
     if end_margin_can_collapse_with_children {
         block_margins_collapsed_with_children
             .end

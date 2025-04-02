@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::sync::Arc;
 
 use base::id::PipelineId;
@@ -96,7 +95,6 @@ impl WorkletGlobalScope {
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 None,
                 Default::default(),
-                init.user_agent.clone(),
                 #[cfg(feature = "webgpu")]
                 init.gpu_id_hub.clone(),
                 init.inherited_secure_context,
@@ -185,8 +183,6 @@ pub(crate) struct WorkletGlobalScopeInit {
     pub(crate) to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
     /// The image cache
     pub(crate) image_cache: Arc<dyn ImageCache>,
-    /// An optional string allowing the user agent to be set for testing
-    pub(crate) user_agent: Cow<'static, str>,
     /// Identity manager for WebGPU resources
     #[cfg(feature = "webgpu")]
     pub(crate) gpu_id_hub: Arc<IdentityHub>,

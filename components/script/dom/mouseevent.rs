@@ -342,6 +342,9 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             None,
             can_gc,
         );
+        event
+            .upcast::<Event>()
+            .set_composed(init.parent.parent.parent.composed);
         Ok(event)
     }
 

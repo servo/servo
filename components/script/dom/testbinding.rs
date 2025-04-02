@@ -14,6 +14,7 @@ use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
 use js::typedarray::{self, Uint8ClampedArray};
+use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
 use script_traits::serializable::BlobImpl;
 use servo_config::prefs;
@@ -1169,5 +1170,14 @@ impl TestBindingCallback {
         self.promise
             .root()
             .resolve_native(&self.value, CanGc::note());
+    }
+}
+
+impl TestBindingHelpers for TestBinding {
+    fn condition_satisfied(cx: SafeJSContext, global: HandleObject) -> bool {
+        Self::condition_satisfied(cx, global)
+    }
+    fn condition_unsatisfied(cx: SafeJSContext, global: HandleObject) -> bool {
+        Self::condition_unsatisfied(cx, global)
     }
 }

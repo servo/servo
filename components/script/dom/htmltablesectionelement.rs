@@ -64,10 +64,15 @@ impl HTMLTableSectionElement {
 impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionElement {
     // https://html.spec.whatwg.org/multipage/#dom-tbody-rows
     fn Rows(&self) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(&self.owner_window(), self.upcast(), |element, root| {
-            element.is::<HTMLTableRowElement>() &&
-                element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
-        })
+        HTMLCollection::new_with_filter_fn(
+            &self.owner_window(),
+            self.upcast(),
+            |element, root| {
+                element.is::<HTMLTableRowElement>() &&
+                    element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+            },
+            CanGc::note(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-insertrow
@@ -77,13 +82,19 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
             index,
             || self.Rows(),
             || HTMLTableRowElement::new(local_name!("tr"), None, &node.owner_doc(), None, can_gc),
+            can_gc,
         )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow
     fn DeleteRow(&self, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
-        node.delete_cell_or_row(index, || self.Rows(), |n| n.is::<HTMLTableRowElement>())
+        node.delete_cell_or_row(
+            index,
+            || self.Rows(),
+            |n| n.is::<HTMLTableRowElement>(),
+            CanGc::note(),
+        )
     }
 }
 

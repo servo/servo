@@ -4,17 +4,18 @@
 
 use js::jsapi::{GetCurrentRealmOrNull, JSAutoRealm};
 
+use crate::DomTypes;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::GlobalScopeHelpers;
 use crate::script_runtime::JSContext;
 
 pub(crate) struct AlreadyInRealm(());
 
 impl AlreadyInRealm {
     #![allow(unsafe_code)]
-    pub(crate) fn assert() -> AlreadyInRealm {
+    pub(crate) fn assert<D: DomTypes>() -> AlreadyInRealm {
         unsafe {
-            assert!(!GetCurrentRealmOrNull(*GlobalScope::get_cx()).is_null());
+            assert!(!GetCurrentRealmOrNull(*D::GlobalScope::get_cx()).is_null());
         }
         AlreadyInRealm(())
     }
@@ -55,9 +56,13 @@ impl InRealm<'_> {
     }
 }
 
-pub(crate) fn enter_realm(object: &impl DomObject) -> JSAutoRealm {
+pub(crate) fn enter_realm_generic<D: DomTypes>(object: &impl DomObject) -> JSAutoRealm {
     JSAutoRealm::new(
-        *GlobalScope::get_cx(),
+        *D::GlobalScope::get_cx(),
         object.reflector().get_jsobject().get(),
     )
+}
+
+pub(crate) fn enter_realm(object: &impl DomObject) -> JSAutoRealm {
+    enter_realm_generic::<crate::DomTypeHolder>(object)
 }

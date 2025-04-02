@@ -884,7 +884,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         };
 
         // Step 9.
-        node.remove_self();
+        node.remove_self(can_gc);
 
         // Step 10.
         let new_offset = reference_node
@@ -900,7 +900,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             };
 
         // Step 12.
-        Node::pre_insert(node, &parent, reference_node.as_deref())?;
+        Node::pre_insert(node, &parent, reference_node.as_deref(), can_gc)?;
 
         // Step 13.
         if self.collapsed() {
@@ -980,7 +980,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
         // Step 8.
         for child in &*contained_children {
-            child.remove_self();
+            child.remove_self(CanGc::note());
         }
 
         // Step 9.
@@ -1023,7 +1023,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let fragment = self.ExtractContents(can_gc)?;
 
         // Step 4.
-        Node::replace_all(None, new_parent);
+        Node::replace_all(None, new_parent, can_gc);
 
         // Step 5.
         self.InsertNode(new_parent, can_gc)?;

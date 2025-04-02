@@ -79,7 +79,6 @@ pub(crate) fn prepare_workerscope_init(
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
         creation_url: global.creation_url().clone(),
-        user_agent: global.get_user_agent(),
         inherited_secure_context: Some(global.is_secure_context()),
     };
 
@@ -164,7 +163,6 @@ impl WorkerGlobalScope {
                 MutableOrigin::new(init.origin),
                 init.creation_url,
                 runtime.microtask_queue.clone(),
-                init.user_agent,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 init.inherited_secure_context,

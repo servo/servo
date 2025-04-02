@@ -90,3 +90,11 @@ promise_test(async t => {
     return detector.measureInputUsage('hello', {signal});
   });
 }, 'Aborting Translator.measureInputUsage().');
+
+promise_test(async () => {
+  const expected_languages = ['en', 'es'];
+  const detector = await languageDetector.create({
+    expectedInputLanguages: expected_languages
+  });
+  assert_array_equals(detector.expectedInputLanguages(), expected_languages);
+}, 'Creating LanguageDetector with expectedInputLanguages');

@@ -685,8 +685,8 @@ class WebDriverVirtualPressureSourceProtocolPart(VirtualPressureSourceProtocolPa
         body.update(metadata)
         return self.webdriver.send_session_command("POST", "pressuresource", body)
 
-    def update_virtual_pressure_source(self, source_type, sample, estimate):
-        body = {"sample": sample, "estimate": estimate}
+    def update_virtual_pressure_source(self, source_type, sample, own_contribution_estimate):
+        body = {"sample": sample, "own_contribution_estimate": own_contribution_estimate}
         return self.webdriver.send_session_command("POST", "pressuresource/%s" % source_type, body)
 
     def remove_virtual_pressure_source(self, source_type):

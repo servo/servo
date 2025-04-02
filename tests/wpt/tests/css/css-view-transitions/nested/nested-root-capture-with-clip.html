@@ -4,7 +4,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
 <link rel="author" href="mailto:vmpstr@chromium.org">
 <link rel="match" href="nested-root-capture-with-clip-ref.html">
-<meta name=fuzzy content="maxDifference=0-40; totalPixels=0-400">
+<meta name=fuzzy content="maxDifference=0-40; totalPixels=0-500">
 <script src="/common/reftest-wait.js"></script>
 <script src="/dom/events/scrolling/scroll_support.js"></script>
 
@@ -32,7 +32,7 @@
   will-change: transform;
 }
 ::view-transition-group(clipper) {
-  animation-play-state: pause;
+  animation-play-state: paused;
 }
 ::view-transition-new(clipper) {
   animation: unset;
@@ -44,6 +44,9 @@
 }
 ::view-transition-group(*.item) {
   display: none;
+}
+::view-transition {
+  background: lightgreen;
 }
 </style>
 

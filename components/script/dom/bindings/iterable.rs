@@ -26,10 +26,11 @@ use crate::dom::bindings::codegen::Bindings::IterableIteratorBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{
-    DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector, reflect_dom_object,
+    DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector,
 };
 use crate::dom::bindings::root::{Dom, DomRoot, Root};
 use crate::dom::bindings::trace::{JSTraceable, NoTrace, RootedTraceableBox};
+use crate::dom::bindings::utils::DomHelpers;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
 
@@ -79,7 +80,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
             index: Cell::new(0),
             _marker: NoTrace(PhantomData),
         });
-        reflect_dom_object(iterator, &*iterable.global_(realm), CanGc::note())
+        <D as DomHelpers<D>>::reflect_dom_object(iterator, &*iterable.global_(realm), CanGc::note())
     }
 
     /// Return the next value from the iterable object.

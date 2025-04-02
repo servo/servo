@@ -16,6 +16,7 @@ pub(crate) mod base {
     pub(crate) use js::panic::maybe_resume_unwind;
     pub(crate) use js::rust::wrappers::{Call, JS_WrapValue};
     pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
+    pub(crate) use script_bindings::lock::ThreadUnsafeOnceLock;
 
     pub(crate) use crate::dom::bindings::callback::{
         CallSetup, CallbackContainer, CallbackFunction, CallbackInterface, CallbackObject,
@@ -40,7 +41,7 @@ pub(crate) mod base {
     pub(crate) use crate::dom::bindings::str::{ByteString, DOMString, USVString};
     pub(crate) use crate::dom::bindings::trace::RootedTraceableBox;
     pub(crate) use crate::dom::bindings::utils::{
-        DomHelpers, ThreadUnsafeOnceLock, get_dictionary_property, set_dictionary_property,
+        DomHelpers, get_dictionary_property, set_dictionary_property,
     };
     pub(crate) use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
     pub(crate) use crate::dom::promise::PromiseHelpers;
@@ -99,8 +100,14 @@ pub(crate) mod module {
         JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL,
         JSCLASS_RESERVED_SLOTS_MASK, jsapi, typedarray,
     };
+    pub(crate) use script_bindings::codegen::Globals::Globals;
     pub(crate) use script_bindings::constant::{ConstantSpec, ConstantVal};
+    pub(crate) use script_bindings::finalize::{
+        finalize_common, finalize_global, finalize_weak_referenceable,
+    };
+    pub(crate) use script_bindings::interfaces::*;
     pub(crate) use script_bindings::record::Record;
+    pub(crate) use script_bindings::reflector::DomObject;
     pub(crate) use servo_config::pref;
 
     pub(crate) use super::base::*;
@@ -124,9 +131,6 @@ pub(crate) mod module {
     pub(crate) use crate::dom::bindings::error::{
         Error, ErrorResult, throw_constructor_without_new,
     };
-    pub(crate) use crate::dom::bindings::finalize::{
-        finalize_common, finalize_global, finalize_weak_referenceable,
-    };
     pub(crate) use crate::dom::bindings::guard::{Condition, Guard};
     pub(crate) use crate::dom::bindings::inheritance::Castable;
     pub(crate) use crate::dom::bindings::interface::{
@@ -137,7 +141,7 @@ pub(crate) mod module {
         define_guarded_properties, get_desired_proto, get_per_interface_object_handle,
         is_exposed_in,
     };
-    pub(crate) use crate::dom::bindings::iterable::{Iterable, IteratorType};
+    pub(crate) use crate::dom::bindings::iterable::{Iterable, IterableIterator, IteratorType};
     pub(crate) use crate::dom::bindings::like::{Maplike, Setlike};
     pub(crate) use crate::dom::bindings::namespace::{
         NamespaceObjectClass, create_namespace_object,

@@ -395,7 +395,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         Some(item_attr_values.into_iter().collect())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-click
+    /// <https://html.spec.whatwg.org/multipage/#dom-click>
     fn Click(&self, can_gc: CanGc) {
         let element = self.as_element();
         if element.disabled_state() {
@@ -407,7 +407,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         element.set_click_in_progress(true);
 
         self.upcast::<Node>()
-            .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"), can_gc);
+            .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
         element.set_click_in_progress(false);
     }
 
@@ -499,7 +499,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         let fragment = self.rendered_text_fragment(input, can_gc);
 
         // Step 2: Replace all with fragment within element.
-        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>());
+        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>(), can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-outertext>
@@ -542,13 +542,13 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // the next text node given next's previous sibling.
         if let Some(next_sibling) = next {
             if let Some(node) = next_sibling.GetPreviousSibling() {
-                Self::merge_with_the_next_text_node(node);
+                Self::merge_with_the_next_text_node(node, can_gc);
             }
         }
 
         // Step 8: If previous is a Text node, then merge with the next text node given previous.
         if let Some(previous) = previous {
-            Self::merge_with_the_next_text_node(previous)
+            Self::merge_with_the_next_text_node(previous, can_gc)
         }
 
         Ok(())
@@ -758,10 +758,11 @@ impl HTMLElement {
             })
     }
 
-    pub(crate) fn delete_custom_attr(&self, local_name: DOMString) {
+    pub(crate) fn delete_custom_attr(&self, local_name: DOMString, can_gc: CanGc) {
         // FIXME(ajeffrey): Convert directly from DOMString to LocalName
         let local_name = LocalName::from(to_snake_case(local_name));
-        self.as_element().remove_attribute(&ns!(), &local_name);
+        self.as_element()
+            .remove_attribute(&ns!(), &local_name, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#category-label>
@@ -1039,7 +1040,7 @@ impl HTMLElement {
     /// node.
     ///
     /// <https://html.spec.whatwg.org/multipage/#merge-with-the-next-text-node>
-    fn merge_with_the_next_text_node(node: DomRoot<Node>) {
+    fn merge_with_the_next_text_node(node: DomRoot<Node>, can_gc: CanGc) {
         // Make sure node is a Text node
         if !node.is::<Text>() {
             return;
@@ -1063,7 +1064,7 @@ impl HTMLElement {
             .expect("Got chars from Text");
 
         // Step 4:Remove next.
-        next.remove_self();
+        next.remove_self(can_gc);
     }
 }
 
@@ -1072,8 +1073,10 @@ impl VirtualMethods for HTMLElement {
         Some(self.as_element() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         let element = self.as_element();
         match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
@@ -1088,7 +1091,7 @@ impl VirtualMethods for HTMLElement {
                 );
             },
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
-                self.form_attribute_mutated(mutation);
+                self.form_attribute_mutated(mutation, can_gc);
             },
             // Adding a "disabled" attribute disables an enabled form element.
             (&local_name!("disabled"), AttributeMutation::Set(_))
@@ -1132,9 +1135,9 @@ impl VirtualMethods for HTMLElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(super_type) = self.super_type() {
-            super_type.bind_to_tree(context);
+            super_type.bind_to_tree(context, can_gc);
         }
         let element = self.as_element();
         element.update_sequentially_focusable_status(CanGc::note());
@@ -1153,9 +1156,9 @@ impl VirtualMethods for HTMLElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         if let Some(super_type) = self.super_type() {
-            super_type.unbind_from_tree(context);
+            super_type.unbind_from_tree(context, can_gc);
         }
 
         // Unbinding from a tree might enable a form control, if a
