@@ -1091,15 +1091,9 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         block_size_is_zero_or_intrinsic(style.min_block_size(), containing_block);
     block_margins_collapsed_with_children.collapsed_through = collapsed_through;
 
-    let end_margin_can_collapse_with_children = collapsed_through ||
-        (pbm.padding.block_end.is_zero() &&
-            pbm.border.block_end.is_zero() &&
-            !containing_block_for_children.size.block.is_definite());
-    if end_margin_can_collapse_with_children {
-        block_margins_collapsed_with_children
-            .end
-            .adjoin_assign(&collapsible_margins_in_children.end);
-    } else {
+    let end_margin_can_collapse_with_children =
+        pbm.padding.block_end.is_zero() && pbm.border.block_end.is_zero();
+    if !end_margin_can_collapse_with_children {
         content_block_size += collapsible_margins_in_children.end.solve();
     }
 
@@ -1111,6 +1105,29 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         || content_block_size.into(),
         false, /* is_table */
     );
+
+    // If the final block size is different than the intrinsic size of the contents,
+    // then we can't actually collapse the end margins. This can happen due to min
+    // or max block sizes, or due to `calc-size()` once we implement it.
+    //
+    // We also require `block-size` to have an intrinsic value, by checking whether
+    // the containing block established for the contents has an indefinite block size.
+    // However, even if `block-size: 0px` is extrinsic (so it would normally prevent
+    // collapsing the end margin with children), it doesn't prevent the top and end
+    // margins from collapsing through. If that happens, allow collapsing end margins.
+    //
+    // This is being discussed in https://github.com/w3c/csswg-drafts/issues/12218.
+    // It would probably make more sense to check the definiteness of the containing
+    // block in the logic above (when we check if there is some block-end padding or
+    // border), or maybe drop the condition altogether. But for now, we match Blink.
+    let end_margin_can_collapse_with_children = end_margin_can_collapse_with_children &&
+        block_size == content_block_size &&
+        (collapsed_through || !containing_block_for_children.size.block.is_definite());
+    if end_margin_can_collapse_with_children {
+        block_margins_collapsed_with_children
+            .end
+            .adjoin_assign(&collapsible_margins_in_children.end);
+    }
 
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
         // Now that we're done laying out our children, we can restore the
