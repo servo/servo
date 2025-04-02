@@ -321,8 +321,7 @@ impl Servo {
             None
         };
 
-        let coordinates: compositing::windowing::EmbedderCoordinates = window.get_coordinates();
-        let device_pixel_ratio = coordinates.hidpi_factor.get();
+        let device_pixel_ratio = window.hidpi_factor().get();
         let viewport_size = rendering_context.size2d();
 
         let (mut webrender, webrender_api_sender) = {

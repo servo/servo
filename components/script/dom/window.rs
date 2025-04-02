@@ -1859,13 +1859,15 @@ impl Window {
 
     fn client_window(&self) -> (Size2D<u32, CSSPixel>, Point2D<i32, CSSPixel>) {
         let timer_profile_chan = self.global().time_profiler_chan().clone();
-        let (send, recv) =
+        let (sender, receiver) =
             ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
-        let _ = self
-            .compositor_api
-            .sender()
-            .send(webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(send));
-        let rect = recv.recv().unwrap_or_default();
+        let _ = self.compositor_api.sender().send(
+            webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(
+                self.webview_id(),
+                sender,
+            ),
+        );
+        let rect = receiver.recv().unwrap_or_default();
         (
             Size2D::new(rect.size().width as u32, rect.size().height as u32),
             Point2D::new(rect.min.x, rect.min.y),
