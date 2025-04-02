@@ -19,6 +19,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
+use super::thread::ThreadActor;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::thread::{Source, SpontaneousNewSource};
@@ -30,8 +31,6 @@ use crate::actors::watcher::thread_configuration::{
 };
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
-
-use super::thread::ThreadActor;
 
 pub mod network_parent;
 pub mod target_configuration;
@@ -134,6 +133,18 @@ struct GetTargetConfigurationActorReply {
 struct GetThreadConfigurationActorReply {
     from: String,
     configuration: ThreadConfigurationActorMsg,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GetBreakpointListActorReply {
+    from: String,
+    breakpoint_list: GetBreakpointListActorReplyInner,
+}
+
+#[derive(Serialize)]
+struct GetBreakpointListActorReplyInner {
+    actor: String,
 }
 
 #[derive(Serialize)]
@@ -291,7 +302,7 @@ impl Actor for WatcherActor {
                             let thread_actor = registry.find::<ThreadActor>(&target.thread);
                             let state = ThreadState {
                                 actor: thread_actor.name(),
-                                state: "paused".to_owned(),  // does it make any difference if we change from "running" to "paused"
+                                state: "paused".to_owned(), // does it make any difference if we change from "running" to "paused"
                                 type_: "paused".to_owned(), // what if it is resumed?
                                 url: target.url.borrow().clone(),
                             };
@@ -358,6 +369,15 @@ impl Actor for WatcherActor {
                     configuration: thread_configuration.encodable(),
                 };
                 let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+            "getBreakpointListActor" => {
+                let _ = stream.write_json_packet(&GetBreakpointListActorReply {
+                    from: self.name(),
+                    breakpoint_list: GetBreakpointListActorReplyInner {
+                        actor: registry.new_name("breakpoint-list"),
+                    },
+                });
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,
