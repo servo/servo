@@ -125,11 +125,10 @@ where
                 ))
             ) {
                 flags.insert(FragmentFlags::IS_TEXT_CONTROL);
-            } else if matches!(
-                element.type_id(),
-                Some(LayoutNodeType::Element(LayoutElementType::HTMLHtmlElement))
-            ) {
-                flags.insert(FragmentFlags::IS_ROOT_HTML_ELEMENT);
+            }
+
+            if ThreadSafeLayoutElement::is_root(&element) {
+                flags.insert(FragmentFlags::IS_ROOT_ELEMENT);
             }
         };
 

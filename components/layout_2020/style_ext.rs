@@ -748,7 +748,7 @@ impl ComputedValuesExt for ComputedValues {
 
         // From https://www.w3.org/TR/CSS22/visuren.html#z-index:
         // > The root element forms the root stacking context.
-        if fragment_flags.intersects(FragmentFlags::IS_ROOT_HTML_ELEMENT) {
+        if fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT) {
             return true;
         }
 

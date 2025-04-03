@@ -843,6 +843,10 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
     fn is_body_element_of_html_element_root(&self) -> bool {
         self.element.is_html_document_body_element()
     }
+
+    fn is_root(&self) -> bool {
+        self.element.is_root()
+    }
 }
 
 /// This implementation of `::selectors::Element` is used for implementing lazy
