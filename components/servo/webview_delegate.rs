@@ -9,8 +9,8 @@ use constellation_traits::ConstellationMsg;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
-    PermissionFeature, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog, WebResourceRequest,
-    WebResourceResponse, WebResourceResponseMsg,
+    PermissionFeature, ScreenGeometry, SelectElementOptionOrOptgroup, SimpleDialog,
+    WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
@@ -299,18 +299,18 @@ impl Drop for InterceptedWebResourceLoad {
 /// The controls of an interactive form element.
 pub enum FormControl {
     /// The picker of a `<select>` element.
-    SelectElement(SelectElementPrompt),
+    SelectElement(SelectElement),
 }
 
 /// Represents a dialog triggered by clicking a `<select>` element.
-pub struct SelectElementPrompt {
+pub struct SelectElement {
     pub(crate) options: Vec<SelectElementOptionOrOptgroup>,
     pub(crate) selected_option: Option<usize>,
     pub(crate) position: DeviceIntRect,
     pub(crate) responder: IpcResponder<Option<usize>>,
 }
 
-impl SelectElementPrompt {
+impl SelectElement {
     pub(crate) fn new(
         options: Vec<SelectElementOptionOrOptgroup>,
         selected_option: Option<usize>,
@@ -509,6 +509,10 @@ pub trait WebViewDelegate {
     /// Request to hide the IME when the editable element is blurred.
     fn hide_ime(&self, _webview: WebView) {}
 
+    /// Request that the embedder show UI elements for form controls that are not integrated
+    /// into page content, such as dropdowns for `<select>` elements.
+    fn show_form_control(&self, _webview: WebView, _form_control: FormControl) {}
+
     /// Request to play a haptic effect on a connected gamepad.
     fn play_gamepad_haptic_effect(
         &self,
@@ -520,8 +524,6 @@ pub trait WebViewDelegate {
     }
     /// Request to stop a haptic effect on a connected gamepad.
     fn stop_gamepad_haptic_effect(&self, _webview: WebView, _: usize, _: IpcSender<bool>) {}
-
-    fn show_form_control(&self, _webview: WebView, _form_control: FormControl) {}
 
     /// Triggered when this [`WebView`] will load a web (HTTP/HTTPS) resource. The load may be
     /// intercepted and alternate contents can be loaded by the client by calling

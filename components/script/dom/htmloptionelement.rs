@@ -103,39 +103,26 @@ impl HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-option-index
     fn index(&self) -> i32 {
-        if let Some(owner_select) = self.owner_select_element() {
-            match owner_select.list_of_options().position(|n| &*n == self) {
-                Some(index) => return index.try_into().unwrap_or(0),
-                None => {
-                    // shouldn't happen but not worth a browser panic
-                    warn!(
-                        "HTMLOptionElement called index_in_select at a select that did not contain it"
-                    );
-                    return 0;
-                },
-            }
-        }
+        let Some(owner_select) = self.owner_select_element() else {
+            return 0;
+        };
 
-        // "If the option element is not in a list of options,
-        // then the option element's index is zero."
-        // self is neither a child of a select, nor a grandchild of a select
-        // via an optgroup, so it is not in a list of options
-        0
+        let Some(position) = owner_select.list_of_options().position(|n| &*n == self) else {
+            // An option should always be in it's owner's list of options, but it's not worth a browser panic
+            warn!("HTMLOptionElement called index_in_select at a select that did not contain it");
+            return 0;
+        };
+
+        position.try_into().unwrap_or(0)
     }
 
     fn owner_select_element(&self) -> Option<DomRoot<HTMLSelectElement>> {
-        if let Some(parent) = self.upcast::<Node>().GetParentNode() {
-            if parent.is::<HTMLOptGroupElement>() {
-                if let Some(grandparent) = parent.GetParentNode() {
-                    DomRoot::downcast::<HTMLSelectElement>(grandparent)
-                } else {
-                    None
-                }
-            } else {
-                DomRoot::downcast::<HTMLSelectElement>(parent)
-            }
+        let parent = self.upcast::<Node>().GetParentNode()?;
+
+        if parent.is::<HTMLOptGroupElement>() {
+            DomRoot::downcast::<HTMLSelectElement>(parent.GetParentNode()?)
         } else {
-            None
+            DomRoot::downcast::<HTMLSelectElement>(parent)
         }
     }
 

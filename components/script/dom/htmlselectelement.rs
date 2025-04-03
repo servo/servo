@@ -5,12 +5,18 @@
 use std::default::Default;
 use std::iter;
 
+use webrender_api::units::DeviceIntRect;
+use ipc_channel::ipc;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
+use embedder_traits::{SelectElementOptionOrOptgroup, SelectElementOption};
+use euclid::{Size2D, Point2D, Rect};
+use embedder_traits::EmbedderMsg;
 
+use crate::dom::bindings::codegen::GenericBindings::HTMLOptGroupElementBinding::HTMLOptGroupElement_Binding::HTMLOptGroupElementMethods;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
@@ -332,20 +338,7 @@ impl HTMLSelectElement {
             .unwrap_or_default();
 
         // Replace newlines with whitespace, then collapse and trim whitespace
-        let mut displayed_text = String::with_capacity(selected_option_text.len());
-        let mut last_was_whitespace = false;
-        for c in selected_option_text.chars() {
-            if c.is_whitespace() || matches!(c, '\n' | '\r') {
-                if !last_was_whitespace {
-                    displayed_text.push(' ');
-                } else {
-                    last_was_whitespace = true;
-                }
-            } else {
-                displayed_text.push(c);
-                last_was_whitespace = false;
-            }
-        }
+        let displayed_text = itertools::join(selected_option_text.split_whitespace(), " ");
 
         shadow_tree
             .selected_option
@@ -362,6 +355,73 @@ impl HTMLSelectElement {
 
     fn selected_option(&self) -> Option<DomRoot<HTMLOptionElement>> {
         self.list_of_options().find(|opt_elem| opt_elem.Selected())
+    }
+
+    pub(crate) fn show_menu(&self, can_gc: CanGc) -> Option<usize> {
+        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+
+        // Collect list of optgroups and options
+        let mut index = 0;
+        let mut embedder_option_from_option = |option: &HTMLOptionElement| {
+            let embedder_option = SelectElementOption {
+                id: index,
+                label: option.displayed_label().into(),
+                is_disabled: option.Disabled(),
+            };
+            index += 1;
+            embedder_option
+        };
+        let options = self
+            .upcast::<Node>()
+            .children()
+            .flat_map(|child| {
+                if let Some(option) = child.downcast::<HTMLOptionElement>() {
+                    return Some(embedder_option_from_option(option).into());
+                }
+
+                if let Some(optgroup) = child.downcast::<HTMLOptGroupElement>() {
+                    let options = optgroup
+                        .upcast::<Node>()
+                        .children()
+                        .flat_map(DomRoot::downcast::<HTMLOptionElement>)
+                        .map(|option| embedder_option_from_option(&option))
+                        .collect();
+                    let label = optgroup.Label().into();
+
+                    return Some(SelectElementOptionOrOptgroup::Optgroup { label, options });
+                }
+
+                None
+            })
+            .collect();
+
+        let rect = self.upcast::<Node>().bounding_content_box_or_zero(can_gc);
+        let rect = Rect::new(
+            Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
+            Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+        );
+
+        let selected_index = self.list_of_options().position(|option| option.Selected());
+
+        let document = self.owner_document();
+        document.send_to_embedder(EmbedderMsg::ShowSelectElementMenu(
+            document.webview_id(),
+            options,
+            selected_index,
+            DeviceIntRect::from_untyped(&rect.to_box2d()),
+            ipc_sender,
+        ));
+
+        let Ok(response) = ipc_receiver.recv() else {
+            log::error!("Failed to receive response");
+            return None;
+        };
+
+        if response.is_some() && response != selected_index {
+            self.selection_changed(can_gc);
+        }
+
+        response
     }
 }
 
@@ -708,10 +768,7 @@ impl Activatable for HTMLSelectElement {
 
     /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
-        let Some(selected_value) = self
-            .owner_document()
-            .show_select_element_menu_for(self, can_gc)
-        else {
+        let Some(selected_value) = self.show_menu(can_gc) else {
             // The user did not select a value
             return;
         };

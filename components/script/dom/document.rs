@@ -27,9 +27,9 @@ use cssparser::match_ignore_ascii_case;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    AllowOrDeny, ContextMenuResult, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, LoadStatus, MouseButton,
-    MouseButtonAction, MouseButtonEvent, SelectElementOption, SelectElementOptionOrOptgroup, TouchEvent, TouchEventType,
-    TouchId, WheelEvent
+    AllowOrDeny, ContextMenuResult, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent,
+    LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, TouchEvent, TouchEventType,
+    TouchId, WheelEvent,
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
@@ -75,17 +75,9 @@ use uuid::Uuid;
 use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
 
-use crate::dom::bindings::codegen::GenericBindings::HTMLOptGroupElementBinding::HTMLOptGroupElement_Binding::HTMLOptGroupElementMethods;
-use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
-use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
-use crate::dom::clipboardevent::ClipboardEventType;
-use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
-use crate::dom::htmloptionelement::HTMLOptionElement;
-use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::canvas_context::CanvasContext as _;
-use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
@@ -95,7 +87,6 @@ use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnl
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, DocumentVisibilityState, NamedPropertyValue,
 };
-use crate::dom::bindings::codegen::GenericBindings::HTMLOptionElementBinding::HTMLOptionElement_Binding::HTMLOptionElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -110,6 +101,7 @@ use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
+use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::codegen::UnionTypes::{NodeOrString, StringOrElementCreationOptions};
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
@@ -125,8 +117,9 @@ use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::bindings::xmlname::{
     matches_name_production, namespace_from_domstring, validate_and_extract,
 };
+use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::cdatasection::CDATASection;
-use crate::dom::clipboardevent::ClipboardEvent;
+use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::comment::Comment;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::cssstylesheet::CSSStyleSheet;
@@ -176,6 +169,7 @@ use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::performanceentry::PerformanceEntry;
+use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
@@ -1224,80 +1218,6 @@ impl Document {
         }
     }
 
-    pub(crate) fn show_select_element_menu_for(
-        &self,
-        select_element: &HTMLSelectElement,
-        can_gc: CanGc,
-    ) -> Option<usize> {
-        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-
-        // Collect list of optgroups and options
-        let mut index = 0;
-        let mut embedder_option_from_option = |option: &HTMLOptionElement| {
-            let embedder_option = SelectElementOption {
-                id: index,
-                label: option.displayed_label().into(),
-                is_disabled: option.Disabled(),
-            };
-            index += 1;
-            embedder_option
-        };
-        let options = select_element
-            .upcast::<Node>()
-            .children()
-            .flat_map(|child| {
-                if let Some(option) = child.downcast::<HTMLOptionElement>() {
-                    return Some(embedder_option_from_option(option).into());
-                }
-
-                if let Some(optgroup) = child.downcast::<HTMLOptGroupElement>() {
-                    let options = optgroup
-                        .upcast::<Node>()
-                        .children()
-                        .flat_map(DomRoot::downcast::<HTMLOptionElement>)
-                        .map(|option| embedder_option_from_option(&option))
-                        .collect();
-                    let label = optgroup.Label().into();
-
-                    return Some(SelectElementOptionOrOptgroup::Optgroup { label, options });
-                }
-
-                None
-            })
-            .collect();
-
-        let rect = select_element
-            .upcast::<Node>()
-            .bounding_content_box_or_zero(can_gc);
-        let rect = Rect::new(
-            Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-            Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
-        );
-
-        let selected_index = select_element
-            .list_of_options()
-            .position(|option| option.Selected());
-
-        self.send_to_embedder(EmbedderMsg::ShowSelectElementMenu(
-            self.webview_id(),
-            options,
-            selected_index,
-            DeviceIntRect::from_untyped(&rect.to_box2d()),
-            ipc_sender,
-        ));
-
-        let Ok(response) = ipc_receiver.recv() else {
-            log::error!("Failed to receive response");
-            return None;
-        };
-
-        if response.is_some() && response != selected_index {
-            select_element.selection_changed(can_gc);
-        }
-
-        response
-    }
-
     /// Handles any updates when the document's title has changed.
     pub(crate) fn title_changed(&self) {
         if self.browsing_context().is_some() {
@@ -1353,7 +1273,7 @@ impl Document {
         }
     }
 
-    fn send_to_embedder(&self, msg: EmbedderMsg) {
+    pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         let window = self.window();
         window.send_to_embedder(msg);
     }

@@ -13,7 +13,7 @@ use servo::ipc_channel::ipc::IpcSender;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::{
     AlertResponse, AuthenticationRequest, ConfirmResponse, FilterPattern, PermissionRequest,
-    PromptResponse, SelectElementOption, SelectElementOptionOrOptgroup, SelectElementPrompt,
+    PromptResponse, SelectElement, SelectElementOption, SelectElementOptionOrOptgroup,
     SimpleDialog,
 };
 
@@ -40,7 +40,7 @@ pub enum Dialog {
         response_sender: IpcSender<Option<String>>,
     },
     SelectElement {
-        maybe_prompt: Option<SelectElementPrompt>,
+        maybe_prompt: Option<SelectElement>,
         toolbar_offset: Length<f32, DeviceIndependentPixel>,
     },
 }
@@ -110,7 +110,7 @@ impl Dialog {
     }
 
     pub fn new_select_element_dialog(
-        prompt: SelectElementPrompt,
+        prompt: SelectElement,
         toolbar_offset: Length<f32, DeviceIndependentPixel>,
     ) -> Self {
         Dialog::SelectElement {
@@ -395,7 +395,7 @@ impl Dialog {
                 toolbar_offset,
             } => {
                 let Some(prompt) = maybe_prompt else {
-                    // Prompt was dismissed, so the dialog should be closed too
+                    // Prompt was dismissed, so the dialog should be closed too.
                     return false;
                 };
                 let mut is_open = true;
@@ -418,7 +418,7 @@ impl Dialog {
                     let is_checked =
                         selected_option.is_some_and(|selected_index| selected_index == option.id);
 
-                    // TODO: Surely there's a better way to align text in a selectable label in egui
+                    // TODO: Surely there's a better way to align text in a selectable label in egui.
                     let label_text = if in_group {
                         format!("   {}", option.label)
                     } else {
