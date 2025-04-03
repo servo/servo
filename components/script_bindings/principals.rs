@@ -35,6 +35,9 @@ impl ServoJSPrincipals {
 
     /// Construct `Self` from a raw `*mut JSPrincipals`, incrementing its
     /// reference count.
+    ///
+    /// # Safety
+    /// `raw` must point to a valid JSPrincipals value.
     #[inline]
     pub unsafe fn from_raw_nonnull(raw: NonNull<JSPrincipals>) -> Self {
         JS_HoldPrincipals(raw.as_ptr());
@@ -42,9 +45,11 @@ impl ServoJSPrincipals {
     }
 
     #[inline]
-    pub unsafe fn origin(&self) -> MutableOrigin {
-        let origin = GetRustJSPrincipalsPrivate(self.0.as_ptr()) as *mut MutableOrigin;
-        (*origin).clone()
+    pub fn origin(&self) -> MutableOrigin {
+        unsafe {
+            let origin = GetRustJSPrincipalsPrivate(self.0.as_ptr()) as *mut MutableOrigin;
+            (*origin).clone()
+        }
     }
 
     #[inline]

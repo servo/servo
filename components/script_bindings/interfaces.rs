@@ -27,7 +27,7 @@ use crate::utils::ProtoOrIfaceArray;
 pub trait DomHelpers<D: DomTypes> {
     fn throw_dom_exception(cx: JSContext, global: &D::GlobalScope, result: Error, can_gc: CanGc);
 
-    unsafe fn call_html_constructor<T: DerivedFrom<D::Element> + DomObject>(
+    fn call_html_constructor<T: DerivedFrom<D::Element> + DomObject>(
         cx: JSContext,
         args: &CallArgs,
         global: &D::GlobalScope,
@@ -58,11 +58,18 @@ pub trait DomHelpers<D: DomTypes> {
 /// Operations that must be invoked from the generated bindings.
 #[allow(unsafe_code)]
 pub trait GlobalScopeHelpers<D: DomTypes> {
+    /// # Safety
+    /// `cx` must point to a valid, non-null RawJSContext.
     unsafe fn from_context(cx: *mut RawJSContext, realm: InRealm) -> DomRoot<D::GlobalScope>;
     fn get_cx() -> JSContext;
+    /// # Safety
+    /// `obj` must point to a valid, non-null JSObject.
     unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
     fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<D::GlobalScope>;
 
+    /// # Safety
+    /// `obj` must point to a valid, non-null JSObject.
+    /// `cx` must point to a valid, non-null RawJSContext.
     unsafe fn from_object_maybe_wrapped(
         obj: *mut JSObject,
         cx: *mut RawJSContext,

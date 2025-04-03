@@ -128,7 +128,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         throw_dom_exception(cx, global, result, can_gc)
     }
 
-    unsafe fn call_html_constructor<
+    fn call_html_constructor<
         T: DerivedFrom<<crate::DomTypeHolder as DomTypes>::Element> + DomObject,
     >(
         cx: SafeJSContext,

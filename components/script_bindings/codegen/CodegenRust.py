@@ -7469,18 +7469,21 @@ class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def __init__(self, descriptors):
         docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
         CGAbstractMethod.__init__(self, None, 'RegisterProxyHandlers', 'void', [],
-                                  unsafe=True, pub=True, docs=docs, templateArgs=["D: DomTypes"])
+                                  pub=True, docs=docs, templateArgs=["D: DomTypes"])
         self.descriptors = descriptors
 
     def definition_body(self):
-        return CGList([
+        body = [CGGeneric("unsafe {")]
+        body += [
             CGGeneric(f"proxy_handlers::{desc.name}.store(\n"
                       f"    GenericBindings::{toBindingModuleFile(desc.name)}::{toBindingNamespace(desc.name)}"
                       "::DefineProxyHandler::<D>() as *mut _,\n"
                       "    std::sync::atomic::Ordering::Release,\n"
                       ");")
             for desc in self.descriptors
-        ], "\n")
+        ]
+        body += [CGGeneric("}")]
+        return CGList(body, "\n")
 
 
 class CGRegisterProxyHandlers(CGThing):

@@ -65,7 +65,12 @@ pub mod codegen {
     pub(crate) mod DomTypes {
         include!(concat!(env!("OUT_DIR"), "/DomTypes.rs"));
     }
-    #[allow(dead_code)]
+    #[allow(
+        dead_code,
+        clippy::extra_unused_type_parameters,
+        clippy::missing_safety_doc,
+        clippy::result_unit_err
+    )]
     pub mod GenericBindings {
         include!(concat!(env!("OUT_DIR"), "/Bindings/mod.rs"));
     }

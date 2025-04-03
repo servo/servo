@@ -599,6 +599,7 @@ fn get_proto_id_for_new_target(new_target: HandleObject) -> Option<PrototypeList
     }
 }
 
+#[allow(clippy::result_unit_err)]
 pub fn get_desired_proto(
     cx: SafeJSContext,
     args: &CallArgs,

@@ -55,7 +55,7 @@ use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
 /// <https://html.spec.whatwg.org/multipage/#htmlconstructor>
-unsafe fn html_constructor(
+fn html_constructor(
     cx: JSContext,
     global: &GlobalScope,
     call_args: &CallArgs,
@@ -75,7 +75,9 @@ unsafe fn html_constructor(
 
     // The new_target might be a cross-compartment wrapper. Get the underlying object
     // so we can do the spec's object-identity checks.
-    rooted!(in(*cx) let new_target_unwrapped = UnwrapObjectDynamic(call_args.new_target().to_object(), *cx, true));
+    rooted!(in(*cx) let new_target_unwrapped = unsafe {
+        UnwrapObjectDynamic(call_args.new_target().to_object(), *cx, true)
+    });
     if new_target_unwrapped.is_null() {
         throw_dom_exception(
             cx,
@@ -114,7 +116,7 @@ unsafe fn html_constructor(
     // Step 4. Let isValue be null.
     let mut is_value = None;
 
-    rooted!(in(*cx) let callee = UnwrapObjectStatic(call_args.callee()));
+    rooted!(in(*cx) let callee = unsafe { UnwrapObjectStatic(call_args.callee()) });
     if callee.is_null() {
         throw_dom_exception(cx, global, Error::Security, can_gc);
         return Err(());
@@ -123,7 +125,7 @@ unsafe fn html_constructor(
     {
         let _ac = JSAutoRealm::new(*cx, callee.get());
         rooted!(in(*cx) let mut constructor = ptr::null_mut::<JSObject>());
-        rooted!(in(*cx) let global_object = CurrentGlobalOrNull(*cx));
+        rooted!(in(*cx) let global_object = unsafe { CurrentGlobalOrNull(*cx) });
 
         // Step 5. If definition's local name is equal to definition's name
         // (i.e., definition is for an autonomous custom element):
@@ -233,13 +235,15 @@ unsafe fn html_constructor(
     };
 
     rooted!(in(*cx) let mut element = result.reflector().get_jsobject().get());
-    if !JS_WrapObject(*cx, element.handle_mut()) {
-        return Err(());
+    unsafe {
+        if !JS_WrapObject(*cx, element.handle_mut()) {
+            return Err(());
+        }
+
+        JS_SetPrototype(*cx, element.handle(), prototype.handle());
+
+        result.to_jsval(*cx, MutableHandleValue::from_raw(call_args.rval()));
     }
-
-    JS_SetPrototype(*cx, element.handle(), prototype.handle());
-
-    result.to_jsval(*cx, MutableHandleValue::from_raw(call_args.rval()));
     Ok(())
 }
 
@@ -395,7 +399,7 @@ pub(crate) fn push_new_element_queue() {
     ScriptThread::push_new_element_queue();
 }
 
-pub(crate) unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
+pub(crate) fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
     cx: JSContext,
     args: &CallArgs,
     global: &GlobalScope,

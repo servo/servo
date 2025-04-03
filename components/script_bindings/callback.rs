@@ -125,6 +125,9 @@ impl<D: DomTypes> PartialEq for CallbackObject<D> {
 /// callback interface types.
 pub trait CallbackContainer<D: DomTypes> {
     /// Create a new CallbackContainer object for the given `JSObject`.
+    ///
+    /// # Safety
+    /// `callback` must point to a valid, non-null JSObject.
     unsafe fn new(cx: JSContext, callback: *mut JSObject) -> Rc<Self>;
     /// Returns the underlying `CallbackObject`.
     fn callback_holder(&self) -> &CallbackObject<D>;
@@ -166,6 +169,9 @@ impl<D: DomTypes> CallbackFunction<D> {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
+    ///
+    /// # Safety
+    /// `callback` must point to a valid, non-null JSObject.
     pub unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
         self.object.init(cx, callback);
     }
@@ -195,6 +201,9 @@ impl<D: DomTypes> CallbackInterface<D> {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
+    ///
+    /// # Safety
+    /// `callback` must point to a valid, non-null JSObject.
     pub unsafe fn init(&mut self, cx: JSContext, callback: *mut JSObject) {
         self.object.init(cx, callback);
     }
