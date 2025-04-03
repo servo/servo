@@ -137,6 +137,58 @@ impl Callback for StartAlgorithmRejectionHandler {
     }
 }
 
+impl js::gc::Rootable for TransferBackPressurePromiseReaction {}
+
+/// Reacting to backpressurePromise as part of the `writeAlgorithm` of
+/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct TransferBackPressurePromiseReaction {
+    /// The result of reacting to backpressurePromise.
+    #[ignore_malloc_size_of = "Rc is hard"]
+    result_promise: Rc<Promise>,
+
+    /// The backpressurePromise.
+    #[ignore_malloc_size_of = "Rc is hard"]
+    backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
+
+    /// The chunk received by the `writeAlgorithm`.
+    #[ignore_malloc_size_of = "mozjs"]
+    chunk: Box<Heap<JSVal>>,
+
+    /// The port used in the algorithm.
+    port: Dom<MessagePort>,
+}
+
+impl Callback for TransferBackPressurePromiseReaction {
+    /// Reacting to backpressurePromise with the following fulfillment steps:
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+        let global = self.result_promise.global();
+        // Set backpressurePromise to a new promise.
+        *self.backpressure_promise.borrow_mut() = Some(Promise::new(&global, can_gc));
+
+        // Let result be PackAndPostMessageHandlingError(port, "chunk", chunk).
+        rooted!(in(*cx) let mut chunk = UndefinedValue());
+        chunk.set(self.chunk.get());
+        let result = self.port.pack_and_post_message_handling_error(
+            DOMString::from_string("chunk".to_string()),
+            chunk.handle(),
+        );
+
+        // If result is an abrupt completion,
+        if let Err(error) = result {
+            // Disentangle port.
+            global.disentangle_port(&self.port);
+
+            // Return a promise rejected with result.[[Value]].
+            self.result_promise.reject_native(&error, can_gc);
+        } else {
+            // Otherwise, return a promise resolved with undefined.
+            self.result_promise.reject_native(&(), can_gc);
+        }
+    }
+}
+
 impl js::gc::Rootable for WriteAlgorithmFulfillmentHandler {}
 
 /// The fulfillment handler for
@@ -546,9 +598,42 @@ impl WritableStreamDefaultController {
                     promise
                 })
             },
-            UnderlyingSinkType::Transfer { .. } => {
-                // TODO
-                Promise::new_resolved(global, cx, (), can_gc)
+            UnderlyingSinkType::Transfer {
+                ref backpressure_promise,
+                ref port,
+                ..
+            } => {
+                {
+                    // If backpressurePromise is undefined,
+                    // set backpressurePromise to a promise resolved with undefined.
+                    let mut backpressure_promise = backpressure_promise.borrow_mut();
+                    if backpressure_promise.is_none() {
+                        *backpressure_promise = Some(Promise::new_resolved(global, cx, (), can_gc));
+                    }
+                }
+
+                // Return the result of reacting to backpressurePromise with the following fulfillment steps:
+                let result_promise = Promise::new(global, can_gc);
+                rooted!(in(*cx) let mut fulfillment_handler = Some(TransferBackPressurePromiseReaction {
+                    port: port.clone(),
+                    backpressure_promise: backpressure_promise.clone(),
+                    chunk: Heap::boxed(chunk.get()),
+                    result_promise: result_promise.clone(),
+                }));
+                let handler = PromiseNativeHandler::new(
+                    global,
+                    fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
+                    None,
+                    can_gc,
+                );
+                let realm = enter_realm(global);
+                let comp = InRealm::Entered(&realm);
+                backpressure_promise
+                    .borrow()
+                    .as_ref()
+                    .expect("Promise must be some by now.")
+                    .append_native_handler(&handler, comp, can_gc);
+                result_promise
             },
         }
     }
