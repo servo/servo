@@ -930,7 +930,7 @@ impl CrossRealmTransformWritable {
         get_dictionary_property(
             *cx,
             data_object.handle(),
-            "done",
+            "type",
             type_.handle_mut(),
             can_gc,
         )
@@ -941,7 +941,7 @@ impl CrossRealmTransformWritable {
         get_dictionary_property(
             *cx,
             data_object.handle(),
-            "done",
+            "value",
             value.handle_mut(),
             can_gc,
         )
