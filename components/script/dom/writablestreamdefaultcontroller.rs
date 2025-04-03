@@ -661,8 +661,18 @@ impl WritableStreamDefaultController {
                     promise
                 })
             },
-            UnderlyingSinkType::Transfer { .. } => {
-                // TODO
+            UnderlyingSinkType::Transfer { ref port, .. } => {
+                // Perform ! PackAndPostMessage(port, "close", undefined).
+                rooted!(in(*cx) let mut value = UndefinedValue());
+                port.pack_and_post_message(
+                    DOMString::from_string("closed ".to_string()),
+                    value.handle(),
+                );
+
+                // Disentangle port.
+                global.disentangle_port(&port);
+
+                // Return a promise resolved with undefined.
                 Promise::new_resolved(global, cx, (), can_gc)
             },
         }

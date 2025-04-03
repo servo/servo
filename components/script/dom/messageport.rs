@@ -173,6 +173,16 @@ impl MessagePort {
         // TODO
         todo!()
     }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessage>
+    pub(crate) fn pack_and_post_message(
+        &self,
+        type_: DOMString,
+        value: HandleValue,
+    ) -> Result<(), ()> {
+        // TODO
+        todo!()
+    }
 }
 
 impl Transferable for MessagePort {
