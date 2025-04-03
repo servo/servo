@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
+use script_bindings::str::DOMString;
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -19,9 +20,10 @@ use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WritableStreamDefaultControllerBinding::WritableStreamDefaultControllerMethods;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes, ValueWithSize};
@@ -215,13 +217,16 @@ impl Callback for WriteAlgorithmRejectionHandler {
 }
 
 /// The type of sink algorithms we are using.
-#[derive(PartialEq)]
+#[derive(JSTraceable, PartialEq)]
 pub enum UnderlyingSinkType {
     /// Algorithms are provided by Js callbacks.
     Js,
     /// Algorithms supporting streams transfer are implemented in Rust,
     /// and the `backpressure_promise` used in those algorithms is stored here.
-    Transfer(Rc<Promise>),
+    Transfer {
+        backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
+        port: Dom<MessagePort>,
+    },
 }
 
 /// <https://streams.spec.whatwg.org/#ws-default-controller-class>
@@ -229,7 +234,6 @@ pub enum UnderlyingSinkType {
 pub struct WritableStreamDefaultController {
     reflector_: Reflector,
 
-    #[no_trace]
     #[ignore_malloc_size_of = "Rc is hard"]
     underlying_sink_type: UnderlyingSinkType,
 
@@ -484,9 +488,26 @@ impl WritableStreamDefaultController {
                     promise
                 })
             },
-            UnderlyingSinkType::Transfer(_) => {
-                // TODO
-                Promise::new_resolved(global, cx, (), can_gc)
+            UnderlyingSinkType::Transfer { ref port, .. } => {
+                // Let result be PackAndPostMessageHandlingError(port, "error", reason).
+                let result = port.pack_and_post_message_handling_error(
+                    DOMString::from_string("error".to_string()),
+                    reason,
+                );
+
+                // Disentangle port.
+                global.disentangle_port(&port);
+
+                let promise = Promise::new(global, can_gc);
+
+                // If result is an abrupt completion, return a promise rejected with result.[[Value]]
+                if let Err(error) = result {
+                    promise.reject_native(&error, can_gc);
+                } else {
+                    // Otherwise, return a promise resolved with undefined.
+                    promise.reject_native(&(), can_gc);
+                }
+                promise
             },
         };
 
@@ -525,7 +546,7 @@ impl WritableStreamDefaultController {
                     promise
                 })
             },
-            UnderlyingSinkType::Transfer(_) => {
+            UnderlyingSinkType::Transfer { .. } => {
                 // TODO
                 Promise::new_resolved(global, cx, (), can_gc)
             },
@@ -555,7 +576,7 @@ impl WritableStreamDefaultController {
                     promise
                 })
             },
-            UnderlyingSinkType::Transfer(_) => {
+            UnderlyingSinkType::Transfer { .. } => {
                 // TODO
                 Promise::new_resolved(global, cx, (), can_gc)
             },

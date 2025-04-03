@@ -11,6 +11,7 @@ use base::id::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use script_bindings::str::DOMString;
 use script_traits::PortMessageTask;
 use script_traits::transferable::MessagePortImpl;
 
@@ -161,6 +162,16 @@ impl MessagePort {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-crossrealmtransformsenderror>
     pub(crate) fn cross_relam_transform_send_error(&self, error: HandleValue) {
         // TODO
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessagehandlingerror>
+    pub(crate) fn pack_and_post_message_handling_error(
+        &self,
+        type_: DOMString,
+        reason: HandleValue,
+    ) -> Result<(), ()> {
+        // TODO
+        todo!()
     }
 }
 

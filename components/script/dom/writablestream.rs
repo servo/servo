@@ -846,9 +846,10 @@ impl WritableStream {
     pub(crate) fn setup_cross_realm_transform_writable(
         &self,
         cx: SafeJSContext,
-        port_id: &MessagePortId,
+        port: &MessagePort,
         can_gc: CanGc,
     ) {
+        let port_id = port.message_port_id();
         let global = self.global();
 
         // Perform ! InitializeWritableStream(stream).
@@ -861,12 +862,15 @@ impl WritableStream {
         // Note: other algorithms defined in the controller at call site.
 
         // Let backpressurePromise be a new promise.
-        let backpressure_promise = Promise::new(&global, can_gc);
+        let backpressure_promise = Rc::new(RefCell::new(Some(Promise::new(&global, can_gc))));
 
         // Let controller be a new WritableStreamDefaultController.
         let controller = WritableStreamDefaultController::new(
             &global,
-            UnderlyingSinkType::Transfer(backpressure_promise.clone()),
+            UnderlyingSinkType::Transfer {
+                backpressure_promise: backpressure_promise.clone(),
+                port: Dom::from_ref(port),
+            },
             &UnderlyingSink::empty(),
             1.0,
             size_algorithm,
@@ -877,7 +881,7 @@ impl WritableStream {
         // Add a handler for port’s messageerror event with the following steps:
         rooted!(in(*cx) let cross_realm_transform_writable = CrossRealmTransformWritable {
             controller: Dom::from_ref(&controller),
-            backpressure_promise: RefCell::new(Some(backpressure_promise)),
+            backpressure_promise: backpressure_promise.clone(),
         });
         global.note_cross_realm_transform_writable(&cross_realm_transform_writable, port_id);
 
@@ -901,7 +905,7 @@ pub(crate) struct CrossRealmTransformWritable {
 
     /// The `backpressurePromise` used in the algorithm.
     #[ignore_malloc_size_of = "Rc is hard"]
-    backpressure_promise: RefCell<Option<Rc<Promise>>>,
+    backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
 }
 
 impl CrossRealmTransformWritable {
