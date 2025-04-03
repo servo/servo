@@ -37,6 +37,7 @@ use profile_traits::path;
 use profile_traits::time::ProfilerChan;
 use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
+use serde_jsonlines::{append_json_lines, json_lines};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -471,6 +472,49 @@ impl ResourceChannelManager {
             },
         }
         true
+    }
+}
+
+pub fn create_or_clear_file(config_dir: &Path, filename: &str) {
+    let path = config_dir.join(filename);
+    let display = path.display();
+    if let Err(why) = File::create(&path) {
+        panic!("Fail to create {}: {}", display, why);
+    }
+}
+
+pub fn read_jsonl_file<T>(config_dir: &Path, filename: &str) -> Vec<T>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    let path = config_dir.join(filename);
+    let display = path.display();
+    let jsonl_iter = match json_lines::<T, _>(&path) {
+        Ok(jsonl_iter) => jsonl_iter,
+        Err(why) => {
+            warn!("couldn't open {}: {}", display, why);
+            return Vec::new();
+        },
+    };
+    let mut data_from_jsonl = Vec::new();
+    for jsonl_item in jsonl_iter {
+        match jsonl_item {
+            Ok(jsonl_item) => data_from_jsonl.push(jsonl_item),
+            Err(why) => warn!("Error when reading {}: {}", display, why),
+        }
+    }
+    data_from_jsonl
+}
+
+pub fn append_to_jsonl_file<T>(item: T, config_dir: &Path, filename: &str)
+where
+    T: Serialize,
+{
+    let path = config_dir.join(filename);
+    let display = path.display();
+    match append_json_lines(&path, [item]) {
+        Err(why) => panic!("couldn't append to {}: {}", display, why),
+        Ok(_) => trace!("successfully append to {}", display),
     }
 }
 
