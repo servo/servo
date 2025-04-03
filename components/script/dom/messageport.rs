@@ -157,6 +157,11 @@ impl MessagePort {
             .post_messageport_msg(*self.message_port_id(), task);
         Ok(())
     }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-crossrealmtransformsenderror>
+    pub(crate) fn cross_relam_transform_send_error(&self, error: HandleValue) {
+        // TODO
+    }
 }
 
 impl Transferable for MessagePort {

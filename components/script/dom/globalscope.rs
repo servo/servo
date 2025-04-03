@@ -947,6 +947,11 @@ impl GlobalScope {
         *self.broadcast_channel_state.borrow_mut() = BroadcastChannelState::UnManaged;
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#disentangle>
+    pub(crate) fn disentangle_port(&self, port: &MessagePort) {
+        // TODO
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#entangle>
     pub(crate) fn entangle_ports(&self, port1: MessagePortId, port2: MessagePortId) {
         if let MessagePortState::Managed(_id, message_ports) =
