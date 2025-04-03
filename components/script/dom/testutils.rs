@@ -33,7 +33,7 @@ impl TestUtilsMethods<crate::DomTypeHolder> for TestUtils {
         // We do this by queuing a task that calls the GC and then resolves the promise.
         let task = task!(testutils_gc: move || {
             unsafe {
-                JS_GC(*GlobalScope::get_cx(), GCReason::API);
+                JS_GC(*GlobalScope::get_cx(), GCReason::DOM_TESTUTILS);
             }
             let promise = trusted.root();
             promise.resolve_native(&(), CanGc::note());
