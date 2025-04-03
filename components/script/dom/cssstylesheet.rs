@@ -10,6 +10,7 @@ use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleTypes, Stylesheet as StyleStyleSheet};
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
+use crate::dom::bindings::codegen::GenericBindings::CSSRuleListBinding::CSSRuleList_Binding::CSSRuleListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -125,7 +126,7 @@ impl CSSStyleSheet {
 }
 
 impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
-    // https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules>
     fn GetCssRules(&self) -> Fallible<DomRoot<CSSRuleList>> {
         if !self.origin_clean.get() {
             return Err(Error::Security);
@@ -133,7 +134,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         Ok(self.rulelist())
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule>
     fn InsertRule(&self, rule: DOMString, index: u32) -> Fallible<u32> {
         if !self.origin_clean.get() {
             return Err(Error::Security);
@@ -142,11 +143,53 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             .insert_rule(&rule, index, CssRuleTypes::default(), None, CanGc::note())
     }
 
-    // https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule>
     fn DeleteRule(&self, index: u32) -> ErrorResult {
         if !self.origin_clean.get() {
             return Err(Error::Security);
         }
         self.rulelist().remove_rule(index)
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-rules>
+    fn GetRules(&self) -> Fallible<DomRoot<CSSRuleList>> {
+        self.GetCssRules()
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-removerule>
+    fn RemoveRule(&self, index: u32) -> ErrorResult {
+        self.DeleteRule(index)
+    }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-addrule>
+    fn AddRule(
+        &self,
+        selector: DOMString,
+        block: DOMString,
+        optional_index: Option<u32>,
+    ) -> Fallible<i32> {
+        // > 1. Let *rule* be an empty string.
+        // > 2. Append *selector* to *rule*.
+        let mut rule = selector;
+
+        // > 3. Append " { " to *rule*.
+        // > 4. If *block* is not empty, append *block*, followed by a space, to *rule*.
+        // > 5. Append "}" to *rule*.
+        if block.is_empty() {
+            rule.push_str(" { }");
+        } else {
+            rule.push_str(" { ");
+            rule.push_str(block.str());
+            rule.push_str(" } ");
+        };
+
+        // > 6. Let *index* be *optionalIndex* if provided, or the number of CSS rules in the stylesheet otherwise.
+        let index = optional_index.unwrap_or_else(|| self.rulelist().Length());
+
+        // > 7. Call `insertRule()`, with *rule* and *index* as arguments.
+        self.InsertRule(rule, index)?;
+
+        // > 8. Return -1.
+        Ok(-1)
     }
 }
