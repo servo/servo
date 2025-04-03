@@ -1346,6 +1346,16 @@ impl Handler {
         }
     }
 
+    fn handle_delete_cookie(&self, name: String) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::DeleteCookie(name, sender);
+        self.browsing_context_script_command(cmd)?;
+        match receiver.recv().unwrap() {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
+    }
+
     fn handle_delete_cookies(&self) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookies(sender);
@@ -1860,6 +1870,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementClick(ref element) => self.handle_element_click(element),
             WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
+            WebDriverCommand::DeleteCookie(name) => self.handle_delete_cookie(name),
             WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
