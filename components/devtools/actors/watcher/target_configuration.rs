@@ -56,8 +56,8 @@ impl Actor for TargetConfigurationActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "updateConfiguration" => {
-                let config = msg["configuration"].as_object().unwrap();
-                let scheme = config["colorSchemeSimulation"].as_str().unwrap();
+                let config = msg["configuration"].as_object().ok_or(())?;
+                let scheme = config["colorSchemeSimulation"].as_str().ok_or(())?;
                 let theme = match scheme {
                     "dark" => Theme::Dark,
                     "light" => Theme::Light,
@@ -69,9 +69,9 @@ impl Actor for TargetConfigurationActor {
                     let browsing_context_name = tab_actor.browsing_context();
                     let browsing_context_actor =
                         registry.find::<BrowsingContextActor>(&browsing_context_name);
-                    browsing_context_actor.simulate_color_scheme(theme);
+                    browsing_context_actor.simulate_color_scheme(theme)?;
                 } else {
-                    warn!("No active tab for colorSchemeSimulation");
+                    warn!("No active tab for updateConfiguration");
                 }
                 let msg = EmptyReplyMsg { from: self.name() };
                 let _ = stream.write_json_packet(&msg);
