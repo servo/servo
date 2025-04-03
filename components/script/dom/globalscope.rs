@@ -63,7 +63,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use timers::{TimerEventId, TimerEventRequest, TimerSource};
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
-use webgpu::{DeviceLostReason, WebGPUDevice};
+use webgpu_traits::{DeviceLostReason, WebGPUDevice};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 #[cfg(feature = "webgpu")]
@@ -3005,7 +3005,7 @@ impl GlobalScope {
     pub(crate) fn handle_uncaptured_gpu_error(
         &self,
         device: WebGPUDevice,
-        error: webgpu::Error,
+        error: webgpu_traits::Error,
         can_gc: CanGc,
     ) {
         if let Some(gpu_device) = self

@@ -22,7 +22,7 @@ use script_traits::{Painter, ScriptMsg, ScriptThreadMessage};
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
-use webgpu::WebGPUMsg;
+use webgpu_traits::WebGPUMsg;
 
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::trace::CustomTraceable;

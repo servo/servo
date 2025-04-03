@@ -7,12 +7,11 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-
-use crate::wgc;
+use wgpu_core::device::DeviceError;
 
 /// <https://www.w3.org/TR/webgpu/#gpu-error-scope>
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub(crate) struct ErrorScope {
+pub struct ErrorScope {
     pub errors: Vec<Error>,
     pub filter: ErrorFilter,
 }
@@ -76,9 +75,7 @@ impl Error {
     pub fn from_error<E: std::error::Error + 'static>(error: E) -> Self {
         let mut source_opt: Option<&(dyn std::error::Error + 'static)> = Some(&error);
         while let Some(source) = source_opt {
-            if let Some(wgc::device::DeviceError::OutOfMemory) =
-                source.downcast_ref::<wgc::device::DeviceError>()
-            {
+            if let Some(DeviceError::OutOfMemory) = source.downcast_ref::<DeviceError>() {
                 return Self::OutOfMemory(error.to_string());
             }
             source_opt = source.source();

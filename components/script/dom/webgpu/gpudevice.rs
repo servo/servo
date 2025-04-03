@@ -13,11 +13,11 @@ use js::jsapi::{Heap, JSObject};
 use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
 use webgpu::wgc::pipeline as wgpu_pipe;
 use webgpu::wgc::pipeline::RenderPipelineDescriptor;
-use webgpu::wgt::TextureFormat;
-use webgpu::{
-    PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse,
-    WebGPUPoppedErrorScopeResponse, WebGPURenderPipeline, WebGPURenderPipelineResponse,
-    WebGPURequest, wgt,
+use webgpu::wgt::{self, TextureFormat};
+use webgpu_traits::{
+    PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
+    WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
+    WebGPURenderPipelineResponse, WebGPURequest,
 };
 
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
@@ -78,7 +78,7 @@ pub(crate) struct GPUDevice {
     limits: Dom<GPUSupportedLimits>,
     label: DomRefCell<USVString>,
     #[no_trace]
-    device: webgpu::WebGPUDevice,
+    device: WebGPUDevice,
     default_queue: Dom<GPUQueue>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
     #[ignore_malloc_size_of = "promises are hard"]
@@ -117,7 +117,7 @@ impl GPUDevice {
         extensions: Heap<*mut JSObject>,
         features: &GPUSupportedFeatures,
         limits: &GPUSupportedLimits,
-        device: webgpu::WebGPUDevice,
+        device: WebGPUDevice,
         queue: &GPUQueue,
         label: String,
         lost_promise: Rc<Promise>,
@@ -145,8 +145,8 @@ impl GPUDevice {
         extensions: Heap<*mut JSObject>,
         features: wgt::Features,
         limits: wgt::Limits,
-        device: webgpu::WebGPUDevice,
-        queue: webgpu::WebGPUQueue,
+        device: WebGPUDevice,
+        queue: WebGPUQueue,
         label: String,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
@@ -175,11 +175,11 @@ impl GPUDevice {
 }
 
 impl GPUDevice {
-    pub(crate) fn id(&self) -> webgpu::WebGPUDevice {
+    pub(crate) fn id(&self) -> WebGPUDevice {
         self.device
     }
 
-    pub(crate) fn queue_id(&self) -> webgpu::WebGPUQueue {
+    pub(crate) fn queue_id(&self) -> WebGPUQueue {
         self.default_queue.id()
     }
 
@@ -187,7 +187,7 @@ impl GPUDevice {
         self.channel.clone()
     }
 
-    pub(crate) fn dispatch_error(&self, error: webgpu::Error) {
+    pub(crate) fn dispatch_error(&self, error: webgpu_traits::Error) {
         if let Err(e) = self.channel.0.send(WebGPURequest::DispatchError {
             device_id: self.device.0,
             error,
@@ -196,7 +196,7 @@ impl GPUDevice {
         }
     }
 
-    pub(crate) fn fire_uncaptured_error(&self, error: webgpu::Error, can_gc: CanGc) {
+    pub(crate) fn fire_uncaptured_error(&self, error: webgpu_traits::Error, can_gc: CanGc) {
         let error = GPUError::from_error(&self.global(), error, can_gc);
         let ev = GPUUncapturedErrorEvent::new(
             &self.global(),
@@ -620,7 +620,7 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
                 ),
                 can_gc,
             ),
-            Err(webgpu::Error::Validation(msg)) => promise.reject_native(
+            Err(webgpu_traits::Error::Validation(msg)) => promise.reject_native(
                 &GPUPipelineError::new(
                     &self.global(),
                     msg.into(),
@@ -629,8 +629,8 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
                 ),
                 can_gc,
             ),
-            Err(webgpu::Error::OutOfMemory(msg) | webgpu::Error::Internal(msg)) => promise
-                .reject_native(
+            Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
+                promise.reject_native(
                     &GPUPipelineError::new(
                         &self.global(),
                         msg.into(),
@@ -638,7 +638,8 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
                         can_gc,
                     ),
                     can_gc,
-                ),
+                )
+            },
         }
     }
 }
@@ -661,7 +662,7 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                 ),
                 can_gc,
             ),
-            Err(webgpu::Error::Validation(msg)) => promise.reject_native(
+            Err(webgpu_traits::Error::Validation(msg)) => promise.reject_native(
                 &GPUPipelineError::new(
                     &self.global(),
                     msg.into(),
@@ -670,8 +671,8 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                 ),
                 can_gc,
             ),
-            Err(webgpu::Error::OutOfMemory(msg) | webgpu::Error::Internal(msg)) => promise
-                .reject_native(
+            Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
+                promise.reject_native(
                     &GPUPipelineError::new(
                         &self.global(),
                         msg.into(),
@@ -679,7 +680,8 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                         can_gc,
                     ),
                     can_gc,
-                ),
+                )
+            },
         }
     }
 }

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use webgpu::wgc::pipeline::ComputePipelineDescriptor;
-use webgpu::{
+use webgpu_traits::{
     WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPUComputePipelineResponse,
     WebGPURequest,
 };
