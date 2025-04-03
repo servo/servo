@@ -19,12 +19,14 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use actors::thread::{Source, SpontaneousNewSource};
+use actors::watcher::WatcherActor;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
-    ChromeToDevtoolsControlMsg, ConsoleMessage, ConsoleMessageBuilder, DevtoolScriptControlMsg,
-    DevtoolsControlMsg, DevtoolsPageInfo, LogLevel, NavigationState, NetworkEvent, PageError,
-    ScriptToDevtoolsControlMsg, WorkerId,
+    CSSError, ChromeToDevtoolsControlMsg, ConsoleMessage, ConsoleMessageBuilder,
+    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, LogLevel, NavigationState,
+    NetworkEvent, PageError, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcSender};
@@ -242,6 +244,10 @@ impl DevtoolsInstance {
                     console_message,
                     worker_id,
                 )) => self.handle_console_message(pipeline_id, worker_id, console_message),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                    pipeline_id,
+                    source_info,
+                )) => self.handle_script_source_loaded(pipeline_id, source_info),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
                     pipeline_id,
                     page_error,
@@ -489,6 +495,12 @@ impl DevtoolsInstance {
                 actor_name
             },
         }
+    }
+
+    fn handle_script_source_loaded(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
+        // TODO: implement this function: we will need to pass on this information to watcher
+        println!("source_info: {:?}", source_info);
+        println!("pipeline_id: {:?}", pipeline_id);
     }
 }
 
