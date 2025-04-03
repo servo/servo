@@ -75,10 +75,6 @@ use uuid::Uuid;
 use webgpu::swapchain::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
 
-use super::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
-use super::canvasrenderingcontext2d::CanvasRenderingContext2D;
-use super::clipboardevent::ClipboardEventType;
-use super::performancepainttiming::PerformancePaintTiming;
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::canvas_context::CanvasContext as _;
@@ -105,6 +101,7 @@ use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
+use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::codegen::UnionTypes::{NodeOrString, StringOrElementCreationOptions};
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
@@ -120,8 +117,9 @@ use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::bindings::xmlname::{
     matches_name_production, namespace_from_domstring, validate_and_extract,
 };
+use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::cdatasection::CDATASection;
-use crate::dom::clipboardevent::ClipboardEvent;
+use crate::dom::clipboardevent::{ClipboardEvent, ClipboardEventType};
 use crate::dom::comment::Comment;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::cssstylesheet::CSSStyleSheet;
@@ -171,6 +169,7 @@ use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::performanceentry::PerformanceEntry;
+use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
@@ -1274,7 +1273,7 @@ impl Document {
         }
     }
 
-    fn send_to_embedder(&self, msg: EmbedderMsg) {
+    pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         let window = self.window();
         window.send_to_embedder(msg);
     }
@@ -1312,7 +1311,7 @@ impl Document {
 
         let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
         let Some(el) = node
-            .inclusive_ancestors(ShadowIncluding::No)
+            .inclusive_ancestors(ShadowIncluding::Yes)
             .filter_map(DomRoot::downcast::<Element>)
             .next()
         else {

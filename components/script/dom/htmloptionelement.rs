@@ -93,12 +93,7 @@ impl HTMLOptionElement {
     }
 
     fn pick_if_selected_and_reset(&self) {
-        if let Some(select) = self
-            .upcast::<Node>()
-            .ancestors()
-            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
-            .next()
-        {
+        if let Some(select) = self.owner_select_element() {
             if self.Selected() {
                 select.pick_option(self);
             }
@@ -108,50 +103,52 @@ impl HTMLOptionElement {
 
     // https://html.spec.whatwg.org/multipage/#concept-option-index
     fn index(&self) -> i32 {
-        if let Some(parent) = self.upcast::<Node>().GetParentNode() {
-            if let Some(select_parent) = parent.downcast::<HTMLSelectElement>() {
-                // return index in parent select's list of options
-                return self.index_in_select(select_parent);
-            } else if parent.is::<HTMLOptGroupElement>() {
-                if let Some(grandparent) = parent.GetParentNode() {
-                    if let Some(select_grandparent) = grandparent.downcast::<HTMLSelectElement>() {
-                        // return index in grandparent select's list of options
-                        return self.index_in_select(select_grandparent);
-                    }
-                }
-            }
-        }
-        // "If the option element is not in a list of options,
-        // then the option element's index is zero."
-        // self is neither a child of a select, nor a grandchild of a select
-        // via an optgroup, so it is not in a list of options
-        0
+        let Some(owner_select) = self.owner_select_element() else {
+            return 0;
+        };
+
+        let Some(position) = owner_select.list_of_options().position(|n| &*n == self) else {
+            // An option should always be in it's owner's list of options, but it's not worth a browser panic
+            warn!("HTMLOptionElement called index_in_select at a select that did not contain it");
+            return 0;
+        };
+
+        position.try_into().unwrap_or(0)
     }
 
-    fn index_in_select(&self, select: &HTMLSelectElement) -> i32 {
-        match select.list_of_options().position(|n| &*n == self) {
-            Some(index) => index.try_into().unwrap_or(0),
-            None => {
-                // shouldn't happen but not worth a browser panic
-                warn!(
-                    "HTMLOptionElement called index_in_select at a select that did not contain it"
-                );
-                0
-            },
+    fn owner_select_element(&self) -> Option<DomRoot<HTMLSelectElement>> {
+        let parent = self.upcast::<Node>().GetParentNode()?;
+
+        if parent.is::<HTMLOptGroupElement>() {
+            DomRoot::downcast::<HTMLSelectElement>(parent.GetParentNode()?)
+        } else {
+            DomRoot::downcast::<HTMLSelectElement>(parent)
         }
     }
 
     fn update_select_validity(&self, can_gc: CanGc) {
-        if let Some(select) = self
-            .upcast::<Node>()
-            .ancestors()
-            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
-            .next()
-        {
+        if let Some(select) = self.owner_select_element() {
             select
                 .validity_state()
                 .perform_validation_and_update(ValidationFlags::all(), can_gc);
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-option-label>
+    ///
+    /// Note that this is not equivalent to <https://html.spec.whatwg.org/multipage/#dom-option-label>.
+    pub(crate) fn displayed_label(&self) -> DOMString {
+        // > The label of an option element is the value of the label content attribute, if there is one
+        // > and its value is not the empty string, or, otherwise, the value of the element's text IDL attribute.
+        let label = self
+            .upcast::<Element>()
+            .get_string_attribute(&local_name!("label"));
+
+        if label.is_empty() {
+            return self.Text();
+        }
+
+        label
     }
 }
 
@@ -175,7 +172,7 @@ fn collect_text(element: &Element, value: &mut String) {
 }
 
 impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
-    // https://html.spec.whatwg.org/multipage/#dom-option
+    /// <https://html.spec.whatwg.org/multipage/#dom-option>
     fn Option(
         window: &Window,
         proto: Option<HandleObject>,
@@ -217,19 +214,19 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#dom-option-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-text
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-text>
     fn Text(&self) -> DOMString {
         let mut content = String::new();
         collect_text(self.upcast(), &mut content);
         DOMString::from(str_join(split_html_space_chars(&content), " "))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-text
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-text>
     fn SetText(&self, value: DOMString, can_gc: CanGc) {
         self.upcast::<Node>().SetTextContent(Some(value), can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-form
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
         let parent = self.upcast::<Node>().GetParentNode().and_then(|p| {
             if p.is::<HTMLOptGroupElement>() {
@@ -242,7 +239,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         parent.and_then(|p| p.downcast::<HTMLSelectElement>().and_then(|s| s.GetForm()))
     }
 
-    // https://html.spec.whatwg.org/multipage/#attr-option-value
+    /// <https://html.spec.whatwg.org/multipage/#attr-option-value>
     fn Value(&self) -> DOMString {
         let element = self.upcast::<Element>();
         let attr = &local_name!("value");
@@ -256,7 +253,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#attr-option-value
     make_setter!(SetValue, "value");
 
-    // https://html.spec.whatwg.org/multipage/#attr-option-label
+    /// <https://html.spec.whatwg.org/multipage/#attr-option-label>
     fn Label(&self) -> DOMString {
         let element = self.upcast::<Element>();
         let attr = &local_name!("label");
@@ -276,12 +273,12 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#dom-option-defaultselected
     make_bool_setter!(SetDefaultSelected, "selected");
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-selected
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-selected>
     fn Selected(&self) -> bool {
         self.selectedness.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-selected
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-selected>
     fn SetSelected(&self, selected: bool) {
         self.dirtiness.set(true);
         self.selectedness.set(selected);
@@ -289,7 +286,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         self.update_select_validity(CanGc::note());
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-option-index
+    /// <https://html.spec.whatwg.org/multipage/#dom-option-index>
     fn Index(&self) -> i32 {
         self.index()
     }
@@ -336,6 +333,13 @@ impl VirtualMethods for HTMLOptionElement {
                     },
                 }
                 self.update_select_validity(can_gc);
+            },
+            local_name!("label") => {
+                // The label of the selected option is displayed inside the select element, so we need to repaint
+                // when it changes
+                if let Some(select_element) = self.owner_select_element() {
+                    select_element.update_shadow_tree(CanGc::note());
+                }
             },
             _ => {},
         }
