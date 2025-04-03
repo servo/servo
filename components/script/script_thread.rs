@@ -1273,6 +1273,12 @@ impl ScriptThread {
             #[cfg(feature = "webgpu")]
             document.update_rendering_of_webgpu_canvases();
 
+            if document
+                .image_animation_manager()
+                .image_animations_present()
+            {
+                document.update_animated_image_active_frame();
+            }
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
             let window = document.window();
