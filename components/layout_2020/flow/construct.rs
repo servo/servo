@@ -393,7 +393,7 @@ where
                 is_list_item: false,
             },
             NonReplacedContents::OfPseudoElement(contents).into(),
-            BoxSlot::dummy(),
+            info.node.pseudo_element_box_slot(PseudoElement::Marker),
         );
     }
 
@@ -405,7 +405,7 @@ where
     ) {
         self.block_level_boxes.push(BlockLevelJob {
             info: info.clone(),
-            box_slot: BoxSlot::dummy(),
+            box_slot: info.node.pseudo_element_box_slot(PseudoElement::Marker),
             kind: BlockLevelCreator::OutsideMarker {
                 contents,
                 list_item_style,
