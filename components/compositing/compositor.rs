@@ -21,13 +21,13 @@ use compositing_traits::{
 };
 use constellation_traits::{
     AnimationTickType, CompositorHitTestResult, ConstellationMsg, PaintMetricEvent,
-    UntrustedNodeAddress, WindowSizeData, WindowSizeType,
+    UntrustedNodeAddress, WindowSizeType,
 };
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ScreenGeometry, ShutdownState,
-    TouchEventType,
+    TouchEventType, ViewportDetails,
 };
 use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Transform3D};
 use fnv::FnvHashMap;
@@ -475,6 +475,17 @@ impl IOCompositor {
         }
         if let Some(webrender) = self.webrender.take() {
             webrender.deinit();
+        }
+    }
+
+    pub fn default_webview_viewport_details(&self) -> ViewportDetails {
+        // The division by 1 represents the page's default zoom of 100%,
+        // and gives us the appropriate CSSPixel type for the viewport.
+        let hidpi_scale_factor = self.window.hidpi_factor();
+        let scaled_viewport_size = self.rendering_context.size2d().to_f32() / hidpi_scale_factor;
+        ViewportDetails {
+            size: scaled_viewport_size / Scale::new(1.0),
+            hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
         }
     }
 
@@ -1247,13 +1258,13 @@ impl IOCompositor {
     ) {
         // The device pixel ratio used by the style system should include the scale from page pixels
         // to device pixels, but not including any pinch zoom.
-        let device_pixel_ratio = self.device_pixels_per_page_pixel_not_including_page_zoom();
-        let initial_viewport = rect.size().to_f32() / device_pixel_ratio;
-        let msg = ConstellationMsg::WindowSize(
+        let hidpi_scale_factor = self.device_pixels_per_page_pixel_not_including_page_zoom();
+        let size = rect.size().to_f32() / hidpi_scale_factor;
+        let msg = ConstellationMsg::ChangeViewportDetails(
             webview_id,
-            WindowSizeData {
-                device_pixel_ratio,
-                initial_viewport,
+            ViewportDetails {
+                size,
+                hidpi_scale_factor,
             },
             WindowSizeType::Resize,
         );

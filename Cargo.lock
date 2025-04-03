@@ -6430,6 +6430,7 @@ dependencies = [
  "base",
  "canvas_traits",
  "constellation_traits",
+ "embedder_traits",
  "euclid",
  "fnv",
  "fonts",

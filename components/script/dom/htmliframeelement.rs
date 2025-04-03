@@ -6,8 +6,8 @@ use std::cell::Cell;
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
-use constellation_traits::WindowSizeData;
 use dom_struct::dom_struct;
+use embedder_traits::ViewportDetails;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
@@ -196,12 +196,12 @@ impl HTMLIFrameElement {
             history_handling,
         };
 
-        let window_size = WindowSizeData {
-            initial_viewport: window
-                .get_iframe_size_if_known(browsing_context_id, can_gc)
-                .unwrap_or_default(),
-            device_pixel_ratio: window.device_pixel_ratio(),
-        };
+        let viewport_details = window
+            .get_iframe_viewport_details_if_known(browsing_context_id, can_gc)
+            .unwrap_or_else(|| ViewportDetails {
+                hidpi_scale_factor: window.device_pixel_ratio(),
+                ..Default::default()
+            });
 
         match pipeline_type {
             PipelineType::InitialAboutBlank => {
@@ -212,7 +212,7 @@ impl HTMLIFrameElement {
                     load_data: load_data.clone(),
                     old_pipeline_id,
                     sandbox: sandboxed,
-                    window_size,
+                    viewport_details,
                 };
                 window
                     .as_global_scope()
@@ -227,7 +227,7 @@ impl HTMLIFrameElement {
                     webview_id,
                     opener: None,
                     load_data,
-                    window_size,
+                    viewport_details,
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
@@ -239,7 +239,7 @@ impl HTMLIFrameElement {
                     load_data,
                     old_pipeline_id,
                     sandbox: sandboxed,
-                    window_size,
+                    viewport_details,
                 };
                 window
                     .as_global_scope()

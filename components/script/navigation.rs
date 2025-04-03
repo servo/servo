@@ -10,9 +10,9 @@ use std::cell::Cell;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
-use constellation_traits::WindowSizeData;
 use content_security_policy::Destination;
 use crossbeam_channel::Sender;
+use embedder_traits::ViewportDetails;
 use http::header;
 use net_traits::request::{
     CredentialsMode, InsecureRequestsPolicy, RedirectMode, RequestBuilder, RequestMode,
@@ -138,7 +138,7 @@ pub(crate) struct InProgressLoad {
     pub(crate) opener: Option<BrowsingContextId>,
     /// The current window size associated with this pipeline.
     #[no_trace]
-    pub(crate) window_size: WindowSizeData,
+    pub(crate) viewport_details: ViewportDetails,
     /// The activity level of the document (inactive, active or fully active).
     #[no_trace]
     pub(crate) activity: DocumentActivity,
@@ -170,7 +170,7 @@ impl InProgressLoad {
         webview_id: WebViewId,
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
-        window_size: WindowSizeData,
+        viewport_details: ViewportDetails,
         origin: MutableOrigin,
         load_data: LoadData,
     ) -> InProgressLoad {
@@ -181,7 +181,7 @@ impl InProgressLoad {
             webview_id,
             parent_info,
             opener,
-            window_size,
+            viewport_details,
             activity: DocumentActivity::FullyActive,
             throttled: false,
             origin,

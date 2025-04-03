@@ -111,7 +111,7 @@ use canvas_traits::webgl::WebGLThreads;
 use compositing_traits::{CompositorMsg, CompositorProxy, SendableFrameTree};
 use constellation_traits::{
     AnimationTickType, CompositorHitTestResult, ConstellationMsg as FromCompositorMsg, LogEntry,
-    PaintMetricEvent, ScrollState, TraversalDirection, WindowSizeData, WindowSizeType,
+    PaintMetricEvent, ScrollState, TraversalDirection, WindowSizeType,
 };
 use crossbeam_channel::{Receiver, Sender, select, unbounded};
 use devtools_traits::{
@@ -123,7 +123,7 @@ use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     Cursor, EmbedderMsg, EmbedderProxy, ImeEvent, InputEvent, MediaSessionActionType,
     MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
-    Theme, WebDriverCommandMsg, WebDriverLoadStatus,
+    Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -415,9 +415,6 @@ pub struct Constellation<STF, SWF> {
     /// and the namespaces are allocated by the constellation.
     next_pipeline_namespace_id: PipelineNamespaceId,
 
-    /// The size of the top-level window.
-    window_size: WindowSizeData,
-
     /// Bits of state used to interact with the webdriver implementation
     webdriver: WebDriverData,
 
@@ -601,7 +598,6 @@ where
     pub fn start(
         state: InitialConstellationState,
         layout_factory: Arc<dyn LayoutFactory>,
-        initial_window_size: WindowSizeData,
         random_pipeline_closure_probability: Option<f32>,
         random_pipeline_closure_seed: Option<usize>,
         hard_fail: bool,
@@ -713,7 +709,6 @@ where
                     next_pipeline_namespace_id: PipelineNamespaceId(2),
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
-                    window_size: initial_window_size,
                     phantom: PhantomData,
                     webdriver: WebDriverData::new(),
                     document_states: HashMap::new(),
@@ -877,7 +872,7 @@ where
         webview_id: WebViewId,
         parent_pipeline_id: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
-        initial_window_size: Size2D<f32, CSSPixel>,
+        initial_viewport_details: ViewportDetails,
         // TODO: we have to provide ownership of the LoadData
         // here, because it will be send on an ipc channel,
         // and ipc channels take onership of their data.
@@ -967,10 +962,7 @@ where
             resource_threads,
             time_profiler_chan: self.time_profiler_chan.clone(),
             mem_profiler_chan: self.mem_profiler_chan.clone(),
-            window_size: WindowSizeData {
-                initial_viewport: initial_window_size,
-                device_pixel_ratio: self.window_size.device_pixel_ratio,
-            },
+            viewport_details: initial_viewport_details,
             event_loop,
             load_data,
             prev_throttled: throttled,
@@ -1048,7 +1040,7 @@ where
         top_level_id: WebViewId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
-        size: Size2D<f32, CSSPixel>,
+        viewport_details: ViewportDetails,
         is_private: bool,
         inherited_secure_context: Option<bool>,
         throttled: bool,
@@ -1081,7 +1073,7 @@ where
             top_level_id,
             pipeline_id,
             parent_pipeline_id,
-            size,
+            viewport_details,
             is_private,
             inherited_secure_context,
             throttled,
@@ -1320,8 +1312,8 @@ where
             },
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
-            FromCompositorMsg::NewWebView(url, webview_id) => {
-                self.handle_new_top_level_browsing_context(url, webview_id, None);
+            FromCompositorMsg::NewWebView(url, webview_id, viewport_details) => {
+                self.handle_new_top_level_browsing_context(url, webview_id, viewport_details, None);
             },
             // Close a top level browsing context.
             FromCompositorMsg::CloseWebView(webview_id) => {
@@ -1346,8 +1338,16 @@ where
             FromCompositorMsg::TraverseHistory(webview_id, direction) => {
                 self.handle_traverse_history_msg(webview_id, direction);
             },
-            FromCompositorMsg::WindowSize(webview_id, new_size, size_type) => {
-                self.handle_window_size_msg(webview_id, new_size, size_type);
+            FromCompositorMsg::ChangeViewportDetails(
+                webview_id,
+                new_viewport_details,
+                size_type,
+            ) => {
+                self.handle_change_viewport_details_msg(
+                    webview_id,
+                    new_viewport_details,
+                    size_type,
+                );
             },
             FromCompositorMsg::ThemeChange(theme) => {
                 self.handle_theme_change(theme);
@@ -2712,7 +2712,7 @@ where
             Some(context) => context,
             None => return warn!("failed browsing context is missing"),
         };
-        let window_size = browsing_context.size;
+        let viewport_details = browsing_context.viewport_details;
         let pipeline_id = browsing_context.pipeline_id;
         let throttled = browsing_context.throttled;
 
@@ -2757,7 +2757,7 @@ where
             webview_id,
             None,
             opener,
-            window_size,
+            viewport_details,
             new_load_data,
             sandbox,
             is_private,
@@ -2771,7 +2771,7 @@ where
             // to avoid closing again in handle_activate_document_msg (though it would be harmless)
             replace: Some(NeedsToReload::Yes(old_pipeline_id, old_load_data)),
             new_browsing_context_info: None,
-            window_size,
+            viewport_details,
         });
     }
 
@@ -2948,9 +2948,9 @@ where
         &mut self,
         url: ServoUrl,
         webview_id: WebViewId,
+        viewport_details: ViewportDetails,
         response_sender: Option<IpcSender<WebDriverLoadStatus>>,
     ) {
-        let window_size = self.window_size.initial_viewport;
         let pipeline_id = PipelineId::new();
         let browsing_context_id = BrowsingContextId::from(webview_id);
         let load_data = LoadData::new(
@@ -2991,7 +2991,7 @@ where
             webview_id,
             None,
             None,
-            window_size,
+            viewport_details,
             load_data,
             sandbox,
             is_private,
@@ -3008,7 +3008,7 @@ where
                 inherited_secure_context: None,
                 throttled,
             }),
-            window_size,
+            viewport_details,
         });
 
         if let Some(response_sender) = response_sender {
@@ -3065,12 +3065,7 @@ where
             type_,
         } in iframe_sizes
         {
-            let window_size = WindowSizeData {
-                initial_viewport: size,
-                device_pixel_ratio: self.window_size.device_pixel_ratio,
-            };
-
-            self.resize_browsing_context(window_size, type_, browsing_context_id);
+            self.resize_browsing_context(size, type_, browsing_context_id);
         }
     }
 
@@ -3198,14 +3193,13 @@ where
             None
         };
 
-        // https://github.com/rust-lang/rust/issues/59159
-        let browsing_context_size = browsing_context.size;
+        let browsing_context_size = browsing_context.viewport_details;
         let browsing_context_throttled = browsing_context.throttled;
         // TODO(servo#30571) revert to debug_assert_eq!() once underlying bug is fixed
         #[cfg(debug_assertions)]
-        if !(browsing_context_size == load_info.window_size.initial_viewport) {
+        if !(browsing_context_size == load_info.viewport_details) {
             log::warn!(
-                "debug assertion failed! browsing_context_size == load_info.window_size.initial_viewport"
+                "debug assertion failed! browsing_context_size == load_info.viewport_details.initial_viewport"
             );
         }
 
@@ -3229,7 +3223,7 @@ where
             replace,
             // Browsing context for iframe already exists.
             new_browsing_context_info: None,
-            window_size: load_info.window_size.initial_viewport,
+            viewport_details: load_info.viewport_details,
         });
     }
 
@@ -3293,7 +3287,7 @@ where
                 inherited_secure_context: is_parent_secure,
                 throttled: is_parent_throttled,
             }),
-            window_size: load_info.window_size.initial_viewport,
+            viewport_details: load_info.viewport_details,
         });
     }
 
@@ -3321,8 +3315,8 @@ where
             opener_webview_id,
             webview_id_sender,
         ));
-        let new_webview_id = match webview_id_receiver.recv() {
-            Ok(Some(webview_id)) => webview_id,
+        let (new_webview_id, viewport_details) = match webview_id_receiver.recv() {
+            Ok(Some((webview_id, viewport_details))) => (webview_id, viewport_details),
             Ok(None) | Err(_) => {
                 let _ = response_sender.send(None);
                 return;
@@ -3407,7 +3401,7 @@ where
                 inherited_secure_context: is_opener_secure,
                 throttled: is_opener_throttled,
             }),
-            window_size: self.window_size.initial_viewport,
+            viewport_details,
         });
     }
 
@@ -3526,10 +3520,10 @@ where
                 return None;
             },
         };
-        let (window_size, pipeline_id, parent_pipeline_id, is_private, is_throttled) =
+        let (viewport_details, pipeline_id, parent_pipeline_id, is_private, is_throttled) =
             match self.browsing_contexts.get(&browsing_context_id) {
                 Some(ctx) => (
-                    ctx.size,
+                    ctx.viewport_details,
                     ctx.pipeline_id,
                     ctx.parent_pipeline_id,
                     ctx.is_private,
@@ -3606,7 +3600,7 @@ where
                     webview_id,
                     None,
                     opener,
-                    window_size,
+                    viewport_details,
                     load_data,
                     sandbox,
                     is_private,
@@ -3619,7 +3613,7 @@ where
                     replace,
                     // `load_url` is always invoked on an existing browsing context.
                     new_browsing_context_info: None,
-                    window_size,
+                    viewport_details,
                 });
                 Some(new_pipeline_id)
             },
@@ -3899,7 +3893,7 @@ where
                     top_level_id,
                     old_pipeline_id,
                     parent_pipeline_id,
-                    window_size,
+                    viewport_details,
                     is_private,
                     throttled,
                 ) = match self.browsing_contexts.get(&browsing_context_id) {
@@ -3907,7 +3901,7 @@ where
                         ctx.top_level_id,
                         ctx.pipeline_id,
                         ctx.parent_pipeline_id,
-                        ctx.size,
+                        ctx.viewport_details,
                         ctx.is_private,
                         ctx.throttled,
                     ),
@@ -3924,7 +3918,7 @@ where
                     top_level_id,
                     parent_pipeline_id,
                     opener,
-                    window_size,
+                    viewport_details,
                     load_data.clone(),
                     sandbox,
                     is_private,
@@ -3937,7 +3931,7 @@ where
                     replace: Some(NeedsToReload::Yes(pipeline_id, load_data)),
                     // Browsing context must exist at this point.
                     new_browsing_context_info: None,
-                    window_size,
+                    viewport_details,
                 });
                 return;
             },
@@ -4346,14 +4340,15 @@ where
                 };
                 self.embedder_proxy
                     .send(EmbedderMsg::AllowOpeningWebView(webview_id, chan));
-                let webview_id = match port.recv() {
-                    Ok(Some(webview_id)) => webview_id,
+                let (webview_id, viewport_details) = match port.recv() {
+                    Ok(Some((webview_id, viewport_details))) => (webview_id, viewport_details),
                     Ok(None) => return warn!("Embedder refused to allow opening webview"),
                     Err(error) => return warn!("Failed to receive webview id: {error:?}"),
                 };
                 self.handle_new_top_level_browsing_context(
                     ServoUrl::parse_with_base(None, "about:blank").expect("Infallible parse"),
                     webview_id,
+                    viewport_details,
                     Some(load_sender),
                 );
                 let _ = sender.send(webview_id);
@@ -4361,8 +4356,14 @@ where
             WebDriverCommandMsg::FocusWebView(webview_id) => {
                 self.handle_focus_web_view(webview_id);
             },
-            WebDriverCommandMsg::GetWindowSize(_, response_sender) => {
-                let _ = response_sender.send(self.window_size.initial_viewport);
+            WebDriverCommandMsg::GetWindowSize(webview_id, response_sender) => {
+                let browsing_context_id = BrowsingContextId::from(webview_id);
+                let size = self
+                    .browsing_contexts
+                    .get(&browsing_context_id)
+                    .map(|browsing_context| browsing_context.viewport_details.size)
+                    .unwrap_or_default();
+                let _ = response_sender.send(size);
             },
             WebDriverCommandMsg::SetWindowSize(webview_id, size, response_sender) => {
                 self.webdriver.resize_channel = Some(response_sender);
@@ -4724,7 +4725,7 @@ where
                     change.webview_id,
                     change.new_pipeline_id,
                     new_context_info.parent_pipeline_id,
-                    change.window_size,
+                    change.viewport_details,
                     new_context_info.is_private,
                     new_context_info.inherited_secure_context,
                     new_context_info.throttled,
@@ -4967,25 +4968,23 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_window_size_msg(
+    fn handle_change_viewport_details_msg(
         &mut self,
         webview_id: WebViewId,
-        new_size: WindowSizeData,
+        new_viewport_details: ViewportDetails,
         size_type: WindowSizeType,
     ) {
         debug!(
-            "handle_window_size_msg: {:?}",
-            new_size.initial_viewport.to_untyped()
+            "handle_change_viewport_details_msg: {:?}",
+            new_viewport_details.size.to_untyped()
         );
 
         let browsing_context_id = BrowsingContextId::from(webview_id);
-        self.resize_browsing_context(new_size, size_type, browsing_context_id);
+        self.resize_browsing_context(new_viewport_details, size_type, browsing_context_id);
 
         if let Some(response_sender) = self.webdriver.resize_channel.take() {
-            let _ = response_sender.send(new_size.initial_viewport);
+            let _ = response_sender.send(new_viewport_details.size);
         }
-
-        self.window_size = new_size;
     }
 
     /// Called when the window exits from fullscreen mode
@@ -5059,7 +5058,7 @@ where
             // If the rectangle for this pipeline is zero sized, it will
             // never be painted. In this case, don't query the layout
             // thread as it won't contribute to the final output image.
-            if browsing_context.size == Size2D::zero() {
+            if browsing_context.viewport_details.size == Size2D::zero() {
                 continue;
             }
 
@@ -5154,12 +5153,12 @@ where
     )]
     fn resize_browsing_context(
         &mut self,
-        new_size: WindowSizeData,
+        new_viewport_details: ViewportDetails,
         size_type: WindowSizeType,
         browsing_context_id: BrowsingContextId,
     ) {
         if let Some(browsing_context) = self.browsing_contexts.get_mut(&browsing_context_id) {
-            browsing_context.size = new_size.initial_viewport;
+            browsing_context.viewport_details = new_viewport_details;
             // Send Resize (or ResizeInactive) messages to each pipeline in the frame tree.
             let pipeline_id = browsing_context.pipeline_id;
             let pipeline = match self.pipelines.get(&pipeline_id) {
@@ -5168,7 +5167,7 @@ where
             };
             let _ = pipeline.event_loop.send(ScriptThreadMessage::Resize(
                 pipeline.id,
-                new_size,
+                new_viewport_details,
                 size_type,
             ));
             let pipeline_ids = browsing_context
@@ -5179,7 +5178,10 @@ where
                 if let Some(pipeline) = self.pipelines.get(id) {
                     let _ = pipeline
                         .event_loop
-                        .send(ScriptThreadMessage::ResizeInactive(pipeline.id, new_size));
+                        .send(ScriptThreadMessage::ResizeInactive(
+                            pipeline.id,
+                            new_viewport_details,
+                        ));
                 }
             }
         }
@@ -5197,7 +5199,7 @@ where
             if pipeline.browsing_context_id == browsing_context_id {
                 let _ = pipeline.event_loop.send(ScriptThreadMessage::Resize(
                     pipeline.id,
-                    new_size,
+                    new_viewport_details,
                     size_type,
                 ));
             }
