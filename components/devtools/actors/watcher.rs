@@ -300,11 +300,14 @@ impl Actor for WatcherActor {
                         },
                         "thread-state" => {
                             let thread_actor = registry.find::<ThreadActor>(&target.thread);
+                            let url = thread_actor
+                                .get_source_url()
+                                .unwrap_or_else(|| target.url.borrow().clone());
                             let state = ThreadState {
                                 actor: thread_actor.name(),
                                 state: "paused".to_owned(), // does it make any difference if we change from "running" to "paused"
                                 type_: "paused".to_owned(), // what if it is resumed?
-                                url: target.url.borrow().clone(),
+                                url,
                             };
                             target.resource_available(state, "thread-state".into());
                         },
@@ -312,13 +315,14 @@ impl Actor for WatcherActor {
                             let thread_actor = registry.find::<ThreadActor>(&target.thread);
                             let source_actor = thread_actor.name();
 
-                            // current URL for the file
-                            let url = target.url.borrow().clone();
+                            // source url
+                            let url = thread_actor
+                                .get_source_url()
+                                .unwrap_or_else(|| target.url.borrow().clone());
 
-                            // Create a source info object
                             let source_info = SourceInfo {
                                 actor: source_actor,
-                                url: url.clone(),
+                                url,
                                 is_black_boxed: false,
                             };
 

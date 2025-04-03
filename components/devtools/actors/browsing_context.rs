@@ -14,7 +14,6 @@ use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, WantsLiveNotifications};
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use ipc_channel::ipc::{self, IpcSender};
-use log::warn;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -25,7 +24,7 @@ use crate::actors::inspector::css_properties::CssPropertiesActor;
 use crate::actors::reflow::ReflowActor;
 use crate::actors::stylesheets::StyleSheetsActor;
 use crate::actors::tab::TabDescriptorActor;
-use crate::actors::thread::{Source, SpontaneousNewSource, ThreadActor};
+use crate::actors::thread::ThreadActor;
 use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};

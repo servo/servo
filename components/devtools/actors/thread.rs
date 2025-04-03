@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::net::TcpStream;
 
 use serde::Serialize;
@@ -74,11 +75,24 @@ pub struct Source {
 
 pub struct ThreadActor {
     name: String,
+    // this should be able to handle multiple script url, use a map maybe?
+    source_url: RefCell<Option<String>>,
 }
 
 impl ThreadActor {
     pub fn new(name: String) -> ThreadActor {
-        ThreadActor { name }
+        ThreadActor {
+            name,
+            source_url: RefCell::new(None),
+        }
+    }
+
+    pub fn set_source_url(&self, url: String) {
+        *self.source_url.borrow_mut() = Some(url);
+    }
+
+    pub fn get_source_url(&self) -> Option<String> {
+        self.source_url.borrow().clone()
     }
 }
 
