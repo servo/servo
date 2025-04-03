@@ -1298,9 +1298,9 @@ impl Handler {
         Ok(WebDriverResponse::Cookies(CookiesResponse(response)))
     }
 
-    fn handle_get_cookie(&self, name: &str) -> WebDriverResult<WebDriverResponse> {
+    fn handle_get_cookie(&self, name: String) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetCookie(name.to_owned(), sender);
+        let cmd = WebDriverScriptCommand::GetCookie(name, sender);
         self.browsing_context_script_command(cmd)?;
         let cookies = receiver.recv().unwrap();
         let response = cookies
@@ -1832,7 +1832,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::FindElementElements(ref element, ref parameters) => {
                 self.handle_find_elements_from_element(element, parameters)
             },
-            WebDriverCommand::GetNamedCookie(ref name) => self.handle_get_cookie(name),
+            WebDriverCommand::GetNamedCookie(name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),
             WebDriverCommand::GetElementRect(ref element) => self.handle_element_rect(element),
