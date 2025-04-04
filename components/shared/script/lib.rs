@@ -62,7 +62,8 @@ use webrender_traits::CrossProcessCompositorApi;
 
 pub use crate::script_msg::{
     DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg,
-    SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg, TouchEventResult,
+    SWManagerSenders, ScopeThings, ScriptToConstellationMessage, ServiceWorkerMsg,
+    TouchEventResult,
 };
 use crate::serializable::{BlobImpl, DomPoint};
 use crate::transferable::MessagePortImpl;
@@ -634,14 +635,14 @@ pub struct DrawAPaintImageResult {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ScriptToConstellationChan {
     /// Sender for communicating with constellation thread.
-    pub sender: IpcSender<(PipelineId, ScriptMsg)>,
+    pub sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
     /// Used to identify the origin of the message.
     pub pipeline_id: PipelineId,
 }
 
 impl ScriptToConstellationChan {
     /// Send ScriptMsg and attach the pipeline_id to the message.
-    pub fn send(&self, msg: ScriptMsg) -> Result<(), IpcError> {
+    pub fn send(&self, msg: ScriptToConstellationMessage) -> Result<(), IpcError> {
         self.sender.send((self.pipeline_id, msg))
     }
 }

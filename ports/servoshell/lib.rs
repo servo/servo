@@ -88,7 +88,7 @@ pub fn init_tracing(filter_directives: Option<&str>) {
         let subscriber = subscriber.with(filter);
 
         // Same as SubscriberInitExt::init, but avoids initialising the tracing-log compat layer,
-        // since it would break Servo’s FromScriptLogger and FromCompositorLogger.
+        // since it would break Servo’s FromScriptLogger and FromEmbederLogger.
         // <https://docs.rs/tracing-subscriber/0.3.18/tracing_subscriber/util/trait.SubscriberInitExt.html#method.init>
         // <https://docs.rs/tracing/0.1.40/tracing/#consuming-log-records>
         tracing::subscriber::set_global_default(subscriber)

@@ -15,7 +15,7 @@ use profile_traits::ipc as ProfiledIpc;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
-    NavigationHistoryBehavior, NewLayoutInfo, ScriptMsg, UpdatePipelineIdReason,
+    NavigationHistoryBehavior, NewLayoutInfo, ScriptToConstellationMessage, UpdatePipelineIdReason,
 };
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -217,7 +217,7 @@ impl HTMLIFrameElement {
                 window
                     .as_global_scope()
                     .script_to_constellation_chan()
-                    .send(ScriptMsg::ScriptNewIFrame(load_info))
+                    .send(ScriptToConstellationMessage::ScriptNewIFrame(load_info))
                     .unwrap();
 
                 let new_layout_info = NewLayoutInfo {
@@ -244,7 +244,9 @@ impl HTMLIFrameElement {
                 window
                     .as_global_scope()
                     .script_to_constellation_chan()
-                    .send(ScriptMsg::ScriptLoadedURLInIFrame(load_info))
+                    .send(ScriptToConstellationMessage::ScriptLoadedURLInIFrame(
+                        load_info,
+                    ))
                     .unwrap();
             },
         }
@@ -782,7 +784,7 @@ impl VirtualMethods for HTMLIFrameElement {
         };
         debug!("Unbinding frame {}.", browsing_context_id);
 
-        let msg = ScriptMsg::RemoveIFrame(browsing_context_id, sender);
+        let msg = ScriptToConstellationMessage::RemoveIFrame(browsing_context_id, sender);
         window
             .as_global_scope()
             .script_to_constellation_chan()

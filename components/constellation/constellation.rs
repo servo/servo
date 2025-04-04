@@ -110,7 +110,7 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use compositing_traits::{CompositorMsg, CompositorProxy, SendableFrameTree};
 use constellation_traits::{
-    AnimationTickType, CompositorHitTestResult, ConstellationMsg as FromCompositorMsg, LogEntry,
+    AnimationTickType, CompositorHitTestResult, EmbedderToConstellationMessage, LogEntry,
     PaintMetricEvent, ScrollState, TraversalDirection, WindowSizeType,
 };
 use crossbeam_channel::{Receiver, Sender, select, unbounded};
@@ -146,9 +146,9 @@ use script_traits::{
     BroadcastMsg, ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LoadData,
     LoadOrigin, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
-    ProgressiveWebMetricType, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
-    ScriptThreadMessage, ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, UpdatePipelineIdReason,
+    ProgressiveWebMetricType, SWManagerMsg, SWManagerSenders, ScriptThreadMessage,
+    ScriptToConstellationChan, ScriptToConstellationMessage, ServiceWorkerManagerFactory,
+    ServiceWorkerMsg, StructuredSerializedData, UpdatePipelineIdReason,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -284,11 +284,11 @@ pub struct Constellation<STF, SWF> {
 
     /// An IPC channel for script threads to send messages to the constellation.
     /// This is the script threads' view of `script_receiver`.
-    script_sender: IpcSender<(PipelineId, FromScriptMsg)>,
+    script_sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
 
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
-    script_receiver: Receiver<Result<(PipelineId, FromScriptMsg), IpcError>>,
+    script_receiver: Receiver<Result<(PipelineId, ScriptToConstellationMessage), IpcError>>,
 
     /// A handle to register components for hang monitoring.
     /// None when in multiprocess mode.
@@ -313,7 +313,7 @@ pub struct Constellation<STF, SWF> {
     layout_factory: Arc<dyn LayoutFactory>,
 
     /// A channel for the constellation to receive messages from the compositor thread.
-    compositor_receiver: Receiver<FromCompositorMsg>,
+    compositor_receiver: Receiver<EmbedderToConstellationMessage>,
 
     /// A channel through which messages can be sent to the embedder.
     embedder_proxy: EmbedderProxy,
@@ -603,7 +603,7 @@ where
         hard_fail: bool,
         canvas_create_sender: Sender<ConstellationCanvasMsg>,
         canvas_ipc_sender: IpcSender<CanvasMsg>,
-    ) -> Sender<FromCompositorMsg> {
+    ) -> Sender<EmbedderToConstellationMessage> {
         let (compositor_sender, compositor_receiver) = unbounded();
 
         // service worker manager to communicate with constellation
@@ -1110,9 +1110,9 @@ where
         #[derive(Debug)]
         enum Request {
             PipelineNamespace(PipelineNamespaceRequest),
-            Script((PipelineId, FromScriptMsg)),
+            Script((PipelineId, ScriptToConstellationMessage)),
             BackgroundHangMonitor(HangMonitorAlert),
-            Compositor(FromCompositorMsg),
+            Compositor(EmbedderToConstellationMessage),
             FromSWManager(SWManagerMsg),
         }
         // Get one incoming request.
@@ -1210,19 +1210,19 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_request_from_compositor(&mut self, message: FromCompositorMsg) {
+    fn handle_request_from_compositor(&mut self, message: EmbedderToConstellationMessage) {
         trace_msg_from_compositor!(message, "{message:?}");
         match message {
-            FromCompositorMsg::Exit => {
+            EmbedderToConstellationMessage::Exit => {
                 self.handle_exit();
             },
-            FromCompositorMsg::GetFocusTopLevelBrowsingContext(resp_chan) => {
+            EmbedderToConstellationMessage::GetFocusTopLevelBrowsingContext(resp_chan) => {
                 let _ = resp_chan.send(self.webviews.focused_webview().map(|(id, _)| id));
             },
             // Perform a navigation previously requested by script, if approved by the embedder.
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
-            FromCompositorMsg::AllowNavigationResponse(pipeline_id, allowed) => {
+            EmbedderToConstellationMessage::AllowNavigationResponse(pipeline_id, allowed) => {
                 let pending = self.pending_approval_navigations.remove(&pipeline_id);
 
                 let webview_id = match self.pipelines.get(&pipeline_id) {
@@ -1269,14 +1269,14 @@ where
                     },
                 }
             },
-            FromCompositorMsg::ClearCache => {
+            EmbedderToConstellationMessage::ClearCache => {
                 self.public_resource_threads.clear_cache();
                 self.private_resource_threads.clear_cache();
             },
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
-            FromCompositorMsg::LoadUrl(webview_id, url) => {
+            EmbedderToConstellationMessage::LoadUrl(webview_id, url) => {
                 let load_data = LoadData::new(
                     LoadOrigin::Constellation,
                     url,
@@ -1302,7 +1302,7 @@ where
                     NavigationHistoryBehavior::Push,
                 );
             },
-            FromCompositorMsg::IsReadyToSaveImage(pipeline_states) => {
+            EmbedderToConstellationMessage::IsReadyToSaveImage(pipeline_states) => {
                 let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
                 debug!("Ready to save image {:?}.", is_ready);
                 self.compositor_proxy
@@ -1312,33 +1312,33 @@ where
             },
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
-            FromCompositorMsg::NewWebView(url, webview_id, viewport_details) => {
+            EmbedderToConstellationMessage::NewWebView(url, webview_id, viewport_details) => {
                 self.handle_new_top_level_browsing_context(url, webview_id, viewport_details, None);
             },
             // Close a top level browsing context.
-            FromCompositorMsg::CloseWebView(webview_id) => {
+            EmbedderToConstellationMessage::CloseWebView(webview_id) => {
                 self.handle_close_top_level_browsing_context(webview_id);
             },
             // Panic a top level browsing context.
-            FromCompositorMsg::SendError(webview_id, error) => {
+            EmbedderToConstellationMessage::SendError(webview_id, error) => {
                 debug!("constellation got SendError message");
                 if webview_id.is_none() {
                     warn!("constellation got a SendError message without top level id");
                 }
                 self.handle_panic(webview_id, error, None);
             },
-            FromCompositorMsg::FocusWebView(webview_id) => {
+            EmbedderToConstellationMessage::FocusWebView(webview_id) => {
                 self.handle_focus_web_view(webview_id);
             },
-            FromCompositorMsg::BlurWebView => {
+            EmbedderToConstellationMessage::BlurWebView => {
                 self.webviews.unfocus();
                 self.embedder_proxy.send(EmbedderMsg::WebViewBlurred);
             },
             // Handle a forward or back request
-            FromCompositorMsg::TraverseHistory(webview_id, direction) => {
+            EmbedderToConstellationMessage::TraverseHistory(webview_id, direction) => {
                 self.handle_traverse_history_msg(webview_id, direction);
             },
-            FromCompositorMsg::ChangeViewportDetails(
+            EmbedderToConstellationMessage::ChangeViewportDetails(
                 webview_id,
                 new_viewport_details,
                 size_type,
@@ -1349,28 +1349,28 @@ where
                     size_type,
                 );
             },
-            FromCompositorMsg::ThemeChange(theme) => {
+            EmbedderToConstellationMessage::ThemeChange(theme) => {
                 self.handle_theme_change(theme);
             },
-            FromCompositorMsg::TickAnimation(pipeline_id, tick_type) => {
+            EmbedderToConstellationMessage::TickAnimation(pipeline_id, tick_type) => {
                 self.handle_tick_animation(pipeline_id, tick_type)
             },
-            FromCompositorMsg::WebDriverCommand(command) => {
+            EmbedderToConstellationMessage::WebDriverCommand(command) => {
                 self.handle_webdriver_msg(command);
             },
-            FromCompositorMsg::Reload(webview_id) => {
+            EmbedderToConstellationMessage::Reload(webview_id) => {
                 self.handle_reload_msg(webview_id);
             },
-            FromCompositorMsg::LogEntry(webview_id, thread_name, entry) => {
+            EmbedderToConstellationMessage::LogEntry(webview_id, thread_name, entry) => {
                 self.handle_log_entry(webview_id, thread_name, entry);
             },
-            FromCompositorMsg::ForwardInputEvent(webview_id, event, hit_test) => {
+            EmbedderToConstellationMessage::ForwardInputEvent(webview_id, event, hit_test) => {
                 self.forward_input_event(webview_id, event, hit_test);
             },
-            FromCompositorMsg::SetCursor(webview_id, cursor) => {
+            EmbedderToConstellationMessage::SetCursor(webview_id, cursor) => {
                 self.handle_set_cursor_msg(webview_id, cursor)
             },
-            FromCompositorMsg::ToggleProfiler(rate, max_duration) => {
+            EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration) => {
                 for background_monitor_control_sender in &self.background_monitor_control_senders {
                     if let Err(e) = background_monitor_control_sender.send(
                         BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration),
@@ -1379,19 +1379,19 @@ where
                     }
                 }
             },
-            FromCompositorMsg::ExitFullScreen(webview_id) => {
+            EmbedderToConstellationMessage::ExitFullScreen(webview_id) => {
                 self.handle_exit_fullscreen_msg(webview_id);
             },
-            FromCompositorMsg::MediaSessionAction(action) => {
+            EmbedderToConstellationMessage::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
             },
-            FromCompositorMsg::SetWebViewThrottled(webview_id, throttled) => {
+            EmbedderToConstellationMessage::SetWebViewThrottled(webview_id, throttled) => {
                 self.set_webview_throttled(webview_id, throttled);
             },
-            FromCompositorMsg::SetScrollStates(pipeline_id, scroll_states) => {
+            EmbedderToConstellationMessage::SetScrollStates(pipeline_id, scroll_states) => {
                 self.handle_set_scroll_states(pipeline_id, scroll_states)
             },
-            FromCompositorMsg::PaintMetric(pipeline_id, paint_metric_event) => {
+            EmbedderToConstellationMessage::PaintMetric(pipeline_id, paint_metric_event) => {
                 self.handle_paint_metric(pipeline_id, paint_metric_event);
             },
         }
@@ -1401,7 +1401,7 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_request_from_script(&mut self, message: (PipelineId, FromScriptMsg)) {
+    fn handle_request_from_script(&mut self, message: (PipelineId, ScriptToConstellationMessage)) {
         let (source_pipeline_id, content) = message;
         trace_script_msg!(content, "{source_pipeline_id}: {content:?}");
 
@@ -1415,35 +1415,43 @@ where
         };
 
         match content {
-            FromScriptMsg::CompleteMessagePortTransfer(router_id, ports) => {
+            ScriptToConstellationMessage::CompleteMessagePortTransfer(router_id, ports) => {
                 self.handle_complete_message_port_transfer(router_id, ports);
             },
-            FromScriptMsg::MessagePortTransferResult(router_id, succeeded, failed) => {
+            ScriptToConstellationMessage::MessagePortTransferResult(
+                router_id,
+                succeeded,
+                failed,
+            ) => {
                 self.handle_message_port_transfer_completed(router_id, succeeded);
                 self.handle_message_port_transfer_failed(failed);
             },
-            FromScriptMsg::RerouteMessagePort(port_id, task) => {
+            ScriptToConstellationMessage::RerouteMessagePort(port_id, task) => {
                 self.handle_reroute_messageport(port_id, task);
             },
-            FromScriptMsg::MessagePortShipped(port_id) => {
+            ScriptToConstellationMessage::MessagePortShipped(port_id) => {
                 self.handle_messageport_shipped(port_id);
             },
-            FromScriptMsg::NewMessagePortRouter(router_id, ipc_sender) => {
+            ScriptToConstellationMessage::NewMessagePortRouter(router_id, ipc_sender) => {
                 self.handle_new_messageport_router(router_id, ipc_sender);
             },
-            FromScriptMsg::RemoveMessagePortRouter(router_id) => {
+            ScriptToConstellationMessage::RemoveMessagePortRouter(router_id) => {
                 self.handle_remove_messageport_router(router_id);
             },
-            FromScriptMsg::NewMessagePort(router_id, port_id) => {
+            ScriptToConstellationMessage::NewMessagePort(router_id, port_id) => {
                 self.handle_new_messageport(router_id, port_id);
             },
-            FromScriptMsg::RemoveMessagePort(port_id) => {
+            ScriptToConstellationMessage::RemoveMessagePort(port_id) => {
                 self.handle_remove_messageport(port_id);
             },
-            FromScriptMsg::EntanglePorts(port1, port2) => {
+            ScriptToConstellationMessage::EntanglePorts(port1, port2) => {
                 self.handle_entangle_messageports(port1, port2);
             },
-            FromScriptMsg::NewBroadcastChannelRouter(router_id, response_sender, origin) => {
+            ScriptToConstellationMessage::NewBroadcastChannelRouter(
+                router_id,
+                response_sender,
+                origin,
+            ) => {
                 self.handle_new_broadcast_channel_router(
                     source_pipeline_id,
                     router_id,
@@ -1451,7 +1459,11 @@ where
                     origin,
                 );
             },
-            FromScriptMsg::NewBroadcastChannelNameInRouter(router_id, channel_name, origin) => {
+            ScriptToConstellationMessage::NewBroadcastChannelNameInRouter(
+                router_id,
+                channel_name,
+                origin,
+            ) => {
                 self.handle_new_broadcast_channel_name_in_router(
                     source_pipeline_id,
                     router_id,
@@ -1459,7 +1471,11 @@ where
                     origin,
                 );
             },
-            FromScriptMsg::RemoveBroadcastChannelNameInRouter(router_id, channel_name, origin) => {
+            ScriptToConstellationMessage::RemoveBroadcastChannelNameInRouter(
+                router_id,
+                channel_name,
+                origin,
+            ) => {
                 self.handle_remove_broadcast_channel_name_in_router(
                     source_pipeline_id,
                     router_id,
@@ -1467,38 +1483,38 @@ where
                     origin,
                 );
             },
-            FromScriptMsg::RemoveBroadcastChannelRouter(router_id, origin) => {
+            ScriptToConstellationMessage::RemoveBroadcastChannelRouter(router_id, origin) => {
                 self.handle_remove_broadcast_channel_router(source_pipeline_id, router_id, origin);
             },
-            FromScriptMsg::ScheduleBroadcast(router_id, message) => {
+            ScriptToConstellationMessage::ScheduleBroadcast(router_id, message) => {
                 self.handle_schedule_broadcast(source_pipeline_id, router_id, message);
             },
-            FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
+            ScriptToConstellationMessage::ForwardToEmbedder(embedder_msg) => {
                 self.embedder_proxy.send(embedder_msg);
             },
-            FromScriptMsg::PipelineExited => {
+            ScriptToConstellationMessage::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);
             },
-            FromScriptMsg::DiscardDocument => {
+            ScriptToConstellationMessage::DiscardDocument => {
                 self.handle_discard_document(webview_id, source_pipeline_id);
             },
-            FromScriptMsg::DiscardTopLevelBrowsingContext => {
+            ScriptToConstellationMessage::DiscardTopLevelBrowsingContext => {
                 self.handle_close_top_level_browsing_context(webview_id);
             },
-            FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
+            ScriptToConstellationMessage::ScriptLoadedURLInIFrame(load_info) => {
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             },
-            FromScriptMsg::ScriptNewIFrame(load_info) => {
+            ScriptToConstellationMessage::ScriptNewIFrame(load_info) => {
                 self.handle_script_new_iframe(load_info);
             },
-            FromScriptMsg::CreateAuxiliaryWebView(load_info) => {
+            ScriptToConstellationMessage::CreateAuxiliaryWebView(load_info) => {
                 self.handle_script_new_auxiliary(load_info);
             },
-            FromScriptMsg::ChangeRunningAnimationsState(animation_state) => {
+            ScriptToConstellationMessage::ChangeRunningAnimationsState(animation_state) => {
                 self.handle_change_running_animations_state(source_pipeline_id, animation_state)
             },
             // Ask the embedder for permission to load a new page.
-            FromScriptMsg::LoadUrl(load_data, history_handling) => {
+            ScriptToConstellationMessage::LoadUrl(load_data, history_handling) => {
                 self.schedule_navigation(
                     webview_id,
                     source_pipeline_id,
@@ -1506,38 +1522,38 @@ where
                     history_handling,
                 );
             },
-            FromScriptMsg::AbortLoadUrl => {
+            ScriptToConstellationMessage::AbortLoadUrl => {
                 self.handle_abort_load_url_msg(source_pipeline_id);
             },
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
-            FromScriptMsg::LoadComplete => {
+            ScriptToConstellationMessage::LoadComplete => {
                 self.handle_load_complete_msg(webview_id, source_pipeline_id)
             },
             // Handle navigating to a fragment
-            FromScriptMsg::NavigatedToFragment(new_url, replacement_enabled) => {
+            ScriptToConstellationMessage::NavigatedToFragment(new_url, replacement_enabled) => {
                 self.handle_navigated_to_fragment(source_pipeline_id, new_url, replacement_enabled);
             },
             // Handle a forward or back request
-            FromScriptMsg::TraverseHistory(direction) => {
+            ScriptToConstellationMessage::TraverseHistory(direction) => {
                 self.handle_traverse_history_msg(webview_id, direction);
             },
             // Handle a push history state request.
-            FromScriptMsg::PushHistoryState(history_state_id, url) => {
+            ScriptToConstellationMessage::PushHistoryState(history_state_id, url) => {
                 self.handle_push_history_state_msg(source_pipeline_id, history_state_id, url);
             },
-            FromScriptMsg::ReplaceHistoryState(history_state_id, url) => {
+            ScriptToConstellationMessage::ReplaceHistoryState(history_state_id, url) => {
                 self.handle_replace_history_state_msg(source_pipeline_id, history_state_id, url);
             },
             // Handle a joint session history length request.
-            FromScriptMsg::JointSessionHistoryLength(response_sender) => {
+            ScriptToConstellationMessage::JointSessionHistoryLength(response_sender) => {
                 self.handle_joint_session_history_length(webview_id, response_sender);
             },
             // Notification that the new document is ready to become active
-            FromScriptMsg::ActivateDocument => {
+            ScriptToConstellationMessage::ActivateDocument => {
                 self.handle_activate_document_msg(source_pipeline_id);
             },
             // Update pipeline url after redirections
-            FromScriptMsg::SetFinalUrl(final_url) => {
+            ScriptToConstellationMessage::SetFinalUrl(final_url) => {
                 // The script may have finished loading after we already started shutting down.
                 if let Some(ref mut pipeline) = self.pipelines.get_mut(&source_pipeline_id) {
                     pipeline.url = final_url;
@@ -1545,7 +1561,7 @@ where
                     warn!("constellation got set final url message for dead pipeline");
                 }
             },
-            FromScriptMsg::PostMessage {
+            ScriptToConstellationMessage::PostMessage {
                 target: browsing_context_id,
                 source: source_pipeline_id,
                 target_origin: origin,
@@ -1560,38 +1576,38 @@ where
                     data,
                 );
             },
-            FromScriptMsg::Focus => {
+            ScriptToConstellationMessage::Focus => {
                 self.handle_focus_msg(source_pipeline_id);
             },
-            FromScriptMsg::SetThrottledComplete(throttled) => {
+            ScriptToConstellationMessage::SetThrottledComplete(throttled) => {
                 self.handle_set_throttled_complete(source_pipeline_id, throttled);
             },
-            FromScriptMsg::RemoveIFrame(browsing_context_id, response_sender) => {
+            ScriptToConstellationMessage::RemoveIFrame(browsing_context_id, response_sender) => {
                 let removed_pipeline_ids = self.handle_remove_iframe_msg(browsing_context_id);
                 if let Err(e) = response_sender.send(removed_pipeline_ids) {
                     warn!("Error replying to remove iframe ({})", e);
                 }
             },
-            FromScriptMsg::CreateCanvasPaintThread(size, response_sender) => {
+            ScriptToConstellationMessage::CreateCanvasPaintThread(size, response_sender) => {
                 self.handle_create_canvas_paint_thread_msg(size, response_sender)
             },
-            FromScriptMsg::SetDocumentState(state) => {
+            ScriptToConstellationMessage::SetDocumentState(state) => {
                 self.document_states.insert(source_pipeline_id, state);
             },
-            FromScriptMsg::SetLayoutEpoch(epoch, response_sender) => {
+            ScriptToConstellationMessage::SetLayoutEpoch(epoch, response_sender) => {
                 if let Some(pipeline) = self.pipelines.get_mut(&source_pipeline_id) {
                     pipeline.layout_epoch = epoch;
                 }
 
                 response_sender.send(true).unwrap_or_default();
             },
-            FromScriptMsg::LogEntry(thread_name, entry) => {
+            ScriptToConstellationMessage::LogEntry(thread_name, entry) => {
                 self.handle_log_entry(Some(webview_id), thread_name, entry);
             },
-            FromScriptMsg::TouchEventProcessed(result) => self
+            ScriptToConstellationMessage::TouchEventProcessed(result) => self
                 .compositor_proxy
                 .send(CompositorMsg::TouchEventProcessed(webview_id, result)),
-            FromScriptMsg::GetBrowsingContextInfo(pipeline_id, response_sender) => {
+            ScriptToConstellationMessage::GetBrowsingContextInfo(pipeline_id, response_sender) => {
                 let result = self
                     .pipelines
                     .get(&pipeline_id)
@@ -1604,7 +1620,10 @@ where
                     );
                 }
             },
-            FromScriptMsg::GetTopForBrowsingContext(browsing_context_id, response_sender) => {
+            ScriptToConstellationMessage::GetTopForBrowsingContext(
+                browsing_context_id,
+                response_sender,
+            ) => {
                 let result = self
                     .browsing_contexts
                     .get(&browsing_context_id)
@@ -1616,7 +1635,7 @@ where
                     );
                 }
             },
-            FromScriptMsg::GetChildBrowsingContextId(
+            ScriptToConstellationMessage::GetChildBrowsingContextId(
                 browsing_context_id,
                 index,
                 response_sender,
@@ -1634,17 +1653,23 @@ where
                     );
                 }
             },
-            FromScriptMsg::ScheduleJob(job) => {
+            ScriptToConstellationMessage::ScheduleJob(job) => {
                 self.handle_schedule_serviceworker_job(source_pipeline_id, job);
             },
-            FromScriptMsg::ForwardDOMMessage(msg_vec, scope_url) => {
+            ScriptToConstellationMessage::ForwardDOMMessage(msg_vec, scope_url) => {
                 if let Some(mgr) = self.sw_managers.get(&scope_url.origin()) {
                     let _ = mgr.send(ServiceWorkerMsg::ForwardDOMMessage(msg_vec, scope_url));
                 } else {
                     warn!("Unable to forward DOMMessage for postMessage call");
                 }
             },
-            FromScriptMsg::BroadcastStorageEvent(storage, url, key, old_value, new_value) => {
+            ScriptToConstellationMessage::BroadcastStorageEvent(
+                storage,
+                url,
+                key,
+                old_value,
+                new_value,
+            ) => {
                 self.handle_broadcast_storage_event(
                     source_pipeline_id,
                     storage,
@@ -1654,7 +1679,7 @@ where
                     new_value,
                 );
             },
-            FromScriptMsg::MediaSessionEvent(pipeline_id, event) => {
+            ScriptToConstellationMessage::MediaSessionEvent(pipeline_id, event) => {
                 // Unlikely at this point, but we may receive events coming from
                 // different media sessions, so we set the active media session based
                 // on Playing events.
@@ -1676,25 +1701,28 @@ where
                     .send(EmbedderMsg::MediaSessionEvent(webview_id, event));
             },
             #[cfg(feature = "webgpu")]
-            FromScriptMsg::RequestAdapter(response_sender, options, ids) => self
+            ScriptToConstellationMessage::RequestAdapter(response_sender, options, ids) => self
                 .handle_wgpu_request(
                     source_pipeline_id,
                     BrowsingContextId::from(webview_id),
-                    FromScriptMsg::RequestAdapter(response_sender, options, ids),
+                    ScriptToConstellationMessage::RequestAdapter(response_sender, options, ids),
                 ),
             #[cfg(feature = "webgpu")]
-            FromScriptMsg::GetWebGPUChan(response_sender) => self.handle_wgpu_request(
-                source_pipeline_id,
-                BrowsingContextId::from(webview_id),
-                FromScriptMsg::GetWebGPUChan(response_sender),
-            ),
-            FromScriptMsg::TitleChanged(pipeline, title) => {
+            ScriptToConstellationMessage::GetWebGPUChan(response_sender) => self
+                .handle_wgpu_request(
+                    source_pipeline_id,
+                    BrowsingContextId::from(webview_id),
+                    ScriptToConstellationMessage::GetWebGPUChan(response_sender),
+                ),
+            ScriptToConstellationMessage::TitleChanged(pipeline, title) => {
                 if let Some(pipeline) = self.pipelines.get_mut(&pipeline) {
                     pipeline.title = title;
                 }
             },
-            FromScriptMsg::IFrameSizes(iframe_sizes) => self.handle_iframe_size_msg(iframe_sizes),
-            FromScriptMsg::ReportMemory(sender) => {
+            ScriptToConstellationMessage::IFrameSizes(iframe_sizes) => {
+                self.handle_iframe_size_msg(iframe_sizes)
+            },
+            ScriptToConstellationMessage::ReportMemory(sender) => {
                 // get memory report and send it back.
                 self.mem_profiler_chan
                     .send(mem::ProfilerMsg::Report(sender));
@@ -1892,7 +1920,7 @@ where
         &mut self,
         source_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
-        request: FromScriptMsg,
+        request: ScriptToConstellationMessage,
     ) {
         use webgpu::start_webgpu_thread;
 
@@ -1936,7 +1964,7 @@ where
             Entry::Occupied(o) => Some(o.get().clone()),
         };
         match request {
-            FromScriptMsg::RequestAdapter(response_sender, options, adapter_id) => {
+            ScriptToConstellationMessage::RequestAdapter(response_sender, options, adapter_id) => {
                 match webgpu_chan {
                     None => {
                         if let Err(e) = response_sender.send(None) {
@@ -1955,7 +1983,7 @@ where
                     },
                 }
             },
-            FromScriptMsg::GetWebGPUChan(response_sender) => {
+            ScriptToConstellationMessage::GetWebGPUChan(response_sender) => {
                 if response_sender.send(webgpu_chan).is_err() {
                     warn!(
                         "{}: Failed to send WebGPU channel to pipeline",
