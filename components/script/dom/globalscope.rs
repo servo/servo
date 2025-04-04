@@ -125,6 +125,7 @@ use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -3299,6 +3300,16 @@ impl GlobalScope {
         self.notification_permission_request_callback_map
             .borrow_mut()
             .remove(&callback_id)
+    }
+
+    pub(crate) fn trusted_types(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.TrustedTypes(can_gc);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.TrustedTypes(can_gc);
+        }
+        unreachable!();
     }
 }
 

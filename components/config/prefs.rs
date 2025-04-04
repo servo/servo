@@ -116,6 +116,7 @@ pub struct Preferences {
     pub dom_testperf_enabled: bool,
     // https://testutils.spec.whatwg.org#availability
     pub dom_testutils_enabled: bool,
+    pub dom_trusted_types_enabled: bool,
     /// Enable the [URLPattern] API.
     ///
     /// [URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern
@@ -290,6 +291,7 @@ impl Preferences {
             dom_testing_html_input_element_select_files_enabled: false,
             dom_testperf_enabled: false,
             dom_testutils_enabled: false,
+            dom_trusted_types_enabled: false,
             dom_urlpattern_enabled: false,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,
