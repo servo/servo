@@ -121,7 +121,7 @@ use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
@@ -459,6 +459,8 @@ pub(crate) struct ManagedMessagePort {
     pending: bool,
     /// Has the port been closed? If closed, it can be dropped and later GC'ed.
     closed: bool,
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+    cross_realm_transform_readable: Option<CrossRealmTransformReadable>,
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
     cross_realm_transform_writable: Option<CrossRealmTransformWritable>,
 }
@@ -1220,6 +1222,29 @@ impl GlobalScope {
         }
     }
 
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+    /// The "Add a handler for port’s message event with the following steps:"
+    /// and "Add a handler for port’s messageerror event with the following steps:" part.
+    pub(crate) fn note_cross_realm_transform_readable(
+        &self,
+        cross_realm_transform_readable: &CrossRealmTransformReadable,
+        port_id: &MessagePortId,
+    ) {
+        let MessagePortState::Managed(_id, message_ports) =
+            &mut *self.message_port_state.borrow_mut()
+        else {
+            unreachable!(
+                "Cross realm transform readable must be called on a global managing ports"
+            );
+        };
+
+        let Some(managed_port) = message_ports.get_mut(port_id) else {
+            unreachable!("Cross realm transform readable must match a managed port");
+        };
+
+        managed_port.cross_realm_transform_readable = Some(cross_realm_transform_readable.clone());
+    }
+
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
     /// The "Add a handler for port’s message event with the following steps:"
     /// and "Add a handler for port’s messageerror event with the following steps:" part.
@@ -1490,6 +1515,7 @@ impl GlobalScope {
                         dom_port: Dom::from_ref(dom_port),
                         pending: true,
                         closed: false,
+                        cross_realm_transform_readable: None,
                         cross_realm_transform_writable: None,
                     },
                 );
@@ -1513,6 +1539,7 @@ impl GlobalScope {
                         dom_port: Dom::from_ref(dom_port),
                         pending: false,
                         closed: false,
+                        cross_realm_transform_readable: None,
                         cross_realm_transform_writable: None,
                     },
                 );

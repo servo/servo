@@ -1772,7 +1772,15 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
-    fn setup_cross_realm_transform_readable(&self, can_gc: CanGc) {
+    fn setup_cross_realm_transform_readable(
+        &self,
+        cx: SafeJSContext,
+        port: &MessagePort,
+        can_gc: CanGc,
+    ) {
+        let port_id = port.message_port_id();
+        let global = self.global();
+
         // Perform ! InitializeReadableStream(stream).
         // Done in `new_inherited`.
 
@@ -1790,11 +1798,30 @@ impl ReadableStream {
             can_gc,
         );
 
+        // Add a handler for port’s message event with the following steps:
+        // Add a handler for port’s messageerror event with the following steps:
+        rooted!(in(*cx) let cross_realm_transform_readable = CrossRealmTransformReadable {
+            controller: Dom::from_ref(&controller),
+        });
+        global.note_cross_realm_transform_readable(&cross_realm_transform_readable, port_id);
+
         // Perform ! SetUpReadableStreamDefaultController
         controller
             .setup(DomRoot::from_ref(self), can_gc)
             .expect("Setting up controller for transfer cannot fail.");
     }
+}
+
+impl js::gc::Rootable for CrossRealmTransformReadable {}
+
+/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+/// A wrapper to handle `message` and `messageerror` events
+/// for the port used by the transfered stream.
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct CrossRealmTransformReadable {
+    /// The controller used in the algorithm.
+    controller: Dom<ReadableStreamDefaultController>,
 }
 
 impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
@@ -2079,6 +2106,8 @@ impl Transferable for ReadableStream {
         id: MessagePortId,
         port_impl: MessagePortImpl,
     ) -> Result<DomRoot<Self>, ()> {
+        // TODO: move up the call stack.
+        let cx = GlobalScope::get_cx();
         let can_gc = CanGc::note();
 
         // Their transfer-receiving steps, given dataHolder and value, are:
@@ -2094,7 +2123,7 @@ impl Transferable for ReadableStream {
         owner.track_message_port(&transferred_port, Some(port_impl));
 
         // Perform ! SetUpCrossRealmTransformReadable(value, port).
-        value.setup_cross_realm_transform_readable(can_gc);
+        value.setup_cross_realm_transform_readable(cx, &transferred_port, can_gc);
 
         Ok(value)
     }
