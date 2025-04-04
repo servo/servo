@@ -326,7 +326,7 @@ impl WindowProxy {
             webview_id: response.new_webview_id,
             opener: Some(self.browsing_context_id),
             load_data,
-            window_size: window.window_size(),
+            viewport_details: window.viewport_details(),
         };
         ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
         // TODO: if noopener is false, copy the sessionStorage storage area of the creator origin.

@@ -808,8 +808,8 @@ impl HTMLImageElement {
         let device_pixel_ratio = self
             .owner_document()
             .window()
-            .window_size()
-            .device_pixel_ratio
+            .viewport_details()
+            .hidpi_scale_factor
             .get() as f64;
         for (index, image_source) in img_sources.iter().enumerate() {
             let current_den = image_source.descriptor.density.unwrap();

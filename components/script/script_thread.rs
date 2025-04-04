@@ -36,7 +36,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, WebViewId};
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
-use constellation_traits::{CompositorHitTestResult, ScrollState, WindowSizeData, WindowSizeType};
+use constellation_traits::{CompositorHitTestResult, ScrollState, WindowSizeType};
 use crossbeam_channel::unbounded;
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
@@ -44,7 +44,7 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    EmbedderMsg, InputEvent, MediaSessionActionType, Theme, WebDriverScriptCommand,
+    EmbedderMsg, InputEvent, MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -401,7 +401,7 @@ impl ScriptThreadFactory for ScriptThread {
                 let parent_info = state.parent_info;
                 let opener = state.opener;
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
-                let window_size = state.window_size;
+                let viewport_details = state.viewport_details;
 
                 let script_thread = ScriptThread::new(state, layout_factory, system_font_service);
 
@@ -418,7 +418,7 @@ impl ScriptThreadFactory for ScriptThread {
                     webview_id,
                     parent_info,
                     opener,
-                    window_size,
+                    viewport_details,
                     origin,
                     load_data,
                 ));
@@ -2337,18 +2337,18 @@ impl ScriptThread {
     pub(crate) fn handle_resize_message(
         &self,
         id: PipelineId,
-        size: WindowSizeData,
+        viewport_details: ViewportDetails,
         size_type: WindowSizeType,
     ) {
         self.profile_event(ScriptThreadEventCategory::Resize, Some(id), || {
             let window = self.documents.borrow().find_window(id);
             if let Some(ref window) = window {
-                window.add_resize_event(size, size_type);
+                window.add_resize_event(viewport_details, size_type);
                 return;
             }
             let mut loads = self.incomplete_loads.borrow_mut();
             if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-                load.window_size = size;
+                load.viewport_details = viewport_details;
             }
         })
     }
@@ -2390,7 +2390,7 @@ impl ScriptThread {
             webview_id,
             opener,
             load_data,
-            window_size,
+            viewport_details,
         } = new_layout_info;
 
         // Kick off the fetch for the new resource.
@@ -2401,7 +2401,7 @@ impl ScriptThread {
             webview_id,
             parent_info,
             opener,
-            window_size,
+            viewport_details,
             origin,
             load_data,
         );
@@ -2647,10 +2647,10 @@ impl ScriptThread {
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
-    fn handle_resize_inactive_msg(&self, id: PipelineId, new_size: WindowSizeData) {
+    fn handle_resize_inactive_msg(&self, id: PipelineId, new_viewport_details: ViewportDetails) {
         let window = self.documents.borrow().find_window(id)
             .expect("ScriptThread: received a resize msg for a pipeline not in this script thread. This is a bug.");
-        window.set_window_size(new_size);
+        window.set_viewport_details(new_viewport_details);
     }
 
     /// We have received notification that the response associated with a load has completed.
@@ -3066,7 +3066,7 @@ impl ScriptThread {
             font_context: font_context.clone(),
             time_profiler_chan: self.senders.time_profiler_sender.clone(),
             compositor_api: self.compositor_api.clone(),
-            window_size: incomplete.window_size,
+            viewport_details: incomplete.viewport_details,
         };
 
         // Create the window and document objects.
@@ -3088,7 +3088,7 @@ impl ScriptThread {
             self.senders.constellation_sender.clone(),
             incomplete.pipeline_id,
             incomplete.parent_info,
-            incomplete.window_size,
+            incomplete.viewport_details,
             origin.clone(),
             final_url.clone(),
             incomplete.navigation_start,

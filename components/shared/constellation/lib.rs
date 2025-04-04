@@ -17,17 +17,18 @@ use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
 use bitflags::bitflags;
-use embedder_traits::{Cursor, InputEvent, MediaSessionActionType, Theme, WebDriverCommandMsg};
-use euclid::{Scale, Size2D, Vector2D};
+use embedder_traits::{
+    Cursor, InputEvent, MediaSessionActionType, Theme, ViewportDetails, WebDriverCommandMsg,
+};
+use euclid::Vector2D;
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
-use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
-use webrender_api::units::{DevicePixel, LayoutPixel};
+use webrender_api::units::LayoutPixel;
 
 /// Messages to the constellation.
 #[derive(IntoStaticStr)]
@@ -47,8 +48,8 @@ pub enum ConstellationMsg {
     ClearCache,
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(WebViewId, TraversalDirection),
-    /// Inform the constellation of a window being resized.
-    WindowSize(WebViewId, WindowSizeData, WindowSizeType),
+    /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.
+    ChangeViewportDetails(WebViewId, ViewportDetails, WindowSizeType),
     /// Inform the constellation of a theme change.
     ThemeChange(Theme),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
@@ -60,7 +61,7 @@ pub enum ConstellationMsg {
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<WebViewId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
-    NewWebView(ServoUrl, WebViewId),
+    NewWebView(ServoUrl, WebViewId, ViewportDetails),
     /// Close a top level browsing context.
     CloseWebView(WebViewId),
     /// Panic a top level browsing context.
@@ -113,17 +114,6 @@ pub enum LogEntry {
     Error(String),
     /// warning, with a reason
     Warn(String),
-}
-
-/// Data about the window size.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub struct WindowSizeData {
-    /// The size of the initial layout viewport, before parsing an
-    /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
-    pub initial_viewport: Size2D<f32, CSSPixel>,
-
-    /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
 }
 
 /// The type of window size change.

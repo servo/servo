@@ -58,7 +58,7 @@ mod from_compositor {
                 Self::LoadUrl(..) => target!("LoadUrl"),
                 Self::ClearCache => target!("ClearCache"),
                 Self::TraverseHistory(..) => target!("TraverseHistory"),
-                Self::WindowSize(..) => target!("WindowSize"),
+                Self::ChangeViewportDetails(..) => target!("ChangeViewportDetails"),
                 Self::ThemeChange(..) => target!("ThemeChange"),
                 Self::TickAnimation(..) => target!("TickAnimation"),
                 Self::WebDriverCommand(..) => target!("WebDriverCommand"),

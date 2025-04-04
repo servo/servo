@@ -17,6 +17,7 @@ app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 canvas_traits = { workspace = true }
 constellation_traits = { workspace = true }
+embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 fonts = { path = "../../fonts" }

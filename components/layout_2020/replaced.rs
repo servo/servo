@@ -9,7 +9,8 @@ use std::sync::Arc;
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
 use data_url::DataUrl;
-use euclid::Size2D;
+use embedder_traits::ViewportDetails;
+use euclid::{Scale, Size2D};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use pixels::Image;
 use script_layout_interface::IFrameSize;
@@ -358,12 +359,17 @@ impl ReplacedContents {
             },
             ReplacedContentKind::IFrame(iframe) => {
                 let size = Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px());
+                let hidpi_scale_factor = layout_context.shared_context().device_pixel_ratio();
+
                 layout_context.iframe_sizes.lock().insert(
                     iframe.browsing_context_id,
                     IFrameSize {
                         browsing_context_id: iframe.browsing_context_id,
                         pipeline_id: iframe.pipeline_id,
-                        size,
+                        viewport_details: ViewportDetails {
+                            size,
+                            hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
+                        },
                     },
                 );
                 vec![Fragment::IFrame(ArcRefCell::new(IFrameFragment {

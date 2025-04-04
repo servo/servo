@@ -27,13 +27,13 @@ use base::id::{
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use constellation_traits::{
-    AnimationTickType, CompositorHitTestResult, ScrollState, WindowSizeData, WindowSizeType,
+    AnimationTickType, CompositorHitTestResult, ScrollState, WindowSizeType,
 };
 use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::input_events::InputEvent;
 use embedder_traits::user_content_manager::UserContentManager;
-use embedder_traits::{MediaSessionActionType, Theme, WebDriverScriptCommand};
+use embedder_traits::{MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand};
 use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use http::{HeaderMap, Method};
 use ipc_channel::Error as IpcError;
@@ -176,8 +176,8 @@ pub struct NewLayoutInfo {
     pub opener: Option<BrowsingContextId>,
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
-    /// Information about the initial window size.
-    pub window_size: WindowSizeData,
+    /// Initial [`ViewportDetails`] for this layout.
+    pub viewport_details: ViewportDetails,
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
@@ -252,11 +252,11 @@ pub enum ScriptThreadMessage {
     /// Gives a channel and ID to a layout, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
-    Resize(PipelineId, WindowSizeData, WindowSizeType),
+    Resize(PipelineId, ViewportDetails, WindowSizeType),
     /// Theme changed.
     ThemeChange(PipelineId, Theme),
     /// Notifies script that window has been resized but to not take immediate action.
-    ResizeInactive(PipelineId, WindowSizeData),
+    ResizeInactive(PipelineId, ViewportDetails),
     /// Window switched from fullscreen mode.
     ExitFullScreen(PipelineId),
     /// Notifies the script that the document associated with this pipeline should 'unload'.
@@ -447,8 +447,8 @@ pub struct InitialScriptState {
     pub memory_profiler_sender: mem::ProfilerChan,
     /// A channel to the developer tools, if applicable.
     pub devtools_server_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    /// Information about the initial window size.
-    pub window_size: WindowSizeData,
+    /// Initial [`ViewportDetails`] for the frame that is initiating this `ScriptThread`.
+    pub viewport_details: ViewportDetails,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
@@ -537,7 +537,7 @@ pub struct IFrameLoadInfoWithData {
     /// Sandbox type of this iframe
     pub sandbox: IFrameSandboxState,
     /// The initial viewport size for this iframe.
-    pub window_size: WindowSizeData,
+    pub viewport_details: ViewportDetails,
 }
 
 /// Resources required by workerglobalscopes

@@ -58,12 +58,11 @@ use constellation::{
     Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState,
     UnprivilegedContent,
 };
-use constellation_traits::{ConstellationMsg, WindowSizeData};
+use constellation_traits::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
-use euclid::Scale;
 use fonts::SystemFontService;
 #[cfg(all(
     not(target_os = "windows"),
@@ -321,9 +320,6 @@ impl Servo {
             None
         };
 
-        let device_pixel_ratio = window.hidpi_factor().get();
-        let viewport_size = rendering_context.size2d();
-
         let (mut webrender, webrender_api_sender) = {
             let mut debug_flags = webrender::DebugFlags::empty();
             debug_flags.set(
@@ -389,7 +385,7 @@ impl Servo {
         };
 
         let webrender_api = webrender_api_sender.create_api();
-        let webrender_document = webrender_api.add_document(viewport_size.to_i32());
+        let webrender_document = webrender_api.add_document(rendering_context.size2d().to_i32());
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -451,14 +447,6 @@ impl Servo {
 
         webrender.set_external_image_handler(external_image_handlers);
 
-        // The division by 1 represents the page's default zoom of 100%,
-        // and gives us the appropriate CSSPixel type for the viewport.
-        let scaled_viewport_size = viewport_size.to_f32().to_untyped() / device_pixel_ratio;
-        let window_size = WindowSizeData {
-            initial_viewport: scaled_viewport_size / Scale::new(1.0),
-            device_pixel_ratio: Scale::new(device_pixel_ratio),
-        };
-
         // Create the constellation, which maintains the engine pipelines, including script and
         // layout, as well as the navigation context.
         let mut protocols = ProtocolRegistry::with_internal_protocols();
@@ -476,7 +464,6 @@ impl Servo {
             #[cfg(feature = "webxr")]
             webxr_main_thread.registry(),
             Some(webgl_threads),
-            window_size,
             external_images,
             #[cfg(feature = "webgpu")]
             wgpu_image_map,
@@ -654,8 +641,12 @@ impl Servo {
         self.webviews
             .borrow_mut()
             .insert(webview.id(), webview.weak_handle());
-        self.constellation_proxy
-            .send(ConstellationMsg::NewWebView(url.into(), webview.id()));
+        let viewport_details = self.compositor.borrow().default_webview_viewport_details();
+        self.constellation_proxy.send(ConstellationMsg::NewWebView(
+            url.into(),
+            webview.id(),
+            viewport_details,
+        ));
         webview
     }
 
@@ -724,8 +715,19 @@ impl Servo {
             },
             EmbedderMsg::AllowOpeningWebView(webview_id, response_sender) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let new_webview = webview.delegate().request_open_auxiliary_webview(webview);
-                    let _ = response_sender.send(new_webview.map(|webview| webview.id()));
+                    let webview_id_and_viewport_details = webview
+                        .delegate()
+                        .request_open_auxiliary_webview(webview)
+                        .map(|webview| {
+                            let mut viewport =
+                                self.compositor.borrow().default_webview_viewport_details();
+                            let rect = webview.rect();
+                            if !rect.is_empty() {
+                                viewport.size = rect.size() / viewport.hidpi_scale_factor;
+                            }
+                            (webview.id(), viewport)
+                        });
+                    let _ = response_sender.send(webview_id_and_viewport_details);
                 }
             },
             EmbedderMsg::WebViewClosed(webview_id) => {
@@ -1042,7 +1044,6 @@ fn create_constellation(
     webrender_api_sender: RenderApiSender,
     #[cfg(feature = "webxr")] webxr_registry: webxr_api::Registry,
     webgl_threads: Option<WebGLThreads>,
-    initial_window_size: WindowSizeData,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
     protocols: ProtocolRegistry,
@@ -1105,7 +1106,6 @@ fn create_constellation(
     Constellation::<script::ScriptThread, script::ServiceWorkerManager>::start(
         initial_state,
         layout_factory,
-        initial_window_size,
         opts.random_pipeline_closure_probability,
         opts.random_pipeline_closure_seed,
         opts.hard_fail,

@@ -19,9 +19,9 @@ use base::id::{
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
-use constellation_traits::WindowSizeData;
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
+use embedder_traits::ViewportDetails;
 use embedder_traits::user_content_manager::UserContentManager;
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
 use ipc_channel::Error;
@@ -161,8 +161,8 @@ pub struct InitialPipelineState {
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: profile_mem::ProfilerChan,
 
-    /// Information about the initial window size.
-    pub window_size: WindowSizeData,
+    /// The initial [`ViewportDetails`] to use when starting this new [`Pipeline`].
+    pub viewport_details: ViewportDetails,
 
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
@@ -219,7 +219,7 @@ impl Pipeline {
                     webview_id: state.webview_id,
                     opener: state.opener,
                     load_data: state.load_data.clone(),
-                    window_size: state.window_size,
+                    viewport_details: state.viewport_details,
                 };
 
                 if let Err(e) = script_chan.send(ScriptThreadMessage::AttachLayout(new_layout_info))
@@ -275,7 +275,7 @@ impl Pipeline {
                     resource_threads: state.resource_threads,
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
-                    window_size: state.window_size,
+                    viewport_details: state.viewport_details,
                     script_chan: script_chan.clone(),
                     load_data: state.load_data.clone(),
                     script_port,
@@ -484,7 +484,7 @@ pub struct UnprivilegedPipelineContent {
     resource_threads: ResourceThreads,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
-    window_size: WindowSizeData,
+    viewport_details: ViewportDetails,
     script_chan: IpcSender<ScriptThreadMessage>,
     load_data: LoadData,
     script_port: IpcReceiver<ScriptThreadMessage>,
@@ -534,7 +534,7 @@ impl UnprivilegedPipelineContent {
                 time_profiler_sender: self.time_profiler_chan.clone(),
                 memory_profiler_sender: self.mem_profiler_chan.clone(),
                 devtools_server_sender: self.devtools_ipc_sender,
-                window_size: self.window_size,
+                viewport_details: self.viewport_details,
                 pipeline_namespace_id: self.pipeline_namespace_id,
                 content_process_shutdown_sender: content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
