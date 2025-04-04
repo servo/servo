@@ -16,9 +16,7 @@ use std::{cmp, fmt, iter};
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
 use bitflags::bitflags;
-use constellation_traits::{
-    UntrustedNodeAddress, UntrustedNodeAddress as CompositorUntrustedNodeAddress,
-};
+use constellation_traits::UntrustedNodeAddress;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D, Vector2D};
@@ -1513,15 +1511,6 @@ pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress
     DomRoot::from_ref(Node::from_untrusted_node_address(candidate))
 }
 
-/// If the given untrusted node address represents a valid DOM node in the given runtime,
-/// returns it.
-#[allow(unsafe_code)]
-pub(crate) unsafe fn from_untrusted_compositor_node_address(
-    candidate: CompositorUntrustedNodeAddress,
-) -> DomRoot<Node> {
-    DomRoot::from_ref(Node::from_untrusted_compositor_node_address(candidate))
-}
-
 #[allow(unsafe_code)]
 pub(crate) trait LayoutNodeHelpers<'dom> {
     fn type_id_for_layout(self) -> NodeTypeId;
@@ -2860,26 +2849,6 @@ impl Node {
     #[allow(unsafe_code)]
     pub(crate) unsafe fn from_untrusted_node_address(
         candidate: UntrustedNodeAddress,
-    ) -> &'static Self {
-        // https://github.com/servo/servo/issues/6383
-        let candidate = candidate.0 as usize;
-        let object = candidate as *mut JSObject;
-        if object.is_null() {
-            panic!("Attempted to create a `Node` from an invalid pointer!")
-        }
-        &*(conversions::private_from_object(object) as *const Self)
-    }
-
-    /// If the given untrusted node address represents a valid DOM node in the given runtime,
-    /// returns it.
-    ///
-    /// # Safety
-    ///
-    /// Callers should ensure they pass a [`CompositorUntrustedNodeAddress`] that points
-    /// to a valid [`JSObject`] in memory that represents a [`Node`].
-    #[allow(unsafe_code)]
-    pub(crate) unsafe fn from_untrusted_compositor_node_address(
-        candidate: CompositorUntrustedNodeAddress,
     ) -> &'static Self {
         // https://github.com/servo/servo/issues/6383
         let candidate = candidate.0 as usize;

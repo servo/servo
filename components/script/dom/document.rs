@@ -1309,7 +1309,7 @@ impl Document {
             event.action, hit_test_result.point_in_viewport
         );
 
-        let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
+        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
         let Some(el) = node
             .inclusive_ancestors(ShadowIncluding::Yes)
             .filter_map(DomRoot::downcast::<Element>)
@@ -1774,7 +1774,7 @@ impl Document {
             return;
         };
 
-        let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
+        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
         let Some(new_target) = node
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
@@ -1952,7 +1952,7 @@ impl Document {
             return;
         };
 
-        let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
+        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
         let Some(el) = node
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
@@ -2012,7 +2012,7 @@ impl Document {
             TouchEventType::Cancel => "touchcancel",
         };
 
-        let node = unsafe { node::from_untrusted_compositor_node_address(hit_test_result.node) };
+        let node = unsafe { node::from_untrusted_node_address(hit_test_result.node) };
         let Some(el) = node
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Element>)
