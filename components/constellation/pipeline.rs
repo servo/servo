@@ -46,6 +46,7 @@ use webrender_api::DocumentId;
 use webrender_traits::CrossProcessCompositorApi;
 
 use crate::event_loop::EventLoop;
+use crate::process_manager::Process;
 use crate::sandboxing::{UnprivilegedContent, spawn_multiprocess};
 
 /// A `Pipeline` is the constellation's view of a `Window`. Each pipeline has an event loop
@@ -201,6 +202,7 @@ pub struct InitialPipelineState {
 pub struct NewPipeline {
     pub pipeline: Pipeline,
     pub bhm_control_chan: Option<IpcSender<BackgroundHangMonitorControlMsg>>,
+    pub lifeline: Option<(IpcReceiver<()>, Process)>,
 }
 
 impl Pipeline {
@@ -210,7 +212,7 @@ impl Pipeline {
     ) -> Result<NewPipeline, Error> {
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
-        let (script_chan, bhm_control_chan) = match state.event_loop {
+        let (script_chan, (bhm_control_chan, lifeline)) = match state.event_loop {
             Some(script_chan) => {
                 let new_layout_info = NewLayoutInfo {
                     parent_info: state.parent_pipeline_id,
@@ -226,7 +228,7 @@ impl Pipeline {
                 {
                     warn!("Sending to script during pipeline creation failed ({})", e);
                 }
-                (script_chan, None)
+                (script_chan, (None, None))
             },
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
@@ -292,17 +294,21 @@ impl Pipeline {
                     player_context: state.player_context,
                     rippy_data: state.rippy_data,
                     user_content_manager: state.user_content_manager,
+                    lifeline_sender: None,
                 };
 
                 // Spawn the child process.
                 //
                 // Yes, that's all there is to it!
-                let bhm_control_chan = if opts::get().multiprocess {
+                let multiprocess_data = if opts::get().multiprocess {
                     let (bhm_control_chan, bhm_control_port) =
                         ipc::channel().expect("Sampler chan");
                     unprivileged_pipeline_content.bhm_control_port = Some(bhm_control_port);
-                    unprivileged_pipeline_content.spawn_multiprocess()?;
-                    Some(bhm_control_chan)
+                    let (sender, receiver) =
+                        ipc::channel().expect("Failed to create lifeline channel");
+                    unprivileged_pipeline_content.lifeline_sender = Some(sender);
+                    let process = unprivileged_pipeline_content.spawn_multiprocess()?;
+                    (Some(bhm_control_chan), Some((receiver, process)))
                 } else {
                     // Should not be None in single-process mode.
                     let register = state
@@ -313,10 +319,10 @@ impl Pipeline {
                         state.layout_factory,
                         register,
                     );
-                    None
+                    (None, None)
                 };
 
-                (EventLoop::new(script_chan), bhm_control_chan)
+                (EventLoop::new(script_chan), multiprocess_data)
             },
         };
 
@@ -333,6 +339,7 @@ impl Pipeline {
         Ok(NewPipeline {
             pipeline,
             bhm_control_chan,
+            lifeline,
         })
     }
 
@@ -498,6 +505,7 @@ pub struct UnprivilegedPipelineContent {
     player_context: WindowGLContext,
     rippy_data: Vec<u8>,
     user_content_manager: UserContentManager,
+    lifeline_sender: Option<IpcSender<()>>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -558,7 +566,7 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    pub fn spawn_multiprocess(self) -> Result<(), Error> {
+    pub fn spawn_multiprocess(self) -> Result<Process, Error> {
         spawn_multiprocess(UnprivilegedContent::Pipeline(self))
     }
 
