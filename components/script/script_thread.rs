@@ -2104,6 +2104,9 @@ impl ScriptThread {
             WebDriverScriptCommand::DeleteCookies(reply) => {
                 webdriver_handlers::handle_delete_cookies(&documents, pipeline_id, reply)
             },
+            WebDriverScriptCommand::DeleteCookie(name, reply) => {
+                webdriver_handlers::handle_delete_cookie(&documents, pipeline_id, name, reply)
+            },
             WebDriverScriptCommand::FindElementCSS(selector, reply) => {
                 webdriver_handlers::handle_find_element_css(
                     &documents,

@@ -1298,9 +1298,9 @@ impl Handler {
         Ok(WebDriverResponse::Cookies(CookiesResponse(response)))
     }
 
-    fn handle_get_cookie(&self, name: &str) -> WebDriverResult<WebDriverResponse> {
+    fn handle_get_cookie(&self, name: String) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetCookie(name.to_owned(), sender);
+        let cmd = WebDriverScriptCommand::GetCookie(name, sender);
         self.browsing_context_script_command(cmd)?;
         let cookies = receiver.recv().unwrap();
         let response = cookies
@@ -1343,6 +1343,16 @@ impl Handler {
                     "Unable to set cookie",
                 )),
             },
+        }
+    }
+
+    fn handle_delete_cookie(&self, name: String) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::DeleteCookie(name, sender);
+        self.browsing_context_script_command(cmd)?;
+        match receiver.recv().unwrap() {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1832,7 +1842,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::FindElementElements(ref element, ref parameters) => {
                 self.handle_find_elements_from_element(element, parameters)
             },
-            WebDriverCommand::GetNamedCookie(ref name) => self.handle_get_cookie(name),
+            WebDriverCommand::GetNamedCookie(name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),
             WebDriverCommand::GetElementRect(ref element) => self.handle_element_rect(element),
@@ -1860,6 +1870,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementClick(ref element) => self.handle_element_click(element),
             WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
+            WebDriverCommand::DeleteCookie(name) => self.handle_delete_cookie(name),
             WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),
