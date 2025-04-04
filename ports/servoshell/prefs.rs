@@ -564,7 +564,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
             "layout_columns_enabled",
             "layout_container_queries_enabled",
             "layout_grid_enabled",
-            "layout_writing_mode_enabled",
         ]
         .iter()
         .for_each(|pref| preferences.set_value(pref, PrefValue::Bool(true)));
