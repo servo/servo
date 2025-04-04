@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use webgpu::wgc::resource::SamplerDescriptor;
-use webgpu::{WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
+use webgpu_traits::{WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;

@@ -9,10 +9,9 @@ use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit, RTCSessionDescriptionMethods,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -33,7 +32,7 @@ impl RTCSessionDescription {
     }
 
     fn new(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         ty: RTCSdpType,
         sdp: DOMString,
@@ -41,7 +40,7 @@ impl RTCSessionDescription {
     ) -> DomRoot<RTCSessionDescription> {
         reflect_dom_object_with_proto(
             Box::new(RTCSessionDescription::new_inherited(ty, sdp)),
-            global,
+            window,
             proto,
             can_gc,
         )
@@ -57,7 +56,7 @@ impl RTCSessionDescriptionMethods<crate::DomTypeHolder> for RTCSessionDescriptio
         config: &RTCSessionDescriptionInit,
     ) -> Fallible<DomRoot<RTCSessionDescription>> {
         Ok(RTCSessionDescription::new(
-            &window.global(),
+            window,
             proto,
             config.type_,
             config.sdp.clone(),

@@ -11,6 +11,7 @@ use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, CurrentGlobalOrNull, JSAutoRealm, JSObject};
 use js::rust::wrappers::{JS_SetPrototype, JS_WrapObject};
 use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
+use script_bindings::interface::get_desired_proto;
 
 use super::utils::ProtoOrIfaceArray;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -40,9 +41,8 @@ use crate::dom::bindings::codegen::Bindings::{
 };
 use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::error::{Error, throw_constructor_without_new, throw_dom_exception};
+use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::interface::get_desired_proto;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::create::create_native_html_element;
@@ -55,7 +55,7 @@ use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
 /// <https://html.spec.whatwg.org/multipage/#htmlconstructor>
-unsafe fn html_constructor(
+fn html_constructor(
     cx: JSContext,
     global: &GlobalScope,
     call_args: &CallArgs,
@@ -75,7 +75,9 @@ unsafe fn html_constructor(
 
     // The new_target might be a cross-compartment wrapper. Get the underlying object
     // so we can do the spec's object-identity checks.
-    rooted!(in(*cx) let new_target_unwrapped = UnwrapObjectDynamic(call_args.new_target().to_object(), *cx, true));
+    rooted!(in(*cx) let new_target_unwrapped = unsafe {
+        UnwrapObjectDynamic(call_args.new_target().to_object(), *cx, true)
+    });
     if new_target_unwrapped.is_null() {
         throw_dom_exception(
             cx,
@@ -114,7 +116,7 @@ unsafe fn html_constructor(
     // Step 4. Let isValue be null.
     let mut is_value = None;
 
-    rooted!(in(*cx) let callee = UnwrapObjectStatic(call_args.callee()));
+    rooted!(in(*cx) let callee = unsafe { UnwrapObjectStatic(call_args.callee()) });
     if callee.is_null() {
         throw_dom_exception(cx, global, Error::Security, can_gc);
         return Err(());
@@ -123,7 +125,7 @@ unsafe fn html_constructor(
     {
         let _ac = JSAutoRealm::new(*cx, callee.get());
         rooted!(in(*cx) let mut constructor = ptr::null_mut::<JSObject>());
-        rooted!(in(*cx) let global_object = CurrentGlobalOrNull(*cx));
+        rooted!(in(*cx) let global_object = unsafe { CurrentGlobalOrNull(*cx) });
 
         // Step 5. If definition's local name is equal to definition's name
         // (i.e., definition is for an autonomous custom element):
@@ -233,13 +235,15 @@ unsafe fn html_constructor(
     };
 
     rooted!(in(*cx) let mut element = result.reflector().get_jsobject().get());
-    if !JS_WrapObject(*cx, element.handle_mut()) {
-        return Err(());
+    unsafe {
+        if !JS_WrapObject(*cx, element.handle_mut()) {
+            return Err(());
+        }
+
+        JS_SetPrototype(*cx, element.handle(), prototype.handle());
+
+        result.to_jsval(*cx, MutableHandleValue::from_raw(call_args.rval()));
     }
-
-    JS_SetPrototype(*cx, element.handle(), prototype.handle());
-
-    result.to_jsval(*cx, MutableHandleValue::from_raw(call_args.rval()));
     Ok(())
 }
 
@@ -395,7 +399,7 @@ pub(crate) fn push_new_element_queue() {
     ScriptThread::push_new_element_queue();
 }
 
-pub(crate) unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
+pub(crate) fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
     cx: JSContext,
     args: &CallArgs,
     global: &GlobalScope,
@@ -417,27 +421,4 @@ pub(crate) unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
         can_gc,
     )
     .is_ok()
-}
-
-pub(crate) unsafe fn call_default_constructor<D: crate::DomTypes>(
-    cx: JSContext,
-    args: &CallArgs,
-    global: &D::GlobalScope,
-    proto_id: PrototypeList::ID,
-    ctor_name: &str,
-    creator: unsafe fn(JSContext, HandleObject, *mut ProtoOrIfaceArray),
-    constructor: impl FnOnce(JSContext, &CallArgs, &D::GlobalScope, HandleObject) -> bool,
-) -> bool {
-    if !args.is_constructing() {
-        throw_constructor_without_new(cx, ctor_name);
-        return false;
-    }
-
-    rooted!(in(*cx) let mut desired_proto = ptr::null_mut::<JSObject>());
-    let proto_result = get_desired_proto(cx, args, proto_id, creator, desired_proto.handle_mut());
-    if proto_result.is_err() {
-        return false;
-    }
-
-    constructor(cx, args, global, desired_proto.handle())
 }

@@ -4,8 +4,8 @@
 
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::ToCssWithGuard;
-use style::stylesheets::{CssRuleType, LayerBlockRule};
+use style::shared_lock::{Locked, ToCssWithGuard};
+use style::stylesheets::{CssRuleType, CssRules, LayerBlockRule};
 use style_traits::ToCss;
 
 use crate::dom::bindings::codegen::Bindings::CSSLayerBlockRuleBinding::CSSLayerBlockRuleMethods;
@@ -32,10 +32,7 @@ impl CSSLayerBlockRule {
         layerblockrule: Arc<LayerBlockRule>,
     ) -> CSSLayerBlockRule {
         CSSLayerBlockRule {
-            cssgroupingrule: CSSGroupingRule::new_inherited(
-                parent_stylesheet,
-                layerblockrule.rules.clone(),
-            ),
+            cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet),
             layerblockrule,
         }
     }
@@ -55,6 +52,10 @@ impl CSSLayerBlockRule {
             window,
             can_gc,
         )
+    }
+
+    pub(crate) fn clone_rules(&self) -> Arc<Locked<CssRules>> {
+        self.layerblockrule.rules.clone()
     }
 }
 

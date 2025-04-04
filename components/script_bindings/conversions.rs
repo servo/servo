@@ -13,21 +13,24 @@ use js::glue::{
     JS_GetReservedSlot, UnwrapObjectDynamic,
 };
 use js::jsapi::{
-    JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
+    Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength,
     JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN, JSContext, JSObject, JSString,
 };
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
+use js::rust::wrappers::IsArrayObject;
 use js::rust::{
     HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
     is_dom_object, maybe_wrap_value,
 };
 use num_traits::Float;
 
+use crate::JSTraceable;
 use crate::inheritance::Castable;
 use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
 use crate::root::DomRoot;
 use crate::str::{ByteString, DOMString, USVString};
+use crate::trace::RootedTraceableBox;
 use crate::utils::{DOMClass, DOMJSClass};
 
 /// A trait to check whether a given `JSObject` implements an IDL interface.
@@ -493,4 +496,89 @@ where
         return Err(());
     }
     native_from_object(v.get().to_object(), cx)
+}
+
+impl<T: ToJSValConvertible + JSTraceable> ToJSValConvertible for RootedTraceableBox<T> {
+    #[inline]
+    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+        let value = &**self;
+        value.to_jsval(cx, rval);
+    }
+}
+
+impl<T> FromJSValConvertible for RootedTraceableBox<Heap<T>>
+where
+    T: FromJSValConvertible + js::rust::GCMethods + Copy,
+    Heap<T>: JSTraceable + Default,
+{
+    type Config = T::Config;
+
+    unsafe fn from_jsval(
+        cx: *mut JSContext,
+        value: HandleValue,
+        config: Self::Config,
+    ) -> Result<ConversionResult<Self>, ()> {
+        T::from_jsval(cx, value, config).map(|result| match result {
+            ConversionResult::Success(inner) => {
+                ConversionResult::Success(RootedTraceableBox::from_box(Heap::boxed(inner)))
+            },
+            ConversionResult::Failure(msg) => ConversionResult::Failure(msg),
+        })
+    }
+}
+
+/// Returns whether `value` is an array-like object (Array, FileList,
+/// HTMLCollection, HTMLFormControlsCollection, HTMLOptionsCollection,
+/// NodeList).
+///
+/// # Safety
+/// `cx` must point to a valid, non-null JSContext.
+pub unsafe fn is_array_like<D: crate::DomTypes>(cx: *mut JSContext, value: HandleValue) -> bool {
+    let mut is_array = false;
+    assert!(IsArrayObject(cx, value, &mut is_array));
+    if is_array {
+        return true;
+    }
+
+    let object: *mut JSObject = match FromJSValConvertible::from_jsval(cx, value, ()).unwrap() {
+        ConversionResult::Success(object) => object,
+        _ => return false,
+    };
+
+    if root_from_object::<D::FileList>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<D::HTMLCollection>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<D::HTMLFormControlsCollection>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<D::HTMLOptionsCollection>(object, cx).is_ok() {
+        return true;
+    }
+    if root_from_object::<D::NodeList>(object, cx).is_ok() {
+        return true;
+    }
+
+    false
+}
+
+/// Get a `DomRoot<T>` for a WindowProxy accessible from a `HandleValue`.
+/// Caller is responsible for throwing a JS exception if needed in case of error.
+pub(crate) unsafe fn windowproxy_from_handlevalue<D: crate::DomTypes>(
+    v: HandleValue,
+    _cx: *mut JSContext,
+) -> Result<DomRoot<D::WindowProxy>, ()> {
+    if !v.get().is_object() {
+        return Err(());
+    }
+    let object = v.get().to_object();
+    if !IsWindowProxy(object) {
+        return Err(());
+    }
+    let mut value = UndefinedValue();
+    GetProxyReservedSlot(object, 0, &mut value);
+    let ptr = value.to_private() as *const D::WindowProxy;
+    Ok(DomRoot::from_ref(&*ptr))
 }

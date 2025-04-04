@@ -11,10 +11,9 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::VTTRegionBinding::{ScrollSetting, VTTRegionMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -46,8 +45,8 @@ impl VTTRegion {
         }
     }
 
-    fn new(global: &GlobalScope, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<Self> {
-        reflect_dom_object_with_proto(Box::new(Self::new_inherited()), global, proto, can_gc)
+    fn new(window: &Window, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<Self> {
+        reflect_dom_object_with_proto(Box::new(Self::new_inherited()), window, proto, can_gc)
     }
 }
 
@@ -58,7 +57,7 @@ impl VTTRegionMethods<crate::DomTypeHolder> for VTTRegion {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
-        Ok(VTTRegion::new(&window.global(), proto, can_gc))
+        Ok(VTTRegion::new(window, proto, can_gc))
     }
 
     // https://w3c.github.io/webvtt/#dom-vttregion-id

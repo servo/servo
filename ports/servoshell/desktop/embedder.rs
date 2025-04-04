@@ -68,8 +68,4 @@ impl EmbedderMethods for EmbedderCallbacks {
         registry.register("resource", resource::ResourceProtocolHandler::default());
         registry
     }
-
-    fn get_version_string(&self) -> Option<String> {
-        crate::servo_version().into()
-    }
 }

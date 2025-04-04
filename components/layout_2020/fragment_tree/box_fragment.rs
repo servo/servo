@@ -12,6 +12,7 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
+use style::values::specified::box_::DisplayOutside;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::formatting_contexts::Baselines;
@@ -346,6 +347,12 @@ impl BoxFragment {
     /// <https://drafts.csswg.org/css-display-3/#inline-box>
     pub(crate) fn is_inline_box(&self) -> bool {
         self.style.is_inline_box(self.base.flags)
+    }
+
+    /// Whether this is an atomic inline-level box.
+    /// <https://drafts.csswg.org/css-display-3/#atomic-inline>
+    pub(crate) fn is_atomic_inline_level(&self) -> bool {
+        self.style.get_box().display.outside() == DisplayOutside::Inline && !self.is_inline_box()
     }
 
     /// Whether this is a table wrapper box.

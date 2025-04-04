@@ -102,6 +102,8 @@ bitflags! {
         /// and the fragment can be a flex item. This flag is used to cache items during flex
         /// layout.
         const SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM = 1 << 8;
+        /// Whether or not the node that created this fragment is the root element.
+        const IS_ROOT_ELEMENT = 1 << 9;
     }
 }
 

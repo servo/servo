@@ -152,7 +152,7 @@ impl ConsoleActor {
             Root::BrowsingContext(bc) => UniqueId::Pipeline(
                 registry
                     .find::<BrowsingContextActor>(bc)
-                    .active_pipeline
+                    .active_pipeline_id
                     .get(),
             ),
             Root::DedicatedWorker(w) => UniqueId::Worker(registry.find::<WorkerActor>(w).worker_id),

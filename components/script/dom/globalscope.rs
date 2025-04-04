@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
@@ -55,6 +54,7 @@ use net_traits::{
     ResourceThreads, fetch_async,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
+use script_bindings::interfaces::GlobalScopeHelpers;
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
@@ -64,7 +64,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use timers::{TimerEventId, TimerEventRequest, TimerSource};
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
-use webgpu::{DeviceLostReason, WebGPUDevice};
+use webgpu_traits::{DeviceLostReason, WebGPUDevice};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 #[cfg(feature = "webgpu")]
@@ -318,9 +318,6 @@ pub(crate) struct GlobalScope {
     // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
     consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
-
-    /// An optional string allowing the user agent to be set for testing.
-    user_agent: Cow<'static, str>,
 
     /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
@@ -720,7 +717,6 @@ impl GlobalScope {
         origin: MutableOrigin,
         creation_url: Option<ServoUrl>,
         microtask_queue: Rc<MicrotaskQueue>,
-        user_agent: Cow<'static, str>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
@@ -754,7 +750,6 @@ impl GlobalScope {
             event_source_tracker: DOMTracker::new(),
             uncaught_rejections: Default::default(),
             consumed_rejections: Default::default(),
-            user_agent,
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
             #[cfg(feature = "webgpu")]
@@ -2920,10 +2915,6 @@ impl GlobalScope {
         );
     }
 
-    pub(crate) fn get_user_agent(&self) -> Cow<'static, str> {
-        self.user_agent.clone()
-    }
-
     pub(crate) fn get_https_state(&self) -> HttpsState {
         self.https_state.get()
     }
@@ -3015,7 +3006,7 @@ impl GlobalScope {
     pub(crate) fn handle_uncaptured_gpu_error(
         &self,
         device: WebGPUDevice,
-        error: webgpu::Error,
+        error: webgpu_traits::Error,
         can_gc: CanGc,
     ) {
         if let Some(gpu_device) = self
@@ -3326,30 +3317,6 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
         0
     );
     root_from_object_static(global).unwrap()
-}
-
-/// Operations that must be invoked from the generated bindings.
-#[allow(unsafe_code)]
-pub(crate) trait GlobalScopeHelpers<D: crate::DomTypes> {
-    unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<D::GlobalScope>;
-    fn get_cx() -> SafeJSContext;
-    unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
-    fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<D::GlobalScope>;
-
-    unsafe fn from_object_maybe_wrapped(
-        obj: *mut JSObject,
-        cx: *mut JSContext,
-    ) -> DomRoot<D::GlobalScope>;
-
-    fn origin(&self) -> &MutableOrigin;
-
-    fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
-
-    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc);
-
-    fn get_url(&self) -> ServoUrl;
-
-    fn is_secure_context(&self) -> bool;
 }
 
 #[allow(unsafe_code)]

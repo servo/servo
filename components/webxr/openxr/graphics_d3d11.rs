@@ -65,7 +65,7 @@ impl GraphicsProviderMethods<D3D11> for GraphicsProvider {
         //        already created is appropriate. OpenXR returns a validation error
         //        unless we call this method, so we call it and ignore the results
         //        in the short term.
-        let _requirements = D3D11::requirements(&instance, system)
+        let _requirements = D3D11::requirements(instance, system)
             .map_err(|e| Error::BackendSpecific(format!("D3D11::requirements {:?}", e)))?;
 
         unsafe {

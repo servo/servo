@@ -11,13 +11,16 @@ use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
+use euclid::Scale;
 use log::{info, trace, warn};
 use servo::compositing::windowing::{AnimationState, WindowMethods};
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_config::pref;
+use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
+use servo::webrender_api::units::DevicePixel;
 use servo::webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use servo::webxr::openxr::{AppInfo, OpenXrDiscovery};
@@ -140,8 +143,8 @@ impl App {
         // <https://github.com/rust-lang/rust/issues/65991>
         struct UpcastedWindow(Rc<dyn WindowPortsMethods>);
         impl WindowMethods for UpcastedWindow {
-            fn get_coordinates(&self) -> servo::compositing::windowing::EmbedderCoordinates {
-                self.0.get_coordinates()
+            fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+                self.0.hidpi_factor()
             }
             fn set_animation_state(&self, state: AnimationState) {
                 self.0.set_animation_state(state);
@@ -161,7 +164,6 @@ impl App {
             window.rendering_context(),
             embedder,
             Rc::new(UpcastedWindow(window.clone())),
-            self.servoshell_preferences.user_agent.clone(),
             user_content_manager,
         );
         servo.setup_logging();

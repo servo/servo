@@ -84,7 +84,7 @@
 //!
 //! See <https://github.com/servo/servo/issues/14704>
 
-use std::borrow::{Cow, ToOwned};
+use std::borrow::ToOwned;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
@@ -158,7 +158,7 @@ use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
-use webgpu::{self, WebGPU, WebGPURequest};
+use webgpu_traits::{WebGPU, WebGPURequest};
 #[cfg(feature = "webgpu")]
 use webrender::RenderApi;
 use webrender::RenderApiSender;
@@ -175,7 +175,7 @@ use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{
     JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
 };
-use crate::webview::WebViewManager;
+use crate::webview_manager::WebViewManager;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, NavigationHistoryBehavior)>;
 
@@ -465,9 +465,6 @@ pub struct Constellation<STF, SWF> {
     /// Pipeline ID of the active media session.
     active_media_session: Option<PipelineId>,
 
-    /// User agent string to report in network requests.
-    user_agent: Cow<'static, str>,
-
     /// The image bytes associated with the RippyPNG embedder resource.
     /// Read during startup and provided to image caches that are created
     /// on an as-needed basis, rather than retrieving it every time.
@@ -521,9 +518,6 @@ pub struct InitialConstellationState {
 
     /// The XR device registry
     pub webxr_registry: Option<webxr_api::Registry>,
-
-    /// User agent string to report in network requests.
-    pub user_agent: Cow<'static, str>,
 
     #[cfg(feature = "webgpu")]
     pub wgpu_image_map: WGPUImageMap,
@@ -744,7 +738,6 @@ where
                     active_keyboard_modifiers: Modifiers::empty(),
                     hard_fail,
                     active_media_session: None,
-                    user_agent: state.user_agent,
                     rippy_data,
                     user_content_manager: state.user_content_manager,
                 };
@@ -988,7 +981,6 @@ where
                 .map(|threads| threads.pipeline()),
             webxr_registry: self.webxr_registry.clone(),
             player_context: WindowGLContext::get(),
-            user_agent: self.user_agent.clone(),
             rippy_data: self.rippy_data.clone(),
             user_content_manager: self.user_content_manager.clone(),
         });
@@ -1902,6 +1894,8 @@ where
         browsing_context_id: BrowsingContextId,
         request: FromScriptMsg,
     ) {
+        use webgpu::start_webgpu_thread;
+
         let browsing_context_group_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(bc) => &bc.bc_group_id,
             None => return warn!("Browsing context not found"),
@@ -1923,7 +1917,7 @@ where
             return warn!("Browsing context group not found");
         };
         let webgpu_chan = match browsing_context_group.webgpus.entry(host) {
-            Entry::Vacant(v) => WebGPU::new(
+            Entry::Vacant(v) => start_webgpu_thread(
                 self.webrender_wgpu.webrender_api.create_sender(),
                 self.webrender_document,
                 self.webrender_wgpu.webrender_external_images.clone(),

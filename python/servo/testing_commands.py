@@ -162,7 +162,9 @@ class MachCommands(CommandBase):
         self_contained_tests = [
             "background_hang_monitor",
             "base",
+            "compositing",
             "constellation",
+            "devtools",
             "fonts",
             "hyper_serde",
             "layout_2020",

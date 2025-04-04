@@ -18,6 +18,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
+use embedder_traits::Theme;
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
@@ -258,6 +259,8 @@ pub enum DevtoolScriptControlMsg {
     Reload(PipelineId),
     /// Gets the list of all allowed CSS rules and possible values.
     GetCssDatabase(IpcSender<HashMap<String, CssDatabaseProperty>>),
+    /// Simulates a light or dark color scheme for the given pipeline
+    SimulateColorScheme(PipelineId, Theme),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

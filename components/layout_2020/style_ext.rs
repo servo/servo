@@ -746,6 +746,12 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // From https://www.w3.org/TR/CSS22/visuren.html#z-index:
+        // > The root element forms the root stacking context.
+        if fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT) {
+            return true;
+        }
+
         // TODO: We need to handle CSS Contain here.
         false
     }

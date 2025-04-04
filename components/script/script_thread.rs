@@ -17,7 +17,6 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
-use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
@@ -92,7 +91,7 @@ use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerScheduler};
 use url::Position;
 #[cfg(feature = "webgpu")]
-use webgpu::{WebGPUDevice, WebGPUMsg};
+use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
 use webrender_traits::CrossProcessCompositorApi;
 
@@ -308,9 +307,6 @@ pub struct ScriptThread {
     #[no_trace]
     user_content_manager: UserContentManager,
 
-    /// An optional string allowing the user agent to be set for testing.
-    user_agent: Cow<'static, str>,
-
     /// Application window's GL Context for Media player
     #[no_trace]
     player_context: WindowGLContext,
@@ -390,7 +386,6 @@ impl ScriptThreadFactory for ScriptThread {
         layout_factory: Arc<dyn LayoutFactory>,
         system_font_service: Arc<SystemFontServiceProxy>,
         load_data: LoadData,
-        user_agent: Cow<'static, str>,
     ) {
         thread::Builder::new()
             .name(format!("Script{:?}", state.id))
@@ -408,8 +403,7 @@ impl ScriptThreadFactory for ScriptThread {
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
                 let window_size = state.window_size;
 
-                let script_thread =
-                    ScriptThread::new(state, layout_factory, system_font_service, user_agent);
+                let script_thread = ScriptThread::new(state, layout_factory, system_font_service);
 
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(&script_thread as *const _));
@@ -736,7 +730,6 @@ impl ScriptThread {
                             .pipeline_to_constellation_sender
                             .clone(),
                         image_cache: script_thread.image_cache.clone(),
-                        user_agent: script_thread.user_agent.clone(),
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
                         inherited_secure_context: script_thread.inherited_secure_context,
@@ -826,7 +819,6 @@ impl ScriptThread {
         state: InitialScriptState,
         layout_factory: Arc<dyn LayoutFactory>,
         system_font_service: Arc<SystemFontServiceProxy>,
-        user_agent: Cow<'static, str>,
     ) -> ScriptThread {
         let (self_sender, self_receiver) = unbounded();
         let runtime = Runtime::new(Some(SendableTaskSource {
@@ -938,7 +930,6 @@ impl ScriptThread {
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
-            user_agent,
             user_content_manager: state.user_content_manager,
             player_context: state.player_context,
             node_ids: Default::default(),
@@ -2063,6 +2054,14 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetCssDatabase(reply) => {
                 devtools::handle_get_css_database(reply)
             },
+            DevtoolScriptControlMsg::SimulateColorScheme(id, theme) => {
+                match documents.find_window(id) {
+                    Some(window) => {
+                        window.handle_theme_change(theme);
+                    },
+                    None => warn!("Message sent to closed pipeline {}.", id),
+                }
+            },
         }
     }
 
@@ -2104,6 +2103,9 @@ impl ScriptThread {
             },
             WebDriverScriptCommand::DeleteCookies(reply) => {
                 webdriver_handlers::handle_delete_cookies(&documents, pipeline_id, reply)
+            },
+            WebDriverScriptCommand::DeleteCookie(name, reply) => {
+                webdriver_handlers::handle_delete_cookie(&documents, pipeline_id, name, reply)
             },
             WebDriverScriptCommand::FindElementCSS(selector, reply) => {
                 webdriver_handlers::handle_find_element_css(
@@ -3101,7 +3103,6 @@ impl ScriptThread {
             self.unminify_css,
             self.local_script_source.clone(),
             self.user_content_manager.clone(),
-            self.user_agent.clone(),
             self.player_context.clone(),
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),

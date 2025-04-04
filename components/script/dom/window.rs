@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::{Cow, ToOwned};
+use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, RefMut};
 use std::cmp;
 use std::collections::hash_map::Entry;
@@ -1241,7 +1241,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         element: &Element,
         pseudo: Option<DOMString>,
     ) -> DomRoot<CSSStyleDeclaration> {
-        // Steps 1-4.
+        // Step 2: Let obj be elt.
+        // We don't store CSSStyleOwner directly because it stores a `Dom` which must be
+        // rooted. This avoids the rooting the value temporarily.
+        let mut is_null = false;
+
+        // Step 3: If pseudoElt is provided, is not the empty string, and starts with a colon, then:
+        // Step 3.1: Parse pseudoElt as a <pseudo-element-selector>, and let type be the result.
         let pseudo = pseudo.map(|mut s| {
             s.make_ascii_lowercase();
             s
@@ -1253,13 +1259,38 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             Some(ref pseudo) if pseudo == ":after" || pseudo == "::after" => {
                 Some(PseudoElement::After)
             },
+            Some(ref pseudo) if pseudo == "::selection" => Some(PseudoElement::Selection),
+            Some(ref pseudo) if pseudo.starts_with(':') => {
+                // Step 3.2: If type is failure, or is a ::slotted() or ::part()
+                // pseudo-element, let obj be null.
+                is_null = true;
+                None
+            },
             _ => None,
         };
 
-        // Step 5.
+        // Step 4. Let decls be an empty list of CSS declarations.
+        // Step 5: If obj is not null, and elt is connected, part of the flat tree, and
+        // its shadow-including root has a browsing context which either doesn’t have a
+        // browsing context container, or whose browsing context container is being
+        // rendered, set decls to a list of all longhand properties that are supported CSS
+        // properties, in lexicographical order, with the value being the resolved value
+        // computed for obj using the style rules associated with doc.  Additionally,
+        // append to decls all the custom properties whose computed value for obj is not
+        // the guaranteed-invalid value.
+        //
+        // Note: The specification says to generate the list of declarations beforehand, yet
+        // also says the list should be alive. This is why we do not do step 4 and 5 here.
+        // See: https://github.com/w3c/csswg-drafts/issues/6144
+        //
+        // Step 6:  Return a live CSSStyleProperties object with the following properties:
         CSSStyleDeclaration::new(
             self,
-            CSSStyleOwner::Element(Dom::from_ref(element)),
+            if is_null {
+                CSSStyleOwner::Null
+            } else {
+                CSSStyleOwner::Element(Dom::from_ref(element))
+            },
             pseudo,
             CSSModificationAccess::Readonly,
             CanGc::note(),
@@ -1859,13 +1890,15 @@ impl Window {
 
     fn client_window(&self) -> (Size2D<u32, CSSPixel>, Point2D<i32, CSSPixel>) {
         let timer_profile_chan = self.global().time_profiler_chan().clone();
-        let (send, recv) =
+        let (sender, receiver) =
             ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
-        let _ = self
-            .compositor_api
-            .sender()
-            .send(webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(send));
-        let rect = recv.recv().unwrap_or_default();
+        let _ = self.compositor_api.sender().send(
+            webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(
+                self.webview_id(),
+                sender,
+            ),
+        );
+        let rect = receiver.recv().unwrap_or_default();
         (
             Size2D::new(rect.size().width as u32, rect.size().height as u32),
             Point2D::new(rect.min.x, rect.min.y),
@@ -2804,7 +2837,6 @@ impl Window {
         unminify_css: bool,
         local_script_source: Option<String>,
         user_content_manager: UserContentManager,
-        user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
@@ -2831,7 +2863,6 @@ impl Window {
                 origin,
                 Some(creator_url),
                 microtask_queue,
-                user_agent,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
                 inherited_secure_context,

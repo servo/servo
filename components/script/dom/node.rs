@@ -7,6 +7,7 @@
 use std::borrow::Cow;
 use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
+use std::f64::consts::PI;
 use std::ops::Range;
 use std::slice::from_ref;
 use std::sync::Arc as StdArc;
@@ -105,9 +106,9 @@ use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
-use crate::dom::mouseevent::MouseEvent;
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
 use crate::dom::nodelist::NodeList;
+use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
@@ -438,43 +439,59 @@ impl Node {
         })
     }
 
-    /// <https://html.spec.whatg.org/#fire_a_synthetic_mouse_event>
-    pub(crate) fn fire_synthetic_mouse_event_not_trusted(&self, name: DOMString, can_gc: CanGc) {
-        // Spec says the choice of which global to create
-        // the mouse event on is not well-defined,
+    /// <https://html.spec.whatwg.org/multipage/#fire-a-synthetic-pointer-event>
+    pub(crate) fn fire_synthetic_pointer_event_not_trusted(&self, name: DOMString, can_gc: CanGc) {
+        // Spec says the choice of which global to create the pointer event
+        // on is not well-defined,
         // and refers to heycam/webidl#135
-        let win = self.owner_window();
+        let window = self.owner_window();
 
-        let mouse_event = MouseEvent::new(
-            &win, // ambiguous in spec
+        // <https://w3c.github.io/pointerevents/#the-click-auxclick-and-contextmenu-events>
+        let pointer_event = PointerEvent::new(
+            &window, // ambiguous in spec
             name,
-            EventBubbles::Bubbles,       // Step 3: bubbles
-            EventCancelable::Cancelable, // Step 3: cancelable,
-            Some(&win),                  // Step 7: view (this is unambiguous in spec)
-            0,                           // detail uninitialized
-            0,                           // coordinates uninitialized
-            0,                           // coordinates uninitialized
-            0,                           // coordinates uninitialized
-            0,                           // coordinates uninitialized
-            false,
-            false,
-            false,
-            false, // Step 6 modifier keys TODO compositor hook needed
-            0,     // button uninitialized (and therefore left)
-            0,     // buttons uninitialized (and therefore none)
-            None,  // related_target uninitialized,
-            None,  // point_in_target uninitialized,
+            EventBubbles::Bubbles,              // Step 3: bubbles
+            EventCancelable::Cancelable,        // Step 3: cancelable
+            Some(&window),                      // Step 7: view
+            0,                                  // detail uninitialized
+            0,                                  // coordinates uninitialized
+            0,                                  // coordinates uninitialized
+            0,                                  // coordinates uninitialized
+            0,                                  // coordinates uninitialized
+            false,                              // ctrl_key
+            false,                              // alt_key
+            false,                              // shift_key
+            false,                              // meta_key
+            0,                                  // button, left mouse button
+            0,                                  // buttons
+            None,                               // related_target
+            None,                               // point_in_target
+            PointerId::NonPointerDevice as i32, // pointer_id
+            1,                                  // width
+            1,                                  // height
+            0.5,                                // pressure
+            0.0,                                // tangential_pressure
+            0,                                  // tilt_x
+            0,                                  // tilt_y
+            0,                                  // twist
+            PI / 2.0,                           // altitude_angle
+            0.0,                                // azimuth_angle
+            DOMString::from(""),                // pointer_type
+            false,                              // is_primary
+            vec![],                             // coalesced_events
+            vec![],                             // predicted_events
             can_gc,
         );
 
-        // Step 4: TODO composed flag for shadow root
+        // Step 4. Set event's composed flag.
+        pointer_event.upcast::<Event>().set_composed(true);
 
-        // Step 5
-        mouse_event.upcast::<Event>().set_trusted(false);
+        // Step 5. If the not trusted flag is set, initialize event's isTrusted attribute to false.
+        pointer_event.upcast::<Event>().set_trusted(false);
 
-        // Step 8: TODO keyboard modifiers
+        // Step 6,8. TODO keyboard modifiers
 
-        mouse_event
+        pointer_event
             .upcast::<Event>()
             .dispatch(self.upcast::<EventTarget>(), false, can_gc);
     }

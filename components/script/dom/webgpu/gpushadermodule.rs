@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use webgpu::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
+use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
 
 use super::gpucompilationinfo::GPUCompilationInfo;
 use crate::dom::bindings::cell::DomRefCell;

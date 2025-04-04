@@ -10,3 +10,14 @@ interface CSSStyleSheet : StyleSheet {
   [Throws] unsigned long insertRule(DOMString rule, optional unsigned long index = 0);
   [Throws] undefined deleteRule(unsigned long index);
 };
+
+// https://drafts.csswg.org/cssom/#legacy-css-style-sheet-members
+partial interface CSSStyleSheet {
+  [Throws, SameObject] readonly attribute CSSRuleList rules;
+  [Throws] long addRule(
+      optional DOMString selector = "undefined",
+      optional DOMString style = "undefined",
+      optional unsigned long index
+  );
+  [Throws] undefined removeRule(optional unsigned long index = 0);
+};

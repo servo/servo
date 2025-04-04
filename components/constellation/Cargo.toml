@@ -49,6 +49,7 @@ servo_url = { path = "../url" }
 stylo_traits = { workspace = true }
 tracing = { workspace = true, optional = true }
 webgpu = { path = "../webgpu" }
+webgpu_traits = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }

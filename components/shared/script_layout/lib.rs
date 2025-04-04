@@ -11,7 +11,6 @@
 pub mod wrapper_traits;
 
 use std::any::Any;
-use std::borrow::Cow;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 
@@ -280,7 +279,6 @@ pub trait ScriptThreadFactory {
         layout_factory: Arc<dyn LayoutFactory>,
         system_font_service: Arc<SystemFontServiceProxy>,
         load_data: LoadData,
-        user_agent: Cow<'static, str>,
     );
 }
 #[derive(Clone, Default)]

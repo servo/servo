@@ -46,6 +46,7 @@ impl XRInputSourceArray {
         can_gc: CanGc,
     ) {
         let global = self.global();
+        let window = global.as_window();
 
         let mut added = vec![];
         for info in inputs {
@@ -65,7 +66,7 @@ impl XRInputSourceArray {
         }
 
         let event = XRInputSourcesChangeEvent::new(
-            &global,
+            window,
             atom!("inputsourceschange"),
             false,
             true,
@@ -79,6 +80,7 @@ impl XRInputSourceArray {
 
     pub(crate) fn remove_input_source(&self, session: &XRSession, id: InputId, can_gc: CanGc) {
         let global = self.global();
+        let window = global.as_window();
         let removed = if let Some(i) = self.input_sources.borrow().iter().find(|i| i.id() == id) {
             i.gamepad().update_connected(false, false, can_gc);
             [DomRoot::from_ref(&**i)]
@@ -87,7 +89,7 @@ impl XRInputSourceArray {
         };
 
         let event = XRInputSourcesChangeEvent::new(
-            &global,
+            window,
             atom!("inputsourceschange"),
             false,
             true,
@@ -108,6 +110,7 @@ impl XRInputSourceArray {
         can_gc: CanGc,
     ) {
         let global = self.global();
+        let window = global.as_window();
         let root;
         let removed = if let Some(i) = self.input_sources.borrow().iter().find(|i| i.id() == id) {
             i.gamepad().update_connected(false, false, can_gc);
@@ -124,7 +127,7 @@ impl XRInputSourceArray {
         let added = [input];
 
         let event = XRInputSourcesChangeEvent::new(
-            &global,
+            window,
             atom!("inputsourceschange"),
             false,
             true,

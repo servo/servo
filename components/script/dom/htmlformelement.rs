@@ -774,7 +774,7 @@ impl HTMLFormElement {
 
             // Step 6.5
             let event = SubmitEvent::new(
-                &self.global(),
+                self.global().as_window(),
                 atom!("submit"),
                 true,
                 true,
@@ -1233,7 +1233,7 @@ impl HTMLFormElement {
 
         // Step 7
         let event = FormDataEvent::new(
-            &window.global(),
+            &window,
             atom!("formdata"),
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,

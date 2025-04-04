@@ -38,7 +38,6 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
@@ -177,14 +176,14 @@ impl RTCPeerConnection {
     }
 
     fn new(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         config: &RTCConfiguration,
         can_gc: CanGc,
     ) -> DomRoot<RTCPeerConnection> {
         let this = reflect_dom_object_with_proto(
             Box::new(RTCPeerConnection::new_inherited()),
-            global,
+            window,
             proto,
             can_gc,
         );
@@ -230,7 +229,7 @@ impl RTCPeerConnection {
             return;
         }
         let candidate = RTCIceCandidate::new(
-            &self.global(),
+            self.global().as_window(),
             candidate.candidate.into(),
             None,
             Some(candidate.sdp_mline_index as u16),
@@ -238,7 +237,7 @@ impl RTCPeerConnection {
             can_gc,
         );
         let event = RTCPeerConnectionIceEvent::new(
-            &self.global(),
+            self.global().as_window(),
             atom!("icecandidate"),
             Some(&candidate),
             None,
@@ -267,8 +266,14 @@ impl RTCPeerConnection {
             return;
         }
         let track = MediaStreamTrack::new(&self.global(), id, ty, can_gc);
-        let event =
-            RTCTrackEvent::new(&self.global(), atom!("track"), false, false, &track, can_gc);
+        let event = RTCTrackEvent::new(
+            self.global().as_window(),
+            atom!("track"),
+            false,
+            false,
+            &track,
+            can_gc,
+        );
         event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
@@ -294,7 +299,7 @@ impl RTCPeerConnection {
                 );
 
                 let event = RTCDataChannelEvent::new(
-                    &self.global(),
+                    self.global().as_window(),
                     atom!("datachannel"),
                     false,
                     false,
@@ -372,7 +377,7 @@ impl RTCPeerConnection {
         // step 6
         if state == RTCIceGatheringState::Complete {
             let event = RTCPeerConnectionIceEvent::new(
-                &self.global(),
+                self.global().as_window(),
                 atom!("icecandidate"),
                 None,
                 None,
@@ -502,12 +507,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         can_gc: CanGc,
         config: &RTCConfiguration,
     ) -> Fallible<DomRoot<RTCPeerConnection>> {
-        Ok(RTCPeerConnection::new(
-            &window.global(),
-            proto,
-            config,
-            can_gc,
-        ))
+        Ok(RTCPeerConnection::new(window, proto, config, can_gc))
     }
 
     // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-icecandidate

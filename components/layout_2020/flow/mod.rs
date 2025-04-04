@@ -1012,7 +1012,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     let end_margin_can_collapse_with_children = collapsed_through ||
         (pbm.padding.block_end == Au::zero() &&
             pbm.border.block_end == Au::zero() &&
-            computed_block_size.is_auto());
+            !containing_block_for_children.size.block.is_definite());
     if end_margin_can_collapse_with_children {
         block_margins_collapsed_with_children
             .end
