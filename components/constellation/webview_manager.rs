@@ -87,7 +87,7 @@ mod test {
         BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId, WebViewId,
     };
 
-    use crate::webview::WebViewManager;
+    use crate::webview_manager::WebViewManager;
 
     fn id(namespace_id: u32, index: u32) -> WebViewId {
         WebViewId(BrowsingContextId {

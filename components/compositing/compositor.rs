@@ -58,7 +58,8 @@ use webrender_traits::rendering_context::RenderingContext;
 use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate, RendererWebView};
 
 use crate::InitialCompositorState;
-use crate::webview::{UnknownWebView, WebView, WebViewManager};
+use crate::webview::{UnknownWebView, WebView};
+use crate::webview_manager::WebViewManager;
 use crate::windowing::{self, WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]

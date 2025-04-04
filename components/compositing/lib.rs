@@ -24,6 +24,7 @@ mod tracing;
 mod compositor;
 mod touch;
 pub mod webview;
+pub mod webview_manager;
 pub mod windowing;
 
 /// Data used to construct a compositor.
