@@ -120,7 +120,7 @@ impl MessagePort {
         for port in ports {
             // Step 2
             if port.message_port_id() == self.message_port_id() {
-                return Err(Error::DataClone);
+                return Err(Error::DataClone(None));
             }
 
             // Step 4

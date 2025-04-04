@@ -539,7 +539,7 @@ pub(crate) fn write(
         );
         if !result {
             JS_ClearPendingException(*cx);
-            return Err(Error::DataClone);
+            return Err(Error::DataClone(None));
         }
 
         let nbytes = GetLengthOfJSStructuredCloneData(scdata);
