@@ -1074,7 +1074,7 @@ fn allocate_free_cross_space_for_flex_line(
     remaining_free_cross_space: Au,
     remaining_line_count: i32,
 ) -> (Au, Au) {
-    if remaining_free_cross_space == Au::zero() {
+    if remaining_free_cross_space.is_zero() {
         return (Au::zero(), Au::zero());
     }
 
@@ -1404,7 +1404,7 @@ impl InitialFlexLineLayout<'_> {
             //
             // FIXME: is it a problem if floating point precision errors accumulate
             // and we get not-quite-zero remaining free space when we should get zero here?
-            if remaining_free_space != Au::zero() {
+            if !remaining_free_space.is_zero() {
                 // > If using the flex grow factor:
                 // > For every unfrozen item on the line, find the ratio of the item’s flex grow factor to
                 // > the sum of the flex grow factors of all unfrozen items on the line. Set the item’s

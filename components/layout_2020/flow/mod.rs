@@ -142,7 +142,7 @@ impl BlockLevelBox {
             _ => return false,
         };
 
-        if pbm.padding.block_start != Au::zero() || pbm.border.block_start != Au::zero() {
+        if !pbm.padding.block_start.is_zero() || !pbm.border.block_start.is_zero() {
             return false;
         }
 
@@ -195,7 +195,7 @@ impl BlockLevelBox {
 
         if !block_size_is_zero_or_intrinsic(style.content_block_size(), containing_block) ||
             !block_size_is_zero_or_intrinsic(style.min_block_size(), containing_block) ||
-            pbm.padding_border_sums.block != Au::zero()
+            !pbm.padding_border_sums.block.is_zero()
         {
             return false;
         }
@@ -887,7 +887,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
 
     let computed_block_size = style.content_block_size();
     let start_margin_can_collapse_with_children =
-        pbm.padding.block_start == Au::zero() && pbm.border.block_start == Au::zero();
+        pbm.padding.block_start.is_zero() && pbm.border.block_start.is_zero();
 
     let mut clearance = None;
     let parent_containing_block_position_info;
@@ -1004,14 +1004,14 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     }
 
     let collapsed_through = collapsible_margins_in_children.collapsed_through &&
-        pbm.padding_border_sums.block == Au::zero() &&
+        pbm.padding_border_sums.block.is_zero() &&
         block_size_is_zero_or_intrinsic(computed_block_size, containing_block) &&
         block_size_is_zero_or_intrinsic(style.min_block_size(), containing_block);
     block_margins_collapsed_with_children.collapsed_through = collapsed_through;
 
     let end_margin_can_collapse_with_children = collapsed_through ||
-        (pbm.padding.block_end == Au::zero() &&
-            pbm.border.block_end == Au::zero() &&
+        (pbm.padding.block_end.is_zero() &&
+            pbm.border.block_end.is_zero() &&
             !containing_block_for_children.size.block.is_definite());
     if end_margin_can_collapse_with_children {
         block_margins_collapsed_with_children

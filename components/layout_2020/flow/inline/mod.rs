@@ -1696,7 +1696,7 @@ impl InlineFormattingContext {
         let mut collapsible_margins_in_children = CollapsedBlockMargins::zero();
         let content_block_size = layout.current_line.start_position.block;
         collapsible_margins_in_children.collapsed_through = !layout.had_inflow_content &&
-            content_block_size == Au::zero() &&
+            content_block_size.is_zero() &&
             collapsible_with_parent_start_margin.0;
 
         CacheableLayoutResult {
