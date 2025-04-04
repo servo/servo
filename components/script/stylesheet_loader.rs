@@ -15,6 +15,7 @@ use net_traits::{
 };
 use servo_arc::Arc;
 use servo_url::ServoUrl;
+use style::context::QuirksMode;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
@@ -164,7 +165,8 @@ impl FetchResponseListener for StylesheetContext {
             let is_css = metadata.content_type.is_some_and(|ct| {
                 let mime: Mime = ct.into_inner().into();
                 mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
-            });
+            }) || (document.quirks_mode() == QuirksMode::Quirks &&
+                document.url().origin() == metadata.final_url.origin());
 
             let data = if is_css {
                 let data = std::mem::take(&mut self.data);
