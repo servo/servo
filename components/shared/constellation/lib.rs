@@ -30,9 +30,10 @@ use strum_macros::IntoStaticStr;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::LayoutPixel;
 
-/// Messages to the constellation.
+/// Messages to the Constellation from the embedding layer, whether from `ServoRenderer` or
+/// from `libservo` itself.
 #[derive(IntoStaticStr)]
-pub enum ConstellationMsg {
+pub enum EmbedderToConstellationMessage {
     /// Exit the constellation.
     Exit,
     /// Request that the constellation send the current focused top-level browsing context id,
@@ -96,7 +97,7 @@ pub enum PaintMetricEvent {
     FirstContentfulPaint(CrossProcessInstant, bool /* first_reflow */),
 }
 
-impl fmt::Debug for ConstellationMsg {
+impl fmt::Debug for EmbedderToConstellationMessage {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let variant_string: &'static str = self.into();
         write!(formatter, "ConstellationMsg::{variant_string}")

@@ -80,8 +80,8 @@ use script_layout_interface::{
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, NewLayoutInfo, Painter,
-    ProgressiveWebMetricType, ScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
-    StructuredSerializedData, UpdatePipelineIdReason,
+    ProgressiveWebMetricType, ScriptThreadMessage, ScriptToConstellationChan,
+    ScriptToConstellationMessage, StructuredSerializedData, UpdatePipelineIdReason,
 };
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -609,7 +609,7 @@ impl ScriptThread {
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
                             ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data, CanGc::note());
                             sender
-                                .send((pipeline_id, ScriptMsg::LoadUrl(load_data, history_handling)))
+                                .send((pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
                                 .unwrap();
                         }
                     }
@@ -629,7 +629,10 @@ impl ScriptThread {
                 script_thread
                     .senders
                     .pipeline_to_constellation_sender
-                    .send((pipeline_id, ScriptMsg::LoadUrl(load_data, history_handling)))
+                    .send((
+                        pipeline_id,
+                        ScriptToConstellationMessage::LoadUrl(load_data, history_handling),
+                    ))
                     .expect("Sending a LoadUrl message to the constellation failed");
             }
         });
@@ -1098,7 +1101,7 @@ impl ScriptThread {
                                 touch_event.event_type,
                             )
                         };
-                        let message = ScriptMsg::TouchEventProcessed(result);
+                        let message = ScriptToConstellationMessage::TouchEventProcessed(result);
                         self.senders
                             .pipeline_to_constellation_sender
                             .send((pipeline_id, message))
@@ -2447,7 +2450,10 @@ impl ScriptThread {
         // domain)
         self.senders
             .pipeline_to_constellation_sender
-            .send((id, ScriptMsg::SetThrottledComplete(throttled)))
+            .send((
+                id,
+                ScriptToConstellationMessage::SetThrottledComplete(throttled),
+            ))
             .unwrap();
 
         let window = self.documents.borrow().find_window(id);
@@ -2694,7 +2700,7 @@ impl ScriptThread {
                     }
                     self.senders
                         .pipeline_to_constellation_sender
-                        .send((*id, ScriptMsg::AbortLoadUrl))
+                        .send((*id, ScriptToConstellationMessage::AbortLoadUrl))
                         .unwrap();
                     return None;
                 };
@@ -2752,7 +2758,7 @@ impl ScriptThread {
             debug!("{id}: Sending PipelineExited message to constellation");
             self.senders
                 .pipeline_to_constellation_sender
-                .send((id, ScriptMsg::PipelineExited))
+                .send((id, ScriptToConstellationMessage::PipelineExited))
                 .ok();
 
             // Clear any active animations and unroot all of the associated DOM objects.
@@ -2891,7 +2897,7 @@ impl ScriptThread {
         pipeline_id: PipelineId,
     ) -> Option<(BrowsingContextId, Option<PipelineId>)> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
-        let msg = ScriptMsg::GetBrowsingContextInfo(pipeline_id, result_sender);
+        let msg = ScriptToConstellationMessage::GetBrowsingContextInfo(pipeline_id, result_sender);
         self.senders
             .pipeline_to_constellation_sender
             .send((pipeline_id, msg))
@@ -2907,7 +2913,10 @@ impl ScriptThread {
         browsing_context_id: BrowsingContextId,
     ) -> Option<WebViewId> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
-        let msg = ScriptMsg::GetTopForBrowsingContext(browsing_context_id, result_sender);
+        let msg = ScriptToConstellationMessage::GetTopForBrowsingContext(
+            browsing_context_id,
+            result_sender,
+        );
         self.senders
             .pipeline_to_constellation_sender
             .send((sender_pipeline, msg))
@@ -3029,7 +3038,7 @@ impl ScriptThread {
                 .pipeline_to_constellation_sender
                 .send((
                     incomplete.pipeline_id,
-                    ScriptMsg::SetFinalUrl(final_url.clone()),
+                    ScriptToConstellationMessage::SetFinalUrl(final_url.clone()),
                 ))
                 .unwrap();
         }
@@ -3221,7 +3230,10 @@ impl ScriptThread {
 
         self.senders
             .pipeline_to_constellation_sender
-            .send((incomplete.pipeline_id, ScriptMsg::ActivateDocument))
+            .send((
+                incomplete.pipeline_id,
+                ScriptToConstellationMessage::ActivateDocument,
+            ))
             .unwrap();
 
         // Notify devtools that a new script global exists.

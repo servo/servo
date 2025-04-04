@@ -63,8 +63,8 @@ use script_layout_interface::{
     TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use script_traits::{
-    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptMsg, ScriptThreadMessage,
-    ScriptToConstellationChan, StructuredSerializedData,
+    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptThreadMessage,
+    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
@@ -904,7 +904,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                         // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.
                         window.discard_browsing_context();
 
-                        window.send_to_constellation(ScriptMsg::DiscardTopLevelBrowsingContext);
+                        window.send_to_constellation(ScriptToConstellationMessage::DiscardTopLevelBrowsingContext);
                     }
                 });
                 self.as_global_scope()
@@ -2047,7 +2047,7 @@ impl Window {
             .iframes_mut()
             .handle_new_iframe_sizes_after_layout(results.iframe_sizes);
         if !size_messages.is_empty() {
-            self.send_to_constellation(ScriptMsg::IFrameSizes(size_messages));
+            self.send_to_constellation(ScriptToConstellationMessage::IFrameSizes(size_messages));
         }
         document
             .image_animation_manager_mut()
@@ -2145,7 +2145,7 @@ impl Window {
                     "{:?}: Sending DocumentState::Idle to Constellation",
                     self.pipeline_id()
                 );
-                let event = ScriptMsg::SetDocumentState(DocumentState::Idle);
+                let event = ScriptToConstellationMessage::SetDocumentState(DocumentState::Idle);
                 self.send_to_constellation(event);
                 self.has_sent_idle_message.set(true);
             }
@@ -2227,7 +2227,7 @@ impl Window {
             self.pipeline_id()
         );
         let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let event = ScriptMsg::SetLayoutEpoch(epoch, sender);
+        let event = ScriptToConstellationMessage::SetLayoutEpoch(epoch, sender);
         self.send_to_constellation(event);
         let _ = receiver.recv();
     }
@@ -2445,7 +2445,7 @@ impl Window {
             // Step 6
             // TODO: Fragment handling appears to have moved to step 13
             if let Some(fragment) = load_data.url.fragment() {
-                self.send_to_constellation(ScriptMsg::NavigatedToFragment(
+                self.send_to_constellation(ScriptToConstellationMessage::NavigatedToFragment(
                     load_data.url.clone(),
                     history_handling,
                 ));
@@ -2769,10 +2769,10 @@ impl Window {
     }
 
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
-        self.send_to_constellation(ScriptMsg::ForwardToEmbedder(msg));
+        self.send_to_constellation(ScriptToConstellationMessage::ForwardToEmbedder(msg));
     }
 
-    pub(crate) fn send_to_constellation(&self, msg: ScriptMsg) {
+    pub(crate) fn send_to_constellation(&self, msg: ScriptToConstellationMessage) {
         self.as_global_scope()
             .script_to_constellation_chan()
             .send(msg)

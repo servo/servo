@@ -31,7 +31,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
 use script_traits::{
     AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    NewLayoutInfo, ScriptMsg,
+    NewLayoutInfo, ScriptToConstellationMessage,
 };
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -314,7 +314,7 @@ impl WindowProxy {
             opener_pipeline_id: self.currently_active.get().unwrap(),
             response_sender,
         };
-        let constellation_msg = ScriptMsg::CreateAuxiliaryWebView(load_info);
+        let constellation_msg = ScriptToConstellationMessage::CreateAuxiliaryWebView(load_info);
         window.send_to_constellation(constellation_msg);
 
         let response = response_receiver.recv().unwrap()?;
@@ -863,7 +863,7 @@ unsafe fn GetSubframeWindowProxy(
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 
             let _ = win.as_global_scope().script_to_constellation_chan().send(
-                ScriptMsg::GetChildBrowsingContextId(
+                ScriptToConstellationMessage::GetChildBrowsingContextId(
                     browsing_context_id,
                     index as usize,
                     result_sender,
@@ -882,7 +882,7 @@ unsafe fn GetSubframeWindowProxy(
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 
             let _ = win.global().script_to_constellation_chan().send(
-                ScriptMsg::GetChildBrowsingContextId(
+                ScriptToConstellationMessage::GetChildBrowsingContextId(
                     browsing_context_id,
                     index as usize,
                     result_sender,

@@ -54,9 +54,9 @@ pub enum TouchEventResult {
     DefaultPrevented(TouchSequenceId, TouchEventType),
 }
 
-/// Messages from the script to the constellation.
+/// Messages sent from the `ScriptThread` to the `Constellation`.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
-pub enum ScriptMsg {
+pub enum ScriptToConstellationMessage {
     /// Request to complete the transfer of a set of ports to a router.
     CompleteMessagePortTransfer(MessagePortRouterId, Vec<MessagePortId>),
     /// The results of attempting to complete the transfer of a batch of ports.
@@ -219,7 +219,7 @@ pub enum ScriptMsg {
     ReportMemory(IpcSender<MemoryReportResult>),
 }
 
-impl fmt::Debug for ScriptMsg {
+impl fmt::Debug for ScriptToConstellationMessage {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let variant_string: &'static str = self.into();
         write!(formatter, "ScriptMsg::{variant_string}")

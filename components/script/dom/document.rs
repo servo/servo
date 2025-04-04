@@ -54,7 +54,8 @@ use profile_traits::time::TimerMetadataFrameType;
 use script_bindings::interfaces::DocumentHelpers;
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{
-    AnimationState, ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType, ScriptMsg,
+    AnimationState, ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType,
+    ScriptToConstellationMessage,
 };
 use servo_arc::Arc;
 use servo_config::pref;
@@ -1178,7 +1179,8 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                self.window().send_to_constellation(ScriptMsg::Focus);
+                self.window()
+                    .send_to_constellation(ScriptToConstellationMessage::Focus);
             }
 
             // Notify the embedder to display an input method.
@@ -1223,10 +1225,11 @@ impl Document {
         if self.browsing_context().is_some() {
             self.send_title_to_embedder();
             let title = String::from(self.Title());
-            self.window.send_to_constellation(ScriptMsg::TitleChanged(
-                self.window.pipeline_id(),
-                title.clone(),
-            ));
+            self.window
+                .send_to_constellation(ScriptToConstellationMessage::TitleChanged(
+                    self.window.pipeline_id(),
+                    title.clone(),
+                ));
             if let Some(chan) = self.window.as_global_scope().devtools_chan() {
                 let _ = chan.send(ScriptToDevtoolsControlMsg::TitleChanged(
                     self.window.pipeline_id(),
@@ -1665,7 +1668,7 @@ impl Document {
             ClipboardEventType::Paste => {
                 let (sender, receiver) = ipc::channel().unwrap();
                 self.window
-                    .send_to_constellation(ScriptMsg::ForwardToEmbedder(
+                    .send_to_constellation(ScriptToConstellationMessage::ForwardToEmbedder(
                         EmbedderMsg::GetClipboardText(self.window.webview_id(), sender),
                     ));
                 let text_contents = receiver
@@ -2343,8 +2346,9 @@ impl Document {
             // This reduces CPU usage by avoiding needless thread wakeups in the common case of
             // repeated rAF.
 
-            let event =
-                ScriptMsg::ChangeRunningAnimationsState(AnimationState::AnimationCallbacksPresent);
+            let event = ScriptToConstellationMessage::ChangeRunningAnimationsState(
+                AnimationState::AnimationCallbacksPresent,
+            );
             self.window().send_to_constellation(event);
         }
 
@@ -2439,7 +2443,7 @@ impl Document {
                 // to expliclty trigger a OneshotTimerCallback for these queued callbacks.
                 self.schedule_fake_animation_frame();
             }
-            let event = ScriptMsg::ChangeRunningAnimationsState(
+            let event = ScriptToConstellationMessage::ChangeRunningAnimationsState(
                 AnimationState::NoAnimationCallbacksPresent,
             );
             self.window().send_to_constellation(event);
@@ -2448,10 +2452,11 @@ impl Document {
         // If we were previously faking animation frames, we need to re-enable video refresh
         // callbacks when we stop seeing spurious animation frames.
         if was_faking_animation_frames && !self.is_faking_animation_frames() && !is_empty {
-            self.window()
-                .send_to_constellation(ScriptMsg::ChangeRunningAnimationsState(
+            self.window().send_to_constellation(
+                ScriptToConstellationMessage::ChangeRunningAnimationsState(
                     AnimationState::AnimationCallbacksPresent,
-                ));
+                ),
+            );
         }
     }
 
@@ -2690,7 +2695,7 @@ impl Document {
         if !self.salvageable.get() {
             // Step 1 of clean-up steps.
             global_scope.close_event_sources();
-            let msg = ScriptMsg::DiscardDocument;
+            let msg = ScriptToConstellationMessage::DiscardDocument;
             let _ = global_scope.script_to_constellation_chan().send(msg);
         }
         // https://w3c.github.io/FileAPI/#lifeTime
@@ -3064,7 +3069,8 @@ impl Document {
     }
 
     pub(crate) fn notify_constellation_load(&self) {
-        self.window().send_to_constellation(ScriptMsg::LoadComplete);
+        self.window()
+            .send_to_constellation(ScriptToConstellationMessage::LoadComplete);
     }
 
     pub(crate) fn set_current_parser(&self, script: Option<&ServoParser>) {

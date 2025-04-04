@@ -55,10 +55,10 @@ use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver};
 ))]
 use constellation::content_process_sandbox_profile;
 use constellation::{
-    Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState,
+    Constellation, FromEmbedderLogger, FromScriptLogger, InitialConstellationState,
     UnprivilegedContent,
 };
-use constellation_traits::ConstellationMsg;
+use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::*;
@@ -128,12 +128,12 @@ pub use crate::webview_delegate::{
 };
 
 #[cfg(feature = "webdriver")]
-fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
+fn webdriver(port: u16, constellation: Sender<EmbedderToConstellationMessage>) {
     webdriver_server::start_server(port, constellation);
 }
 
 #[cfg(not(feature = "webdriver"))]
-fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
+fn webdriver(_port: u16, _constellation: Sender<EmbedderToConstellationMessage>) {}
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
@@ -606,7 +606,7 @@ impl Servo {
         let constellation_chan = self.constellation_proxy.sender();
         let env = env_logger::Env::default();
         let env_logger = EnvLoggerBuilder::from_env(env).build();
-        let con_logger = FromCompositorLogger::new(constellation_chan);
+        let con_logger = FromEmbedderLogger::new(constellation_chan);
 
         let filter = max(env_logger.filter(), con_logger.filter());
         let logger = BothLogger(env_logger, con_logger);
@@ -622,7 +622,8 @@ impl Servo {
         }
 
         debug!("Sending Exit message to Constellation");
-        self.constellation_proxy.send(ConstellationMsg::Exit);
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::Exit);
         self.shutdown_state.set(ShutdownState::ShuttingDown);
     }
 
@@ -642,11 +643,12 @@ impl Servo {
             .borrow_mut()
             .insert(webview.id(), webview.weak_handle());
         let viewport_details = self.compositor.borrow().default_webview_viewport_details();
-        self.constellation_proxy.send(ConstellationMsg::NewWebView(
-            url.into(),
-            webview.id(),
-            viewport_details,
-        ));
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::NewWebView(
+                url.into(),
+                webview.id(),
+                viewport_details,
+            ));
         webview
     }
 
@@ -1048,7 +1050,7 @@ fn create_constellation(
     #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
     protocols: ProtocolRegistry,
     user_content_manager: UserContentManager,
-) -> Sender<ConstellationMsg> {
+) -> Sender<EmbedderToConstellationMessage> {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
 

@@ -7,7 +7,7 @@ use ipc_channel::ipc::IpcSender;
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use profile_traits::ipc;
-use script_traits::ScriptMsg;
+use script_traits::ScriptToConstellationMessage;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
@@ -195,7 +195,9 @@ impl Storage {
     ) {
         let storage = self.storage_type;
         let url = self.get_url();
-        let msg = ScriptMsg::BroadcastStorageEvent(storage, url, key, old_value, new_value);
+        let msg = ScriptToConstellationMessage::BroadcastStorageEvent(
+            storage, url, key, old_value, new_value,
+        );
         self.global()
             .script_to_constellation_chan()
             .send(msg)
