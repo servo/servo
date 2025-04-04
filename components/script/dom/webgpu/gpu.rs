@@ -7,9 +7,8 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use script_traits::ScriptMsg;
-use webgpu::wgc;
-use webgpu::wgt::PowerPreference;
 use webgpu_traits::WebGPUAdapterResponse;
+use wgpu_types::PowerPreference;
 
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -69,7 +68,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
         if script_to_constellation_chan
             .send(ScriptMsg::RequestAdapter(
                 sender,
-                wgc::instance::RequestAdapterOptions {
+                wgpu_core::instance::RequestAdapterOptions {
                     power_preference,
                     compatible_surface: None,
                     force_fallback_adapter: options.forceFallbackAdapter,

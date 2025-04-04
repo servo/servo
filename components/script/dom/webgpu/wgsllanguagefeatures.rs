@@ -7,7 +7,7 @@
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use js::rust::HandleObject;
-use webgpu::wgc::naga::front::wgsl::ImplementedLanguageExtension;
+use wgpu_core::naga::front::wgsl::ImplementedLanguageExtension;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::WGSLLanguageFeaturesMethods;
