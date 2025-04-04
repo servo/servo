@@ -1215,6 +1215,7 @@ impl IndependentNonReplacedContents {
             content_box_sizes,
             pbm,
             depends_on_block_constraints,
+            ..
         } = self
             .layout_style(base)
             .content_box_sizes_and_padding_border_margin(&containing_block.into());
@@ -1696,6 +1697,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         content_box_sizes,
         pbm,
         depends_on_block_constraints,
+        ..
     } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
 
     let pbm_sums = pbm.sums_auto_is_zero(ignore_block_margins_for_stretch);
