@@ -2282,10 +2282,10 @@ class CGImports(CGWrapper):
                 parentName = descriptor.getParentName()
                 while parentName:
                     descriptor = descriptorProvider.getDescriptor(parentName)
-                    extras += [descriptor.path, descriptor.bindingPath]
+                    extras += [descriptor.bindingPath]
                     parentName = descriptor.getParentName()
             elif t.isType() and t.isRecord():
-                extras += ['script_bindings::record::Record']
+                extras += ['crate::record::Record']
             elif isinstance(t, IDLPromiseType):
                 pass
             else:
@@ -2316,7 +2316,7 @@ class CGTemplatedType(CGWrapper):
 
 class CGNamespace(CGWrapper):
     def __init__(self, namespace, child, public=False):
-        pub = "pub(crate) " if public else ""
+        pub = "pub " if public else ""
         pre = f"{pub}mod {namespace} {{\n"
         post = f"}} // mod {namespace}"
         CGWrapper.__init__(self, child, pre=pre, post=post)
@@ -2337,15 +2337,15 @@ def DOMClassTypeId(desc):
     inner = ""
     if desc.hasDescendants():
         if desc.interface.getExtendedAttribute("Abstract"):
-            return "script_bindings::codegen::InheritTypes::TopTypeId { abstract_: () }"
+            return "crate::codegen::InheritTypes::TopTypeId { abstract_: () }"
         name = desc.interface.identifier.name
-        inner = f"(script_bindings::codegen::InheritTypes::{name}TypeId::{name})"
+        inner = f"(crate::codegen::InheritTypes::{name}TypeId::{name})"
     elif len(protochain) == 1:
-        return "script_bindings::codegen::InheritTypes::TopTypeId { alone: () }"
+        return "crate::codegen::InheritTypes::TopTypeId { alone: () }"
     reversed_protochain = list(reversed(protochain))
     for (child, parent) in zip(reversed_protochain, reversed_protochain[1:]):
-        inner = f"(script_bindings::codegen::InheritTypes::{parent}TypeId::{child}{inner})"
-    return f"script_bindings::codegen::InheritTypes::TopTypeId {{ {protochain[0].lower()}: {inner} }}"
+        inner = f"(crate::codegen::InheritTypes::{parent}TypeId::{child}{inner})"
+    return f"crate::codegen::InheritTypes::TopTypeId {{ {protochain[0].lower()}: {inner} }}"
 
 
 def DOMClass(descriptor):
@@ -2421,7 +2421,7 @@ pub(crate) fn init_class_ops<D: DomTypes>() {{
     }});
 }}
 
-pub(crate) static Class: ThreadUnsafeOnceLock<DOMJSClass> = ThreadUnsafeOnceLock::new();
+pub static Class: ThreadUnsafeOnceLock<DOMJSClass> = ThreadUnsafeOnceLock::new();
 
 pub(crate) fn init_domjs_class<D: DomTypes>() {{
     init_class_ops::<D>();
@@ -2637,13 +2637,10 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
     """
 
     imports = [
-        'crate::dom',
-        'crate::dom::bindings::import::base::*',
-        'crate::dom::bindings::codegen::DomTypes::DomTypes',
-        'crate::dom::bindings::conversions::windowproxy_from_handlevalue',
-        'script_bindings::record::Record',
-        'crate::dom::types::*',
-        'crate::dom::windowproxy::WindowProxy',
+        'crate::import::base::*',
+        'crate::codegen::DomTypes::DomTypes',
+        'crate::conversions::windowproxy_from_handlevalue',
+        'crate::record::Record',
         'js::typedarray',
     ]
 
@@ -2679,13 +2676,13 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
 
 def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs, config):
     traits = [
-        "crate::dom::bindings::utils::DomHelpers<Self>",
+        "crate::interfaces::DomHelpers<Self>",
         "js::rust::Trace",
         "malloc_size_of::MallocSizeOf",
         "Sized",
     ]
     joinedTraits = ' + '.join(traits)
-    elements = [CGGeneric(f"pub(crate) trait DomTypes: {joinedTraits} where Self: 'static {{\n")]
+    elements = [CGGeneric(f"pub trait DomTypes: {joinedTraits} where Self: 'static {{\n")]
 
     def fixupInterfaceTypeReferences(typename):
         return typename.replace("D::", "Self::")
@@ -2705,10 +2702,10 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
             chain = chain[:-1]
 
         if chain:
-            traits += ["crate::dom::bindings::inheritance::Castable"]
+            traits += ["crate::inheritance::Castable"]
 
         for parent in chain:
-            traits += [f"crate::dom::bindings::conversions::DerivedFrom<Self::{parent}>"]
+            traits += [f"crate::conversions::DerivedFrom<Self::{parent}>"]
 
         iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
         if iterableDecl:
@@ -2719,27 +2716,27 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
                 valuetype = fixupInterfaceTypeReferences(
                     getRetvalDeclarationForType(iterableDecl.valueType, descriptor).define()
                 )
-                traits += [f"crate::dom::bindings::like::Maplike<Key={keytype}, Value={valuetype}>"]
+                traits += [f"crate::like::Maplike<Key={keytype}, Value={valuetype}>"]
             if iterableDecl.isSetlike():
                 keytype = fixupInterfaceTypeReferences(
                     getRetvalDeclarationForType(iterableDecl.keyType, descriptor).define()
                 )
-                traits += [f"crate::dom::bindings::like::Setlike<Key={keytype}>"]
+                traits += [f"crate::like::Setlike<Key={keytype}>"]
             if iterableDecl.hasKeyType():
                 traits += [
-                    "crate::dom::bindings::reflector::DomObjectIteratorWrap<Self>",
-                    "crate::dom::bindings::iterable::IteratorDerives",
+                    "crate::reflector::DomObjectIteratorWrap<Self>",
+                    "crate::iterable::IteratorDerives",
                 ]
 
         if descriptor.weakReferenceable:
-            traits += ["crate::dom::bindings::weakref::WeakReferenceable"]
+            traits += ["crate::weakref::WeakReferenceable"]
 
         if not descriptor.interface.isNamespace():
             traits += [
                 "js::conversions::ToJSValConvertible",
-                "crate::dom::bindings::reflector::MutDomObject",
-                "crate::dom::bindings::reflector::DomObject",
-                "crate::dom::bindings::reflector::DomGlobalGeneric<Self>",
+                "crate::reflector::MutDomObject",
+                "crate::reflector::DomObject",
+                "crate::reflector::DomGlobalGeneric<Self>",
                 "malloc_size_of::MallocSizeOf",
             ]
 
@@ -2750,12 +2747,12 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
                 and not descriptor.interface.isIteratorInterface()
             ):
                 traits += [
-                    "crate::dom::bindings::conversions::IDLInterface",
+                    "crate::conversions::IDLInterface",
                     "PartialEq",
                 ]
 
             if descriptor.concrete and not descriptor.isGlobal():
-                traits += ["crate::dom::bindings::reflector::DomObjectWrap<Self>"]
+                traits += ["crate::reflector::DomObjectWrap<Self>"]
 
         if not descriptor.interface.isCallback() and not descriptor.interface.isIteratorInterface():
             nonConstMembers = [m for m in descriptor.interface.members if not m.isConst()]
@@ -2766,7 +2763,7 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
                     or descriptor.interface.legacyFactoryFunctions
             ):
                 namespace = f"{toBindingPath(descriptor)}"
-                traits += [f"crate::dom::bindings::codegen::Bindings::{namespace}::{iface_name}Methods<Self>"]
+                traits += [f"crate::codegen::GenericBindings::{namespace}::{iface_name}Methods<Self>"]
             isPromise = firstCap(iface_name) == "Promise"
             elements += [
                 CGGeneric("    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]\n"),
@@ -2778,8 +2775,8 @@ def DomTypes(descriptors, descriptorProvider, dictionaries, callbacks, typedefs,
             ]
     elements += [CGGeneric("}\n")]
     imports = [
-        CGGeneric("use crate::dom::bindings::root::DomRoot;\n"),
-        CGGeneric("use crate::dom::bindings::str::DOMString;\n"),
+        CGGeneric("use crate::root::DomRoot;\n"),
+        CGGeneric("use crate::str::DOMString;\n"),
     ]
     return CGList(imports + elements)
 
@@ -3403,7 +3400,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
         self.toJSONMethod = toJSONMethod
 
     def definition_body(self):
-        ret = """let incumbent_global = GlobalScope::incumbent().expect("no incumbent global");
+        ret = """let incumbent_global = D::GlobalScope::incumbent().expect("no incumbent global");
 let global = incumbent_global.reflector().get_jsobject();\n"""
         interface = self.descriptor.interface
         for m in interface.members:
@@ -4322,7 +4319,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
 
     def definition_body(self):
         ret = dedent("""
-            use crate::dom::bindings::inheritance::HasParent;
+            use crate::inheritance::HasParent;
             rooted!(in(cx) let result = JS_NewPlainObject(cx));
             if result.is_null() {
               return false;
@@ -4965,7 +4962,7 @@ class CGEnum(CGThing):
         decl = f"""
 #[repr(usize)]
 #[derive({derives})]
-pub(crate) enum {ident} {{
+pub enum {ident} {{
     {enums}
 }}
 """
@@ -4974,10 +4971,10 @@ pub(crate) enum {ident} {{
                                 for val in list(enum.values())])
 
         inner = f"""
-use crate::dom::bindings::conversions::ConversionResult;
-use crate::dom::bindings::conversions::FromJSValConvertible;
-use crate::dom::bindings::conversions::ToJSValConvertible;
-use crate::dom::bindings::utils::find_enum_value;
+use crate::utils::find_enum_value;
+use js::conversions::ConversionResult;
+use js::conversions::FromJSValConvertible;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::JSContext;
 use js::rust::HandleValue;
 use js::rust::MutableHandleValue;
@@ -4988,7 +4985,7 @@ pub(crate) const pairs: &[(&str, super::{ident})] = &[
 ];
 
 impl super::{ident} {{
-    pub(crate) fn as_str(&self) -> &'static str {{
+    pub fn as_str(&self) -> &'static str {{
         pairs[*self as usize].0
     }}
 }}
@@ -5077,7 +5074,7 @@ class CGConstant(CGThing):
         elif tag == IDLType.Tags.double:
             const_type = "f64"
 
-        return f"pub(crate) const {name}: {const_type} = {value};\n"
+        return f"pub const {name}: {const_type} = {value};\n"
 
 
 def getUnionTypeTemplateVars(type, descriptorProvider):
@@ -5208,7 +5205,7 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
         manualImpls = "\n".join(map(lambda t: self.manualImpl(t, templateVars), self.manualImpls))
         return f"""
 #[derive({", ".join(derives)})]
-pub(crate) enum {self.type}{self.generic} {{
+pub enum {self.type}{self.generic} {{
 {joinedEnumValues}
 }}
 
@@ -5589,7 +5586,7 @@ class ClassConstructor(ClassItem):
 
         name = cgClass.getNameString().replace(': DomTypes', '')
         return f"""
-pub(crate) unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
+pub unsafe fn {self.getDecorators(True)}new({args}) -> Rc<{name}>{body}
 """
 
     def define(self, cgClass):
@@ -5681,7 +5678,7 @@ class CGClass(CGThing):
         myself = ''
         if self.decorators != '':
             myself += f'{self.decorators}\n'
-        myself += f'{self.indent}pub(crate) struct {self.name}{specialization}'
+        myself += f'{self.indent}pub struct {self.name}{specialization}'
         result += myself
 
         assert len(self.bases) == 1  # XXjdm Can we support multiple inheritance?
@@ -5689,7 +5686,7 @@ class CGClass(CGThing):
         result += ' {\n'
 
         if self.bases:
-            self.members = [ClassMember("parent", self.bases[0].name, "pub(crate)")] + self.members
+            self.members = [ClassMember("parent", self.bases[0].name, "pub")] + self.members
 
         result += CGIndenter(CGGeneric(self.extradeclarations),
                              len(self.indent)).define()
@@ -6590,7 +6587,7 @@ class CGDOMJSProxyHandlerDOMClass(CGThing):
 
     def define(self):
         return f"""
-pub(crate) static Class: ThreadUnsafeOnceLock<DOMClass> = ThreadUnsafeOnceLock::new();
+pub static Class: ThreadUnsafeOnceLock<DOMClass> = ThreadUnsafeOnceLock::new();
 
 pub(crate) fn init_proxy_handler_dom_class<D: DomTypes>() {{
     Class.set({DOMClass(self.descriptor)});
@@ -6758,7 +6755,7 @@ class CGInterfaceTrait(CGThing):
 
         name = descriptor.interface.identifier.name
         self.cgRoot = CGWrapper(CGIndenter(CGList(methods, "")),
-                                pre=f"pub(crate) trait {name}Methods<D: DomTypes> {{\n",
+                                pre=f"pub trait {name}Methods<D: DomTypes> {{\n",
                                 post="}")
         self.empty = not methods
 
@@ -6793,7 +6790,7 @@ class CGInitStatics(CGThing):
         ] for name in nonempty]
         flat_specs = [x for xs in specs for x in xs]
         specs = '\n'.join(flat_specs)
-        module = f"crate::dom::bindings::codegen::Bindings::{toBindingPath(descriptor)}"
+        module = f"crate::codegen::GenericBindings::{toBindingPath(descriptor)}"
         relevantMethods = [
             m for m in descriptor.interface.members if m.isMethod()
         ] if not descriptor.interface.isCallback() else []
@@ -7055,8 +7052,7 @@ class CGDescriptor(CGThing):
         # These are inside the generated module
         cgThings = CGImports(cgThings, descriptors=[descriptor], callbacks=[],
                              dictionaries=[], enums=[], typedefs=[], imports=[
-            'crate::dom',
-            'crate::dom::bindings::import::module::*',
+            'crate::import::module::*',
         ], config=config)
 
         cgThings = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
@@ -7066,7 +7062,7 @@ class CGDescriptor(CGThing):
         if reexports:
             reexports = ', '.join([reexportedName(name) for name in reexports])
             namespace = toBindingNamespace(descriptor.name)
-            cgThings = CGList([CGGeneric(f'pub(crate) use self::{namespace}::{{{reexports}}};'),
+            cgThings = CGList([CGGeneric(f'pub use self::{namespace}::{{{reexports}}};'),
                                cgThings], '\n')
 
         self.cgRoot = cgThings
@@ -7171,10 +7167,10 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             typeName += parentSuffix
             if type_needs_tracing(d.parent):
                 typeName = f"RootedTraceableBox<{typeName}>"
-            inheritance = f"    pub(crate) parent: {typeName},\n"
+            inheritance = f"    pub parent: {typeName},\n"
         else:
             inheritance = ""
-        memberDecls = [f"    pub(crate) {self.makeMemberName(m[0].identifier.name)}: {self.getMemberType(m)},"
+        memberDecls = [f"    pub {self.makeMemberName(m[0].identifier.name)}: {self.getMemberType(m)},"
                        for m in self.memberInfo]
 
         derive = ["JSTraceable"] + self.derives
@@ -7216,7 +7212,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         return (
             f"#[derive({', '.join(derive)})]\n"
             f"{mustRoot}"
-            f"pub(crate) struct {self.makeClassName(d)}{self.generic} {{\n"
+            f"pub struct {self.makeClassName(d)}{self.generic} {{\n"
             f"{inheritance}"
             f"{joinedMemberDecls}\n"
             "}\n"
@@ -7290,7 +7286,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         return (
             f"impl{self.generic} {selfName}{self.genericSuffix} {{\n"
             f"{CGIndenter(CGGeneric(self.makeEmpty()), indentLevel=4).define()}\n"
-            "    pub(crate) fn new(cx: SafeJSContext, val: HandleValue) \n"
+            "    pub fn new(cx: SafeJSContext, val: HandleValue) \n"
             f"                      -> Result<ConversionResult<{actualType}>, ()> {{\n"
             f"        {unsafe_if_necessary} {{\n"
             "            let object = if val.get().is_null_or_undefined() {\n"
@@ -7320,7 +7316,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "\n"
             f"impl{self.generic} {selfName}{self.genericSuffix} {{\n"
             "    #[allow(clippy::wrong_self_convention)]\n"
-            "    pub(crate) unsafe fn to_jsobject(&self, cx: *mut JSContext, mut obj: MutableHandleObject) {\n"
+            "    pub unsafe fn to_jsobject(&self, cx: *mut JSContext, mut obj: MutableHandleObject) {\n"
             f"{CGIndenter(CGList(memberInserts), indentLevel=8).define()}    }}\n"
             "}\n"
             "\n"
@@ -7396,7 +7392,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         parentTemplate = "parent: %s::%s::empty(),\n"
         fieldTemplate = "%s: %s,\n"
         functionTemplate = (
-            "pub(crate) fn empty() -> Self {\n"
+            "pub fn empty() -> Self {\n"
             "    Self {\n"
             "%s"
             "    }\n"
@@ -7406,7 +7402,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             parentTemplate = "dictionary.parent = %s::%s::empty();\n"
             fieldTemplate = "dictionary.%s = %s;\n"
             functionTemplate = (
-                "pub(crate) fn empty() -> RootedTraceableBox<Self> {\n"
+                "pub fn empty() -> RootedTraceableBox<Self> {\n"
                 "    let mut dictionary = RootedTraceableBox::new(Self::default());\n"
                 "%s"
                 "    dictionary\n"
@@ -7463,7 +7459,7 @@ class CGInitAllStatics(CGAbstractMethod):
 
     def definition_body(self):
         return CGList([
-            CGGeneric(f"    Bindings::{toBindingModuleFileFromDescriptor(desc)}::{toBindingNamespace(desc.name)}"
+            CGGeneric(f"    GenericBindings::{toBindingModuleFileFromDescriptor(desc)}::{toBindingNamespace(desc.name)}"
                       "::init_statics::<D>();")
             for desc in self.descriptors
         ], "\n")
@@ -7473,18 +7469,21 @@ class CGRegisterProxyHandlersMethod(CGAbstractMethod):
     def __init__(self, descriptors):
         docs = "Create the global vtables used by the generated DOM bindings to implement JS proxies."
         CGAbstractMethod.__init__(self, None, 'RegisterProxyHandlers', 'void', [],
-                                  unsafe=True, pub=True, docs=docs, templateArgs=["D: DomTypes"])
+                                  pub=True, docs=docs, templateArgs=["D: DomTypes"])
         self.descriptors = descriptors
 
     def definition_body(self):
-        return CGList([
+        body = [CGGeneric("unsafe {")]
+        body += [
             CGGeneric(f"proxy_handlers::{desc.name}.store(\n"
-                      f"    Bindings::{toBindingModuleFile(desc.name)}::{toBindingNamespace(desc.name)}"
+                      f"    GenericBindings::{toBindingModuleFile(desc.name)}::{toBindingNamespace(desc.name)}"
                       "::DefineProxyHandler::<D>() as *mut _,\n"
                       "    std::sync::atomic::Ordering::Release,\n"
                       ");")
             for desc in self.descriptors
-        ], "\n")
+        ]
+        body += [CGGeneric("}")]
+        return CGList(body, "\n")
 
 
 class CGRegisterProxyHandlers(CGThing):
@@ -7687,11 +7686,11 @@ class CGBindingRoot(CGThing):
 
             if t.innerType.isUnion() and not t.innerType.nullable():
                 # Allow using the typedef's name for accessing variants.
-                typeDefinition = f"pub(crate) use self::{type.replace('<D>', '')} as {name};"
+                typeDefinition = f"pub use self::{type.replace('<D>', '')} as {name};"
             else:
                 generic = "<D>" if containsDomInterface(t.innerType) else ""
                 replacedType = type.replace("D::", "<D as DomTypes>::")
-                typeDefinition = f"pub(crate) type {name}{generic} = {replacedType};"
+                typeDefinition = f"pub type {name}{generic} = {replacedType};"
 
             cgthings.append(CGGeneric(typeDefinition))
 
@@ -7719,7 +7718,7 @@ class CGBindingRoot(CGThing):
         # These are the global imports (outside of the generated module)
         curr = CGImports(curr, descriptors=callbackDescriptors, callbacks=mainCallbacks,
                          dictionaries=dictionaries, enums=enums, typedefs=typedefs,
-                         imports=['crate::dom::bindings::import::base::*'], config=config)
+                         imports=['crate::import::base::*'], config=config)
 
         # Add the auto-generated comment.
         curr = CGWrapper(curr, pre=f"{AUTOGENERATED_WARNING_COMMENT}{ALLOWED_WARNINGS}")
@@ -8589,7 +8588,7 @@ class GlobalGenRoots():
         ], "\n")
 
         return CGImports(code, descriptors=[], callbacks=[], dictionaries=[], enums=[], typedefs=[], imports=[
-            'crate::dom::bindings::codegen::Bindings',
+            'crate::codegen::GenericBindings',
             'crate::DomTypes',
         ], config=config)
 
@@ -8616,7 +8615,7 @@ class GlobalGenRoots():
                        | set(leafModule(d) for d in config.getDictionaries()))
         curr = CGList([CGGeneric(
             "#[allow(clippy::derivable_impls)]\n"
-            f"pub(crate) mod {name};\n"
+            f"pub mod {name};\n"
         ) for name in sorted(descriptors)])
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
@@ -8663,6 +8662,7 @@ class GlobalGenRoots():
             if base in topTypes:
                 typeIdCode.append(CGGeneric(f"""
 impl {base} {{
+    #[allow(dead_code)]
     pub(crate) fn type_id(&self) -> &'static {base}TypeId {{
         unsafe {{
             &get_dom_class(self.reflector().get_jsobject().get())
@@ -8752,7 +8752,7 @@ impl Clone for TopTypeId {
             unions.add(name)
             generic = "<crate::DomTypeHolder>" if containsDomInterface(t) else ""
             cgthings += [CGGeneric(f"pub(crate) type {name} = "
-                                   f"crate::dom::bindings::codegen::GenericUnionTypes::{name}{generic};\n")]
+                                   f"script_bindings::codegen::GenericUnionTypes::{name}{generic};\n")]
         curr = CGList(cgthings)
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr

@@ -9,11 +9,11 @@ use std::ptr;
 
 use js::jsapi::{JSClass, JSFunctionSpec};
 use js::rust::{HandleObject, MutableHandleObject};
-use script_bindings::constant::ConstantSpec;
 
 use crate::DomTypes;
-use crate::dom::bindings::guard::Guard;
-use crate::dom::bindings::interface::{create_object, define_on_global_object};
+use crate::constant::ConstantSpec;
+use crate::guard::Guard;
+use crate::interface::{create_object, define_on_global_object};
 use crate::script_runtime::JSContext;
 
 /// The class of a namespace object.

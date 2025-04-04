@@ -45,13 +45,11 @@ pub(crate) mod document_collection;
 pub(crate) mod iframe_collection;
 pub(crate) mod image_animation;
 pub mod layout_dom;
-mod mem;
 #[allow(unsafe_code)]
 pub(crate) mod messaging;
 mod microtask;
 mod navigation;
 mod network_listener;
-#[allow(dead_code)]
 mod realms;
 mod routed_promise;
 #[allow(dead_code)]
@@ -82,12 +80,12 @@ mod xpath;
 mod svgpath;
 
 pub use init::init;
+pub(crate) use script_bindings::DomTypes;
 pub use script_runtime::JSEngineSetup;
 pub use script_thread::ScriptThread;
 pub use serviceworker_manager::ServiceWorkerManager;
 
 pub(crate) use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
-pub(crate) use crate::dom::bindings::codegen::DomTypes::DomTypes;
 // These trait exports are public, because they are used in the DOM bindings.
 // Since they are used in derive macros,
 // it is useful that they are accessible at the root of the crate.

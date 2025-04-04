@@ -54,6 +54,7 @@ use net_traits::{
     ResourceThreads, fetch_async,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
+use script_bindings::interfaces::GlobalScopeHelpers;
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
@@ -3316,30 +3317,6 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
         0
     );
     root_from_object_static(global).unwrap()
-}
-
-/// Operations that must be invoked from the generated bindings.
-#[allow(unsafe_code)]
-pub(crate) trait GlobalScopeHelpers<D: crate::DomTypes> {
-    unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<D::GlobalScope>;
-    fn get_cx() -> SafeJSContext;
-    unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
-    fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<D::GlobalScope>;
-
-    unsafe fn from_object_maybe_wrapped(
-        obj: *mut JSObject,
-        cx: *mut JSContext,
-    ) -> DomRoot<D::GlobalScope>;
-
-    fn origin(&self) -> &MutableOrigin;
-
-    fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
-
-    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc);
-
-    fn get_url(&self) -> ServoUrl;
-
-    fn is_secure_context(&self) -> bool;
 }
 
 #[allow(unsafe_code)]

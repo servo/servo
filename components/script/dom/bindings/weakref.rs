@@ -8,7 +8,7 @@ use std::ops::{Deref, DerefMut, Drop};
 
 use js::jsapi::JSTracer;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-pub use script_bindings::weakref::*;
+pub(crate) use script_bindings::weakref::*;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::root::DomRoot;
