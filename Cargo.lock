@@ -6378,11 +6378,12 @@ dependencies = [
  "utf-8",
  "uuid",
  "webdriver",
- "webgpu",
  "webgpu_traits",
  "webrender_api",
  "webrender_traits",
  "webxr-api",
+ "wgpu-core",
+ "wgpu-types",
  "xml5ever",
 ]
 

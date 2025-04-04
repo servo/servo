@@ -9,10 +9,9 @@ use std::string::String;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::typedarray::ArrayBuffer;
-use webgpu::wgc::device::HostMap;
-use webgpu::{wgc, wgt};
 use webgpu_traits::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
-use wgc::resource::BufferAccessError;
+use wgpu_core::device::HostMap;
+use wgpu_core::resource::BufferAccessError;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::buffer_source::DataBlock;
@@ -141,10 +140,10 @@ impl GPUBuffer {
         descriptor: &GPUBufferDescriptor,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<GPUBuffer>> {
-        let desc = wgt::BufferDescriptor {
+        let desc = wgpu_types::BufferDescriptor {
             label: (&descriptor.parent).convert(),
-            size: descriptor.size as wgt::BufferAddress,
-            usage: wgt::BufferUsages::from_bits_retain(descriptor.usage),
+            size: descriptor.size as wgpu_types::BufferAddress,
+            usage: wgpu_types::BufferUsages::from_bits_retain(descriptor.usage),
             mapped_at_creation: descriptor.mappedAtCreation,
         };
         let id = device.global().wgpu_id_hub().create_buffer_id();
@@ -310,8 +309,8 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         let mut mapping = self.mapping.borrow_mut();
         let mapping = mapping.as_mut().ok_or(Error::Operation)?;
 
-        let valid = offset % wgt::MAP_ALIGNMENT == 0 &&
-            range_size % wgt::COPY_BUFFER_ALIGNMENT == 0 &&
+        let valid = offset % wgpu_types::MAP_ALIGNMENT == 0 &&
+            range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0 &&
             offset >= mapping.range.start &&
             offset + range_size <= mapping.range.end;
         if !valid {

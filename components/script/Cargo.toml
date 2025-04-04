@@ -132,11 +132,12 @@ url = { workspace = true }
 utf-8 = "0.7"
 uuid = { workspace = true, features = ["serde"] }
 webdriver = { workspace = true }
-webgpu = { path = "../webgpu" }
 webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }
+wgpu-core = { workspace = true }
+wgpu-types = { workspace = true }
 xml5ever = { workspace = true }
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
