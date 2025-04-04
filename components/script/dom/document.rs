@@ -72,7 +72,7 @@ use stylo_atoms::Atom;
 use url::Host;
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
-use webgpu::swapchain::WebGPUContextId;
+use webgpu_traits::WebGPUContextId;
 use webrender_api::units::DeviceIntRect;
 
 use crate::animation_timeline::AnimationTimeline;

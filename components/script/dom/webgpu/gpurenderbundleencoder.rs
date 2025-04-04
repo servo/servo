@@ -8,7 +8,8 @@ use dom_struct::dom_struct;
 use webgpu::wgc::command::{
     RenderBundleEncoder, RenderBundleEncoderDescriptor, bundle_ffi as wgpu_bundle,
 };
-use webgpu::{WebGPU, WebGPURenderBundle, WebGPURequest, wgt};
+use webgpu::wgt;
+use webgpu_traits::{WebGPU, WebGPURenderBundle, WebGPURequest};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;

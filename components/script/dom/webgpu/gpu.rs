@@ -7,8 +7,9 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use script_traits::ScriptMsg;
+use webgpu::wgc;
 use webgpu::wgt::PowerPreference;
-use webgpu::{WebGPUAdapterResponse, wgc};
+use webgpu_traits::WebGPUAdapterResponse;
 
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{

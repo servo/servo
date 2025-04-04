@@ -55,7 +55,7 @@ use strum_macros::IntoStaticStr;
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
-use webgpu::WebGPUMsg;
+use webgpu_traits::WebGPUMsg;
 use webrender_api::units::DevicePixel;
 use webrender_api::{DocumentId, ImageKey};
 use webrender_traits::CrossProcessCompositorApi;

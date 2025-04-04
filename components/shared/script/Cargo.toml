@@ -13,7 +13,7 @@ path = "lib.rs"
 
 [features]
 bluetooth = ["bluetooth_traits"]
-webgpu = []
+webgpu = ["wgpu-core"]
 
 [dependencies]
 background_hang_monitor_api = { workspace = true }
@@ -47,7 +47,8 @@ stylo_atoms = { workspace = true }
 stylo_traits = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }
-webgpu = { path = "../../webgpu" }
+webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"] }
+wgpu-core = { workspace = true, optional = true }

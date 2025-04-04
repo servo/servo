@@ -4,22 +4,21 @@
 
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
-
-pub use crate::wgc::id::markers::{
+pub use wgpu_core::id::markers::{
     ComputePassEncoder as ComputePass, RenderPassEncoder as RenderPass,
 };
-use crate::wgc::id::{
+use wgpu_core::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
     ComputePipelineId, DeviceId, PipelineLayoutId, QueueId, RenderBundleId, RenderPipelineId,
     SamplerId, ShaderModuleId, SurfaceId, TextureId, TextureViewId,
 };
-pub use crate::wgc::id::{
+pub use wgpu_core::id::{
     ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,
 };
 
 macro_rules! webgpu_resource {
     ($name:ident, $id:ty) => {
-        #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
+        #[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, PartialOrd, Serialize)]
         pub struct $name(pub $id);
 
         impl MallocSizeOf for $name {
@@ -51,3 +50,4 @@ webgpu_resource!(WebGPUTexture, TextureId);
 webgpu_resource!(WebGPUTextureView, TextureViewId);
 webgpu_resource!(WebGPUComputePass, ComputePassId);
 webgpu_resource!(WebGPURenderPass, RenderPassId);
+webgpu_resource!(WebGPUContextId, u64);

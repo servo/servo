@@ -7,8 +7,8 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use webgpu::wgc::instance::RequestDeviceError;
-use webgpu::wgt::MemoryHints;
-use webgpu::{WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest, wgt};
+use webgpu::wgt::{self, MemoryHints};
+use webgpu_traits::{WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest};
 
 use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::gpusupportedlimits::set_limit;

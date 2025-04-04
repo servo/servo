@@ -133,6 +133,7 @@ utf-8 = "0.7"
 uuid = { workspace = true, features = ["serde"] }
 webdriver = { workspace = true }
 webgpu = { path = "../webgpu" }
+webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }

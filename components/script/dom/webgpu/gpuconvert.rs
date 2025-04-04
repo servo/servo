@@ -509,7 +509,7 @@ impl<'a> Convert<Option<Cow<'a, str>>> for &GPUObjectDescriptorBase {
 pub(crate) fn convert_bind_group_layout_entry(
     bgle: &GPUBindGroupLayoutEntry,
     device: &GPUDevice,
-) -> Fallible<Result<wgt::BindGroupLayoutEntry, webgpu::Error>> {
+) -> Fallible<Result<wgt::BindGroupLayoutEntry, webgpu_traits::Error>> {
     let number_of_provided_bindings = bgle.buffer.is_some() as u8 +
         bgle.sampler.is_some() as u8 +
         bgle.storageTexture.is_some() as u8 +
@@ -569,7 +569,7 @@ pub(crate) fn convert_bind_group_layout_entry(
     } else {
         ty
     }
-    .ok_or(webgpu::Error::Validation(
+    .ok_or(webgpu_traits::Error::Validation(
         "Exactly on entry type must be provided".to_string(),
     ));
 

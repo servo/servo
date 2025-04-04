@@ -4,9 +4,10 @@
 
 use dom_struct::dom_struct;
 use webgpu::wgc::command as wgpu_com;
-use webgpu::{
+use webgpu::wgt;
+use webgpu_traits::{
     WebGPU, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice,
-    WebGPURenderPass, WebGPURequest, wgt,
+    WebGPURenderPass, WebGPURequest,
 };
 
 use crate::conversions::{Convert, TryConvert};

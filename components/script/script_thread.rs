@@ -91,7 +91,7 @@ use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerScheduler};
 use url::Position;
 #[cfg(feature = "webgpu")]
-use webgpu::{WebGPUDevice, WebGPUMsg};
+use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
 use webrender_traits::CrossProcessCompositorApi;
 

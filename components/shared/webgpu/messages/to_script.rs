@@ -2,26 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! IPC messages that are send to script thread.
+//! IPC messages that are sent to the ScriptThread.
 
 use base::id::PipelineId;
 use serde::{Deserialize, Serialize};
-
-use crate::gpu_error::Error;
-use crate::identity::WebGPUDevice;
-use crate::wgc::id::{
+use wgpu_core::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePassEncoderId,
     ComputePipelineId, DeviceId, PipelineLayoutId, QuerySetId, RenderBundleId, RenderPassEncoderId,
     RenderPipelineId, SamplerId, ShaderModuleId, StagingBufferId, SurfaceId, TextureId,
     TextureViewId,
 };
 
-/// <https://gpuweb.github.io/gpuweb/#enumdef-gpudevicelostreason>
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum DeviceLostReason {
-    Unknown,
-    Destroyed,
-}
+use crate::{DeviceLostReason, Error, WebGPUDevice};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebGPUMsg {

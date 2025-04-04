@@ -10,7 +10,8 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::typedarray::ArrayBuffer;
 use webgpu::wgc::device::HostMap;
-use webgpu::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest, wgc, wgt};
+use webgpu::{wgc, wgt};
+use webgpu_traits::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
 use wgc::resource::BufferAccessError;
 
 use crate::conversions::Convert;
@@ -263,7 +264,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             GPUMapModeConstants::WRITE => HostMap::Write,
             _ => {
                 self.device
-                    .dispatch_error(webgpu::Error::Validation(String::from(
+                    .dispatch_error(webgpu_traits::Error::Validation(String::from(
                         "Invalid MapModeFlags",
                     )));
                 self.map_failure(&promise, can_gc);

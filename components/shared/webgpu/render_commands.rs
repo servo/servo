@@ -7,17 +7,15 @@
 use serde::{Deserialize, Serialize};
 use wgpu_core::command::{RenderPass, RenderPassError};
 use wgpu_core::global::Global;
-
-use crate::wgc::id;
-use crate::wgt;
+use wgpu_core::id::{BindGroupId, BufferId, RenderBundleId, RenderPipelineId};
 
 /// <https://github.com/gfx-rs/wgpu/blob/f25e07b984ab391628d9568296d5970981d79d8b/wgpu-core/src/command/render_command.rs#L17>
 #[derive(Debug, Deserialize, Serialize)]
 pub enum RenderCommand {
-    SetPipeline(id::RenderPipelineId),
+    SetPipeline(RenderPipelineId),
     SetBindGroup {
         index: u32,
-        bind_group_id: id::BindGroupId,
+        bind_group_id: BindGroupId,
         offsets: Vec<u32>,
     },
     SetViewport {
@@ -34,19 +32,19 @@ pub enum RenderCommand {
         width: u32,
         height: u32,
     },
-    SetBlendConstant(wgt::Color),
+    SetBlendConstant(wgpu_types::Color),
     SetStencilReference(u32),
     SetIndexBuffer {
-        buffer_id: id::BufferId,
-        index_format: wgt::IndexFormat,
+        buffer_id: BufferId,
+        index_format: wgpu_types::IndexFormat,
         offset: u64,
-        size: Option<wgt::BufferSize>,
+        size: Option<wgpu_types::BufferSize>,
     },
     SetVertexBuffer {
         slot: u32,
-        buffer_id: id::BufferId,
+        buffer_id: BufferId,
         offset: u64,
-        size: Option<wgt::BufferSize>,
+        size: Option<wgpu_types::BufferSize>,
     },
     Draw {
         vertex_count: u32,
@@ -62,14 +60,14 @@ pub enum RenderCommand {
         first_instance: u32,
     },
     DrawIndirect {
-        buffer_id: id::BufferId,
+        buffer_id: BufferId,
         offset: u64,
     },
     DrawIndexedIndirect {
-        buffer_id: id::BufferId,
+        buffer_id: BufferId,
         offset: u64,
     },
-    ExecuteBundles(Vec<id::RenderBundleId>),
+    ExecuteBundles(Vec<RenderBundleId>),
 }
 
 pub fn apply_render_command(

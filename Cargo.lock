@@ -1172,6 +1172,7 @@ dependencies = [
  "stylo_traits",
  "tracing",
  "webgpu",
+ "webgpu_traits",
  "webrender",
  "webrender_api",
  "webrender_traits",
@@ -6378,6 +6379,7 @@ dependencies = [
  "uuid",
  "webdriver",
  "webgpu",
+ "webgpu_traits",
  "webrender_api",
  "webrender_traits",
  "webxr-api",
@@ -6501,10 +6503,11 @@ dependencies = [
  "stylo_traits",
  "uuid",
  "webdriver",
- "webgpu",
+ "webgpu_traits",
  "webrender_api",
  "webrender_traits",
  "webxr-api",
+ "wgpu-core",
 ]
 
 [[package]]
@@ -8567,9 +8570,24 @@ dependencies = [
  "serde",
  "servo_config",
  "servo_malloc_size_of",
+ "webgpu_traits",
  "webrender",
  "webrender_api",
  "webrender_traits",
+ "wgpu-core",
+ "wgpu-types",
+]
+
+[[package]]
+name = "webgpu_traits"
+version = "0.0.1"
+dependencies = [
+ "arrayvec",
+ "base",
+ "ipc-channel",
+ "serde",
+ "servo_malloc_size_of",
+ "webrender_api",
  "wgpu-core",
  "wgpu-types",
 ]

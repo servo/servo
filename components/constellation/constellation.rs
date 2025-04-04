@@ -158,7 +158,7 @@ use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu::swapchain::WGPUImageMap;
 #[cfg(feature = "webgpu")]
-use webgpu::{self, WebGPU, WebGPURequest};
+use webgpu_traits::{WebGPU, WebGPURequest};
 #[cfg(feature = "webgpu")]
 use webrender::RenderApi;
 use webrender::RenderApiSender;
@@ -1894,6 +1894,8 @@ where
         browsing_context_id: BrowsingContextId,
         request: FromScriptMsg,
     ) {
+        use webgpu::start_webgpu_thread;
+
         let browsing_context_group_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(bc) => &bc.bc_group_id,
             None => return warn!("Browsing context not found"),
@@ -1915,7 +1917,7 @@ where
             return warn!("Browsing context group not found");
         };
         let webgpu_chan = match browsing_context_group.webgpus.entry(host) {
-            Entry::Vacant(v) => WebGPU::new(
+            Entry::Vacant(v) => start_webgpu_thread(
                 self.webrender_wgpu.webrender_api.create_sender(),
                 self.webrender_document,
                 self.webrender_wgpu.webrender_external_images.clone(),
