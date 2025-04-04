@@ -17,7 +17,6 @@ no-wgl = ["surfman/sm-angle-default"]
 
 [dependencies]
 base = { workspace = true }
-constellation_traits = { workspace = true }
 dpi = { version = "0.1" }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }

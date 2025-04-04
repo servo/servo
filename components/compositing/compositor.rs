@@ -20,14 +20,13 @@ use compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorReceiver, SendableFrameTree,
 };
 use constellation_traits::{
-    AnimationTickType, CompositorHitTestResult, EmbedderToConstellationMessage, PaintMetricEvent,
-    UntrustedNodeAddress, WindowSizeType,
+    AnimationTickType, EmbedderToConstellationMessage, PaintMetricEvent, WindowSizeType,
 };
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ScreenGeometry, ShutdownState,
-    TouchEventType, ViewportDetails,
+    AnimationState, CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent,
+    ScreenGeometry, ShutdownState, TouchEventType, UntrustedNodeAddress, ViewportDetails,
 };
 use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Transform3D};
 use fnv::FnvHashMap;
@@ -37,7 +36,6 @@ use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
-use script_traits::AnimationState;
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
