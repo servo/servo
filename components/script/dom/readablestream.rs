@@ -22,6 +22,10 @@ use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStra
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
     ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode, StreamPipeOptions
 };
+
+use crate::dom::domexception::{DOMErrorName, DOMException};
+use script_bindings::conversions::StringificationBehavior;
+use script_bindings::str::DOMString;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -1822,6 +1826,90 @@ impl js::gc::Rootable for CrossRealmTransformReadable {}
 pub(crate) struct CrossRealmTransformReadable {
     /// The controller used in the algorithm.
     controller: Dom<ReadableStreamDefaultController>,
+}
+
+impl CrossRealmTransformReadable {
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+    /// Add a handler for port’s message event with the following steps:
+    #[allow(unsafe_code)]
+    pub(crate) fn handle_message(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        message: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        // Let data be the data of the message.
+        rooted!(in(*cx) let object = message.to_object());
+        rooted!(in(*cx) let mut data = UndefinedValue());
+        get_dictionary_property(*cx, object.handle(), "done", data.handle_mut(), can_gc)
+            .expect("Getting data should not fail.");
+
+        // Assert: data is an Object.
+        assert!(data.is_object());
+        rooted!(in(*cx) let data_object = data.to_object());
+
+        // Let type be ! Get(data, "type").
+        rooted!(in(*cx) let mut type_ = UndefinedValue());
+        get_dictionary_property(
+            *cx,
+            data_object.handle(),
+            "type",
+            type_.handle_mut(),
+            can_gc,
+        )
+        .expect("Getting the type should not fail.");
+
+        // Let value be ! Get(data, "value").
+        rooted!(in(*cx) let mut value = UndefinedValue());
+        get_dictionary_property(
+            *cx,
+            data_object.handle(),
+            "value",
+            value.handle_mut(),
+            can_gc,
+        )
+        .expect("Getting the value should not fail.");
+
+        // Assert: type is a String.
+        let result = unsafe {
+            DOMString::from_jsval(
+                *GlobalScope::get_cx(),
+                type_.handle(),
+                StringificationBehavior::Empty,
+            )
+            .expect("The type of the message should be a string")
+        };
+        let ConversionResult::Success(type_string) = result else {
+            unreachable!("The type of the message should be a string");
+        };
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    /// Add a handler for port’s messageerror event with the following steps:
+    #[allow(unsafe_code)]
+    pub(crate) fn handle_error(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        port: &MessagePort,
+        error: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        // Let error be a new "DataCloneError" DOMException.
+        let error = DOMException::new(global, DOMErrorName::DataCloneError, can_gc);
+        rooted!(in(*cx) let mut rooted_error = UndefinedValue());
+        unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
+
+        // Perform ! CrossRealmTransformSendError(port, error).
+        port.cross_relam_transform_send_error(rooted_error.handle());
+
+        // Perform ! ReadableStreamDefaultControllerError(controller, error).
+        self.controller.error(rooted_error.handle(), can_gc);
+
+        // Disentangle port.
+        global.disentangle_port(port);
+    }
 }
 
 impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
