@@ -1253,7 +1253,15 @@ where
                 self.handle_exit();
             },
             EmbedderToConstellationMessage::GetFocusTopLevelBrowsingContext(resp_chan) => {
-                let _ = resp_chan.send(self.webviews.focused_webview().map(|(id, _)| id));
+                let focused_context = self
+                    .webviews
+                    .focused_webview()
+                    .filter(|(_, webview)| {
+                        self.browsing_contexts
+                            .contains_key(&webview.focused_browsing_context_id)
+                    })
+                    .map(|(id, _)| id);
+                let _ = resp_chan.send(focused_context);
             },
             // Perform a navigation previously requested by script, if approved by the embedder.
             // If there is already a pending page (self.pending_changes), it will not be overridden;
