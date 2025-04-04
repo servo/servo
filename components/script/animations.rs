@@ -11,7 +11,6 @@ use constellation_traits::UntrustedNodeAddress;
 use cssparser::ToCss;
 use fxhash::{FxHashMap, FxHashSet};
 use libc::c_void;
-use script_traits::{AnimationState as AnimationsPresentState, ScriptMsg};
 use serde::{Deserialize, Serialize};
 use style::animation::{
     Animation, AnimationSetKey, AnimationState, DocumentAnimationSet, ElementAnimationSet,
@@ -74,6 +73,14 @@ impl Animations {
         self.sets.sets.write().clear();
         self.rooted_nodes.borrow_mut().clear();
         self.pending_events.borrow_mut().clear();
+    }
+
+    pub(crate) fn animations_present(&self) -> bool {
+        let has_running_animations = self.has_running_animations.get();
+        let has_pending_events = !self.pending_events.borrow().is_empty();
+        // is_animation_present should be true until all pending
+        // animation events are delivered.
+        has_running_animations || has_pending_events
     }
 
     // Mark all animations dirty, if they haven't been marked dirty since the
@@ -163,30 +170,16 @@ impl Animations {
         sets.retain(|_, state| !state.is_empty());
         let have_running_animations = sets.values().any(|state| state.needs_animation_ticks());
 
-        self.update_running_animations_presence(window, have_running_animations);
+        self.update_running_animations_presence(have_running_animations);
     }
 
-    fn update_running_animations_presence(&self, window: &Window, new_value: bool) {
+    fn update_running_animations_presence(&self, new_value: bool) {
         let had_running_animations = self.has_running_animations.get();
         if new_value == had_running_animations {
             return;
         }
 
         self.has_running_animations.set(new_value);
-        self.handle_animation_presence_or_pending_events_change(window);
-    }
-
-    fn handle_animation_presence_or_pending_events_change(&self, window: &Window) {
-        let has_running_animations = self.has_running_animations.get();
-        let has_pending_events = !self.pending_events.borrow().is_empty();
-
-        // Do not send the NoAnimationCallbacksPresent state until all pending
-        // animation events are delivered.
-        let state = match has_running_animations || has_pending_events {
-            true => AnimationsPresentState::AnimationsPresent,
-            false => AnimationsPresentState::NoAnimationsPresent,
-        };
-        window.send_to_constellation(ScriptMsg::ChangeRunningAnimationsState(state));
     }
 
     pub(crate) fn running_animation_count(&self) -> usize {
@@ -460,7 +453,7 @@ impl Animations {
 
     /// An implementation of the final steps of
     /// <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
-    pub(crate) fn send_pending_events(&self, window: &Window, can_gc: CanGc) {
+    pub(crate) fn send_pending_events(&self, can_gc: CanGc) {
         // > 4. Let events to dispatch be a copy of doc’s pending animation event queue.
         // > 5. Clear doc’s pending animation event queue.
         //
@@ -541,10 +534,6 @@ impl Animations {
                     .upcast::<Event>()
                     .fire(node.upcast(), can_gc);
             }
-        }
-
-        if self.pending_events.borrow().is_empty() {
-            self.handle_animation_presence_or_pending_events_change(window);
         }
     }
 }

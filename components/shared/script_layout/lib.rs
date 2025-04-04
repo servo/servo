@@ -13,6 +13,7 @@ pub mod wrapper_traits;
 use std::any::Any;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
@@ -508,9 +509,9 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct ImageAnimationState {
     #[ignore_malloc_size_of = "Arc is hard"]
-    image: Arc<Image>,
-    active_frame: usize,
-    last_update_time: f64,
+    pub image: Arc<Image>,
+    pub active_frame: usize,
+    pub last_update_time: f64,
 }
 
 impl ImageAnimationState {
@@ -518,7 +519,10 @@ impl ImageAnimationState {
         Self {
             image,
             active_frame: 0,
-            last_update_time: 0.,
+            last_update_time: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs_f64(),
         }
     }
 

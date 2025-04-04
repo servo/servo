@@ -2049,10 +2049,8 @@ impl Window {
         if !size_messages.is_empty() {
             self.send_to_constellation(ScriptMsg::IFrameSizes(size_messages));
         }
-        document
-            .image_animation_manager_mut()
-            .restore_image_animate_set(results.node_to_image_animation_map);
-        document.update_animations_post_reflow();
+
+        document.update_animations_post_reflow(results.node_to_image_animation_map);
         self.update_constellation_epoch();
 
         true
