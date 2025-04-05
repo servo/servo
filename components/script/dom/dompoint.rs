@@ -5,9 +5,9 @@
 use std::collections::HashMap;
 
 use base::id::DomPointId;
+use constellation_traits::DomPoint;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use script_traits::serializable::DomPoint;
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;

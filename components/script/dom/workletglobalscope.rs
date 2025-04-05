@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use base::id::PipelineId;
+use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -14,7 +15,7 @@ use js::rust::Runtime;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
-use script_traits::{Painter, ScriptToConstellationChan, ScriptToConstellationMessage};
+use script_traits::Painter;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use stylo_atoms::Atom;
 

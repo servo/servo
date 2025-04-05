@@ -110,8 +110,13 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use compositing_traits::{CompositorMsg, CompositorProxy, SendableFrameTree};
 use constellation_traits::{
-    AnimationTickType, CompositorHitTestResult, EmbedderToConstellationMessage, LogEntry,
-    PaintMetricEvent, ScrollState, TraversalDirection, WindowSizeType,
+    AnimationTickType, AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse,
+    BroadcastMsg, DocumentState, EmbedderToConstellationMessage, IFrameLoadInfo,
+    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LoadData, LoadOrigin, LogEntry,
+    MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent, PortMessageTask, SWManagerMsg,
+    SWManagerSenders, ScriptToConstellationChan, ScriptToConstellationMessage, ScrollState,
+    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TraversalDirection,
+    WindowSizeType,
 };
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
 use devtools_traits::{
@@ -121,9 +126,10 @@ use devtools_traits::{
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    Cursor, EmbedderMsg, EmbedderProxy, ImeEvent, InputEvent, MediaSessionActionType,
-    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
-    Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
+    AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy, ImeEvent,
+    InputEvent, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState, MouseButton,
+    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
+    WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -142,13 +148,8 @@ use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
 use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
-    AnimationState, AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse,
-    BroadcastMsg, ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, DocumentState,
-    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LoadData,
-    LoadOrigin, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
-    ProgressiveWebMetricType, SWManagerMsg, SWManagerSenders, ScriptThreadMessage,
-    ScriptToConstellationChan, ScriptToConstellationMessage, ServiceWorkerManagerFactory,
-    ServiceWorkerMsg, StructuredSerializedData, UpdatePipelineIdReason,
+    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, ProgressiveWebMetricType,
+    ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};

@@ -6,6 +6,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
 
+use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -21,7 +22,6 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, MessageData, WebSocketDomAction, WebSocketNetworkEvent,
 };
 use profile_traits::ipc as ProfiledIpc;
-use script_traits::serializable::BlobImpl;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::cell::DomRefCell;

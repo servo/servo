@@ -11,16 +11,30 @@ rust-version.workspace = true
 name = "constellation_traits"
 path = "lib.rs"
 
+[features]
+bluetooth = []
+webgpu = ["wgpu-core"]
+
 [dependencies]
 base = { workspace = true }
 bitflags = { workspace = true }
+canvas_traits = { workspace = true }
+devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
+http = { workspace = true }
+hyper_serde = { workspace = true }
 ipc-channel = { workspace = true }
+log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+net_traits = { workspace = true }
+profile_traits = { workspace = true }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
+strum = { workspace = true }
 strum_macros = { workspace = true }
-stylo_traits = { workspace = true }
+uuid = { workspace = true }
+webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }
+wgpu-core = { workspace = true, optional = true }

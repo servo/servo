@@ -10,6 +10,7 @@ use std::cell::Cell;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use constellation_traits::LoadData;
 use content_security_policy::Destination;
 use crossbeam_channel::Sender;
 use embedder_traits::ViewportDetails;
@@ -22,7 +23,7 @@ use net_traits::{
     BoxedFetchCallback, CoreResourceThread, DOCUMENT_ACCEPT_HEADER_VALUE, FetchResponseMsg,
     Metadata, fetch_async, set_default_accept_language,
 };
-use script_traits::{DocumentActivity, LoadData};
+use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::fetch::FetchCanceller;

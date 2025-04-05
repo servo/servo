@@ -113,7 +113,7 @@ mod from_script {
         };
     }
 
-    impl LogTarget for script_traits::ScriptToConstellationMessage {
+    impl LogTarget for constellation_traits::ScriptToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::CompleteMessagePortTransfer(..) => target!("CompleteMessagePortTransfer"),

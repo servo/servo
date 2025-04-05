@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use constellation_traits::{SWManagerSenders, ServiceWorkerManagerFactory};
 use ipc_channel::Error;
 use ipc_channel::ipc::IpcSender;
-use script_traits::{SWManagerSenders, ServiceWorkerManagerFactory};
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs;

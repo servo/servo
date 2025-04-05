@@ -10,6 +10,10 @@ use std::os::raw;
 use std::ptr;
 
 use base::id::{BlobId, DomPointId, MessagePortId, PipelineNamespaceId};
+use constellation_traits::{
+    BlobImpl, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
+    StructuredSerializedData, Transferrable as TransferrableInterface,
+};
 use js::glue::{
     CopyJSStructuredCloneData, DeleteJSAutoStructuredCloneBuffer, GetLengthOfJSStructuredCloneData,
     NewJSAutoStructuredCloneBuffer, WriteBytesToJSStructuredCloneData,
@@ -24,12 +28,6 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use script_bindings::conversions::IDLInterface;
-use script_traits::serializable::{BlobImpl, DomPoint};
-use script_traits::transferable::MessagePortImpl;
-use script_traits::{
-    Serializable as SerializableInterface, StructuredSerializedData,
-    Transferrable as TransferrableInterface,
-};
 use strum::IntoEnumIterator;
 
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
