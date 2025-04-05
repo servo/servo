@@ -845,9 +845,9 @@ impl ComputedValuesExt for ComputedValues {
         // > A value other than none for the filter property results in the creation of a containing
         // > block for absolute and fixed positioned descendants unless the element it applies to is
         // > a document root element in the current browsing context.
-        // FIXME(#35391): Need to check if this is the root element.
-        if !self.get_effects().filter.0.is_empty() ||
-            will_change_bits.intersects(WillChangeBits::FIXPOS_CB_NON_SVG)
+        if !fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT) &&
+            (!self.get_effects().filter.0.is_empty() ||
+                will_change_bits.intersects(WillChangeBits::FIXPOS_CB_NON_SVG))
         {
             return true;
         }
