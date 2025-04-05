@@ -351,6 +351,7 @@ impl StylesheetLoader<'_> {
             None,
             self.elem.global().get_referrer(),
             document.insecure_requests_policy(),
+            document.has_trustworthy_ancestor_or_current_origin(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(self.elem.global().pipeline_id()))

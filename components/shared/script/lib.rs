@@ -117,7 +117,8 @@ pub struct LoadData {
     pub inherited_secure_context: Option<bool>,
     /// The inherited policy for upgrading insecure requests; None if not inherited.
     pub inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
-
+    /// Whether the page's ancestors have potentially trustworthy origin
+    pub has_trustworthy_ancestor_origin: bool,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
 }
@@ -134,6 +135,7 @@ pub enum JsEvalResult {
 
 impl LoadData {
     /// Create a new `LoadData` object.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         load_origin: LoadOrigin,
         url: ServoUrl,
@@ -142,6 +144,7 @@ impl LoadData {
         referrer_policy: ReferrerPolicy,
         inherited_secure_context: Option<bool>,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        has_trustworthy_ancestor_origin: bool,
     ) -> LoadData {
         LoadData {
             load_origin,
@@ -157,6 +160,7 @@ impl LoadData {
             inherited_secure_context,
             crash: None,
             inherited_insecure_requests_policy,
+            has_trustworthy_ancestor_origin,
         }
     }
 }

@@ -561,6 +561,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             Some(true),
             global.get_referrer(),
             global.insecure_requests_policy(),
+            global.has_trustworthy_ancestor_or_current_origin(),
         )
         .origin(global.origin().immutable().clone())
         .pipeline_id(Some(global.pipeline_id()));

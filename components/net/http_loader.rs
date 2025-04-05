@@ -1010,7 +1010,7 @@ pub async fn http_redirect_fetch(
     // Step 8: Increase request’s redirect count by 1.
     request.redirect_count += 1;
 
-    // Step 7
+    // Step 9
     let same_origin = match request.origin {
         Origin::Origin(ref origin) => *origin == location_url.origin(),
         Origin::Client => panic!(

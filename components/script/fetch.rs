@@ -123,6 +123,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         initiator: request.initiator,
         policy_container: request.policy_container,
         insecure_requests_policy: request.insecure_requests_policy,
+        has_trustworthy_ancestor_origin: request.has_trustworthy_ancestor_origin,
         https_state: request.https_state,
         response_tainting: request.response_tainting,
         crash: None,
@@ -374,6 +375,7 @@ pub(crate) fn load_whole_resource(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request>
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn create_a_potential_cors_request(
     webview_id: Option<WebViewId>,
     url: ServoUrl,
@@ -382,6 +384,7 @@ pub(crate) fn create_a_potential_cors_request(
     same_origin_fallback: Option<bool>,
     referrer: Referrer,
     insecure_requests_policy: InsecureRequestsPolicy,
+    has_trustworthy_ancestor_origin: bool,
 ) -> RequestBuilder {
     RequestBuilder::new(webview_id, url, referrer)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
@@ -401,4 +404,5 @@ pub(crate) fn create_a_potential_cors_request(
         .destination(destination)
         .use_url_credentials(true)
         .insecure_requests_policy(insecure_requests_policy)
+        .has_trustworthy_ancestor_origin(has_trustworthy_ancestor_origin)
 }

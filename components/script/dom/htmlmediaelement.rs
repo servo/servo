@@ -894,6 +894,7 @@ impl HTMLMediaElement {
             None,
             self.global().get_referrer(),
             document.insecure_requests_policy(),
+            document.has_trustworthy_ancestor_or_current_origin(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())

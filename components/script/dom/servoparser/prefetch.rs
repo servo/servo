@@ -73,6 +73,7 @@ impl Tokenizer {
             // block the main parser.
             prefetching: Cell::new(false),
             insecure_requests_policy: document.insecure_requests_policy(),
+            has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
         };
         let options = Default::default();
         let inner = TraceableTokenizer(HtmlTokenizer::new(sink, options));
@@ -105,6 +106,7 @@ struct PrefetchSink {
     prefetching: Cell<bool>,
     #[no_trace]
     insecure_requests_policy: InsecureRequestsPolicy,
+    has_trustworthy_ancestor_origin: bool,
 }
 
 /// The prefetch tokenizer produces trivial results
@@ -146,6 +148,7 @@ impl TokenSink for PrefetchSink {
                             parser_metadata: ParserMetadata::ParserInserted,
                         },
                         self.insecure_requests_policy,
+                        self.has_trustworthy_ancestor_origin,
                     );
                     let _ = self
                         .resource_threads
@@ -164,6 +167,7 @@ impl TokenSink for PrefetchSink {
                         None,
                         self.referrer.clone(),
                         self.insecure_requests_policy,
+                        self.has_trustworthy_ancestor_origin,
                     )
                     .origin(self.origin.clone())
                     .pipeline_id(Some(self.pipeline_id))
@@ -198,6 +202,7 @@ impl TokenSink for PrefetchSink {
                                 None,
                                 self.referrer.clone(),
                                 self.insecure_requests_policy,
+                                self.has_trustworthy_ancestor_origin,
                             )
                             .origin(self.origin.clone())
                             .pipeline_id(Some(self.pipeline_id))

@@ -2386,6 +2386,21 @@ impl GlobalScope {
         InsecureRequestsPolicy::DoNotUpgrade
     }
 
+    /// Whether this document has ancestor navigables that are trustworthy
+    pub(crate) fn has_trustworthy_ancestor_origin(&self) -> bool {
+        self.downcast::<Window>()
+            .is_some_and(|window| window.Document().has_trustworthy_ancestor_origin())
+    }
+
+    // Whether this document has a trustworthy origin or has trustowrthy ancestor navigables
+    pub(crate) fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
+        self.downcast::<Window>().is_some_and(|window| {
+            window
+                .Document()
+                .has_trustworthy_ancestor_or_current_origin()
+        })
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
     pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
         // Step 1.
