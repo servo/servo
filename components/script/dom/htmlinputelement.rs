@@ -815,7 +815,16 @@ impl HTMLInputElement {
                 }
                 let mut is_required = self.Required();
                 let mut is_checked = self.Checked();
-                for other in radio_group_iter(self, self.radio_group_name().as_ref()) {
+                let root = self
+                    .upcast::<Node>()
+                    .GetRootNode(&GetRootNodeOptions::empty());
+                let form = self.form_owner();
+                for other in radio_group_iter(
+                    self,
+                    self.radio_group_name().as_ref(),
+                    form.as_deref(),
+                    &root,
+                ) {
                     is_required = is_required || other.Required();
                     is_checked = is_checked || other.Checked();
                 }
@@ -1339,8 +1348,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             },
         }
 
-        self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        update_related_validity_states(self, can_gc);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         Ok(())
     }
@@ -1684,23 +1692,46 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 fn radio_group_iter<'a>(
     elem: &'a HTMLInputElement,
     group: Option<&'a Atom>,
+    form: Option<&'a HTMLFormElement>,
+    root: &'a Node,
 ) -> impl Iterator<Item = DomRoot<HTMLInputElement>> + 'a {
-    let owner = elem.form_owner();
-    let root = elem
-        .upcast::<Node>()
-        .GetRootNode(&GetRootNodeOptions::empty());
-
-    // If group is None, in_same_group always fails, but we need to always return elem.
     root.traverse_preorder(ShadowIncluding::No)
         .filter_map(DomRoot::downcast::<HTMLInputElement>)
-        .filter(move |r| &**r == elem || in_same_group(r, owner.as_deref(), group, None))
+        .filter(move |r| &**r == elem || in_same_group(r, form, group, None))
 }
 
 fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>) {
-    for r in radio_group_iter(broadcaster, group) {
+    let root = broadcaster
+        .upcast::<Node>()
+        .GetRootNode(&GetRootNodeOptions::empty());
+    let form = broadcaster.form_owner();
+    for r in radio_group_iter(broadcaster, group, form.as_deref(), &root) {
         if broadcaster != &*r && r.Checked() {
             r.SetChecked(false);
         }
+    }
+}
+
+fn perform_radio_group_validation(elem: &HTMLInputElement, group: Option<&Atom>, can_gc: CanGc) {
+    let root = elem
+        .upcast::<Node>()
+        .GetRootNode(&GetRootNodeOptions::empty());
+    let form = elem.form_owner();
+    for r in radio_group_iter(elem, group, form.as_deref(), &root) {
+        r.validity_state()
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+    }
+}
+
+fn update_related_validity_states(elem: &HTMLInputElement, can_gc: CanGc) {
+    match elem.input_type() {
+        InputType::Radio => {
+            perform_radio_group_validation(elem, elem.radio_group_name().as_ref(), can_gc)
+        },
+        _ => {
+            elem.validity_state()
+                .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        },
     }
 }
 
@@ -1868,11 +1899,12 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control
-    pub(crate) fn reset(&self) {
+    pub(crate) fn reset(&self, can_gc: CanGc) {
         match self.input_type() {
             InputType::Radio | InputType::Checkbox => {
                 self.update_checked_state(self.DefaultChecked(), false);
                 self.checked_changed.set(false);
+                update_related_validity_states(self, can_gc);
             },
             InputType::Image => (),
             _ => (),
@@ -2520,8 +2552,7 @@ impl VirtualMethods for HTMLInputElement {
             _ => {},
         }
 
-        self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        update_related_validity_states(self, can_gc);
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -2549,13 +2580,12 @@ impl VirtualMethods for HTMLInputElement {
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
-        for r in radio_group_iter(self, self.radio_group_name().as_ref()) {
-            r.validity_state()
-                .perform_validation_and_update(ValidationFlags::all(), can_gc);
-        }
+        update_related_validity_states(self, can_gc);
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        let form_owner = self.form_owner();
+
         self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         let node = self.upcast::<Node>();
@@ -2567,6 +2597,19 @@ impl VirtualMethods for HTMLInputElement {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
+        }
+
+        if self.input_type() == InputType::Radio {
+            let root = context.parent.GetRootNode(&GetRootNodeOptions::empty());
+            for r in radio_group_iter(
+                self,
+                self.radio_group_name().as_ref(),
+                form_owner.as_deref(),
+                &root,
+            ) {
+                r.validity_state()
+                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+            }
         }
 
         self.validity_state()
@@ -2680,8 +2723,7 @@ impl VirtualMethods for HTMLInputElement {
             }
         }
 
-        self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        update_related_validity_states(self, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext
@@ -2703,8 +2745,7 @@ impl VirtualMethods for HTMLInputElement {
         elem.textinput
             .borrow_mut()
             .set_content(self.textinput.borrow().get_content());
-        elem.validity_state()
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        update_related_validity_states(self, can_gc);
     }
 }
 
@@ -2819,40 +2860,58 @@ impl Activatable for HTMLInputElement {
     }
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior
-    fn legacy_pre_activation_behavior(&self) -> Option<InputActivationState> {
+    fn legacy_pre_activation_behavior(&self, can_gc: CanGc) -> Option<InputActivationState> {
         let ty = self.input_type();
-        match ty {
+        let activation_state = match ty {
             InputType::Checkbox => {
                 let was_checked = self.Checked();
                 let was_indeterminate = self.Indeterminate();
                 self.SetIndeterminate(false);
                 self.SetChecked(!was_checked);
-                return Some(InputActivationState {
+                Some(InputActivationState {
                     checked: was_checked,
                     indeterminate: was_indeterminate,
                     checked_radio: None,
                     old_type: InputType::Checkbox,
-                });
+                })
             },
             InputType::Radio => {
-                let checked_member =
-                    radio_group_iter(self, self.radio_group_name().as_ref()).find(|r| r.Checked());
+                let root = self
+                    .upcast::<Node>()
+                    .GetRootNode(&GetRootNodeOptions::empty());
+                let form_owner = self.form_owner();
+                let checked_member = radio_group_iter(
+                    self,
+                    self.radio_group_name().as_ref(),
+                    form_owner.as_deref(),
+                    &root,
+                )
+                .find(|r| r.Checked());
                 let was_checked = self.Checked();
                 self.SetChecked(true);
-                return Some(InputActivationState {
+                Some(InputActivationState {
                     checked: was_checked,
                     indeterminate: false,
                     checked_radio: checked_member.as_deref().map(DomRoot::from_ref),
                     old_type: InputType::Radio,
-                });
+                })
             },
-            _ => (),
+            _ => None,
+        };
+
+        if activation_state.is_some() {
+            update_related_validity_states(self, can_gc);
         }
-        None
+
+        activation_state
     }
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior
-    fn legacy_canceled_activation_behavior(&self, cache: Option<InputActivationState>) {
+    fn legacy_canceled_activation_behavior(
+        &self,
+        cache: Option<InputActivationState>,
+        can_gc: CanGc,
+    ) {
         // Step 1
         let ty = self.input_type();
         let cache = match cache {
@@ -2899,6 +2958,8 @@ impl Activatable for HTMLInputElement {
             },
             _ => (),
         }
+
+        update_related_validity_states(self, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>

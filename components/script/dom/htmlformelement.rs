@@ -1275,7 +1275,7 @@ impl HTMLFormElement {
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLInputElement,
                 )) => {
-                    child.downcast::<HTMLInputElement>().unwrap().reset();
+                    child.downcast::<HTMLInputElement>().unwrap().reset(can_gc);
                 },
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLSelectElement,
