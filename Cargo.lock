@@ -1186,16 +1186,26 @@ version = "0.0.1"
 dependencies = [
  "base",
  "bitflags 2.9.0",
+ "canvas_traits",
+ "devtools_traits",
  "embedder_traits",
  "euclid",
+ "http 1.3.1",
+ "hyper_serde",
  "ipc-channel",
+ "log",
  "malloc_size_of_derive",
+ "net_traits",
+ "profile_traits",
  "serde",
  "servo_malloc_size_of",
  "servo_url",
+ "strum",
  "strum_macros",
- "stylo_traits",
+ "uuid",
+ "webgpu_traits",
  "webrender_api",
+ "wgpu-core",
 ]
 
 [[package]]
@@ -4627,6 +4637,7 @@ name = "metrics"
 version = "0.0.1"
 dependencies = [
  "base",
+ "constellation_traits",
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
@@ -6478,21 +6489,16 @@ version = "0.0.1"
 dependencies = [
  "background_hang_monitor_api",
  "base",
- "bitflags 2.9.0",
  "bluetooth_traits",
  "canvas_traits",
  "constellation_traits",
- "cookie 0.18.1",
  "crossbeam-channel",
  "devtools_traits",
  "embedder_traits",
  "euclid",
  "http 1.3.1",
- "hyper_serde",
  "ipc-channel",
  "keyboard-types",
- "libc",
- "log",
  "malloc_size_of_derive",
  "media",
  "net_traits",
@@ -6505,13 +6511,10 @@ dependencies = [
  "strum_macros",
  "stylo_atoms",
  "stylo_traits",
- "uuid",
- "webdriver",
  "webgpu_traits",
  "webrender_api",
  "webrender_traits",
  "webxr-api",
- "wgpu-core",
 ]
 
 [[package]]
@@ -8675,7 +8678,6 @@ name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
  "base",
- "constellation_traits",
  "dpi",
  "embedder_traits",
  "euclid",

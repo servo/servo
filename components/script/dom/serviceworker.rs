@@ -5,10 +5,10 @@
 use std::cell::Cell;
 
 use base::id::ServiceWorkerId;
+use constellation_traits::{DOMMessage, ScriptToConstellationMessage};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use script_traits::{DOMMessage, ScriptToConstellationMessage};
 use servo_url::ServoUrl;
 
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;

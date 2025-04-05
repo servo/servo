@@ -11,6 +11,7 @@ use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, PipelineNamespace};
+use constellation_traits::WorkerGlobalScopeInit;
 use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
@@ -25,7 +26,6 @@ use net_traits::request::{
     RequestBuilder as NetRequestInit,
 };
 use profile_traits::mem::ProcessReports;
-use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
 use uuid::Uuid;

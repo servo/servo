@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::WebViewId;
+use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc::channel;
-use script_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 
 /// A trait which abstracts access to the embedder's clipboard in order to allow unit
 /// testing clipboard-dependent parts of `script`.

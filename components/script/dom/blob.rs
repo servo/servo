@@ -8,13 +8,13 @@ use std::ptr;
 use std::rc::Rc;
 
 use base::id::{BlobId, BlobIndex, PipelineNamespaceId};
+use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::Uint8;
 use net_traits::filemanager_thread::RelativePos;
-use script_traits::serializable::BlobImpl;
 use uuid::Uuid;
 
 use crate::body::{FetchedData, run_array_buffer_data_algorithm};
