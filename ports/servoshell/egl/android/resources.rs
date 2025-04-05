@@ -45,6 +45,9 @@ impl ResourceReaderMethods for ResourceReaderInstance {
             Resource::AboutMemoryHTML => {
                 &include_bytes!("../../../../resources/about-memory.html")[..]
             },
+            Resource::ImageDocumentHTML => {
+                &include_bytes!("../../../../resources/image-document.html")[..]
+            },
         })
     }
 
