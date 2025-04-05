@@ -566,7 +566,7 @@ pub(crate) fn read(
     global: &GlobalScope,
     mut data: StructuredSerializedData,
     rval: MutableHandleValue,
-) -> Result<Vec<DomRoot<MessagePort>>, ()> {
+) -> Fallible<Vec<DomRoot<MessagePort>>> {
     let cx = GlobalScope::get_cx();
     let _ac = enter_realm(global);
     let mut sc_reader = StructuredDataReader {
@@ -605,18 +605,16 @@ pub(crate) fn read(
             &STRUCTURED_CLONE_CALLBACKS,
             sc_reader_ptr as *mut raw::c_void,
         );
+        if !result {
+            JS_ClearPendingException(*cx);
+            return Err(Error::DataClone);
+        }
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);
 
-        if result {
-            // Any transfer-received port-impls should have been taken out.
-            assert!(sc_reader.port_impls.is_none());
+        // Any transfer-received port-impls should have been taken out.
+        assert!(sc_reader.port_impls.is_none());
 
-            match sc_reader.message_ports.take() {
-                Some(ports) => return Ok(ports),
-                None => return Ok(Vec::with_capacity(0)),
-            }
-        }
-        Err(())
+        Ok(sc_reader.message_ports.take().unwrap_or_default())
     }
 }
