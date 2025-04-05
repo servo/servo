@@ -461,10 +461,10 @@ impl Evaluatable for StepExpr {
     }
 
     fn is_primitive(&self) -> bool {
-        self.predicates
-            .predicates
-            .is_empty() &&
-            self.primary.is_primitive()
+        match self {
+            StepExpr::Filter(filter_expr) => filter_expr.is_primitive(),
+            StepExpr::Axis(_) => false,
+        }
     }
 }
 
