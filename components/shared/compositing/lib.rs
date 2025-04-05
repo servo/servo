@@ -8,12 +8,13 @@ use std::fmt::{Debug, Error, Formatter};
 
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender};
-use embedder_traits::{EventLoopWaker, MouseButton, MouseButtonAction};
+use embedder_traits::{
+    AnimationState, EventLoopWaker, MouseButton, MouseButtonAction, TouchEventResult,
+};
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use pixels::Image;
-use script_traits::{AnimationState, TouchEventResult};
 use strum_macros::IntoStaticStr;
 use style_traits::CSSPixel;
 use webrender_api::DocumentId;

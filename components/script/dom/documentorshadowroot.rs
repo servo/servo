@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use constellation_traits::UntrustedNodeAddress;
+use embedder_traits::UntrustedNodeAddress;
 use euclid::default::Point2D;
 use script_layout_interface::{NodesFromPointQueryType, QueryMsg};
 use servo_arc::Arc;

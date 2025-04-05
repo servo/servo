@@ -6,11 +6,10 @@ use std::cell::Cell;
 use std::default::Default;
 
 use base::id::BrowsingContextId;
-use constellation_traits::WindowSizeType;
+use constellation_traits::{IFrameSizeMsg, WindowSizeType};
 use embedder_traits::ViewportDetails;
 use fnv::FnvHashMap;
 use script_layout_interface::IFrameSizes;
-use script_traits::IFrameSizeMsg;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};

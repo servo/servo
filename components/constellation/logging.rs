@@ -12,11 +12,13 @@ use std::thread;
 
 use backtrace::Backtrace;
 use base::id::WebViewId;
-use constellation_traits::{EmbedderToConstellationMessage, LogEntry};
+use constellation_traits::{
+    EmbedderToConstellationMessage, LogEntry, ScriptToConstellationChan,
+    ScriptToConstellationMessage,
+};
 use crossbeam_channel::Sender;
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use parking_lot::ReentrantMutex;
-use script_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 
 /// A logger directed at the constellation from content processes
 /// #[derive(Clone)]

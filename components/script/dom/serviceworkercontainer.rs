@@ -5,12 +5,12 @@
 use std::default::Default;
 use std::rc::Rc;
 
+use constellation_traits::{
+    Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
+};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use script_traits::{
-    Job, JobError, JobResult, JobResultValue, JobType, ScriptToConstellationMessage,
-};
 
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{
     RegistrationOptions, ServiceWorkerContainerMethods,

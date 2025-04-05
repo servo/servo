@@ -17,6 +17,7 @@ bluetooth = [
     "bluetooth_traits",
     "dep:bluetooth",
     "constellation/bluetooth",
+    "constellation_traits/bluetooth",
     "script/bluetooth",
     "script_traits/bluetooth",
 ]
@@ -52,6 +53,7 @@ webxr = [
 webgpu = [
     "script/webgpu",
     "constellation/webgpu",
+    "constellation_traits/webgpu",
 ]
 
 [dependencies]
