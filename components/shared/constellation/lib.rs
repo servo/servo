@@ -8,23 +8,27 @@
 //! embedding/rendering layer all the way to script, thus it should have very minimal dependencies
 //! on other parts of Servo.
 
+mod from_script_message;
+mod message_port;
+
 use std::collections::HashMap;
-use std::ffi::c_void;
 use std::fmt;
 use std::time::Duration;
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
+use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
 use embedder_traits::{
-    Cursor, InputEvent, MediaSessionActionType, Theme, ViewportDetails, WebDriverCommandMsg,
+    CompositorHitTestResult, Cursor, InputEvent, MediaSessionActionType, Theme, ViewportDetails,
+    WebDriverCommandMsg,
 };
 use euclid::Vector2D;
+pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
-use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+pub use message_port::*;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
 use webrender_api::ExternalScrollId;
@@ -137,28 +141,6 @@ bitflags! {
     }
 }
 
-/// The result of a hit test in the compositor.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct CompositorHitTestResult {
-    /// The pipeline id of the resulting item.
-    pub pipeline_id: PipelineId,
-
-    /// The hit test point in the item's viewport.
-    pub point_in_viewport: euclid::default::Point2D<f32>,
-
-    /// The hit test point relative to the item itself.
-    pub point_relative_to_item: euclid::default::Point2D<f32>,
-
-    /// The node address of the hit test result.
-    pub node: UntrustedNodeAddress,
-
-    /// The cursor that should be used when hovering the item hit by the hit test.
-    pub cursor: Option<Cursor>,
-
-    /// The scroll tree node associated with this hit test item.
-    pub scroll_tree_node: ScrollTreeNodeId,
-}
-
 /// The scroll state of a stacking context.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ScrollState {
@@ -166,43 +148,6 @@ pub struct ScrollState {
     pub scroll_id: ExternalScrollId,
     /// The scrolling offset of this stacking context.
     pub scroll_offset: Vector2D<f32, LayoutPixel>,
-}
-
-/// The address of a node. Layout sends these back. They must be validated via
-/// `from_untrusted_node_address` before they can be used, because we do not trust layout.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct UntrustedNodeAddress(pub *const c_void);
-
-malloc_size_of_is_0!(UntrustedNodeAddress);
-
-#[allow(unsafe_code)]
-unsafe impl Send for UntrustedNodeAddress {}
-
-impl From<style_traits::dom::OpaqueNode> for UntrustedNodeAddress {
-    fn from(o: style_traits::dom::OpaqueNode) -> Self {
-        UntrustedNodeAddress(o.0 as *const c_void)
-    }
-}
-
-impl Serialize for UntrustedNodeAddress {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        (self.0 as usize).serialize(s)
-    }
-}
-
-impl<'de> Deserialize<'de> for UntrustedNodeAddress {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
-        let value: usize = Deserialize::deserialize(d)?;
-        Ok(UntrustedNodeAddress::from_id(value))
-    }
-}
-
-impl UntrustedNodeAddress {
-    /// Creates an `UntrustedNodeAddress` from the given pointer address value.
-    #[inline]
-    pub fn from_id(id: usize) -> UntrustedNodeAddress {
-        UntrustedNodeAddress(id as *const c_void)
-    }
 }
 
 /// The direction of a history traversal

@@ -12,9 +12,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use base::id::WebViewId;
-use constellation_traits::CompositorHitTestResult;
 use display_list::CompositorDisplayListInfo;
-use embedder_traits::ScreenGeometry;
+use embedder_traits::{CompositorHitTestResult, ScreenGeometry};
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use log::warn;

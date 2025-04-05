@@ -58,7 +58,7 @@ use constellation::{
     Constellation, FromEmbedderLogger, FromScriptLogger, InitialConstellationState,
     UnprivilegedContent,
 };
-use constellation_traits::EmbedderToConstellationMessage;
+use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationChan};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::*;
@@ -85,7 +85,6 @@ use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::{mem, time};
 use script::{JSEngineSetup, ServiceWorkerManager};
-use script_traits::ScriptToConstellationChan;
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};

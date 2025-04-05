@@ -10,6 +10,7 @@ use std::str::{self, FromStr};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentLength, ContentType, HeaderMapExt};
@@ -31,7 +32,6 @@ use net_traits::{
     ResourceFetchTiming, ResourceTimingType, trim_http_whitespace,
 };
 use script_traits::DocumentActivity;
-use script_traits::serializable::BlobImpl;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 use url::Position;
