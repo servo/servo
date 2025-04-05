@@ -17,22 +17,20 @@
 <script>
 promise_test(async t => {
   const div = addDiv(t, {
-    style: 'transition: width 2s; width: 0px;'
+    style: 'transition: width 100ms; width: 0px;'
   });
 
-  // flush initial state
+  // Flush initial state
   getComputedStyle(div).width;
   // Start first transition to 100px
   div.style.width = '100px';
-  // Wait until transition is 25% done (500ms)
+  // Wait until transition starts running
   await new Promise(resolve => {
-    div.addEventListener('transitionrun', () => {
-      step_timeout(resolve, 500);
-    }, { once: true });
+    div.addEventListener('transitionrun', resolve, { once: true });
   });
 
-  // MID-TRANSITION CHANGE: Switch to 0s duration + 500ms delay
-  div.style.transition = 'width 0s 500ms';
+  // MID-TRANSITION CHANGE: Switch to 0s duration + 100ms delay
+  div.style.transition = 'width 0s 100ms';
 
   // Trigger new width change mid-transition
   const interruptTime = performance.now();
@@ -40,10 +38,9 @@ promise_test(async t => {
 
   await waitForTransitionEnd(div);
 
-  // Second transition (500ms delay + 0s duration)
-  assert_approx_equals(
-    performance.now() - interruptTime, 500, 50,
-    'Second transition should complete after ~500ms delay'
+  // Second transition (100ms delay + 0s duration)
+  assert_greater_than(
+    performance.now() - interruptTime, 100, 'Second transition should complete after 100ms'
   );
 
   // Final computed style

@@ -17,10 +17,10 @@
 <script>
 promise_test(async t => {
   const div = addDiv(t, {
-    style: 'transition: width 1s; width: 0px;'
+    style: 'transition: width 0.02s; width: 0px;'
   });
 
-  // flush initial state
+  // Flush initial state
   getComputedStyle(div).width;
   div.style.width = '100px';
 

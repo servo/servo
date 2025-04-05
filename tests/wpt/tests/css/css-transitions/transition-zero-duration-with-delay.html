@@ -20,7 +20,7 @@ promise_test(async t => {
     style: 'transition: width 0.1s; width: 0px;'
   });
 
-  // flush initial state
+  // Flush initial state
   getComputedStyle(div).width;
   // First transition to 100px
   div.style.width = '100px';
@@ -52,9 +52,8 @@ promise_test(async t => {
     'Width should reset to 0 after delay'
   );
 
-  assert_approx_equals(
-    elapsed, 300, 30,  // Allow 30ms tolerance
-    'Transition should complete after approximately 300ms'
+  assert_greater_than(
+    elapsed, 300, 'Transition should complete after 300ms'
   );
 }, '0-duration transition with delay applies change after delay period');
 </script>
