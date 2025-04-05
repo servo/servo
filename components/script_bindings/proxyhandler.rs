@@ -38,6 +38,7 @@ use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::reflector::DomObject;
+use crate::root::DomRoot;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::str::DOMString;
 use crate::utils::delete_property_by_id;
@@ -509,21 +510,38 @@ fn ensure_cross_origin_property_holder(
 /// What this function does corresponds to the operations in
 /// <https://html.spec.whatwg.org/multipage/#the-location-interface> denoted as
 /// "Throw a `SecurityError` DOMException".
-pub(crate) unsafe fn report_cross_origin_denial<D: DomTypes>(
+pub(crate) fn report_cross_origin_denial<D: DomTypes>(
     cx: SafeJSContext,
     id: RawHandleId,
     access: &str,
 ) -> bool {
+    let source;
+    let js_is_exception_pending;
+    let mut global: Option<DomRoot<D::GlobalScope>> = None;
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+    unsafe {
+        source = id_to_source(cx, id);
+        js_is_exception_pending = JS_IsExceptionPending(*cx);
+        if !js_is_exception_pending {
+            global = Some(D::GlobalScope::from_context(
+                *cx,
+                InRealm::Already(&in_realm_proof),
+            ));
+        }
+    }
     debug!(
         "permission denied to {} property {} on cross-origin object",
         access,
-        id_to_source(cx, id).as_deref().unwrap_or("< error >"),
+        source.as_deref().unwrap_or("< error >"),
     );
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-    if !JS_IsExceptionPending(*cx) {
-        let global = D::GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
+    if !js_is_exception_pending && global.is_some() {
         // TODO: include `id` and `access` in the exception message
-        <D as DomHelpers<D>>::throw_dom_exception(cx, &global, Error::Security, CanGc::note());
+        <D as DomHelpers<D>>::throw_dom_exception(
+            cx,
+            &(global.unwrap()),
+            Error::Security,
+            CanGc::note(),
+        );
     }
     false
 }
