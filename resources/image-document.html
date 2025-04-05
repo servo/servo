@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>servo-color-positive-no-container.png</title>
+    <style>
+      html,
+      body {
+        background-color: rgb(32, 32, 32);
+        margin: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      body.zoomed-in img {
+        cursor: zoom-out;
+      }
+
+      body.zoomed-out img {
+        cursor: zoom-in;
+        max-width: 100vw;
+        max-height: 100vh;
+        aspect-ratio: auto;
+      }
+
+      img {
+        /* Creates a checkerboard background for transparent images */
+        background: repeating-conic-gradient(#ccc 0% 25%, white 0% 50%);
+        background-size: 40px 40px;
+      }
+    </style>
+    <script>
+      // true if we try to adjust the image size to fit the viewport,
+      // false if we let it scroll when it's larger.
+      var adjustSize = true;
+
+      var img;
+
+      function configureImage() {
+        const body = document.body;
+        body.classList.remove("zoomed-in");
+        body.classList.remove("zoomed-out");
+
+        if (
+          img.naturalWidth > window.innerWidth ||
+          img.naturalHeight > window.innerHeight
+        ) {
+          body.classList.add(adjustSize ? "zoomed-out" : "zoomed-in");
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        img = document.body.querySelector("img");
+        window.onresize = img.onload = configureImage;
+        img.addEventListener("click", () => {
+          adjustSize = !adjustSize;
+          configureImage();
+        });
+        img.src = atob("${imageUrl}");
+      });
+    </script>
+  </head>
+  <body>
+    <img />
+  </body>
+</html>
