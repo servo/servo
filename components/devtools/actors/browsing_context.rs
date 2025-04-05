@@ -31,6 +31,12 @@ use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
+struct ListWorkersReply {
+    from: String,
+    workers: Vec<()>,
+}
+
+#[derive(Serialize)]
 struct FrameUpdateReply {
     from: String,
     #[serde(rename = "type")]
@@ -163,6 +169,14 @@ impl Actor for BrowsingContextActor {
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
+            "listWorkers" => {
+                let _ = stream.write_json_packet(&ListWorkersReply {
+                    from: self.name(),
+                    // TODO: Not yet implemented
+                    workers: vec![],
+                });
+                ActorMessageStatus::Processed
+            },
             _ => ActorMessageStatus::Ignored,
         })
     }
@@ -188,6 +202,7 @@ impl BrowsingContextActor {
         outer_window_id: DevtoolsOuterWindowId,
         script_sender: IpcSender<DevtoolScriptControlMsg>,
         actors: &mut ActorRegistry,
+        connections: &mut HashMap<StreamId, TcpStream>,
     ) -> BrowsingContextActor {
         let name = actors.new_name("target");
         let DevtoolsPageInfo {
@@ -221,7 +236,8 @@ impl BrowsingContextActor {
 
         let tabdesc = TabDescriptorActor::new(actors, name.clone(), is_top_level_global);
 
-        let thread = ThreadActor::new(actors.new_name("thread"));
+        let thread_actor_name = actors.new_name("thread");
+        let thread = ThreadActor::new(thread_actor_name.clone());
 
         let watcher = WatcherActor::new(
             actors,

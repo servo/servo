@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::net::TcpStream;
 
 use serde::Serialize;
@@ -56,15 +57,42 @@ struct SourcesReply {
 }
 
 #[derive(Serialize)]
-enum Source {}
+pub struct SpontaneousNewSource {
+    pub from: String,
+    pub r#type: String,
+    pub source: Source,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Source {
+    pub actor: String,
+    /// URL of the script, at least for `SpontaneousNewSource` on a page with external scripts
+    pub url: String,
+    #[serde(rename = "isBlackBoxed")]
+    pub is_black_boxed: bool,
+}
 
 pub struct ThreadActor {
     name: String,
+    // this should be able to handle multiple script url, use a map maybe?
+    source_url: RefCell<Option<String>>,
 }
 
 impl ThreadActor {
     pub fn new(name: String) -> ThreadActor {
-        ThreadActor { name }
+        ThreadActor {
+            name,
+            source_url: RefCell::new(None),
+        }
+    }
+
+    pub fn set_source_url(&self, url: String) {
+        *self.source_url.borrow_mut() = Some(url);
+    }
+
+    pub fn get_source_url(&self) -> Option<String> {
+        self.source_url.borrow().clone()
     }
 }
 
@@ -125,6 +153,8 @@ impl Actor for ThreadActor {
                 ActorMessageStatus::Processed
             },
 
+            // Client has attached to the thread and wants to load script sources.
+            // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#loading-script-sources>
             "sources" => {
                 let msg = SourcesReply {
                     from: self.name(),

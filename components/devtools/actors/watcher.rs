@@ -19,8 +19,10 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
+use super::thread::ThreadActor;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
+use crate::actors::thread::{Source, SpontaneousNewSource};
 use crate::actors::watcher::target_configuration::{
     TargetConfigurationActor, TargetConfigurationActorMsg,
 };
@@ -77,13 +79,13 @@ impl SessionContext {
                 ("network-event", false),
                 ("network-event-stacktrace", false),
                 ("reflow", false),
-                ("stylesheet", false),
-                ("source", false),
-                ("thread-state", false),
+                ("stylesheet", true),
+                ("source", true),
+                ("thread-state", true),
                 ("server-sent-event", false),
                 ("websocket", false),
-                ("jstracer-trace", false),
-                ("jstracer-state", false),
+                ("jstracer-trace", true),
+                ("jstracer-state", true),
                 ("last-private-context-exit", false),
             ]),
             context_type,
@@ -135,6 +137,18 @@ struct GetThreadConfigurationActorReply {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+struct GetBreakpointListActorReply {
+    from: String,
+    breakpoint_list: GetBreakpointListActorReplyInner,
+}
+
+#[derive(Serialize)]
+struct GetBreakpointListActorReplyInner {
+    actor: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct DocumentEvent {
     #[serde(rename = "hasNativeConsoleAPI")]
     has_native_console_api: Option<bool>,
@@ -144,6 +158,27 @@ struct DocumentEvent {
     time: u64,
     title: Option<String>,
     url: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ThreadState {
+    actor: String,
+    state: String,
+    #[serde(rename = "type")]
+    type_: String,
+    /// URL of the page? At least when testing on page with inline script
+    url: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SourceInfo {
+    actor: String,
+    /// URL of the script, at least on a page with external scripts
+    url: String,
+    #[serde(rename = "isBlackBoxed")]
+    is_black_boxed: bool,
 }
 
 #[derive(Serialize)]
@@ -207,6 +242,20 @@ impl Actor for WatcherActor {
                 };
                 let _ = stream.write_json_packet(&msg);
 
+                if let Err(error) = stream.write_json_packet(&SpontaneousNewSource {
+                    from: target.thread.clone(), // TODO: rename to thread_actor
+                    r#type: "newSource".to_owned(),
+                    source: Source {
+                        // TODO: register this actor
+                        actor: registry.new_name("source"),
+                        // TODO: use JS URL, not page URL
+                        url: target.url.borrow().clone(),
+                        is_black_boxed: false,
+                    },
+                }) {
+                    warn!("Failed to send message: {error:?}");
+                }
+
                 target.frame_update(stream);
 
                 // Messages that contain a `type` field are used to send event callbacks, but they
@@ -248,6 +297,36 @@ impl Actor for WatcherActor {
                                 };
                                 target.resource_available(event, "document-event".into());
                             }
+                        },
+                        "thread-state" => {
+                            let thread_actor = registry.find::<ThreadActor>(&target.thread);
+                            let url = thread_actor
+                                .get_source_url()
+                                .unwrap_or_else(|| target.url.borrow().clone());
+                            let state = ThreadState {
+                                actor: thread_actor.name(),
+                                state: "paused".to_owned(), // does it make any difference if we change from "running" to "paused"
+                                type_: "paused".to_owned(), // what if it is resumed?
+                                url,
+                            };
+                            target.resource_available(state, "thread-state".into());
+                        },
+                        "source" => {
+                            let thread_actor = registry.find::<ThreadActor>(&target.thread);
+                            let source_actor = thread_actor.name();
+
+                            // source url
+                            let url = thread_actor
+                                .get_source_url()
+                                .unwrap_or_else(|| target.url.borrow().clone());
+
+                            let source_info = SourceInfo {
+                                actor: source_actor,
+                                url,
+                                is_black_boxed: false,
+                            };
+
+                            target.resource_available(source_info, "source".into());
                         },
                         "console-message" | "error-message" => {},
                         _ => warn!("resource {} not handled yet", resource),
@@ -293,6 +372,15 @@ impl Actor for WatcherActor {
                     configuration: thread_configuration.encodable(),
                 };
                 let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+            "getBreakpointListActor" => {
+                let _ = stream.write_json_packet(&GetBreakpointListActorReply {
+                    from: self.name(),
+                    breakpoint_list: GetBreakpointListActorReplyInner {
+                        actor: registry.new_name("breakpoint-list"),
+                    },
+                });
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,
