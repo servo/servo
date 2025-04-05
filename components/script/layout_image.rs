@@ -8,6 +8,7 @@
 
 use std::sync::Arc;
 
+use content_security_policy as csp;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestBuilder as FetchRequestInit, RequestId};
 use net_traits::{
@@ -76,6 +77,11 @@ impl FetchResponseListener for LayoutImageContext {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
     }
 }
 
