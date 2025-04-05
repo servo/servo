@@ -94,7 +94,7 @@ impl HTMLMeterElement {
 
         let meter_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         root.upcast::<Node>()
-            .AppendChild(meter_value.upcast::<Node>())
+            .AppendChild(meter_value.upcast::<Node>(), can_gc)
             .unwrap();
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {

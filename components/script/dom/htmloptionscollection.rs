@@ -64,7 +64,7 @@ impl HTMLOptionsCollection {
             let element =
                 HTMLOptionElement::new(local_name!("option"), None, &document, None, can_gc);
             let node = element.upcast::<Node>();
-            root.AppendChild(node)?;
+            root.AppendChild(node, can_gc)?;
         }
         Ok(())
     }
@@ -122,7 +122,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
                 let child = self.upcast().IndexedGetter(index).unwrap();
                 let child_node = child.upcast::<Node>();
 
-                root.ReplaceChild(node, child_node).map(|_| ())
+                root.ReplaceChild(node, child_node, can_gc).map(|_| ())
             }
         } else {
             // Step 1
