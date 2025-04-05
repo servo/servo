@@ -9,7 +9,7 @@
 setup({ single_test: true });
 onload = () => {
   assert_equals(
-    getComputedStyle(document.querySelector('.test')).color, 
+    getComputedStyle(document.querySelector('.test')).color,
     'rgb(0, 128, 0)',
     "Same-origin stylesheet with non-CSS MIME type should be applied in quirks mode"
   );

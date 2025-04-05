@@ -166,7 +166,11 @@ impl FetchResponseListener for StylesheetContext {
                 let mime: Mime = ct.into_inner().into();
                 mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
             }) || (
-                // Quirk: If the document has been set to quirks mode, has the same origin as the URL of the external resource, and the Content-Type metadata of the external resource is not a supported style sheet type, the user agent must instead assume it to be text/css.
+                // Quirk: If the document has been set to quirks mode,
+                // has the same origin as the URL of the external resource,
+                // and the Content-Type metadata of the external resource
+                // is not a supported style sheet type, the user agent must
+                // instead assume it to be text/css.
                 // <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>
                 document.quirks_mode() == QuirksMode::Quirks &&
                     document.origin().immutable().clone() == metadata.final_url.origin()
