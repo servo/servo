@@ -215,9 +215,9 @@ codegen-units = 1
 #
 # For html5ever:
 #
-# html5ever = { path = "../html5ever/html5ever" }
-# markup5ever = { path = "../html5ever/markup5ever" }
-# xml5ever = { path = "../html5ever/xml5ever" }
+html5ever = { git = "https://github.com/simonwuelker/html5ever/", branch="bubble-scripts-up-in-xml5ever" }
+markup5ever = { git = "https://github.com/simonwuelker/html5ever/", branch="bubble-scripts-up-in-xml5ever" }
+xml5ever = { git = "https://github.com/simonwuelker/html5ever/", branch="bubble-scripts-up-in-xml5ever" }
 #
 # Or for Stylo:
 #

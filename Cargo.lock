@@ -3266,8 +3266,7 @@ dependencies = [
 [[package]]
 name = "html5ever"
 version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5bf3413d61499f71fe4f627bbecfbec2977ce280525701df788f47370b0c507"
+source = "git+https://github.com/simonwuelker/html5ever/?branch=bubble-scripts-up-in-xml5ever#c185ee9a426d9cd7af4b9cd3023477a76cebb5b0"
 dependencies = [
  "log",
  "mac",
@@ -4517,8 +4516,7 @@ dependencies = [
 [[package]]
 name = "markup5ever"
 version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03a7b81dfb91586d0677086d40a6d755070e0799b71bb897485bac408dfd5c69"
+source = "git+https://github.com/simonwuelker/html5ever/?branch=bubble-scripts-up-in-xml5ever#c185ee9a426d9cd7af4b9cd3023477a76cebb5b0"
 dependencies = [
  "log",
  "phf",
@@ -4531,8 +4529,7 @@ dependencies = [
 [[package]]
 name = "match_token"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88a9689d8d44bf9964484516275f5cd4c9b59457a6940c1d5d0ecbb94510a36b"
+source = "git+https://github.com/simonwuelker/html5ever/?branch=bubble-scripts-up-in-xml5ever#c185ee9a426d9cd7af4b9cd3023477a76cebb5b0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6328,6 +6325,7 @@ dependencies = [
  "libc",
  "log",
  "malloc_size_of_derive",
+ "markup5ever",
  "media",
  "metrics",
  "mime",
@@ -9448,8 +9446,7 @@ checksum = "c5b940ebc25896e71dd073bad2dbaa2abfe97b0a391415e22ad1326d9c54e3c4"
 [[package]]
 name = "xml5ever"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9f61eba2105dcadbee9232cfcf75c96abea184bf3805a8bfe022cf7fe7fa11d"
+source = "git+https://github.com/simonwuelker/html5ever/?branch=bubble-scripts-up-in-xml5ever#c185ee9a426d9cd7af4b9cd3023477a76cebb5b0"
 dependencies = [
  "log",
  "mac",
