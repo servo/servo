@@ -712,7 +712,7 @@ where
                     // namespace 0 for the embedder, and 0 for the constellation
                     next_pipeline_namespace_id: PipelineNamespaceId(2),
                     time_profiler_chan: state.time_profiler_chan,
-                    mem_profiler_chan: state.mem_profiler_chan,
+                    mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
                     webdriver: WebDriverData::new(),
                     document_states: HashMap::new(),
@@ -739,7 +739,7 @@ where
                     active_media_session: None,
                     rippy_data,
                     user_content_manager: state.user_content_manager,
-                    process_manager: ProcessManager::new(),
+                    process_manager: ProcessManager::new(state.mem_profiler_chan),
                 };
 
                 constellation.run();

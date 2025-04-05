@@ -6,6 +6,7 @@ use std::process::Child;
 
 use crossbeam_channel::{Receiver, Select};
 use log::{debug, warn};
+use profile_traits::mem::{ProfilerChan, ProfilerMsg};
 
 pub enum Process {
     Unsandboxed(Child),
@@ -37,11 +38,15 @@ type ProcessReceiver = Receiver<Result<(), ipc_channel::Error>>;
 
 pub(crate) struct ProcessManager {
     processes: Vec<(Process, ProcessReceiver)>,
+    mem_profiler_chan: ProfilerChan,
 }
 
 impl ProcessManager {
-    pub fn new() -> Self {
-        Self { processes: vec![] }
+    pub fn new(mem_profiler_chan: ProfilerChan) -> Self {
+        Self {
+            processes: vec![],
+            mem_profiler_chan,
+        }
     }
 
     pub fn add(&mut self, receiver: ProcessReceiver, process: Process) {
@@ -63,6 +68,12 @@ impl ProcessManager {
     pub fn remove(&mut self, index: usize) {
         let (mut process, _) = self.processes.swap_remove(index);
         debug!("Removing process pid={}", process.pid());
+        // Unregister this process system memory profiler
+        self.mem_profiler_chan
+            .send(ProfilerMsg::UnregisterReporter(format!(
+                "system-content-{}",
+                process.pid()
+            )));
         process.wait();
     }
 }

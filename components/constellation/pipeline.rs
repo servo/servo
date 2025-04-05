@@ -32,6 +32,8 @@ use media::WindowGLContext;
 use net::image_cache::ImageCacheImpl;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
+use profile::system_reporter;
+use profile_traits::mem::{ProfilerMsg, Reporter};
 use profile_traits::{mem as profile_mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
@@ -590,5 +592,25 @@ impl UnprivilegedPipelineContent {
 
     pub fn prefs(&self) -> &Preferences {
         &self.prefs
+    }
+
+    pub fn register_system_memory_reporter(&self) {
+        // Register the system memory reporter, which will run on its own thread. It never needs to
+        // be unregistered, because as long as the memory profiler is running the system memory
+        // reporter can make measurements.
+        let (system_reporter_sender, system_reporter_receiver) =
+            ipc::channel().expect("failed to create ipc channel");
+        ROUTER.add_typed_route(
+            system_reporter_receiver,
+            Box::new(|message| {
+                if let Ok(request) = message {
+                    system_reporter::collect_reports(request);
+                }
+            }),
+        );
+        self.mem_profiler_chan.send(ProfilerMsg::RegisterReporter(
+            format!("system-content-{}", std::process::id()),
+            Reporter(system_reporter_sender),
+        ));
     }
 }
