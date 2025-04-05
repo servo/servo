@@ -918,6 +918,7 @@ impl FloatBox {
             layout_context,
             containing_block,
             &style,
+            &self.contents.base.base_fragment_info.flags,
             |positioning_context| {
                 self.contents
                     .layout_float_or_atomic_inline(

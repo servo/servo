@@ -130,14 +130,10 @@ impl PositioningContext {
         self.for_nearest_positioned_ancestor.is_some()
     }
 
-    pub(crate) fn new_for_style(style: &ComputedValues) -> Option<Self> {
-        // NB: We never make PositioningContexts for replaced elements, which is why we always
-        // pass false here.
-        if style.establishes_containing_block_for_all_descendants(FragmentFlags::empty()) {
+    pub(crate) fn new_for_style(style: &ComputedValues, flags: &FragmentFlags) -> Option<Self> {
+        if style.establishes_containing_block_for_all_descendants(*flags) {
             Some(Self::new_for_containing_block_for_all_descendants())
-        } else if style
-            .establishes_containing_block_for_absolute_descendants(FragmentFlags::empty())
-        {
+        } else if style.establishes_containing_block_for_absolute_descendants(*flags) {
             Some(Self {
                 for_nearest_positioned_ancestor: Some(Vec::new()),
                 for_nearest_containing_block_for_all_descendants: Vec::new(),
@@ -214,11 +210,12 @@ impl PositioningContext {
         layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
         style: &ComputedValues,
+        flags: &FragmentFlags,
         fragment_layout_fn: impl FnOnce(&mut Self) -> BoxFragment,
     ) -> BoxFragment {
         // Try to create a context, but if one isn't necessary, simply create the fragment
         // using the given closure and the current `PositioningContext`.
-        let mut new_context = match Self::new_for_style(style) {
+        let mut new_context = match Self::new_for_style(style, flags) {
             Some(new_context) => new_context,
             None => return fragment_layout_fn(self),
         };
@@ -473,6 +470,7 @@ impl HoistedAbsolutelyPositionedBox {
         let absolutely_positioned_box = self.absolutely_positioned_box.borrow();
         let context = &absolutely_positioned_box.context;
         let style = context.style().clone();
+        let flags = context.base_fragment_info().flags;
         let layout_style = context.layout_style();
         let ContentBoxSizesAndPBM {
             content_box_sizes,
@@ -586,7 +584,7 @@ impl HoistedAbsolutelyPositionedBox {
                 .sizes
         }));
 
-        let mut positioning_context = PositioningContext::new_for_style(&style).unwrap();
+        let mut positioning_context = PositioningContext::new_for_style(&style, &flags).unwrap();
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;

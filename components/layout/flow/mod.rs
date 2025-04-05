@@ -780,6 +780,7 @@ impl BlockLevelBox {
                     layout_context,
                     containing_block,
                     &base.style,
+                    &base.base_fragment_info.flags,
                     |positioning_context| {
                         layout_in_flow_non_replaced_block_level_same_formatting_context(
                             layout_context,
@@ -799,6 +800,7 @@ impl BlockLevelBox {
                     layout_context,
                     containing_block,
                     independent.style(),
+                    &independent.base_fragment_info().flags,
                     |positioning_context| {
                         independent.layout_in_flow_block_level(
                             layout_context,
