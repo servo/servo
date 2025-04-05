@@ -291,7 +291,7 @@ pub enum EmbedderMsg {
     AllowOpeningWebView(WebViewId, IpcSender<Option<(WebViewId, ViewportDetails)>>),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
-    /// A webview gained focus for keyboard events.
+    /// A webview gained focus for keyboard events
     WebViewFocused(WebViewId),
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
