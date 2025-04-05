@@ -3,7 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::RefCell;
 
+use content_security_policy::{CheckResult, ViolationResource};
 use dom_struct::dom_struct;
+use js::jsapi::RuntimeCode;
 use js::rust::HandleValue;
 
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
@@ -20,6 +22,7 @@ use crate::dom::trustedscript::TrustedScript;
 use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypepolicy::TrustedTypePolicy;
 use crate::script_runtime::{CanGc, JSContext};
+use crate::security_manager::CSPViolationReporter;
 
 #[dom_struct]
 pub struct TrustedTypePolicyFactory {
@@ -51,13 +54,37 @@ impl TrustedTypePolicyFactory {
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
-        // TODO(36258): implement proper CSP check
         // Step 1: Let allowedByCSP be the result of executing Should Trusted Type policy creation be blocked by
         // Content Security Policy? algorithm with global, policyName and factory’s created policy names value.
-        let allowed_by_csp = true;
+        let (allowed_by_csp, violations) = if let Some(csp_list) = global.get_csp_list() {
+            csp_list.is_trusted_type_policy_creation_allowed(
+                policy_name.clone(),
+                self.policy_names.borrow().clone(),
+            )
+        } else {
+            (CheckResult::Allowed, Vec::new())
+        };
+
+        for violation in violations {
+            if let ViolationResource::TrustedTypePolicy { sample } = violation.resource {
+                let task = CSPViolationReporter::new(
+                    &global,
+                    Some(sample),
+                    allowed_by_csp != CheckResult::Blocked,
+                    RuntimeCode::JS,
+                    "".to_string(),
+                    0,
+                    0,
+                );
+                global
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .queue(task);
+            }
+        }
 
         // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.
-        if !allowed_by_csp {
+        if allowed_by_csp == CheckResult::Blocked {
             return Err(Error::Type("Not allowed by CSP".to_string()));
         }
 
