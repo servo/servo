@@ -38,7 +38,6 @@ use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::reflector::DomObject;
-use crate::root::DomRoot;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::str::DOMString;
 use crate::utils::delete_property_by_id;
@@ -515,33 +514,18 @@ pub(crate) fn report_cross_origin_denial<D: DomTypes>(
     id: RawHandleId,
     access: &str,
 ) -> bool {
-    let source;
-    let js_is_exception_pending;
-    let mut global: Option<DomRoot<D::GlobalScope>> = None;
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-    unsafe {
-        source = id_to_source(cx, id);
-        js_is_exception_pending = JS_IsExceptionPending(*cx);
-        if !js_is_exception_pending {
-            global = Some(D::GlobalScope::from_context(
-                *cx,
-                InRealm::Already(&in_realm_proof),
-            ));
-        }
-    }
     debug!(
         "permission denied to {} property {} on cross-origin object",
         access,
-        source.as_deref().unwrap_or("< error >"),
+        id_to_source(cx, id).as_deref().unwrap_or("< error >"),
     );
-    if !js_is_exception_pending && global.is_some() {
-        // TODO: include `id` and `access` in the exception message
-        <D as DomHelpers<D>>::throw_dom_exception(
-            cx,
-            &(global.unwrap()),
-            Error::Security,
-            CanGc::note(),
-        );
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+    unsafe {
+        if !JS_IsExceptionPending(*cx) {
+            let global = D::GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
+            // TODO: include `id` and `access` in the exception message
+            <D as DomHelpers<D>>::throw_dom_exception(cx, &global, Error::Security, CanGc::note());
+        }
     }
     false
 }
