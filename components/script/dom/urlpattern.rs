@@ -1124,8 +1124,9 @@ enum PatternInitType {
     Url,
 }
 
-impl<'a> PatternParser<'a> {
+impl PatternParser<'_> {
     fn new(segment_wildcard_regexp: String, encoding_callback: EncodingCallback) -> Self {
+        // This function will look more useful when the parser is implemented
         _ = segment_wildcard_regexp;
         _ = encoding_callback;
         Self { token_list: vec![] }
