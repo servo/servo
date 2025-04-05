@@ -24,6 +24,7 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Bindi
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
 };
+use crate::dom::bindings::codegen::GenericBindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -39,6 +40,7 @@ use crate::dom::node::{
     BindContext, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
     VecPreOrderInsertionHelper,
 };
+use crate::dom::servoparser::ServoParser;
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::types::EventTarget;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -93,6 +95,27 @@ pub(crate) struct ShadowRoot {
 }
 
 impl ShadowRoot {
+    pub fn setHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+        //Stap 1: Define target as ShadowRoot itself
+        let target = DomRoot::from_ref(self.upcast());
+
+        // Step 2: Use the shadow host as the context element.
+        let context_element = self.Host();
+
+        // Step3: Parse the HTML fragment using context_element.
+        let new_children = ServoParser::parse_html_fragment(&context_element, html, true, can_gc);
+
+        let context_document = context_element.owner_document();
+
+        let frag = DocumentFragment::new(&context_document, can_gc);
+
+        for child in new_children {
+            frag.upcast::<Node>().AppendChild(&child).unwrap();
+        }
+
+        Node::replace_all(Some(frag.upcast()), &target, can_gc);
+    }
+
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
         host: &Element,
