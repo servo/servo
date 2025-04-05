@@ -8,11 +8,12 @@ use std::sync::LazyLock;
 use js::conversions::jsstr_to_string;
 use js::glue::{AppendToIdVector, CreateProxyHandler, NewProxyObject, ProxyTraps};
 use js::jsapi::{
-    GetWellKnownSymbol, Handle, HandleId, HandleObject, JSClass, JSClass_NON_NATIVE, JSContext,
-    JSErrNum, JS_SetImmutablePrototype, MutableHandle, MutableHandleIdVector, MutableHandleObject,
-    ObjectOpResult, PropertyDescriptor, ProxyClassExtension, ProxyClassOps, ProxyObjectOps,
-    SymbolCode, UndefinedHandleValue, JSCLASS_DELAY_METADATA_BUILDER, JSCLASS_IS_PROXY,
-    JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSPROP_READONLY,
+    GetWellKnownSymbol, Handle, HandleId, HandleObject, JS_SetImmutablePrototype,
+    JSCLASS_DELAY_METADATA_BUILDER, JSCLASS_IS_PROXY, JSCLASS_RESERVED_SLOTS_MASK,
+    JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClass_NON_NATIVE, JSContext, JSErrNum,
+    JSPROP_READONLY, MutableHandle, MutableHandleIdVector, MutableHandleObject, ObjectOpResult,
+    PropertyDescriptor, ProxyClassExtension, ProxyClassOps, ProxyObjectOps, SymbolCode,
+    UndefinedHandleValue,
 };
 use js::jsid::SymbolId;
 use js::jsval::UndefinedValue;
@@ -84,7 +85,7 @@ unsafe extern "C" fn get_own_property_descriptor(
     desc: MutableHandle<PropertyDescriptor>,
     is_none: *mut bool,
 ) -> bool {
-    let cx = SafeJSContext::from_ptr(cx);
+    let cx = unsafe { SafeJSContext::from_ptr(cx) };
 
     if id.is_symbol() {
         if id.get().asBits_ == SymbolId(GetWellKnownSymbol(*cx, SymbolCode::toStringTag)).asBits_ {
@@ -94,7 +95,7 @@ unsafe extern "C" fn get_own_property_descriptor(
                 RustMutableHandle::from_raw(desc),
                 rval.handle(),
                 JSPROP_READONLY.into(),
-                &mut *is_none,
+                unsafe { &mut *is_none },
             );
         }
         return true;
@@ -114,7 +115,7 @@ unsafe extern "C" fn get_own_property_descriptor(
     }
 
     let s = if id.is_string() {
-        jsstr_to_string(*cx, id.to_string())
+        unsafe { jsstr_to_string(*cx, id.to_string()) }
     } else if id.is_int() {
         // If the property key is an integer index, convert it to a String too.
         // For indexed access on the window object, which may shadow this, see
@@ -130,16 +131,16 @@ unsafe extern "C" fn get_own_property_descriptor(
         return true;
     }
 
-    let window = Root::downcast::<Window>(GlobalScope::from_object(proxy.get()))
+    let window = Root::downcast::<Window>(unsafe { GlobalScope::from_object(proxy.get()) })
         .expect("global is not a window");
-    if let Some(obj) = window.NamedGetter(cx, s.into()) {
+    if let Some(obj) = window.NamedGetter(s.into()) {
         rooted!(in(*cx) let mut rval = UndefinedValue());
         obj.to_jsval(*cx, rval.handle_mut());
         set_property_descriptor(
-            RustMutableHandle::from_raw(desc),
+            unsafe { RustMutableHandle::from_raw(desc) },
             rval.handle(),
             0,
-            &mut *is_none,
+            unsafe { &mut *is_none },
         );
     }
     true
@@ -154,8 +155,10 @@ unsafe extern "C" fn own_property_keys(
     // TODO is this all we need to return? compare with gecko:
     // https://searchfox.org/mozilla-central/rev/af78418c4b5f2c8721d1a06486cf4cf0b33e1e8d/dom/base/WindowNamedPropertiesHandler.cpp#175-232
     // see also https://github.com/whatwg/html/issues/9068
-    rooted!(in(cx) let mut rooted = SymbolId(GetWellKnownSymbol(cx, SymbolCode::toStringTag)));
-    AppendToIdVector(props, rooted.handle().into());
+    unsafe {
+        rooted!(in(cx) let mut rooted = SymbolId(GetWellKnownSymbol(cx, SymbolCode::toStringTag)));
+        AppendToIdVector(props, rooted.handle().into());
+    }
     true
 }
 
@@ -167,7 +170,9 @@ unsafe extern "C" fn define_property(
     _desc: Handle<PropertyDescriptor>,
     result: *mut ObjectOpResult,
 ) -> bool {
-    (*result).code_ = JSErrNum::JSMSG_CANT_DEFINE_WINDOW_NAMED_PROPERTY as usize;
+    unsafe {
+        (*result).code_ = JSErrNum::JSMSG_CANT_DEFINE_WINDOW_NAMED_PROPERTY as usize;
+    }
     true
 }
 
@@ -178,7 +183,9 @@ unsafe extern "C" fn delete(
     _id: HandleId,
     result: *mut ObjectOpResult,
 ) -> bool {
-    (*result).code_ = JSErrNum::JSMSG_CANT_DELETE_WINDOW_NAMED_PROPERTY as usize;
+    unsafe {
+        (*result).code_ = JSErrNum::JSMSG_CANT_DELETE_WINDOW_NAMED_PROPERTY as usize;
+    }
     true
 }
 
@@ -189,8 +196,10 @@ unsafe extern "C" fn get_prototype_if_ordinary(
     is_ordinary: *mut bool,
     proto: MutableHandleObject,
 ) -> bool {
-    *is_ordinary = true;
-    proto.set(js::jsapi::GetStaticPrototype(proxy.get()));
+    unsafe {
+        *is_ordinary = true;
+        proto.set(js::jsapi::GetStaticPrototype(proxy.get()));
+    }
     true
 }
 
@@ -200,7 +209,9 @@ unsafe extern "C" fn prevent_extensions(
     _proxy: HandleObject,
     result: *mut ObjectOpResult,
 ) -> bool {
-    (*result).code_ = JSErrNum::JSMSG_CANT_PREVENT_EXTENSIONS as usize;
+    unsafe {
+        (*result).code_ = JSErrNum::JSMSG_CANT_PREVENT_EXTENSIONS as usize;
+    }
     true
 }
 
@@ -210,7 +221,9 @@ unsafe extern "C" fn is_extensible(
     _proxy: HandleObject,
     extensible: *mut bool,
 ) -> bool {
-    *extensible = true;
+    unsafe {
+        *extensible = true;
+    }
     true
 }
 
@@ -234,7 +247,7 @@ static CLASS: JSClass = JSClass {
 };
 
 #[allow(unsafe_code)]
-pub fn create(
+pub(crate) fn create(
     cx: SafeJSContext,
     proto: RustHandleObject,
     mut properties_obj: RustMutableHandleObject,

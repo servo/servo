@@ -7,16 +7,16 @@ use std::convert::TryFrom;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use servo_arc::Arc;
-use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
 use style::properties::ComputedValues;
+use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
 use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
-use style::values::specified::text::TextDecorationLine;
 
+use super::OutsideMarker;
+use super::inline::InlineFormattingContext;
 use super::inline::construct::InlineFormattingContextBuilder;
 use super::inline::inline_box::InlineBox;
-use super::inline::InlineFormattingContext;
-use super::OutsideMarker;
+use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
@@ -26,6 +26,7 @@ use crate::dom_traversal::{
 use crate::flow::float::FloatBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
+use crate::fragment_tree::FragmentFlags;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
@@ -36,7 +37,7 @@ impl BlockFormattingContext {
         context: &LayoutContext,
         info: &NodeAndStyleInfo<Node>,
         contents: NonReplacedContents,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
         is_list_item: bool,
     ) -> Self
     where
@@ -46,7 +47,7 @@ impl BlockFormattingContext {
             context,
             info,
             contents,
-            propagated_text_decoration_line,
+            propagated_data,
             is_list_item,
         ))
     }
@@ -63,6 +64,7 @@ impl BlockFormattingContext {
 struct BlockLevelJob<'dom, Node> {
     info: NodeAndStyleInfo<Node>,
     box_slot: BoxSlot<'dom>,
+    propagated_data: PropagatedBoxTreeData,
     kind: BlockLevelCreator,
 }
 
@@ -71,7 +73,6 @@ enum BlockLevelCreator {
     Independent {
         display_inside: DisplayInside,
         contents: Contents,
-        propagated_text_decoration_line: TextDecorationLine,
     },
     OutOfFlowAbsolutelyPositionedBox {
         display_inside: DisplayInside,
@@ -82,6 +83,7 @@ enum BlockLevelCreator {
         contents: Contents,
     },
     OutsideMarker {
+        list_item_style: Arc<ComputedValues>,
         contents: Vec<PseudoElementContentItem>,
     },
     AnonymousTable {
@@ -100,7 +102,7 @@ enum IntermediateBlockContainer {
     InlineFormattingContext(BlockContainer),
     Deferred {
         contents: NonReplacedContents,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
         is_list_item: bool,
     },
 }
@@ -135,14 +137,14 @@ pub(crate) struct BlockContainerBuilder<'dom, 'style, Node> {
     /// be considered the first line for the purposes of `text-indent`.
     have_already_seen_first_line_for_text_indent: bool,
 
-    /// The propagated [`TextDecorationLine`].
-    text_decoration_line: TextDecorationLine,
+    /// The propagated data to use for BoxTree construction.
+    propagated_data: PropagatedBoxTreeData,
 
     inline_formatting_context_builder: InlineFormattingContextBuilder,
 
-    /// The style of the anonymous block boxes pushed to the list of block-level
-    /// boxes, if any (see `end_ongoing_inline_formatting_context`).
-    anonymous_style: Option<Arc<ComputedValues>>,
+    /// The [`NodeAndStyleInfo`] to use for anonymous block boxes pushed to the list of
+    /// block-level boxes, lazily initialized (see `end_ongoing_inline_formatting_context`).
+    anonymous_box_info: Option<NodeAndStyleInfo<Node>>,
 
     /// A collection of content that is being added to an anonymous table. This is
     /// composed of any sequence of internal table elements or table captions that
@@ -155,24 +157,25 @@ impl BlockContainer {
         context: &LayoutContext,
         info: &NodeAndStyleInfo<Node>,
         contents: NonReplacedContents,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
         is_list_item: bool,
     ) -> BlockContainer
     where
         Node: NodeExt<'dom>,
     {
-        let mut builder =
-            BlockContainerBuilder::new(context, info, propagated_text_decoration_line);
+        let mut builder = BlockContainerBuilder::new(context, info, propagated_data);
 
         if is_list_item {
-            if let Some(marker_contents) = crate::lists::make_marker(context, info) {
-                match info.style.clone_list_style_position() {
+            if let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info) {
+                match marker_info.style.clone_list_style_position() {
                     ListStylePosition::Inside => {
-                        builder.handle_list_item_marker_inside(info, marker_contents)
+                        builder.handle_list_item_marker_inside(&marker_info, marker_contents)
                     },
-                    ListStylePosition::Outside => {
-                        builder.handle_list_item_marker_outside(info, marker_contents)
-                    },
+                    ListStylePosition::Outside => builder.handle_list_item_marker_outside(
+                        &marker_info,
+                        marker_contents,
+                        info.style.clone(),
+                    ),
                 }
             }
         }
@@ -189,33 +192,32 @@ where
     pub(crate) fn new(
         context: &'style LayoutContext,
         info: &'style NodeAndStyleInfo<Node>,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
-        let text_decoration_line =
-            propagated_text_decoration_line | info.style.clone_text_decoration_line();
-
         BlockContainerBuilder {
             context,
             info,
             block_level_boxes: Vec::new(),
-            text_decoration_line,
+            propagated_data: propagated_data.union(&info.style),
             have_already_seen_first_line_for_text_indent: false,
-            anonymous_style: None,
+            anonymous_box_info: None,
             anonymous_table_content: Vec::new(),
             inline_formatting_context_builder: InlineFormattingContextBuilder::new(),
         }
     }
 
     pub(crate) fn finish(mut self) -> BlockContainer {
-        debug_assert!(!self
-            .inline_formatting_context_builder
-            .currently_processing_inline_box());
+        debug_assert!(
+            !self
+                .inline_formatting_context_builder
+                .currently_processing_inline_box()
+        );
 
         self.finish_anonymous_table_if_needed();
 
         if let Some(inline_formatting_context) = self.inline_formatting_context_builder.finish(
             self.context,
-            self.text_decoration_line,
+            self.propagated_data,
             !self.have_already_seen_first_line_for_text_indent,
             self.info.is_single_line_text_input(),
             self.info.style.writing_mode.to_bidi_level(),
@@ -266,10 +268,9 @@ where
         // >  Note that text decorations are not propagated to floating and absolutely
         // > positioned descendants, nor to the contents of atomic inline-level descendants
         // > such as inline blocks and inline tables.
-        let propagated_text_decoration_line = if inline_table {
-            TextDecorationLine::NONE
-        } else {
-            self.text_decoration_line
+        let propagated_data = match inline_table {
+            true => self.propagated_data.without_text_decorations(),
+            false => self.propagated_data,
         };
 
         let contents: Vec<AnonymousTableContent<'dom, Node>> =
@@ -279,23 +280,19 @@ where
             _ => None,
         };
 
-        let ifc = Table::construct_anonymous(
-            self.context,
-            self.info,
-            contents,
-            propagated_text_decoration_line,
-        );
+        let (table_info, ifc) =
+            Table::construct_anonymous(self.context, self.info, contents, propagated_data);
 
         if inline_table {
             self.inline_formatting_context_builder.push_atomic(ifc);
         } else {
-            let anonymous_info = self.info.new_anonymous(ifc.style().clone());
             let table_block = ArcRefCell::new(BlockLevelBox::Independent(ifc));
             self.end_ongoing_inline_formatting_context();
             self.block_level_boxes.push(BlockLevelJob {
-                info: anonymous_info,
+                info: table_info,
                 box_slot: BoxSlot::dummy(),
                 kind: BlockLevelCreator::AnonymousTable { table_block },
+                propagated_data,
             });
         }
 
@@ -390,17 +387,8 @@ where
         info: &NodeAndStyleInfo<Node>,
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
     ) {
-        let marker_style = self
-            .context
-            .shared_context()
-            .stylist
-            .style_for_anonymous::<Node::ConcreteElement>(
-                &self.context.shared_context().guards,
-                &PseudoElement::ServoLegacyText, // FIMXE: use `PseudoElement::Marker` when we add it
-                &info.style,
-            );
         self.handle_inline_level_element(
-            &info.new_replacing_style(marker_style),
+            info,
             DisplayInside::Flow {
                 is_list_item: false,
             },
@@ -413,11 +401,16 @@ where
         &mut self,
         info: &NodeAndStyleInfo<Node>,
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
+        list_item_style: Arc<ComputedValues>,
     ) {
         self.block_level_boxes.push(BlockLevelJob {
             info: info.clone(),
             box_slot: BoxSlot::dummy(),
-            kind: BlockLevelCreator::OutsideMarker { contents },
+            kind: BlockLevelCreator::OutsideMarker {
+                contents,
+                list_item_style,
+            },
+            propagated_data: self.propagated_data.without_text_decorations(),
         });
     }
 
@@ -439,7 +432,7 @@ where
                     display_inside,
                     contents,
                     // Text decorations are not propagated to atomic inline-level descendants.
-                    TextDecorationLine::NONE,
+                    self.propagated_data.without_text_decorations(),
                 ),
             );
             box_slot.set(LayoutBox::InlineLevel(atomic));
@@ -453,11 +446,13 @@ where
             .start_inline_box(InlineBox::new(info));
 
         if is_list_item {
-            if let Some(marker_contents) = crate::lists::make_marker(self.context, info) {
+            if let Some((marker_info, marker_contents)) =
+                crate::lists::make_marker(self.context, info)
+            {
                 // Ignore `list-style-position` here:
                 // “If the list item is an inline box: this value is equivalent to `inside`.”
                 // https://drafts.csswg.org/css-lists/#list-style-position-outside
-                self.handle_list_item_marker_inside(info, marker_contents)
+                self.handle_list_item_marker_inside(&marker_info, marker_contents)
             }
         }
 
@@ -489,7 +484,7 @@ where
             .inline_formatting_context_builder
             .split_around_block_and_finish(
                 self.context,
-                self.text_decoration_line,
+                self.propagated_data,
                 !self.have_already_seen_first_line_for_text_indent,
                 self.info.style.writing_mode.to_bidi_level(),
             )
@@ -497,16 +492,20 @@ where
             self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
         }
 
-        let propagated_text_decoration_line = self.text_decoration_line;
+        let propagated_data = self.propagated_data;
         let kind = match contents {
             Contents::NonReplaced(contents) => match display_inside {
                 DisplayInside::Flow { is_list_item }
-                    if !info.style.establishes_block_formatting_context() =>
+                    // Fragment flags are just used to indicate that the element is not replaced, so empty
+                    // flags are okay here.
+                    if !info.style.establishes_block_formatting_context(
+                        FragmentFlags::empty()
+                    ) =>
                 {
                     BlockLevelCreator::SameFormattingContextBlock(
                         IntermediateBlockContainer::Deferred {
                             contents,
-                            propagated_text_decoration_line,
+                            propagated_data,
                             is_list_item,
                         },
                     )
@@ -514,7 +513,6 @@ where
                 _ => BlockLevelCreator::Independent {
                     display_inside,
                     contents: contents.into(),
-                    propagated_text_decoration_line,
                 },
             },
             Contents::Replaced(contents) => {
@@ -522,7 +520,6 @@ where
                 BlockLevelCreator::Independent {
                     display_inside,
                     contents,
-                    propagated_text_decoration_line,
                 }
             },
         };
@@ -530,6 +527,7 @@ where
             info: info.clone(),
             box_slot,
             kind,
+            propagated_data,
         });
 
         // Any block also counts as the first line for the purposes of text indent. Even if
@@ -565,6 +563,7 @@ where
             info: info.clone(),
             box_slot,
             kind,
+            propagated_data: self.propagated_data.without_text_decorations(),
         });
     }
 
@@ -583,6 +582,7 @@ where
                         info,
                         display_inside,
                         contents,
+                        self.propagated_data,
                     ));
             box_slot.set(LayoutBox::InlineLevel(inline_level_box));
             return;
@@ -596,13 +596,14 @@ where
             info: info.clone(),
             box_slot,
             kind,
+            propagated_data: self.propagated_data.without_text_decorations(),
         });
     }
 
     fn end_ongoing_inline_formatting_context(&mut self) {
         if let Some(inline_formatting_context) = self.inline_formatting_context_builder.finish(
             self.context,
-            self.text_decoration_line,
+            self.propagated_data,
             !self.have_already_seen_first_line_for_text_indent,
             self.info.is_single_line_text_input(),
             self.info.style.writing_mode.to_bidi_level(),
@@ -615,20 +616,16 @@ where
         &mut self,
         inline_formatting_context: InlineFormattingContext,
     ) {
-        let block_container_style = &self.info.style;
         let layout_context = self.context;
-        let anonymous_style = self.anonymous_style.get_or_insert_with(|| {
-            layout_context
-                .shared_context()
-                .stylist
-                .style_for_anonymous::<Node::ConcreteElement>(
-                    &layout_context.shared_context().guards,
-                    &PseudoElement::ServoAnonymousBox,
-                    block_container_style,
-                )
-        });
+        let info = self
+            .anonymous_box_info
+            .get_or_insert_with(|| {
+                self.info
+                    .pseudo(layout_context, PseudoElement::ServoAnonymousBox)
+                    .expect("Should never fail to create anonymous box")
+            })
+            .clone();
 
-        let info = self.info.new_anonymous(anonymous_style.clone());
         self.block_level_boxes.push(BlockLevelJob {
             info,
             // FIXME(nox): We should be storing this somewhere.
@@ -638,6 +635,7 @@ where
                     BlockContainer::InlineFormattingContext(inline_formatting_context),
                 ),
             ),
+            propagated_data: self.propagated_data,
         });
 
         self.have_already_seen_first_line_for_text_indent = true;
@@ -663,14 +661,13 @@ where
             BlockLevelCreator::Independent {
                 display_inside,
                 contents,
-                propagated_text_decoration_line,
             } => {
                 let context = IndependentFormattingContext::construct(
                     context,
                     info,
                     display_inside,
                     contents,
-                    propagated_text_decoration_line,
+                    self.propagated_data,
                 );
                 ArcRefCell::new(BlockLevelBox::Independent(context))
             },
@@ -693,28 +690,25 @@ where
                 info,
                 display_inside,
                 contents,
+                self.propagated_data,
             ))),
-            BlockLevelCreator::OutsideMarker { contents } => {
-                let marker_style = context
-                    .shared_context()
-                    .stylist
-                    .style_for_anonymous::<Node::ConcreteElement>(
-                        &context.shared_context().guards,
-                        &PseudoElement::ServoLegacyText, // FIMXE: use `PseudoElement::Marker` when we add it
-                        &info.style,
-                    );
+            BlockLevelCreator::OutsideMarker {
+                contents,
+                list_item_style,
+            } => {
                 let contents = NonReplacedContents::OfPseudoElement(contents);
                 let block_container = BlockContainer::construct(
                     context,
-                    &info.new_replacing_style(marker_style.clone()),
+                    info,
                     contents,
-                    TextDecorationLine::empty(),
+                    self.propagated_data.without_text_decorations(),
                     false, /* is_list_item */
                 );
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
-                    marker_style,
+                    marker_style: info.style.clone(),
                     base: LayoutBoxBase::new(info.into(), info.style.clone()),
                     block_container,
+                    list_item_style,
                 }))
             },
             BlockLevelCreator::AnonymousTable { table_block } => table_block,
@@ -737,15 +731,9 @@ impl IntermediateBlockContainer {
         match self {
             IntermediateBlockContainer::Deferred {
                 contents,
-                propagated_text_decoration_line,
+                propagated_data,
                 is_list_item,
-            } => BlockContainer::construct(
-                context,
-                info,
-                contents,
-                propagated_text_decoration_line,
-                is_list_item,
-            ),
+            } => BlockContainer::construct(context, info, contents, propagated_data, is_list_item),
             IntermediateBlockContainer::InlineFormattingContext(block_container) => block_container,
         }
     }

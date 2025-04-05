@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread::Builder;
 
 use base::id::PipelineId;
@@ -24,7 +24,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::offlineaudiocompletionevent::OfflineAudioCompletionEvent;
@@ -32,10 +32,9 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
 
 #[dom_struct]
-pub struct OfflineAudioContext {
+pub(crate) struct OfflineAudioContext {
     context: BaseAudioContext,
     channel_count: u32,
     length: u32,
@@ -45,7 +44,7 @@ pub struct OfflineAudioContext {
 }
 
 impl OfflineAudioContext {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
         channel_count: u32,
         length: u32,
@@ -70,7 +69,7 @@ impl OfflineAudioContext {
         })
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new(
         window: &Window,
         proto: Option<HandleObject>,
@@ -147,7 +146,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
     fn StartRendering(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
         if self.rendering_started.get() {
-            promise.reject_error(Error::InvalidState);
+            promise.reject_error(Error::InvalidState, can_gc);
             return promise;
         }
         self.rendering_started.set(true);
@@ -171,46 +170,46 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
             }));
 
         let this = Trusted::new(self);
-        let global = self.global();
-        let window = global.as_window();
-        let (task_source, canceller) = window
+        let task_source = self
+            .global()
             .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+            .dom_manipulation_task_source()
+            .to_sendable();
         Builder::new()
             .name("OfflineACResolver".to_owned())
             .spawn(move || {
                 let _ = receiver.recv();
-                let _ = task_source.queue_with_canceller(
-                    task!(resolve: move || {
-                        let this = this.root();
-                        let processed_audio = processed_audio.lock().unwrap();
-                        let mut processed_audio: Vec<_> = processed_audio
-                            .chunks(this.length as usize)
-                            .map(|channel| channel.to_vec())
-                            .collect();
-                        // it can end up being empty if the task failed
-                        if processed_audio.len() != this.length as usize {
-                            processed_audio.resize(this.length as usize, Vec::new())
-                        }
-                        let buffer = AudioBuffer::new(
-                            this.global().as_window(),
-                            this.channel_count,
-                            this.length,
-                            *this.context.SampleRate(),
-                            Some(processed_audio.as_slice()),
-                            CanGc::note());
-                        (*this.pending_rendering_promise.borrow_mut()).take().unwrap().resolve_native(&buffer);
-                        let global = &this.global();
-                        let window = global.as_window();
-                        let event = OfflineAudioCompletionEvent::new(window,
-                                                                     atom!("complete"),
-                                                                     EventBubbles::DoesNotBubble,
-                                                                     EventCancelable::NotCancelable,
-                                                                     &buffer, CanGc::note());
-                        event.upcast::<Event>().fire(this.upcast(), CanGc::note());
-                    }),
-                    &canceller,
-                );
+                task_source.queue(task!(resolve: move || {
+                    let this = this.root();
+                    let processed_audio = processed_audio.lock().unwrap();
+                    let mut processed_audio: Vec<_> = processed_audio
+                        .chunks(this.length as usize)
+                        .map(|channel| channel.to_vec())
+                        .collect();
+                    // it can end up being empty if the task failed
+                    if processed_audio.len() != this.length as usize {
+                        processed_audio.resize(this.length as usize, Vec::new())
+                    }
+                    let buffer = AudioBuffer::new(
+                        this.global().as_window(),
+                        this.channel_count,
+                        this.length,
+                        *this.context.SampleRate(),
+                        Some(processed_audio.as_slice()),
+                        CanGc::note());
+                    (*this.pending_rendering_promise.borrow_mut())
+                        .take()
+                        .unwrap()
+                        .resolve_native(&buffer, CanGc::note());
+                    let global = &this.global();
+                    let window = global.as_window();
+                    let event = OfflineAudioCompletionEvent::new(window,
+                                                                 atom!("complete"),
+                                                                 EventBubbles::DoesNotBubble,
+                                                                 EventCancelable::NotCancelable,
+                                                                 &buffer, CanGc::note());
+                    event.upcast::<Event>().fire(this.upcast(), CanGc::note());
+                }));
             })
             .unwrap();
 
@@ -222,7 +221,10 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
             .resume()
             .is_err()
         {
-            promise.reject_error(Error::Type("Could not start offline rendering".to_owned()));
+            promise.reject_error(
+                Error::Type("Could not start offline rendering".to_owned()),
+                can_gc,
+            );
         }
 
         promise

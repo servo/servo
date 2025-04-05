@@ -1,0 +1,83 @@
+<!doctype html>
+<title>CSS Test: ::scroll-button(*) :disabled triggers when snapping prevents further scrolling</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
+  .scroller {
+    width: 50px;
+    height: 50px;
+    overflow: hidden;
+    margin: 20px;
+    box-sizing: border-box;
+  }
+
+  .horizontal {
+    white-space: nowrap;
+    scroll-snap-type: x mandatory;
+    padding: 0 20px;
+  }
+  .vertical {
+    white-space: nowrap;
+    scroll-snap-type: y mandatory;
+    padding: 20px 0;
+  }
+
+  .scroller div {
+    background: lightblue;
+    border: 2px solid blue;
+    width: 45px;
+    height: 45px;
+    margin: 5px;
+    box-sizing: border-box;
+    scroll-snap-align: center;
+  }
+
+  .scroller.horizontal div {
+    display: inline-block;
+  }
+
+  .scroll-button {
+    background: green;
+    border: 1px solid black;
+    display: inline-block;
+    height: 20px;
+    width: 20px;
+    color: white;
+    box-sizing: border-box;
+  }
+
+  .scroll-button.disabled {
+    background: gray;
+  }
+
+
+</style>
+<div class="horizontal scroller">
+  <div></div>
+  <div></div>
+</div>
+<div><div class="scroll-button inline-start disabled"></div><div class="scroll-button inline-end"></div></div>
+<div class="horizontal scroller">
+  <div></div>
+  <div></div>
+</div>
+<div><div class="scroll-button inline-start"></div><div class="scroll-button inline-end disabled"></div></div>
+<div class="vertical scroller">
+  <div></div>
+  <div></div>
+</div>
+<div><div class="scroll-button block-start disabled"></div><div class="scroll-button block-end"></div></div>
+<div class="vertical scroller">
+  <div></div>
+  <div></div>
+</div>
+<div><div class="scroll-button block-start"></div><div class="scroll-button block-end disabled"></div></div>
+<script>
+  const scrollers = document.querySelectorAll('.scroller');
+  scrollers[1].scrollLeft = 1000;
+  scrollers[3].scrollTop = 1000;
+</script>

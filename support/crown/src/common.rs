@@ -9,7 +9,7 @@ use rustc_hir::{ImplItemRef, ItemKind, Node, OwnerId, PrimTy, TraitItemRef};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::LateContext;
 use rustc_middle::ty::fast_reject::SimplifiedType;
-use rustc_middle::ty::{self, GenericArg, ParamEnv, Ty, TyCtxt, TypeVisitableExt};
+use rustc_middle::ty::{self, GenericArg, Ty, TyCtxt, TypeVisitableExt, TypingEnv};
 use rustc_span::hygiene::{ExpnKind, MacroKind};
 use rustc_span::symbol::{Ident, Symbol};
 use rustc_span::{Span, DUMMY_SP};
@@ -99,14 +99,11 @@ fn find_primitive_impls<'tcx>(tcx: TyCtxt<'tcx>, name: &str) -> impl Iterator<It
         "f64" => SimplifiedType::Float(FloatTy::F64),
         #[allow(trivial_casts)]
         _ => {
-            return Result::<_, rustc_errors::ErrorGuaranteed>::Ok(&[] as &[_])
-                .into_iter()
-                .flatten()
-                .copied();
+            return [].iter().copied();
         },
     };
 
-    tcx.incoherent_impls(ty).into_iter().flatten().copied()
+    tcx.incoherent_impls(ty).iter().copied()
 }
 
 fn non_local_item_children_by_name(tcx: TyCtxt<'_>, def_id: DefId, name: Symbol) -> Vec<Res> {
@@ -235,7 +232,6 @@ pub fn def_path_res(cx: &LateContext<'_>, path: &[&str]) -> Vec<Res> {
                 let inherent_impl_children = tcx
                     .inherent_impls(def_id)
                     .into_iter()
-                    .flatten()
                     .flat_map(|&impl_def_id| item_children_by_name(tcx, impl_def_id, segment));
 
                 let direct_children = item_children_by_name(tcx, def_id, segment);
@@ -280,7 +276,6 @@ pub fn def_local_res(cx: &LateContext<'_>, path: &str) -> Vec<Res> {
             let inherent_impl_children = tcx
                 .inherent_impls(def_id)
                 .into_iter()
-                .flatten()
                 .flat_map(|&impl_def_id| item_children_by_name(tcx, impl_def_id, segment));
 
             let direct_children = item_children_by_name(tcx, def_id, segment);
@@ -317,7 +312,7 @@ pub fn implements_trait<'tcx>(
 ) -> bool {
     implements_trait_with_env(
         cx.tcx,
-        cx.param_env,
+        cx.typing_env(),
         ty,
         trait_id,
         ty_params.iter().map(|&arg| Some(arg)),
@@ -327,7 +322,7 @@ pub fn implements_trait<'tcx>(
 /// Same as `implements_trait` but allows using a `ParamEnv` different from the lint context.
 pub fn implements_trait_with_env<'tcx>(
     tcx: TyCtxt<'tcx>,
-    param_env: ParamEnv<'tcx>,
+    typing_env: TypingEnv<'tcx>,
     ty: ty::Ty<'tcx>,
     trait_id: DefId,
     ty_params: impl IntoIterator<Item = Option<GenericArg<'tcx>>>,
@@ -336,7 +331,8 @@ pub fn implements_trait_with_env<'tcx>(
     if ty.has_escaping_bound_vars() {
         return false;
     }
-    let infcx = tcx.infer_ctxt().build();
+
+    let (infcx, param_env) = tcx.infer_ctxt().build_with_typing_env(typing_env);
     let ty_params = tcx.mk_args_from_iter(
         ty_params
             .into_iter()

@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::TextDecoderBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
@@ -23,7 +23,7 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 #[allow(non_snake_case)]
-pub struct TextDecoder {
+pub(crate) struct TextDecoder {
     reflector_: Reflector,
     #[no_trace]
     encoding: &'static Encoding,

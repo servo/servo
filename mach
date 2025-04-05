@@ -1,19 +1,41 @@
-#!/usr/bin/env python3
+#!/bin/sh
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+# The beginning of this script is both valid shell and valid python, such that
+# the script starts with the shell and is reexecuted with `uv run`. This
+# ensures that the Python provided by the virtual environment (in the .venv
+# directory) is used. If the virtual environment does not exist, `uv run` will
+# still use the correct version of Python given in `.python-version` and
+# python/mach_bootstrap.py will provision a new environment that will be used
+# for the subsequent runs.
+''':' && {
+    MACH_DIR=$(dirname "$0");
+    run_in_nix_if_needed() {
+        if { [ -f /etc/NIXOS ] || [ -n "${MACH_USE_NIX}" ]; } && [ -z "${IN_NIX_SHELL}" ]; then
+            EXTRA_NIX_ARGS=${SERVO_ANDROID_BUILD:+'--arg buildAndroid true'}
+
+            # `nix-shell` needs the whole command passed as a single argument, so the arguments need
+            # to be shell-quoted. Rotate through the arguments, replacing them with quoted versions.
+            for arg in "$@"; do
+                set -- "$@" "$(printf \%q "$1")"
+                shift
+            done
+
+            echo "NOTE: Entering nix-shell ${MACH_DIR}/shell.nix"
+            exec nix-shell "${MACH_DIR}/shell.nix" $EXTRA_NIX_ARGS --run "$*"
+        else
+            exec "$@"
+        fi
+    }
+
+    run_in_nix_if_needed uv run python ${MACH_DIR}/mach "$@"
+}
+'''
+
 import os
 import sys
-
-# Destructure because version_info > max_ver is true when running the same version.
-ver = (sys.version_info[0], sys.version_info[1])
-min_ver = (3, 10)
-max_ver = (3, 12) # WPT does not support Python 3.13. See issue #34095.
-if ver < min_ver or ver > max_ver:
-    print("mach does not support python {0}.{1}, please install 3.{2} <= python <= 3.{3}" \
-        .format(ver[0], ver[1], min_ver[1], max_ver[1]))
-    sys.exit(1)
 
 def main(args):
     topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
@@ -27,20 +49,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    sys.dont_write_bytecode = True
-
-    need_nix_shell = os.path.exists('/etc/NIXOS') or 'MACH_USE_NIX' in os.environ
-    if need_nix_shell and not 'IN_NIX_SHELL' in os.environ:
-        import subprocess
-        from shlex import quote
-        mach_dir = os.path.abspath(os.path.dirname(__file__))
-        build_android_args = ['--arg', 'buildAndroid', 'true'] if 'SERVO_ANDROID_BUILD' in os.environ else []
-        print(f'NOTE: Entering nix-shell {mach_dir}/shell.nix')
-        try:
-            # sys argv already contains the ./mach part, so we just need to pass it as-is
-            result = subprocess.run(['nix-shell', f'{mach_dir}/shell.nix'] + build_android_args + ['--run', ' '.join(map(quote, sys.argv))])
-            sys.exit(result.returncode)
-        except KeyboardInterrupt:
-            sys.exit(0)
-    else:
-        main(sys.argv)
+    main(sys.argv)

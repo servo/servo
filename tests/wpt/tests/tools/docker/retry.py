@@ -7,9 +7,11 @@ import sys
 
 def get_args() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--delay", action="store", type=float, default=3, help="Initial delay before retry, in seconds")
-    parser.add_argument("--count", action="store", type=int, default=5, help="Total number of tries")
-    parser.add_argument("--factor", action="store", type=float, default=2, help="Exponential backoff factor")
+    parser.add_argument("--delay", type=float, default=3,
+                        help="Initial delay before retry, in seconds")
+    parser.add_argument("--count", type=int, default=5, help="Total number of tries")
+    parser.add_argument("--factor", type=float, default=2,
+                        help="Exponential backoff factor")
     parser.add_argument("cmd", nargs=argparse.REMAINDER)
     return parser
 

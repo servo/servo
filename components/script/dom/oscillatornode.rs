@@ -15,6 +15,7 @@ use servo_media::audio::oscillator_node::{
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::Convert;
+use crate::dom::audionode::AudioNodeOptionsHelper;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
@@ -32,7 +33,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct OscillatorNode {
+pub(crate) struct OscillatorNode {
     source_node: AudioScheduledSourceNode,
     detune: Dom<AudioParam>,
     frequency: Dom<AudioParam>,
@@ -40,8 +41,8 @@ pub struct OscillatorNode {
 }
 
 impl OscillatorNode {
-    #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
@@ -68,6 +69,7 @@ impl OscillatorNode {
             440.,
             f32::MIN,
             f32::MAX,
+            CanGc::note(),
         );
         let detune = AudioParam::new(
             window,
@@ -79,6 +81,7 @@ impl OscillatorNode {
             0.,
             -440. / 2.,
             440. / 2.,
+            CanGc::note(),
         );
         Ok(OscillatorNode {
             source_node,
@@ -88,7 +91,7 @@ impl OscillatorNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
@@ -97,7 +100,7 @@ impl OscillatorNode {
         Self::new_with_proto(window, None, context, options, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
@@ -157,7 +160,7 @@ impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
     }
 }
 
-impl<'a> Convert<ServoMediaOscillatorOptions> for &'a OscillatorOptions {
+impl Convert<ServoMediaOscillatorOptions> for &OscillatorOptions {
     fn convert(self) -> ServoMediaOscillatorOptions {
         ServoMediaOscillatorOptions {
             oscillator_type: self.type_.convert(),

@@ -7,12 +7,12 @@ use std::default::Default;
 use std::ops::Range;
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
-use script_traits::ScriptToConstellationChan;
 use style::attr::AttrValue;
-use style_dom::ElementState;
+use stylo_dom::ElementState;
 
+use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -23,36 +23,36 @@ use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::{
-    window_from_node, BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage,
-    UnbindContext,
+    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
-use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
+use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
-    Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes,
+    Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
+    handle_text_clipboard_action,
 };
 
 #[dom_struct]
-pub struct HTMLTextAreaElement {
+pub(crate) struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_malloc_size_of = "TextInput contains an IPCSender which cannot be measured"]
     #[no_trace]
-    textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
+    textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     placeholder: DomRefCell<DOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
@@ -61,7 +61,7 @@ pub struct HTMLTextAreaElement {
     validity_state: MutNullableDom<ValidityState>,
 }
 
-pub trait LayoutHTMLTextAreaElementHelpers {
+pub(crate) trait LayoutHTMLTextAreaElementHelpers {
     fn value_for_layout(self) -> String;
     fn selection_for_layout(self) -> Option<Range<usize>>;
     fn get_cols(self) -> u32;
@@ -142,9 +142,9 @@ impl HTMLTextAreaElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> HTMLTextAreaElement {
-        let chan = document
+        let constellation_sender = document
             .window()
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .script_to_constellation_chan()
             .clone();
         HTMLTextAreaElement {
@@ -158,7 +158,10 @@ impl HTMLTextAreaElement {
             textinput: DomRefCell::new(TextInput::new(
                 Lines::Multiple,
                 DOMString::new(),
-                chan,
+                EmbedderClipboardProvider {
+                    constellation_sender,
+                    webview_id: document.webview_id(),
+                },
                 None,
                 None,
                 SelectionDirection::None,
@@ -170,8 +173,8 @@ impl HTMLTextAreaElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -188,7 +191,7 @@ impl HTMLTextAreaElement {
         )
     }
 
-    pub fn auto_directionality(&self) -> String {
+    pub(crate) fn auto_directionality(&self) -> String {
         let value: String = self.Value().to_string();
         HTMLInputElement::directionality_from_value(&value)
     }
@@ -344,7 +347,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::note());
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
@@ -447,14 +450,14 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 }
 
 impl HTMLTextAreaElement {
-    pub fn reset(&self) {
+    pub(crate) fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         let mut textinput = self.textinput.borrow_mut();
         textinput.set_content(self.DefaultValue());
         self.value_dirty.set(false);
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn selection(&self) -> TextControlSelection<Self> {
         TextControlSelection::new(self, &self.textinput)
     }
@@ -465,8 +468,10 @@ impl VirtualMethods for HTMLTextAreaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -535,25 +540,25 @@ impl VirtualMethods for HTMLTextAreaElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation);
+                self.form_attribute_mutated(mutation, can_gc);
             },
             _ => {},
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -573,8 +578,8 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
@@ -588,7 +593,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
     // The cloning steps for textarea elements must propagate the raw value
@@ -598,9 +603,10 @@ impl VirtualMethods for HTMLTextAreaElement {
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
+        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children);
+            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
         }
         let el = copy.downcast::<HTMLTextAreaElement>().unwrap();
         el.value_dirty.set(self.value_dirty.get());
@@ -609,7 +615,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             textinput.set_content(self.textinput.borrow().get_content());
         }
         el.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
@@ -622,9 +628,9 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     // copied and modified from htmlinputelement.rs
-    fn handle_event(&self, event: &Event) {
+    fn handle_event(&self, event: &Event, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.handle_event(event);
+            s.handle_event(event, can_gc);
         }
 
         if event.type_() == atom!("click") && !event.DefaultPrevented() {
@@ -651,8 +657,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             if event.IsTrusted() {
-                let window = window_from_node(self);
-                window
+                self.owner_global()
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
@@ -660,15 +665,12 @@ impl VirtualMethods for HTMLTextAreaElement {
                         atom!("input"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,
-                        &window,
                     );
             }
         } else if event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
             event.type_() == atom!("compositionend")
         {
-            // TODO: Update DOM on start and continue
-            // and generally do proper CompositionEvent handling.
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
                     let _ = self
@@ -676,13 +678,23 @@ impl VirtualMethods for HTMLTextAreaElement {
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                } else if event.type_() == atom!("compositionupdate") {
+                    let _ = self
+                        .textinput
+                        .borrow_mut()
+                        .handle_compositionupdate(compositionevent);
+                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 }
                 event.mark_as_handled();
+            }
+        } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
+            if !event.DefaultPrevented() {
+                handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
             }
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
     fn pop(&self) {
@@ -714,7 +726,7 @@ impl Validatable for HTMLTextAreaElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), CanGc::note()))
     }
 
     fn is_instance_validatable(&self) -> bool {
@@ -726,7 +738,11 @@ impl Validatable for HTMLTextAreaElement {
             !is_barred_by_datalist_ancestor(self.upcast())
     }
 
-    fn perform_validation(&self, validate_flags: ValidationFlags) -> ValidationFlags {
+    fn perform_validation(
+        &self,
+        validate_flags: ValidationFlags,
+        _can_gc: CanGc,
+    ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
 
         let textinput = self.textinput.borrow();

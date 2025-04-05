@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::LazyCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use html5ever::{namespace_url, ns, LocalName, Namespace};
+use html5ever::{LocalName, Namespace, namespace_url, ns};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -15,9 +16,11 @@ use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::{
     MutationCallback, MutationObserverInit,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::mutationrecord::MutationRecord;
 use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::window::Window;
@@ -26,7 +29,7 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-pub struct MutationObserver {
+pub(crate) struct MutationObserver {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
@@ -34,7 +37,7 @@ pub struct MutationObserver {
     node_list: DomRefCell<Vec<DomRoot<Node>>>,
 }
 
-pub enum Mutation<'a> {
+pub(crate) enum Mutation<'a> {
     Attribute {
         name: LocalName,
         namespace: Namespace,
@@ -52,13 +55,13 @@ pub enum Mutation<'a> {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct RegisteredObserver {
-    pub observer: DomRoot<MutationObserver>,
+pub(crate) struct RegisteredObserver {
+    pub(crate) observer: DomRoot<MutationObserver>,
     options: ObserverOptions,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct ObserverOptions {
+pub(crate) struct ObserverOptions {
     attribute_old_value: bool,
     attributes: bool,
     character_data: bool,
@@ -89,40 +92,67 @@ impl MutationObserver {
     }
 
     /// <https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask>
-    pub fn queue_mutation_observer_microtask() {
-        // Step 1
+    pub(crate) fn queue_mutation_observer_microtask() {
+        // Step 1. If the surrounding agent’s mutation observer microtask queued is true, then return.
         if ScriptThread::is_mutation_observer_microtask_queued() {
             return;
         }
-        // Step 2
+
+        // Step 2. Set the surrounding agent’s mutation observer microtask queued to true.
         ScriptThread::set_mutation_observer_microtask_queued(true);
-        // Step 3
+
+        // Step 3. Queue a microtask to notify mutation observers.
         ScriptThread::enqueue_microtask(Microtask::NotifyMutationObservers);
     }
 
     /// <https://dom.spec.whatwg.org/#notify-mutation-observers>
-    pub fn notify_mutation_observers() {
-        // Step 1
+    pub(crate) fn notify_mutation_observers(can_gc: CanGc) {
+        // Step 1. Set the surrounding agent’s mutation observer microtask queued to false.
         ScriptThread::set_mutation_observer_microtask_queued(false);
-        // Step 2
+
+        // Step 2. Let notifySet be a clone of the surrounding agent’s pending mutation observers.
+        // TODO Step 3. Empty the surrounding agent’s pending mutation observers.
         let notify_list = ScriptThread::get_mutation_observers();
-        // TODO: steps 3-4 (slots)
-        // Step 5
+
+        // Step 4. Let signalSet be a clone of the surrounding agent’s signal slots.
+        // Step 5. Empty the surrounding agent’s signal slots.
+        let signal_set = ScriptThread::take_signal_slots();
+
+        // Step 6. For each mo of notifySet:
         for mo in &notify_list {
+            // Step 6.1 Let records be a clone of mo’s record queue.
             let queue: Vec<DomRoot<MutationRecord>> = mo.record_queue.borrow().clone();
+
+            // Step 6.2 Empty mo’s record queue.
             mo.record_queue.borrow_mut().clear();
-            // TODO: Step 5.3 Remove all transient registered observers whose observer is mo.
+
+            // TODO Step 6.3 For each node of mo’s node list, remove all transient registered observers
+            // whose observer is mo from node’s registered observer list.
+
+            // Step 6.4 If records is not empty, then invoke mo’s callback with « records,
+            // mo » and "report", and with callback this value mo.
             if !queue.is_empty() {
                 let _ = mo
                     .callback
-                    .Call_(&**mo, queue, mo, ExceptionHandling::Report);
+                    .Call_(&**mo, queue, mo, ExceptionHandling::Report, can_gc);
             }
         }
-        // TODO: Step 6 (slot signals)
+
+        // Step 6. For each slot of signalSet, fire an event named slotchange,
+        // with its bubbles attribute set to true, at slot.
+        for slot in signal_set {
+            slot.upcast::<EventTarget>()
+                .fire_event(atom!("slotchange"), can_gc);
+        }
     }
 
     /// <https://dom.spec.whatwg.org/#queueing-a-mutation-record>
-    pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
+    pub(crate) fn queue_a_mutation_record<'a, F>(
+        target: &Node,
+        attr_type: LazyCell<Mutation<'a>, F>,
+    ) where
+        F: FnOnce() -> Mutation<'a>,
+    {
         if !target.global().as_window().get_exists_mut_observer() {
             return;
         }
@@ -141,7 +171,7 @@ impl MutationObserver {
                     continue;
                 }
 
-                match attr_type {
+                match *attr_type {
                     Mutation::Attribute {
                         ref name,
                         ref namespace,
@@ -215,7 +245,7 @@ impl MutationObserver {
         // Step 4
         for (observer, paired_string) in interested_observers {
             // Steps 4.1-4.7
-            let record = match attr_type {
+            let record = match *attr_type {
                 Mutation::Attribute {
                     ref name,
                     ref namespace,
@@ -226,17 +256,30 @@ impl MutationObserver {
                     } else {
                         None
                     };
-                    MutationRecord::attribute_mutated(target, name, namespace, paired_string)
+                    MutationRecord::attribute_mutated(
+                        target,
+                        name,
+                        namespace,
+                        paired_string,
+                        CanGc::note(),
+                    )
                 },
                 Mutation::CharacterData { .. } => {
-                    MutationRecord::character_data_mutated(target, paired_string)
+                    MutationRecord::character_data_mutated(target, paired_string, CanGc::note())
                 },
                 Mutation::ChildList {
                     ref added,
                     ref removed,
                     ref next,
                     ref prev,
-                } => MutationRecord::child_list_mutated(target, *added, *removed, *next, *prev),
+                } => MutationRecord::child_list_mutated(
+                    target,
+                    *added,
+                    *removed,
+                    *next,
+                    *prev,
+                    CanGc::note(),
+                ),
             };
             // Step 4.8
             observer.record_queue.borrow_mut().push(record);

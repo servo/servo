@@ -22,26 +22,26 @@
       fullScreenChange(),
     ]);
 
-    assert_equals(document.fullscreenElement, first);
-    assert_equals(firstEvent.target, first);
+    assert_equals(document.fullscreenElement, first, "fullscreen element after first request");
+    assert_equals(firstEvent.target, first, "first fullscreenchange event target");
 
     const last = document.getElementById("last");
-    const [, lastEvent] = await Promise.all([
+    const [, secondEvent] = await Promise.all([
       trusted_request(last),
       fullScreenChange(),
     ]);
 
-    assert_equals(document.fullscreenElement, last);
-    assert_equals(event.target, last);
+    assert_equals(document.fullscreenElement, last, "fullscreen element after second request");
+    assert_equals(secondEvent.target, last, "second fullscreenchange event target");
     last.remove();
-    // Because /last/ was removed from the top layer, we exit
-    // fullscreen element synchronously.
-    assert_equals(document.fullscreenElement, first);
+    // Although /last/ was removed from the top layer synchronously, /first/ remains
+    // and becomes the new fullscreen element.
+    assert_equals(document.fullscreenElement, first, "fullscreen element immediately after removal");
 
-    const finalEvent = await fullScreenChange();
-    // fullscreen change element should be queued against the
-    // document target.
-    assert_equals(document.fullscreenElement, null);
-    assert_equals(event.target, document);
+    // The removal of the fullscreen element triggers exiting fullscreen, but those changes
+    // happen async when the event is fired.
+    const thirdEvent = await fullScreenChange();
+    assert_equals(document.fullscreenElement, null, "fullscreen element after third event");
+    assert_equals(thirdEvent.target, document, "third fullscreenchange event target");
   });
 </script>

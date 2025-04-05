@@ -27,4 +27,10 @@ test_invalid_value('text-box', 'cap none alphabetic');
 test_invalid_value('text-box', 'cap trim-both alphabetic');
 test_invalid_value('text-box', 'text none text');
 test_invalid_value('text-box', 'text trim-both text');
+
+// These `over` values can't omit the `under` value.
+// https://github.com/w3c/csswg-drafts/issues/10703
+test_invalid_value('text-box', 'cap');
+test_invalid_value('text-box', 'ex');
+test_invalid_value('text-box', 'trim-start ex');
 </script>

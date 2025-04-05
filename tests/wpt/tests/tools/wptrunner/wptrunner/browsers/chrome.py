@@ -6,7 +6,7 @@ import time
 from mozlog.structuredlog import StructuredLogger
 
 from . import chrome_spki_certs
-from .base import BrowserError
+from .base import BrowserError, BrowserSettings
 from .base import WebDriverBrowser, require_arg
 from .base import NullBrowser  # noqa: F401
 from .base import OutputHandler
@@ -41,17 +41,7 @@ __wptrunner__ = {"product": "chrome",
                  "update_properties": "update_properties",
                  "timeout_multiplier": "get_timeout_multiplier",}
 
-
-def debug_args(debug_info):
-    if debug_info.interactive:
-        # Keep in sync with:
-        # https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/tools/debug_renderer
-        return [
-            "--no-sandbox",
-            "--disable-hang-monitor",
-            "--wait-for-debugger-on-navigation",
-        ]
-    return []
+from ..wpttest import Test
 
 
 def check_args(**kwargs):
@@ -90,6 +80,11 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
     chrome_options = capabilities["goog:chromeOptions"]
     if kwargs["binary"] is not None:
         chrome_options["binary"] = kwargs["binary"]
+    if kwargs["debug_test"]:
+        # Give debuggers like `rr` time to terminate gracefully and dump
+        # recordings or traces. Note that older `chromedriver` versions will
+        # fail to create a session if they don't recognize this capability.
+        chrome_options["quitGracefully"] = True
 
     # Here we set a few Chrome flags that are always passed.
     # ChromeDriver's "acceptInsecureCerts" capability only controls the current
@@ -130,6 +125,20 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
     chrome_options["args"].append("--disable-infobars")
     # For WebNN tests.
     chrome_options["args"].append("--enable-features=WebMachineLearningNeuralNetwork")
+    # For Web Speech API tests.
+    chrome_options["args"].append("--enable-features=" + ",".join([
+        "InstallOnDeviceSpeechRecognition",
+        "OnDeviceWebSpeechAvailable",
+        "OnDeviceWebSpeech",
+        "MediaStreamTrackWebSpeech",
+        "WebSpeechRecognitionContext",
+    ]))
+    # For testing WebExtensions using WebDriver.
+    chrome_options["args"].append("--enable-unsafe-extension-debugging")
+    # Connection between ChromeDriver and Chrome will be over pipes.
+    # This is needed to test extensions, PWA, compilation caches that
+    # require local CDP access.
+    chrome_options["args"].append("--remote-debugging-pipe")
 
     # Classify `http-private`, `http-public` and https variants in the
     # appropriate IP address spaces.
@@ -149,14 +158,12 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
         chrome_options["args"].append(
             "--ip-address-space-overrides=" + address_space_overrides_arg)
 
-    # Always disable antialiasing on the Ahem font.
-    blink_features = ['DisableAhemAntialias']
+    # Disable overlay scrollbar animations to prevent flaky wpt screenshots based on timing.
+    chrome_options["args"].append("--disable-features=ScrollbarAnimations")
 
     if kwargs["enable_mojojs"]:
-        blink_features.append('MojoJS')
-        blink_features.append('MojoJSTest')
-
-    chrome_options["args"].append("--enable-blink-features=" + ','.join(blink_features))
+        blink_features = ['MojoJS', 'MojoJSTest']
+        chrome_options["args"].append("--enable-blink-features=" + ','.join(blink_features))
 
     if kwargs["enable_swiftshader"]:
         # https://chromium.googlesource.com/chromium/src/+/HEAD/docs/gpu/swiftshader.md
@@ -165,14 +172,13 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
     if kwargs["enable_experimental"]:
         chrome_options["args"].extend(["--enable-experimental-web-platform-features"])
 
-    # Copy over any other flags that were passed in via `--binary-arg`
-    for arg in kwargs.get("binary_args", []):
+    # Copy over any other flags that were passed in via `--binary-arg` or the
+    # subsuite config.
+    binary_args = kwargs.get("binary_args", []) + subsuite.config.get("binary_args", [])
+    for arg in binary_args:
         if arg not in chrome_options["args"]:
             chrome_options["args"].append(arg)
 
-    for arg in subsuite.config.get("binary_args", []):
-        if arg not in chrome_options["args"]:
-            chrome_options["args"].append(arg)
 
     # Pass the --headless=new flag to Chrome if WPT's own --headless flag was
     # set. '--headless' should always mean the new headless mode, as the old
@@ -204,6 +210,11 @@ def update_properties():
     return (["debug", "os", "processor"], {"os": ["version"], "processor": ["bits"]})
 
 class ChromeBrowser(WebDriverBrowser):
+
+    # Chrome browser's default startup timeout is 60 seconds. Use 65 seconds here
+    # to allow error message be displayed if that happens.
+    init_timeout: float = 65
+
     def __init__(self,
                  logger: StructuredLogger,
                  leak_check: bool = False,
@@ -211,6 +222,7 @@ class ChromeBrowser(WebDriverBrowser):
         super().__init__(logger, **kwargs)
         self._leak_check = leak_check
         self._actual_port = None
+        self._require_webdriver_bidi: Optional[bool] = None
 
     def restart_on_test_type_change(self, new_test_type: str, old_test_type: str) -> bool:
         # Restart the test runner when switch from/to wdspec tests. Wdspec test
@@ -258,6 +270,20 @@ class ChromeBrowser(WebDriverBrowser):
     def executor_browser(self):
         browser_cls, browser_kwargs = super().executor_browser()
         return browser_cls, {**browser_kwargs, "leak_check": self._leak_check}
+
+    @property
+    def require_webdriver_bidi(self) -> Optional[bool]:
+        return self._require_webdriver_bidi
+
+    def settings(self, test: Test) -> BrowserSettings:
+        """ Required to store `require_webdriver_bidi` in browser settings."""
+        settings = super().settings(test)
+        self._require_webdriver_bidi = test.testdriver_features is not None and 'bidi' in test.testdriver_features
+
+        return {
+            **settings,
+            "require_webdriver_bidi": self._require_webdriver_bidi
+        }
 
 
 class ChromeDriverOutputHandler(OutputHandler):

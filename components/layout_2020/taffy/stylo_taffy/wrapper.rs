@@ -8,7 +8,7 @@ use style::properties::ComputedValues;
 
 use super::convert;
 
-/// A wrapper struct for anything that Deref's to a [`stylo::ComputedValues`], which
+/// A wrapper struct for anything that Deref's to a [`ComputedValues`], which
 /// implements Taffy's layout traits and can used with Taffy's layout algorithms.
 pub struct TaffyStyloStyle<T: Deref<Target = ComputedValues>>(pub T);
 
@@ -216,11 +216,11 @@ impl<T: Deref<Target = ComputedValues>> taffy::GridItemStyle for TaffyStyloStyle
 
     #[inline]
     fn align_self(&self) -> Option<taffy::AlignSelf> {
-        convert::item_alignment(self.0.get_position().align_self.0 .0)
+        convert::item_alignment(self.0.get_position().align_self.0.0)
     }
 
     #[inline]
     fn justify_self(&self) -> Option<taffy::AlignSelf> {
-        convert::item_alignment(self.0.get_position().justify_self.0 .0)
+        convert::item_alignment(self.0.get_position().justify_self.0.0)
     }
 }

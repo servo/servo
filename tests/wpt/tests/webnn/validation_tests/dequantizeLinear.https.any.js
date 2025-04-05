@@ -1,5 +1,5 @@
 // META: title=validation tests for WebNN API prelu operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -7,6 +7,8 @@
 
 'use strict';
 
+const label = 'dequantize_linear_123';
+const regrexp = new RegExp('\\[' + label + '\\]');
 const tests = [
   {
     name:
@@ -94,9 +96,7 @@ tests.forEach(
         assert_equals(output.dataType, test.output.dataType);
         assert_array_equals(output.shape, test.output.shape);
       } else {
-        const label = 'dequantize_linear_123';
         const options = {label};
-        const regrexp = new RegExp('\\[' + label + '\\]');
         assert_throws_with_label(
             () => builder.dequantizeLinear(input, scale, zeroPoint, options),
             regrexp);
@@ -143,3 +143,17 @@ multi_builder_test(async (t, builder, otherBuilder) => {
       TypeError,
       () => builder.dequantizeLinear(input, scale, zeroPointFromOtherBuilder));
 }, '[dequantizeLinear] throw if zeroPoint is from another builder');
+
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+
+  const input = builder.input('input', {
+      dataType: 'int8',
+      shape: [context.opSupportLimits().maxTensorByteLength / 5, 5]});
+  const scale = builder.input('scale', {dataType: 'float32', shape: [5]});
+  const zeroPoint = builder.input('zeroPoint', {dataType: 'int8', shape: [5]});
+
+  const options = {label};
+  assert_throws_with_label(
+      () => builder.dequantizeLinear(input, scale, zeroPoint, options), regrexp);
+}, '[dequantizeLinear] throw if the output tensor byte length exceeds limit');

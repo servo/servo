@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use servo_url::ServoUrl;
 
@@ -15,12 +15,12 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, BindContext, Node, UnbindContext};
+use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLBaseElement {
+pub(crate) struct HTMLBaseElement {
     htmlelement: HTMLElement,
 }
 
@@ -35,8 +35,8 @@ impl HTMLBaseElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -52,7 +52,7 @@ impl HTMLBaseElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#frozen-base-url>
-    pub fn frozen_base_url(&self) -> ServoUrl {
+    pub(crate) fn frozen_base_url(&self) -> ServoUrl {
         let href = self
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("href"))
@@ -60,7 +60,7 @@ impl HTMLBaseElement {
                 "The frozen base url is only defined for base elements \
                  that have a base url.",
             );
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let base = document.fallback_base_url();
         let parsed = base.join(&href.value());
         parsed.unwrap_or(base)
@@ -68,13 +68,13 @@ impl HTMLBaseElement {
 
     /// Update the cached base element in response to binding or unbinding from
     /// a tree.
-    pub fn bind_unbind(&self, tree_in_doc: bool) {
+    pub(crate) fn bind_unbind(&self, tree_in_doc: bool) {
         if !tree_in_doc || self.upcast::<Node>().containing_shadow_root().is_some() {
             return;
         }
 
         if self.upcast::<Element>().has_attribute(&local_name!("href")) {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             document.refresh_base_element();
         }
     }
@@ -84,7 +84,7 @@ impl HTMLBaseElementMethods<crate::DomTypeHolder> for HTMLBaseElement {
     // https://html.spec.whatwg.org/multipage/#dom-base-href
     fn Href(&self) -> DOMString {
         // Step 1.
-        let document = document_from_node(self);
+        let document = self.owner_document();
 
         // Step 2.
         let attr = self
@@ -117,20 +117,22 @@ impl VirtualMethods for HTMLBaseElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         if *attr.local_name() == local_name!("href") {
-            document_from_node(self).refresh_base_element();
+            self.owner_document().refresh_base_element();
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
-        self.super_type().unwrap().bind_to_tree(context);
-        self.bind_unbind(context.tree_in_doc);
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+        self.super_type().unwrap().bind_to_tree(context, can_gc);
+        self.bind_unbind(context.tree_is_in_a_document_tree);
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
-        self.bind_unbind(context.tree_in_doc);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+        self.bind_unbind(context.tree_is_in_a_document_tree);
     }
 }

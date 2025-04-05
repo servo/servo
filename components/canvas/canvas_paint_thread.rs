@@ -7,23 +7,19 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;
 
-use canvas_traits::canvas::*;
 use canvas_traits::ConstellationCanvasMsg;
-use crossbeam_channel::{select, unbounded, Sender};
+use canvas_traits::canvas::*;
+use crossbeam_channel::{Sender, select, unbounded};
 use euclid::default::Size2D;
 use fonts::{FontContext, SystemFontServiceProxy};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
 use net_traits::ResourceThreads;
+use webrender_api::ImageKey;
 use webrender_traits::CrossProcessCompositorApi;
 
 use crate::canvas_data::*;
-
-pub enum AntialiasMode {
-    Default,
-    None,
-}
 
 pub struct CanvasPaintThread<'a> {
     canvases: HashMap<CanvasId, CanvasData<'a>>,
@@ -83,11 +79,6 @@ impl<'a> CanvasPaintThread<'a> {
                                         canvas_paint_thread.canvas(canvas_id).send_pixels(chan);
                                     },
                                 },
-                                Ok(CanvasMsg::FromLayout(message, canvas_id)) => match message {
-                                    FromLayoutMsg::SendData(chan) => {
-                                        canvas_paint_thread.canvas(canvas_id).send_data(chan);
-                                    },
-                                },
                                 Err(e) => {
                                     warn!("Error on CanvasPaintThread receive ({})", e);
                                 },
@@ -95,13 +86,9 @@ impl<'a> CanvasPaintThread<'a> {
                         }
                         recv(create_receiver) -> msg => {
                             match msg {
-                                Ok(ConstellationCanvasMsg::Create {
-                                    id_sender: creator,
-                                    size,
-                                    antialias
-                                }) => {
-                                    let canvas_id = canvas_paint_thread.create_canvas(size, antialias);
-                                    creator.send(canvas_id).unwrap();
+                                Ok(ConstellationCanvasMsg::Create { sender: creator, size }) => {
+                                    let canvas_data = canvas_paint_thread.create_canvas(size);
+                                    creator.send(canvas_data).unwrap();
                                 },
                                 Ok(ConstellationCanvasMsg::Exit) => break,
                                 Err(e) => {
@@ -118,25 +105,16 @@ impl<'a> CanvasPaintThread<'a> {
         (create_sender, ipc_sender)
     }
 
-    pub fn create_canvas(&mut self, size: Size2D<u64>, antialias: bool) -> CanvasId {
-        let antialias = if antialias {
-            AntialiasMode::Default
-        } else {
-            AntialiasMode::None
-        };
-
+    pub fn create_canvas(&mut self, size: Size2D<u64>) -> (CanvasId, ImageKey) {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
-        let canvas_data = CanvasData::new(
-            size,
-            self.compositor_api.clone(),
-            antialias,
-            self.font_context.clone(),
-        );
+        let canvas_data =
+            CanvasData::new(size, self.compositor_api.clone(), self.font_context.clone());
+        let image_key = canvas_data.image_key();
         self.canvases.insert(canvas_id, canvas_data);
 
-        canvas_id
+        (canvas_id, image_key)
     }
 
     fn process_canvas_2d_message(&mut self, message: Canvas2dMsg, canvas_id: CanvasId) {
@@ -161,14 +139,26 @@ impl<'a> CanvasPaintThread<'a> {
                 self.canvas(canvas_id).set_fill_style(style);
                 self.canvas(canvas_id).fill();
             },
+            Canvas2dMsg::FillPath(style, path) => {
+                self.canvas(canvas_id).set_fill_style(style);
+                self.canvas(canvas_id).fill_path(&path[..]);
+            },
             Canvas2dMsg::Stroke(style) => {
                 self.canvas(canvas_id).set_stroke_style(style);
                 self.canvas(canvas_id).stroke();
             },
+            Canvas2dMsg::StrokePath(style, path) => {
+                self.canvas(canvas_id).set_stroke_style(style);
+                self.canvas(canvas_id).stroke_path(&path[..]);
+            },
             Canvas2dMsg::Clip => self.canvas(canvas_id).clip(),
-            Canvas2dMsg::IsPointInPath(x, y, fill_rule, chan) => self
+            Canvas2dMsg::ClipPath(path) => self.canvas(canvas_id).clip_path(&path[..]),
+            Canvas2dMsg::IsPointInCurrentPath(x, y, fill_rule, chan) => self
                 .canvas(canvas_id)
                 .is_point_in_path(x, y, fill_rule, chan),
+            Canvas2dMsg::IsPointInPath(path, x, y, fill_rule, chan) => self
+                .canvas(canvas_id)
+                .is_point_in_path_(&path[..], x, y, fill_rule, chan),
             Canvas2dMsg::DrawImage(
                 ref image_data,
                 image_size,
@@ -240,6 +230,10 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::SetLineCap(cap) => self.canvas(canvas_id).set_line_cap(cap),
             Canvas2dMsg::SetLineJoin(join) => self.canvas(canvas_id).set_line_join(join),
             Canvas2dMsg::SetMiterLimit(limit) => self.canvas(canvas_id).set_miter_limit(limit),
+            Canvas2dMsg::SetLineDash(items) => self.canvas(canvas_id).set_line_dash(items),
+            Canvas2dMsg::SetLineDashOffset(offset) => {
+                self.canvas(canvas_id).set_line_dash_offset(offset)
+            },
             Canvas2dMsg::GetTransform(sender) => {
                 let transform = self.canvas(canvas_id).get_transform();
                 sender.send(transform).unwrap();
@@ -271,6 +265,10 @@ impl<'a> CanvasPaintThread<'a> {
             },
             Canvas2dMsg::SetTextBaseline(text_baseline) => {
                 self.canvas(canvas_id).set_text_baseline(text_baseline)
+            },
+            Canvas2dMsg::UpdateImage(sender) => {
+                self.canvas(canvas_id).update_image_rendering();
+                sender.send(()).unwrap();
             },
         }
     }

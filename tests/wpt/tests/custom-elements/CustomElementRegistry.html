@@ -11,7 +11,7 @@
 <div id="log"></div>
 <script>
 
-const moveBefore_supported = ("moveBefore" in Node.prototype);
+const moveBefore_supported = ("moveBefore" in Element.prototype);
 
 test(function () {
     assert_true('define' in CustomElementRegistry.prototype, '"define" exists on CustomElementRegistry.prototype');

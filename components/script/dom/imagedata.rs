@@ -14,17 +14,17 @@ use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
 
 use super::bindings::buffer_source::{
-    new_initialized_heap_buffer_source, BufferSource, HeapBufferSource, HeapTypedArrayInit,
+    BufferSource, HeapBufferSource, HeapTypedArrayInit, new_initialized_heap_buffer_source,
 };
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct ImageData {
+pub(crate) struct ImageData {
     reflector_: Reflector,
     width: u32,
     height: u32,
@@ -34,7 +34,7 @@ pub struct ImageData {
 
 impl ImageData {
     #[allow(unsafe_code)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         width: u32,
         height: u32,
@@ -66,18 +66,19 @@ impl ImageData {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         let heap_typed_array = match new_initialized_heap_buffer_source::<ClampedU8>(
-            HeapTypedArrayInit::Buffer(BufferSource::Uint8ClampedArray(Heap::boxed(jsobject))),
+            HeapTypedArrayInit::Buffer(BufferSource::ArrayBufferView(Heap::boxed(jsobject))),
+            can_gc,
         ) {
             Ok(heap_typed_array) => heap_typed_array,
             Err(_) => return Err(Error::JSFailed),
         };
 
-        let typed_array = match heap_typed_array.get_buffer() {
+        let typed_array = match heap_typed_array.get_typed_array() {
             Ok(array) => array,
             Err(_) => {
                 return Err(Error::Type(
                     "Argument to Image data is not an Uint8ClampedArray".to_owned(),
-                ))
+                ));
             },
         };
 
@@ -121,14 +122,13 @@ impl ImageData {
         let cx = GlobalScope::get_cx();
         let len = width * height * 4;
 
-        let heap_typed_array =
-            match new_initialized_heap_buffer_source::<ClampedU8>(HeapTypedArrayInit::Info {
-                len,
-                cx,
-            }) {
-                Ok(heap_typed_array) => heap_typed_array,
-                Err(_) => return Err(Error::JSFailed),
-            };
+        let heap_typed_array = match new_initialized_heap_buffer_source::<ClampedU8>(
+            HeapTypedArrayInit::Info { len, cx },
+            can_gc,
+        ) {
+            Ok(heap_typed_array) => heap_typed_array,
+            Err(_) => return Err(Error::JSFailed),
+        };
         let imagedata = Box::new(ImageData {
             reflector_: Reflector::new(),
             width,
@@ -141,26 +141,26 @@ impl ImageData {
         ))
     }
     #[allow(unsafe_code)]
-    pub fn to_shared_memory(&self) -> IpcSharedMemory {
+    pub(crate) fn to_shared_memory(&self) -> IpcSharedMemory {
         IpcSharedMemory::from_bytes(unsafe { self.as_slice() })
     }
 
     #[allow(unsafe_code)]
-    pub unsafe fn get_rect(&self, rect: Rect<u64>) -> Cow<[u8]> {
+    pub(crate) unsafe fn get_rect(&self, rect: Rect<u64>) -> Cow<[u8]> {
         pixels::rgba8_get_rect(self.as_slice(), self.get_size().to_u64(), rect)
     }
 
-    pub fn get_size(&self) -> Size2D<u32> {
+    pub(crate) fn get_size(&self) -> Size2D<u32> {
         Size2D::new(self.Width(), self.Height())
     }
 
     /// Nothing must change the array on the JS side while the slice is live.
     #[allow(unsafe_code)]
-    pub unsafe fn as_slice(&self) -> &[u8] {
+    pub(crate) unsafe fn as_slice(&self) -> &[u8] {
         assert!(self.data.is_initialized());
         let internal_data = self
             .data
-            .get_buffer()
+            .get_typed_array()
             .expect("Failed to get Data from ImageData.");
         // NOTE(nox): This is just as unsafe as `as_slice` itself even though we
         // are extending the lifetime of the slice, because the data in
@@ -209,6 +209,6 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-data>
     fn GetData(&self, _: JSContext) -> Fallible<Uint8ClampedArray> {
-        self.data.get_buffer().map_err(|_| Error::JSFailed)
+        self.data.get_typed_array().map_err(|_| Error::JSFailed)
     }
 }

@@ -2,6 +2,8 @@
 <body>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
   <script src="/permissions-policy/resources/permissions-policy.js"></script>
   <script>
     "use strict";
@@ -12,19 +14,25 @@
     const same_origin_src = base_src + relative_path;
     const cross_origin_src = `${base_src}https://{{hosts[alt][]}}:{{ports[https][0]}}${relative_path}`;
 
+    // Grant permission to outer frame
+    promise_setup(async () => {
+      await test_driver.set_permission({ name: "geolocation" }, "granted");
+    });
+
     promise_test(async (test) => {
       await test_feature_availability({
-        feature_description: "Geolocation API",
+        feature_description: "Geolocation",
         test,
         src: same_origin_src,
         expect_feature_available: expect_feature_available_default,
         is_promise_test: true,
+        feature_name: "geolocation",
       });
     }, 'Permissions-Policy allow="geolocation" allows same-origin redirection');
 
     promise_test(async (test) => {
       await test_feature_availability({
-        feature_description: "Geolocation API",
+        feature_description: "Geolocation",
         test,
         src: cross_origin_src,
         expect_feature_available: expect_feature_available_default,

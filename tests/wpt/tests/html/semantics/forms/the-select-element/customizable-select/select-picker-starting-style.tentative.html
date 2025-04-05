@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/394133544">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<select>
+  <option>option</option>
+</select>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+
+::picker(select) {
+  color: white;
+}
+option {
+  background-color: black;
+}
+
+.animate::picker(select) {
+  transition: color 100s steps(2, start);
+}
+.animate option {
+  transition: background-color 100s steps(2, start);
+}
+
+@starting-style {
+  .animate::picker(select) {
+    color: black;
+  }
+  .animate option {
+    background-color: white;
+  }
+}
+</style>
+
+<script>
+const select = document.querySelector('select');
+const option = document.querySelector('option');
+promise_test(async () => {
+  await new Promise(requestAnimationFrame);
+  select.classList.add('animate');
+  await test_driver.click(select);
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+
+  const style = getComputedStyle(option);
+  assert_equals(style.color, 'rgb(128, 128, 128)',
+    'color should transition based on @starting-style.');
+  assert_equals(style.backgroundColor, 'rgb(128, 128, 128)',
+    'background-color should transition based on @starting-style.');
+}, '@starting-style should work on ::picker(select) just like a popover.');
+</script>

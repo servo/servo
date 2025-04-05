@@ -9,15 +9,16 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::xmlname::namespace_from_domstring;
 use crate::dom::element::Element;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct NamedNodeMap {
+pub(crate) struct NamedNodeMap {
     reflector_: Reflector,
     owner: Dom<Element>,
 }
@@ -30,8 +31,8 @@ impl NamedNodeMap {
         }
     }
 
-    pub fn new(window: &Window, elem: &Element) -> DomRoot<NamedNodeMap> {
-        reflect_dom_object(Box::new(NamedNodeMap::new_inherited(elem)), window)
+    pub(crate) fn new(window: &Window, elem: &Element, can_gc: CanGc) -> DomRoot<NamedNodeMap> {
+        reflect_dom_object(Box::new(NamedNodeMap::new_inherited(elem)), window, can_gc)
     }
 }
 
@@ -78,7 +79,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     fn RemoveNamedItem(&self, name: DOMString) -> Fallible<DomRoot<Attr>> {
         let name = self.owner.parsed_name(name);
         self.owner
-            .remove_attribute_by_name(&name)
+            .remove_attribute_by_name(&name, CanGc::note())
             .ok_or(Error::NotFound)
     }
 
@@ -90,7 +91,7 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     ) -> Fallible<DomRoot<Attr>> {
         let ns = namespace_from_domstring(namespace);
         self.owner
-            .remove_attribute(&ns, &LocalName::from(local_name))
+            .remove_attribute(&ns, &LocalName::from(local_name), CanGc::note())
             .ok_or(Error::NotFound)
     }
 

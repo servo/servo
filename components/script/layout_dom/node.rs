@@ -13,9 +13,7 @@ use fonts_traits::ByteIndex;
 use html5ever::{local_name, namespace_url, ns};
 use pixels::{Image, ImageMetadata};
 use range::Range;
-use script_layout_interface::wrapper_traits::{
-    LayoutDataTrait, LayoutNode, PseudoElementType, ThreadSafeLayoutNode,
-};
+use script_layout_interface::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
 use script_layout_interface::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData, StyleData,
     TrustedNodeAddress,
@@ -23,21 +21,17 @@ use script_layout_interface::{
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style;
-use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
-use style::context::SharedStyleContext;
 use style::dom::{NodeInfo, TElement, TNode, TShadowRoot};
 use style::properties::ComputedValues;
-use style::str::is_whitespace;
+use style::selector_parser::PseudoElement;
 
 use super::{
     ServoLayoutDocument, ServoLayoutElement, ServoShadowRoot, ServoThreadSafeLayoutElement,
 };
 use crate::dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId, TextTypeId};
 use crate::dom::bindings::root::LayoutDom;
-use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
-use crate::dom::text::Text;
+use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags, NodeTypeIdWrapper};
 
 /// A wrapper around a `LayoutDom<Node>` which provides a safe interface that
 /// can be used during layout. This implements the `LayoutNode` trait as well as
@@ -45,6 +39,7 @@ use crate::dom::text::Text;
 /// should only be used on a single thread. If you need to use nodes across
 /// threads use ServoThreadSafeLayoutNode.
 #[derive(Clone, Copy, PartialEq)]
+#[repr(transparent)]
 pub struct ServoLayoutNode<'dom> {
     /// The wrapped private DOM node.
     pub(super) node: LayoutDom<'dom, Node>,
@@ -59,7 +54,7 @@ pub struct ServoLayoutNode<'dom> {
 unsafe impl Send for ServoLayoutNode<'_> {}
 unsafe impl Sync for ServoLayoutNode<'_> {}
 
-impl<'dom> fmt::Debug for ServoLayoutNode<'dom> {
+impl fmt::Debug for ServoLayoutNode<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(el) = self.as_element() {
             el.fmt(f)
@@ -90,12 +85,20 @@ impl<'dom> ServoLayoutNode<'dom> {
     }
 
     /// Returns the interior of this node as a `LayoutDom`.
-    pub fn get_jsmanaged(self) -> LayoutDom<'dom, Node> {
+    pub(crate) fn get_jsmanaged(self) -> LayoutDom<'dom, Node> {
         self.node
+    }
+
+    pub(crate) fn assigned_slot(self) -> Option<ServoLayoutElement<'dom>> {
+        self.node
+            .assigned_slot_for_layout()
+            .as_ref()
+            .map(LayoutDom::upcast)
+            .map(ServoLayoutElement::from_layout_js)
     }
 }
 
-impl<'dom> style::dom::NodeInfo for ServoLayoutNode<'dom> {
+impl style::dom::NodeInfo for ServoLayoutNode<'_> {
     fn is_element(&self) -> bool {
         self.node.is_element_for_layout()
     }
@@ -138,6 +141,9 @@ impl<'dom> style::dom::TNode for ServoLayoutNode<'dom> {
     }
 
     fn traversal_parent(&self) -> Option<ServoLayoutElement<'dom>> {
+        if let Some(assigned_slot) = self.assigned_slot() {
+            return Some(assigned_slot);
+        }
         let parent = self.parent_node()?;
         if let Some(shadow) = parent.as_shadow_root() {
             return Some(shadow.host());
@@ -168,7 +174,7 @@ impl<'dom> style::dom::TNode for ServoLayoutNode<'dom> {
     }
 
     fn is_in_document(&self) -> bool {
-        unsafe { self.node.get_flag(NodeFlags::IS_IN_DOC) }
+        unsafe { self.node.get_flag(NodeFlags::IS_IN_A_DOCUMENT_TREE) }
     }
 }
 
@@ -180,7 +186,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
     }
 
     fn type_id(&self) -> LayoutNodeType {
-        self.script_type_id().into()
+        NodeTypeIdWrapper(self.script_type_id()).into()
     }
 
     unsafe fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {
@@ -223,18 +229,15 @@ pub struct ServoThreadSafeLayoutNode<'dom> {
     /// The wrapped `ServoLayoutNode`.
     pub(super) node: ServoLayoutNode<'dom>,
 
-    /// The pseudo-element type, with (optionally)
-    /// a specified display value to override the stylesheet.
-    pub(super) pseudo: PseudoElementType,
+    /// The pseudo-element type for this node, or `None` if it is the non-pseudo
+    /// version of the element.
+    pub(super) pseudo: Option<PseudoElement>,
 }
 
 impl<'dom> ServoThreadSafeLayoutNode<'dom> {
     /// Creates a new `ServoThreadSafeLayoutNode` from the given `ServoLayoutNode`.
     pub fn new(node: ServoLayoutNode<'dom>) -> Self {
-        ServoThreadSafeLayoutNode {
-            node,
-            pseudo: PseudoElementType::Normal,
-        }
+        ServoThreadSafeLayoutNode { node, pseudo: None }
     }
 
     /// Returns the interior of this node as a `LayoutDom`. This is highly unsafe for layout to
@@ -262,7 +265,7 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
     }
 }
 
-impl<'dom> style::dom::NodeInfo for ServoThreadSafeLayoutNode<'dom> {
+impl style::dom::NodeInfo for ServoThreadSafeLayoutNode<'_> {
     fn is_element(&self) -> bool {
         self.node.is_element()
     }
@@ -282,8 +285,12 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         unsafe { self.get_jsmanaged().opaque() }
     }
 
+    fn pseudo_element(&self) -> Option<PseudoElement> {
+        self.pseudo
+    }
+
     fn type_id(&self) -> Option<LayoutNodeType> {
-        if self.pseudo == PseudoElementType::Normal {
+        if self.pseudo.is_none() {
             Some(self.node.type_id())
         } else {
             None
@@ -329,30 +336,6 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
 
     fn layout_data(&self) -> Option<&'dom GenericLayoutData> {
         self.node.layout_data()
-    }
-
-    fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool {
-        unsafe {
-            let text: LayoutDom<Text> = match self.get_jsmanaged().downcast() {
-                Some(text) => text,
-                None => return false,
-            };
-
-            if !is_whitespace(text.upcast().data_for_layout()) {
-                return false;
-            }
-
-            // NB: See the rules for `white-space` here:
-            //
-            //    http://www.w3.org/TR/CSS21/text.html#propdef-white-space
-            //
-            // If you implement other values for this property, you will almost certainly
-            // want to update this check.
-            self.style(context)
-                .get_inherited_text()
-                .white_space_collapse ==
-                WhiteSpaceCollapse::Collapse
-        }
     }
 
     fn unsafe_get(self) -> Self::ConcreteNode {
@@ -451,12 +434,12 @@ pub struct ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
 
 impl<'dom> ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
     pub fn new(parent: ServoThreadSafeLayoutNode<'dom>) -> Self {
-        let first_child = match parent.get_pseudo_element_type() {
-            PseudoElementType::Normal => parent
-                .get_before_pseudo()
-                .or_else(|| parent.get_details_summary_pseudo())
+        let first_child = match parent.pseudo_element() {
+            None => parent
+                .with_pseudo(PseudoElement::Before)
+                .or_else(|| parent.with_pseudo(PseudoElement::DetailsSummary))
                 .or_else(|| unsafe { parent.dangerous_first_child() }),
-            PseudoElementType::DetailsContent | PseudoElementType::DetailsSummary => unsafe {
+            Some(PseudoElement::DetailsContent) | Some(PseudoElement::DetailsSummary) => unsafe {
                 parent.dangerous_first_child()
             },
             _ => None,
@@ -472,10 +455,10 @@ impl<'dom> Iterator for ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
     type Item = ServoThreadSafeLayoutNode<'dom>;
     fn next(&mut self) -> Option<ServoThreadSafeLayoutNode<'dom>> {
         use selectors::Element;
-        match self.parent_node.get_pseudo_element_type() {
-            PseudoElementType::Before | PseudoElementType::After => None,
+        match self.parent_node.pseudo_element() {
+            Some(PseudoElement::Before) | Some(PseudoElement::After) => None,
 
-            PseudoElementType::DetailsSummary => {
+            Some(PseudoElement::DetailsSummary) => {
                 let mut current_node = self.current_node;
                 loop {
                     let next_node = if let Some(ref node) = current_node {
@@ -496,7 +479,7 @@ impl<'dom> Iterator for ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
                 }
             },
 
-            PseudoElementType::DetailsContent => {
+            Some(PseudoElement::DetailsContent) => {
                 let node = self.current_node;
                 let node = node.and_then(|node| {
                     if node.is_element() &&
@@ -514,22 +497,24 @@ impl<'dom> Iterator for ServoThreadSafeLayoutNodeChildrenIterator<'dom> {
                 node
             },
 
-            PseudoElementType::Normal => {
+            None | Some(_) => {
                 let node = self.current_node;
                 if let Some(ref node) = node {
-                    self.current_node = match node.get_pseudo_element_type() {
-                        PseudoElementType::Before => self
+                    self.current_node = match node.pseudo_element() {
+                        Some(PseudoElement::Before) => self
                             .parent_node
-                            .get_details_summary_pseudo()
+                            .with_pseudo(PseudoElement::DetailsSummary)
                             .or_else(|| unsafe { self.parent_node.dangerous_first_child() })
-                            .or_else(|| self.parent_node.get_after_pseudo()),
-                        PseudoElementType::Normal => unsafe { node.dangerous_next_sibling() }
-                            .or_else(|| self.parent_node.get_after_pseudo()),
-                        PseudoElementType::DetailsSummary => {
-                            self.parent_node.get_details_content_pseudo()
+                            .or_else(|| self.parent_node.with_pseudo(PseudoElement::After)),
+                        Some(PseudoElement::DetailsSummary) => {
+                            self.parent_node.with_pseudo(PseudoElement::DetailsContent)
                         },
-                        PseudoElementType::DetailsContent => self.parent_node.get_after_pseudo(),
-                        PseudoElementType::After => None,
+                        Some(PseudoElement::DetailsContent) => {
+                            self.parent_node.with_pseudo(PseudoElement::After)
+                        },
+                        Some(PseudoElement::After) => None,
+                        None | Some(_) => unsafe { node.dangerous_next_sibling() }
+                            .or_else(|| self.parent_node.with_pseudo(PseudoElement::After)),
                     };
                 }
                 node

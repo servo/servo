@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 
-use crate::dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper, MAX_CHANNEL_COUNT};
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::AudioDestinationNodeMethods;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
@@ -13,9 +13,10 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AudioDestinationNode {
+pub(crate) struct AudioDestinationNode {
     node: AudioNode,
 }
 
@@ -37,14 +38,15 @@ impl AudioDestinationNode {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         global: &GlobalScope,
         context: &BaseAudioContext,
         options: &AudioNodeOptions,
+        can_gc: CanGc,
     ) -> DomRoot<AudioDestinationNode> {
         let node = AudioDestinationNode::new_inherited(context, options);
-        reflect_dom_object(Box::new(node), global)
+        reflect_dom_object(Box::new(node), global, can_gc)
     }
 }
 

@@ -34,11 +34,11 @@ indexeddb_test(
       }));
 
 
-      const transaction1 = db1.transaction('store', 'readwrite', {durability: 'relaxed'});
+      const transaction1 = db1.transaction('store', 'readwrite');
       transaction1.onabort = t.unreached_func('transaction1 should complete');
       transaction1.oncomplete = t.step_func(onTransactionComplete);
 
-      const transaction2 = db2.transaction('store', 'readwrite', {durability: 'relaxed'});
+      const transaction2 = db2.transaction('store', 'readwrite');
       transaction2.onabort = t.unreached_func('transaction2 should complete');
       transaction2.oncomplete = t.step_func(onTransactionComplete);
 

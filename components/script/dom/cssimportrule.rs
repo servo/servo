@@ -16,9 +16,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CSSImportRule {
+pub(crate) struct CSSImportRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -36,15 +37,17 @@ impl CSSImportRule {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         import_rule: Arc<Locked<ImportRule>>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(Self::new_inherited(parent_stylesheet, import_rule)),
             window,
+            can_gc,
         )
     }
 }

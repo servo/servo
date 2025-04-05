@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EditContext: The activation is synced with the associated element being focused or not</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<div>Test</div>
+<button>Click</button>
+<input type="text" value="" />
+<script>
+promise_test(async () => {
+  const div = document.querySelector('div');
+  const editContext = new EditContext();
+  let firedTextUpdate = false;
+  editContext.addEventListener('textupdate', e => {
+    firedTextUpdate = true;
+    div.textContent = e.text;
+  });
+  div.editContext = editContext;
+  div.focus();
+  assert_equals(document.activeElement, div);
+
+  const button = document.querySelector('button');
+  const input = document.querySelector('input');
+  button.addEventListener('focus', () => {
+    input.focus();
+  });
+  await test_driver.click(button);
+  // The focus is on the input element, editContext should be deactivated.
+  assert_equals(document.activeElement, input);
+
+  const key = 'A';
+  await (new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key)
+    .send());
+  assert_false(firedTextUpdate);
+  assert_equals(div.textContent, 'Test');
+  assert_equals(input.value, key);
+}, `If an element with an associated EditContext loses focus, the EditContext is deactivated even when another focus change was triggered recursively.`);
+</script>
+</body>
+</html>

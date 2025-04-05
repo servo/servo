@@ -6,13 +6,14 @@ use canvas_traits::webgl::WebGLVersion;
 use dom_struct::dom_struct;
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl_extensions::ext::oestexturefloat::OESTextureFloat;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WEBGLColorBufferFloat {
+pub(crate) struct WEBGLColorBufferFloat {
     reflector_: Reflector,
 }
 
@@ -26,10 +27,11 @@ impl WEBGLColorBufferFloat {
 
 impl WebGLExtension for WEBGLColorBufferFloat {
     type Extension = WEBGLColorBufferFloat;
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<WEBGLColorBufferFloat> {
+    fn new(ctx: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<WEBGLColorBufferFloat> {
         reflect_dom_object(
             Box::new(WEBGLColorBufferFloat::new_inherited()),
             &*ctx.global(),
+            can_gc,
         )
     }
 

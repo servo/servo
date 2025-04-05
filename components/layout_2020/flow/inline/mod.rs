@@ -88,37 +88,38 @@ use line::{
     TextRunLineItem,
 };
 use line_breaker::LineBreaker;
-use serde::Serialize;
 use servo_arc::Arc;
+use style::Zero;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::QuirksMode;
-use style::properties::style_structs::InheritedText;
 use style::properties::ComputedValues;
+use style::properties::style_structs::InheritedText;
 use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::BaselineSource;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::values::specified::{TextAlignLast, TextJustify};
-use style::Zero;
 use text_run::{
-    add_or_get_font, get_font_for_first_font_for_style, TextRun, XI_LINE_BREAKING_CLASS_GL,
-    XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
+    TextRun, XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
+    add_or_get_font, get_font_for_first_font_for_style,
 };
 use unicode_bidi::{BidiInfo, Level};
 use webrender_api::FontInstanceKey;
 use xi_unicode::linebreak_property;
 
 use super::float::{Clear, PlacementAmongFloats};
-use super::IndependentFormattingContextContents;
+use super::{
+    CacheableLayoutResult, IndependentFloatOrAtomicLayoutResult,
+    IndependentFormattingContextContents,
+};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
+use crate::flow::CollapsibleWithParentStartMargin;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
-use crate::flow::{CollapsibleWithParentStartMargin, FlowLayout};
 use crate::formatting_contexts::{
-    Baselines, IndependentFormattingContext, IndependentLayoutResult,
-    IndependentNonReplacedContents,
+    Baselines, IndependentFormattingContext, IndependentNonReplacedContents,
 };
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
@@ -128,13 +129,13 @@ use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
-use crate::{ConstraintSpace, ContainingBlock};
+use crate::{ConstraintSpace, ContainingBlock, PropagatedBoxTreeData};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
 static FONT_SUPERSCRIPT_OFFSET_RATIO: f32 = 0.34;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct InlineFormattingContext {
     /// All [`InlineItem`]s in this [`InlineFormattingContext`] stored in a flat array.
     /// [`InlineItem::StartInlineBox`] and [`InlineItem::EndInlineBox`] allow representing
@@ -171,14 +172,14 @@ pub(crate) struct InlineFormattingContext {
 }
 
 /// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct FontKeyAndMetrics {
     pub key: FontInstanceKey,
     pub pt_size: Au,
     pub metrics: FontMetrics,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum InlineItem {
     StartInlineBox(ArcRefCell<InlineBox>),
     EndInlineBox,
@@ -649,7 +650,7 @@ pub(super) struct InlineFormattingContextLayout<'layout_data> {
     baselines: Baselines,
 }
 
-impl<'layout_dta> InlineFormattingContextLayout<'layout_dta> {
+impl InlineFormattingContextLayout<'_> {
     fn current_inline_container_state(&self) -> &InlineContainerState {
         match self.inline_box_state_stack.last() {
             Some(inline_box_state) => &inline_box_state.base,
@@ -1520,7 +1521,7 @@ impl InlineFormattingContext {
     pub(super) fn new_with_builder(
         builder: InlineFormattingContextBuilder,
         layout_context: &LayoutContext,
-        text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
         has_first_formatted_line: bool,
         is_single_line_text_input: bool,
         starting_bidi_level: Level,
@@ -1535,7 +1536,7 @@ impl InlineFormattingContext {
         let mut new_linebreaker = LineBreaker::new(text_content.as_str());
         for item in builder.inline_items.iter() {
             match &mut *item.borrow_mut() {
-                InlineItem::TextRun(ref mut text_run) => {
+                InlineItem::TextRun(text_run) => {
                     text_run.borrow_mut().segment_and_shape(
                         &text_content,
                         &layout_context.font_context,
@@ -1571,7 +1572,7 @@ impl InlineFormattingContext {
             inline_items: builder.inline_items,
             inline_boxes: builder.inline_boxes,
             font_metrics,
-            text_decoration_line,
+            text_decoration_line: propagated_data.text_decoration,
             has_first_formatted_line,
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
@@ -1586,7 +1587,7 @@ impl InlineFormattingContext {
         containing_block: &ContainingBlock,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
-    ) -> FlowLayout {
+    ) -> CacheableLayoutResult {
         let first_line_inline_start = if self.has_first_formatted_line {
             containing_block
                 .style
@@ -1684,7 +1685,7 @@ impl InlineFormattingContext {
                         },
                     ));
                 },
-                InlineItem::OutOfFlowFloatBox(ref float_box) => {
+                InlineItem::OutOfFlowFloatBox(float_box) => {
                     float_box.layout_into_line_items(&mut layout);
                 },
             }
@@ -1698,12 +1699,14 @@ impl InlineFormattingContext {
             content_block_size == Au::zero() &&
             collapsible_with_parent_start_margin.0;
 
-        FlowLayout {
+        CacheableLayoutResult {
             fragments: layout.fragments,
             content_block_size,
             collapsible_margins_in_children,
             baselines: layout.baselines,
             depends_on_block_constraints: layout.depends_on_block_constraints,
+            content_inline_size_for_table: None,
+            specific_layout_info: None,
         }
     }
 
@@ -1923,7 +1926,7 @@ impl IndependentFormattingContext {
         // We need to know the inline size of the atomic before deciding whether to do the line break.
         let mut child_positioning_context = PositioningContext::new_for_style(self.style())
             .unwrap_or_else(|| PositioningContext::new_for_subtree(true));
-        let IndependentLayoutResult {
+        let IndependentFloatOrAtomicLayoutResult {
             mut fragment,
             baselines,
             pbm_sums,
@@ -2245,11 +2248,11 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 let inline_box = inline_box.borrow();
                 let zero = Au::zero();
                 let writing_mode = self.constraint_space.writing_mode;
-                let padding = inline_box
-                    .style
+                let layout_style = inline_box.layout_style();
+                let padding = layout_style
                     .padding(writing_mode)
                     .percentages_relative_to(zero);
-                let border = inline_box.style.border_width(writing_mode);
+                let border = layout_style.border_width(writing_mode);
                 let margin = inline_box
                     .style
                     .margin(writing_mode)

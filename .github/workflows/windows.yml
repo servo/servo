@@ -11,6 +11,10 @@ on:
         required: false
         default: false
         type: boolean
+      build-libservo:
+        required: false
+        default: false
+        type: boolean
       upload:
         required: false
         default: false
@@ -22,6 +26,10 @@ on:
         required: false
         type: boolean
         default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       profile:
@@ -33,6 +41,10 @@ on:
         required: false
         default: false
         type: boolean
+      build-libservo:
+        required: false
+        default: false
+        type: boolean
       upload:
         required: false
         default: false
@@ -41,11 +53,14 @@ on:
         required: false
         type: boolean
         default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
 
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  CCACHE: "ccache"
   CARGO_TARGET_DIR: C:\\a\\servo\\servo\\target
   # clang_sys will search msys path before Program Files\LLVM
   # so we need to override this behaviour until we update clang-sys
@@ -78,20 +93,20 @@ jobs:
     name: Windows Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
+      - if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
         uses: actions/checkout@v4
-      - if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
+      - if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
 
       # Faster checkout for self-hosted runner that uses prebaked repo.
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 origin $env:GITHUB_SHA
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
         run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+      - if: ${{ runner.environment == 'self-hosted' }}
         # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
         # trees, in case the runner image was baked with a dirty working tree.
         run: |
@@ -100,33 +115,34 @@ jobs:
 
       - name: ccache
         # FIXME: “Error: Restoring cache failed: Error: Unable to locate executable file: sh.”
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         uses: hendrikmuhs/ccache-action@v1.2
+      - if: ${{ runner.environment != 'self-hosted' }}
+        run: |
+          echo CCACHE=ccache >> $GITHUB_ENV
 
       # Install missing tools in a GitHub-hosted runner.
       # Workaround for https://github.com/actions/runner-images/issues/10001:
       - name: Upgrade llvm
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         run: choco upgrade llvm
       - name: Install wixtoolset
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         run: |
           choco install wixtoolset
           echo "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      - uses: actions/setup-python@v5
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-        with:
-          python-version: "3.10"
+      - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/setup-python
       - name: Bootstrap
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         run: |
-          python -m pip install --upgrade pip
-          python mach fetch
-          python mach bootstrap-gstreamer
+          .\mach fetch
+          .\mach bootstrap-gstreamer
       # For some reason WiX isn't currently on the GitHub runner path. This is a
       # temporary workaround until that is fixed.
       - name: Add WiX to Path
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         run: |
           "$env:WIX\bin" >> $env:GITHUB_PATH
 
@@ -137,7 +153,7 @@ jobs:
         run: cargo install --path support/crown --force
 
       - name: Debug logging for incremental builds
-        if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment == 'self-hosted' }}
         run: |
           cat C:\init\incremental_build_debug.txt
           echo "`$env:LIBCLANG_PATH now = $env:LIBCLANG_PATH"
@@ -145,33 +161,37 @@ jobs:
 
       - name: Build (${{ inputs.profile }})
         run: |
-          python mach build --use-crown --locked --${{ inputs.profile }}
+          .\mach build --use-crown --locked --${{ inputs.profile }}
           cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Copy resources
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         # GitHub-hosted runners check out the repo on D: drive.
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
-        run: python mach smoketest --${{ inputs.profile }}
+        run: .\mach smoketest --${{ inputs.profile }}
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
-          command: python mach test-unit --${{ inputs.profile }} -- -- --test-threads=1
+          command: .\mach test-unit --${{ inputs.profile }} -- -- --test-threads=1
+      - name: Build libservo with examples
+        if: ${{ inputs.build-libservo }}
+        continue-on-error: true
+        run: cargo build -p libservo --all-targets
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-windows
+          name: cargo-timings-windows-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Build mach package
-        run: python mach package --${{ inputs.profile }}
+        run: .\mach package --${{ inputs.profile }}
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
-          name: win
+          name: ${{ inputs.profile }}-binary-windows
           # These files are available
           # MSI Installer: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Installer.msi
           # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.exe
@@ -180,9 +200,22 @@ jobs:
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
-          python mach upload-nightly windows-msvc --secret-from-environment `
+          .\mach upload-nightly windows-msvc --secret-from-environment `
             --github-release-id ${{ inputs.github-release-id }}
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
+  bencher:
+    needs: ["build"]
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    uses: ./.github/workflows/bencher.yml
+    with:
+      target: 'windows'
+      profile: ${{ inputs.profile }}
+      compressed-file-path: ''
+      binary-path: ${{ inputs.profile }}-binary-windows/Servo.exe
+      file-size: true
+      speedometer: false
+      dromaeo: false
+    secrets: inherit

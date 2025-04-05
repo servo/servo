@@ -12,10 +12,6 @@ on:
         required: false
         type: string
         default: /orgs/${{ github.repository_owner }}/actions/runners
-      monitor-api-base-url:
-        required: false
-        type: string
-        default: https://ci0.servo.org
       force-github-hosted-runner:
         required: false
         type: boolean
@@ -46,7 +42,6 @@ jobs:
           github_hosted_runner_label='${{ inputs.github-hosted-runner-label }}'
           self_hosted_image_name='${{ inputs.self-hosted-image-name }}'
           self_hosted_runner_scope='${{ inputs.self-hosted-runner-scope }}'
-          monitor_api_base_url='${{ inputs.monitor-api-base-url }}'
 
           set -euo pipefail
 
@@ -77,22 +72,29 @@ jobs:
             fall_back_to_github_hosted
           fi
 
-          # Use the monitor API to reserve a runner. If we get an object with
-          # runner details, we succeeded. If we get null, we failed.
-          take_runner_url=$monitor_api_base_url/$self_hosted_image_name/$unique_id/${{ github.repository }}/${{ github.run_id }}
-          result=$(mktemp)
-          echo
-          echo POST "$take_runner_url"
-          if ! curl -sS --fail-with-body --connect-timeout 5 --max-time 30 -X POST "$take_runner_url" \
-              -H 'Authorization: Bearer ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}' > $result \
-              || ! jq -e . $result > /dev/null; then
-            cat $result
+          for monitor_api_base_url in $(printf \%s\\n \
+            https://ci0.servo.org \
+            https://ci1.servo.org \
+            https://ci2.servo.org \
+          | shuf); do
+            # Use the monitor API to reserve a runner. If we get an object with
+            # runner details, we succeeded. If we get null, we failed.
+            take_runner_url=$monitor_api_base_url/profile/$self_hosted_image_name/take\?unique_id=$unique_id\&qualified_repo=${{ github.repository }}\&run_id=${{ github.run_id }}
+            result=$(mktemp)
             echo
-            echo
-            echo 'No self-hosted runners available!'
-            fall_back_to_github_hosted
-          fi
+            echo POST "$take_runner_url"
+            if curl -sS --fail-with-body --connect-timeout 5 --max-time 30 -X POST "$take_runner_url" \
+                -H 'Authorization: Bearer ${{ secrets.SERVO_CI_MONITOR_API_TOKEN }}' > $result \
+                && jq -e . $result > /dev/null; then
+              echo
+              echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
+              echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
 
+          cat $result
           echo
-          echo "selected_runner_label=reserved-for:$unique_id" | tee -a $GITHUB_OUTPUT
-          echo 'is_self_hosted=true' | tee -a $GITHUB_OUTPUT
+          echo
+          echo 'No self-hosted runners available!'
+          fall_back_to_github_hosted

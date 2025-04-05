@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use indexmap::IndexMap;
 use pixels::Image;
 use script_traits::serializable::BlobImpl;
 
@@ -15,73 +16,54 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#the-drag-data-item-kind>
-#[derive(Clone)]
-pub enum Kind {
-    Text(PlainString),
-    File(Binary),
-}
-
-#[derive(Clone)]
-pub struct PlainString {
-    data: DOMString,
-    type_: DOMString,
-}
-
-impl PlainString {
-    pub fn new(data: DOMString, type_: DOMString) -> Self {
-        Self { data, type_ }
-    }
-}
-
-#[derive(Clone)]
-pub struct Binary {
-    bytes: Vec<u8>,
-    name: DOMString,
-    type_: String,
-}
-
-impl Binary {
-    pub fn new(bytes: Vec<u8>, name: DOMString, type_: String) -> Self {
-        Self { bytes, name, type_ }
-    }
+pub(crate) enum Kind {
+    Text {
+        data: DOMString,
+        type_: DOMString,
+    },
+    File {
+        bytes: Vec<u8>,
+        name: DOMString,
+        type_: String,
+    },
 }
 
 impl Kind {
-    pub fn type_(&self) -> DOMString {
+    pub(crate) fn type_(&self) -> DOMString {
         match self {
-            Kind::Text(string) => string.type_.clone(),
-            Kind::File(binary) => DOMString::from(binary.type_.clone()),
+            Kind::Text { type_, .. } => type_.clone(),
+            Kind::File { type_, .. } => DOMString::from(type_.clone()),
         }
     }
 
-    pub fn as_string(&self) -> Option<DOMString> {
+    pub(crate) fn as_string(&self) -> Option<String> {
         match self {
-            Kind::Text(string) => Some(string.data.clone()),
-            Kind::File(_) => None,
+            Kind::Text { data, .. } => Some(data.to_string()),
+            Kind::File { .. } => None,
         }
     }
 
     // TODO for now we create a new BlobImpl
     // since File constructor requires moving it.
-    pub fn as_file(&self, global: &GlobalScope) -> Option<DomRoot<File>> {
+    pub(crate) fn as_file(&self, global: &GlobalScope, can_gc: CanGc) -> Option<DomRoot<File>> {
         match self {
-            Kind::Text(_) => None,
-            Kind::File(binary) => Some(File::new(
+            Kind::Text { .. } => None,
+            Kind::File { bytes, name, type_ } => Some(File::new(
                 global,
-                BlobImpl::new_from_bytes(binary.bytes.clone(), binary.type_.clone()),
-                binary.name.clone(),
+                BlobImpl::new_from_bytes(bytes.clone(), type_.clone()),
+                name.clone(),
                 None,
-                CanGc::note(),
+                can_gc,
             )),
         }
     }
 
-    fn text_type_matches(&self, type_: &str) -> bool {
-        matches!(self, Kind::Text(string) if string.type_.eq(type_))
+    fn text_type_matches(&self, text_type: &str) -> bool {
+        matches!(self, Kind::Text { type_, .. } if type_.eq(text_type))
     }
 
     fn is_file(&self) -> bool {
-        matches!(self, Kind::File(_))
+        matches!(self, Kind::File { .. })
     }
 }
 
@@ -95,66 +77,69 @@ struct Bitmap {
 
 /// Control the behaviour of the drag data store
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub enum Mode {
+pub(crate) enum Mode {
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-rw>
     ReadWrite,
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-ro>
-    #[allow(dead_code)] // TODO this used by ClipboardEvent.
     ReadOnly,
     /// <https://html.spec.whatwg.org/multipage/#concept-dnd-p>
     Protected,
 }
 
 #[allow(dead_code)] // TODO some fields are used by DragEvent.
-pub struct DragDataStore {
+pub(crate) struct DragDataStore {
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-item-list>
-    item_list: Vec<Kind>,
+    item_list: IndexMap<u16, Kind>,
+    next_item_id: u16,
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-default-feedback>
     default_feedback: Option<String>,
     bitmap: Option<Bitmap>,
     mode: Mode,
     /// <https://html.spec.whatwg.org/multipage/#drag-data-store-allowed-effects-state>
     allowed_effects_state: String,
+    pub clear_was_called: bool,
 }
 
 impl DragDataStore {
     /// <https://html.spec.whatwg.org/multipage/#create-a-drag-data-store>
     // We don't really need it since it's only instantiated by DataTransfer.
     #[allow(clippy::new_without_default)]
-    pub fn new() -> DragDataStore {
+    pub(crate) fn new() -> DragDataStore {
         DragDataStore {
-            item_list: Vec::new(),
+            item_list: IndexMap::new(),
+            next_item_id: 0,
             default_feedback: None,
             bitmap: None,
             mode: Mode::Protected,
             allowed_effects_state: String::from("uninitialized"),
+            clear_was_called: false,
         }
     }
 
     /// Get the drag data store mode
-    pub fn mode(&self) -> Mode {
+    pub(crate) fn mode(&self) -> Mode {
         self.mode
     }
 
     /// Set the drag data store mode
-    pub fn set_mode(&mut self, mode: Mode) {
+    pub(crate) fn set_mode(&mut self, mode: Mode) {
         self.mode = mode;
     }
 
-    pub fn set_bitmap(&mut self, image: Option<Arc<Image>>, x: i32, y: i32) {
+    pub(crate) fn set_bitmap(&mut self, image: Option<Arc<Image>>, x: i32, y: i32) {
         self.bitmap = Some(Bitmap { image, x, y });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-datatransfer-types>
-    pub fn types(&self) -> Vec<DOMString> {
+    pub(crate) fn types(&self) -> Vec<DOMString> {
         let mut types = Vec::new();
 
-        let has_files = self.item_list.iter().fold(false, |has_files, item| {
+        let has_files = self.item_list.values().fold(false, |has_files, item| {
             // Step 2.1 For each item in the item list whose kind is text,
             // add an entry to L consisting of the item's type string.
             match item {
-                Kind::Text(string) => types.push(string.type_.clone()),
-                Kind::File(_) => return true,
+                Kind::Text { type_, .. } => types.push(type_.clone()),
+                Kind::File { .. } => return true,
             }
 
             has_files
@@ -168,46 +153,52 @@ impl DragDataStore {
         types
     }
 
-    pub fn find_matching_text(&self, type_: &str) -> Option<DOMString> {
+    pub(crate) fn find_matching_text(&self, type_: &str) -> Option<DOMString> {
         self.item_list
-            .iter()
+            .values()
             .find(|item| item.text_type_matches(type_))
             .and_then(|item| item.as_string())
+            .map(DOMString::from)
     }
 
-    pub fn add(&mut self, kind: Kind) -> Fallible<()> {
-        if let Kind::Text(ref string) = kind {
+    pub(crate) fn add(&mut self, kind: Kind) -> Fallible<u16> {
+        if let Kind::Text { ref type_, .. } = kind {
             // Step 2.1 If there is already an item in the item list whose kind is text
             // and whose type string is equal to the method's second argument, throw "NotSupportedError".
             if self
                 .item_list
-                .iter()
-                .any(|item| item.text_type_matches(&string.type_))
+                .values()
+                .any(|item| item.text_type_matches(type_))
             {
                 return Err(Error::NotSupported);
             }
         }
 
-        // Step 2.2
-        self.item_list.push(kind);
+        let item_id = self.next_item_id;
 
-        Ok(())
+        // Step 2.2
+        self.item_list.insert(item_id, kind);
+
+        self.next_item_id += 1;
+        Ok(item_id)
     }
 
-    pub fn set_data(&mut self, format: DOMString, data: DOMString) {
+    pub(crate) fn set_data(&mut self, format: DOMString, data: DOMString) {
         // Step 3-4
         let type_ = normalize_mime(format);
 
         // Step 5 Remove the item in the drag data store item list whose kind is text
         // and whose type string is equal to format, if there is one.
         self.item_list
-            .retain(|item| !item.text_type_matches(&type_));
+            .retain(|_, item| !item.text_type_matches(&type_));
 
         // Step 6 Add an item whose kind is text, whose type is format, and whose data is the method's second argument.
-        self.item_list.push(Kind::Text(PlainString { data, type_ }));
+        self.item_list
+            .insert(self.next_item_id, Kind::Text { data, type_ });
+        self.next_item_id += 1;
     }
 
-    pub fn clear_data(&mut self, format: Option<DOMString>) -> bool {
+    pub(crate) fn clear_data(&mut self, format: Option<DOMString>) -> bool {
         let mut was_modified = false;
 
         if let Some(format) = format {
@@ -215,7 +206,7 @@ impl DragDataStore {
             let type_ = normalize_mime(format);
 
             // Step 6 Remove the item in the item list whose kind is text and whose type is format.
-            self.item_list.retain(|item| {
+            self.item_list.retain(|_, item| {
                 let matches = item.text_type_matches(&type_);
 
                 if matches {
@@ -225,7 +216,7 @@ impl DragDataStore {
             });
         } else {
             // Step 3 Remove each item in the item list whose kind is text.
-            self.item_list.retain(|item| {
+            self.item_list.retain(|_, item| {
                 let matches = item.is_file();
 
                 if !matches {
@@ -238,7 +229,12 @@ impl DragDataStore {
         was_modified
     }
 
-    pub fn files(&self, global: &GlobalScope, file_list: &mut Vec<DomRoot<File>>) {
+    pub(crate) fn files(
+        &self,
+        global: &GlobalScope,
+        can_gc: CanGc,
+        file_list: &mut Vec<DomRoot<File>>,
+    ) {
         // Step 3 If the data store is in the protected mode return the empty list.
         if self.mode == Mode::Protected {
             return;
@@ -246,25 +242,34 @@ impl DragDataStore {
 
         // Step 4 For each item in the drag data store item list whose kind is File, add the item's data to the list L.
         self.item_list
-            .iter()
-            .filter_map(|item| item.as_file(global))
+            .values()
+            .filter_map(|item| item.as_file(global, can_gc))
             .for_each(|file| file_list.push(file));
     }
 
-    pub fn list_len(&self) -> usize {
+    pub(crate) fn list_len(&self) -> usize {
         self.item_list.len()
     }
 
-    pub fn get_item(&self, index: usize) -> Option<Kind> {
-        self.item_list.get(index).cloned()
+    pub(crate) fn iter_item_list(&self) -> indexmap::map::Values<'_, u16, Kind> {
+        self.item_list.values()
     }
 
-    pub fn remove(&mut self, index: usize) {
-        self.item_list.remove(index);
+    pub(crate) fn get_by_index(&self, index: usize) -> Option<(&u16, &Kind)> {
+        self.item_list.get_index(index)
     }
 
-    pub fn clear_list(&mut self) {
+    pub(crate) fn get_by_id(&self, id: &u16) -> Option<&Kind> {
+        self.item_list.get(id)
+    }
+
+    pub(crate) fn remove(&mut self, index: usize) {
+        self.item_list.shift_remove_index(index);
+    }
+
+    pub(crate) fn clear_list(&mut self) {
         self.item_list.clear();
+        self.clear_was_called = true;
     }
 }
 

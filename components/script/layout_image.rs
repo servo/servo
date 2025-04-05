@@ -17,11 +17,11 @@ use net_traits::{
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::node::{document_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::CanGc;
@@ -91,13 +91,13 @@ impl ResourceTimingListener for LayoutImageContext {
 
 impl PreInvoke for LayoutImageContext {}
 
-pub fn fetch_image_for_layout(
+pub(crate) fn fetch_image_for_layout(
     url: ServoUrl,
     node: &Node,
     id: PendingImageId,
     cache: Arc<dyn ImageCache>,
 ) {
-    let document = document_from_node(node);
+    let document = node.owner_document();
     let context = LayoutImageContext {
         id,
         cache,
@@ -106,11 +106,15 @@ pub fn fetch_image_for_layout(
         url: url.clone(),
     };
 
-    let request = FetchRequestInit::new(url, document.global().get_referrer())
-        .origin(document.origin().immutable().clone())
-        .destination(Destination::Image)
-        .pipeline_id(Some(document.global().pipeline_id()));
+    let request = FetchRequestInit::new(
+        Some(document.webview_id()),
+        url,
+        document.global().get_referrer(),
+    )
+    .origin(document.origin().immutable().clone())
+    .destination(Destination::Image)
+    .pipeline_id(Some(document.global().pipeline_id()));
 
     // Layout image loads do not delay the document load event.
-    document.fetch_background(request, context, None);
+    document.fetch_background(request, context);
 }

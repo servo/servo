@@ -1,5 +1,5 @@
 // META: title=validation tests for WebNN API tile operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -10,6 +10,7 @@
 validateInputFromAnotherBuilder('tile');
 
 const label = 'xxx-tile';
+const regrexp = new RegExp('\\[' + label + '\\]');
 const tests = [
   {
     name:
@@ -63,7 +64,6 @@ tests.forEach(
       } else {
         const options = {...test.options};
         if (options.label) {
-          const regrexp = new RegExp('\\[' + label + '\\]');
           builder.tile(input, test.repetitions, options);
           assert_throws_with_label(
               () => builder.tile(input, test.repetitions, options), regrexp);
@@ -73,3 +73,16 @@ tests.forEach(
         }
       }
     }, test.name));
+
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+
+  const input = builder.input('input', {
+      dataType: 'float32',
+      shape: [1, 1, 1, context.opSupportLimits().maxTensorByteLength / 4]});
+
+  const options = {label};
+  const repetitions =  [1, 2, 3, 4];
+  assert_throws_with_label(
+      () => builder.tile(input, repetitions, options), regrexp);
+}, '[tile] throw if the output tensor byte length exceeds limit');

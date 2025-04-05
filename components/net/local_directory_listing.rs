@@ -6,7 +6,7 @@ use std::fs::{DirEntry, Metadata, ReadDir};
 use std::path::PathBuf;
 
 use chrono::{DateTime, Local};
-use embedder_traits::resources::{read_string, Resource};
+use embedder_traits::resources::{Resource, read_string};
 use headers::{ContentType, HeaderMapExt};
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
@@ -16,7 +16,7 @@ use servo_url::ServoUrl;
 use url::Url;
 
 pub fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBuf) -> Response {
-    if !pref!(network.local_directory_listing.enabled) {
+    if !pref!(network_local_directory_listing_enabled) {
         // If you want to be able to browse local directories, configure Servo prefs so that
         // "network.local_directory_listing.enabled" is set to true.
         return Response::network_error(NetworkError::Internal(

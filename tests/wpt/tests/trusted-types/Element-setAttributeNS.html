@@ -3,6 +3,7 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="support/helper.sub.js"></script>
+  <script src="support/namespaces.js"></script>
 </head>
 <body>
 <script>
@@ -18,17 +19,9 @@
       assert_element_accepts_trusted_script_url_set_ns(window, '2', t, 'a', 'b', RESULTS.SCRIPTURL);
     }, "Element.setAttributeNS assigned via policy (successful ScriptURL transformation)");
 
-// TODO: Is there any non-URL, namespaced accessor left?
-/*
-    test(t => {
-      let p = createURL_policy(window, '5');
-      let url = p.createURL(INPUTS.URL);
-
-      let elem = document.createElementNS("http://www.w3.org/2000/svg", "image");
-      elem.setAttributeNS("http://www.w3.org/1999/xlink", "href", url);
-      let attr_node = elem.getAttributeNodeNS("http://www.w3.org/1999/xlink", "href");
-      assert_equals(attr_node.value + "", RESULTS.URL);
+    test(t=> {
+      const policy = trustedTypes.createPolicy("p", { createScriptURL: s => s + s });
+      assert_element_accepts_value_set_ns("image", "href", policy.createScriptURL("v"), "vv",
+        NSURI_SVG, NSURI_XLINK);
     }, "Element.setAttributeNS accepts a URL on <svg:image xlink:href/>");
-*/
-
 </script>

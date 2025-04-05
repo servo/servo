@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(crown::unrooted_must_root)]
+#![cfg_attr(crown, allow(crown::unrooted_must_root))]
 
 use std::cell::Cell;
 use std::io;
@@ -11,15 +11,17 @@ use html5ever::buffer_queue::BufferQueue;
 use html5ever::serialize::TraversalScope::IncludeNode;
 use html5ever::serialize::{AttrRef, Serialize, Serializer, TraversalScope};
 use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
-use html5ever::tree_builder::{Tracer as HtmlTracer, TreeBuilder, TreeBuilderOpts};
-use html5ever::QualName;
-use js::jsapi::JSTracer;
+use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
+use html5ever::{QualName, local_name, namespace_url, ns};
+use script_bindings::trace::CustomTraceable;
 use servo_url::ServoUrl;
+use xml5ever::LocalName;
 
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMode;
+use crate::dom::bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
@@ -30,17 +32,18 @@ use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{ParsingAlgorithm, Sink};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
-pub struct Tokenizer {
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in html5ever"]
     inner: HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>>,
 }
 
 impl Tokenizer {
-    pub fn new(
+    pub(crate) fn new(
         document: &Document,
         url: ServoUrl,
         fragment_context: Option<super::FragmentContext>,
@@ -56,6 +59,7 @@ impl Tokenizer {
 
         let options = TreeBuilderOpts {
             ignore_missing_rules: true,
+            scripting_enabled: document.has_browsing_context(),
             ..Default::default()
         };
 
@@ -80,7 +84,7 @@ impl Tokenizer {
         Tokenizer { inner }
     }
 
-    pub fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
+    pub(crate) fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         match self.inner.feed(input) {
             TokenizerResult::Done => TokenizerResult::Done,
             TokenizerResult::Script(script) => {
@@ -89,38 +93,16 @@ impl Tokenizer {
         }
     }
 
-    pub fn end(&self) {
+    pub(crate) fn end(&self) {
         self.inner.end();
     }
 
-    pub fn url(&self) -> &ServoUrl {
+    pub(crate) fn url(&self) -> &ServoUrl {
         &self.inner.sink.sink.base_url
     }
 
-    pub fn set_plaintext_state(&self) {
+    pub(crate) fn set_plaintext_state(&self) {
         self.inner.set_plaintext_state();
-    }
-}
-
-#[allow(unsafe_code)]
-unsafe impl CustomTraceable for HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        struct Tracer(*mut JSTracer);
-        let tracer = Tracer(trc);
-
-        impl HtmlTracer for Tracer {
-            type Handle = Dom<Node>;
-            #[allow(crown::unrooted_must_root)]
-            fn trace_handle(&self, node: &Dom<Node>) {
-                unsafe {
-                    node.trace(self.0);
-                }
-            }
-        }
-
-        let tree_builder = &self.sink;
-        tree_builder.trace_handles(&tracer);
-        tree_builder.sink.trace(trc);
     }
 }
 
@@ -143,54 +125,91 @@ fn start_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Resul
     Ok(())
 }
 
-fn end_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Result<()> {
-    let name = QualName::new(None, node.namespace().clone(), node.local_name().clone());
-    serializer.end_elem(name)
-}
-
 enum SerializationCommand {
     OpenElement(DomRoot<Element>),
-    CloseElement(DomRoot<Element>),
+    CloseElement(QualName),
     SerializeNonelement(DomRoot<Node>),
+    SerializeShadowRoot(DomRoot<ShadowRoot>),
 }
 
 struct SerializationIterator {
     stack: Vec<SerializationCommand>,
+
+    /// Whether or not shadow roots should be serialized
+    serialize_shadow_roots: bool,
+
+    /// List of shadow root objects that should be serialized
+    shadow_roots: Vec<DomRoot<ShadowRoot>>,
 }
 
-fn rev_children_iter(n: &Node, can_gc: CanGc) -> impl Iterator<Item = DomRoot<Node>> {
-    if n.downcast::<Element>().is_some_and(|e| e.is_void()) {
-        return Node::new_document_node().rev_children();
-    }
-
-    match n.downcast::<HTMLTemplateElement>() {
-        Some(t) => t.Content(can_gc).upcast::<Node>().rev_children(),
-        None => n.rev_children(),
-    }
+enum SerializationChildrenIterator<C, S> {
+    None,
+    Children(C),
+    ShadowContents(S),
 }
 
 impl SerializationIterator {
-    fn new(node: &Node, skip_first: bool, can_gc: CanGc) -> SerializationIterator {
-        let mut ret = SerializationIterator { stack: vec![] };
+    fn new(
+        node: &Node,
+        skip_first: bool,
+        serialize_shadow_roots: bool,
+        shadow_roots: Vec<DomRoot<ShadowRoot>>,
+        can_gc: CanGc,
+    ) -> SerializationIterator {
+        let mut ret = SerializationIterator {
+            stack: vec![],
+            serialize_shadow_roots,
+            shadow_roots,
+        };
         if skip_first || node.is::<DocumentFragment>() || node.is::<Document>() {
-            for c in rev_children_iter(node, can_gc) {
-                ret.push_node(&c);
-            }
+            ret.handle_node_contents(node, can_gc);
         } else {
             ret.push_node(node);
         }
         ret
     }
 
-    fn push_node(&mut self, n: &Node) {
-        match n.downcast::<Element>() {
-            Some(e) => self
-                .stack
-                .push(SerializationCommand::OpenElement(DomRoot::from_ref(e))),
-            None => self.stack.push(SerializationCommand::SerializeNonelement(
-                DomRoot::from_ref(n),
-            )),
+    fn handle_node_contents(&mut self, node: &Node, can_gc: CanGc) {
+        if node.downcast::<Element>().is_some_and(Element::is_void) {
+            return;
         }
+
+        if let Some(template_element) = node.downcast::<HTMLTemplateElement>() {
+            for child in template_element
+                .Content(can_gc)
+                .upcast::<Node>()
+                .rev_children()
+            {
+                self.push_node(&child);
+            }
+        } else {
+            for child in node.rev_children() {
+                self.push_node(&child);
+            }
+        }
+
+        if let Some(shadow_root) = node.downcast::<Element>().and_then(Element::shadow_root) {
+            let should_be_serialized = (self.serialize_shadow_roots && shadow_root.Serializable()) ||
+                self.shadow_roots.contains(&shadow_root);
+            if !shadow_root.is_user_agent_widget() && should_be_serialized {
+                self.stack
+                    .push(SerializationCommand::SerializeShadowRoot(shadow_root));
+            }
+        }
+    }
+
+    fn push_node(&mut self, node: &Node) {
+        let Some(element) = node.downcast::<Element>() else {
+            self.stack.push(SerializationCommand::SerializeNonelement(
+                DomRoot::from_ref(node),
+            ));
+            return;
+        };
+
+        self.stack
+            .push(SerializationCommand::OpenElement(DomRoot::from_ref(
+                element,
+            )));
     }
 }
 
@@ -198,71 +217,139 @@ impl Iterator for SerializationIterator {
     type Item = SerializationCommand;
 
     fn next(&mut self) -> Option<SerializationCommand> {
-        let res = self.stack.pop();
+        let res = self.stack.pop()?;
 
-        if let Some(SerializationCommand::OpenElement(ref e)) = res {
-            self.stack
-                .push(SerializationCommand::CloseElement(e.clone()));
-            for c in rev_children_iter(e.upcast::<Node>(), CanGc::note()) {
-                self.push_node(&c);
-            }
+        match &res {
+            SerializationCommand::OpenElement(element) => {
+                let name = QualName::new(
+                    None,
+                    element.namespace().clone(),
+                    element.local_name().clone(),
+                );
+                self.stack.push(SerializationCommand::CloseElement(name));
+                self.handle_node_contents(element.upcast(), CanGc::note());
+            },
+            SerializationCommand::SerializeShadowRoot(shadow_root) => {
+                self.stack
+                    .push(SerializationCommand::CloseElement(QualName::new(
+                        None,
+                        ns!(),
+                        local_name!("template"),
+                    )));
+                self.handle_node_contents(shadow_root.upcast(), CanGc::note());
+            },
+            _ => {},
         }
 
-        res
+        Some(res)
     }
 }
 
-impl<'a> Serialize for &'a Node {
-    fn serialize<S: Serializer>(
-        &self,
-        serializer: &mut S,
-        traversal_scope: TraversalScope,
-    ) -> io::Result<()> {
-        let node = *self;
+/// <https://html.spec.whatwg.org/multipage/#html-fragment-serialisation-algorithm>
+pub(crate) fn serialize_html_fragment<S: Serializer>(
+    node: &Node,
+    serializer: &mut S,
+    traversal_scope: TraversalScope,
+    serialize_shadow_roots: bool,
+    shadow_roots: Vec<DomRoot<ShadowRoot>>,
+    can_gc: CanGc,
+) -> io::Result<()> {
+    let iter = SerializationIterator::new(
+        node,
+        traversal_scope != IncludeNode,
+        serialize_shadow_roots,
+        shadow_roots,
+        can_gc,
+    );
 
-        let iter = SerializationIterator::new(node, traversal_scope != IncludeNode, CanGc::note());
-
-        for cmd in iter {
-            match cmd {
-                SerializationCommand::OpenElement(n) => {
-                    start_element(&n, serializer)?;
+    for cmd in iter {
+        match cmd {
+            SerializationCommand::OpenElement(n) => {
+                start_element(&n, serializer)?;
+            },
+            SerializationCommand::CloseElement(name) => {
+                serializer.end_elem(name)?;
+            },
+            SerializationCommand::SerializeNonelement(n) => match n.type_id() {
+                NodeTypeId::DocumentType => {
+                    let doctype = n.downcast::<DocumentType>().unwrap();
+                    serializer.write_doctype(doctype.name())?;
                 },
 
-                SerializationCommand::CloseElement(n) => {
-                    end_element(&n, serializer)?;
+                NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
+                    let cdata = n.downcast::<CharacterData>().unwrap();
+                    serializer.write_text(&cdata.data())?;
                 },
 
-                SerializationCommand::SerializeNonelement(n) => match n.type_id() {
-                    NodeTypeId::DocumentType => {
-                        let doctype = n.downcast::<DocumentType>().unwrap();
-                        serializer.write_doctype(doctype.name())?;
-                    },
-
-                    NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
-                        let cdata = n.downcast::<CharacterData>().unwrap();
-                        serializer.write_text(&cdata.data())?;
-                    },
-
-                    NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
-                        let cdata = n.downcast::<CharacterData>().unwrap();
-                        serializer.write_comment(&cdata.data())?;
-                    },
-
-                    NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
-                        let pi = n.downcast::<ProcessingInstruction>().unwrap();
-                        let data = pi.upcast::<CharacterData>().data();
-                        serializer.write_processing_instruction(pi.target(), &data)?;
-                    },
-
-                    NodeTypeId::DocumentFragment(_) => {},
-
-                    NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
-                    NodeTypeId::Element(_) => panic!("Element shouldn't appear here"),
-                    NodeTypeId::Attr => panic!("Attr shouldn't appear here"),
+                NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+                    let cdata = n.downcast::<CharacterData>().unwrap();
+                    serializer.write_comment(&cdata.data())?;
                 },
-            }
+
+                NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
+                    let pi = n.downcast::<ProcessingInstruction>().unwrap();
+                    let data = pi.upcast::<CharacterData>().data();
+                    serializer.write_processing_instruction(pi.target(), &data)?;
+                },
+
+                NodeTypeId::DocumentFragment(_) => {},
+
+                NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
+                NodeTypeId::Element(_) => panic!("Element shouldn't appear here"),
+                NodeTypeId::Attr => panic!("Attr shouldn't appear here"),
+            },
+            SerializationCommand::SerializeShadowRoot(shadow_root) => {
+                // Shadow roots are serialized as template elements with a fixed set of
+                // attributes. Because these template elements don't actually exist in the DOM
+                // we have to make up a vector of attributes ourselves.
+                let mut attributes = vec![];
+                let mut push_attribute = |name, value| {
+                    let qualified_name = QualName::new(None, ns!(), LocalName::from(name));
+                    attributes.push((qualified_name, value))
+                };
+
+                let mode = if shadow_root.Mode() == ShadowRootMode::Open {
+                    "open"
+                } else {
+                    "closed"
+                };
+                push_attribute("shadowrootmode", mode);
+
+                if shadow_root.DelegatesFocus() {
+                    push_attribute("shadowrootdelegatesfocus", "");
+                }
+
+                if shadow_root.Serializable() {
+                    push_attribute("shadowrootserializable", "");
+                }
+
+                if shadow_root.Clonable() {
+                    push_attribute("shadowrootclonable", "");
+                }
+
+                let name = QualName::new(None, ns!(), local_name!("template"));
+                serializer.start_elem(name, attributes.iter().map(|(a, b)| (a, *b)))?;
+            },
         }
+    }
 
-        Ok(())
+    Ok(())
+}
+
+// TODO: This trait confuses the concepts of XML serialization and HTML serialization and
+// the impl should go away eventually
+impl Serialize for &Node {
+    fn serialize<S>(&self, serializer: &mut S, traversal_scope: TraversalScope) -> io::Result<()>
+    where
+        S: Serializer,
+    {
+        serialize_html_fragment(
+            self,
+            serializer,
+            traversal_scope,
+            false,
+            vec![],
+            CanGc::note(),
+        )
     }
 }

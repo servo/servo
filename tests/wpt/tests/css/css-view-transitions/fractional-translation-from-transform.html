@@ -4,7 +4,7 @@
 <link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
 <link rel="match" href="fractional-translation-from-transform-ref.html">
-<meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-100">
+<meta name="fuzzy" content="maxDifference=0-100; totalPixels=0-10">
 <script src="/common/reftest-wait.js"></script>
 <style>
 body {
@@ -13,35 +13,51 @@ body {
   background: grey;
 }
 
-#target {
+#composited {
   width: 100px;
   height: 100px;
   position: fixed;
   top: 0px;
   left: 0px;
   transform: translate(100.52px, 100.37px);
+  will-change: transform;
 
-  view-transition-name: target;
-  contain: layout;
+  view-transition-name: composited;
 }
 
-/* Keep the animation running for 30s to screenshot pseudo DOM */
+#noncomposited {
+  width: 100px;
+  height: 100px;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  transform: translate(100.52px, 250.37px);
+
+  view-transition-name: noncomposited;
+}
+
+/* Keep the animation running for 300s to screenshot pseudo DOM */
 ::view-transition-new(root), ::view-transition-old(root) {
-  animation-duration: 30s;
+  animation-duration: 300s;
 }
 
-::view-transition-new(target) {
+::view-transition-new(composited), {
+::view-transition-new(noncomposited) {
   opacity: 1;
   animation: unset;
 }
-::view-transition-old(target) {
+::view-transition-old(composited), {
+::view-transition-old(noncomposited) {
   opacity: 0;
   animation: unset;
 }
 </style>
 
-<div id=target>
-  Here is some text which should not be blurry.
+<div id=composited>
+  XXXXXXX XXXXXXX XXXXXXX XXXXXXX
+</div>
+<div id=noncomposited>
+  XXXXXXX XXXXXXX XXXXXXX XXXXXXX
 </div>
 
 <script>

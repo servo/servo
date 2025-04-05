@@ -9,11 +9,13 @@
 //!
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/root.js
 
+use std::cell::RefCell;
 use std::net::TcpStream;
 
 use serde::Serialize;
-use serde_json::{Map, Value};
+use serde_json::{Map, Value, json};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
@@ -21,7 +23,6 @@ use crate::actors::process::{ProcessActor, ProcessActorMsg};
 use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerMsg};
 use crate::protocol::{ActorDescription, JsonPacketStream};
-use crate::StreamId;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -129,6 +130,7 @@ pub struct RootActor {
     pub device: String,
     pub preference: String,
     pub process: String,
+    pub active_tab: RefCell<Option<String>>,
 }
 
 impl Actor for RootActor {
@@ -145,6 +147,13 @@ impl Actor for RootActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
+            "connect" => {
+                let message = json!({
+                    "from": "root",
+                });
+                let _ = stream.write_json_packet(&message);
+                ActorMessageStatus::Processed
+            },
             "listAddons" => {
                 let actor = ListAddonsReply {
                     from: "root".to_owned(),
@@ -193,10 +202,14 @@ impl Actor for RootActor {
                     tabs: self
                         .tabs
                         .iter()
-                        .map(|target| {
-                            registry
-                                .find::<TabDescriptorActor>(target)
-                                .encodable(registry, false)
+                        .filter_map(|target| {
+                            let tab_actor = registry.find::<TabDescriptorActor>(target);
+                            // Filter out iframes and workers
+                            if tab_actor.is_top_level_global() {
+                                Some(tab_actor.encodable(registry, false))
+                            } else {
+                                None
+                            }
                         })
                         .collect(),
                 };
@@ -292,13 +305,24 @@ impl RootActor {
         registry: &ActorRegistry,
         browser_id: u32,
     ) -> Option<TabDescriptorActorMsg> {
-        self.tabs
+        let tab_msg = self
+            .tabs
             .iter()
             .map(|target| {
                 registry
                     .find::<TabDescriptorActor>(target)
                     .encodable(registry, true)
             })
-            .find(|tab| tab.id() == browser_id)
+            .find(|tab| tab.browser_id() == browser_id);
+
+        if let Some(ref msg) = tab_msg {
+            *self.active_tab.borrow_mut() = Some(msg.actor());
+        }
+        tab_msg
+    }
+
+    #[allow(dead_code)]
+    pub fn active_tab(&self) -> Option<String> {
+        self.active_tab.borrow().clone()
     }
 }

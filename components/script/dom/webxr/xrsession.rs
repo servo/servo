@@ -17,7 +17,7 @@ use js::jsapi::JSObject;
 use js::rust::MutableHandleValue;
 use js::typedarray::Float32Array;
 use profile_traits::ipc;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 use webxr_api::{
     self, util, ApiSpace, ContextId as WebXRContextId, Display, EntityTypes, EnvironmentBlendMode,
     Event as XREvent, Frame, FrameUpdateEvent, HitTestId, HitTestSource, InputFrame, InputId, Ray,
@@ -25,6 +25,7 @@ use webxr_api::{
 };
 
 use crate::conversions::Convert;
+use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -48,7 +49,7 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomGlobal};
 use crate::dom::bindings::root::{Dom, DomRoot, MutDom, MutNullableDom};
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::event::Event;
@@ -68,11 +69,10 @@ use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
-use crate::task_source::TaskSource;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRSession {
+pub(crate) struct XRSession {
     eventtarget: EventTarget,
     blend_mode: XREnvironmentBlendMode,
     mode: XRSessionMode,
@@ -151,19 +151,20 @@ impl XRSession {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         session: Session,
         mode: XRSessionMode,
         frame_receiver: IpcReceiver<Frame>,
+        can_gc: CanGc,
     ) -> DomRoot<XRSession> {
         let ivfov = if mode == XRSessionMode::Inline {
             Some(FRAC_PI_2)
         } else {
             None
         };
-        let render_state = XRRenderState::new(global, 0.1, 1000.0, ivfov, None, Vec::new());
-        let input_sources = XRInputSourceArray::new(global);
+        let render_state = XRRenderState::new(global, 0.1, 1000.0, ivfov, None, Vec::new(), can_gc);
+        let input_sources = XRInputSourceArray::new(global, can_gc);
         let ret = reflect_dom_object(
             Box::new(XRSession::new_inherited(
                 session,
@@ -172,27 +173,28 @@ impl XRSession {
                 mode,
             )),
             global,
+            can_gc,
         );
         ret.attach_event_handler();
         ret.setup_raf_loop(frame_receiver);
         ret
     }
 
-    pub fn with_session<R, F: FnOnce(&Session) -> R>(&self, with: F) -> R {
+    pub(crate) fn with_session<R, F: FnOnce(&Session) -> R>(&self, with: F) -> R {
         let session = self.session.borrow();
         with(&session)
     }
 
-    pub fn is_ended(&self) -> bool {
+    pub(crate) fn is_ended(&self) -> bool {
         self.ended.get()
     }
 
-    pub fn is_immersive(&self) -> bool {
+    pub(crate) fn is_immersive(&self) -> bool {
         self.mode != XRSessionMode::Inline
     }
 
     // https://immersive-web.github.io/layers/#feature-descriptor-layers
-    pub fn has_layers_feature(&self) -> bool {
+    pub(crate) fn has_layers_feature(&self) -> bool {
         // We do not support creating layers other than projection layers
         // https://github.com/servo/servo/issues/27493
         false
@@ -201,51 +203,45 @@ impl XRSession {
     fn setup_raf_loop(&self, frame_receiver: IpcReceiver<Frame>) {
         let this = Trusted::new(self);
         let global = self.global();
-        let window = global.as_window();
-        let (task_source, canceller) = window
+        let task_source = global
             .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+            .dom_manipulation_task_source()
+            .to_sendable();
         ROUTER.add_typed_route(
             frame_receiver,
             Box::new(move |message| {
                 let frame: Frame = message.unwrap();
                 let time = CrossProcessInstant::now();
                 let this = this.clone();
-                let _ = task_source.queue_with_canceller(
-                    task!(xr_raf_callback: move || {
-                        this.root().raf_callback(frame, time);
-                    }),
-                    &canceller,
-                );
+                task_source.queue(task!(xr_raf_callback: move || {
+                    this.root().raf_callback(frame, time, CanGc::note());
+                }));
             }),
         );
 
         self.session.borrow_mut().start_render_loop();
     }
 
-    pub fn is_outside_raf(&self) -> bool {
+    pub(crate) fn is_outside_raf(&self) -> bool {
         self.outside_raf.get()
     }
 
     fn attach_event_handler(&self) {
         let this = Trusted::new(self);
         let global = self.global();
-        let window = global.as_window();
-        let (task_source, canceller) = window
+        let task_source = global
             .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+            .dom_manipulation_task_source()
+            .to_sendable();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
         ROUTER.add_typed_route(
             receiver.to_ipc_receiver(),
             Box::new(move |message| {
                 let this = this.clone();
-                let _ = task_source.queue_with_canceller(
-                    task!(xr_event_callback: move || {
-                        this.root().event_callback(message.unwrap(), CanGc::note());
-                    }),
-                    &canceller,
-                );
+                task_source.queue(task!(xr_event_callback: move || {
+                    this.root().event_callback(message.unwrap(), CanGc::note());
+                }));
             }),
         );
 
@@ -258,7 +254,7 @@ impl XRSession {
     //
     // This enables content that assumes all input sources are accompanied
     // by an inputsourceschange event to work properly. Without
-    pub fn setup_initial_inputs(&self) {
+    pub(crate) fn setup_initial_inputs(&self) {
         let initial_inputs = self.session.borrow().initial_inputs().to_owned();
 
         if initial_inputs.is_empty() {
@@ -266,21 +262,16 @@ impl XRSession {
             return;
         }
 
-        let global = self.global();
-        let window = global.as_window();
-        let (task_source, canceller) = window
-            .task_manager()
-            .dom_manipulation_task_source_with_canceller();
         let this = Trusted::new(self);
         // Queue a task so that it runs after resolve()'s microtasks complete
         // so that content has a chance to attach a listener for inputsourceschange
-        let _ = task_source.queue_with_canceller(
-            task!(session_initial_inputs: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(session_initial_inputs: move || {
                 let this = this.root();
                 this.input_sources.add_input_sources(&this, &initial_inputs, CanGc::note());
-            }),
-            &canceller,
-        );
+            }));
     }
 
     fn event_callback(&self, event: XREvent, can_gc: CanGc) {
@@ -295,15 +286,21 @@ impl XRSession {
                 // Step 6 is happening n the XR session
                 // https://immersive-web.github.io/webxr/#dom-xrsession-end step 3
                 for promise in self.end_promises.borrow_mut().drain(..) {
-                    promise.resolve_native(&());
+                    promise.resolve_native(&(), can_gc);
                 }
                 // Step 7
-                let event =
-                    XRSessionEvent::new(&self.global(), atom!("end"), false, false, self, can_gc);
+                let event = XRSessionEvent::new(
+                    self.global().as_window(),
+                    atom!("end"),
+                    false,
+                    false,
+                    self,
+                    can_gc,
+                );
                 event.upcast::<Event>().fire(self.upcast(), can_gc);
             },
             XREvent::Select(input, kind, ty, frame) => {
-                use servo_atoms::Atom;
+                use stylo_atoms::Atom;
                 const START_ATOMS: [Atom; 2] = [atom!("selectstart"), atom!("squeezestart")];
                 const EVENT_ATOMS: [Atom; 2] = [atom!("select"), atom!("squeeze")];
                 const END_ATOMS: [Atom; 2] = [atom!("selectend"), atom!("squeezeend")];
@@ -312,11 +309,11 @@ impl XRSession {
                 let source = self.input_sources.find(input);
                 let atom_index = if kind == SelectKind::Squeeze { 1 } else { 0 };
                 if let Some(source) = source {
-                    let frame = XRFrame::new(&self.global(), self, frame);
+                    let frame = XRFrame::new(self.global().as_window(), self, frame, can_gc);
                     frame.set_active(true);
                     if ty == SelectEvent::Start {
                         let event = XRInputSourceEvent::new(
-                            &self.global(),
+                            self.global().as_window(),
                             START_ATOMS[atom_index].clone(),
                             false,
                             false,
@@ -328,7 +325,7 @@ impl XRSession {
                     } else {
                         if ty == SelectEvent::Select {
                             let event = XRInputSourceEvent::new(
-                                &self.global(),
+                                self.global().as_window(),
                                 EVENT_ATOMS[atom_index].clone(),
                                 false,
                                 false,
@@ -339,7 +336,7 @@ impl XRSession {
                             event.upcast::<Event>().fire(self.upcast(), can_gc);
                         }
                         let event = XRInputSourceEvent::new(
-                            &self.global(),
+                            self.global().as_window(),
                             END_ATOMS[atom_index].clone(),
                             false,
                             false,
@@ -360,7 +357,7 @@ impl XRSession {
                 };
                 self.visibility_state.set(v);
                 let event = XRSessionEvent::new(
-                    &self.global(),
+                    self.global().as_window(),
                     atom!("visibilitychange"),
                     false,
                     false,
@@ -402,9 +399,10 @@ impl XRSession {
                         base == base_space
                     })
                     .for_each(|space| {
-                        let offset = XRRigidTransform::new(&self.global(), transform, can_gc);
+                        let offset =
+                            XRRigidTransform::new(self.global().as_window(), transform, can_gc);
                         let event = XRReferenceSpaceEvent::new(
-                            &self.global(),
+                            self.global().as_window(),
                             atom!("reset"),
                             false,
                             false,
@@ -419,7 +417,7 @@ impl XRSession {
     }
 
     /// <https://immersive-web.github.io/webxr/#xr-animation-frame>
-    fn raf_callback(&self, mut frame: Frame, time: CrossProcessInstant) {
+    fn raf_callback(&self, mut frame: Frame, time: CrossProcessInstant, can_gc: CanGc) {
         debug!("WebXR RAF callback {:?}", frame);
 
         // Step 1-2 happen in the xebxr device thread
@@ -439,7 +437,7 @@ impl XRSession {
 
         // TODO: how does this fit the webxr spec?
         for event in frame.events.drain(..) {
-            self.handle_frame_event(event);
+            self.handle_frame_event(event, can_gc);
         }
 
         // Step 4
@@ -471,7 +469,7 @@ impl XRSession {
         }
 
         let time = self.global().performance().to_dom_high_res_time_stamp(time);
-        let frame = XRFrame::new(&self.global(), self, frame);
+        let frame = XRFrame::new(self.global().as_window(), self, frame, CanGc::note());
 
         // Step 8-9
         frame.set_active(true);
@@ -489,7 +487,7 @@ impl XRSession {
         for i in 0..len {
             let callback = self.current_raf_callback_list.borrow()[i].1.clone();
             if let Some(callback) = callback {
-                let _ = callback.Call__(time, &frame, ExceptionHandling::Report);
+                let _ = callback.Call__(time, &frame, ExceptionHandling::Report, can_gc);
             }
         }
         self.outside_raf.set(true);
@@ -530,7 +528,7 @@ impl XRSession {
     }
 
     /// Constructs a View suitable for inline sessions using the inlineVerticalFieldOfView and canvas size
-    pub fn inline_view(&self) -> View<Viewer> {
+    pub(crate) fn inline_view(&self) -> View<Viewer> {
         debug_assert!(!self.is_immersive());
         View {
             // Inline views have no offset
@@ -539,11 +537,11 @@ impl XRSession {
         }
     }
 
-    pub fn session_id(&self) -> SessionId {
+    pub(crate) fn session_id(&self) -> SessionId {
         self.session.borrow().id()
     }
 
-    pub fn dirty_layers(&self) {
+    pub(crate) fn dirty_layers(&self) {
         if let Some(layer) = self.RenderState().GetBaseLayer() {
             layer.context().mark_as_dirty();
         }
@@ -584,11 +582,14 @@ impl XRSession {
         }
     }
 
-    fn handle_frame_event(&self, event: FrameUpdateEvent) {
+    fn handle_frame_event(&self, event: FrameUpdateEvent, can_gc: CanGc) {
         match event {
             FrameUpdateEvent::HitTestSourceAdded(id) => {
                 if let Some(promise) = self.pending_hit_test_promises.borrow_mut().remove(&id) {
-                    promise.resolve_native(&XRHitTestSource::new(&self.global(), id, self));
+                    promise.resolve_native(
+                        &XRHitTestSource::new(&self.global(), id, self, can_gc),
+                        can_gc,
+                    );
                 } else {
                     warn!(
                         "received hit test add request for unknown hit test {:?}",
@@ -609,7 +610,7 @@ impl XRSession {
         self.framerate.set(rate);
 
         let event = XRSessionEvent::new(
-            &self.global(),
+            self.global().as_window(),
             Atom::from("frameratechange"),
             false,
             false,
@@ -842,14 +843,14 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
         if !self.is_immersive() &&
             (ty == XRReferenceSpaceType::Bounded_floor || ty == XRReferenceSpaceType::Unbounded)
         {
-            p.reject_error(Error::NotSupported);
+            p.reject_error(Error::NotSupported, can_gc);
             return p;
         }
 
         match ty {
             XRReferenceSpaceType::Unbounded => {
                 // XXXmsub2 figure out how to support this
-                p.reject_error(Error::NotSupported)
+                p.reject_error(Error::NotSupported, can_gc)
             },
             ty => {
                 if ty != XRReferenceSpaceType::Viewer &&
@@ -863,22 +864,23 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                         .iter()
                         .any(|f| *f == s)
                     {
-                        p.reject_error(Error::NotSupported);
+                        p.reject_error(Error::NotSupported, can_gc);
                         return p;
                     }
                 }
                 if ty == XRReferenceSpaceType::Bounded_floor {
-                    let space = XRBoundedReferenceSpace::new(&self.global(), self, can_gc);
+                    let space =
+                        XRBoundedReferenceSpace::new(self.global().as_window(), self, can_gc);
                     self.reference_spaces
                         .borrow_mut()
                         .push(Dom::from_ref(space.reference_space()));
-                    p.resolve_native(&space);
+                    p.resolve_native(&space, can_gc);
                 } else {
-                    let space = XRReferenceSpace::new(&self.global(), self, ty, can_gc);
+                    let space = XRReferenceSpace::new(self.global().as_window(), self, ty, can_gc);
                     self.reference_spaces
                         .borrow_mut()
                         .push(Dom::from_ref(&*space));
-                    p.resolve_native(&space);
+                    p.resolve_native(&space, can_gc);
                 }
             },
         }
@@ -904,7 +906,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             //
             // However, if end_promises is empty, then all end() promises have already resolved,
             // so the session has completely shut down and we should not queue up more promises
-            p.resolve_native(&());
+            p.resolve_native(&(), can_gc);
             return p;
         }
         self.end_promises.borrow_mut().push(p.clone());
@@ -933,7 +935,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             .iter()
             .any(|f| f == "hit-test")
         {
-            p.reject_error(Error::NotSupported);
+            p.reject_error(Error::NotSupported, can_gc);
             return p;
         }
 
@@ -997,7 +999,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-supportedframerates>
-    fn GetSupportedFrameRates(&self, cx: JSContext) -> Option<Float32Array> {
+    fn GetSupportedFrameRates(&self, cx: JSContext, can_gc: CanGc) -> Option<Float32Array> {
         let session = self.session.borrow();
         if self.mode == XRSessionMode::Inline || session.supported_frame_rates().is_empty() {
             None
@@ -1005,17 +1007,17 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
             let framerates = session.supported_frame_rates();
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
             Some(
-                create_buffer_source(cx, framerates, array.handle_mut())
+                create_buffer_source(cx, framerates, array.handle_mut(), can_gc)
                     .expect("Failed to construct supported frame rates array"),
             )
         }
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-enabledfeatures>
-    fn EnabledFeatures(&self, cx: JSContext, retval: MutableHandleValue) {
+    fn EnabledFeatures(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         let session = self.session.borrow();
         let features = session.granted_features();
-        to_frozen_array(features, cx, retval)
+        to_frozen_array(features, cx, retval, can_gc)
     }
 
     /// <https://www.w3.org/TR/webxr/#dom-xrsession-issystemkeyboardsupported>
@@ -1041,12 +1043,15 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                 supported_frame_rates.is_empty() ||
                 self.ended.get()
             {
-                promise.reject_error(Error::InvalidState);
+                promise.reject_error(Error::InvalidState, can_gc);
                 return promise;
             }
 
             if !supported_frame_rates.contains(&*rate) {
-                promise.reject_error(Error::Type("Provided framerate not supported".into()));
+                promise.reject_error(
+                    Error::Type("Provided framerate not supported".into()),
+                    can_gc,
+                );
                 return promise;
             }
         }
@@ -1055,26 +1060,23 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
 
         let this = Trusted::new(self);
         let global = self.global();
-        let window = global.as_window();
-        let (task_source, canceller) = window
+        let task_source = global
             .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+            .dom_manipulation_task_source()
+            .to_sendable();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
         ROUTER.add_typed_route(
             receiver.to_ipc_receiver(),
             Box::new(move |message| {
                 let this = this.clone();
-                let _ = task_source.queue_with_canceller(
-                    task!(update_session_framerate: move || {
-                        let session = this.root();
-                        session.apply_nominal_framerate(message.unwrap(), CanGc::note());
-                        if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
-                            promise.resolve_native(&());
-                        };
-                    }),
-                    &canceller,
-                );
+                task_source.queue(task!(update_session_framerate: move || {
+                    let session = this.root();
+                    session.apply_nominal_framerate(message.unwrap(), CanGc::note());
+                    if let Some(promise) = session.update_framerate_promise.borrow_mut().take() {
+                        promise.resolve_native(&(), CanGc::note());
+                    };
+                }));
             }),
         );
 
@@ -1085,17 +1087,17 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
 }
 
 // The pose of an object in native-space. Should never be exposed.
-pub type ApiPose = RigidTransform3D<f32, ApiSpace, webxr_api::Native>;
+pub(crate) type ApiPose = RigidTransform3D<f32, ApiSpace, webxr_api::Native>;
 // A transform between objects in some API-space
-pub type ApiRigidTransform = RigidTransform3D<f32, ApiSpace, ApiSpace>;
+pub(crate) type ApiRigidTransform = RigidTransform3D<f32, ApiSpace, ApiSpace>;
 
 #[derive(Clone, Copy)]
-pub struct BaseSpace;
+pub(crate) struct BaseSpace;
 
-pub type BaseTransform = RigidTransform3D<f32, webxr_api::Native, BaseSpace>;
+pub(crate) type BaseTransform = RigidTransform3D<f32, webxr_api::Native, BaseSpace>;
 
 #[allow(unsafe_code)]
-pub fn cast_transform<T, U, V, W>(
+pub(crate) fn cast_transform<T, U, V, W>(
     transform: RigidTransform3D<f32, T, U>,
 ) -> RigidTransform3D<f32, V, W> {
     unsafe { mem::transmute(transform) }

@@ -7,6 +7,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use base::id::TEST_WEBVIEW_ID;
 use embedder_traits::FilterPattern;
 use ipc_channel::ipc;
 use net::filemanager_thread::FileManager;
@@ -15,16 +16,19 @@ use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::filemanager_thread::{
     FileManagerThreadError, FileManagerThreadMsg, ReadFileProgress,
 };
-use servo_config::set_pref;
+use servo_config::prefs::Preferences;
 
 use crate::create_embedder_proxy;
 
 #[test]
 fn test_filemanager() {
+    let mut preferences = Preferences::default();
+    preferences.dom_testing_html_input_element_select_files_enabled = true;
+    servo_config::prefs::set(preferences);
+
     let pool = CoreResourceThreadPool::new(1, "CoreResourceTestPool".to_string());
     let pool_handle = Arc::new(pool);
     let filemanager = FileManager::new(create_embedder_proxy(), Arc::downgrade(&pool_handle));
-    set_pref!(dom.testing.html_input_element.select_files.enabled, true);
 
     // Try to open a dummy file "components/net/tests/test.jpeg" in tree
     let mut handler = File::open("tests/test.jpeg").expect("test.jpeg is stolen");
@@ -41,10 +45,11 @@ fn test_filemanager() {
         // Try to select a dummy file "components/net/tests/test.jpeg"
         let (tx, rx) = ipc::channel().unwrap();
         filemanager.handle(FileManagerThreadMsg::SelectFile(
+            TEST_WEBVIEW_ID,
             patterns.clone(),
             tx,
             origin.clone(),
-            Some("tests/test.jpeg".to_string()),
+            Some("tests/test.jpeg".into()),
         ));
         let selected = rx
             .recv()

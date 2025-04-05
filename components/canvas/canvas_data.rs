@@ -11,22 +11,92 @@ use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::point2;
 use fonts::{
     ByteIndex, FontBaseline, FontContext, FontGroup, FontMetrics, FontRef, GlyphInfo, GlyphStore,
-    ShapingFlags, ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
+    LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
-use log::{debug, warn};
+use log::warn;
 use num_traits::ToPrimitive;
 use range::Range;
 use servo_arc::Arc as ServoArc;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
-use webrender_api::units::{DeviceIntSize, RectExt as RectExt_};
+use webrender_api::units::RectExt as RectExt_;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
 use webrender_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 
-use crate::canvas_paint_thread::AntialiasMode;
 use crate::raqote_backend::Repetition;
+
+fn to_path(path: &[PathSegment], mut builder: Box<dyn GenericPathBuilder>) -> Path {
+    let mut build_ref = PathBuilderRef {
+        builder: &mut builder,
+        transform: Transform2D::identity(),
+    };
+    for &seg in path {
+        match seg {
+            PathSegment::ClosePath => build_ref.close(),
+            PathSegment::MoveTo { x, y } => build_ref.move_to(&Point2D::new(x, y)),
+            PathSegment::LineTo { x, y } => build_ref.line_to(&Point2D::new(x, y)),
+            PathSegment::Quadratic { cpx, cpy, x, y } => {
+                build_ref.quadratic_curve_to(&Point2D::new(cpx, cpy), &Point2D::new(x, y))
+            },
+            PathSegment::Bezier {
+                cp1x,
+                cp1y,
+                cp2x,
+                cp2y,
+                x,
+                y,
+            } => build_ref.bezier_curve_to(
+                &Point2D::new(cp1x, cp1y),
+                &Point2D::new(cp2x, cp2y),
+                &Point2D::new(x, y),
+            ),
+            PathSegment::ArcTo {
+                cp1x,
+                cp1y,
+                cp2x,
+                cp2y,
+                radius,
+            } => build_ref.arc_to(&Point2D::new(cp1x, cp1y), &Point2D::new(cp2x, cp2y), radius),
+            PathSegment::Ellipse {
+                x,
+                y,
+                radius_x,
+                radius_y,
+                rotation,
+                start_angle,
+                end_angle,
+                anticlockwise,
+            } => build_ref.ellipse(
+                &Point2D::new(x, y),
+                radius_x,
+                radius_y,
+                rotation,
+                start_angle,
+                end_angle,
+                anticlockwise,
+            ),
+            PathSegment::SvgArc {
+                radius_x,
+                radius_y,
+                rotation,
+                large_arc,
+                sweep,
+                x,
+                y,
+            } => build_ref.svg_arc(
+                radius_x,
+                radius_y,
+                rotation,
+                large_arc,
+                sweep,
+                &Point2D::new(x, y),
+            ),
+        }
+    }
+    builder.finish()
+}
 
 /// The canvas data stores a state machine for the current status of
 /// the path data and any relevant transformations that are
@@ -126,6 +196,15 @@ pub trait GenericPathBuilder {
     fn line_to(&mut self, point: Point2D<f32>);
     fn move_to(&mut self, point: Point2D<f32>);
     fn quadratic_curve_to(&mut self, control_point: &Point2D<f32>, end_point: &Point2D<f32>);
+    fn svg_arc(
+        &mut self,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        large_arc: bool,
+        sweep: bool,
+        end_point: Point2D<f32>,
+    );
     fn finish(&mut self) -> Path;
 }
 
@@ -136,7 +215,7 @@ struct PathBuilderRef<'a> {
     transform: Transform2D<f32>,
 }
 
-impl<'a> PathBuilderRef<'a> {
+impl PathBuilderRef<'_> {
     fn line_to(&mut self, pt: &Point2D<f32>) {
         let pt = self.transform.transform_point(*pt);
         self.builder.line_to(pt);
@@ -193,6 +272,69 @@ impl<'a> PathBuilderRef<'a> {
             .arc(center, radius, start_angle, end_angle, ccw);
     }
 
+    fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
+        let cp0 = if let (Some(inverse), Some(point)) =
+            (self.transform.inverse(), self.builder.get_current_point())
+        {
+            inverse.transform_point(Point2D::new(point.x, point.y))
+        } else {
+            *cp1
+        };
+        if (cp0.x == cp1.x && cp0.y == cp1.y) || cp1 == cp2 || radius == 0.0 {
+            self.line_to(cp1);
+            return;
+        }
+
+        // if all three control points lie on a single straight line,
+        // connect the first two by a straight line
+        let direction = (cp2.x - cp1.x) * (cp0.y - cp1.y) + (cp2.y - cp1.y) * (cp1.x - cp0.x);
+        if direction == 0.0 {
+            self.line_to(cp1);
+            return;
+        }
+
+        // otherwise, draw the Arc
+        let a2 = (cp0.x - cp1.x).powi(2) + (cp0.y - cp1.y).powi(2);
+        let b2 = (cp1.x - cp2.x).powi(2) + (cp1.y - cp2.y).powi(2);
+        let d = {
+            let c2 = (cp0.x - cp2.x).powi(2) + (cp0.y - cp2.y).powi(2);
+            let cosx = (a2 + b2 - c2) / (2.0 * (a2 * b2).sqrt());
+            let sinx = (1.0 - cosx.powi(2)).sqrt();
+            radius / ((1.0 - cosx) / sinx)
+        };
+
+        // first tangent point
+        let anx = (cp1.x - cp0.x) / a2.sqrt();
+        let any = (cp1.y - cp0.y) / a2.sqrt();
+        let tp1 = Point2D::new(cp1.x - anx * d, cp1.y - any * d);
+
+        // second tangent point
+        let bnx = (cp1.x - cp2.x) / b2.sqrt();
+        let bny = (cp1.y - cp2.y) / b2.sqrt();
+        let tp2 = Point2D::new(cp1.x - bnx * d, cp1.y - bny * d);
+
+        // arc center and angles
+        let anticlockwise = direction < 0.0;
+        let cx = tp1.x + any * radius * if anticlockwise { 1.0 } else { -1.0 };
+        let cy = tp1.y - anx * radius * if anticlockwise { 1.0 } else { -1.0 };
+        let angle_start = (tp1.y - cy).atan2(tp1.x - cx);
+        let angle_end = (tp2.y - cy).atan2(tp2.x - cx);
+
+        self.line_to(&self.transform.transform_point(tp1));
+        if [cx, cy, angle_start, angle_end]
+            .iter()
+            .all(|x| x.is_finite())
+        {
+            self.arc(
+                &self.transform.transform_point(Point2D::new(cx, cy)),
+                radius,
+                angle_start,
+                angle_end,
+                anticlockwise,
+            );
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn ellipse(
         &mut self,
@@ -216,14 +358,24 @@ impl<'a> PathBuilderRef<'a> {
         );
     }
 
-    fn current_point(&mut self) -> Option<Point2D<f32>> {
-        let inverse = match self.transform.inverse() {
-            Some(i) => i,
-            None => return None,
-        };
-        self.builder
-            .get_current_point()
-            .map(|point| inverse.transform_point(Point2D::new(point.x, point.y)))
+    fn svg_arc(
+        &mut self,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        large_arc: bool,
+        sweep: bool,
+        end_point: &Point2D<f32>,
+    ) {
+        let end_point = self.transform.transform_point(*end_point);
+        self.builder.svg_arc(
+            radius_x,
+            radius_y,
+            rotation_angle,
+            large_arc,
+            sweep,
+            end_point,
+        );
     }
 
     fn close(&mut self) {
@@ -238,7 +390,7 @@ struct UnshapedTextRun<'a> {
     string: &'a str,
 }
 
-impl<'a> UnshapedTextRun<'a> {
+impl UnshapedTextRun<'_> {
     fn script_and_font_compatible(&self, script: Script, other_font: &Option<FontRef>) -> bool {
         if self.script != script {
             return false;
@@ -429,11 +581,7 @@ pub struct CanvasData<'a> {
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
     compositor_api: CrossProcessCompositorApi,
-    image_key: Option<ImageKey>,
-    /// An old webrender image key that can be deleted when the next epoch ends.
-    old_image_key: Option<ImageKey>,
-    /// An old webrender image key that can be deleted when the current epoch ends.
-    very_old_image_key: Option<ImageKey>,
+    image_key: ImageKey,
     font_context: Arc<FontContext>,
 }
 
@@ -445,23 +593,36 @@ impl<'a> CanvasData<'a> {
     pub fn new(
         size: Size2D<u64>,
         compositor_api: CrossProcessCompositorApi,
-        antialias: AntialiasMode,
         font_context: Arc<FontContext>,
     ) -> CanvasData<'a> {
         let backend = create_backend();
         let draw_target = backend.create_drawtarget(size);
+        let image_key = compositor_api.generate_image_key().unwrap();
+        let descriptor = ImageDescriptor {
+            size: size.cast().cast_unit(),
+            stride: None,
+            format: ImageFormat::BGRA8,
+            offset: 0,
+            flags: ImageDescriptorFlags::empty(),
+        };
+        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(
+            &draw_target.snapshot_data_owned(),
+        ));
+        compositor_api.update_images(vec![ImageUpdate::AddImage(image_key, descriptor, data)]);
         CanvasData {
             backend,
             drawtarget: draw_target,
             path_state: None,
-            state: CanvasPaintState::new(antialias),
+            state: CanvasPaintState::default(),
             saved_states: vec![],
             compositor_api,
-            image_key: None,
-            old_image_key: None,
-            very_old_image_key: None,
+            image_key,
             font_context,
         }
+    }
+
+    pub fn image_key(&self) -> ImageKey {
+        self.image_key
     }
 
     pub fn draw_image(
@@ -709,7 +870,7 @@ impl<'a> CanvasData<'a> {
             // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
             // have support for color glyphs.
             let script = Script::from(character);
-            let font = font_group.find_by_codepoint(&self.font_context, character, None);
+            let font = font_group.find_by_codepoint(&self.font_context, character, None, None);
 
             if !current_text_run.script_and_font_compatible(script, &font) {
                 let previous_text_run = mem::replace(
@@ -952,6 +1113,20 @@ impl<'a> CanvasData<'a> {
         );
     }
 
+    pub fn fill_path(&mut self, path: &[PathSegment]) {
+        if self.state.fill_style.is_zero_size_gradient() {
+            return; // Paint nothing if gradient size is zero.
+        }
+
+        let path = to_path(path, self.drawtarget.create_path_builder());
+
+        self.drawtarget.fill(
+            &path,
+            self.state.fill_style.clone(),
+            &self.state.draw_options,
+        );
+    }
+
     pub fn stroke(&mut self) {
         if self.state.stroke_style.is_zero_size_gradient() {
             return; // Paint nothing if gradient size is zero.
@@ -966,9 +1141,29 @@ impl<'a> CanvasData<'a> {
         );
     }
 
+    pub fn stroke_path(&mut self, path: &[PathSegment]) {
+        if self.state.stroke_style.is_zero_size_gradient() {
+            return; // Paint nothing if gradient size is zero.
+        }
+
+        let path = to_path(path, self.drawtarget.create_path_builder());
+
+        self.drawtarget.stroke(
+            &path,
+            self.state.stroke_style.clone(),
+            &self.state.stroke_opts,
+            &self.state.draw_options,
+        );
+    }
+
     pub fn clip(&mut self) {
         self.ensure_path();
         let path = self.path().clone();
+        self.drawtarget.push_clip(&path);
+    }
+
+    pub fn clip_path(&mut self, path: &[PathSegment]) {
+        let path = to_path(path, self.drawtarget.create_path_builder());
         self.drawtarget.push_clip(&path);
     }
 
@@ -981,13 +1176,33 @@ impl<'a> CanvasData<'a> {
     ) {
         self.ensure_path();
         let result = match self.path_state.as_ref() {
-            Some(PathState::UserSpacePath(ref path, ref transform)) => {
+            Some(PathState::UserSpacePath(path, transform)) => {
                 let target_transform = self.drawtarget.get_transform();
                 let path_transform = transform.as_ref().unwrap_or(&target_transform);
                 path.contains_point(x, y, path_transform)
             },
             Some(_) | None => false,
         };
+        chan.send(result).unwrap();
+    }
+
+    pub fn is_point_in_path_(
+        &mut self,
+        path: &[PathSegment],
+        x: f64,
+        y: f64,
+        _fill_rule: FillRule,
+        chan: IpcSender<bool>,
+    ) {
+        let path_transform = match self.path_state.as_ref() {
+            Some(PathState::UserSpacePath(_, Some(transform))) => transform,
+            Some(_) | None => &self.drawtarget.get_transform(),
+        };
+        let result = to_path(path, self.drawtarget.create_path_builder()).contains_point(
+            x,
+            y,
+            path_transform,
+        );
         chan.send(result).unwrap();
     }
 
@@ -1100,69 +1315,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
-        let cp0 = match self.path_builder().current_point() {
-            Some(p) => p,
-            None => {
-                self.path_builder().move_to(cp1);
-                *cp1
-            },
-        };
-        let cp1 = *cp1;
-        let cp2 = *cp2;
-
-        if (cp0.x == cp1.x && cp0.y == cp1.y) || cp1 == cp2 || radius == 0.0 {
-            self.line_to(&cp1);
-            return;
-        }
-
-        // if all three control points lie on a single straight line,
-        // connect the first two by a straight line
-        let direction = (cp2.x - cp1.x) * (cp0.y - cp1.y) + (cp2.y - cp1.y) * (cp1.x - cp0.x);
-        if direction == 0.0 {
-            self.line_to(&cp1);
-            return;
-        }
-
-        // otherwise, draw the Arc
-        let a2 = (cp0.x - cp1.x).powi(2) + (cp0.y - cp1.y).powi(2);
-        let b2 = (cp1.x - cp2.x).powi(2) + (cp1.y - cp2.y).powi(2);
-        let d = {
-            let c2 = (cp0.x - cp2.x).powi(2) + (cp0.y - cp2.y).powi(2);
-            let cosx = (a2 + b2 - c2) / (2.0 * (a2 * b2).sqrt());
-            let sinx = (1.0 - cosx.powi(2)).sqrt();
-            radius / ((1.0 - cosx) / sinx)
-        };
-
-        // first tangent point
-        let anx = (cp1.x - cp0.x) / a2.sqrt();
-        let any = (cp1.y - cp0.y) / a2.sqrt();
-        let tp1 = Point2D::new(cp1.x - anx * d, cp1.y - any * d);
-
-        // second tangent point
-        let bnx = (cp1.x - cp2.x) / b2.sqrt();
-        let bny = (cp1.y - cp2.y) / b2.sqrt();
-        let tp2 = Point2D::new(cp1.x - bnx * d, cp1.y - bny * d);
-
-        // arc center and angles
-        let anticlockwise = direction < 0.0;
-        let cx = tp1.x + any * radius * if anticlockwise { 1.0 } else { -1.0 };
-        let cy = tp1.y - anx * radius * if anticlockwise { 1.0 } else { -1.0 };
-        let angle_start = (tp1.y - cy).atan2(tp1.x - cx);
-        let angle_end = (tp2.y - cy).atan2(tp2.x - cx);
-
-        self.line_to(&tp1);
-        if [cx, cy, angle_start, angle_end]
-            .iter()
-            .all(|x| x.is_finite())
-        {
-            self.arc(
-                &Point2D::new(cx, cy),
-                radius,
-                angle_start,
-                angle_end,
-                anticlockwise,
-            );
-        }
+        self.path_builder().arc_to(cp1, cp2, radius);
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1213,6 +1366,14 @@ impl<'a> CanvasData<'a> {
         self.state.stroke_opts.set_miter_limit(limit);
     }
 
+    pub fn set_line_dash(&mut self, items: Vec<f32>) {
+        self.state.stroke_opts.set_line_dash(items);
+    }
+
+    pub fn set_line_dash_offset(&mut self, offset: f32) {
+        self.state.stroke_opts.set_line_dash_offset(offset);
+    }
+
     pub fn get_transform(&self) -> Transform2D<f32> {
         self.drawtarget.get_transform()
     }
@@ -1222,8 +1383,8 @@ impl<'a> CanvasData<'a> {
         // to move between device and user space.
         match self.path_state.as_mut() {
             None | Some(PathState::DeviceSpacePathBuilder(..)) => (),
-            Some(PathState::UserSpacePathBuilder(_, ref mut transform)) |
-            Some(PathState::UserSpacePath(_, ref mut transform)) => {
+            Some(PathState::UserSpacePathBuilder(_, transform)) |
+            Some(PathState::UserSpacePath(_, transform)) => {
                 if transform.is_none() {
                     *transform = Some(self.drawtarget.get_transform());
                 }
@@ -1248,17 +1409,7 @@ impl<'a> CanvasData<'a> {
             .create_drawtarget(Size2D::new(size.width, size.height));
         self.state = self.backend.recreate_paint_state(&self.state);
         self.saved_states.clear();
-        // Webrender doesn't let images change size, so we clear the webrender image key.
-        // TODO: there is an annying race condition here: the display list builder
-        // might still be using the old image key. Really, we should be scheduling the image
-        // for later deletion, not deleting it immediately.
-        // https://github.com/servo/servo/issues/17534
-        if let Some(image_key) = self.image_key.take() {
-            // If this executes, then we are in a new epoch since we last recreated the canvas,
-            // so `old_image_key` must be `None`.
-            debug_assert!(self.old_image_key.is_none());
-            self.old_image_key = Some(image_key);
-        }
+        self.update_image_rendering();
     }
 
     pub fn send_pixels(&mut self, chan: IpcSender<IpcSharedMemory>) {
@@ -1269,11 +1420,10 @@ impl<'a> CanvasData<'a> {
         });
     }
 
-    pub fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
-        let size = self.drawtarget.get_size();
-
+    /// Update image in WebRender
+    pub fn update_image_rendering(&mut self) {
         let descriptor = ImageDescriptor {
-            size: DeviceIntSize::new(size.width, size.height),
+            size: self.drawtarget.get_size().cast_unit(),
             stride: None,
             format: ImageFormat::BGRA8,
             offset: 0,
@@ -1283,35 +1433,12 @@ impl<'a> CanvasData<'a> {
             &self.drawtarget.snapshot_data_owned(),
         ));
 
-        let mut updates = vec![];
-
-        match self.image_key {
-            Some(image_key) => {
-                debug!("Updating image {:?}.", image_key);
-                updates.push(ImageUpdate::UpdateImage(image_key, descriptor, data));
-            },
-            None => {
-                let Some(key) = self.compositor_api.generate_image_key() else {
-                    return;
-                };
-                updates.push(ImageUpdate::AddImage(key, descriptor, data));
-                self.image_key = Some(key);
-                debug!("New image {:?}.", self.image_key);
-            },
-        }
-
-        if let Some(image_key) =
-            mem::replace(&mut self.very_old_image_key, self.old_image_key.take())
-        {
-            updates.push(ImageUpdate::DeleteImage(image_key));
-        }
-
-        self.compositor_api.update_images(updates);
-
-        let data = CanvasImageData {
-            image_key: self.image_key.unwrap(),
-        };
-        chan.send(data).unwrap();
+        self.compositor_api
+            .update_images(vec![ImageUpdate::UpdateImage(
+                self.image_key,
+                descriptor,
+                data,
+            )]);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1406,7 +1533,7 @@ impl<'a> CanvasData<'a> {
         let canvas_rect = Rect::from_size(canvas_size);
         if canvas_rect
             .intersection(&read_rect)
-            .map_or(true, |rect| rect.is_empty())
+            .is_none_or(|rect| rect.is_empty())
         {
             return vec![];
         }
@@ -1417,17 +1544,10 @@ impl<'a> CanvasData<'a> {
     }
 }
 
-impl<'a> Drop for CanvasData<'a> {
+impl Drop for CanvasData<'_> {
     fn drop(&mut self) {
-        let mut updates = vec![];
-        if let Some(image_key) = self.old_image_key.take() {
-            updates.push(ImageUpdate::DeleteImage(image_key));
-        }
-        if let Some(image_key) = self.very_old_image_key.take() {
-            updates.push(ImageUpdate::DeleteImage(image_key));
-        }
-
-        self.compositor_api.update_images(updates);
+        self.compositor_api
+            .update_images(vec![ImageUpdate::DeleteImage(self.image_key)]);
     }
 }
 

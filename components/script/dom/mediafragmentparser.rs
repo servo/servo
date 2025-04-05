@@ -8,10 +8,10 @@ use std::str::FromStr;
 
 use chrono::NaiveDateTime;
 use servo_url::ServoUrl;
-use url::{form_urlencoded, Position, Url};
+use url::{Position, Url, form_urlencoded};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SpatialRegion {
+pub(crate) enum SpatialRegion {
     Pixel,
     Percent,
 }
@@ -29,7 +29,7 @@ impl FromStr for SpatialRegion {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SpatialClipping {
+pub(crate) struct SpatialClipping {
     region: Option<SpatialRegion>,
     x: u32,
     y: u32,
@@ -38,7 +38,7 @@ pub struct SpatialClipping {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct MediaFragmentParser {
+pub(crate) struct MediaFragmentParser {
     id: Option<String>,
     tracks: Vec<String>,
     spatial: Option<SpatialClipping>,
@@ -47,20 +47,20 @@ pub struct MediaFragmentParser {
 }
 
 impl MediaFragmentParser {
-    pub fn id(&self) -> Option<String> {
+    pub(crate) fn id(&self) -> Option<String> {
         self.id.clone()
     }
 
-    pub fn tracks(&self) -> &Vec<String> {
+    pub(crate) fn tracks(&self) -> &Vec<String> {
         self.tracks.as_ref()
     }
 
-    pub fn start(&self) -> Option<f64> {
+    pub(crate) fn start(&self) -> Option<f64> {
         self.start
     }
 
     // Parse an str of key value pairs, a URL, or a fragment.
-    pub fn parse(input: &str) -> MediaFragmentParser {
+    pub(crate) fn parse(input: &str) -> MediaFragmentParser {
         let mut parser = MediaFragmentParser::default();
         let (query, fragment) = split_url(input);
         let mut octets = decode_octets(query.as_bytes());
@@ -293,7 +293,7 @@ fn parse_npt_seconds(s: &str) -> Result<f64, ()> {
 
 fn parse_hms(s: &str) -> Result<f64, ()> {
     let mut vec: VecDeque<&str> = s.split(':').collect();
-    vec.retain(|x| !x.eq(&""));
+    vec.retain(|x| !x.is_empty());
 
     let result = match vec.len() {
         1 => {

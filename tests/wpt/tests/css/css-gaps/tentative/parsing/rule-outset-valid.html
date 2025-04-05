@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Gaps: parsing *-rule-outset with valid values</title>
+  <link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#outset">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    test_valid_value('column-rule-outset', '0', '0px');
+    test_valid_value('column-rule-outset', '-20px');
+    test_valid_value('column-rule-outset', '5%');
+    test_valid_value('row-rule-outset', '10vmin');
+    test_valid_value('row-rule-outset', 'calc(8em + 4ex)');
+  </script>
+</body>
+</html>

@@ -6,16 +6,16 @@ use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use net_traits::ResourceFetchTiming;
 use servo_url::ServoUrl;
-use time_03::Duration;
+use time::Duration;
 
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performanceentry::PerformanceEntry;
-
+use crate::script_runtime::CanGc;
 // TODO UA may choose to limit how many resources are included as PerformanceResourceTiming objects
 // recommended minimum is 150, can be changed by setResourceTimingBufferSize in performance
 // https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
@@ -25,7 +25,7 @@ use crate::dom::performanceentry::PerformanceEntry;
 
 // TODO CSS, Beacon
 #[derive(Debug, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum InitiatorType {
+pub(crate) enum InitiatorType {
     LocalName(String),
     Navigation,
     XMLHttpRequest,
@@ -34,7 +34,7 @@ pub enum InitiatorType {
 }
 
 #[dom_struct]
-pub struct PerformanceResourceTiming {
+pub(crate) struct PerformanceResourceTiming {
     entry: PerformanceEntry,
     initiator_type: InitiatorType,
     next_hop: Option<DOMString>,
@@ -75,7 +75,7 @@ pub struct PerformanceResourceTiming {
 // TODO(#21261): connect_start
 // TODO(#21262): connect_end
 impl PerformanceResourceTiming {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         url: ServoUrl,
         initiator_type: InitiatorType,
         next_hop: Option<DOMString>,
@@ -114,7 +114,7 @@ impl PerformanceResourceTiming {
     }
 
     //TODO fetch start should be in RFT
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn from_resource_timing(
         url: ServoUrl,
         initiator_type: InitiatorType,
@@ -153,12 +153,13 @@ impl PerformanceResourceTiming {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         url: ServoUrl,
         initiator_type: InitiatorType,
         next_hop: Option<DOMString>,
         resource_timing: &ResourceFetchTiming,
+        can_gc: CanGc,
     ) -> DomRoot<PerformanceResourceTiming> {
         reflect_dom_object(
             Box::new(PerformanceResourceTiming::from_resource_timing(
@@ -168,6 +169,7 @@ impl PerformanceResourceTiming {
                 resource_timing,
             )),
             global,
+            can_gc,
         )
     }
 

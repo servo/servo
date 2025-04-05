@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<meta name="assert" content="GetAsString shouldn't crash.">
+
+<script>
+  const dt = new DataTransfer();
+
+  dt.items.add("data", "text/plain");
+  let item = dt.items[0];
+
+  item.getAsString(str => {
+    console.log(`Calling getAsString on a item shouldn't crash`);
+  });
+</script>

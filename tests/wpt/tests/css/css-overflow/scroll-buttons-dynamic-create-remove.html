@@ -1,0 +1,32 @@
+<!doctype html>
+<title>CSS Overflow Test: ::scroll-button() can be created and removed dynamicaly</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+#carousel {
+  overflow: hidden;
+  width: 100px;
+  height: 100px;
+}
+
+#carousel div {
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+
+.scroll-buttons::scroll-button(right) {
+  content: "r";
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="carousel">
+  <div></div>
+<div>
+<script>
+  carousel.offsetTop;
+  carousel.className = "scroll-buttons";
+  carousel.offsetTop;
+  carousel.className = "";
+</script>
+

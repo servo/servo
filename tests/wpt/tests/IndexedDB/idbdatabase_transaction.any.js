@@ -26,7 +26,7 @@ async_test(t => {
         db.createObjectStore('readonly');
     };
     open_rq.onsuccess = function (e) {
-        var txn = db.transaction('readonly', 'readonly', { durability: 'relaxed' });
+        var txn = db.transaction('readonly', 'readonly');
         assert_equals(txn.mode, "readonly", 'txn.mode');
 
         t.done();
@@ -46,7 +46,7 @@ async_test(t => {
         db.close();
 
         assert_throws_dom('InvalidStateError',
-            function () { db.transaction('test', 'readonly', { durability: 'relaxed' }); });
+            function () { db.transaction('test', 'readonly'); });
 
         t.done();
     };

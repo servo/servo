@@ -6,14 +6,14 @@ use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::XRInputSourcesChangeEventBinding::{
     self, XRInputSourcesChangeEventMethods,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
@@ -26,7 +26,7 @@ use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRInputSourcesChangeEvent {
+pub(crate) struct XRInputSourcesChangeEvent {
     event: Event,
     session: Dom<XRSession>,
     #[ignore_malloc_size_of = "mozjs"]
@@ -36,7 +36,7 @@ pub struct XRInputSourcesChangeEvent {
 }
 
 impl XRInputSourcesChangeEvent {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(session: &XRSession) -> XRInputSourcesChangeEvent {
         XRInputSourcesChangeEvent {
             event: Event::new_inherited(),
@@ -47,8 +47,8 @@ impl XRInputSourcesChangeEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        global: &GlobalScope,
+    pub(crate) fn new(
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
@@ -58,14 +58,14 @@ impl XRInputSourcesChangeEvent {
         can_gc: CanGc,
     ) -> DomRoot<XRInputSourcesChangeEvent> {
         Self::new_with_proto(
-            global, None, type_, bubbles, cancelable, session, added, removed, can_gc,
+            window, None, type_, bubbles, cancelable, session, added, removed, can_gc,
         )
     }
 
     #[allow(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -77,7 +77,7 @@ impl XRInputSourcesChangeEvent {
     ) -> DomRoot<XRInputSourcesChangeEvent> {
         let changeevent = reflect_dom_object_with_proto(
             Box::new(XRInputSourcesChangeEvent::new_inherited(session)),
-            global,
+            window,
             proto,
             can_gc,
         );
@@ -85,12 +85,12 @@ impl XRInputSourcesChangeEvent {
             let event = changeevent.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
         }
-        let _ac = enter_realm(global);
+        let _ac = enter_realm(window);
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut frozen_val: JSVal);
-        to_frozen_array(added, cx, frozen_val.handle_mut());
+        to_frozen_array(added, cx, frozen_val.handle_mut(), can_gc);
         changeevent.added.set(*frozen_val);
-        to_frozen_array(removed, cx, frozen_val.handle_mut());
+        to_frozen_array(removed, cx, frozen_val.handle_mut(), can_gc);
         changeevent.removed.set(*frozen_val);
         changeevent
     }
@@ -106,7 +106,7 @@ impl XRInputSourcesChangeEventMethods<crate::DomTypeHolder> for XRInputSourcesCh
         init: &XRInputSourcesChangeEventBinding::XRInputSourcesChangeEventInit,
     ) -> DomRoot<XRInputSourcesChangeEvent> {
         XRInputSourcesChangeEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

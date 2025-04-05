@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceEventBinding::{
@@ -12,25 +12,24 @@ use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceEventBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRReferenceSpaceEvent {
+pub(crate) struct XRReferenceSpaceEvent {
     event: Event,
     space: Dom<XRReferenceSpace>,
     transform: Option<Dom<XRRigidTransform>>,
 }
 
 impl XRReferenceSpaceEvent {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
         space: &XRReferenceSpace,
         transform: Option<&XRRigidTransform>,
@@ -42,8 +41,8 @@ impl XRReferenceSpaceEvent {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
+    pub(crate) fn new(
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
@@ -52,13 +51,13 @@ impl XRReferenceSpaceEvent {
         can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpaceEvent> {
         Self::new_with_proto(
-            global, None, type_, bubbles, cancelable, space, transform, can_gc,
+            window, None, type_, bubbles, cancelable, space, transform, can_gc,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -69,7 +68,7 @@ impl XRReferenceSpaceEvent {
     ) -> DomRoot<XRReferenceSpaceEvent> {
         let trackevent = reflect_dom_object_with_proto(
             Box::new(XRReferenceSpaceEvent::new_inherited(space, transform)),
-            global,
+            window,
             proto,
             can_gc,
         );
@@ -91,7 +90,7 @@ impl XRReferenceSpaceEventMethods<crate::DomTypeHolder> for XRReferenceSpaceEven
         init: &XRReferenceSpaceEventInit,
     ) -> Fallible<DomRoot<XRReferenceSpaceEvent>> {
         Ok(XRReferenceSpaceEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

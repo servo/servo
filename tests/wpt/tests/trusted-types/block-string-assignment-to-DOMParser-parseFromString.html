@@ -33,7 +33,13 @@
 
   // After default policy creation string assignment implicitly calls createHTML.
   test(t => {
-    let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
+    let p = window.trustedTypes.createPolicy("default", {
+      createHTML: (value, type, sink) => {
+        assert_equals(sink, "DOMParser parseFromString");
+        return createHTMLJS(value);
+      }
+    });
+
     let parser = new DOMParser();
     let doc = parser.parseFromString(INPUTS.HTML, "text/html");
     assert_equals(doc.body.innerText, RESULTS.HTML);

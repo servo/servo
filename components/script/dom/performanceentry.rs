@@ -4,24 +4,25 @@
 
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
-use time_03::Duration;
+use time::Duration;
 
 use super::performance::ToDOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PerformanceEntry {
+pub(crate) struct PerformanceEntry {
     reflector_: Reflector,
     name: DOMString,
     entry_type: DOMString,
     #[no_trace]
     start_time: Option<CrossProcessInstant>,
-    /// The duration of this [`PerformanceEntry`]. This is a [`time_03::Duration`],
+    /// The duration of this [`PerformanceEntry`]. This is a [`time::Duration`],
     /// because it can be negative and `std::time::Duration` cannot be.
     #[no_trace]
     #[ignore_malloc_size_of = "No MallocSizeOf support for `time` crate"]
@@ -29,7 +30,7 @@ pub struct PerformanceEntry {
 }
 
 impl PerformanceEntry {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         name: DOMString,
         entry_type: DOMString,
         start_time: Option<CrossProcessInstant>,
@@ -44,31 +45,32 @@ impl PerformanceEntry {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         global: &GlobalScope,
         name: DOMString,
         entry_type: DOMString,
         start_time: CrossProcessInstant,
         duration: Duration,
+        can_gc: CanGc,
     ) -> DomRoot<PerformanceEntry> {
         let entry = PerformanceEntry::new_inherited(name, entry_type, Some(start_time), duration);
-        reflect_dom_object(Box::new(entry), global)
+        reflect_dom_object(Box::new(entry), global, can_gc)
     }
 
-    pub fn entry_type(&self) -> &DOMString {
+    pub(crate) fn entry_type(&self) -> &DOMString {
         &self.entry_type
     }
 
-    pub fn name(&self) -> &DOMString {
+    pub(crate) fn name(&self) -> &DOMString {
         &self.name
     }
 
-    pub fn start_time(&self) -> Option<CrossProcessInstant> {
+    pub(crate) fn start_time(&self) -> Option<CrossProcessInstant> {
         self.start_time
     }
 
-    pub fn duration(&self) -> Duration {
+    pub(crate) fn duration(&self) -> Duration {
         self.duration
     }
 }

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Test that text-box-trim works on button</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="match" href="text-box-trim-on-button-ref.html">
+<style>
+@import "support/MetricsTestFont.css";
+
+.spacer {
+  background: lightgray;
+  block-size: 100px;
+}
+.target {
+  font: 100px/2 MetricsTestFont;
+  text-box-trim: trim-both;
+  text-box-edge: ex alphabetic;
+
+  appearance: none;
+  border: none;
+  padding: 0px;
+  margin: 0px;
+  background-color: transparent;
+  color: black;
+}
+</style>
+<div class="spacer"></div>
+<div class="target">
+  <button class=target>ApÉx</button>
+</div>
+<div class="spacer"></div>

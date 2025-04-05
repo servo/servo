@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::time::Duration;
-
 use dom_struct::dom_struct;
-use embedder_traits::EmbedderMsg;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use embedder_traits::{EmbedderMsg, LoadStatus};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -22,15 +20,12 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, window_from_node, BindContext, Node};
+use crate::dom::node::{BindContext, Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
-/// How long we should wait before performing the initial reflow after `<body>` is parsed.
-const INITIAL_REFLOW_DELAY: Duration = Duration::from_millis(200);
-
 #[dom_struct]
-pub struct HTMLBodyElement {
+pub(crate) struct HTMLBodyElement {
     htmlelement: HTMLElement,
 }
 
@@ -45,8 +40,8 @@ impl HTMLBodyElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -62,7 +57,7 @@ impl HTMLBodyElement {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#the-html-body-element>
-    pub fn is_the_html_body_element(&self) -> bool {
+    pub(crate) fn is_the_html_body_element(&self) -> bool {
         let self_node = self.upcast::<Node>();
         let root_elem = self.upcast::<Element>().root_element();
         let root_node = root_elem.upcast::<Node>();
@@ -91,10 +86,8 @@ impl HTMLBodyElementMethods<crate::DomTypeHolder> for HTMLBodyElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     fn SetBackground(&self, input: DOMString, can_gc: CanGc) {
-        let value = AttrValue::from_resolved_url(
-            &document_from_node(self).base_url().get_arc(),
-            input.into(),
-        );
+        let value =
+            AttrValue::from_resolved_url(&self.owner_document().base_url().get_arc(), input.into());
         self.upcast::<Element>()
             .set_attribute(&local_name!("background"), value, can_gc);
     }
@@ -103,7 +96,7 @@ impl HTMLBodyElementMethods<crate::DomTypeHolder> for HTMLBodyElement {
     window_event_handlers!(ForwardToWindow);
 }
 
-pub trait HTMLBodyElementLayoutHelpers {
+pub(crate) trait HTMLBodyElementLayoutHelpers {
     fn get_background_color(self) -> Option<AbsoluteColor>;
     fn get_color(self) -> Option<AbsoluteColor>;
     fn get_background(self) -> Option<ServoUrl>;
@@ -148,21 +141,22 @@ impl VirtualMethods for HTMLBodyElement {
             .attribute_affects_presentational_hints(attr)
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
-        if !context.tree_in_doc {
+        if !context.tree_is_in_a_document_tree {
             return;
         }
 
-        let window = window_from_node(self);
-        let document = window.Document();
-        document.set_reflow_timeout(INITIAL_REFLOW_DELAY);
+        let window = self.owner_window();
+        window.prevent_layout_until_load_event();
         if window.is_top_level() {
-            let msg = EmbedderMsg::HeadParsed;
-            window.send_to_embedder(msg);
+            window.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                window.webview_id(),
+                LoadStatus::HeadParsed,
+            ));
         }
     }
 
@@ -172,7 +166,7 @@ impl VirtualMethods for HTMLBodyElement {
                 AttrValue::from_legacy_color(value.into())
             },
             local_name!("background") => AttrValue::from_resolved_url(
-                &document_from_node(self).base_url().get_arc(),
+                &self.owner_document().base_url().get_arc(),
                 value.into(),
             ),
             _ => self
@@ -182,10 +176,10 @@ impl VirtualMethods for HTMLBodyElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
         let do_super_mutate = match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
-                let window = window_from_node(self);
+                let window = self.owner_window();
                 // https://html.spec.whatwg.org/multipage/
                 // #event-handlers-on-elements,-document-objects,-and-window-objects:event-handlers-3
                 match name {
@@ -224,7 +218,9 @@ impl VirtualMethods for HTMLBodyElement {
         };
 
         if do_super_mutate {
-            self.super_type().unwrap().attribute_mutated(attr, mutation);
+            self.super_type()
+                .unwrap()
+                .attribute_mutated(attr, mutation, can_gc);
         }
     }
 }

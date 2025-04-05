@@ -4,10 +4,9 @@
 
 use std::collections::{HashMap, HashSet};
 
-use base::id::{BrowsingContextGroupId, BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
-use euclid::Size2D;
+use base::id::{BrowsingContextGroupId, BrowsingContextId, PipelineId, WebViewId};
+use embedder_traits::ViewportDetails;
 use log::warn;
-use style_traits::CSSPixel;
 
 use crate::pipeline::Pipeline;
 
@@ -48,10 +47,10 @@ pub struct BrowsingContext {
     pub id: BrowsingContextId,
 
     /// The top-level browsing context ancestor
-    pub top_level_id: TopLevelBrowsingContextId,
+    pub top_level_id: WebViewId,
 
-    /// The size of the frame.
-    pub size: Size2D<f32, CSSPixel>,
+    /// The [`ViewportDetails`] of the frame that this [`BrowsingContext`] represents.
+    pub viewport_details: ViewportDetails,
 
     /// Whether this browsing context is in private browsing mode.
     pub is_private: bool,
@@ -82,10 +81,10 @@ impl BrowsingContext {
     pub fn new(
         bc_group_id: BrowsingContextGroupId,
         id: BrowsingContextId,
-        top_level_id: TopLevelBrowsingContextId,
+        top_level_id: WebViewId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
-        size: Size2D<f32, CSSPixel>,
+        viewport_details: ViewportDetails,
         is_private: bool,
         inherited_secure_context: Option<bool>,
         throttled: bool,
@@ -96,7 +95,7 @@ impl BrowsingContext {
             bc_group_id,
             id,
             top_level_id,
-            size,
+            viewport_details,
             is_private,
             inherited_secure_context,
             throttled,

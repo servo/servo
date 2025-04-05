@@ -14,7 +14,7 @@ use servo_media::audio::panner_node::{
 use servo_media::audio::param::{ParamDir, ParamType};
 
 use crate::conversions::Convert;
-use crate::dom::audionode::AudioNode;
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
@@ -35,7 +35,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PannerNode {
+pub(crate) struct PannerNode {
     node: AudioNode,
     position_x: Dom<AudioParam>,
     position_y: Dom<AudioParam>,
@@ -58,11 +58,12 @@ pub struct PannerNode {
 }
 
 impl PannerNode {
-    #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         options: &PannerOptions,
+        can_gc: CanGc,
     ) -> Fallible<PannerNode> {
         let node_options = options.parent.unwrap_or(
             2,
@@ -106,6 +107,7 @@ impl PannerNode {
             options.position_x, // default value
             f32::MIN,           // min value
             f32::MAX,           // max value
+            can_gc,
         );
         let position_y = AudioParam::new(
             window,
@@ -117,6 +119,7 @@ impl PannerNode {
             options.position_y, // default value
             f32::MIN,           // min value
             f32::MAX,           // max value
+            can_gc,
         );
         let position_z = AudioParam::new(
             window,
@@ -128,6 +131,7 @@ impl PannerNode {
             options.position_z, // default value
             f32::MIN,           // min value
             f32::MAX,           // max value
+            can_gc,
         );
         let orientation_x = AudioParam::new(
             window,
@@ -139,6 +143,7 @@ impl PannerNode {
             options.orientation_x, // default value
             f32::MIN,              // min value
             f32::MAX,              // max value
+            can_gc,
         );
         let orientation_y = AudioParam::new(
             window,
@@ -150,6 +155,7 @@ impl PannerNode {
             options.orientation_y, // default value
             f32::MIN,              // min value
             f32::MAX,              // max value
+            can_gc,
         );
         let orientation_z = AudioParam::new(
             window,
@@ -161,6 +167,7 @@ impl PannerNode {
             options.orientation_z, // default value
             f32::MIN,              // min value
             f32::MAX,              // max value
+            can_gc,
         );
         Ok(PannerNode {
             node,
@@ -181,7 +188,7 @@ impl PannerNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &PannerOptions,
@@ -190,7 +197,7 @@ impl PannerNode {
         Self::new_with_proto(window, None, context, options, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
@@ -198,7 +205,7 @@ impl PannerNode {
         options: &PannerOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<PannerNode>> {
-        let node = PannerNode::new_inherited(window, context, options)?;
+        let node = PannerNode::new_inherited(window, context, options, can_gc)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
@@ -373,7 +380,7 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
     }
 }
 
-impl<'a> Convert<PannerNodeOptions> for &'a PannerOptions {
+impl Convert<PannerNodeOptions> for &PannerOptions {
     fn convert(self) -> PannerNodeOptions {
         PannerNodeOptions {
             panning_model: self.panningModel.convert(),

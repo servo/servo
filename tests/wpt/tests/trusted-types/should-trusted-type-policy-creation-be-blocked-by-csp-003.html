@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="timeout" content="long">
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/csp-violations.js"></script>
+<script>
+  promise_test(async t => {
+    let results = await tryCreatingTrustedTypePoliciesWithCSP(
+      ["tt-policy-name"],
+      `\
+header(Content-Security-Policy,trusted-types tt-policy-name,True)|\
+header(Content-Security-Policy,trusted-types *,True)|\
+header(Content-Security-Policy,trusted-types tt-policy-name tt-policy-name,True)|\
+header(Content-Security-Policy,trusted-types tt-policy-name *,True)|\
+header(Content-Security-Policy,trusted-types * tt-policy-name,True)|\
+header(Content-Security-Policy,trusted-types * *,True)|\
+header(Content-Security-Policy,trusted-types tt-policy-name 'none',True)|\
+header(Content-Security-Policy,trusted-types 'none' tt-policy-name,True)|\
+header(Content-Security-Policy,trusted-types * 'none',True)|\
+header(Content-Security-Policy,trusted-types 'none' *,True)|\
+`
+    );
+    assert_equals(results.length, 1);
+    assert_equals(results[0].exception, null);
+    assert_equals(results[0].violatedPolicies.length, 0);
+  }, `Multiple non-violated enforce trusted-types directives.`);
+
+  promise_test(async t => {
+    let results = await tryCreatingTrustedTypePoliciesWithCSP(
+      ["tt-policy-name"],
+      `\
+header(Content-Security-Policy-Report-Only,trusted-types A,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types B,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types C,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types tt-policy-name,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types D,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types E,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types tt-policy-name,True)
+`
+    );
+    assert_equals(results.length, 1);
+
+    assert_equals(results[0].exception, null);
+    let violations = results[0].violatedPolicies.sort();
+    assert_equals(violations.length, 5);
+    assert_equals(violations[0].disposition, "report");
+    assert_equals(violations[0].policy, "trusted-types A")
+    assert_equals(violations[1].disposition, "report");
+    assert_equals(violations[1].policy, "trusted-types B")
+    assert_equals(violations[2].disposition, "report");
+    assert_equals(violations[2].policy, "trusted-types C")
+    assert_equals(violations[3].disposition, "report");
+    assert_equals(violations[3].policy, "trusted-types D")
+    assert_equals(violations[4].disposition, "report");
+    assert_equals(violations[4].policy, "trusted-types E")
+  }, `Multiple report-only trusted-types directives.`);
+
+  promise_test(async t => {
+    let results = await tryCreatingTrustedTypePoliciesWithCSP(
+      ["tt-policy-name"],
+      `\
+header(Content-Security-Policy-Report-Only,trusted-types A,True)|\
+header(Content-Security-Policy,trusted-types B,True)|\
+header(Content-Security-Policy,trusted-types C,True)|\
+header(Content-Security-Policy,trusted-types tt-policy-name,True)|\
+header(Content-Security-Policy,trusted-types D,True)|\
+header(Content-Security-Policy,trusted-types E,True)|\
+header(Content-Security-Policy,trusted-types tt-policy-name,True)
+`
+    );
+    assert_equals(results.length, 1);
+
+    assert_true(results[0].exception instanceof TypeError);
+    let violations = results[0].violatedPolicies.sort();
+    assert_equals(violations.length, 5);
+    assert_equals(violations[0].disposition, "enforce");
+    assert_equals(violations[0].policy, "trusted-types B")
+    assert_equals(violations[1].disposition, "enforce");
+    assert_equals(violations[1].policy, "trusted-types C")
+    assert_equals(violations[2].disposition, "enforce");
+    assert_equals(violations[2].policy, "trusted-types D")
+    assert_equals(violations[3].disposition, "enforce");
+    assert_equals(violations[3].policy, "trusted-types E")
+    assert_equals(violations[4].disposition, "report");
+    assert_equals(violations[4].policy, "trusted-types A")
+  }, `One violated report-only trusted-types directive followed by multiple enforce directives.`);
+
+  promise_test(async t => {
+    let results = await tryCreatingTrustedTypePoliciesWithCSP(
+      ["tt-policy-name"],
+      `\
+header(Content-Security-Policy,trusted-types A,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types B,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types C,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types tt-policy-name,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types D,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types E,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types tt-policy-name,True)
+`
+    );
+    assert_equals(results.length, 1);
+
+    assert_true(results[0].exception instanceof TypeError);
+    let violations = results[0].violatedPolicies.sort();
+    assert_equals(violations.length, 5);
+    assert_equals(violations[0].disposition, "enforce");
+    assert_equals(violations[0].policy, "trusted-types A")
+    assert_equals(violations[1].disposition, "report");
+    assert_equals(violations[1].policy, "trusted-types B")
+    assert_equals(violations[2].disposition, "report");
+    assert_equals(violations[2].policy, "trusted-types C")
+    assert_equals(violations[3].disposition, "report");
+    assert_equals(violations[3].policy, "trusted-types D")
+    assert_equals(violations[4].disposition, "report");
+    assert_equals(violations[4].policy, "trusted-types E")
+  }, `One violated enforce trusted-types directive followed by multiple report-only directives.`);
+
+  promise_test(async t => {
+    let results = await tryCreatingTrustedTypePoliciesWithCSP(
+      ["tt-policy-name"],
+      `\
+header(Content-Security-Policy,trusted-types tt-policy-name,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types tt-policy-name,True)|\
+header(Content-Security-Policy,trusted-types other-policy-name,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types other-policy-name,True)|\
+header(Content-Security-Policy,trusted-types *,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types *,True)|\
+header(Content-Security-Policy,trusted-types 'none',True)|\
+header(Content-Security-Policy-Report-Only,trusted-types 'none',True)|\
+header(Content-Security-Policy,trusted-types tt-policy-name 'allow-duplicates',True)|\
+header(Content-Security-Policy-Report-Only,trusted-types tt-policy-name 'allow-duplicates',True)`
+    );
+    assert_equals(results.length, 1);
+    assert_true(results[0].exception instanceof TypeError);
+
+    let violations = results[0].violatedPolicies.sort();
+    assert_equals(violations.length, 4);
+    assert_equals(violations[0].disposition, "enforce");
+    assert_equals(violations[0].policy, "trusted-types other-policy-name")
+    assert_equals(violations[1].disposition, "enforce");
+    assert_equals(violations[1].policy, "trusted-types 'none'")
+    assert_equals(violations[2].disposition, "report");
+    assert_equals(violations[2].policy, "trusted-types other-policy-name")
+    assert_equals(violations[3].disposition, "report");
+    assert_equals(violations[3].policy, "trusted-types 'none'")
+  }, `Mixing enforce and report-only policies with trusted-types directives`);
+
+  promise_test(async t => {
+    let results = await tryCreatingTrustedTypePoliciesWithCSP(
+      ["tt-policy-name", "tt-policy-name"],
+      `\
+header(Content-Security-Policy,trusted-types tt-policy-name,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types tt-policy-name,True)|\
+header(Content-Security-Policy,trusted-types *,True)|\
+header(Content-Security-Policy-Report-Only,trusted-types *,True)|\
+header(Content-Security-Policy,trusted-types tt-policy-name 'allow-duplicates',True)|\
+header(Content-Security-Policy-Report-Only,trusted-types tt-policy-name 'allow-duplicates',True)`
+    );
+    assert_equals(results.length, 2);
+
+    assert_equals(results[0].exception, null);
+    assert_equals(results[0].violatedPolicies.length, 0);
+
+    assert_true(results[1].exception instanceof TypeError);
+    let violations = results[1].violatedPolicies.sort();
+    assert_equals(violations.length, 4);
+    assert_equals(violations[0].disposition, "enforce");
+    assert_equals(violations[0].policy, "trusted-types tt-policy-name")
+    assert_equals(violations[1].disposition, "enforce");
+    assert_equals(violations[1].policy, "trusted-types *")
+    assert_equals(violations[2].disposition, "report");
+    assert_equals(violations[2].policy, "trusted-types tt-policy-name")
+    assert_equals(violations[3].disposition, "report");
+    assert_equals(violations[3].policy, "trusted-types *")
+  }, `Mixing enforce and report-only policies with trusted-types directives (duplicate policy)`);
+
+</script>

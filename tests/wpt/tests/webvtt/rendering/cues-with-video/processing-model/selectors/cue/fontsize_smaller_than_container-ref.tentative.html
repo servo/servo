@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Reference for WebVTT rendering, ::cue, smaller font-size than container</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+html { overflow:hidden }
+body { margin:0 }
+.video {
+    display: inline-block;
+    width: 320px;
+    height: 320px;
+    position: relative;
+    /* Tentative: https://github.com/w3c/webvtt/issues/530 proposes to make
+       this 0. It is 9px for now for practical reasons, as as change affects
+       all other tests. */
+    font-size: 9px;
+}
+.cue {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+}
+.cueText {
+    font-family: Ahem, sans-serif;
+    background: rgba(0,0,0,0.8);
+    color: green;
+    font-size: 4px;
+}
+</style>
+<div class="video">
+    <span class="cue">
+        <div><span class="cueText">This is another test subtitle</span></div>
+        <div><span class="cueText">This is a test subtitle</span></div>
+    </span>
+</div>

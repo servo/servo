@@ -7,7 +7,7 @@
 use html5ever::{local_name, namespace_url, ns};
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::request::Referrer;
-use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
+use script_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use style::str::HTML_SPACE_CHARACTERS;
 
 use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
@@ -19,10 +19,9 @@ use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlareaelement::HTMLAreaElement;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmllinkelement::HTMLLinkElement;
-use crate::dom::node::document_from_node;
-use crate::dom::types::{Element, GlobalScope};
+use crate::dom::node::NodeTraits;
+use crate::dom::types::Element;
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
 
 bitflags::bitflags! {
     /// Describes the different relations that can be specified on elements using the `rel`
@@ -30,7 +29,7 @@ bitflags::bitflags! {
     ///
     /// Refer to <https://html.spec.whatwg.org/multipage/#linkTypes> for more information.
     #[derive(Clone, Copy, Debug)]
-    pub struct LinkRelations: u32 {
+    pub(crate) struct LinkRelations: u32 {
         /// <https://html.spec.whatwg.org/multipage/#rel-alternate>
         const ALTERNATE = 1;
 
@@ -118,7 +117,7 @@ impl LinkRelations {
     /// The set of allowed relations for [`<link>`] elements
     ///
     /// [`<link>`]: https://html.spec.whatwg.org/multipage/#htmllinkelement
-    pub const ALLOWED_LINK_RELATIONS: Self = Self::ALTERNATE
+    pub(crate) const ALLOWED_LINK_RELATIONS: Self = Self::ALTERNATE
         .union(Self::CANONICAL)
         .union(Self::AUTHOR)
         .union(Self::DNS_PREFETCH)
@@ -143,7 +142,7 @@ impl LinkRelations {
     ///
     /// [`<a>`]: https://html.spec.whatwg.org/multipage/#the-a-element
     /// [`<area>`]: https://html.spec.whatwg.org/multipage/#the-area-element
-    pub const ALLOWED_ANCHOR_OR_AREA_RELATIONS: Self = Self::ALTERNATE
+    pub(crate) const ALLOWED_ANCHOR_OR_AREA_RELATIONS: Self = Self::ALTERNATE
         .union(Self::AUTHOR)
         .union(Self::BOOKMARK)
         .union(Self::EXTERNAL)
@@ -163,7 +162,7 @@ impl LinkRelations {
     /// The set of allowed relations for [`<form>`] elements
     ///
     /// [`<form>`]: https://html.spec.whatwg.org/multipage/#the-form-element
-    pub const ALLOWED_FORM_RELATIONS: Self = Self::EXTERNAL
+    pub(crate) const ALLOWED_FORM_RELATIONS: Self = Self::EXTERNAL
         .union(Self::HELP)
         .union(Self::LICENSE)
         .union(Self::NEXT)
@@ -182,7 +181,7 @@ impl LinkRelations {
     /// [`<a>`]: https://html.spec.whatwg.org/multipage/#the-a-element
     /// [`<area>`]: https://html.spec.whatwg.org/multipage/#the-area-element
     /// [`<form>`]: https://html.spec.whatwg.org/multipage/#the-form-element
-    pub fn for_element(element: &Element) -> Self {
+    pub(crate) fn for_element(element: &Element) -> Self {
         let rel = element.get_attribute(&ns!(), &local_name!("rel")).map(|e| {
             let value = e.value();
             (**value).to_owned()
@@ -290,7 +289,7 @@ impl LinkRelations {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#get-an-element's-noopener>
-    pub fn get_element_noopener(&self, target_attribute_value: Option<&DOMString>) -> bool {
+    pub(crate) fn get_element_noopener(&self, target_attribute_value: Option<&DOMString>) -> bool {
         // Step 1. If element's link types include the noopener or noreferrer keyword, then return true.
         if self.contains(Self::NO_OPENER) || self.contains(Self::NO_REFERRER) {
             return true;
@@ -312,7 +311,7 @@ impl LinkRelations {
 malloc_size_of_is_0!(LinkRelations);
 
 /// <https://html.spec.whatwg.org/multipage/#get-an-element's-target>
-pub fn get_element_target(subject: &Element) -> Option<DOMString> {
+pub(crate) fn get_element_target(subject: &Element) -> Option<DOMString> {
     if !(subject.is::<HTMLAreaElement>() ||
         subject.is::<HTMLAnchorElement>() ||
         subject.is::<HTMLFormElement>())
@@ -323,7 +322,7 @@ pub fn get_element_target(subject: &Element) -> Option<DOMString> {
         return Some(subject.get_string_attribute(&local_name!("target")));
     }
 
-    let doc = document_from_node(subject).base_element();
+    let doc = subject.owner_document().base_element();
     match doc {
         Some(doc) => {
             let element = doc.upcast::<Element>();
@@ -338,52 +337,64 @@ pub fn get_element_target(subject: &Element) -> Option<DOMString> {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>
-pub fn follow_hyperlink(
+pub(crate) fn follow_hyperlink(
     subject: &Element,
     relations: LinkRelations,
     hyperlink_suffix: Option<String>,
 ) {
-    // Step 1. If subject cannot navigate, then return.
+    // Step 1: If subject cannot navigate, then return.
     if subject.cannot_navigate() {
         return;
     }
-    // Step 2, done in Step 7.
 
-    let document = document_from_node(subject);
-    let window = document.window();
+    // Step 2: Let targetAttributeValue be the empty string.
+    // This is done below.
 
-    // Step 3: source browsing context.
-    let source = document.browsing_context().unwrap();
-
-    // Step 4-5: target attribute.
+    // Step 3: If subject is an a or area element, then set targetAttributeValue to the
+    //         result of getting an element's target given subject.
+    //
+    // Also allow the user to open links in a new WebView by pressing either the meta or
+    // control key (depending on the platform).
+    let document = subject.owner_document();
     let target_attribute_value =
         if subject.is::<HTMLAreaElement>() || subject.is::<HTMLAnchorElement>() {
-            get_element_target(subject)
+            if document.alternate_action_keyboard_modifier_active() {
+                Some("_blank".into())
+            } else {
+                get_element_target(subject)
+            }
         } else {
             None
         };
 
-    // Step 6.
+    // Step 4: Let urlRecord be the result of encoding-parsing a URL given subject's href
+    //         attribute value, relative to subject's node document.
+    // Step 5: If urlRecord is failure, then return.
+    // TODO: Implement this.
+
+    // Step 6: Let noopener be the result of getting an element's noopener with subject,
+    //         urlRecord, and targetAttributeValue.
     let noopener = relations.get_element_noopener(target_attribute_value.as_ref());
 
-    // Step 7.
-    let (maybe_chosen, replace) = match target_attribute_value {
+    // Step 7: Let targetNavigable be the first return value of applying the rules for
+    //         choosing a navigable given targetAttributeValue, subject's node navigable, and
+    //         noopener.
+    let window = document.window();
+    let source = document.browsing_context().unwrap();
+    let (maybe_chosen, history_handling) = match target_attribute_value {
         Some(name) => {
             let (maybe_chosen, new) = source.choose_browsing_context(name, noopener);
-            let replace = if new {
-                HistoryEntryReplacement::Enabled
+            let history_handling = if new {
+                NavigationHistoryBehavior::Replace
             } else {
-                HistoryEntryReplacement::Disabled
+                NavigationHistoryBehavior::Push
             };
-            (maybe_chosen, replace)
+            (maybe_chosen, history_handling)
         },
-        None => (
-            Some(window.window_proxy()),
-            HistoryEntryReplacement::Disabled,
-        ),
+        None => (Some(window.window_proxy()), NavigationHistoryBehavior::Push),
     };
 
-    // Step 8.
+    // Step 8: If targetNavigable is null, then return.
     let chosen = match maybe_chosen {
         Some(proxy) => proxy,
         None => return,
@@ -391,17 +402,13 @@ pub fn follow_hyperlink(
 
     if let Some(target_document) = chosen.document() {
         let target_window = target_document.window();
-        // Step 9, dis-owning target's opener, if necessary
-        // will have been done as part of Step 7 above
-        // in choose_browsing_context/create_auxiliary_browsing_context.
-
-        // Step 10, 11. TODO: if parsing the URL failed, navigate to error page.
+        // Step 9: Let urlString be the result of applying the URL serializer to urlRecord.
+        // TODO: Implement this.
 
         let attribute = subject.get_attribute(&ns!(), &local_name!("href")).unwrap();
         let mut href = attribute.Value();
 
-        // Step 11: append a hyperlink suffix.
-        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28925
+        // Step 10: If hyperlinkSuffix is non-null, then append it to urlString.
         if let Some(suffix) = hyperlink_suffix {
             href.push_str(&suffix);
         }
@@ -409,19 +416,22 @@ pub fn follow_hyperlink(
             return;
         };
 
-        // Step 12.
+        // Step 11: Let referrerPolicy be the current state of subject's referrerpolicy content attribute.
         let referrer_policy = referrer_policy_for_element(subject);
 
-        // Step 13
+        // Step 12: If subject's link types includes the noreferrer keyword, then set
+        //          referrerPolicy to "no-referrer".
         let referrer = if relations.contains(LinkRelations::NO_REFERRER) {
             Referrer::NoReferrer
         } else {
-            target_window.upcast::<GlobalScope>().get_referrer()
+            target_window.as_global_scope().get_referrer()
         };
 
-        // Step 14
-        let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
-        let secure = target_window.upcast::<GlobalScope>().is_secure_context();
+        // Step 13: Navigate targetNavigable to urlString using subject's node document,
+        //          with referrerPolicy set to referrerPolicy, userInvolvement set to
+        //          userInvolvement, and sourceElement set to subject.
+        let pipeline_id = target_window.as_global_scope().pipeline_id();
+        let secure = target_window.as_global_scope().is_secure_context();
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
@@ -429,16 +439,18 @@ pub fn follow_hyperlink(
             referrer,
             referrer_policy,
             Some(secure),
+            Some(document.insecure_requests_policy()),
+            document.has_trustworthy_ancestor_origin(),
         );
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {
             debug!("following hyperlink to {}", load_data.url);
-            target.root().load_url(replace, false, load_data, CanGc::note());
+            target.root().load_url(history_handling, false, load_data, CanGc::note());
         });
-        target_window
+        target_document
+            .owner_global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task, target_window.upcast())
-            .unwrap();
+            .queue(task);
     };
 }

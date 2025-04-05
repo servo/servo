@@ -17,7 +17,7 @@ pub(super) enum Node {
 pub(super) fn parse(bytes: &[u8]) -> xml::reader::Result<Vec<Node>> {
     let mut stack = Vec::new();
     let mut nodes = Vec::new();
-    for result in xml::EventReader::new(&*bytes) {
+    for result in xml::EventReader::new(bytes) {
         match result? {
             StartElement {
                 name, attributes, ..

@@ -1,3 +1,7 @@
+/**
+ * IMPORTANT: Before using this file, you must also import the following files:
+ * - /common/utils.js
+ */
 'use strict';
 
 const ROOT_NAME = 'fetch/fetch-later';
@@ -202,5 +206,309 @@ async function loadScriptAsIframe(script) {
   const iframeLoaded = new Promise(resolve => iframe.onload = resolve);
   document.body.appendChild(iframe);
   await iframeLoaded;
+  return iframe;
+}
+
+/**
+ * A helper to make a fetchLater request and wait for it being received.
+ *
+ * This function can also be used when the caller does not care about where a
+ * fetchLater() makes request to.
+ *
+ * @param {!RequestInit} init The request config to pass into fetchLater() call.
+ */
+async function expectFetchLater(
+    init, {targetUrl = undefined, uuid = undefined} = {}) {
+  if ((targetUrl && !uuid) || (!targetUrl && uuid)) {
+    throw new Error('uuid and targetUrl must be provided together.');
+  }
+  if (uuid && targetUrl && !targetUrl.includes(uuid)) {
+    throw new Error(`Conflicting uuid=${
+        uuid} is provided: must also be included in the targetUrl ${
+        targetUrl}`);
+  }
+  if (!uuid) {
+    uuid = token();
+  }
+  if (!targetUrl) {
+    targetUrl = generateSetBeaconURL(uuid);
+  }
+
+  fetchLater(targetUrl, init);
+
+  await expectBeacon(uuid, {count: 1});
+}
+
+/**
+ * A helper to append `el` into document and wait for it being loaded.
+ * @param {!Element} el
+ */
+async function loadElement(el) {
+  const loaded = new Promise(resolve => el.onload = resolve);
+  document.body.appendChild(el);
+  await loaded;
+}
+
+/**
+ * The options to configure a fetchLater() call in an iframe.
+ * @record
+ */
+class FetchLaterIframeOptions {
+  constructor() {
+    /**
+     * @type {string=} The url to pass to the fetchLater() call.
+     */
+    this.targetUrl;
+
+    /**
+     * @type {string=} The uuid to wait for. Must also be part of `targetUrl`.
+     */
+    this.uuid;
+
+    /**
+     * @type {number=} The activateAfter field of DeferredRequestInit to pass
+     * to the fetchLater() call.
+     * https://whatpr.org/fetch/1647.html#dictdef-deferredrequestinit
+     */
+    this.activateAfter;
+
+    /**
+     * @type {string=} The method field of DeferredRequestInit to pass to the
+     * fetchLater() call.
+     * https://whatpr.org/fetch/1647.html#dictdef-deferredrequestinit
+     */
+    this.method;
+
+    /**
+     * @type {string=} The referrer field of DeferredRequestInit to pass to the
+     * fetchLater() call.
+     * https://whatpr.org/fetch/1647.html#requestinit
+     */
+    this.referrer;
+
+    /**
+     * @type {string=} One of the `BeaconDataType` to tell the iframe how to
+     * generate the body for its fetchLater() call.
+     */
+    this.bodyType;
+
+    /**
+     * @type {number=} The size to tell the iframe how to generate the body of
+     * its fetchLater() call.
+     */
+    this.bodySize;
+
+    /**
+     * @type {bool} Whether to set allow="deferred-fetch" attribute for the
+     * iframe. Combing with a Permissions-Policy header, this will enable
+     * fetchLater() being used in a cross-origin iframe.
+     */
+    this.allowDeferredFetch;
+
+    /**
+     * @type {FetchLaterIframeExpectation=} The expectation on the iframe's
+     * behavior.
+     */
+    this.expect;
+  }
+}
+
+/**
+ * The enum to classify the messages posted from an iframe that has called
+ * fetchLater() API.
+ * @enum {string}
+ */
+const FetchLaterIframeMessageType = {
+  // Tells that a fetchLater() call has been executed without any error thrown.
+  DONE: 'fetchLater.done',
+  // Tells that there are some error thrown from a fetchLater() call.
+  ERROR: 'fetchLater.error',
+};
+
+/**
+ * The enum to indicate what type of iframe behavior the caller is expecting.
+ * @enum {number}
+ */
+const FetchLaterExpectationType = {
+  // A fetchLater() call should have been made without any errors.
+  DONE: 0,
+  // A fetchLater() call is made and an JS error is thrown.
+  ERROR_JS: 1,
+  // A fetchLater() call is made and an DOMException is thrown.
+  ERROR_DOM: 2,
+};
+
+class FetchLaterExpectationError extends Error {
+  constructor(src, actual, expected) {
+    const message = `iframe[src=${src}] threw ${actual}, expected ${expected}`;
+    super(message);
+  }
+}
+
+class FetchLaterIframeExpectation {
+  constructor(expectationType, expectedError) {
+    this.expectationType = expectationType;
+    if (expectationType == FetchLaterExpectationType.DONE && !expectedError) {
+      this.expectedErrorType = undefined;
+    } else if (
+        expectationType == FetchLaterExpectationType.ERROR_JS &&
+        typeof expectedError == 'function') {
+      this.expectedErrorType = expectedError;
+    } else if (
+        expectationType == FetchLaterExpectationType.ERROR_DOM &&
+        typeof expectedError == 'string') {
+      this.expectedDomErrorName = expectedError;
+    } else {
+      throw Error(`Expectation type "${expectationType}" and expected error "${
+          expectedError}" do not match`);
+    }
+  }
+
+  /**
+   * Verifies the message from `e` against the configured expectation.
+   *
+   * @param {MessageEvent} e
+   * @param {string} url The source URL of the iframe where `e` is dispatched
+   * from.
+   * @return {bool}
+   * - Returns true if the expected message event is passed into the function
+   *   and the expectation is fulfilled. The caller should be able to safely
+   *   remove the message event listener afterwards.
+   * - Returns false if the passed in event is not of the expected type. The
+   *   caller should continue waiting for another message event and call this
+   *   function again.
+   * @throws {Error} Throws an error if the expected message event is passed but
+   *   the expectation fails. The caller should remove the message event
+   *   listener and perform test failure handling.
+   */
+  run(e, url) {
+    if (this.expectationType === FetchLaterExpectationType.DONE) {
+      if (e.data.type === FetchLaterIframeMessageType.DONE) {
+        return true;
+      }
+      if (e.data.type === FetchLaterIframeMessageType.ERROR &&
+          e.data.error !== undefined) {
+        throw new FetchLaterExpectationError(
+            url, e.data.error.name, 'no error');
+      }
+    }
+
+    if (this.expectationType === FetchLaterExpectationType.ERROR_JS) {
+      if (e.data.type === FetchLaterIframeMessageType.DONE) {
+        throw new FetchLaterExpectationError(
+            url, 'nothing', this.expectedErrorType.name);
+      }
+      if (e.data.type === FetchLaterIframeMessageType.ERROR) {
+        if (e.data.error.constructor === this.expectedErrorType &&
+            e.data.error.name === this.expectedErrorType.name) {
+          return true;
+        }
+        throw new FetchLaterExpectationError(
+            url, e.data.error, this.expectedErrorType.name);
+      }
+    }
+
+    if (this.expectationType === FetchLaterExpectationType.ERROR_DOM) {
+      if (e.data.type === FetchLaterIframeMessageType.DONE) {
+        throw new FetchLaterExpectationError(
+            url, 'nothing', this.expectedDomErrorName);
+      }
+      if (e.data.type === FetchLaterIframeMessageType.ERROR) {
+        const actual = e.data.error.name || e.data.error.type;
+        if (e.data.error.constructor.name === 'DOMException' &&
+            actual == this.expectedDomErrorName) {
+          return true;
+        }
+        throw new FetchLaterExpectationError(
+            url, actual, this.expectedDomErrorName);
+      }
+    }
+
+    return false;
+  }
+}
+
+/**
+ * A helper to load an iframe of the specified `origin` that makes a fetchLater
+ * request to `targetUrl`.
+ *
+ * If `targetUrl` is not provided, this function generates a target URL by
+ * itself.
+ *
+ * If `expect` is not provided:
+ * - If `targetUrl` is not provided, this function will wait for the fetchLater
+ *   request being received by the test server before returning.
+ * - If `targetUrl` is provided and `uuid` is missing, it will NOT wait for the
+ *   request.
+ * - If both `targetUrl` and `uuid` are provided, it will wait for the request.
+ *
+ * Note that the iframe posts various messages back to its parent document.
+ *
+ * @param {!string} origin The origin URL of the iframe to load.
+ * @param {FetchLaterIframeOptions=} nameIgnored
+ * @return {!HTMLIFrameElement} the loaded iframe.
+ */
+async function loadFetchLaterIframe(origin, {
+  targetUrl = undefined,
+  uuid = undefined,
+  activateAfter = undefined,
+  referrer = undefined,
+  method = undefined,
+  bodyType = undefined,
+  bodySize = undefined,
+  allowDeferredFetch = false,
+  expect = undefined
+} = {}) {
+  if (uuid && targetUrl && !targetUrl.includes(uuid)) {
+    throw new Error(`Conflicted uuid=${
+        uuid} is provided: must also be included in the targetUrl ${
+        targetUrl}`);
+  }
+  if (!uuid) {
+    uuid = targetUrl ? undefined : token();
+  }
+  targetUrl = targetUrl || generateSetBeaconURL(uuid);
+  const params = new URLSearchParams(Object.assign(
+      {},
+      {url: encodeURIComponent(targetUrl)},
+      activateAfter !== undefined ? {activateAfter} : null,
+      referrer !== undefined ? {referrer} : null,
+      method !== undefined ? {method} : null,
+      bodyType !== undefined ? {bodyType} : null,
+      bodySize !== undefined ? {bodySize} : null,
+      ));
+  const url =
+      `${origin}/fetch/fetch-later/resources/fetch-later.html?${params}`;
+  expect =
+      expect || new FetchLaterIframeExpectation(FetchLaterExpectationType.DONE);
+
+  const iframe = document.createElement('iframe');
+  if (allowDeferredFetch) {
+    iframe.allow = 'deferred-fetch';
+  }
+  iframe.src = url;
+
+  const messageReceived = new Promise((resolve, reject) => {
+    addEventListener('message', function handler(e) {
+      if (e.source !== iframe.contentWindow) {
+        return;
+      }
+      try {
+        if (expect.run(e, url)) {
+          removeEventListener('message', handler);
+          resolve(e.data.type);
+        }
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+
+  await loadElement(iframe);
+  const messageType = await messageReceived;
+  if (messageType === FetchLaterIframeMessageType.DONE && uuid) {
+    await expectBeacon(uuid, {count: 1});
+  }
+
   return iframe;
 }

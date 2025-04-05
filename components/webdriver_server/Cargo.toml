@@ -14,11 +14,12 @@ path = "lib.rs"
 [dependencies]
 base = { workspace = true }
 base64 = { workspace = true }
-compositing_traits = { workspace = true }
+constellation_traits = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
+embedder_traits = { workspace = true }
 euclid = { workspace = true }
-http = { workspace = true }
+http = { version = "0.2" }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
@@ -30,6 +31,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
-style_traits = { workspace = true }
+stylo_traits = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }

@@ -1,5 +1,5 @@
 // META: title=validation tests for WebNN API where operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -15,6 +15,8 @@ const kExampleInputDescriptor = {
   dataType: 'float32',
   shape: [2, 4]
 };
+const label = 'where_123';
+const regrexp = new RegExp('\\[' + label + '\\]');
 
 const tests = [
   {
@@ -102,9 +104,7 @@ tests.forEach(
         assert_equals(output.dataType, test.output.dataType);
         assert_array_equals(output.shape, test.output.shape);
       } else {
-        const label = 'where_123';
         const options = {label};
-        const regrexp = new RegExp('\\[' + label + '\\]');
         assert_throws_with_label(
             () => builder.where(condition, trueValue, falseValue, options),
             regrexp);
@@ -143,3 +143,18 @@ multi_builder_test(async (t, builder, otherBuilder) => {
       TypeError,
       () => builder.where(condition, trueValue, falseValueFromOtherBuilder));
 }, '[where] throw if falseValue is from another builder');
+
+
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+
+  const condition = builder.input('condition', {dataType: 'uint8', shape: [1, 4]});
+  const trueValue = builder.input('trueValue', {
+    dataType: 'float32',
+    shape: [context.opSupportLimits().maxTensorByteLength / 4, 1]});
+  const falseValue = builder.input('falseValue', {dataType: 'float32', shape: [1, 4]});
+
+  const options = {label};
+  assert_throws_with_label(
+      () => builder.where(condition, trueValue, falseValue, options), regrexp);
+}, '[where] throw if the output tensor byte length exceeds limit');

@@ -12,16 +12,16 @@ use uuid::Uuid;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::SubtleCrypto;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Crypto
 #[dom_struct]
-pub struct Crypto {
+pub(crate) struct Crypto {
     reflector_: Reflector,
     #[no_trace]
     rng: DomRefCell<ServoRng>,
@@ -37,15 +37,16 @@ impl Crypto {
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<Crypto> {
-        reflect_dom_object(Box::new(Crypto::new_inherited()), global)
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Crypto> {
+        reflect_dom_object(Box::new(Crypto::new_inherited()), global, can_gc)
     }
 }
 
 impl CryptoMethods<crate::DomTypeHolder> for Crypto {
     /// <https://w3c.github.io/webcrypto/#dfn-Crypto-attribute-subtle>
-    fn Subtle(&self) -> DomRoot<SubtleCrypto> {
-        self.subtle.or_init(|| SubtleCrypto::new(&self.global()))
+    fn Subtle(&self, can_gc: CanGc) -> DomRoot<SubtleCrypto> {
+        self.subtle
+            .or_init(|| SubtleCrypto::new(&self.global(), can_gc))
     }
 
     #[allow(unsafe_code)]

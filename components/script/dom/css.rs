@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::{serialize_identifier, Parser, ParserInput};
+use cssparser::{Parser, ParserInput, serialize_identifier};
 use dom_struct::dom_struct;
 use style::context::QuirksMode;
 use style::parser::ParserContext;
-use style::stylesheets::supports_rule::{parse_condition_or_declaration, Declaration};
+use style::stylesheets::supports_rule::{Declaration, parse_condition_or_declaration};
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::ParsingMode;
 
@@ -21,7 +21,7 @@ use crate::dom::worklet::Worklet;
 
 #[dom_struct]
 #[allow(clippy::upper_case_acronyms)]
-pub struct CSS {
+pub(crate) struct CSS {
     reflector_: Reflector,
 }
 

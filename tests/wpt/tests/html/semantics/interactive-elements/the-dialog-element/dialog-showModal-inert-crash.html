@@ -1,17 +1,17 @@
 <!DOCTYPE html>
+
+<!-- This test passes if it does not crash. -->
+
 <iframe id="frame"></iframe>
 <script>
-  async_test(function(t) {
-    onload = t.step_func(() => {
-      const host = document.createElement("div");
-      frame.appendChild(host);
-      frame.contentDocument.body.innerHTML = "<dialog></dialog>";
-      document.body.offsetTop;
-      const root = host.attachShadow({mode: 'open'});
-      root.innerHTML = "<content>";
-      const dialog = frame.contentDocument.querySelector("dialog");
-      dialog.showModal();
-      t.done();
-    });
-  }, "Dialog.showModal() called when we have a dirty shadow distribution should not crash.");
+  window.onload = () => {
+    const host = document.createElement("div");
+    frame.appendChild(host);
+    frame.contentDocument.body.innerHTML = "<dialog></dialog>";
+    document.body.offsetTop;
+    const root = host.attachShadow({mode: 'open'});
+    root.innerHTML = "<content>";
+    const dialog = frame.contentDocument.querySelector("dialog");
+    dialog.showModal();
+  };
 </script>

@@ -12,9 +12,9 @@ use devtools_traits::CssDatabaseProperty;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
 
 pub struct CssPropertiesActor {
     name: String,

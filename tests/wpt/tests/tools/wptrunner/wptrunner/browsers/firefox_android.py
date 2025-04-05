@@ -90,13 +90,9 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
 def env_extras(**kwargs):
     return []
 
-# Default preferences for Android to use when the preference is not specifically stated.
-# See Bug 1577912
-def default_prefs():
-    return {"fission.disableSessionHistoryInParent": "true"}
 
 def run_info_extras(logger, **kwargs):
-    rv = fx_run_info_extras(logger, default_prefs=default_prefs(), **kwargs)
+    rv = fx_run_info_extras(logger, default_prefs=ProfileCreator.default_prefs(), **kwargs)
     rv.update({"headless": False})
 
     if kwargs["browser_version"] is None:
@@ -141,6 +137,8 @@ def get_environ(chaos_mode_flags, env_extras=None):
     env = {}
     if env_extras is not None:
         env.update(env_extras)
+    if os.environ.get("MINIDUMP_SAVE_PATH"):
+        env["MINIDUMP_SAVE_PATH"] = os.environ["MINIDUMP_SAVE_PATH"]
     env["MOZ_CRASHREPORTER"] = "1"
     env["MOZ_CRASHREPORTER_SHUTDOWN"] = "1"
     env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
@@ -159,6 +157,10 @@ class ProfileCreator(FirefoxProfileCreator):
                          disable_fission, debug_test, browser_channel, None,
                          package_name, certutil_binary, ca_certificate_path,
                          allow_list_paths)
+
+    @staticmethod
+    def default_prefs():
+        return {"fission.disableSessionHistoryInParent": True}
 
     def _set_required_prefs(self, profile):
         profile.set_preferences({
@@ -192,8 +194,6 @@ class ProfileCreator(FirefoxProfileCreator):
         profile.set_preferences({"fission.autostart": True})
         if self.disable_fission:
             profile.set_preferences({"fission.autostart": False})
-
-        profile.set_preferences(default_prefs())
 
 
 class FirefoxAndroidBrowser(Browser):
@@ -280,10 +280,12 @@ class FirefoxAndroidBrowser(Browser):
 
         self.leak_report_file = None
 
-        debug_args, cmd = browser_command(self.package_name,
-                                          self.binary_args if self.binary_args else [] +
-                                          [cmd_arg("marionette"), "about:blank"],
-                                          self.debug_info)
+        args = self.binary_args[:] if self.binary_args else []
+        args += [cmd_arg("marionette"),
+                 cmd_arg("remote-allow-system-access"), "about:blank"]
+
+        debug_args, cmd = browser_command(
+            self.package_name, args, self.debug_info)
 
         env = get_environ(self.chaos_mode_flags, self.env_extras)
 
@@ -354,7 +356,8 @@ class FirefoxAndroidBrowser(Browser):
                                  # We never want marionette to install extensions because
                                  # that doesn't work on Android; instead they are in the profile
                                  "extensions": [],
-                                 "supports_devtools": False}
+                                 "supports_devtools": False,
+                                 "supports_window_resize": False}
 
     def check_crash(self, process, test):
         if not os.environ.get("MINIDUMP_STACKWALK", "") and self.stackwalk_binary:

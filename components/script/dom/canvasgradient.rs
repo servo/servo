@@ -12,7 +12,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasGradientMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -20,7 +20,7 @@ use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
 #[dom_struct]
-pub struct CanvasGradient {
+pub(crate) struct CanvasGradient {
     reflector_: Reflector,
     style: CanvasGradientStyle,
     #[no_trace]
@@ -28,7 +28,7 @@ pub struct CanvasGradient {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub enum CanvasGradientStyle {
+pub(crate) enum CanvasGradientStyle {
     Linear(#[no_trace] LinearGradientStyle),
     Radial(#[no_trace] RadialGradientStyle),
 }
@@ -42,8 +42,16 @@ impl CanvasGradient {
         }
     }
 
-    pub fn new(global: &GlobalScope, style: CanvasGradientStyle) -> DomRoot<CanvasGradient> {
-        reflect_dom_object(Box::new(CanvasGradient::new_inherited(style)), global)
+    pub(crate) fn new(
+        global: &GlobalScope,
+        style: CanvasGradientStyle,
+        can_gc: CanGc,
+    ) -> DomRoot<CanvasGradient> {
+        reflect_dom_object(
+            Box::new(CanvasGradient::new_inherited(style)),
+            global,
+            can_gc,
+        )
     }
 }
 
@@ -67,11 +75,11 @@ impl CanvasGradientMethods<crate::DomTypeHolder> for CanvasGradient {
     }
 }
 
-pub trait ToFillOrStrokeStyle {
+pub(crate) trait ToFillOrStrokeStyle {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle;
 }
 
-impl<'a> ToFillOrStrokeStyle for &'a CanvasGradient {
+impl ToFillOrStrokeStyle for &CanvasGradient {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
         let gradient_stops = self.stops.borrow().clone();
         match self.style {

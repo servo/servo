@@ -63,7 +63,7 @@ function test_source_location_with_redirect({path, type, name}) {
         assert_not_equals(result, "empty", "CORS-ok scripts should expose sourceLocation");
       } else {
         assert_equals(result, "pre-redirect", "No-CORS classic scripts should expose pre-redirect URL");
-        assert_equals(script.sourceCharPosition, type === "script-block" ? 0 : -1, "No-CORS classic scripts should not expose character index");
+        assert_equals(script.sourceCharPosition, type === "script-block" || type === "resolve-promise" ? 0 : -1, "No-CORS classic scripts should not expose character index");
       }
     }, `Test ${type} with ${scriptType}`);
   }

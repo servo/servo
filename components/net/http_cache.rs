@@ -9,15 +9,15 @@
 
 use std::collections::HashMap;
 use std::ops::Bound;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime};
 
 use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
 };
 use http::header::HeaderValue;
-use http::{header, HeaderMap, Method, StatusCode};
+use http::{HeaderMap, Method, StatusCode, header};
 use log::debug;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalSizeOf};
 use malloc_size_of_derive::MallocSizeOf;
@@ -28,7 +28,7 @@ use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
-use tokio::sync::mpsc::{unbounded_channel as unbounded, UnboundedSender as TokioSender};
+use tokio::sync::mpsc::{UnboundedSender as TokioSender, unbounded_channel as unbounded};
 
 use crate::fetch::methods::{Data, DoneChannel};
 
@@ -345,7 +345,7 @@ fn create_resource_with_bytes_from_resource(
 fn handle_range_request(
     request: &Request,
     candidates: &[&CachedResource],
-    range_spec: Vec<(Bound<u64>, Bound<u64>)>,
+    range_spec: &Range,
     done_chan: &mut DoneChannel,
 ) -> Option<CachedResponse> {
     let mut complete_cached_resources = candidates
@@ -354,10 +354,7 @@ fn handle_range_request(
     let partial_cached_resources = candidates
         .iter()
         .filter(|resource| resource.status == StatusCode::PARTIAL_CONTENT);
-    match (
-        range_spec.first().unwrap(),
-        complete_cached_resources.next(),
-    ) {
+    if let Some(complete_resource) = complete_cached_resources.next() {
         // TODO: take the full range spec into account.
         // If we have a complete resource, take the request range from the body.
         // When there isn't a complete resource available, we loop over cached partials,
@@ -366,172 +363,145 @@ fn handle_range_request(
         // see <https://tools.ietf.org/html/rfc7233#section-4.3>.
         // TODO: add support for complete and partial resources,
         // whose body is in the ResponseBody::Receiving state.
-        (&(Bound::Included(beginning), Bound::Included(end)), Some(complete_resource)) => {
-            if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
-                if end == u64::MAX {
-                    // Prevent overflow on the addition below.
-                    return None;
-                }
-                let b = beginning as usize;
-                let e = end as usize + 1;
-                let requested = body.get(b..e);
-                if let Some(bytes) = requested {
-                    let new_resource =
-                        create_resource_with_bytes_from_resource(bytes, complete_resource);
-                    let cached_headers = new_resource.metadata.headers.lock().unwrap();
-                    let cached_response =
-                        create_cached_response(request, &new_resource, &cached_headers, done_chan);
-                    if let Some(cached_response) = cached_response {
-                        return Some(cached_response);
+        let body_len = match *complete_resource.body.lock().unwrap() {
+            ResponseBody::Done(ref body) => body.len(),
+            _ => 0,
+        };
+        let bound = range_spec
+            .satisfiable_ranges(body_len.try_into().unwrap())
+            .next()
+            .unwrap();
+        match bound {
+            (Bound::Included(beginning), Bound::Included(end)) => {
+                if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
+                    if end == u64::MAX {
+                        // Prevent overflow on the addition below.
+                        return None;
                     }
-                }
-            }
-        },
-        (&(Bound::Included(beginning), Bound::Included(end)), None) => {
-            for partial_resource in partial_cached_resources {
-                let headers = partial_resource.metadata.headers.lock().unwrap();
-                let content_range = headers.typed_get::<ContentRange>();
-                let (res_beginning, res_end) = match content_range {
-                    Some(range) => {
-                        if let Some(bytes_range) = range.bytes_range() {
-                            bytes_range
-                        } else {
-                            continue;
-                        }
-                    },
-                    _ => continue,
-                };
-                if res_beginning <= beginning && res_end >= end {
-                    let resource_body = &*partial_resource.body.lock().unwrap();
-                    let requested = match resource_body {
-                        ResponseBody::Done(body) => {
-                            let b = beginning as usize - res_beginning as usize;
-                            let e = end as usize - res_beginning as usize + 1;
-                            body.get(b..e)
-                        },
-                        _ => continue,
-                    };
+                    let b = beginning as usize;
+                    let e = end as usize + 1;
+                    let requested = body.get(b..e);
                     if let Some(bytes) = requested {
                         let new_resource =
-                            create_resource_with_bytes_from_resource(bytes, partial_resource);
-                        let cached_response =
-                            create_cached_response(request, &new_resource, &headers, done_chan);
+                            create_resource_with_bytes_from_resource(bytes, complete_resource);
+                        let cached_headers = new_resource.metadata.headers.lock().unwrap();
+                        let cached_response = create_cached_response(
+                            request,
+                            &new_resource,
+                            &cached_headers,
+                            done_chan,
+                        );
                         if let Some(cached_response) = cached_response {
                             return Some(cached_response);
                         }
                     }
                 }
-            }
-        },
-        (&(Bound::Included(beginning), Bound::Unbounded), Some(complete_resource)) => {
-            if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
-                let b = beginning as usize;
-                let requested = body.get(b..);
-                if let Some(bytes) = requested {
-                    let new_resource =
-                        create_resource_with_bytes_from_resource(bytes, complete_resource);
-                    let cached_headers = new_resource.metadata.headers.lock().unwrap();
-                    let cached_response =
-                        create_cached_response(request, &new_resource, &cached_headers, done_chan);
-                    if let Some(cached_response) = cached_response {
-                        return Some(cached_response);
-                    }
-                }
-            }
-        },
-        (&(Bound::Included(beginning), Bound::Unbounded), None) => {
-            for partial_resource in partial_cached_resources {
-                let headers = partial_resource.metadata.headers.lock().unwrap();
-                let content_range = headers.typed_get::<ContentRange>();
-                let (res_beginning, res_end, total) = if let Some(range) = content_range {
-                    match (range.bytes_range(), range.bytes_len()) {
-                        (Some(bytes_range), Some(total)) => (bytes_range.0, bytes_range.1, total),
-                        _ => continue,
-                    }
-                } else {
-                    continue;
-                };
-                if total == 0 {
-                    // Prevent overflow in the below operations from occuring.
-                    continue;
-                };
-                if res_beginning < beginning && res_end == total - 1 {
-                    let resource_body = &*partial_resource.body.lock().unwrap();
-                    let requested = match resource_body {
-                        ResponseBody::Done(body) => {
-                            let from_byte = beginning as usize - res_beginning as usize;
-                            body.get(from_byte..)
-                        },
-                        _ => continue,
-                    };
+            },
+            (Bound::Included(beginning), Bound::Unbounded) => {
+                if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
+                    let b = beginning as usize;
+                    let requested = body.get(b..);
                     if let Some(bytes) = requested {
                         let new_resource =
-                            create_resource_with_bytes_from_resource(bytes, partial_resource);
-                        let cached_response =
-                            create_cached_response(request, &new_resource, &headers, done_chan);
+                            create_resource_with_bytes_from_resource(bytes, complete_resource);
+                        let cached_headers = new_resource.metadata.headers.lock().unwrap();
+                        let cached_response = create_cached_response(
+                            request,
+                            &new_resource,
+                            &cached_headers,
+                            done_chan,
+                        );
                         if let Some(cached_response) = cached_response {
                             return Some(cached_response);
                         }
                     }
                 }
-            }
-        },
-        (&(Bound::Unbounded, Bound::Included(offset)), Some(complete_resource)) => {
-            if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
-                let from_byte = body.len() - offset as usize;
-                let requested = body.get(from_byte..);
-                if let Some(bytes) = requested {
-                    let new_resource =
-                        create_resource_with_bytes_from_resource(bytes, complete_resource);
-                    let cached_headers = new_resource.metadata.headers.lock().unwrap();
-                    let cached_response =
-                        create_cached_response(request, &new_resource, &cached_headers, done_chan);
-                    if let Some(cached_response) = cached_response {
-                        return Some(cached_response);
-                    }
-                }
-            }
-        },
-        (&(Bound::Unbounded, Bound::Included(offset)), None) => {
-            for partial_resource in partial_cached_resources {
-                let headers = partial_resource.metadata.headers.lock().unwrap();
-                let content_range = headers.typed_get::<ContentRange>();
-                let (res_beginning, res_end, total) = if let Some(range) = content_range {
-                    match (range.bytes_range(), range.bytes_len()) {
-                        (Some(bytes_range), Some(total)) => (bytes_range.0, bytes_range.1, total),
-                        _ => continue,
-                    }
-                } else {
-                    continue;
-                };
-                if total < res_beginning || total < res_end || offset == 0 || offset == u64::MAX {
-                    // Prevent overflow in the below operations from occuring.
-                    continue;
-                }
-                if (total - res_beginning) > (offset - 1) && (total - res_end) < offset + 1 {
-                    let resource_body = &*partial_resource.body.lock().unwrap();
-                    let requested = match resource_body {
-                        ResponseBody::Done(body) => {
-                            let from_byte = body.len() - offset as usize;
-                            body.get(from_byte..)
+            },
+            _ => return None,
+        }
+    } else {
+        for partial_resource in partial_cached_resources {
+            let headers = partial_resource.metadata.headers.lock().unwrap();
+            let content_range = headers.typed_get::<ContentRange>();
+
+            let Some(body_len) = content_range.as_ref().and_then(|range| range.bytes_len()) else {
+                continue;
+            };
+            match range_spec.satisfiable_ranges(body_len - 1).next().unwrap() {
+                (Bound::Included(beginning), Bound::Included(end)) => {
+                    let (res_beginning, res_end) = match content_range {
+                        Some(range) => {
+                            if let Some(bytes_range) = range.bytes_range() {
+                                bytes_range
+                            } else {
+                                continue;
+                            }
                         },
                         _ => continue,
                     };
-                    if let Some(bytes) = requested {
-                        let new_resource =
-                            create_resource_with_bytes_from_resource(bytes, partial_resource);
-                        let cached_response =
-                            create_cached_response(request, &new_resource, &headers, done_chan);
-                        if let Some(cached_response) = cached_response {
-                            return Some(cached_response);
+                    if res_beginning <= beginning && res_end >= end {
+                        let resource_body = &*partial_resource.body.lock().unwrap();
+                        let requested = match resource_body {
+                            ResponseBody::Done(body) => {
+                                let b = beginning as usize - res_beginning as usize;
+                                let e = end as usize - res_beginning as usize + 1;
+                                body.get(b..e)
+                            },
+                            _ => continue,
+                        };
+                        if let Some(bytes) = requested {
+                            let new_resource =
+                                create_resource_with_bytes_from_resource(bytes, partial_resource);
+                            let cached_response =
+                                create_cached_response(request, &new_resource, &headers, done_chan);
+                            if let Some(cached_response) = cached_response {
+                                return Some(cached_response);
+                            }
                         }
                     }
-                }
+                },
+
+                (Bound::Included(beginning), Bound::Unbounded) => {
+                    let (res_beginning, res_end, total) = if let Some(range) = content_range {
+                        match (range.bytes_range(), range.bytes_len()) {
+                            (Some(bytes_range), Some(total)) => {
+                                (bytes_range.0, bytes_range.1, total)
+                            },
+                            _ => continue,
+                        }
+                    } else {
+                        continue;
+                    };
+                    if total == 0 {
+                        // Prevent overflow in the below operations from occuring.
+                        continue;
+                    };
+                    if res_beginning <= beginning && res_end == total - 1 {
+                        let resource_body = &*partial_resource.body.lock().unwrap();
+                        let requested = match resource_body {
+                            ResponseBody::Done(body) => {
+                                let from_byte = beginning as usize - res_beginning as usize;
+                                body.get(from_byte..)
+                            },
+                            _ => continue,
+                        };
+                        if let Some(bytes) = requested {
+                            let new_resource =
+                                create_resource_with_bytes_from_resource(bytes, partial_resource);
+                            let cached_response =
+                                create_cached_response(request, &new_resource, &headers, done_chan);
+                            if let Some(cached_response) = cached_response {
+                                return Some(cached_response);
+                            }
+                        }
+                    }
+                },
+
+                _ => continue,
             }
-        },
-        // All the cases with Bound::Excluded should be unreachable anyway
-        _ => return None,
+        }
     }
+
     None
 }
 
@@ -607,12 +577,7 @@ impl HttpCache {
         }
         // Support for range requests
         if let Some(range_spec) = request.headers.typed_get::<Range>() {
-            return handle_range_request(
-                request,
-                candidates.as_slice(),
-                range_spec.iter().collect(),
-                done_chan,
-            );
+            return handle_range_request(request, candidates.as_slice(), &range_spec, done_chan);
         }
         while let Some(cached_resource) = candidates.pop() {
             // Not a Range request.
@@ -660,13 +625,15 @@ impl HttpCache {
             Some(resources) => resources,
         };
 
+        let actual_response = response.actual_response();
+
         // Ensure we only wake-up consumers of relevant resources,
         // ie we don't want to wake-up 200 awaiting consumers with a 206.
         let relevant_cached_resources = cached_resources.iter().filter(|resource| {
-            if response.actual_response().is_network_error() {
+            if actual_response.is_network_error() {
                 return *resource.body.lock().unwrap() == ResponseBody::Empty;
             }
-            resource.status == response.status
+            resource.status == actual_response.status
         });
 
         for cached_resource in relevant_cached_resources {
@@ -791,7 +758,7 @@ impl HttpCache {
     /// Storing Responses in Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-3>
     pub fn store(&mut self, request: &Request, response: &Response) {
-        if pref!(network.http_cache.disabled) {
+        if pref!(network_http_cache_disabled) {
             return;
         }
         if request.method != Method::GET {

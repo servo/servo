@@ -6,14 +6,15 @@ use canvas_traits::canvas::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::canvasgradient::ToFillOrStrokeStyle;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvaspattern
 #[dom_struct]
-pub struct CanvasPattern {
+pub(crate) struct CanvasPattern {
     reflector_: Reflector,
     surface_data: Vec<u8>,
     #[no_trace]
@@ -46,12 +47,13 @@ impl CanvasPattern {
             origin_clean,
         }
     }
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         surface_data: Vec<u8>,
         surface_size: Size2D<u32>,
         repeat: RepetitionStyle,
         origin_clean: bool,
+        can_gc: CanGc,
     ) -> DomRoot<CanvasPattern> {
         reflect_dom_object(
             Box::new(CanvasPattern::new_inherited(
@@ -61,14 +63,15 @@ impl CanvasPattern {
                 origin_clean,
             )),
             global,
+            can_gc,
         )
     }
-    pub fn origin_is_clean(&self) -> bool {
+    pub(crate) fn origin_is_clean(&self) -> bool {
         self.origin_clean
     }
 }
 
-impl<'a> ToFillOrStrokeStyle for &'a CanvasPattern {
+impl ToFillOrStrokeStyle for &CanvasPattern {
     fn to_fill_or_stroke_style(self) -> FillOrStrokeStyle {
         FillOrStrokeStyle::Surface(SurfaceStyle::new(
             self.surface_data.clone(),

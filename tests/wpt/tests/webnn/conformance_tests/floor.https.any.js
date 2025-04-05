@@ -1,5 +1,5 @@
 // META: title=test WebNN API element-wise floor operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -243,6 +243,213 @@ const floorTests = [
             -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
           ],
           'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
+        }
+      }
+    }
+  },
+
+  // float16 tests
+  {
+    'name': 'floor float16 0D scalar',
+    'graph': {
+      'inputs': {
+        'floorInput':
+            {'data': [89.6875], 'descriptor': {shape: [], dataType: 'float16'}}
+      },
+      'operators': [{
+        'name': 'floor',
+        'arguments': [{'input': 'floorInput'}],
+        'outputs': 'floorOutput'
+      }],
+      'expectedOutputs': {
+        'floorOutput':
+            {'data': [89], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'floor float16 1D constant tensor',
+    'graph': {
+      'inputs': {
+        'floorInput': {
+          'data': [
+            89.6875,    -79.6875, -66.8125,     -71.875,   86.3125,
+            6.82421875, 24.90625, 0.9736328125, 19.953125, 0.84375,
+            -24.75,     77.75,    -33.65625,    80.75,     44.46875,
+            -37.65625,  -83.8125, 65.8125,      -39.84375, 32.53125,
+            -21.21875,  -80.3125, 16.671875,    -72.875
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'floor',
+        'arguments': [{'input': 'floorInput'}],
+        'outputs': 'floorOutput'
+      }],
+      'expectedOutputs': {
+        'floorOutput': {
+          'data': [
+            89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
+            -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'floor float16 1D tensor',
+    'graph': {
+      'inputs': {
+        'floorInput': {
+          'data': [
+            89.6875,    -79.6875, -66.8125,     -71.875,   86.3125,
+            6.82421875, 24.90625, 0.9736328125, 19.953125, 0.84375,
+            -24.75,     77.75,    -33.65625,    80.75,     44.46875,
+            -37.65625,  -83.8125, 65.8125,      -39.84375, 32.53125,
+            -21.21875,  -80.3125, 16.671875,    -72.875
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'floor',
+        'arguments': [{'input': 'floorInput'}],
+        'outputs': 'floorOutput'
+      }],
+      'expectedOutputs': {
+        'floorOutput': {
+          'data': [
+            89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
+            -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'floor float16 2D tensor',
+    'graph': {
+      'inputs': {
+        'floorInput': {
+          'data': [
+            89.6875,    -79.6875, -66.8125,     -71.875,   86.3125,
+            6.82421875, 24.90625, 0.9736328125, 19.953125, 0.84375,
+            -24.75,     77.75,    -33.65625,    80.75,     44.46875,
+            -37.65625,  -83.8125, 65.8125,      -39.84375, 32.53125,
+            -21.21875,  -80.3125, 16.671875,    -72.875
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'floor',
+        'arguments': [{'input': 'floorInput'}],
+        'outputs': 'floorOutput'
+      }],
+      'expectedOutputs': {
+        'floorOutput': {
+          'data': [
+            89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
+            -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'floor float16 3D tensor',
+    'graph': {
+      'inputs': {
+        'floorInput': {
+          'data': [
+            89.6875,    -79.6875, -66.8125,     -71.875,   86.3125,
+            6.82421875, 24.90625, 0.9736328125, 19.953125, 0.84375,
+            -24.75,     77.75,    -33.65625,    80.75,     44.46875,
+            -37.65625,  -83.8125, 65.8125,      -39.84375, 32.53125,
+            -21.21875,  -80.3125, 16.671875,    -72.875
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'floor',
+        'arguments': [{'input': 'floorInput'}],
+        'outputs': 'floorOutput'
+      }],
+      'expectedOutputs': {
+        'floorOutput': {
+          'data': [
+            89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
+            -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'floor float16 4D tensor',
+    'graph': {
+      'inputs': {
+        'floorInput': {
+          'data': [
+            89.6875,    -79.6875, -66.8125,     -71.875,   86.3125,
+            6.82421875, 24.90625, 0.9736328125, 19.953125, 0.84375,
+            -24.75,     77.75,    -33.65625,    80.75,     44.46875,
+            -37.65625,  -83.8125, 65.8125,      -39.84375, 32.53125,
+            -21.21875,  -80.3125, 16.671875,    -72.875
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'floor',
+        'arguments': [{'input': 'floorInput'}],
+        'outputs': 'floorOutput'
+      }],
+      'expectedOutputs': {
+        'floorOutput': {
+          'data': [
+            89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
+            -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'floor float16 5D tensor',
+    'graph': {
+      'inputs': {
+        'floorInput': {
+          'data': [
+            89.6875,    -79.6875, -66.8125,     -71.875,   86.3125,
+            6.82421875, 24.90625, 0.9736328125, 19.953125, 0.84375,
+            -24.75,     77.75,    -33.65625,    80.75,     44.46875,
+            -37.65625,  -83.8125, 65.8125,      -39.84375, 32.53125,
+            -21.21875,  -80.3125, 16.671875,    -72.875
+          ],
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'floor',
+        'arguments': [{'input': 'floorInput'}],
+        'outputs': 'floorOutput'
+      }],
+      'expectedOutputs': {
+        'floorOutput': {
+          'data': [
+            89,  -80, -67, -72, 86,  6,  24,  0,  19,  0,   -25, 77,
+            -34, 80,  44,  -38, -84, 65, -40, 32, -22, -81, 16,  -73
+          ],
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
         }
       }
     }

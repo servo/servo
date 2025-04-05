@@ -24,7 +24,7 @@ def get_browser_args(product, channel, artifact_path):
     if product == "chrome" or product == "chromium":
         # Taskcluster machines do not have GPUs, so use software rendering via --enable-swiftshader.
         return ["--enable-swiftshader", "--install-browser", "--install-webdriver"]
-    if product == "webkitgtk_minibrowser":
+    if product in ["webkitgtk_minibrowser", "wpewebkit_minibrowser"]:
         # Using 4 parallel jobs gives 4x speed-up even on a 1-core machine and doesn't cause extra timeouts.
         # See: https://github.com/web-platform-tests/wpt/issues/38723#issuecomment-1470938179
         return ["--install-browser", "--processes=4"]
@@ -33,13 +33,13 @@ def get_browser_args(product, channel, artifact_path):
 
 def find_wptreport(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--log-wptreport', action='store')
+    parser.add_argument('--log-wptreport')
     return parser.parse_known_args(args)[0].log_wptreport
 
 
 def find_wptscreenshot(args):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--log-wptscreenshot', action='store')
+    parser.add_argument('--log-wptscreenshot')
     return parser.parse_known_args(args)[0].log_wptscreenshot
 
 
@@ -80,9 +80,11 @@ def main(product, channel, commit_range, artifact_path, wpt_args):
         "--no-pause",
         "--no-restart-on-unexpected",
         "--install-fonts",
-        "--no-headless",
         "--verify-log-full"
     ]
+    # Enable headless mode for WPE MiniBrowser because it can't work under Xvfb/X11 (needs Wayland)
+    wpt_args.append("--headless" if product == "wpewebkit_minibrowser" else "--no-headless")
+
     wpt_args += get_browser_args(product, channel, artifact_path)
 
     # Hack to run servo with one process only for wdspec
@@ -111,17 +113,14 @@ def main(product, channel, commit_range, artifact_path, wpt_args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=main.__doc__)
-    parser.add_argument("--commit-range", action="store",
+    parser.add_argument("--commit-range",
                         help="""Git commit range. If specified, this will be
                              supplied to the `wpt tests-affected` command to
                              determine the list of test to execute""")
-    parser.add_argument("--artifact-path", action="store",
-                        default="/home/test/artifacts/",
+    parser.add_argument("--artifact-path", default="/home/test/artifacts/",
                         help="Path to store output files")
-    parser.add_argument("product", action="store",
-                        help="Browser to run tests in")
-    parser.add_argument("channel", action="store",
-                        help="Channel of the browser")
+    parser.add_argument("product", help="Browser to run tests in")
+    parser.add_argument("channel", help="Channel of the browser")
     parser.add_argument("wpt_args", nargs="*",
                         help="Arguments to forward to `wpt run` command")
     main(**vars(parser.parse_args()))  # type: ignore

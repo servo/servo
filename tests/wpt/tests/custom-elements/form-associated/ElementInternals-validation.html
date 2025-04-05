@@ -189,6 +189,15 @@ test(() => {
 }, 'validity and setValidity()');
 
 test(() => {
+  const control = document.createElement('my-control');
+  control.i.setValidity({badInput: true}, 'error message');
+  const validity = control.i.validity;
+  assert_false(validity.customError);
+  assert_false(validity.valid);
+  assert_equals(control.i.validationMessage, 'error message');
+}, "validity.customError should be false if not explicitly set via setValidity()");
+
+test(() => {
   document.body.insertAdjacentHTML('afterbegin', '<my-control><light-child></my-control>');
   let control = document.body.firstChild;
   const flags = {valueMissing: true};

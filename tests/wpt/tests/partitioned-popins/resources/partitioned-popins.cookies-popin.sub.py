@@ -19,7 +19,6 @@ def main(request, response):
 
   // Step 7 (partitioned-popins/partitioned-popins.cookies-*.tentative.sub.https.window.js)
   const id = (new URLSearchParams(window.location.search)).get("id");
-  test_driver.set_test_context(window.top);
   let cookie_string_on_load = \"""" + cookie_string + b"""\";
   let message = "ReadOnLoad:";
   message += getCookieMessage(cookie_string_on_load, "FirstParty", "", id);
@@ -68,18 +67,8 @@ def main(request, response):
   message += getCookieMessage(document.cookie, "ThirdParty", "PopinAfterRSA", id);
 
   // Step 8 (partitioned-popins/partitioned-popins.cookies-*.tentative.sub.https.window.js)
-  window.addEventListener("message", e => {
-    switch (e.data.type) {
-      case 'popin-iframe-read':
-        message += e.data.message;
-        window.opener.postMessage({type: "popin-read", message: message}, "*");
-        window.close();
-        break;
-    }
-  });
-  const iframe = document.createElement("iframe");
-  iframe.src = "https://{{hosts[][]}}:{{ports[https][0]}}/partitioned-popins/resources/partitioned-popins.cookies-popin-iframe.html?id="+id;
-  document.body.appendChild(iframe);
+  window.opener.postMessage({type: "popin-read", message: message}, "*");
+  window.close();
 })();
 </script>
 """

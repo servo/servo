@@ -22,6 +22,16 @@ p {
         assert_greater_than_equal(performance.now(), entry.renderTime);
         assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
           'startTime should be equal to renderTime to the precision of 1 millisecond.');
+
+        // PaintTimingMixin
+        assert_greater_than_equal(entry.paintTime, beforeRender, 'paintTime should represent the time when the UA started painting');
+
+        if ("presentationTime" in entry) {
+          assert_greater_than(entry.presentationTime, entry.paintTime);
+          assert_equals(entry.presentationTime, entry.renderTime);
+        } else {
+          assert_equals(entry.renderTime, entry.paintTime);
+        }
         assert_equals(entry.duration, 0);
         // Some lower bound: height of at least 12 px.
         // Width of at least 100 px.

@@ -7,8 +7,7 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#textFieldSelection>
 
-use script_traits::ScriptToConstellationChan;
-
+use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::conversions::DerivedFrom;
@@ -16,30 +15,30 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::node::{window_from_node, Node, NodeDamage};
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::textinput::{SelectionDirection, SelectionState, TextInput, UTF8Bytes};
 
-pub trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
+pub(crate) trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     fn selection_api_applies(&self) -> bool;
     fn has_selectable_text(&self) -> bool;
     fn set_dirty_value_flag(&self, value: bool);
 }
 
-pub struct TextControlSelection<'a, E: TextControlElement> {
+pub(crate) struct TextControlSelection<'a, E: TextControlElement> {
     element: &'a E,
-    textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>,
+    textinput: &'a DomRefCell<TextInput<EmbedderClipboardProvider>>,
 }
 
 impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
-    pub fn new(
+    pub(crate) fn new(
         element: &'a E,
-        textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>,
+        textinput: &'a DomRefCell<TextInput<EmbedderClipboardProvider>>,
     ) -> Self {
         TextControlSelection { element, textinput }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
-    pub fn dom_select(&self) {
+    pub(crate) fn dom_select(&self) {
         // Step 1
         if !self.element.has_selectable_text() {
             return;
@@ -50,7 +49,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    pub fn dom_start(&self) -> Option<u32> {
+    pub(crate) fn dom_start(&self) -> Option<u32> {
         // Step 1
         if !self.element.selection_api_applies() {
             return None;
@@ -61,7 +60,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    pub fn set_dom_start(&self, start: Option<u32>) -> ErrorResult {
+    pub(crate) fn set_dom_start(&self, start: Option<u32>) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
@@ -83,7 +82,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    pub fn dom_end(&self) -> Option<u32> {
+    pub(crate) fn dom_end(&self) -> Option<u32> {
         // Step 1
         if !self.element.selection_api_applies() {
             return None;
@@ -94,7 +93,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    pub fn set_dom_end(&self, end: Option<u32>) -> ErrorResult {
+    pub(crate) fn set_dom_end(&self, end: Option<u32>) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
@@ -106,7 +105,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    pub fn dom_direction(&self) -> Option<DOMString> {
+    pub(crate) fn dom_direction(&self) -> Option<DOMString> {
         // Step 1
         if !self.element.selection_api_applies() {
             return None;
@@ -116,7 +115,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    pub fn set_dom_direction(&self, direction: Option<DOMString>) -> ErrorResult {
+    pub(crate) fn set_dom_direction(&self, direction: Option<DOMString>) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
@@ -133,7 +132,12 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
-    pub fn set_dom_range(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
+    pub(crate) fn set_dom_range(
+        &self,
+        start: u32,
+        end: u32,
+        direction: Option<DOMString>,
+    ) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
@@ -150,7 +154,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
-    pub fn set_dom_range_text(
+    pub(crate) fn set_dom_range_text(
         &self,
         replacement: DOMString,
         start: Option<u32>,
@@ -300,8 +304,8 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
 
         // Step 6
         if textinput.selection_state() != original_selection_state {
-            let window = window_from_node(self.element);
-            window
+            self.element
+                .owner_global()
                 .task_manager()
                 .user_interaction_task_source()
                 .queue_event(
@@ -309,7 +313,6 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
                     atom!("select"),
                     EventBubbles::Bubbles,
                     EventCancelable::NotCancelable,
-                    &window,
                 );
         }
 

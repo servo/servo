@@ -16,19 +16,18 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
-use crate::task_source::TaskSource;
+use crate::dom::bindings::reflector::DomGlobal;
 
 #[dom_struct]
-pub struct AudioScheduledSourceNode {
+pub(crate) struct AudioScheduledSourceNode {
     node: AudioNode,
     has_start: Cell<bool>,
     has_stop: Cell<bool>,
 }
 
 impl AudioScheduledSourceNode {
-    #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
         node_type: AudioNodeInit,
         context: &BaseAudioContext,
         options: UnwrappedAudioNodeOptions,
@@ -48,11 +47,11 @@ impl AudioScheduledSourceNode {
         })
     }
 
-    pub fn node(&self) -> &AudioNode {
+    pub(crate) fn node(&self) -> &AudioNode {
         &self.node
     }
 
-    pub fn has_start(&self) -> bool {
+    pub(crate) fn has_start(&self) -> bool {
         self.has_start.get()
     }
 }
@@ -72,25 +71,19 @@ impl AudioScheduledSourceNodeMethods<crate::DomTypeHolder> for AudioScheduledSou
         }
 
         let this = Trusted::new(self);
-        let global = self.global();
-        let window = global.as_window();
-        let (task_source, canceller) = window
+        let task_source = self
+            .global()
             .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+            .dom_manipulation_task_source()
+            .to_sendable();
         let callback = OnEndedCallback::new(move || {
-            let _ = task_source.queue_with_canceller(
-                task!(ended: move || {
-                    let this = this.root();
-                    let global = this.global();
-                    let window = global.as_window();
-                    window.task_manager().dom_manipulation_task_source().queue_simple_event(
-                        this.upcast(),
-                        atom!("ended"),
-                        window
-                        );
-                }),
-                &canceller,
-            );
+            task_source.queue(task!(ended: move || {
+                let this = this.root();
+                this.global().task_manager().dom_manipulation_task_source().queue_simple_event(
+                    this.upcast(),
+                    atom!("ended"),
+                    );
+            }));
         });
 
         self.node()

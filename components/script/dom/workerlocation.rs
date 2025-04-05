@@ -6,15 +6,16 @@ use dom_struct::dom_struct;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#worker-locations
 #[dom_struct]
-pub struct WorkerLocation {
+pub(crate) struct WorkerLocation {
     reflector_: Reflector,
     #[no_trace]
     url: ServoUrl,
@@ -28,13 +29,17 @@ impl WorkerLocation {
         }
     }
 
-    pub fn new(global: &WorkerGlobalScope, url: ServoUrl) -> DomRoot<WorkerLocation> {
-        reflect_dom_object(Box::new(WorkerLocation::new_inherited(url)), global)
+    pub(crate) fn new(
+        global: &WorkerGlobalScope,
+        url: ServoUrl,
+        can_gc: CanGc,
+    ) -> DomRoot<WorkerLocation> {
+        reflect_dom_object(Box::new(WorkerLocation::new_inherited(url)), global, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin
     #[allow(dead_code)]
-    pub fn origin(&self) -> ImmutableOrigin {
+    pub(crate) fn origin(&self) -> ImmutableOrigin {
         self.url.origin()
     }
 }

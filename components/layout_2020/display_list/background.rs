@@ -8,14 +8,14 @@ use style::computed_values::background_attachment::SingleComputedValue as Backgr
 use style::computed_values::background_clip::single_value::T as Clip;
 use style::computed_values::background_origin::single_value::T as Origin;
 use style::properties::ComputedValues;
-use style::values::computed::background::BackgroundSize as Size;
 use style::values::computed::LengthPercentage;
+use style::values::computed::background::BackgroundSize as Size;
 use style::values::specified::background::{
     BackgroundRepeat as RepeatXY, BackgroundRepeatKeyword as Repeat,
 };
 use webrender_api::{self as wr, units};
-use wr::units::LayoutSize;
 use wr::ClipChainId;
+use wr::units::LayoutSize;
 
 use crate::replaced::NaturalSizes;
 

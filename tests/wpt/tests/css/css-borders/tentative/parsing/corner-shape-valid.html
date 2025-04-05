@@ -9,10 +9,40 @@
 <script src="/css/support/parsing-testcommon.js"></script>
 
 <script>
-test_valid_value("corner-shape", "round");
-test_valid_value("corner-shape", "angle");
-test_valid_value("corner-shape", "angle round");
-test_valid_value("corner-shape", "round angle");
-test_valid_value("corner-shape", "angle round angle");
-test_valid_value("corner-shape", "angle round angle round");
+    function test_values_for_prop(prop) {
+        test_valid_value(prop, "round");
+        test_valid_value(prop, "scoop");
+        test_valid_value(prop, "notch");
+        test_valid_value(prop, "bevel");
+        test_valid_value(prop, "squircle");
+        test_valid_value(prop, "straight");
+        test_valid_value(prop, "superellipse(2)");
+        test_valid_value(prop, "superellipse(.5)", "superellipse(0.5)");
+        test_valid_value(prop, "superellipse(7)");
+        test_valid_value(prop, "superellipse(0.3)");
+        test_valid_value(prop, "superellipse(  0)", "superellipse(0)");
+        test_valid_value(prop, "superellipse(2 )", "superellipse(2)");
+        test_valid_value(prop, "superellipse(infinity)");
+        test_valid_value(prop, "superellipse(calc(0.5 * 4))", "superellipse(calc(2))");
+    }
+
+    for (const v of ["top", "bottom"]) {
+        for (const h of ["left", "right"]) {
+            test_values_for_prop(`corner-${v}-${h}-shape`);
+        }
+    }
+    for (const block of ["start", "end"]) {
+        for (const inline of ["start", "end"]) {
+            test_values_for_prop(`corner-${block}-${inline}-shape`);
+        }
+    }
+    test_valid_value("corner-shape", "round round round round", "round");
+    test_valid_value("corner-shape", "round scoop");
+    test_valid_value("corner-shape", "round scoop round scoop", "round scoop");
+    test_valid_value("corner-shape", "bevel superellipse(2)");
+    test_valid_value("corner-shape", "superellipse(0.5) superellipse(3) straight");
+    test_valid_value("corner-shape", "superellipse(0.5) superellipse(3) superellipse(1)");
+    test_valid_value("corner-shape", "bevel superellipse(2) squircle     round", "bevel superellipse(2) squircle round");
+    test_valid_value("corner-shape", "superellipse(0.5) superellipse(3) superellipse(1) superellipse(infinity)");
+
 </script>

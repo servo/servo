@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUComputePass, WebGPURequest};
+use webgpu_traits::{WebGPU, WebGPUComputePass, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUComputePassEncoderMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -15,9 +15,10 @@ use crate::dom::webgpu::gpubindgroup::GPUBindGroup;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::webgpu::gpucomputepipeline::GPUComputePipeline;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUComputePassEncoder {
+pub(crate) struct GPUComputePassEncoder {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -44,12 +45,13 @@ impl GPUComputePassEncoder {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         parent: &GPUCommandEncoder,
         compute_pass: WebGPUComputePass,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUComputePassEncoder::new_inherited(
@@ -59,6 +61,7 @@ impl GPUComputePassEncoder {
                 label,
             )),
             global,
+            can_gc,
         )
     }
 }

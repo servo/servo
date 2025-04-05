@@ -204,6 +204,14 @@ const validButUnsupportedConfigs = [
       numberOfChannels: 2,
     }
   },
+  {
+    comment: 'codec with spaces',
+    config: {
+      codec: '  opus  ',
+      sampleRate: 48000,
+      numberOfChannels: 2,
+    }
+  },
 ];
 
 validButUnsupportedConfigs.forEach(entry => {

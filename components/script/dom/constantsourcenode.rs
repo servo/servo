@@ -10,6 +10,7 @@ use servo_media::audio::constant_source_node::ConstantSourceNodeOptions as Servo
 use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
+use crate::conversions::Convert;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
@@ -24,21 +25,23 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct ConstantSourceNode {
+pub(crate) struct ConstantSourceNode {
     source_node: AudioScheduledSourceNode,
     offset: Dom<AudioParam>,
 }
 
 impl ConstantSourceNode {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         options: &ConstantSourceOptions,
+        can_gc: CanGc,
     ) -> Fallible<ConstantSourceNode> {
         let node_options = Default::default();
+        let offset = *options.offset;
         let source_node = AudioScheduledSourceNode::new_inherited(
-            AudioNodeInit::ConstantSourceNode(options.into()),
+            AudioNodeInit::ConstantSourceNode(options.convert()),
             context,
             node_options, /* 2, MAX, Speakers */
             0,            /* inputs */
@@ -52,9 +55,10 @@ impl ConstantSourceNode {
             AudioNodeType::ConstantSourceNode,
             ParamType::Offset,
             AutomationRate::A_rate,
-            *options.offset,
+            offset,
             f32::MIN,
             f32::MAX,
+            can_gc,
         );
 
         Ok(ConstantSourceNode {
@@ -63,7 +67,7 @@ impl ConstantSourceNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &ConstantSourceOptions,
@@ -72,7 +76,7 @@ impl ConstantSourceNode {
         Self::new_with_proto(window, None, context, options, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
@@ -80,7 +84,7 @@ impl ConstantSourceNode {
         options: &ConstantSourceOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ConstantSourceNode>> {
-        let node = ConstantSourceNode::new_inherited(window, context, options)?;
+        let node = ConstantSourceNode::new_inherited(window, context, options, can_gc)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
@@ -108,10 +112,10 @@ impl ConstantSourceNodeMethods<crate::DomTypeHolder> for ConstantSourceNode {
     }
 }
 
-impl<'a> From<&'a ConstantSourceOptions> for ServoMediaConstantSourceOptions {
-    fn from(options: &'a ConstantSourceOptions) -> Self {
-        Self {
-            offset: *options.offset,
+impl Convert<ServoMediaConstantSourceOptions> for ConstantSourceOptions {
+    fn convert(self) -> ServoMediaConstantSourceOptions {
+        ServoMediaConstantSourceOptions {
+            offset: *self.offset,
         }
     }
 }

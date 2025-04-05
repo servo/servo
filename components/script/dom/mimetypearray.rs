@@ -5,26 +5,27 @@
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::MimeTypeArrayBinding::MimeTypeArrayMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mimetype::MimeType;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MimeTypeArray {
+pub(crate) struct MimeTypeArray {
     reflector_: Reflector,
 }
 
 impl MimeTypeArray {
-    pub fn new_inherited() -> MimeTypeArray {
+    pub(crate) fn new_inherited() -> MimeTypeArray {
         MimeTypeArray {
             reflector_: Reflector::new(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<MimeTypeArray> {
-        reflect_dom_object(Box::new(MimeTypeArray::new_inherited()), global)
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MimeTypeArray> {
+        reflect_dom_object(Box::new(MimeTypeArray::new_inherited()), global, can_gc)
     }
 }
 

@@ -8,9 +8,24 @@
 // META: variant=?1-5
 // META: variant=?6-last
 
-'use strict;'
+'use strict';
 
 // The tests in this file focus on real time reporting.
+
+const MAIN_PATH = '/.well-known/interest-group/real-time-report'
+
+// Creates an AuctionConfig with component auctions.
+function createMultiSellerAuctionConfig(
+    uuid, seller, decisionLogicURL, componentAuctions,
+    auctionConfigOverrides = {}) {
+  return {
+    seller: seller,
+    decisionLogicURL: decisionLogicURL,
+    interestGroupBuyers: [],
+    componentAuctions: componentAuctions,
+    ...auctionConfigOverrides
+  };
+}
 
 // Creates a bidding script located on "origin". The generateBid() method calls
 // real time reporting API and returns a bid of "bid".
@@ -27,8 +42,9 @@ function createBiddingScriptURLForRealTimeReporting(origin = null, bid = 1) {
 
 // Creates a decision script that calls real time reporting API.
 // The reportResult() method is empty.
-function createDecisionScriptURLForRealTimeReporting(uuid) {
+function createDecisionScriptURLForRealTimeReporting(uuid, origin = null) {
   return createDecisionScriptURL(uuid, {
+    origin: origin === null ? new URL(BASE_URL).origin : origin,
     scoreAd: `
       realTimeReporting.contributeToHistogram({ bucket: 200, priorityWeight: 1});`
   });
@@ -41,11 +57,10 @@ const delay = ms => new Promise(resolve => step_timeout(resolve, ms));
 // received, returns the list of reports. Returns null if the timeout is reached
 // before a report is available.
 const pollReports = async (origin, wait_for = 1, timeout = 5000 /*ms*/) => {
-  const path = '/.well-known/interest-group/real-time-report';
   let startTime = performance.now();
   let payloads = [];
   while (performance.now() - startTime < timeout) {
-    const resp = await fetch(new URL(path, origin));
+    const resp = await fetch(new URL(MAIN_PATH, origin));
     const payload = await resp.arrayBuffer();
     if (payload.byteLength > 0) {
       payloads = payloads.concat(payload);
@@ -90,10 +105,6 @@ const verifyHistogram = (histogram, bucketSize, length) => {
   assert_equals(histogram.length, length);
 };
 
-const resetWptServer = () => Promise.all([
-  resetReports('/.well-known/interest-group/real-time-report'),
-]);
-
 // Method to clear the stash. Takes the URL as parameter.
 const resetReports = url => {
   // The view of the stash is path-specific
@@ -108,7 +119,7 @@ const resetReports = url => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  await resetWptServer();
+  await resetReports(MAIN_PATH);
   await joinCrossOriginInterestGroup(test, uuid, OTHER_ORIGIN1, {
     biddingLogicURL: createBiddingScriptURLForRealTimeReporting(OTHER_ORIGIN1)
   });
@@ -128,7 +139,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  await resetWptServer();
+  await resetReports(MAIN_PATH);
   await joinCrossOriginInterestGroup(test, uuid, OTHER_ORIGIN1, {
     biddingLogicURL: createBiddingScriptURLForRealTimeReporting(OTHER_ORIGIN1)
   });
@@ -150,7 +161,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  await resetWptServer();
+  await resetReports(MAIN_PATH);
   await joinCrossOriginInterestGroup(test, uuid, OTHER_ORIGIN1, {
     biddingLogicURL: createBiddingScriptURLForRealTimeReporting(OTHER_ORIGIN1)
   });
@@ -171,7 +182,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  await resetWptServer();
+  await resetReports(MAIN_PATH);
   await joinCrossOriginInterestGroup(
       test, uuid, OTHER_ORIGIN1,
       {biddingLogicURL: createBiddingScriptURL({origin: OTHER_ORIGIN1})});
@@ -191,7 +202,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  await resetWptServer();
+  await resetReports(MAIN_PATH);
   await joinCrossOriginInterestGroup(test, uuid, OTHER_ORIGIN1, {
     biddingLogicURL: createBiddingScriptURLForRealTimeReporting(OTHER_ORIGIN1)
   });
@@ -208,7 +219,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  await resetWptServer();
+  await resetReports(MAIN_PATH);
   await joinInterestGroup(
       test, uuid,
       {biddingLogicURL: createBiddingScriptURLForRealTimeReporting()});
@@ -226,7 +237,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  await resetWptServer();
+  await resetReports(MAIN_PATH);
   await joinCrossOriginInterestGroup(test, uuid, OTHER_ORIGIN1, {
     biddingLogicURL: createBiddingScriptURLForRealTimeReporting(OTHER_ORIGIN1)
   });
@@ -251,7 +262,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  await resetWptServer();
+  await resetReports(MAIN_PATH);
   await joinCrossOriginInterestGroup(test, uuid, OTHER_ORIGIN1, {
     biddingLogicURL: createBiddingScriptURLForRealTimeReporting(OTHER_ORIGIN1)
   });
@@ -272,3 +283,81 @@ subsetTest(promise_test, async test => {
       await pollReports(OTHER_ORIGIN2, /*wait_for=*/ 1, /*timeout=*/ 1000);
   assert_equals(reports2, null);
 }, 'Real time reporting one buyer opted-in but not the other.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await resetReports(MAIN_PATH);
+  await joinCrossOriginInterestGroup(test, uuid, OTHER_ORIGIN1, {
+    biddingLogicURL: createBiddingScriptURLForRealTimeReporting(OTHER_ORIGIN1)
+  });
+  await runBasicFledgeTestExpectingNoWinner(test, uuid, {
+    decisionLogicURL: createDecisionScriptURL(uuid, {
+      scoreAd: `
+        realTimeReporting.contributeToHistogram({ bucket: 200, priorityWeight: 1});
+        return -1;`
+    }),
+    interestGroupBuyers: [OTHER_ORIGIN1],
+    sellerRealTimeReportingConfig: {type: 'default-local-reporting'},
+    perBuyerRealTimeReportingConfig:
+        {[OTHER_ORIGIN1]: {type: 'default-local-reporting'}}
+  });
+  const sellerReports = await pollReports(location.origin);
+  verifyReports(sellerReports);
+
+  const buyerReports = await pollReports(OTHER_ORIGIN1);
+  verifyReports(buyerReports);
+}, 'Real time reports are sent when all bids are rejected.');
+
+// TODO(qingxinwu): script fetches failing cases.
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  let buyer = window.location.origin;
+  let componentSellerOptIn = OTHER_ORIGIN1;
+  let componentSellerNotOptIn = OTHER_ORIGIN2;
+  let topLevelSeller = OTHER_ORIGIN3;
+  await resetReports(MAIN_PATH);
+  await joinCrossOriginInterestGroup(
+      test, uuid, buyer,
+      {biddingLogicURL: createBiddingScriptURLForRealTimeReporting(buyer)});
+
+  const componentAuctions = [
+    {
+      seller: componentSellerOptIn,
+      interestGroupBuyers: [buyer],
+      decisionLogicURL: createDecisionScriptURLForRealTimeReporting(
+          uuid, componentSellerOptIn),
+      sellerRealTimeReportingConfig: {type: 'default-local-reporting'},
+      perBuyerRealTimeReportingConfig:
+          {[buyer]: {type: 'default-local-reporting'}}
+    },
+    {
+      seller: componentSellerNotOptIn,
+      interestGroupBuyers: [buyer],
+      decisionLogicURL: createDecisionScriptURLForRealTimeReporting(
+          uuid, componentSellerNotOptIn),
+    }
+  ];
+  let auctionConfig = createMultiSellerAuctionConfig(
+      uuid, topLevelSeller,
+      createDecisionScriptURLForRealTimeReporting(uuid, topLevelSeller),
+      componentAuctions, {});
+  auctionConfig.sellerRealTimeReportingConfig = {
+    type: 'default-local-reporting'
+  };
+
+  await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfig);
+  const reportsBuyer = await pollReports(buyer);
+  verifyReports(reportsBuyer);
+
+  const reportsComponentSellerOptIn = await pollReports(componentSellerOptIn);
+  verifyReports(reportsComponentSellerOptIn);
+
+  const reportsTopLevelSeller = await pollReports(topLevelSeller);
+  verifyReports(reportsTopLevelSeller);
+
+  const reportsComponentSellerNotOptIn = await pollReports(
+      componentSellerOptIn, /*wait_for=*/ 1, /*timeout=*/ 1000);
+  assert_equals(reportsComponentSellerNotOptIn, null);
+}, 'Real time reporting in a multi seller auction.');

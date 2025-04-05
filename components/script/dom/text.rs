@@ -12,28 +12,30 @@ use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
+use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 /// An HTML text node.
 #[dom_struct]
-pub struct Text {
+pub(crate) struct Text {
     characterdata: CharacterData,
 }
 
 impl Text {
-    pub fn new_inherited(text: DOMString, document: &Document) -> Text {
+    pub(crate) fn new_inherited(text: DOMString, document: &Document) -> Text {
         Text {
             characterdata: CharacterData::new_inherited(text, document),
         }
     }
 
-    pub fn new(text: DOMString, document: &Document, can_gc: CanGc) -> DomRoot<Text> {
+    pub(crate) fn new(text: DOMString, document: &Document, can_gc: CanGc) -> DomRoot<Text> {
         Self::new_with_proto(text, document, None, can_gc)
     }
 
@@ -118,5 +120,15 @@ impl TextMethods<crate::DomTypeHolder> for Text {
             text.push_str(&cdata.data());
         }
         DOMString::from(text)
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-slotable-assignedslot>
+    fn GetAssignedSlot(&self) -> Option<DomRoot<HTMLSlotElement>> {
+        let cx = GlobalScope::get_cx();
+
+        // > The assignedSlot getter steps are to return the result of
+        // > find a slot given this and with the open flag set.
+        rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
+        slottable.find_a_slot(true)
     }
 }

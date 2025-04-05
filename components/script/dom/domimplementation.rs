@@ -15,10 +15,12 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrElementCreationOptions;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::xmlname::{namespace_from_domstring, validate_qualified_name};
+use crate::dom::bindings::xmlname::{
+    namespace_from_domstring, validate_and_extract_qualified_name,
+};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
@@ -32,7 +34,7 @@ use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
-pub struct DOMImplementation {
+pub(crate) struct DOMImplementation {
     reflector_: Reflector,
     document: Dom<Document>,
 }
@@ -45,15 +47,19 @@ impl DOMImplementation {
         }
     }
 
-    pub fn new(document: &Document) -> DomRoot<DOMImplementation> {
+    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<DOMImplementation> {
         let window = document.window();
-        reflect_dom_object(Box::new(DOMImplementation::new_inherited(document)), window)
+        reflect_dom_object(
+            Box::new(DOMImplementation::new_inherited(document)),
+            window,
+            can_gc,
+        )
     }
 }
 
 // https://dom.spec.whatwg.org/#domimplementation
 impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
-    // https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype
+    /// <https://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype>
     fn CreateDocumentType(
         &self,
         qualified_name: DOMString,
@@ -61,7 +67,9 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         sysid: DOMString,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<DocumentType>> {
-        validate_qualified_name(&qualified_name)?;
+        // Step 1. Validate qualifiedName.
+        validate_and_extract_qualified_name(&qualified_name)?;
+
         Ok(DocumentType::new(
             qualified_name,
             Some(pubid),
@@ -71,7 +79,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         ))
     }
 
-    // https://dom.spec.whatwg.org/#dom-domimplementation-createdocument
+    /// <https://dom.spec.whatwg.org/#dom-domimplementation-createdocument>
     fn CreateDocument(
         &self,
         maybe_namespace: Option<DOMString>,
@@ -101,8 +109,14 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             DocumentActivity::Inactive,
             DocumentSource::NotFromParser,
             loader,
+            Some(self.document.insecure_requests_policy()),
+            self.document.has_trustworthy_ancestor_or_current_origin(),
+            can_gc,
         );
-        // Step 2-3.
+
+        // Step 2. Let element be null.
+        // Step 3. If qualifiedName is not the empty string, then set element to the result of running
+        // the internal createElementNS steps, given document, namespace, qualifiedName, and an empty dictionary.
         let maybe_elem = if qname.is_empty() {
             None
         } else {
@@ -160,6 +174,10 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             None,
             None,
             Default::default(),
+            false,
+            self.document.allow_declarative_shadow_roots(),
+            Some(self.document.insecure_requests_policy()),
+            self.document.has_trustworthy_ancestor_or_current_origin(),
             can_gc,
         );
 

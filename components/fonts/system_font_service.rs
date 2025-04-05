@@ -30,10 +30,10 @@ use webrender_traits::CrossProcessCompositorApi;
 use crate::font::FontDescriptor;
 use crate::font_store::FontStore;
 use crate::font_template::{FontTemplate, FontTemplateRef};
+use crate::platform::LocalFontIdentifier;
 use crate::platform::font_list::{
     default_system_generic_font_family, for_each_available_family, for_each_variation,
 };
-use crate::platform::LocalFontIdentifier;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FontIdentifier {
@@ -323,10 +323,10 @@ impl SystemFontService {
             .get_or_init(|| {
                 // First check whether the font is set in the preferences.
                 let family_name = match generic {
-                    GenericFontFamily::None => pref!(fonts.default),
-                    GenericFontFamily::Serif => pref!(fonts.serif),
-                    GenericFontFamily::SansSerif => pref!(fonts.sans_serif),
-                    GenericFontFamily::Monospace => pref!(fonts.monospace),
+                    GenericFontFamily::None => pref!(fonts_default),
+                    GenericFontFamily::Serif => pref!(fonts_serif),
+                    GenericFontFamily::SansSerif => pref!(fonts_sans_serif),
+                    GenericFontFamily::Monospace => pref!(fonts_monospace),
                     _ => String::new(),
                 };
 
@@ -359,7 +359,6 @@ pub struct SystemFontServiceProxy {
 /// because the specified version of `FontStyle` contains floats.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ComputedFontStyleDescriptor {
-    Normal,
     Italic,
     Oblique(FontStyleFixedPoint, FontStyleFixedPoint),
 }
@@ -416,7 +415,6 @@ impl From<&FontFaceRuleData> for CSSFontFaceDescriptors {
 
         fn style_to_computed(specified: &FontFaceStyle) -> ComputedFontStyleDescriptor {
             match specified {
-                FontFaceStyle::Normal => ComputedFontStyleDescriptor::Normal,
                 FontFaceStyle::Italic => ComputedFontStyleDescriptor::Italic,
                 FontFaceStyle::Oblique(angle_a, angle_b) => ComputedFontStyleDescriptor::Oblique(
                     FixedPoint::from_float(angle_a.degrees()),
@@ -565,7 +563,7 @@ impl SystemFontServiceProxy {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct LowercaseFontFamilyName {
     inner: String,
 }

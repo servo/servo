@@ -8,12 +8,12 @@
 //! active_workers map
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
 use base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
-use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
+use crossbeam_channel::{Receiver, RecvError, Sender, select, unbounded};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
@@ -38,13 +38,13 @@ enum Message {
 
 /// <https://w3c.github.io/ServiceWorker/#dfn-service-worker>
 #[derive(Clone)]
-struct ServiceWorker {
+pub(crate) struct ServiceWorker {
     /// A unique identifer.
-    pub id: ServiceWorkerId,
+    pub(crate) id: ServiceWorkerId,
     /// <https://w3c.github.io/ServiceWorker/#dfn-script-url>
-    pub script_url: ServoUrl,
+    pub(crate) script_url: ServoUrl,
     /// A sender to the running service worker scope.
-    pub sender: Sender<ServiceWorkerScriptMsg>,
+    pub(crate) sender: Sender<ServiceWorkerScriptMsg>,
 }
 
 impl ServiceWorker {
@@ -64,7 +64,10 @@ impl ServiceWorker {
     fn forward_dom_message(&self, msg: DOMMessage) {
         let DOMMessage { origin, data } = msg;
         let _ = self.sender.send(ServiceWorkerScriptMsg::CommonWorker(
-            WorkerScriptMsg::DOMMessage { origin, data },
+            WorkerScriptMsg::DOMMessage {
+                origin,
+                data: Box::new(data),
+            },
         ));
     }
 
@@ -140,7 +143,7 @@ struct ServiceWorkerRegistration {
 }
 
 impl ServiceWorkerRegistration {
-    pub fn new() -> ServiceWorkerRegistration {
+    pub(crate) fn new() -> ServiceWorkerRegistration {
         ServiceWorkerRegistration {
             id: ServiceWorkerRegistrationId::new(),
             active_worker: None,
@@ -241,7 +244,7 @@ impl ServiceWorkerManager {
         }
     }
 
-    pub fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {
+    pub(crate) fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {
         for scope in self.registrations.keys() {
             if longest_prefix_match(scope, load_url) {
                 return Some(scope.clone());
@@ -318,7 +321,7 @@ impl ServiceWorkerManager {
 
     /// <https://w3c.github.io/ServiceWorker/#register-algorithm>
     fn handle_register_job(&mut self, mut job: Job) {
-        if !job.script_url.is_origin_trustworthy() {
+        if !job.script_url.origin().is_potentially_trustworthy() {
             // Step 1.1
             let _ = job
                 .client
@@ -516,6 +519,6 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
     }
 }
 
-pub fn serviceworker_enabled() -> bool {
-    pref!(dom.serviceworker.enabled)
+pub(crate) fn serviceworker_enabled() -> bool {
+    pref!(dom_serviceworker_enabled)
 }

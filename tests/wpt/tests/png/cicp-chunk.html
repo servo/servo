@@ -20,7 +20,7 @@ img.onload = () => {
   _addTest(function(canvas, ctx) {
     ctx.drawImage(img, 0, 0);
 
-    var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: "srgb", storageFormat: "uint8"}).data;
+    var pixel = ctx.getImageData(5, 5, 1, 1, {colorSpace: "srgb"}).data;
 
     // The pixel values stored are (51 red, 102 green, 153 blue).
     // These numbers are chosen because 0.2 * 255 = 51.

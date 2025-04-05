@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
-use style_dom::ElementState;
+use stylo_dom::ElementState;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::document::Document;
@@ -12,12 +12,12 @@ use crate::dom::svgelement::SVGElement;
 use crate::dom::virtualmethods::VirtualMethods;
 
 #[dom_struct]
-pub struct SVGGraphicsElement {
+pub(crate) struct SVGGraphicsElement {
     svgelement: SVGElement,
 }
 
 impl SVGGraphicsElement {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -30,7 +30,7 @@ impl SVGGraphicsElement {
         )
     }
 
-    pub fn new_inherited_with_state(
+    pub(crate) fn new_inherited_with_state(
         state: ElementState,
         tag_name: LocalName,
         prefix: Option<Prefix>,

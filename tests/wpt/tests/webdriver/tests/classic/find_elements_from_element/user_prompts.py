@@ -25,7 +25,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog, inline):
         outer_element = session.find.css("div", all=False)
         inner_element = session.find.css("p", all=False)
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = find_elements(session, outer_element.id, "css selector", "p")
         value = assert_success(response)
@@ -45,10 +45,11 @@ def check_user_prompt_closed_with_exception(session, create_dialog, inline):
         session.url = inline("<div><p>bar</p><div>")
         outer_element = session.find.css("div", all=False)
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = find_elements(session, outer_element.id, "css selector", "p")
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 
@@ -61,12 +62,13 @@ def check_user_prompt_not_closed_but_exception(session, create_dialog, inline):
         session.url = inline("<div><p>bar</p><div>")
         outer_element = session.find.css("div", all=False)
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = find_elements(session, outer_element.id, "css selector", "p")
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
-        assert session.alert.text == dialog_type
+        assert session.alert.text == "cheese"
         session.alert.dismiss()
 
     return check_user_prompt_not_closed_but_exception

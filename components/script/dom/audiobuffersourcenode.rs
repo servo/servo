@@ -13,6 +13,7 @@ use servo_media::audio::buffer_source_node::{
 use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
+use crate::conversions::Convert;
 use crate::dom::audiobuffer::AudioBuffer;
 use crate::dom::audioparam::AudioParam;
 use crate::dom::audioscheduledsourcenode::AudioScheduledSourceNode;
@@ -31,7 +32,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AudioBufferSourceNode {
+pub(crate) struct AudioBufferSourceNode {
     source_node: AudioScheduledSourceNode,
     buffer: MutNullableDom<AudioBuffer>,
     buffer_set: Cell<bool>,
@@ -43,15 +44,16 @@ pub struct AudioBufferSourceNode {
 }
 
 impl AudioBufferSourceNode {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
+        can_gc: CanGc,
     ) -> Fallible<AudioBufferSourceNode> {
         let node_options = Default::default();
         let source_node = AudioScheduledSourceNode::new_inherited(
-            AudioNodeInit::AudioBufferSourceNode(options.into()),
+            AudioNodeInit::AudioBufferSourceNode(options.convert()),
             context,
             node_options,
             0, /* inputs */
@@ -68,6 +70,7 @@ impl AudioBufferSourceNode {
             *options.playbackRate,
             f32::MIN,
             f32::MAX,
+            can_gc,
         );
         let detune = AudioParam::new(
             window,
@@ -79,6 +82,7 @@ impl AudioBufferSourceNode {
             *options.detune,
             f32::MIN,
             f32::MAX,
+            can_gc,
         );
         let node = AudioBufferSourceNode {
             source_node,
@@ -96,7 +100,7 @@ impl AudioBufferSourceNode {
         Ok(node)
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
@@ -105,7 +109,7 @@ impl AudioBufferSourceNode {
         Self::new_with_proto(window, None, context, options, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
@@ -113,7 +117,7 @@ impl AudioBufferSourceNode {
         options: &AudioBufferSourceOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
-        let node = AudioBufferSourceNode::new_inherited(window, context, options)?;
+        let node = AudioBufferSourceNode::new_inherited(window, context, options, can_gc)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
@@ -271,18 +275,18 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
     }
 }
 
-impl<'a> From<&'a AudioBufferSourceOptions> for AudioBufferSourceNodeOptions {
-    fn from(options: &'a AudioBufferSourceOptions) -> Self {
-        Self {
-            buffer: options
+impl Convert<AudioBufferSourceNodeOptions> for &AudioBufferSourceOptions {
+    fn convert(self) -> AudioBufferSourceNodeOptions {
+        AudioBufferSourceNodeOptions {
+            buffer: self
                 .buffer
                 .as_ref()
                 .and_then(|b| (*b.as_ref()?.get_channels()).clone()),
-            detune: *options.detune,
-            loop_enabled: options.loop_,
-            loop_end: Some(*options.loopEnd),
-            loop_start: Some(*options.loopStart),
-            playback_rate: *options.playbackRate,
+            detune: *self.detune,
+            loop_enabled: self.loop_,
+            loop_end: Some(*self.loopEnd),
+            loop_start: Some(*self.loopStart),
+            playback_rate: *self.playbackRate,
         }
     }
 }

@@ -6,52 +6,49 @@ use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
 use app_units::Au;
-use base::id::BrowsingContextId;
 use base::WebRenderEpochToU16;
+use base::id::ScrollTreeNodeId;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit};
-use fnv::FnvHashMap;
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
-use net_traits::image_cache::UsePlaceholder;
 use servo_geometry::MaxRect;
+use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
+use style::properties::ComputedValues;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
 use style::properties::style_structs::Border;
-use style::properties::ComputedValues;
-use style::values::computed::image::Image;
 use style::values::computed::{
-    BorderImageSideWidth, BorderImageWidth, BorderStyle, Color, LengthPercentage,
+    BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
     NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
 };
-use style::values::generics::rect::Rect;
 use style::values::generics::NonNegative;
+use style::values::generics::rect::Rect;
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
-use style::Zero;
-use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
-    self as wr, units, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
-    ImageRendering, NinePatchBorder, NinePatchBorderSource,
+    self as wr, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
+    ImageRendering, NinePatchBorder, NinePatchBorderSource, units,
 };
-use webrender_traits::display_list::{
-    CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId,
-};
+use webrender_traits::display_list::{AxesScrollSensitivity, CompositorDisplayListInfo};
 use wr::units::LayoutVector2D;
 
-use crate::context::LayoutContext;
+use crate::context::{LayoutContext, ResolvedImage};
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
-    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag, TextFragment,
+    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
+    TextFragment,
 };
-use crate::geom::{LengthPercentageOrAuto, PhysicalPoint, PhysicalRect};
+use crate::geom::{
+    LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
+};
 use crate::replaced::NaturalSizes;
-use crate::style_ext::ComputedValuesExt;
+use crate::style_ext::{BorderStyleColor, ComputedValuesExt};
 
 mod background;
 mod clip_path;
@@ -101,7 +98,8 @@ impl DisplayList {
         content_size: units::LayoutSize,
         pipeline_id: wr::PipelineId,
         epoch: wr::Epoch,
-        root_scroll_sensitivity: ScrollSensitivity,
+        viewport_scroll_sensitivity: AxesScrollSensitivity,
+        first_reflow: bool,
     ) -> Self {
         Self {
             wr: wr::DisplayListBuilder::new(pipeline_id),
@@ -110,7 +108,8 @@ impl DisplayList {
                 content_size,
                 pipeline_id,
                 epoch,
-                root_scroll_sensitivity,
+                viewport_scroll_sensitivity,
+                first_reflow,
             ),
             spatial_tree_count: 0,
         }
@@ -161,26 +160,16 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// The [DisplayList] used to collect display list items and metadata.
     pub display_list: &'a mut DisplayList,
-
-    /// A recording of the sizes of iframes encountered when building this
-    /// display list. This information is forwarded to layout for the
-    /// iframe so that its layout knows how large the initial containing block /
-    /// viewport is.
-    iframe_sizes: FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>,
-
-    /// Contentful paint i.e. whether the display list contains items of type
-    /// text, image, non-white canvas or SVG). Used by metrics.
-    /// See <https://w3c.github.io/paint-timing/#first-contentful-paint>.
-    is_contentful: bool,
 }
 
 impl DisplayList {
+    /// Build the display list, returning true if it was contentful.
     pub fn build(
         &mut self,
         context: &LayoutContext,
         fragment_tree: &FragmentTree,
         root_stacking_context: &StackingContext,
-    ) -> (FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>, bool) {
+    ) {
         #[cfg(feature = "tracing")]
         let _span = tracing::trace_span!("display_list::build", servo_profiling = true).entered();
         let mut builder = DisplayListBuilder {
@@ -188,19 +177,20 @@ impl DisplayList {
             current_reference_frame_scroll_node_id: self.compositor_info.root_reference_frame_id,
             current_clip_chain_id: ClipChainId::INVALID,
             element_for_canvas_background: fragment_tree.canvas_background.from_element,
-            is_contentful: false,
             context,
             display_list: self,
-            iframe_sizes: FnvHashMap::default(),
         };
         fragment_tree.build_display_list(&mut builder, root_stacking_context);
-        (builder.iframe_sizes, builder.is_contentful)
     }
 }
 
-impl<'a> DisplayListBuilder<'a> {
+impl DisplayListBuilder<'_> {
     fn wr(&mut self) -> &mut wr::DisplayListBuilder {
         &mut self.display_list.wr
+    }
+
+    fn mark_is_contentful(&mut self) {
+        self.display_list.compositor_info.is_contentful = true;
     }
 
     fn common_properties(
@@ -251,14 +241,17 @@ impl Fragment {
         containing_block: &PhysicalRect<Au>,
         section: StackingContextSection,
         is_hit_test_for_scrollable_overflow: bool,
+        is_collapsed_table_borders: bool,
     ) {
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                let box_fragment = &*box_fragment.borrow();
                 match box_fragment.style.get_inherited_box().visibility {
                     Visibility::Visible => BuilderForBoxFragment::new(
                         box_fragment,
                         containing_block,
                         is_hit_test_for_scrollable_overflow,
+                        is_collapsed_table_borders,
                     )
                     .build(builder, section),
                     Visibility::Hidden => (),
@@ -267,6 +260,7 @@ impl Fragment {
             },
             Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Positioning(positioning_fragment) => {
+                let positioning_fragment = positioning_fragment.borrow();
                 if let Some(style) = positioning_fragment.style.as_ref() {
                     let rect = positioning_fragment
                         .rect
@@ -280,70 +274,74 @@ impl Fragment {
                     );
                 }
             },
-            Fragment::Image(image) => match image.style.get_inherited_box().visibility {
-                Visibility::Visible => {
-                    builder.is_contentful = true;
+            Fragment::Image(image) => {
+                let image = image.borrow();
+                match image.style.get_inherited_box().visibility {
+                    Visibility::Visible => {
+                        builder.mark_is_contentful();
 
-                    let image_rendering = image
-                        .style
-                        .get_inherited_box()
-                        .image_rendering
-                        .to_webrender();
-                    let rect = image
-                        .rect
-                        .translate(containing_block.origin.to_vector())
-                        .to_webrender();
-                    let clip = image
-                        .clip
-                        .translate(containing_block.origin.to_vector())
-                        .to_webrender();
-                    let common = builder.common_properties(clip, &image.style);
+                        let image_rendering = image
+                            .style
+                            .get_inherited_box()
+                            .image_rendering
+                            .to_webrender();
+                        let rect = image
+                            .rect
+                            .translate(containing_block.origin.to_vector())
+                            .to_webrender();
+                        let clip = image
+                            .clip
+                            .translate(containing_block.origin.to_vector())
+                            .to_webrender();
+                        let common = builder.common_properties(clip, &image.style);
 
-                    if let Some(image_key) = image.image_key {
-                        builder.wr().push_image(
-                            &common,
-                            rect,
-                            image_rendering,
-                            wr::AlphaType::PremultipliedAlpha,
-                            image_key,
-                            wr::ColorF::WHITE,
+                        if let Some(image_key) = image.image_key {
+                            builder.wr().push_image(
+                                &common,
+                                rect,
+                                image_rendering,
+                                wr::AlphaType::PremultipliedAlpha,
+                                image_key,
+                                wr::ColorF::WHITE,
+                            );
+                        }
+                    },
+                    Visibility::Hidden => (),
+                    Visibility::Collapse => (),
+                }
+            },
+            Fragment::IFrame(iframe) => {
+                let iframe = iframe.borrow();
+                match iframe.style.get_inherited_box().visibility {
+                    Visibility::Visible => {
+                        builder.mark_is_contentful();
+                        let rect = iframe.rect.translate(containing_block.origin.to_vector());
+
+                        let common = builder.common_properties(rect.to_webrender(), &iframe.style);
+                        builder.wr().push_iframe(
+                            rect.to_webrender(),
+                            common.clip_rect,
+                            &wr::SpaceAndClipInfo {
+                                spatial_id: common.spatial_id,
+                                clip_chain_id: common.clip_chain_id,
+                            },
+                            iframe.pipeline_id.into(),
+                            true,
                         );
-                    }
-                },
-                Visibility::Hidden => (),
-                Visibility::Collapse => (),
+                    },
+                    Visibility::Hidden => (),
+                    Visibility::Collapse => (),
+                }
             },
-            Fragment::IFrame(iframe) => match iframe.style.get_inherited_box().visibility {
-                Visibility::Visible => {
-                    builder.is_contentful = true;
-                    let rect = iframe.rect.translate(containing_block.origin.to_vector());
-
-                    builder.iframe_sizes.insert(
-                        iframe.browsing_context_id,
-                        Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
-                    );
-
-                    let common = builder.common_properties(rect.to_webrender(), &iframe.style);
-                    builder.wr().push_iframe(
-                        rect.to_webrender(),
-                        common.clip_rect,
-                        &wr::SpaceAndClipInfo {
-                            spatial_id: common.spatial_id,
-                            clip_chain_id: common.clip_chain_id,
-                        },
-                        iframe.pipeline_id.into(),
-                        true,
-                    );
-                },
-                Visibility::Hidden => (),
-                Visibility::Collapse => (),
-            },
-            Fragment::Text(t) => match t.parent_style.get_inherited_box().visibility {
-                Visibility::Visible => {
-                    self.build_display_list_for_text_fragment(t, builder, containing_block)
-                },
-                Visibility::Hidden => (),
-                Visibility::Collapse => (),
+            Fragment::Text(text) => {
+                let text = &*text.borrow();
+                match text.parent_style.get_inherited_box().visibility {
+                    Visibility::Visible => {
+                        self.build_display_list_for_text_fragment(text, builder, containing_block)
+                    },
+                    Visibility::Hidden => (),
+                    Visibility::Collapse => (),
+                }
             },
         }
     }
@@ -382,7 +380,7 @@ impl Fragment {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
 
-        builder.is_contentful = true;
+        builder.mark_is_contentful();
 
         let rect = fragment.rect.translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin;
@@ -515,6 +513,7 @@ struct BuilderForBoxFragment<'a> {
     padding_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     is_hit_test_for_scrollable_overflow: bool,
+    is_collapsed_table_borders: bool,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -522,6 +521,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         fragment: &'a BoxFragment,
         containing_block: &'a PhysicalRect<Au>,
         is_hit_test_for_scrollable_overflow: bool,
+        is_collapsed_table_borders: bool,
     ) -> Self {
         let border_rect = fragment
             .border_rect()
@@ -562,6 +562,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             padding_edge_clip_chain_id: RefCell::new(None),
             content_edge_clip_chain_id: RefCell::new(None),
             is_hit_test_for_scrollable_overflow,
+            is_collapsed_table_borders,
         }
     }
 
@@ -652,6 +653,11 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
+        if self.is_collapsed_table_borders {
+            self.build_collapsed_table_borders(builder);
+            return;
+        }
+
         if section == StackingContextSection::Outline {
             self.build_outline(builder);
             return;
@@ -701,7 +707,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         painter: &BackgroundPainter,
     ) {
         let b = painter.style.get_background();
-        let background_color = painter.style.resolve_color(b.background_color.clone());
+        let background_color = painter.style.resolve_color(&b.background_color);
         if background_color.alpha > 0.0 {
             // https://drafts.csswg.org/css-backgrounds/#background-color
             // “The background color is clipped according to the background-clip
@@ -766,11 +772,12 @@ impl<'a> BuilderForBoxFragment<'a> {
     ) {
         let style = painter.style;
         let b = style.get_background();
+        let node = self.fragment.base.tag.map(|tag| tag.node);
         // Reverse because the property is top layer first, we want to paint bottom layer first.
         for (index, image) in b.background_image.0.iter().enumerate().rev() {
-            match image {
-                Image::None => {},
-                Image::Gradient(ref gradient) => {
+            match builder.context.resolve_image(node, image) {
+                None => {},
+                Some(ResolvedImage::Gradient(gradient)) => {
                     let intrinsic = NaturalSizes::empty();
                     let Some(layer) =
                         &background::layout_layer(self, painter, builder, index, intrinsic)
@@ -806,40 +813,16 @@ impl<'a> BuilderForBoxFragment<'a> {
                         },
                     }
                 },
-                Image::Url(ref image_url) => {
-                    // FIXME: images won’t always have in intrinsic width or
-                    // height when support for SVG is added, or a WebRender
-                    // `ImageKey`, for that matter.
-                    //
-                    // FIXME: It feels like this should take into account the pseudo
-                    // element and not just the node.
-                    let node = match self.fragment.base.tag {
-                        Some(tag) => tag.node,
-                        None => continue,
-                    };
-                    let image_url = match image_url.url() {
-                        Some(url) => url.clone(),
-                        None => continue,
-                    };
-                    let (width, height, key) = match builder.context.get_webrender_image_for_url(
-                        node,
-                        image_url.into(),
-                        UsePlaceholder::No,
-                    ) {
-                        Some(WebRenderImageInfo {
-                            width,
-                            height,
-                            key: Some(key),
-                        }) => (width, height, key),
-                        _ => continue,
-                    };
-
+                Some(ResolvedImage::Image(image_info)) => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
                     let dppx = 1.0;
                     let intrinsic = NaturalSizes::from_width_and_height(
-                        width as f32 / dppx,
-                        height as f32 / dppx,
+                        image_info.width as f32 / dppx,
+                        image_info.height as f32 / dppx,
                     );
+                    let Some(image_key) = image_info.key else {
+                        continue;
+                    };
 
                     if let Some(layer) =
                         background::layout_layer(self, painter, builder, index, intrinsic)
@@ -852,7 +835,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 layer.tile_spacing,
                                 style.clone_image_rendering().to_webrender(),
                                 wr::AlphaType::PremultipliedAlpha,
-                                key,
+                                image_key,
                                 wr::ColorF::WHITE,
                             )
                         } else {
@@ -861,26 +844,20 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 layer.bounds,
                                 style.clone_image_rendering().to_webrender(),
                                 wr::AlphaType::PremultipliedAlpha,
-                                key,
+                                image_key,
                                 wr::ColorF::WHITE,
                             )
                         }
                     }
                 },
-                Image::PaintWorklet(_) => {
-                    // TODO: Add support for PaintWorklet rendering.
-                },
-                Image::ImageSet(..) | Image::CrossFade(..) => {
-                    // TODO: Add support for ImageSet and CrossFade rendering.
-                },
             }
         }
     }
 
-    fn build_border_side(&mut self, style: BorderStyle, color: Color) -> wr::BorderSide {
+    fn build_border_side(&mut self, style_color: BorderStyleColor) -> wr::BorderSide {
         wr::BorderSide {
-            color: rgba(self.fragment.style.resolve_color(color)),
-            style: match style {
+            color: rgba(style_color.color),
+            style: match style_color.style {
                 BorderStyle::None => wr::BorderStyle::None,
                 BorderStyle::Solid => wr::BorderStyle::Solid,
                 BorderStyle::Double => wr::BorderStyle::Double,
@@ -895,7 +872,77 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
     }
 
+    fn build_collapsed_table_borders(&mut self, builder: &mut DisplayListBuilder) {
+        let Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(table_info)) =
+            &self.fragment.specific_layout_info
+        else {
+            return;
+        };
+        let mut common =
+            builder.common_properties(units::LayoutRect::default(), &self.fragment.style);
+        let radius = wr::BorderRadius::default();
+        let mut column_sum = Au::zero();
+        for (x, column_size) in table_info.track_sizes.x.iter().enumerate() {
+            let mut row_sum = Au::zero();
+            for (y, row_size) in table_info.track_sizes.y.iter().enumerate() {
+                let left_border = &table_info.collapsed_borders.x[x][y];
+                let right_border = &table_info.collapsed_borders.x[x + 1][y];
+                let top_border = &table_info.collapsed_borders.y[y][x];
+                let bottom_border = &table_info.collapsed_borders.y[y + 1][x];
+                let details = wr::BorderDetails::Normal(wr::NormalBorder {
+                    left: self.build_border_side(left_border.style_color.clone()),
+                    right: self.build_border_side(right_border.style_color.clone()),
+                    top: self.build_border_side(top_border.style_color.clone()),
+                    bottom: self.build_border_side(bottom_border.style_color.clone()),
+                    radius,
+                    do_aa: true,
+                });
+                let mut border_widths = PhysicalSides::new(
+                    top_border.width,
+                    right_border.width,
+                    bottom_border.width,
+                    left_border.width,
+                );
+                let left_adjustment = if x == 0 {
+                    -border_widths.left / 2
+                } else {
+                    std::mem::take(&mut border_widths.left) / 2
+                };
+                let top_adjustment = if y == 0 {
+                    -border_widths.top / 2
+                } else {
+                    std::mem::take(&mut border_widths.top) / 2
+                };
+                let origin =
+                    PhysicalPoint::new(column_sum + left_adjustment, row_sum + top_adjustment);
+                let size = PhysicalSize::new(
+                    *column_size - left_adjustment + border_widths.right / 2,
+                    *row_size - top_adjustment + border_widths.bottom / 2,
+                );
+                let border_rect = PhysicalRect::new(origin, size)
+                    .translate(self.fragment.content_rect.origin.to_vector())
+                    .translate(self.containing_block.origin.to_vector())
+                    .to_webrender();
+                common.clip_rect = border_rect;
+                builder.wr().push_border(
+                    &common,
+                    border_rect,
+                    border_widths.to_webrender(),
+                    details,
+                );
+                row_sum += *row_size;
+            }
+            column_sum += *column_size;
+        }
+    }
+
     fn build_border(&mut self, builder: &mut DisplayListBuilder) {
+        if self.fragment.has_collapsed_borders() {
+            // Avoid painting borders for tables and table parts in collapsed-borders mode,
+            // since the resulting collapsed borders are painted on their own in a special way.
+            return;
+        }
+
         let border = self.fragment.style.get_border();
         let border_widths = self.fragment.border.to_webrender();
 
@@ -909,16 +956,13 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
+        let current_color = self.fragment.style.get_inherited_text().clone_color();
+        let style_color = BorderStyleColor::from_border(border, &current_color);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
-            top: self.build_border_side(border.border_top_style, border.border_top_color.clone()),
-            right: self
-                .build_border_side(border.border_right_style, border.border_right_color.clone()),
-            bottom: self.build_border_side(
-                border.border_bottom_style,
-                border.border_bottom_color.clone(),
-            ),
-            left: self
-                .build_border_side(border.border_left_style, border.border_left_color.clone()),
+            top: self.build_border_side(style_color.top),
+            right: self.build_border_side(style_color.right),
+            bottom: self.build_border_side(style_color.bottom),
+            left: self.build_border_side(style_color.left),
             radius: self.border_radius,
             do_aa: true,
         });
@@ -952,29 +996,13 @@ impl<'a> BuilderForBoxFragment<'a> {
         let stops = Vec::new();
         let mut width = border_image_size.width;
         let mut height = border_image_size.height;
-        let source = match border.border_image_source {
-            Image::Url(ref image_url) => {
-                // FIXME: images won’t always have in intrinsic width or
-                // height when support for SVG is added, or a WebRender
-                // `ImageKey`, for that matter.
-                //
-                // FIXME: It feels like this should take into account the pseudo
-                // element and not just the node.
-                let Some(tag) = self.fragment.base.tag else {
-                    return false;
-                };
-                let Some(image_url) = image_url.url() else {
-                    return false;
-                };
-
-                let Some(image_info) = builder.context.get_webrender_image_for_url(
-                    tag.node,
-                    image_url.clone().into(),
-                    UsePlaceholder::No,
-                ) else {
-                    return false;
-                };
-
+        let node = self.fragment.base.tag.map(|tag| tag.node);
+        let source = match builder
+            .context
+            .resolve_image(node, &border.border_image_source)
+        {
+            None => return false,
+            Some(ResolvedImage::Image(image_info)) => {
                 let Some(key) = image_info.key else {
                     return false;
                 };
@@ -983,7 +1011,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 height = image_info.height as f32;
                 NinePatchBorderSource::Image(key, ImageRendering::Auto)
             },
-            Image::Gradient(ref gradient) => {
+            Some(ResolvedImage::Gradient(gradient)) => {
                 match gradient::build(&self.fragment.style, gradient, border_image_size, builder) {
                     WebRenderGradient::Linear(gradient) => {
                         NinePatchBorderSource::Gradient(gradient)
@@ -995,9 +1023,6 @@ impl<'a> BuilderForBoxFragment<'a> {
                         NinePatchBorderSource::ConicGradient(gradient)
                     },
                 }
-            },
-            Image::CrossFade(_) | Image::ImageSet(_) | Image::None | Image::PaintWorklet(_) => {
-                return false
             },
         };
 
@@ -1022,7 +1047,8 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_outline(&mut self, builder: &mut DisplayListBuilder) {
-        let outline = self.fragment.style.get_outline();
+        let style = &self.fragment.style;
+        let outline = style.get_outline();
         let width = outline.outline_width.to_f32_px();
         if width == 0.0 {
             return;
@@ -1036,13 +1062,16 @@ impl<'a> BuilderForBoxFragment<'a> {
         let outline_rect = self.border_rect.inflate(offset, offset);
         let common = builder.common_properties(outline_rect, &self.fragment.style);
         let widths = SideOffsets2D::new_all_same(width);
-        let style = match outline.outline_style {
+        let border_style = match outline.outline_style {
             // TODO: treating 'auto' as 'solid' is allowed by the spec,
             // but we should do something better.
             OutlineStyle::Auto => BorderStyle::Solid,
             OutlineStyle::BorderStyle(s) => s,
         };
-        let side = self.build_border_side(style, outline.outline_color.clone());
+        let side = self.build_border_side(BorderStyleColor {
+            style: border_style,
+            color: style.resolve_color(&outline.outline_color),
+        });
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: side,
             right: side,
@@ -1078,11 +1107,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     box_shadow.base.horizontal.px(),
                     box_shadow.base.vertical.px(),
                 ),
-                rgba(
-                    self.fragment
-                        .style
-                        .resolve_color(box_shadow.base.color.clone()),
-                ),
+                rgba(self.fragment.style.resolve_color(&box_shadow.base.color)),
                 box_shadow.base.blur.px(),
                 box_shadow.spread.px(),
                 self.border_radius,

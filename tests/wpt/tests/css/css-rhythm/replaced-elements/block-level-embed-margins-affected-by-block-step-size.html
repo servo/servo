@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-rhythm/#block-step-size">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Block level embed is affected by block-step-size">
+<style>
+.container {
+  display: flow-root;
+  width: 100px;
+  background-color: green;
+}
+.block-step {
+  display: block;
+  block-step-size: 100px;
+}
+</style>
+</head>
+<body>
+<p>Test passes if there is a filled green square.</p>
+<div class="container">
+  <embed type="text/xml" width="20" height="20" class="block-step"></embed>
+</div>
+</body>
+</html>

@@ -21,13 +21,15 @@ use crate::dom::csslayerblockrule::CSSLayerBlockRule;
 use crate::dom::csslayerstatementrule::CSSLayerStatementRule;
 use crate::dom::cssmediarule::CSSMediaRule;
 use crate::dom::cssnamespacerule::CSSNamespaceRule;
+use crate::dom::cssnesteddeclarations::CSSNestedDeclarations;
 use crate::dom::cssstylerule::CSSStyleRule;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::csssupportsrule::CSSSupportsRule;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CSSRule {
+pub(crate) struct CSSRule {
     reflector_: Reflector,
     parent_stylesheet: Dom<CSSStyleSheet>,
 
@@ -38,8 +40,8 @@ pub struct CSSRule {
 }
 
 impl CSSRule {
-    #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSRule {
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSRule {
         CSSRule {
             reflector_: Reflector::new(),
             parent_stylesheet: Dom::from_ref(parent_stylesheet),
@@ -47,7 +49,7 @@ impl CSSRule {
         }
     }
 
-    pub fn as_specific(&self) -> &dyn SpecificCSSRule {
+    pub(crate) fn as_specific(&self) -> &dyn SpecificCSSRule {
         if let Some(rule) = self.downcast::<CSSStyleRule>() {
             rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSFontFaceRule>() {
@@ -68,6 +70,8 @@ impl CSSRule {
             rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSLayerStatementRule>() {
             rule as &dyn SpecificCSSRule
+        } else if let Some(rule) = self.downcast::<CSSNestedDeclarations>() {
+            rule as &dyn SpecificCSSRule
         } else {
             unreachable!()
         }
@@ -75,63 +79,72 @@ impl CSSRule {
 
     // Given a StyleCssRule, create a new instance of a derived class of
     // CSSRule based on which rule it is
-    pub fn new_specific(
+    pub(crate) fn new_specific(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         rule: StyleCssRule,
+        can_gc: CanGc,
     ) -> DomRoot<CSSRule> {
         // be sure to update the match in as_specific when this is updated
         match rule {
             StyleCssRule::Import(s) => {
-                DomRoot::upcast(CSSImportRule::new(window, parent_stylesheet, s))
+                DomRoot::upcast(CSSImportRule::new(window, parent_stylesheet, s, can_gc))
             },
             StyleCssRule::Style(s) => {
-                DomRoot::upcast(CSSStyleRule::new(window, parent_stylesheet, s))
+                DomRoot::upcast(CSSStyleRule::new(window, parent_stylesheet, s, can_gc))
             },
             StyleCssRule::FontFace(s) => {
-                DomRoot::upcast(CSSFontFaceRule::new(window, parent_stylesheet, s))
+                DomRoot::upcast(CSSFontFaceRule::new(window, parent_stylesheet, s, can_gc))
             },
             StyleCssRule::FontFeatureValues(_) => unimplemented!(),
             StyleCssRule::CounterStyle(_) => unimplemented!(),
             StyleCssRule::Keyframes(s) => {
-                DomRoot::upcast(CSSKeyframesRule::new(window, parent_stylesheet, s))
+                DomRoot::upcast(CSSKeyframesRule::new(window, parent_stylesheet, s, can_gc))
             },
             StyleCssRule::Media(s) => {
-                DomRoot::upcast(CSSMediaRule::new(window, parent_stylesheet, s))
+                DomRoot::upcast(CSSMediaRule::new(window, parent_stylesheet, s, can_gc))
             },
             StyleCssRule::Namespace(s) => {
-                DomRoot::upcast(CSSNamespaceRule::new(window, parent_stylesheet, s))
+                DomRoot::upcast(CSSNamespaceRule::new(window, parent_stylesheet, s, can_gc))
             },
             StyleCssRule::Supports(s) => {
-                DomRoot::upcast(CSSSupportsRule::new(window, parent_stylesheet, s))
+                DomRoot::upcast(CSSSupportsRule::new(window, parent_stylesheet, s, can_gc))
             },
             StyleCssRule::Page(_) => unreachable!(),
             StyleCssRule::Container(_) => unimplemented!(), // TODO
             StyleCssRule::Document(_) => unimplemented!(),  // TODO
             StyleCssRule::LayerBlock(s) => {
-                DomRoot::upcast(CSSLayerBlockRule::new(window, parent_stylesheet, s))
+                DomRoot::upcast(CSSLayerBlockRule::new(window, parent_stylesheet, s, can_gc))
             },
-            StyleCssRule::LayerStatement(s) => {
-                DomRoot::upcast(CSSLayerStatementRule::new(window, parent_stylesheet, s))
-            },
+            StyleCssRule::LayerStatement(s) => DomRoot::upcast(CSSLayerStatementRule::new(
+                window,
+                parent_stylesheet,
+                s,
+                can_gc,
+            )),
             StyleCssRule::FontPaletteValues(_) => unimplemented!(), // TODO
             StyleCssRule::Property(_) => unimplemented!(),          // TODO
             StyleCssRule::Margin(_) => unimplemented!(),            // TODO
             StyleCssRule::Scope(_) => unimplemented!(),             // TODO
             StyleCssRule::StartingStyle(_) => unimplemented!(),     // TODO
             StyleCssRule::PositionTry(_) => unimplemented!(),       // TODO
-            StyleCssRule::NestedDeclarations(_) => unimplemented!(), // TODO
+            StyleCssRule::NestedDeclarations(s) => DomRoot::upcast(CSSNestedDeclarations::new(
+                window,
+                parent_stylesheet,
+                s,
+                can_gc,
+            )),
         }
     }
 
     /// Sets owner sheet/rule to null
-    pub fn detach(&self) {
+    pub(crate) fn detach(&self) {
         self.deparent();
         // should set parent rule to None when we add parent rule support
     }
 
     /// Sets owner sheet to null (and does the same for all children)
-    pub fn deparent(&self) {
+    pub(crate) fn deparent(&self) {
         self.parent_stylesheet_removed.set(true);
         // https://github.com/w3c/csswg-drafts/issues/722
         // Spec doesn't ask us to do this, but it makes sense
@@ -139,11 +152,11 @@ impl CSSRule {
         self.as_specific().deparent_children();
     }
 
-    pub fn parent_stylesheet(&self) -> &CSSStyleSheet {
+    pub(crate) fn parent_stylesheet(&self) -> &CSSStyleSheet {
         &self.parent_stylesheet
     }
 
-    pub fn shared_lock(&self) -> &SharedRwLock {
+    pub(crate) fn shared_lock(&self) -> &SharedRwLock {
         &self.parent_stylesheet.style_stylesheet().shared_lock
     }
 }
@@ -154,11 +167,7 @@ impl CSSRuleMethods<crate::DomTypeHolder> for CSSRule {
         let rule_type = self.as_specific().ty() as u16;
         // Per https://drafts.csswg.org/cssom/#dom-cssrule-type for constants > 15
         // we return 0.
-        if rule_type > 15 {
-            0
-        } else {
-            rule_type
-        }
+        if rule_type > 15 { 0 } else { rule_type }
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssrule-parentstylesheet
@@ -181,7 +190,7 @@ impl CSSRuleMethods<crate::DomTypeHolder> for CSSRule {
     }
 }
 
-pub trait SpecificCSSRule {
+pub(crate) trait SpecificCSSRule {
     fn ty(&self) -> CssRuleType;
     fn get_css(&self) -> DOMString;
     /// Remove parentStylesheet from all transitive children

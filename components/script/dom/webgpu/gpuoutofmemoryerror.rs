@@ -14,7 +14,7 @@ use crate::dom::types::GPUError;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUOutOfMemoryError {
+pub(crate) struct GPUOutOfMemoryError {
     gpu_error: GPUError,
 }
 
@@ -25,7 +25,7 @@ impl GPUOutOfMemoryError {
         }
     }
 
-    pub fn new_with_proto(
+    pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,

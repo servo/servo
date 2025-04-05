@@ -105,9 +105,9 @@ promise_test(async t => {
   frame.contentWindow.postMessage({ userActivation: false }, '*');
   const result = await resultPromise;
 
-  // Without a user activation, we expect a SecurityError.
+  // Without a user activation, we expect a NotAllowedError.
   assert_true(result.error instanceof DOMException);
-  assert_equals(result.error.name, 'SecurityError');
+  assert_equals(result.error.name, 'NotAllowedError');
   assert_not_own_property(result, 'id');
   assert_not_own_property(result, 'rawId');
 }, 'SPC enrollment in cross-origin iframe fails without user activation');

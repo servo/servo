@@ -6,34 +6,36 @@ use std::borrow::Cow;
 use std::cell::Cell;
 use std::cmp::Ordering;
 use std::ops::Range;
+use std::path::PathBuf;
 use std::ptr::NonNull;
+use std::str::FromStr;
 use std::{f64, ptr};
 
 use dom_struct::dom_struct;
 use embedder_traits::{FilterPattern, InputMethodType};
 use encoding_rs::Encoding;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::jsapi::{
-    ClippedTime, DateGetMsecSinceEpoch, Handle, JSObject, JS_ClearPendingException, NewDateObject,
-    NewUCRegExpObject, ObjectIsDate, RegExpFlag_Unicode, RegExpFlags,
+    ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
+    NewUCRegExpObject, ObjectIsDate, RegExpFlag_UnicodeSets, RegExpFlags,
 };
 use js::jsval::UndefinedValue;
-use js::rust::jsapi_wrapped::{ExecuteRegExpNoStatics, ObjectIsRegExp};
+use js::rust::wrappers::{CheckRegExpSyntax, ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
-use script_traits::ScriptToConstellationChan;
-use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{split_commas, str_join};
-use style_dom::ElementState;
-use time_03::{Month, OffsetDateTime, Time};
-use unicode_bidi::{bidi_class, BidiClass};
+use stylo_atoms::Atom;
+use stylo_dom::ElementState;
+use time::{Month, OffsetDateTime, Time};
+use unicode_bidi::{BidiClass, bidi_class};
 use url::Url;
 
 use super::bindings::str::{FromInputValueString, ToInputValueString};
+use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -45,16 +47,17 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputE
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::filelist::FileList;
+use crate::dom::filelist::{FileList, LayoutFileListHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
@@ -66,12 +69,11 @@ use crate::dom::htmlformelement::{
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{
-    document_from_node, window_from_node, BindContext, CloneChildrenFlag, Node, NodeDamage,
-    ShadowIncluding, UnbindContext,
+    BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
-use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
+use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::realms::enter_realm;
@@ -80,38 +82,86 @@ use crate::textinput::KeyReaction::{
     DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction,
 };
 use crate::textinput::Lines::Single;
-use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes};
+use crate::textinput::{
+    Direction, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
+    handle_text_clipboard_action,
+};
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
+const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 
+/// <https://html.spec.whatwg.org/multipage/#attr-input-type>
 #[derive(Clone, Copy, Default, JSTraceable, PartialEq)]
 #[allow(dead_code)]
 #[derive(MallocSizeOf)]
-pub enum InputType {
+pub(crate) enum InputType {
+    /// <https://html.spec.whatwg.org/multipage/#button-state-(type=button)>
     Button,
+
+    /// <https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox)>
     Checkbox,
+
+    /// <https://html.spec.whatwg.org/multipage/#color-state-(type=color)>
     Color,
+
+    /// <https://html.spec.whatwg.org/multipage/#date-state-(type=date)>
     Date,
+
+    /// <https://html.spec.whatwg.org/multipage/#local-date-and-time-state-(type=datetime-local)>
     DatetimeLocal,
+
+    /// <https://html.spec.whatwg.org/multipage/#email-state-(type=email)>
     Email,
+
+    /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)>
     File,
+
+    /// <https://html.spec.whatwg.org/multipage/#hidden-state-(type=hidden)>
     Hidden,
+
+    /// <https://html.spec.whatwg.org/multipage/#image-button-state-(type=image)>
     Image,
+
+    /// <https://html.spec.whatwg.org/multipage/#month-state-(type=month)>
     Month,
+
+    /// <https://html.spec.whatwg.org/multipage/#number-state-(type=number)>
     Number,
+
+    /// <https://html.spec.whatwg.org/multipage/#password-state-(type=password)>
     Password,
+
+    /// <https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio)>
     Radio,
+
+    /// <https://html.spec.whatwg.org/multipage/#range-state-(type=range)>
     Range,
+
+    /// <https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset)>
     Reset,
+
+    /// <https://html.spec.whatwg.org/multipage/#text-(type=text)-state-and-search-state-(type=search)>
     Search,
+
+    /// <https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit)>
     Submit,
+
+    /// <https://html.spec.whatwg.org/multipage/#telephone-state-(type=tel)>
     Tel,
+
+    /// <https://html.spec.whatwg.org/multipage/#text-(type=text)-state-and-search-state-(type=search)>
     #[default]
     Text,
+
+    /// <https://html.spec.whatwg.org/multipage/#time-state-(type=time)>
     Time,
+
+    /// <https://html.spec.whatwg.org/multipage/#url-state-(type=url)>
     Url,
+
+    /// <https://html.spec.whatwg.org/multipage/#week-state-(type=week)>
     Week,
 }
 
@@ -175,7 +225,7 @@ impl InputType {
         }
     }
 
-    pub fn as_ime_type(&self) -> Option<InputMethodType> {
+    pub(crate) fn as_ime_type(&self) -> Option<InputMethodType> {
         match *self {
             InputType::Color => Some(InputMethodType::Color),
             InputType::Date => Some(InputMethodType::Date),
@@ -195,7 +245,7 @@ impl InputType {
     }
 }
 
-impl<'a> From<&'a Atom> for InputType {
+impl From<&Atom> for InputType {
     fn from(value: &Atom) -> InputType {
         match value.to_ascii_lowercase() {
             atom!("button") => InputType::Button,
@@ -240,9 +290,11 @@ enum StepDirection {
 }
 
 #[dom_struct]
-pub struct HTMLInputElement {
+pub(crate) struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
     checked_changed: Cell<bool>,
     placeholder: DomRefCell<DOMString>,
     size: Cell<u32>,
@@ -250,7 +302,7 @@ pub struct HTMLInputElement {
     minlength: Cell<i32>,
     #[ignore_malloc_size_of = "TextInput contains an IPCSender which cannot be measured"]
     #[no_trace]
-    textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
+    textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
     // not specified explicitly, but implied by the fact that sanitization can't
@@ -265,7 +317,7 @@ pub struct HTMLInputElement {
 }
 
 #[derive(JSTraceable)]
-pub struct InputActivationState {
+pub(crate) struct InputActivationState {
     indeterminate: bool,
     checked: bool,
     checked_radio: Option<DomRoot<HTMLInputElement>>,
@@ -285,9 +337,9 @@ impl HTMLInputElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> HTMLInputElement {
-        let chan = document
+        let constellation_sender = document
             .window()
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .script_to_constellation_chan()
             .clone();
         HTMLInputElement {
@@ -306,7 +358,10 @@ impl HTMLInputElement {
             textinput: DomRefCell::new(TextInput::new(
                 Single,
                 DOMString::new(),
-                chan,
+                EmbedderClipboardProvider {
+                    constellation_sender,
+                    webview_id: document.webview_id(),
+                },
                 None,
                 None,
                 SelectionDirection::None,
@@ -320,8 +375,8 @@ impl HTMLInputElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -338,7 +393,7 @@ impl HTMLInputElement {
         )
     }
 
-    pub fn auto_directionality(&self) -> Option<String> {
+    pub(crate) fn auto_directionality(&self) -> Option<String> {
         match self.input_type() {
             InputType::Text | InputType::Search | InputType::Url | InputType::Email => {
                 let value: String = self.Value().to_string();
@@ -348,7 +403,7 @@ impl HTMLInputElement {
         }
     }
 
-    pub fn directionality_from_value(value: &str) -> String {
+    pub(crate) fn directionality_from_value(value: &str) -> String {
         if HTMLInputElement::is_first_strong_character_rtl(value) {
             "rtl".to_owned()
         } else {
@@ -400,44 +455,26 @@ impl HTMLInputElement {
     }
 
     #[inline]
-    pub fn input_type(&self) -> InputType {
+    pub(crate) fn input_type(&self) -> InputType {
         self.input_type.get()
     }
 
     #[inline]
-    pub fn is_submit_button(&self) -> bool {
+    pub(crate) fn is_submit_button(&self) -> bool {
         let input_type = self.input_type.get();
         input_type == InputType::Submit || input_type == InputType::Image
     }
 
-    pub fn disable_sanitization(&self) {
+    pub(crate) fn disable_sanitization(&self) {
         self.sanitization_flag.set(false);
     }
 
-    pub fn enable_sanitization(&self) {
+    pub(crate) fn enable_sanitization(&self) {
         self.sanitization_flag.set(true);
         let mut textinput = self.textinput.borrow_mut();
         let mut value = textinput.single_line_content().clone();
         self.sanitize_value(&mut value);
         textinput.set_content(value);
-    }
-
-    fn does_readonly_apply(&self) -> bool {
-        matches!(
-            self.input_type(),
-            InputType::Text |
-                InputType::Search |
-                InputType::Url |
-                InputType::Tel |
-                InputType::Email |
-                InputType::Password |
-                InputType::Date |
-                InputType::Month |
-                InputType::Week |
-                InputType::Time |
-                InputType::DatetimeLocal |
-                InputType::Number
-        )
     }
 
     fn does_minmaxlength_apply(&self) -> bool {
@@ -773,6 +810,9 @@ impl HTMLInputElement {
             InputType::Checkbox => self.Required() && !self.Checked(),
             // https://html.spec.whatwg.org/multipage/#radio-button-state-(type%3Dradio)%3Asuffering-from-being-missing
             InputType::Radio => {
+                if self.radio_group_name().is_none() {
+                    return false;
+                }
                 let mut is_required = self.Required();
                 let mut is_checked = self.Checked();
                 for other in radio_group_iter(self, self.radio_group_name().as_ref()) {
@@ -783,10 +823,7 @@ impl HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type%3Dfile)%3Asuffering-from-being-missing
             InputType::File => {
-                self.Required() &&
-                    self.filelist
-                        .get()
-                        .map_or(true, |files| files.Length() == 0)
+                self.Required() && self.filelist.get().is_none_or(|files| files.Length() == 0)
             },
             // https://html.spec.whatwg.org/multipage/#the-required-attribute%3Asuffering-from-being-missing
             _ => {
@@ -970,7 +1007,7 @@ impl HTMLInputElement {
     }
 }
 
-pub trait LayoutHTMLInputElementHelpers<'dom> {
+pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
     fn value_for_layout(self) -> Cow<'dom, str>;
     fn size_for_layout(self) -> u32;
     fn selection_for_layout(self) -> Option<Range<usize>>;
@@ -985,6 +1022,9 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
                 .borrow_for_layout()
                 .get_content()
         }
+    }
+    fn get_filelist(self) -> Option<LayoutDom<'dom, FileList>> {
+        unsafe { self.unsafe_get().filelist.get_inner_as_layout() }
     }
 
     fn placeholder(self) -> &'dom str {
@@ -1019,8 +1059,27 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         }
 
         match self.input_type() {
-            InputType::Checkbox | InputType::Radio => "".into(),
-            InputType::File | InputType::Image => "".into(),
+            InputType::Checkbox | InputType::Radio | InputType::Image => "".into(),
+            InputType::File => {
+                let filelist = self.get_filelist();
+                match filelist {
+                    Some(filelist) => {
+                        let length = filelist.len();
+                        if length == 0 {
+                            return DEFAULT_FILE_INPUT_VALUE.into();
+                        }
+                        if length == 1 {
+                            match filelist.file_for_layout(0) {
+                                Some(file) => return file.name().to_string().into(),
+                                None => return DEFAULT_FILE_INPUT_VALUE.into(),
+                            }
+                        }
+
+                        format!("{} files", length).into()
+                    },
+                    None => DEFAULT_FILE_INPUT_VALUE.into(),
+                }
+            },
             InputType::Button => get_raw_attr_value(self, ""),
             InputType::Submit => get_raw_attr_value(self, DEFAULT_SUBMIT_VALUE),
             InputType::Reset => get_raw_attr_value(self, DEFAULT_RESET_VALUE),
@@ -1271,8 +1330,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             },
             ValueMode::Filename => {
                 if value.is_empty() {
-                    let window = window_from_node(self);
-                    let fl = FileList::new(&window, vec![]);
+                    let window = self.owner_window();
+                    let fl = FileList::new(&window, vec![], can_gc);
                     self.filelist.set(Some(&fl));
                 } else {
                     return Err(Error::InvalidState);
@@ -1281,7 +1340,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         Ok(())
     }
@@ -1507,6 +1566,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 NodeList::new_labels_list(
                     self.upcast::<Node>().owner_doc().window(),
                     self.upcast::<HTMLElement>(),
+                    CanGc::note(),
                 )
             }))
         }
@@ -1686,7 +1746,7 @@ impl HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     /// Steps range from 5.1 to 5.10 (specific to HTMLInputElement)
-    pub fn form_datums(
+    pub(crate) fn form_datums(
         &self,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
@@ -1780,13 +1840,9 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group
     fn radio_group_name(&self) -> Option<Atom> {
-        self.upcast::<Element>().get_name().and_then(|name| {
-            if name == atom!("") {
-                None
-            } else {
-                Some(name)
-            }
-        })
+        self.upcast::<Element>()
+            .get_name()
+            .and_then(|name| if name == atom!("") { None } else { Some(name) })
     }
 
     fn update_checked_state(&self, checked: bool, dirty: bool) {
@@ -1802,7 +1858,6 @@ impl HTMLInputElement {
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        //TODO: dispatch change event
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
@@ -1813,7 +1868,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control
-    pub fn reset(&self) {
+    pub(crate) fn reset(&self) {
         match self.input_type() {
             InputType::Radio | InputType::Checkbox => {
                 self.update_checked_state(self.DefaultChecked(), false);
@@ -1842,23 +1897,29 @@ impl HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
     // Select files by invoking UI or by passed in argument
     fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>, can_gc: CanGc) {
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let origin = get_blob_origin(&window.get_url());
-        let resource_threads = window.upcast::<GlobalScope>().resource_threads();
+        let resource_threads = window.as_global_scope().resource_threads();
 
         let mut files: Vec<DomRoot<File>> = vec![];
         let mut error = None;
 
+        let webview_id = window.webview_id();
         let filter = filter_from_accept(&self.Accept());
         let target = self.upcast::<EventTarget>();
 
         if self.Multiple() {
-            let opt_test_paths =
-                opt_test_paths.map(|paths| paths.iter().map(|p| p.to_string()).collect());
+            let opt_test_paths = opt_test_paths.map(|paths| {
+                paths
+                    .iter()
+                    .filter_map(|p| PathBuf::from_str(p).ok())
+                    .collect()
+            });
 
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
-            let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin, opt_test_paths);
+            let msg =
+                FileManagerThreadMsg::SelectFiles(webview_id, filter, chan, origin, opt_test_paths);
             resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
@@ -1877,7 +1938,7 @@ impl HTMLInputElement {
                     if paths.is_empty() {
                         return;
                     } else {
-                        Some(paths[0].to_string()) // neglect other paths
+                        Some(PathBuf::from(paths[0].to_string())) // neglect other paths
                     }
                 },
                 None => None,
@@ -1885,7 +1946,8 @@ impl HTMLInputElement {
 
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
-            let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin, opt_test_path);
+            let msg =
+                FileManagerThreadMsg::SelectFile(webview_id, filter, chan, origin, opt_test_path);
             resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
@@ -1901,7 +1963,7 @@ impl HTMLInputElement {
         if let Some(err) = error {
             debug!("Input file select error: {:?}", err);
         } else {
-            let filelist = FileList::new(&window, files);
+            let filelist = FileList::new(&window, files, can_gc);
             self.filelist.set(Some(&filelist));
 
             target.fire_bubbling_event(atom!("input"), can_gc);
@@ -2056,7 +2118,7 @@ impl HTMLInputElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn selection(&self) -> TextControlSelection<Self> {
         TextControlSelection::new(self, &self.textinput)
     }
@@ -2064,7 +2126,7 @@ impl HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
     fn implicit_submission(&self, can_gc: CanGc) {
-        let doc = document_from_node(self);
+        let doc = self.owner_document();
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
         let form = match owner {
@@ -2087,7 +2149,7 @@ impl HTMLInputElement {
                     // but we can get here from synthetic keydown events
                     button
                         .upcast::<Node>()
-                        .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"), can_gc);
+                        .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
                 }
             },
             None => {
@@ -2260,8 +2322,10 @@ impl VirtualMethods for HTMLInputElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -2319,8 +2383,8 @@ impl VirtualMethods for HTMLInputElement {
                         }
 
                         if new_type == InputType::File {
-                            let window = window_from_node(self);
-                            let filelist = FileList::new(&window, vec![]);
+                            let window = self.owner_window();
+                            let filelist = FileList::new(&window, vec![], CanGc::note());
                             self.filelist.set(Some(&filelist));
                         }
 
@@ -2451,13 +2515,13 @@ impl VirtualMethods for HTMLInputElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation);
+                self.form_attribute_mutated(mutation, can_gc);
             },
             _ => {},
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -2478,19 +2542,21 @@ impl VirtualMethods for HTMLInputElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
-        self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+        for r in radio_group_iter(self, self.radio_group_name().as_ref()) {
+            r.validity_state()
+                .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
@@ -2504,7 +2570,7 @@ impl VirtualMethods for HTMLInputElement {
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
     // This represents behavior for which the UIEvents spec and the
@@ -2512,9 +2578,9 @@ impl VirtualMethods for HTMLInputElement {
     // Compare:
     // https://w3c.github.io/uievents/#default-action
     // https://dom.spec.whatwg.org/#action-versus-occurance
-    fn handle_event(&self, event: &Event) {
+    fn handle_event(&self, event: &Event, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.handle_event(event);
+            s.handle_event(event, can_gc);
         }
 
         if event.type_() == atom!("click") && !event.DefaultPrevented() {
@@ -2532,7 +2598,7 @@ impl VirtualMethods for HTMLInputElement {
                     // the space key. There's no nice way to catch this so let's use this for
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
-                        let window = window_from_node(self);
+                        let window = self.owner_window();
                         let index = window.text_index_query(
                             self.upcast::<Node>(),
                             point_in_target,
@@ -2577,8 +2643,7 @@ impl VirtualMethods for HTMLInputElement {
             self.input_type().is_textual_or_password()
         {
             if event.IsTrusted() {
-                let window = window_from_node(self);
-                window
+                self.owner_global()
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
@@ -2586,7 +2651,6 @@ impl VirtualMethods for HTMLInputElement {
                         atom!("input"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,
-                        &window,
                     );
             }
         } else if (event.type_() == atom!("compositionstart") ||
@@ -2594,8 +2658,6 @@ impl VirtualMethods for HTMLInputElement {
             event.type_() == atom!("compositionend")) &&
             self.input_type().is_textual_or_password()
         {
-            // TODO: Update DOM on start and continue
-            // and generally do proper CompositionEvent handling.
             if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
                 if event.type_() == atom!("compositionend") {
                     let _ = self
@@ -2603,13 +2665,23 @@ impl VirtualMethods for HTMLInputElement {
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                } else if event.type_() == atom!("compositionupdate") {
+                    let _ = self
+                        .textinput
+                        .borrow_mut()
+                        .handle_compositionupdate(compositionevent);
+                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                 }
                 event.mark_as_handled();
+            }
+        } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
+            if !event.DefaultPrevented() {
+                handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
             }
         }
 
         self.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext
@@ -2618,9 +2690,10 @@ impl VirtualMethods for HTMLInputElement {
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
+        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children);
+            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
         }
         let elem = copy.downcast::<HTMLInputElement>().unwrap();
         elem.value_dirty.set(self.value_dirty.get());
@@ -2631,7 +2704,7 @@ impl VirtualMethods for HTMLInputElement {
             .borrow_mut()
             .set_content(self.textinput.borrow().get_content());
         elem.validity_state()
-            .perform_validation_and_update(ValidationFlags::all());
+            .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 }
 
@@ -2656,7 +2729,7 @@ impl Validatable for HTMLInputElement {
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
         self.validity_state
-            .or_init(|| ValidityState::new(&window_from_node(self), self.upcast()))
+            .or_init(|| ValidityState::new(&self.owner_window(), self.upcast(), CanGc::note()))
     }
 
     fn is_instance_validatable(&self) -> bool {
@@ -2670,13 +2743,17 @@ impl Validatable for HTMLInputElement {
             InputType::Hidden | InputType::Button | InputType::Reset => false,
             _ => {
                 !(self.upcast::<Element>().disabled_state() ||
-                    (self.ReadOnly() && self.does_readonly_apply()) ||
+                    self.ReadOnly() ||
                     is_barred_by_datalist_ancestor(self.upcast()))
             },
         }
     }
 
-    fn perform_validation(&self, validate_flags: ValidationFlags) -> ValidationFlags {
+    fn perform_validation(
+        &self,
+        validate_flags: ValidationFlags,
+        _can_gc: CanGc,
+    ) -> ValidationFlags {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
 
@@ -2833,7 +2910,7 @@ impl Activatable for HTMLInputElement {
                 // Step 1: If the element does not have a form owner, then return.
                 if let Some(form_owner) = self.form_owner() {
                     // Step 2: If the element's node document is not fully active, then return.
-                    let document = document_from_node(self);
+                    let document = self.owner_document();
 
                     if !document.is_fully_active() {
                         return;
@@ -2852,7 +2929,7 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // Step 1: If the element does not have a form owner, then return.
                 if let Some(form_owner) = self.form_owner() {
-                    let document = document_from_node(self);
+                    let document = self.owner_document();
 
                     // Step 2: If the element's node document is not fully active, then return.
                     if !document.is_fully_active() {
@@ -2892,6 +2969,7 @@ impl Activatable for HTMLInputElement {
 fn filter_from_accept(s: &DOMString) -> Vec<FilterPattern> {
     let mut filter = vec![];
     for p in split_commas(s) {
+        let p = p.trim();
         if let Some('.') = p.chars().next() {
             filter.push(FilterPattern(p[1..].to_string()));
         } else if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
@@ -2920,26 +2998,63 @@ fn round_halves_positive(n: f64) -> f64 {
 // https://html.spec.whatwg.org/multipage/#compiled-pattern-regular-expression
 fn compile_pattern(cx: SafeJSContext, pattern_str: &str, out_regex: MutableHandleObject) -> bool {
     // First check if pattern compiles...
-    if new_js_regex(cx, pattern_str, out_regex) {
+    if check_js_regex_syntax(cx, pattern_str) {
         // ...and if it does make pattern that matches only the entirety of string
         let pattern_str = format!("^(?:{})$", pattern_str);
-        new_js_regex(cx, &pattern_str, out_regex)
+        let flags = RegExpFlags {
+            flags_: RegExpFlag_UnicodeSets,
+        };
+        new_js_regex(cx, &pattern_str, flags, out_regex)
     } else {
         false
     }
 }
 
 #[allow(unsafe_code)]
-fn new_js_regex(cx: SafeJSContext, pattern: &str, mut out_regex: MutableHandleObject) -> bool {
+/// Check if the pattern by itself is valid first, and not that it only becomes
+/// valid once we add ^(?: and )$.
+fn check_js_regex_syntax(cx: SafeJSContext, pattern: &str) -> bool {
+    let pattern: Vec<u16> = pattern.encode_utf16().collect();
+    unsafe {
+        rooted!(in(*cx) let mut exception = UndefinedValue());
+
+        let valid = CheckRegExpSyntax(
+            *cx,
+            pattern.as_ptr(),
+            pattern.len(),
+            RegExpFlags {
+                flags_: RegExpFlag_UnicodeSets,
+            },
+            exception.handle_mut(),
+        );
+
+        if !valid {
+            JS_ClearPendingException(*cx);
+            return false;
+        }
+
+        // TODO(cybai): report `exception` to devtools
+        // exception will be `undefined` if the regex is valid
+        exception.is_undefined()
+    }
+}
+
+// TODO: This is also used in the URLPattern implementation. Consider moving it into mozjs or some other
+// shared module
+#[allow(unsafe_code)]
+pub(crate) fn new_js_regex(
+    cx: SafeJSContext,
+    pattern: &str,
+    flags: RegExpFlags,
+    mut out_regex: MutableHandleObject,
+) -> bool {
     let pattern: Vec<u16> = pattern.encode_utf16().collect();
     unsafe {
         out_regex.set(NewUCRegExpObject(
             *cx,
             pattern.as_ptr(),
             pattern.len(),
-            RegExpFlags {
-                flags_: RegExpFlag_Unicode,
-            },
+            flags,
         ));
         if out_regex.is_null() {
             JS_ClearPendingException(*cx);
@@ -2968,7 +3083,7 @@ fn matches_js_regex(cx: SafeJSContext, regex_obj: HandleObject, value: &str) -> 
             value.len(),
             &mut index,
             true,
-            &mut rval.handle_mut(),
+            rval.handle_mut(),
         );
 
         if ok {

@@ -6,62 +6,62 @@ use std::borrow::{Borrow, ToOwned};
 use std::cell::Cell;
 use std::default::Default;
 
+use base::id::WebViewId;
 use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    CorsSettings, Destination, Initiator, Referrer, RequestBuilder, RequestId,
+    CorsSettings, Destination, Initiator, InsecureRequestsPolicy, Referrer, RequestBuilder,
+    RequestId,
 };
 use net_traits::{
     FetchMetadata, FetchResponseListener, NetworkError, ReferrerPolicy, ResourceFetchTiming,
     ResourceTimingType,
 };
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
 use style::stylesheets::{CssRuleType, Origin, Stylesheet, UrlExtraData};
 use style_traits::ParsingMode;
+use stylo_atoms::Atom;
 
-use super::types::{EventTarget, GlobalScope};
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
+use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElement_Binding::HTMLElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
-    cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
-    reflect_referrer_policy_attribute, set_cross_origin_attribute, AttributeMutation, Element,
-    ElementCreator,
+    AttributeMutation, Element, ElementCreator, cors_setting_for_element,
+    referrer_policy_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
+    set_cross_origin_attribute,
 };
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{
-    document_from_node, stylesheets_owner_from_node, window_from_node, BindContext, Node,
-    UnbindContext,
-};
+use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
+use crate::dom::types::{EventTarget, GlobalScope};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
 use crate::links::LinkRelations;
-use crate::network_listener::{submit_timing, PreInvoke, ResourceTimingListener};
+use crate::network_listener::{PreInvoke, ResourceTimingListener, submit_timing};
 use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{StylesheetContextSource, StylesheetLoader, StylesheetOwner};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
-pub struct RequestGenerationId(u32);
+pub(crate) struct RequestGenerationId(u32);
 
 impl RequestGenerationId {
     fn increment(self) -> RequestGenerationId {
@@ -75,16 +75,19 @@ struct LinkProcessingOptions {
     destination: Option<Destination>,
     integrity: String,
     link_type: String,
+    cryptographic_nonce_metadata: String,
     cross_origin: Option<CorsSettings>,
     referrer_policy: ReferrerPolicy,
     policy_container: PolicyContainer,
     source_set: Option<()>,
     base_url: ServoUrl,
+    insecure_requests_policy: InsecureRequestsPolicy,
+    has_trustworthy_ancestor_origin: bool,
     // Some fields that we don't need yet are missing
 }
 
 #[dom_struct]
-pub struct HTMLLinkElement {
+pub(crate) struct HTMLLinkElement {
     htmlelement: HTMLElement,
     /// The relations as specified by the "rel" attribute
     rel_list: MutNullableDom<DOMTokenList>,
@@ -133,8 +136,8 @@ impl HTMLLinkElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -152,15 +155,15 @@ impl HTMLLinkElement {
         )
     }
 
-    pub fn get_request_generation_id(&self) -> RequestGenerationId {
+    pub(crate) fn get_request_generation_id(&self) -> RequestGenerationId {
         self.request_generation_id.get()
     }
 
     // FIXME(emilio): These methods are duplicated with
     // HTMLStyleElement::set_stylesheet.
-    #[allow(crown::unrooted_must_root)]
-    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
-        let stylesheets_owner = stylesheets_owner_from_node(self);
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+        let stylesheets_owner = self.stylesheet_list_owner();
         if let Some(ref s) = *self.stylesheet.borrow() {
             stylesheets_owner.remove_stylesheet(self.upcast(), s)
         }
@@ -169,26 +172,27 @@ impl HTMLLinkElement {
         stylesheets_owner.add_stylesheet(self.upcast(), s);
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
+    pub(crate) fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
         self.stylesheet.borrow().clone()
     }
 
-    pub fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
-                    &window_from_node(self),
+                    &self.owner_window(),
                     self.upcast::<Element>(),
                     "text/css".into(),
                     None, // todo handle location
                     None, // todo handle title
                     sheet,
+                    CanGc::note(),
                 )
             })
         })
     }
 
-    pub fn is_alternate(&self) -> bool {
+    pub(crate) fn is_alternate(&self) -> bool {
         self.relations.get().contains(LinkRelations::ALTERNATE)
     }
 
@@ -213,8 +217,10 @@ impl VirtualMethods for HTMLLinkElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         if !self.upcast::<Node>().is_connected() || mutation.is_removal() {
             return;
         }
@@ -262,9 +268,9 @@ impl VirtualMethods for HTMLLinkElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
         self.relations
@@ -291,14 +297,15 @@ impl VirtualMethods for HTMLLinkElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context);
+            s.unbind_from_tree(context, can_gc);
         }
 
         if let Some(s) = self.stylesheet.borrow_mut().take() {
             self.clean_stylesheet_ownership();
-            stylesheets_owner_from_node(self).remove_stylesheet(self.upcast(), &s);
+            self.stylesheet_list_owner()
+                .remove_stylesheet(self.upcast(), &s);
         }
     }
 }
@@ -322,11 +329,14 @@ impl HTMLLinkElement {
             destination: Some(destination),
             integrity: String::new(),
             link_type: String::new(),
+            cryptographic_nonce_metadata: self.upcast::<HTMLElement>().Nonce().into(),
             cross_origin: cors_setting_for_element(element),
             referrer_policy: referrer_policy_for_element(element),
             policy_container: document.policy_container().to_owned(),
             source_set: None, // FIXME
             base_url: document.borrow().base_url(),
+            insecure_requests_policy: document.insecure_requests_policy(),
+            has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
         };
 
         // Step 3. If el has an href attribute, then set options's href to the value of el's href attribute.
@@ -368,7 +378,7 @@ impl HTMLLinkElement {
 
         // Step 4. Let request be the result of creating a link request given options.
         let url = options.base_url.clone();
-        let Some(request) = options.create_link_request() else {
+        let Some(request) = options.create_link_request(self.owner_window().webview_id()) else {
             // Step 5. If request is null, then return.
             return;
         };
@@ -386,12 +396,12 @@ impl HTMLLinkElement {
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         };
 
-        document.fetch_background(request, fetch_context, None);
+        document.fetch_background(request, fetch_context);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-link-obtain>
     fn handle_stylesheet_url(&self, href: &str) {
-        let document = document_from_node(self);
+        let document = self.owner_document();
         if document.browsing_context().is_none() {
             return;
         }
@@ -463,12 +473,12 @@ impl HTMLLinkElement {
     }
 
     fn handle_favicon_url(&self, href: &str, _sizes: &Option<String>) {
-        let document = document_from_node(self);
+        let document = self.owner_document();
         match document.base_url().join(href) {
             Ok(url) => {
                 let window = document.window();
                 if window.is_top_level() {
-                    let msg = EmbedderMsg::NewFavicon(url.clone());
+                    let msg = EmbedderMsg::NewFavicon(document.webview_id(), url.clone());
                     window.send_to_embedder(msg);
                 }
             },
@@ -580,6 +590,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
                     Atom::from("prerender"),
                     Atom::from("stylesheet"),
                 ]),
+                CanGc::note(),
             )
         })
     }
@@ -628,7 +639,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
 
 impl LinkProcessingOptions {
     /// <https://html.spec.whatwg.org/multipage/#create-a-link-request>
-    fn create_link_request(self) -> Option<RequestBuilder> {
+    fn create_link_request(self, webview_id: WebViewId) -> Option<RequestBuilder> {
         // Step 1. Assert: options's href is not the empty string.
         assert!(!self.href.is_empty());
 
@@ -647,20 +658,24 @@ impl LinkProcessingOptions {
         //         url, options's destination, and options's crossorigin.
         // Step 6. Set request's policy container to options's policy container.
         // Step 7. Set request's integrity metadata to options's integrity.
-        // FIXME: Step 8. Set request's cryptographic nonce metadata to options's cryptographic nonce metadata.
+        // Step 8. Set request's cryptographic nonce metadata to options's cryptographic nonce metadata.
         // Step 9. Set request's referrer policy to options's referrer policy.
         // FIXME: Step 10. Set request's client to options's environment.
         // FIXME: Step 11. Set request's priority to options's fetch priority.
         // FIXME: Use correct referrer
         let builder = create_a_potential_cors_request(
+            Some(webview_id),
             url,
             destination,
             self.cross_origin,
             None,
             Referrer::NoReferrer,
+            self.insecure_requests_policy,
+            self.has_trustworthy_ancestor_origin,
         )
         .integrity_metadata(self.integrity)
         .policy_container(self.policy_container)
+        .cryptographic_nonce_metadata(self.cryptographic_nonce_metadata)
         .referrer_policy(self.referrer_policy);
 
         // Step 12. Return request.

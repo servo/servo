@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -11,7 +11,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransferMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransferitemlist::DataTransferItemList;
@@ -36,7 +36,7 @@ const VALID_EFFECTS_ALLOWED: [&str; 9] = [
 ];
 
 #[dom_struct]
-pub struct DataTransfer {
+pub(crate) struct DataTransfer {
     reflector_: Reflector,
     drop_effect: DomRefCell<DOMString>,
     effect_allowed: DomRefCell<DOMString>,
@@ -60,16 +60,13 @@ impl DataTransfer {
         }
     }
 
-    pub fn new_with_proto(
+    pub(crate) fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
+        data_store: Rc<RefCell<Option<DragDataStore>>>,
     ) -> DomRoot<DataTransfer> {
-        let mut drag_data_store = DragDataStore::new();
-        drag_data_store.set_mode(Mode::ReadWrite);
-
-        let data_store = Rc::new(RefCell::new(Some(drag_data_store)));
-        let item_list = DataTransferItemList::new(window, Rc::clone(&data_store));
+        let item_list = DataTransferItemList::new(window, Rc::clone(&data_store), can_gc);
 
         reflect_dom_object_with_proto(
             Box::new(DataTransfer::new_inherited(data_store, &item_list)),
@@ -77,6 +74,18 @@ impl DataTransfer {
             proto,
             can_gc,
         )
+    }
+
+    pub(crate) fn new(
+        window: &Window,
+        data_store: Rc<RefCell<Option<DragDataStore>>>,
+        can_gc: CanGc,
+    ) -> DomRoot<DataTransfer> {
+        Self::new_with_proto(window, None, can_gc, data_store)
+    }
+
+    pub(crate) fn data_store(&self) -> Option<Ref<DragDataStore>> {
+        Ref::filter_map(self.data_store.borrow(), |data_store| data_store.as_ref()).ok()
     }
 }
 
@@ -87,7 +96,12 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<DataTransfer> {
-        DataTransfer::new_with_proto(window, proto, can_gc)
+        let mut drag_data_store = DragDataStore::new();
+        drag_data_store.set_mode(Mode::ReadWrite);
+
+        let data_store = Rc::new(RefCell::new(Some(drag_data_store)));
+
+        DataTransfer::new_with_proto(window, proto, can_gc, data_store)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect>
@@ -146,8 +160,8 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-types>
-    fn Types(&self, cx: JSContext, retval: MutableHandleValue) {
-        self.items.frozen_types(cx, retval);
+    fn Types(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+        self.items.frozen_types(cx, retval, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-getdata>
@@ -237,16 +251,16 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-files>
-    fn Files(&self) -> DomRoot<FileList> {
+    fn Files(&self, can_gc: CanGc) -> DomRoot<FileList> {
         // Step 1 Start with an empty list.
         let mut files = Vec::new();
 
         // Step 2 If the DataTransfer is not associated with a data store return the empty list.
         if let Some(data_store) = self.data_store.borrow().as_ref() {
-            data_store.files(&self.global(), &mut files);
+            data_store.files(&self.global(), can_gc, &mut files);
         }
 
         // Step 5
-        FileList::new(self.global().as_window(), files)
+        FileList::new(self.global().as_window(), files, can_gc)
     }
 }

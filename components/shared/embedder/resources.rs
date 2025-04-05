@@ -55,9 +55,6 @@ pub fn sandbox_access_files_dirs() -> Vec<PathBuf> {
 }
 
 pub enum Resource {
-    /// A json file of [`Preferences`](servo_config::pref_util::Preferences) configuration.
-    /// It can be empty but lots of features will be disabled.
-    Preferences,
     /// A list of GATT services that are blocked from being used by web bluetooth.
     /// The format of the file is a list of UUIDs, one per line, with an optional second word to specify the
     /// type of blocklist.
@@ -70,9 +67,9 @@ pub enum Resource {
     /// It can be empty but all domain names will be considered not public suffixes.
     DomainList,
     /// A preloaded list of HTTP Strict Transport Security. It can be an empty list and
-    /// [`HstsList::default()`](net::hsts::HstsList) will be called.
+    /// `HstsList::default()` will be called.
     HstsPreloadList,
-    /// A HTML page to display when [`SslValidation`](net_traits::NetworkError::SslValidation) network error is
+    /// A HTML page to display when `net_traits::NetworkError::SslValidation` network error is
     /// reported.
     /// The page contains placeholder `${reason}` for the error code and `${bytes}` for the certificate bytes,
     /// and also `${secret}` for the privileged secret.
@@ -116,12 +113,13 @@ pub enum Resource {
     /// The page contains a js function `setData` that will then be used to build the list of directory.
     /// It can be empty but then nothing will be displayed when a directory listing is requested.
     DirectoryListingHTML,
+    /// A HTML page that is used for the about:memory url.
+    AboutMemoryHTML,
 }
 
 impl Resource {
     pub fn filename(&self) -> &'static str {
         match self {
-            Resource::Preferences => "prefs.json",
             Resource::BluetoothBlocklist => "gatt_blocklist.txt",
             Resource::DomainList => "public_domains.txt",
             Resource::HstsPreloadList => "hsts_preload.json",
@@ -136,6 +134,7 @@ impl Resource {
             Resource::MediaControlsJS => "media-controls.js",
             Resource::CrashHTML => "crash.html",
             Resource::DirectoryListingHTML => "directory-listing.html",
+            Resource::AboutMemoryHTML => "about-memory.html",
         }
     }
 }
@@ -148,8 +147,7 @@ pub trait ResourceReaderMethods {
 
 /// Bake all of our resources into this crate for tests, unless we are `cfg!(servo_production)`.
 ///
-/// Local non-production embedder builds (e.g. servoshell) can still override these with [`set`],
-/// if runtime loading of prefs.json and other resources is needed.
+/// Local non-production embedder builds (e.g. servoshell) can still override these with [`set`].
 /// On OpenHarmony we never want to include files, since we ship all the files in the application
 /// bundle anyway.
 #[cfg(not(any(servo_production, target_env = "ohos")))]
@@ -164,7 +162,6 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
         }
         fn read(&self, file: Resource) -> Vec<u8> {
             match file {
-                Resource::Preferences => &include_bytes!("../../../resources/prefs.json")[..],
                 Resource::BluetoothBlocklist => {
                     &include_bytes!("../../../resources/gatt_blocklist.txt")[..]
                 },
@@ -194,6 +191,9 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                 Resource::CrashHTML => &include_bytes!("../../../resources/crash.html")[..],
                 Resource::DirectoryListingHTML => {
                     &include_bytes!("../../../resources/directory-listing.html")[..]
+                },
+                Resource::AboutMemoryHTML => {
+                    &include_bytes!("../../../resources/about-memory.html")[..]
                 },
             }
             .to_owned()

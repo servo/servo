@@ -8,12 +8,13 @@
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::WebGLShaderPrecisionFormatBinding::WebGLShaderPrecisionFormatMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WebGLShaderPrecisionFormat {
+pub(crate) struct WebGLShaderPrecisionFormat {
     reflector_: Reflector,
     range_min: i32,
     range_max: i32,
@@ -30,17 +31,19 @@ impl WebGLShaderPrecisionFormat {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         range_min: i32,
         range_max: i32,
         precision: i32,
+        can_gc: CanGc,
     ) -> DomRoot<WebGLShaderPrecisionFormat> {
         reflect_dom_object(
             Box::new(WebGLShaderPrecisionFormat::new_inherited(
                 range_min, range_max, precision,
             )),
             window,
+            can_gc,
         )
     }
 }

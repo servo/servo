@@ -23,7 +23,7 @@ def build(tag="wpt:local", *args, **kwargs):
 
 def parser_push():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tag", action="store",
+    parser.add_argument("--tag",
                         help="Tag to use (default is taken from .taskcluster.yml)")
     parser.add_argument("--force", action="store_true",
                         help="Ignore warnings and push anyway")
@@ -102,13 +102,13 @@ def push(venv, tag=None, force=False, *args, **kwargs):
 def parser_run():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rebuild", action="store_true", help="Force rebuild of image")
-    parser.add_argument("--checkout", action="store",
+    parser.add_argument("--checkout",
                         help="Revision to checkout in the image. "
                         "If this is not supplied we mount the wpt checkout on the host as "
                         "/home/test/web-platform-tests/")
     parser.add_argument("--privileged", action="store_true",
                         help="Run the image in priviledged mode (required for emulators)")
-    parser.add_argument("--tag", action="store", default="wpt:local",
+    parser.add_argument("--tag", default="wpt:local",
                         help="Docker image tag to use (default wpt:local)")
     return parser
 

@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use mime::Mime;
+use net_traits::request::InsecureRequestsPolicy;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 
@@ -20,10 +21,11 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::location::Location;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]
-pub struct XMLDocument {
+pub(crate) struct XMLDocument {
     document: Document,
 }
 
@@ -40,6 +42,8 @@ impl XMLDocument {
         activity: DocumentActivity,
         source: DocumentSource,
         doc_loader: DocumentLoader,
+        inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        has_trustworthy_ancestor_origin: bool,
     ) -> XMLDocument {
         XMLDocument {
             document: Document::new_inherited(
@@ -56,12 +60,16 @@ impl XMLDocument {
                 None,
                 None,
                 Default::default(),
+                false,
+                false,
+                inherited_insecure_requests_policy,
+                has_trustworthy_ancestor_origin,
             ),
         }
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         has_browsing_context: HasBrowsingContext,
         url: Option<ServoUrl>,
@@ -72,6 +80,9 @@ impl XMLDocument {
         activity: DocumentActivity,
         source: DocumentSource,
         doc_loader: DocumentLoader,
+        inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        has_trustworthy_ancestor_origin: bool,
+        can_gc: CanGc,
     ) -> DomRoot<XMLDocument> {
         let doc = reflect_dom_object(
             Box::new(XMLDocument::new_inherited(
@@ -85,8 +96,11 @@ impl XMLDocument {
                 activity,
                 source,
                 doc_loader,
+                inherited_insecure_requests_policy,
+                has_trustworthy_ancestor_origin,
             )),
             window,
+            can_gc,
         );
         {
             let node = doc.upcast::<Node>();

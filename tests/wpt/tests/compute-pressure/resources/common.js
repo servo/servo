@@ -136,6 +136,12 @@ switch (_globalScope) {
     throw new Error(`Invalid variant '${_globalScope}'`);
 }
 
+promise_setup(async () => {
+  // Ensure window's document has focus so that the global under test can
+  // receive data.
+  await test_driver.click(document.documentElement);
+});
+
 const pressure_test =
     _pressureTestHelper.pressure_test.bind(_pressureTestHelper);
 const mark_as_done = _pressureTestHelper.mark_as_done.bind(_pressureTestHelper);

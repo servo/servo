@@ -1,11 +1,12 @@
 <!-- DO NOT EDIT. This file has been generated. Source:
-    ./tools/build-compute-kind-widget-fallback-props.py
+    ../tools/build-compute-kind-widget-fallback-props.py
 -->
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Basic User Interface Test: Compute kind of widget: border-block-end-color disables native appearance for progress</title>
-<link rel="help" href="https://drafts.csswg.org/css-ui-4/#computing-kind-widget">
-<meta name="assert" content="appropriate widget is returned when authorProps includes border-block-end-color.">
+<title>CSS Basic User Interface Test: Compute kind of widget: border-block-end-color maybe disables native appearance for progress</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-disabling-properties">
+<link rel="help" href="https://html.spec.whatwg.org/#widgets">
+<meta name="assert" content="appropriate widget is used when props includes border-block-end-color.">
 <link rel="match" href="../compute-kind-widget-fallback-progress-ref.html">
 <style>
     #container { width: 500px; }
@@ -20,8 +21,10 @@
 <script>
 // Set author-level CSS that matches UA style, but don't use the 'revert' value.
 const elements = document.querySelectorAll('#container > *');
-const prop = "border-block-end-color";
+const props = "border-block-end-color".split(",");
 for (const el of elements) {
-  el.style.setProperty(prop, getComputedStyle(el).getPropertyValue(prop));
+  for (const prop of props) {
+    el.style.setProperty(prop, getComputedStyle(el).getPropertyValue(prop));
+  }
 }
 </script>

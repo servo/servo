@@ -1,4 +1,5 @@
 {
-  "dom.webxr.test": true,
-  "network.tls.ignore_unexpected_eof": true
+  "dom_webxr_test": true,
+  "gfx_text_antialiasing_enabled": false,
+  "dom_testutils_enabled": true
 }

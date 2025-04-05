@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use style::parser::Parse;
+use style::properties::MaybeBoxed;
 use style::properties::longhands::{
     border_image_outset, border_image_repeat, border_image_slice, border_image_source,
     border_image_width,
 };
 use style::properties::shorthands::border_image;
-use style::properties::MaybeBoxed;
 use style::values::specified::BorderRadius;
 use style_traits::ToCss;
 

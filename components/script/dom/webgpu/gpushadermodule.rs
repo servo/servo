@@ -5,27 +5,26 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPURequest, WebGPUResponse, WebGPUShaderModule};
+use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
 
-use super::gpu::AsyncWGPUListener;
 use super::gpucompilationinfo::GPUCompilationInfo;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUShaderModuleDescriptor, GPUShaderModuleMethods,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::types::GPUDevice;
-use crate::dom::webgpu::gpu::response_async;
 use crate::realms::InRealm;
+use crate::routed_promise::{RoutedPromiseListener, route_promise};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUShaderModule {
+pub(crate) struct GPUShaderModule {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -53,12 +52,13 @@ impl GPUShaderModule {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         shader_module: WebGPUShaderModule,
         label: USVString,
         promise: Rc<Promise>,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUShaderModule::new_inherited(
@@ -68,17 +68,18 @@ impl GPUShaderModule {
                 promise,
             )),
             global,
+            can_gc,
         )
     }
 }
 
 impl GPUShaderModule {
-    pub fn id(&self) -> WebGPUShaderModule {
+    pub(crate) fn id(&self) -> WebGPUShaderModule {
         self.shader_module
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
         comp: InRealm,
@@ -92,8 +93,9 @@ impl GPUShaderModule {
             WebGPUShaderModule(program_id),
             descriptor.parent.label.clone(),
             promise.clone(),
+            can_gc,
         );
-        let sender = response_async(&promise, &*shader_module);
+        let sender = route_promise(&promise, &*shader_module);
         device
             .channel()
             .0
@@ -126,15 +128,15 @@ impl GPUShaderModuleMethods<crate::DomTypeHolder> for GPUShaderModule {
     }
 }
 
-impl AsyncWGPUListener for GPUShaderModule {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
-        match response {
-            WebGPUResponse::CompilationInfo(info) => {
-                let info = GPUCompilationInfo::from(&self.global(), info, can_gc);
-                promise.resolve_native(&info);
-            },
-            _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUShaderModule"),
-        }
+impl RoutedPromiseListener<Option<ShaderCompilationInfo>> for GPUShaderModule {
+    fn handle_response(
+        &self,
+        response: Option<ShaderCompilationInfo>,
+        promise: &Rc<Promise>,
+        can_gc: CanGc,
+    ) {
+        let info = GPUCompilationInfo::from(&self.global(), response, can_gc);
+        promise.resolve_native(&info, can_gc);
     }
 }
 

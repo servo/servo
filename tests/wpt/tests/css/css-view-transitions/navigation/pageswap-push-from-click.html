@@ -35,6 +35,7 @@ if (is_test_page) {
       document.getElementById('nav_link').remove();
       window.events = [];
       popup = window.open("?popup");
+      t.add_cleanup(() => popup.close());
 
       popup.addEventListener("load", () => {
         popup.requestAnimationFrame(

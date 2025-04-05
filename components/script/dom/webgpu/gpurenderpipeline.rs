@@ -4,21 +4,25 @@
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use webgpu::wgc::pipeline::RenderPipelineDescriptor;
-use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPURenderPipeline, WebGPURequest, WebGPUResponse};
+use webgpu_traits::{
+    WebGPU, WebGPUBindGroupLayout, WebGPURenderPipeline, WebGPURenderPipelineResponse,
+    WebGPURequest,
+};
+use wgpu_core::pipeline::RenderPipelineDescriptor;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderPipelineMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::webgpu::gpudevice::{GPUDevice, PipelineLayout};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPURenderPipeline {
+pub(crate) struct GPURenderPipeline {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -44,11 +48,12 @@ impl GPURenderPipeline {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         render_pipeline: WebGPURenderPipeline,
         label: USVString,
         device: &GPUDevice,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderPipeline::new_inherited(
@@ -57,21 +62,22 @@ impl GPURenderPipeline {
                 device,
             )),
             global,
+            can_gc,
         )
     }
 }
 
 impl GPURenderPipeline {
-    pub fn id(&self) -> WebGPURenderPipeline {
+    pub(crate) fn id(&self) -> WebGPURenderPipeline {
         self.render_pipeline
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         pipeline_layout: PipelineLayout,
         descriptor: RenderPipelineDescriptor<'static>,
-        async_sender: Option<IpcSender<WebGPUResponse>>,
+        async_sender: Option<IpcSender<WebGPURenderPipelineResponse>>,
     ) -> Fallible<WebGPURenderPipeline> {
         let render_pipeline_id = device.global().wgpu_id_hub().create_render_pipeline_id();
 
@@ -124,6 +130,7 @@ impl GPURenderPipelineMethods<crate::DomTypeHolder> for GPURenderPipeline {
             self.channel.clone(),
             WebGPUBindGroupLayout(id),
             USVString::default(),
+            CanGc::note(),
         ))
     }
 }

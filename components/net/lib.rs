@@ -18,6 +18,7 @@ pub mod image_cache;
 pub mod local_directory_listing;
 pub mod mime_classifier;
 pub mod protocols;
+pub mod request_interceptor;
 pub mod resource_thread;
 mod storage_thread;
 pub mod subresource_integrity;
@@ -26,6 +27,7 @@ mod websocket_loader;
 /// An implementation of the [Fetch specification](https://fetch.spec.whatwg.org/)
 pub mod fetch {
     pub mod cors_cache;
+    pub mod fetch_params;
     pub mod headers;
     pub mod methods;
 }

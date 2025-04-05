@@ -3,17 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUCommandBuffer, WebGPURequest};
+use webgpu_traits::{WebGPU, WebGPUCommandBuffer, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUCommandBufferMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUCommandBuffer {
+pub(crate) struct GPUCommandBuffer {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -37,11 +38,12 @@ impl GPUCommandBuffer {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUCommandBuffer::new_inherited(
@@ -50,6 +52,7 @@ impl GPUCommandBuffer {
                 label,
             )),
             global,
+            can_gc,
         )
     }
 }
@@ -70,7 +73,7 @@ impl Drop for GPUCommandBuffer {
 }
 
 impl GPUCommandBuffer {
-    pub fn id(&self) -> WebGPUCommandBuffer {
+    pub(crate) fn id(&self) -> WebGPUCommandBuffer {
         self.command_buffer
     }
 }

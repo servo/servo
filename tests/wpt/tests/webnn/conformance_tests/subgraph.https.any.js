@@ -1,5 +1,5 @@
 // META: title=test WebNN API subgraph with multiple operations
-// META: global=window,dedicatedworker
+// META: global=window,worker
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -2519,6 +2519,137 @@ const subgraphTests = [
         'output': {
           'data': [0.9, 1.0, 1.1, 1.2],
           'descriptor': {shape: [4], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'quantized conv2d',
+    'graph': {
+      'inputs': {
+        'input': {
+          'data': [0.05605664849281311, 0.7114229798316956, 0.6529743671417236],
+          'descriptor': {shape: [1, 1, 1, 3], dataType: 'float32'},
+          'constant': false
+        },
+        'inputScale': {
+          'data': [0.003921568859368563],
+          'descriptor': {shape: [1], dataType: 'float32'},
+          'constant': true
+        },
+        'inputZeroPoint': {
+          'data': [-128],
+          'descriptor': {shape: [1], dataType: 'int8'},
+          'constant': true
+        },
+        'filter': {
+          'data': [2, 3, 4],
+          'descriptor': {shape: [1, 1, 1, 3], dataType: 'int8'},
+          'constant': true
+        },
+        'filterScale': {
+          'data': [0.023458752938762234],
+          'descriptor': {shape: [1], dataType: 'float32'},
+          'constant': true
+        },
+        'filterZeroPoint': {
+          'data': [0],
+          'descriptor': {shape: [1], dataType: 'int8'},
+          'constant': true
+        },
+        'bias': {
+          'data': [1],
+          'descriptor': {shape: [1], dataType: 'int32'},
+          'constant': true
+        },
+        'biasScale': {
+          'data': [0.000091995115004270],
+          'descriptor': {shape: [1], dataType: 'float32'},
+          'constant': true
+        },
+        'biasZeroPoint': {
+          'data': [0],
+          'descriptor': {shape: [1], dataType: 'int32'},
+          'constant': true
+        },
+        'outputScale': {
+          'data': [0.003921568859368563],
+          'descriptor': {shape: [1], dataType: 'float32'},
+          'constant': true
+        },
+        'outputZeroPoint': {
+          'data': [0],
+          'descriptor': {shape: [1], dataType: 'int8'},
+          'constant': true
+        },
+      },
+      'operators': [
+        {
+          'name': 'quantizeLinear',
+          'arguments': [
+            {'input': 'input'},
+            {'scale': 'inputScale', 'zeroPoint': 'inputZeroPoint'}
+          ],
+          'outputs': 'quantizedInput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'quantizedInput'},
+            {'scale': 'inputScale', 'zeroPoint': 'inputZeroPoint'}
+          ],
+          'outputs': 'dequantizedInput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'filter'},
+            {'scale': 'filterScale', 'zeroPoint': 'filterZeroPoint'}
+          ],
+          'outputs': 'dequantizedFilter'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'bias'},
+            {'scale': 'biasScale', 'zeroPoint': 'biasZeroPoint'}
+          ],
+          'outputs': 'dequantizedBias'
+        },
+        {
+          'name': 'conv2d',
+          'arguments': [
+            {'input': 'dequantizedInput'}, {'filter': 'dequantizedFilter'}, {
+              'options': {
+                'inputLayout': 'nhwc',
+                'bias': 'dequantizedBias',
+                'filterLayout': 'ohwi'
+              }
+            }
+          ],
+          'outputs': 'conv2dOutput'
+        },
+        {
+          'name': 'quantizeLinear',
+          'arguments': [
+            {'input': 'conv2dOutput'},
+            {'scale': 'outputScale', 'zeroPoint': 'outputZeroPoint'}
+          ],
+          'outputs': 'quantizedConv2dOutput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'quantizedConv2dOutput'},
+            {'scale': 'outputScale', 'zeroPoint': 'outputZeroPoint'}
+          ],
+          'outputs': 'output'
+        }
+      ],
+      'expectedOutputs': {
+        'output': {
+          'data': [0.11372549831867218],
+          'descriptor': {shape: [1, 1, 1, 1], dataType: 'float32'}
         }
       }
     }

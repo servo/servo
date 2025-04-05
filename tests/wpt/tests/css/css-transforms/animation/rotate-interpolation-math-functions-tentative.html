@@ -32,7 +32,7 @@
       test_interpolation({
         property: 'rotate',
         from: 'calc(sign(20rem - 20px) * 100deg)',
-        to: 'calc(progress(10rem from 20px to 100px) * 180deg)',
+        to: 'calc(progress(10rem, 20px, 100px) * 180deg)',
       }, [
         {at: -1, expect: '20deg'},
         {at: 0, expect: '100deg'},

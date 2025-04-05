@@ -1,5 +1,5 @@
 // META: title=validation tests for WebNN API concat operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -83,7 +83,6 @@ const tests = [
     ],
     axis: 1,
   },
-
 ];
 
 tests.forEach(
@@ -120,3 +119,18 @@ multi_builder_test(async (t, builder, otherBuilder) => {
       TypeError,
       () => builder.concat([input1, input2, inputFromOtherBuilder, input3]));
 }, '[concat] throw if any input is from another builder');
+
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+
+  const operandDescriptor = {
+    dataType: 'float32',
+    shape: [context.opSupportLimits().maxTensorByteLength / 4]
+  };
+  const input1 = builder.input('input1', operandDescriptor);
+  const input2 = builder.input('input2', operandDescriptor);
+  const input3 = builder.input('input3', operandDescriptor);
+
+  assert_throws_js(
+      TypeError, () => builder.concat(input1, input2, input3));
+}, '[concat] throw if the output tensor byte length exceeds limit');

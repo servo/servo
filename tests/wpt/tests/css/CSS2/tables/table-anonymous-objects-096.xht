@@ -5,7 +5,7 @@
   <title>CSS Test: Auto-imported from Gecko test cols-test-2.html</title>
   <link rel="author" title="Boris Zbarsky" href="mailto:bzbarsky@mit.edu"/>
   <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#anonymous-boxes"/>
-  <link rel="match" href="reference/no_red_3x3_monospace_table-ref.xht"/>
+  <link rel="match" href="reference/no_red_3x3_monospace_colored_table-ref.xht"/>
 </head>
 <body style="font-family: monospace">
 There should be no red below, except for antialiasing issues.
@@ -13,9 +13,9 @@ There should be no red below, except for antialiasing issues.
 <div style="position: absolute; z-index: 2; top: 0; color: green; padding: 1px;">
 
     <span style="display:table">
-      <span style="display: table-column; background: yellow"></span>
-      <span style="display: table-column; background: cyan"></span>
-      <span style="display: table-column; background: lime"></span>
+      <span style="display: table-column"></span>
+      <span style="display: table-column"></span>
+      <span style="display: table-column"></span>
       <span style="display: table-cell">Row 1, Col 1</span>
       <span style="display: table-cell">Row 1, Col 2</span>
       <span style="display: table-cell">Row 1, Col 3</span>

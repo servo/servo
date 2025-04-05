@@ -4,8 +4,8 @@
 
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::ToCssWithGuard;
-use style::stylesheets::{CssRuleType, LayerBlockRule};
+use style::shared_lock::{Locked, ToCssWithGuard};
+use style::stylesheets::{CssRuleType, CssRules, LayerBlockRule};
 use style_traits::ToCss;
 
 use crate::dom::bindings::codegen::Bindings::CSSLayerBlockRuleBinding::CSSLayerBlockRuleMethods;
@@ -16,9 +16,10 @@ use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::cssrule::SpecificCSSRule;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CSSLayerBlockRule {
+pub(crate) struct CSSLayerBlockRule {
     cssgroupingrule: CSSGroupingRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -26,24 +27,22 @@ pub struct CSSLayerBlockRule {
 }
 
 impl CSSLayerBlockRule {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         parent_stylesheet: &CSSStyleSheet,
         layerblockrule: Arc<LayerBlockRule>,
     ) -> CSSLayerBlockRule {
         CSSLayerBlockRule {
-            cssgroupingrule: CSSGroupingRule::new_inherited(
-                parent_stylesheet,
-                layerblockrule.rules.clone(),
-            ),
+            cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet),
             layerblockrule,
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         layerblockrule: Arc<LayerBlockRule>,
+        can_gc: CanGc,
     ) -> DomRoot<CSSLayerBlockRule> {
         reflect_dom_object(
             Box::new(CSSLayerBlockRule::new_inherited(
@@ -51,7 +50,12 @@ impl CSSLayerBlockRule {
                 layerblockrule,
             )),
             window,
+            can_gc,
         )
+    }
+
+    pub(crate) fn clone_rules(&self) -> Arc<Locked<CssRules>> {
+        self.layerblockrule.rules.clone()
     }
 }
 

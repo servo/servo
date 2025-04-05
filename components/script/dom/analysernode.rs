@@ -11,7 +11,7 @@ use servo_media::audio::analyser_node::AnalysisEngine;
 use servo_media::audio::block::Block;
 use servo_media::audio::node::AudioNodeInit;
 
-use crate::dom::audionode::AudioNode;
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::{
@@ -27,10 +27,9 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
 
 #[dom_struct]
-pub struct AnalyserNode {
+pub(crate) struct AnalyserNode {
     node: AudioNode,
     #[ignore_malloc_size_of = "Defined in servo-media"]
     #[no_trace]
@@ -38,8 +37,8 @@ pub struct AnalyserNode {
 }
 
 impl AnalyserNode {
-    #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
         _: &Window,
         context: &BaseAudioContext,
         options: &AnalyserOptions,
@@ -92,7 +91,7 @@ impl AnalyserNode {
         ))
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &AnalyserOptions,
@@ -101,8 +100,8 @@ impl AnalyserNode {
         Self::new_with_proto(window, None, context, options, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new_with_proto(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
         context: &BaseAudioContext,
@@ -111,28 +110,27 @@ impl AnalyserNode {
     ) -> Fallible<DomRoot<AnalyserNode>> {
         let (node, recv) = AnalyserNode::new_inherited(window, context, options)?;
         let object = reflect_dom_object_with_proto(Box::new(node), window, proto, can_gc);
-        let (source, canceller) = window
+        let task_source = window
+            .as_global_scope()
             .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+            .dom_manipulation_task_source()
+            .to_sendable();
         let this = Trusted::new(&*object);
 
         ROUTER.add_typed_route(
             recv,
             Box::new(move |block| {
                 let this = this.clone();
-                let _ = source.queue_with_canceller(
-                    task!(append_analysis_block: move || {
-                        let this = this.root();
-                        this.push_block(block.unwrap())
-                    }),
-                    &canceller,
-                );
+                task_source.queue(task!(append_analysis_block: move || {
+                    let this = this.root();
+                    this.push_block(block.unwrap())
+                }));
             }),
         );
         Ok(object)
     }
 
-    pub fn push_block(&self, block: Block) {
+    pub(crate) fn push_block(&self, block: Block) {
         self.engine.borrow_mut().push(block)
     }
 }

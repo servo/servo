@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 
 use crate::dom::attr::Attr;
@@ -22,7 +22,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLSourceElement {
+pub(crate) struct HTMLSourceElement {
     htmlelement: HTMLElement,
 }
 
@@ -37,8 +37,8 @@ impl HTMLSourceElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -72,8 +72,10 @@ impl VirtualMethods for HTMLSourceElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match attr.local_name() {
             &local_name!("srcset") |
             &local_name!("sizes") |
@@ -90,8 +92,8 @@ impl VirtualMethods for HTMLSourceElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
-    fn bind_to_tree(&self, context: &BindContext) {
-        self.super_type().unwrap().bind_to_tree(context);
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+        self.super_type().unwrap().bind_to_tree(context, can_gc);
         let parent = self.upcast::<Node>().GetParentNode().unwrap();
         if let Some(media) = parent.downcast::<HTMLMediaElement>() {
             media.handle_source_child_insertion(CanGc::note());
@@ -103,8 +105,8 @@ impl VirtualMethods for HTMLSourceElement {
         );
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
         if let Some(next_sibling) = context.next_sibling {
             let next_sibling_iterator = next_sibling.inclusively_following_siblings();
             HTMLSourceElement::iterate_next_html_image_element_siblings(

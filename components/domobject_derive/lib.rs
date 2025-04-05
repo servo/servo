@@ -4,7 +4,7 @@
 
 #![recursion_limit = "128"]
 
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 
 /// First field of DomObject must be either reflector or another dom_struct,
 /// all other fields must not implement DomObject
@@ -35,7 +35,7 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
 
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
-    let mut items = quote! {
+    let items = quote! {
         impl #impl_generics ::js::conversions::ToJSValConvertible for #name #ty_generics #where_clause {
             #[allow(unsafe_code)]
             unsafe fn to_jsval(&self,
@@ -66,7 +66,15 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
                 crate::DomObject::reflector(self) == crate::DomObject::reflector(other)
             }
         }
+    };
 
+    let mut params = proc_macro2::TokenStream::new();
+    params.append_separated(
+        input.generics.type_params().map(|param| &param.ident),
+        quote! {,},
+    );
+
+    let mut dummy_items = quote! {
         // Generic trait with a blanket impl over `()` for all types.
         // becomes ambiguous if impl
         trait NoDomObjectInDomObject<A> {
@@ -83,13 +91,7 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
         impl<T> NoDomObjectInDomObject<Invalid> for T where T: ?Sized + crate::DomObject {}
     };
 
-    let mut params = proc_macro2::TokenStream::new();
-    params.append_separated(
-        input.generics.type_params().map(|param| &param.ident),
-        quote! {,},
-    );
-
-    items.append_all(field_types.iter().enumerate().map(|(i, ty)| {
+    dummy_items.append_all(field_types.iter().enumerate().map(|(i, ty)| {
         let s = syn::Ident::new(&format!("S{i}"), proc_macro2::Span::call_site());
         quote! {
             struct #s<#params>(#params);
@@ -111,7 +113,8 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
     );
     let tokens = quote! {
         #[allow(non_upper_case_globals)]
-        const #dummy_const: () = { #items };
+        const #dummy_const: () = { #dummy_items };
+        #items
     };
 
     tokens

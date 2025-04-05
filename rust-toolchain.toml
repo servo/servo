@@ -1,16 +1,14 @@
 [toolchain]
-# Be sure to update shell.nix and support/crown/rust-toolchain.toml when bumping this!
-channel = "1.82.0"
+# Be sure to update the 'rust-overlay' module's url in shell.nix to point to a
+# commit which supports the required rustc version and also update the version
+# in support/crown/rust-toolchain.toml when bumping this!
+channel = "1.85.0"
 
 components = [
-    "clippy",
     # For support/crown
     "llvm-tools",
     # For support/crown
     "rustc-dev",
-    # For docs building
-    "rust-docs",
-    # For formatting
-    "rustfmt",
+    # For rust-analyzer
+    "rust-src",
 ]
-profile = "minimal"

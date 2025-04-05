@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Scroll marker group with auto block-size</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  #scroller {
+    overflow: hidden;
+    scroll-marker-group: after;
+  }
+
+  #scroller::scroll-marker-group {
+    contain: none;
+    /* It should be impossible to disable size containment for scroll marker groups, so this declaration should have no effect. */
+    display: block;
+    width: fit-content;
+    border: 50px solid green;
+    background: red;
+  }
+
+  #scroller>*::scroll-marker {
+    display: block;
+    width: 200px;
+    height: 200px;
+    content: "";
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="scroller">
+  <div></div>
+</div>

@@ -6,19 +6,20 @@ use std::cmp::Ordering;
 use std::iter::Iterator;
 
 use dom_struct::dom_struct;
-use servo_atoms::Atom;
 use style::custom_properties;
+use stylo_atoms::Atom;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::codegen::Bindings::StylePropertyMapReadOnlyBinding::StylePropertyMapReadOnlyMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylevalue::CSSStyleValue;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct StylePropertyMapReadOnly {
+pub(crate) struct StylePropertyMapReadOnly {
     reflector: Reflector,
     entries: HashMapTracedValues<Atom, Dom<CSSStyleValue>>,
 }
@@ -34,9 +35,10 @@ impl StylePropertyMapReadOnly {
         }
     }
 
-    pub fn from_iter<Entries>(
+    pub(crate) fn from_iter<Entries>(
         global: &GlobalScope,
         entries: Entries,
+        can_gc: CanGc,
     ) -> DomRoot<StylePropertyMapReadOnly>
     where
         Entries: IntoIterator<Item = (Atom, String)>,
@@ -48,7 +50,7 @@ impl StylePropertyMapReadOnly {
         keys.reserve(lo);
         values.reserve(lo);
         for (key, value) in iter {
-            let value = CSSStyleValue::new(global, value);
+            let value = CSSStyleValue::new(global, value, can_gc);
             keys.push(key);
             values.push(Dom::from_ref(&*value));
         }
@@ -56,6 +58,7 @@ impl StylePropertyMapReadOnly {
         reflect_dom_object(
             Box::new(StylePropertyMapReadOnly::new_inherited(iter)),
             global,
+            can_gc,
         )
     }
 }

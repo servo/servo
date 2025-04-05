@@ -36,7 +36,13 @@
 
   // After default policy creation string assignment implicitly calls createHTML
   test(t => {
-    let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
+    let p = window.trustedTypes.createPolicy("default", { createHTML:
+      (value, _, sink) => {
+        assert_equals(sink, "Range createContextualFragment");
+        return createHTMLJS(value);
+      }
+    });
+
     var range = document.createRange();
     range.selectNodeContents(document.documentElement);
     var result = range.createContextualFragment(INPUTS.HTML);

@@ -8,8 +8,9 @@ use std::collections::VecDeque;
 
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
-use time_03::Duration;
+use time::Duration;
 
+use super::bindings::refcounted::Trusted;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
     DOMHighResTimeStamp, PerformanceEntryList as DOMPerformanceEntryList, PerformanceMethods,
@@ -17,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
@@ -58,17 +59,17 @@ const INVALID_ENTRY_NAMES: &[&str] = &[
 /// Implementation of a list of PerformanceEntry items shared by the
 /// Performance and PerformanceObserverEntryList interfaces implementations.
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct PerformanceEntryList {
+pub(crate) struct PerformanceEntryList {
     /// <https://w3c.github.io/performance-timeline/#dfn-performance-entry-buffer>
     entries: DOMPerformanceEntryList,
 }
 
 impl PerformanceEntryList {
-    pub fn new(entries: DOMPerformanceEntryList) -> Self {
+    pub(crate) fn new(entries: DOMPerformanceEntryList) -> Self {
         PerformanceEntryList { entries }
     }
 
-    pub fn get_entries_by_name_and_type(
+    pub(crate) fn get_entries_by_name_and_type(
         &self,
         name: Option<DOMString>,
         entry_type: Option<DOMString>,
@@ -77,10 +78,10 @@ impl PerformanceEntryList {
             .entries
             .iter()
             .filter(|e| {
-                name.as_ref().map_or(true, |name_| *e.name() == *name_) &&
+                name.as_ref().is_none_or(|name_| *e.name() == *name_) &&
                     entry_type
                         .as_ref()
-                        .map_or(true, |type_| *e.entry_type() == *type_)
+                        .is_none_or(|type_| *e.entry_type() == *type_)
             })
             .cloned()
             .collect::<Vec<DomRoot<PerformanceEntry>>>();
@@ -92,7 +93,7 @@ impl PerformanceEntryList {
         res
     }
 
-    pub fn clear_entries_by_name_and_type(
+    pub(crate) fn clear_entries_by_name_and_type(
         &mut self,
         name: Option<DOMString>,
         entry_type: DOMString,
@@ -131,7 +132,7 @@ struct PerformanceObserver {
 }
 
 #[dom_struct]
-pub struct Performance {
+pub(crate) struct Performance {
     eventtarget: EventTarget,
     buffer: DomRefCell<PerformanceEntryList>,
     observers: DomRefCell<Vec<PerformanceObserver>>,
@@ -164,13 +165,15 @@ impl Performance {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         navigation_start: CrossProcessInstant,
+        can_gc: CanGc,
     ) -> DomRoot<Performance> {
         reflect_dom_object(
             Box::new(Performance::new_inherited(navigation_start)),
             global,
+            can_gc,
         )
     }
 
@@ -191,16 +194,16 @@ impl Performance {
     /// Clear all buffered performance entries, and disable the buffer.
     /// Called as part of the window's "clear_js_runtime" workflow,
     /// performed when exiting a pipeline.
-    pub fn clear_and_disable_performance_entry_buffer(&self) {
+    pub(crate) fn clear_and_disable_performance_entry_buffer(&self) {
         let mut buffer = self.buffer.borrow_mut();
         buffer.entries.clear();
         self.resource_timing_buffer_size_limit.set(0);
     }
 
-    /// Add a PerformanceObserver to the list of observers with a set of
-    /// observed entry types.
+    // Add a PerformanceObserver to the list of observers with a set of
+    // observed entry types.
 
-    pub fn add_multiple_type_observer(
+    pub(crate) fn add_multiple_type_observer(
         &self,
         observer: &DOMPerformanceObserver,
         entry_types: Vec<DOMString>,
@@ -218,7 +221,7 @@ impl Performance {
         };
     }
 
-    pub fn add_single_type_observer(
+    pub(crate) fn add_single_type_observer(
         &self,
         observer: &DOMPerformanceObserver,
         entry_type: &DOMString,
@@ -236,8 +239,14 @@ impl Performance {
 
             if !self.pending_notification_observers_task.get() {
                 self.pending_notification_observers_task.set(true);
-                let task_source = self.global().performance_timeline_task_source();
-                task_source.queue_notification(&self.global());
+                let global = &self.global();
+                let owner = Trusted::new(&*global.performance());
+                self.global()
+                    .task_manager()
+                    .performance_timeline_task_source()
+                    .queue(task!(notify_performance_observers: move || {
+                        owner.root().notify_observers();
+                    }));
             }
         }
         let mut observers = self.observers.borrow_mut();
@@ -259,7 +268,7 @@ impl Performance {
     }
 
     /// Remove a PerformanceObserver from the list of observers.
-    pub fn remove_observer(&self, observer: &DOMPerformanceObserver) {
+    pub(crate) fn remove_observer(&self, observer: &DOMPerformanceObserver) {
         let mut observers = self.observers.borrow_mut();
         let index = match observers.iter().position(|o| &(*o.observer) == observer) {
             Some(p) => p,
@@ -277,7 +286,7 @@ impl Performance {
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
     /// Also this algorithm has been extented according to :
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    pub fn queue_entry(&self, entry: &PerformanceEntry, can_gc: CanGc) -> Option<usize> {
+    pub(crate) fn queue_entry(&self, entry: &PerformanceEntry, can_gc: CanGc) -> Option<usize> {
         // https://w3c.github.io/performance-timeline/#dfn-determine-eligibility-for-adding-a-performance-entry
         if entry.entry_type() == "resource" && !self.should_queue_resource_entry(entry, can_gc) {
             return None;
@@ -314,8 +323,15 @@ impl Performance {
         // Step 6.
         // Queue a new notification task.
         self.pending_notification_observers_task.set(true);
-        let task_source = self.global().performance_timeline_task_source();
-        task_source.queue_notification(&self.global());
+
+        let global = &self.global();
+        let owner = Trusted::new(&*global.performance());
+        self.global()
+            .task_manager()
+            .performance_timeline_task_source()
+            .queue(task!(notify_performance_observers: move || {
+                owner.root().notify_observers();
+            }));
 
         Some(entry_last_index)
     }
@@ -324,7 +340,7 @@ impl Performance {
     ///
     /// Algorithm spec (step 7):
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
-    pub fn notify_observers(&self) {
+    pub(crate) fn notify_observers(&self) {
         // Step 7.1.
         self.pending_notification_observers_task.set(false);
 
@@ -342,7 +358,7 @@ impl Performance {
 
         // Step 7.3.
         for o in observers.iter() {
-            o.notify();
+            o.notify(CanGc::note());
         }
     }
 
@@ -407,7 +423,7 @@ impl Performance {
         false
     }
 
-    pub fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
+    pub(crate) fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
         if let Some(e) = self.buffer.borrow_mut().entries.get_mut(index) {
             *e = DomRoot::from_ref(entry);
         }
@@ -431,7 +447,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
 
     // https://w3c.github.io/navigation-timing/#dom-performance-navigation
     fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
-        PerformanceNavigation::new(&self.global())
+        PerformanceNavigation::new(&self.global(), CanGc::note())
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now

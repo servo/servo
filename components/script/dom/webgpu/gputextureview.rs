@@ -3,18 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPURequest, WebGPUTextureView};
+use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTextureView};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTextureViewMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gputexture::GPUTexture;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUTextureView {
+pub(crate) struct GPUTextureView {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -41,12 +42,13 @@ impl GPUTextureView {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         texture_view: WebGPUTextureView,
         texture: &GPUTexture,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<GPUTextureView> {
         reflect_dom_object(
             Box::new(GPUTextureView::new_inherited(
@@ -56,12 +58,13 @@ impl GPUTextureView {
                 label,
             )),
             global,
+            can_gc,
         )
     }
 }
 
 impl GPUTextureView {
-    pub fn id(&self) -> WebGPUTextureView {
+    pub(crate) fn id(&self) -> WebGPUTextureView {
         self.texture_view
     }
 }

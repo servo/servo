@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
@@ -19,9 +19,10 @@ use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::node::Node;
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLFormControlsCollection {
+pub(crate) struct HTMLFormControlsCollection {
     collection: HTMLCollection,
     form: Dom<HTMLFormElement>,
 }
@@ -40,14 +41,16 @@ impl HTMLFormControlsCollection {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         form: &HTMLFormElement,
         filter: Box<dyn CollectionFilter + 'static>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLFormControlsCollection> {
         reflect_dom_object(
             Box::new(HTMLFormControlsCollection::new_inherited(form, filter)),
             window,
+            can_gc,
         )
     }
 }
@@ -92,7 +95,12 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
                 // specifically HTMLFormElement::Elements(),
                 // and the collection filter excludes image inputs.
                 Some(RadioNodeListOrElement::RadioNodeList(
-                    RadioNodeList::new_controls_except_image_inputs(window, &self.form, &name),
+                    RadioNodeList::new_controls_except_image_inputs(
+                        window,
+                        &self.form,
+                        &name,
+                        CanGc::note(),
+                    ),
                 ))
             }
         // Step 3

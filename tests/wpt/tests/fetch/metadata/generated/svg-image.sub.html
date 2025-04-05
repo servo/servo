@@ -222,6 +222,48 @@ Sources:
 
     return induceRequest(
         t,
+        makeRequestURL(key, ['httpOrigin'], params),
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+      });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-origin destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        t,
+        makeRequestURL(key, ['httpSameSite'], params),
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+      });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-site destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        t,
+        makeRequestURL(key, ['httpCrossSite'], params),
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+      });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy cross-site destination no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        t,
         makeRequestURL(key, ['httpsOrigin', 'httpOrigin'], params),
         {}
       )

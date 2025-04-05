@@ -31,9 +31,60 @@ testValidGridTemplate("none",  "none", "none", "none");
 testValidGridTemplate("auto",  "auto", "none", "auto / auto");
 
 // `[ <line-names>? <string> <track-size>? <line-names>? ]+ [ / <explicit-track-list> ]?`
-testValidGridTemplate("[header-top] auto [header-bottom main-top] 1fr [main-bottom]", "auto 1fr auto", "\"a a a\" \"b b b\"", "[header-top] \"a a a\" [header-bottom main-top] \"b b b\" 1fr [main-bottom] / auto 1fr auto");
-testValidGridTemplate("auto",  "auto", "\"a a a\" \"b b b\"", "\"a a a\" \"b b b\" / auto");
-testValidGridTemplate("min-content", "min-content", "\"a a a\" \"b b b\" \"c c c\" \"d d d\"", "\"a a a\" min-content \"b b b\" \"c c c\" \"d d d\" / min-content");
+testValidGridTemplate(
+  "[header-top] auto [header-bottom main-top] 1fr [main-bottom]",
+  "auto 1fr auto",
+  '"a a a" "b b b"',
+  '[header-top] "a a a" [header-bottom main-top] "b b b" 1fr [main-bottom] / auto 1fr auto',
+);
+testValidGridTemplate(
+  "auto",
+  "auto",
+  '"a a a" "b b b"',
+  "",
+);
+testValidGridTemplate(
+  "auto",
+  "auto auto",
+  '"a a a" "b b b"',
+  "",
+);
+testValidGridTemplate(
+  "auto auto",
+  "auto",
+  '"a a a" "b b b"',
+  '"a a a" "b b b" / auto',
+);
+testValidGridTemplate(
+  "auto auto",
+  "auto auto",
+  '"a a a" "b b b"',
+  '"a a a" "b b b" / auto auto',
+);
+testValidGridTemplate(
+  "min-content",
+  "min-content",
+  '"a a a" "b b b" "c c c" "d d d"',
+  "",
+);
+testValidGridTemplate(
+  "min-content",
+  "min-content auto auto auto",
+  '"a a a" "b b b" "c c c" "d d d"',
+  "",
+);
+testValidGridTemplate(
+  "min-content auto auto auto",
+  "min-content",
+  '"a a a" "b b b" "c c c" "d d d"',
+  '"a a a" min-content "b b b" "c c c" "d d d" / min-content',
+);
+testValidGridTemplate(
+  "min-content auto auto auto",
+  "min-content auto auto auto",
+  '"a a a" "b b b" "c c c" "d d d"',
+  '"a a a" min-content "b b b" "c c c" "d d d" / min-content auto auto auto',
+);
 </script>
 </body>
 </html>

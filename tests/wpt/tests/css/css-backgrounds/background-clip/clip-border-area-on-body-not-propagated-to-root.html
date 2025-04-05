@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>background-clip:border-area on the root</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#propdef-background-clip">
+<link rel="match" href="clip-text-on-body-not-propagated-to-root-ref.html">
+<style>
+html, body {
+  box-sizing: border-box;
+  height: 100%;
+  margin: 0;
+}
+html {
+  background-color: white;
+}
+body {
+  border: 20px solid transparent;
+  background-color: green;
+  background-clip: border-area;
+  padding: 10px;
+}
+</style>
+
+There should be a 20px green border around the edge of the viewport. This text should be black on a white background.

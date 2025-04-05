@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/namespaces.js"></script>
+<script src="./support/attributes.js"></script>
+<script>
+  // Set an attribute for each testcase of trustedTypeDataForAttribute and
+  // verify this works normally.
+  attributeSetterData.forEach(setterData => {
+    trustedTypeDataForAttribute.forEach(testData => {
+      if (testData.attrNS && !setterData.acceptNS) return;
+      test(() => {
+        let element = testData.element();
+        setterData.runSetter(element, testData.attrNS, testData.attrName,
+                             "somevalue", testData.type);
+        assert_equals(element.getAttributeNS(testData.attrNS,
+                                             testData.attrName), "somevalue");
+      }, `${setterData.api} works for \
+elementNS=${testData.element().namespaceURI}, \
+element=${testData.element().tagName}, \
+${testData.attrNS ? 'attrNS='+testData.attrNS+', ' : ''}\
+attrName=${testData.attrName} with a plain string`);
+    });
+  });
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Gradient using "longer hue"</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<style>
+div {
+  margin: 20px 0px 20px 50px;
+  height: 40px;
+  width: 100px;
+  position: relative;
+}
+/* same colors as the testcase but specified directly in the interpolation color space */
+.ref1 {
+  background: linear-gradient(to right in hsl longer hue, hsl(0 100% 50%), hsl(0 0% 0%));
+}
+.ref2 {
+  background: linear-gradient(to right in hsl longer hue, hsl(0 100% 50%), hsl(0 0% 100%));
+}
+.ref3 {
+  background: linear-gradient(to right in hsl longer hue, hsl(0 100% 50%), hsl(0 0% 0% / 0%));
+}
+</style>
+
+<div class="ref1"></div>
+<div class="ref2"></div>
+<div class="ref3"></div>

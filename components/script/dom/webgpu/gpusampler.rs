@@ -3,22 +3,23 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::wgc::resource::SamplerDescriptor;
-use webgpu::{WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
+use webgpu_traits::{WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
+use wgpu_core::resource::SamplerDescriptor;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUSamplerDescriptor, GPUSamplerMethods,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpudevice::GPUDevice;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUSampler {
+pub(crate) struct GPUSampler {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -49,13 +50,14 @@ impl GPUSampler {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         device: WebGPUDevice,
         compare_enable: bool,
         sampler: WebGPUSampler,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUSampler::new_inherited(
@@ -66,17 +68,22 @@ impl GPUSampler {
                 label,
             )),
             global,
+            can_gc,
         )
     }
 }
 
 impl GPUSampler {
-    pub fn id(&self) -> WebGPUSampler {
+    pub(crate) fn id(&self) -> WebGPUSampler {
         self.sampler
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler>
-    pub fn create(device: &GPUDevice, descriptor: &GPUSamplerDescriptor) -> DomRoot<GPUSampler> {
+    pub(crate) fn create(
+        device: &GPUDevice,
+        descriptor: &GPUSamplerDescriptor,
+        can_gc: CanGc,
+    ) -> DomRoot<GPUSampler> {
         let sampler_id = device.global().wgpu_id_hub().create_sampler_id();
         let compare_enable = descriptor.compare.is_some();
         let desc = SamplerDescriptor {
@@ -115,6 +122,7 @@ impl GPUSampler {
             compare_enable,
             sampler,
             descriptor.parent.label.clone(),
+            can_gc,
         )
     }
 }

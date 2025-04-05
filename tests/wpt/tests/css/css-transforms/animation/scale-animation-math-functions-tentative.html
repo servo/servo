@@ -32,7 +32,7 @@
       test_interpolation({
         property: 'scale',
         from: 'calc(sign(20rem - 20px) * 100)',
-        to: 'calc(progress(10rem from 20px to 100px) * 180)',
+        to: 'calc(progress(10rem, 20px, 100px) * 180)',
       }, [
         {at: -1, expect: '20'},
         {at: 0, expect: '100'},

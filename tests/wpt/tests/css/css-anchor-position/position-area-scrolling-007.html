@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<title>position-try-fallbacks with flip-block and flip-inline</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#position-try-fallbacks">
+<link rel="help" href="https://issues.chromium.org/issues/400761086">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+  #anchor {
+    anchor-name: --a;
+    margin-top: 200px;
+    margin-left: 100px;
+    width: 150px;
+    height: 50px;
+    background: blue;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --a;
+    position-area: top left;
+    position-try-fallbacks: flip-inline, flip-block, flip-block flip-inline;
+    width: 100%;
+    height: 100%;
+    background: hotpink;
+  }
+</style>
+
+<div id="scroller" style="position:relative; overflow:hidden; width:400px; height:400px;">
+  <div id="anchor"></div>
+  <div style="width:1000px; height:1000px;"></div>
+  <div id="anchored"></div>
+</div>
+
+<script>
+  promise_test(async () => {
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_equals(anchored.offsetLeft, 0);
+    assert_equals(anchored.offsetTop, 0);
+    assert_equals(anchored.offsetWidth, 100);
+    assert_equals(anchored.offsetHeight, 200);
+  }, 'initial position');
+
+  promise_test(async () => {
+    scroller.scrollTo(0, 10);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_equals(anchored.offsetLeft, 0);
+    assert_equals(anchored.offsetTop, 250);
+    assert_equals(anchored.offsetWidth, 100);
+    assert_equals(anchored.offsetHeight, 160);
+  }, 'Scroll down to 0,10');
+
+  promise_test(async () => {
+    scroller.scrollTo(10, 10);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_equals(anchored.offsetLeft, 250);
+    assert_equals(anchored.offsetTop, 10);
+    assert_equals(anchored.offsetWidth, 160);
+    assert_equals(anchored.offsetHeight, 190);
+  }, 'Scroll right to 10,10');
+
+  promise_test(async () => {
+    scroller.scrollTo(10, 0);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_equals(anchored.offsetLeft, 250);
+    assert_equals(anchored.offsetTop, 10);
+    assert_equals(anchored.offsetWidth, 160);
+    assert_equals(anchored.offsetHeight, 190);
+  }, 'Scroll up to 10,0');
+
+  promise_test(async () => {
+    scroller.scrollTo(10, 20);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_equals(anchored.offsetLeft, 10);
+    assert_equals(anchored.offsetTop, 250);
+    assert_equals(anchored.offsetWidth, 90);
+    assert_equals(anchored.offsetHeight, 170);
+  }, 'Scroll down to 10,20');
+
+  promise_test(async () => {
+    scroller.scrollTo(101, 20);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_equals(anchored.offsetLeft, 250);
+    assert_equals(anchored.offsetTop, 20);
+    assert_equals(anchored.offsetWidth, 251);
+    assert_equals(anchored.offsetHeight, 180);
+  }, 'Scroll down to 101,20');
+
+  promise_test(async () => {
+    scroller.scrollTo(101, 30);
+    await waitUntilNextAnimationFrame();
+    await waitUntilNextAnimationFrame();
+    assert_equals(anchored.offsetLeft, 250);
+    assert_equals(anchored.offsetTop, 250);
+    assert_equals(anchored.offsetWidth, 251);
+    assert_equals(anchored.offsetHeight, 180);
+  }, 'Scroll down to 101,30');
+</script>

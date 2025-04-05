@@ -18,14 +18,15 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRTargetRayMode,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::fakexrdevice::get_origin;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct FakeXRInputController {
+pub(crate) struct FakeXRInputController {
     reflector: Reflector,
     #[ignore_malloc_size_of = "defined in ipc-channel"]
     #[no_trace]
@@ -36,7 +37,10 @@ pub struct FakeXRInputController {
 }
 
 impl FakeXRInputController {
-    pub fn new_inherited(sender: IpcSender<MockDeviceMsg>, id: InputId) -> FakeXRInputController {
+    pub(crate) fn new_inherited(
+        sender: IpcSender<MockDeviceMsg>,
+        id: InputId,
+    ) -> FakeXRInputController {
         FakeXRInputController {
             reflector: Reflector::new(),
             sender,
@@ -44,14 +48,16 @@ impl FakeXRInputController {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         sender: IpcSender<MockDeviceMsg>,
         id: InputId,
+        can_gc: CanGc,
     ) -> DomRoot<FakeXRInputController> {
         reflect_dom_object(
             Box::new(FakeXRInputController::new_inherited(sender, id)),
             global,
+            can_gc,
         )
     }
 
@@ -179,7 +185,7 @@ impl Convert<MockButtonType> for FakeXRButtonType {
 }
 
 /// <https://immersive-web.github.io/webxr-test-api/#parse-supported-buttons>
-pub fn init_to_mock_buttons(buttons: &[FakeXRButtonStateInit]) -> Vec<MockButton> {
+pub(crate) fn init_to_mock_buttons(buttons: &[FakeXRButtonStateInit]) -> Vec<MockButton> {
     let supported: Vec<MockButton> = buttons
         .iter()
         .map(|b| MockButton {

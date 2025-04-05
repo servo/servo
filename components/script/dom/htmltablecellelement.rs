@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::color::AbsoluteColor;
@@ -28,7 +28,7 @@ const DEFAULT_COLSPAN: u32 = 1;
 const DEFAULT_ROWSPAN: u32 = 1;
 
 #[dom_struct]
-pub struct HTMLTableCellElement {
+pub(crate) struct HTMLTableCellElement {
     htmlelement: HTMLElement,
 }
 
@@ -43,8 +43,8 @@ impl HTMLTableCellElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -108,7 +108,7 @@ impl HTMLTableCellElementMethods<crate::DomTypeHolder> for HTMLTableCellElement 
     }
 }
 
-pub trait HTMLTableCellElementLayoutHelpers<'dom> {
+pub(crate) trait HTMLTableCellElementLayoutHelpers<'dom> {
     fn get_background_color(self) -> Option<AbsoluteColor>;
     fn get_colspan(self) -> Option<u32>;
     fn get_rowspan(self) -> Option<u32>;

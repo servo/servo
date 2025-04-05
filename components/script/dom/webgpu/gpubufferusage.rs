@@ -7,6 +7,6 @@ use dom_struct::dom_struct;
 use crate::dom::bindings::reflector::Reflector;
 
 #[dom_struct]
-pub struct GPUBufferUsage {
+pub(crate) struct GPUBufferUsage {
     reflector_: Reflector,
 }

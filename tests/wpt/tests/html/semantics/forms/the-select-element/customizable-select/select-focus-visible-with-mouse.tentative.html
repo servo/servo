@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<select>
+  <option>option</option>
+</select>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<script>
+function click(element) {
+  return (new test_driver.Actions()
+    .pointerMove(1, 1, {origin: element})
+    .pointerDown()
+    .pointerUp())
+    .send();
+}
+
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const option = document.querySelector('option');
+
+  await click(select);
+  assert_true(select.matches(':open'),
+    'select should open after clicking it.');
+  assert_equals(document.querySelector(':focus-visible'), null,
+    'Nothing should be :focus-visible after opening select with mouse.');
+
+  await click(option);
+  assert_false(select.matches(':open'),
+    'select should close after clicking option.');
+  assert_equals(document.querySelector(':focus-visible'), null,
+    'Nothing should be :focus-visible after picking an option.');
+}, 'Select should not match :focus-visible when using mouse.');
+</script>

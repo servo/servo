@@ -640,6 +640,64 @@ Sources:
           assert_not_own_property(headers, 'sec-fetch-user');
         });
   }, 'sec-fetch-user - srcset - no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpsCrossSite']),
+        'src',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+        });
+  }, 'sec-fetch-storage-access - src - Cross-site, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpsCrossSite']),
+        'srcset',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+        });
+  }, 'sec-fetch-storage-access - srcset - Cross-site, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpsSameSite']),
+        'src',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - src - Same site, no attributes');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpsSameSite']),
+        'srcset',
+        {}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - srcset - Same site, no attributes');
   </script>
   </body>
 </html>

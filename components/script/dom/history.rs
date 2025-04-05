@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::cmp::Ordering;
 
 use base::id::HistoryStateId;
+use constellation_traits::TraversalDirection;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
@@ -13,7 +14,7 @@ use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
 use profile_traits::ipc::channel;
-use script_traits::{ScriptMsg, StructuredSerializedData, TraversalDirection};
+use script_traits::{ScriptToConstellationMessage, StructuredSerializedData};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
@@ -21,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::LocationBinding::Location_Binding::
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
@@ -40,7 +41,7 @@ enum PushOrReplace {
 
 /// <https://html.spec.whatwg.org/multipage/#the-history-interface>
 #[dom_struct]
-pub struct History {
+pub(crate) struct History {
     reflector_: Reflector,
     window: Dom<Window>,
     #[ignore_malloc_size_of = "mozjs"]
@@ -50,7 +51,7 @@ pub struct History {
 }
 
 impl History {
-    pub fn new_inherited(window: &Window) -> History {
+    pub(crate) fn new_inherited(window: &Window) -> History {
         let state = Heap::default();
         state.set(NullValue());
         History {
@@ -61,8 +62,8 @@ impl History {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<History> {
-        reflect_dom_object(Box::new(History::new_inherited(window)), window)
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<History> {
+        reflect_dom_object(Box::new(History::new_inherited(window)), window, can_gc)
     }
 }
 
@@ -71,10 +72,10 @@ impl History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
         }
-        let msg = ScriptMsg::TraverseHistory(direction);
+        let msg = ScriptToConstellationMessage::TraverseHistory(direction);
         let _ = self
             .window
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .script_to_constellation_chan()
             .send(msg);
         Ok(())
@@ -83,7 +84,12 @@ impl History {
     /// <https://html.spec.whatwg.org/multipage/#history-traversal>
     /// Steps 5-16
     #[allow(unsafe_code)]
-    pub fn activate_state(&self, state_id: Option<HistoryStateId>, url: ServoUrl, can_gc: CanGc) {
+    pub(crate) fn activate_state(
+        &self,
+        state_id: Option<HistoryStateId>,
+        url: ServoUrl,
+        can_gc: CanGc,
+    ) {
         // Steps 5
         let document = self.window.Document();
         let old_url = document.url().clone();
@@ -105,7 +111,7 @@ impl History {
                 let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let _ = self
                     .window
-                    .upcast::<GlobalScope>()
+                    .as_global_scope()
                     .resource_threads()
                     .send(CoreResourceMsg::GetHistoryState(state_id, tx));
                 rx.recv().unwrap()
@@ -117,12 +123,12 @@ impl History {
             Some(data) => {
                 let data = StructuredSerializedData {
                     serialized: data,
-                    ports: None,
-                    blobs: None,
+                    ..Default::default()
                 };
-                let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(*GlobalScope::get_cx()) let mut state = UndefinedValue());
-                if structuredclone::read(global_scope, data, state.handle_mut()).is_err() {
+                if structuredclone::read(self.window.as_global_scope(), data, state.handle_mut())
+                    .is_err()
+                {
                     warn!("Error reading structuredclone data");
                 }
                 self.state.set(state.get());
@@ -160,10 +166,10 @@ impl History {
         }
     }
 
-    pub fn remove_states(&self, states: Vec<HistoryStateId>) {
+    pub(crate) fn remove_states(&self, states: Vec<HistoryStateId>) {
         let _ = self
             .window
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .resource_threads()
             .send(CoreResourceMsg::RemoveHistoryStates(states));
     }
@@ -189,42 +195,30 @@ impl History {
         // TODO: Step 3 Optionally abort these steps
         // https://github.com/servo/servo/issues/19159
 
-        // TODO: Step 4
-
-        // Step 5
+        // Step 4. Let serializedData be StructuredSerializeForStorage(data). Rethrow any exceptions.
         let serialized_data = structuredclone::write(cx, data, None)?;
 
+        // Step 5. Let newURL be document's URL.
         let new_url: ServoUrl = match url {
-            // Step 6
+            // Step 6. If url is not null or the empty string, then:
             Some(urlstring) => {
                 let document_url = document.url();
 
-                // Step 6.1
-                let new_url = match ServoUrl::parse_with_base(Some(&document_url), &urlstring.0) {
-                    // Step 6.3
-                    Ok(parsed_url) => parsed_url,
-                    // Step 6.2
-                    Err(_) => return Err(Error::Security),
+                // Step 6.1 Set newURL to the result of encoding-parsing a URL given url,
+                // relative to the relevant settings object of history.
+                let Ok(url) = ServoUrl::parse_with_base(Some(&document_url), &urlstring.0) else {
+                    // Step 6.2 If newURL is failure, then throw a "SecurityError" DOMException.
+                    return Err(Error::Security);
                 };
 
-                // Step 6.4
-                if new_url.scheme() != document_url.scheme() ||
-                    new_url.host() != document_url.host() ||
-                    new_url.port() != document_url.port() ||
-                    new_url.username() != document_url.username() ||
-                    new_url.password() != document_url.password()
-                {
+                // Step 6.3 If document cannot have its URL rewritten to newURL,
+                // then throw a "SecurityError" DOMException.
+                if !Self::can_have_url_rewritten(&document_url, &url) {
                     return Err(Error::Security);
                 }
 
-                // Step 6.5
-                if new_url.origin() != document_url.origin() {
-                    return Err(Error::Security);
-                }
-
-                new_url
+                url
             },
-            // Step 7
             None => document.url(),
         };
 
@@ -233,10 +227,10 @@ impl History {
             PushOrReplace::Push => {
                 let state_id = HistoryStateId::new();
                 self.state_id.set(Some(state_id));
-                let msg = ScriptMsg::PushHistoryState(state_id, new_url.clone());
+                let msg = ScriptToConstellationMessage::PushHistoryState(state_id, new_url.clone());
                 let _ = self
                     .window
-                    .upcast::<GlobalScope>()
+                    .as_global_scope()
                     .script_to_constellation_chan()
                     .send(msg);
                 state_id
@@ -250,17 +244,18 @@ impl History {
                         state_id
                     },
                 };
-                let msg = ScriptMsg::ReplaceHistoryState(state_id, new_url.clone());
+                let msg =
+                    ScriptToConstellationMessage::ReplaceHistoryState(state_id, new_url.clone());
                 let _ = self
                     .window
-                    .upcast::<GlobalScope>()
+                    .as_global_scope()
                     .script_to_constellation_chan()
                     .send(msg);
                 state_id
             },
         };
 
-        let _ = self.window.upcast::<GlobalScope>().resource_threads().send(
+        let _ = self.window.as_global_scope().resource_threads().send(
             CoreResourceMsg::SetHistoryState(state_id, serialized_data.serialized.clone()),
         );
 
@@ -271,9 +266,14 @@ impl History {
         document.set_url(new_url);
 
         // Step 11
-        let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(*cx) let mut state = UndefinedValue());
-        if structuredclone::read(global_scope, serialized_data, state.handle_mut()).is_err() {
+        if structuredclone::read(
+            self.window.as_global_scope(),
+            serialized_data,
+            state.handle_mut(),
+        )
+        .is_err()
+        {
             warn!("Error reading structuredclone data");
         }
 
@@ -284,6 +284,42 @@ impl History {
         // https://github.com/servo/servo/issues/19158
 
         Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#can-have-its-url-rewritten>
+    /// Step 2-6
+    fn can_have_url_rewritten(document_url: &ServoUrl, target_url: &ServoUrl) -> bool {
+        // Step 2. If targetURL and documentURL differ in their scheme, username,
+        // password, host, or port components, then return false.
+        if target_url.scheme() != document_url.scheme() ||
+            target_url.username() != document_url.username() ||
+            target_url.password() != document_url.password() ||
+            target_url.host() != document_url.host() ||
+            target_url.port() != document_url.port()
+        {
+            return false;
+        }
+
+        // Step 3. If targetURL's scheme is an HTTP(S) scheme, then return true.
+        if target_url.scheme() == "http" || target_url.scheme() == "https" {
+            return true;
+        }
+
+        // Step 4. If targetURL's scheme is "file", then:
+        if target_url.scheme() == "file" {
+            // Step 4.1 If targetURL and documentURL differ in their path component, then return false.
+            // Step 4.2 Return true.
+            return target_url.path() == document_url.path();
+        }
+
+        // Step 5. If targetURL and documentURL differ in their path component
+        // or query components, then return false.
+        if target_url.path() != document_url.path() || target_url.query() != document_url.query() {
+            return false;
+        }
+
+        // Step 6. Return true.
+        true
     }
 }
 
@@ -304,10 +340,10 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
         }
         let (sender, recv) = channel(self.global().time_profiler_chan().clone())
             .expect("Failed to create channel to send jsh length.");
-        let msg = ScriptMsg::JointSessionHistoryLength(sender);
+        let msg = ScriptToConstellationMessage::JointSessionHistoryLength(sender);
         let _ = self
             .window
-            .upcast::<GlobalScope>()
+            .as_global_scope()
             .script_to_constellation_chan()
             .send(msg);
         Ok(recv.recv().unwrap())

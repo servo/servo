@@ -10,7 +10,7 @@ use js::jsval::UndefinedValue;
 use crate::dom::bindings::codegen::Bindings::NavigationPreloadManagerBinding::{
     NavigationPreloadManagerMethods, NavigationPreloadState,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::ByteString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -21,7 +21,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct NavigationPreloadManager {
+pub(crate) struct NavigationPreloadManager {
     reflector_: Reflector,
     serviceworker_registration: Dom<ServiceWorkerRegistration>,
 }
@@ -34,13 +34,14 @@ impl NavigationPreloadManager {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         global: &GlobalScope,
         registration: &ServiceWorkerRegistration,
+        can_gc: CanGc,
     ) -> DomRoot<NavigationPreloadManager> {
         let manager = NavigationPreloadManager::new_inherited(registration);
-        reflect_dom_object(Box::new(manager), global)
+        reflect_dom_object(Box::new(manager), global, can_gc)
     }
 }
 
@@ -51,17 +52,17 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            promise.reject_native(&DOMException::new(
-                &self.global(),
-                DOMErrorName::InvalidStateError,
-            ));
+            promise.reject_native(
+                &DOMException::new(&self.global(), DOMErrorName::InvalidStateError, can_gc),
+                can_gc,
+            );
         } else {
             // 3.
             self.serviceworker_registration
                 .set_navigation_preload_enabled(true);
 
             // 4.
-            promise.resolve_native(&UndefinedValue());
+            promise.resolve_native(&UndefinedValue(), can_gc);
         }
 
         promise
@@ -73,17 +74,17 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            promise.reject_native(&DOMException::new(
-                &self.global(),
-                DOMErrorName::InvalidStateError,
-            ));
+            promise.reject_native(
+                &DOMException::new(&self.global(), DOMErrorName::InvalidStateError, can_gc),
+                can_gc,
+            );
         } else {
             // 3.
             self.serviceworker_registration
                 .set_navigation_preload_enabled(false);
 
             // 4.
-            promise.resolve_native(&UndefinedValue());
+            promise.resolve_native(&UndefinedValue(), can_gc);
         }
 
         promise
@@ -95,17 +96,17 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
 
         // 2.
         if self.serviceworker_registration.is_active() {
-            promise.reject_native(&DOMException::new(
-                &self.global(),
-                DOMErrorName::InvalidStateError,
-            ));
+            promise.reject_native(
+                &DOMException::new(&self.global(), DOMErrorName::InvalidStateError, can_gc),
+                can_gc,
+            );
         } else {
             // 3.
             self.serviceworker_registration
                 .set_navigation_preload_header_value(value);
 
             // 4.
-            promise.resolve_native(&UndefinedValue());
+            promise.resolve_native(&UndefinedValue(), can_gc);
         }
 
         promise
@@ -131,7 +132,7 @@ impl NavigationPreloadManagerMethods<crate::DomTypeHolder> for NavigationPreload
             .get_navigation_preload_header_value();
 
         // 5.
-        promise.resolve_native(&state);
+        promise.resolve_native(&state, can_gc);
 
         promise
     }

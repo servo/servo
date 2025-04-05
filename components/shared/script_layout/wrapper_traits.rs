@@ -11,7 +11,7 @@ use std::sync::Arc as StdArc;
 use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
-use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
+use html5ever::{LocalName, Namespace};
 use pixels::{Image, ImageMetadata};
 use range::Range;
 use servo_arc::Arc;
@@ -30,47 +30,6 @@ use crate::{
 };
 
 pub trait LayoutDataTrait: Default + Send + Sync + 'static {}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum PseudoElementType {
-    Normal,
-    Before,
-    After,
-    DetailsSummary,
-    DetailsContent,
-}
-
-impl PseudoElementType {
-    pub fn fragment_type(&self) -> FragmentType {
-        match *self {
-            PseudoElementType::Normal => FragmentType::FragmentBody,
-            PseudoElementType::Before => FragmentType::BeforePseudoContent,
-            PseudoElementType::After => FragmentType::AfterPseudoContent,
-            PseudoElementType::DetailsSummary => FragmentType::FragmentBody,
-            PseudoElementType::DetailsContent => FragmentType::FragmentBody,
-        }
-    }
-
-    pub fn is_before(&self) -> bool {
-        matches!(*self, PseudoElementType::Before)
-    }
-
-    pub fn is_replaced_content(&self) -> bool {
-        matches!(*self, PseudoElementType::Before | PseudoElementType::After)
-    }
-
-    pub fn style_pseudo_element(&self) -> PseudoElement {
-        match *self {
-            PseudoElementType::Normal => {
-                unreachable!("style_pseudo_element called with PseudoElementType::Normal")
-            },
-            PseudoElementType::Before => PseudoElement::Before,
-            PseudoElementType::After => PseudoElement::After,
-            PseudoElementType::DetailsSummary => PseudoElement::DetailsSummary,
-            PseudoElementType::DetailsContent => PseudoElement::DetailsContent,
-        }
-    }
-}
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutDom`.
@@ -198,30 +157,6 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     /// the parent until all the children have been processed.
     fn parent_style(&self) -> Arc<ComputedValues>;
 
-    fn get_before_pseudo(&self) -> Option<Self> {
-        self.as_element()
-            .and_then(|el| el.get_before_pseudo())
-            .map(|el| el.as_node())
-    }
-
-    fn get_after_pseudo(&self) -> Option<Self> {
-        self.as_element()
-            .and_then(|el| el.get_after_pseudo())
-            .map(|el| el.as_node())
-    }
-
-    fn get_details_summary_pseudo(&self) -> Option<Self> {
-        self.as_element()
-            .and_then(|el| el.get_details_summary_pseudo())
-            .map(|el| el.as_node())
-    }
-
-    fn get_details_content_pseudo(&self) -> Option<Self> {
-        self.as_element()
-            .and_then(|el| el.get_details_content_pseudo())
-            .map(|el| el.as_node())
-    }
-
     fn debug_id(self) -> usize;
 
     /// Returns an iterator over this node's children.
@@ -232,12 +167,6 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
 
     /// Returns a ThreadSafeLayoutElement if this is an element in an HTML namespace, None otherwise.
     fn as_html_element(&self) -> Option<Self::ConcreteThreadSafeLayoutElement>;
-
-    #[inline]
-    fn get_pseudo_element_type(&self) -> PseudoElementType {
-        self.as_element()
-            .map_or(PseudoElementType::Normal, |el| el.get_pseudo_element_type())
-    }
 
     /// Get the [`StyleData`] for this node. Returns None if the node is unstyled.
     fn style_data(&self) -> Option<&'dom StyleData>;
@@ -266,8 +195,6 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
             self.parent_style()
         }
     }
-
-    fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool;
 
     /// Returns true if this node contributes content. This is used in the implementation of
     /// `empty_cells` per CSS 2.1 § 17.6.1.1.
@@ -315,18 +242,24 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     fn get_colspan(&self) -> Option<u32>;
     fn get_rowspan(&self) -> Option<u32>;
 
+    fn pseudo_element(&self) -> Option<PseudoElement>;
+
     fn fragment_type(&self) -> FragmentType {
-        self.get_pseudo_element_type().fragment_type()
+        self.pseudo_element().into()
+    }
+
+    fn with_pseudo(&self, pseudo_element_type: PseudoElement) -> Option<Self> {
+        self.as_element()
+            .and_then(|element| element.with_pseudo(pseudo_element_type))
+            .as_ref()
+            .map(ThreadSafeLayoutElement::as_node)
     }
 }
 
 pub trait ThreadSafeLayoutElement<'dom>:
     Clone + Copy + Sized + Debug + ::selectors::Element<Impl = SelectorImpl>
 {
-    type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<
-        'dom,
-        ConcreteThreadSafeLayoutElement = Self,
-    >;
+    type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom, ConcreteThreadSafeLayoutElement = Self>;
 
     /// This type alias is just a work-around to avoid writing
     ///
@@ -338,7 +271,16 @@ pub trait ThreadSafeLayoutElement<'dom>:
 
     /// Creates a new `ThreadSafeLayoutElement` for the same `LayoutElement`
     /// with a different pseudo-element type.
-    fn with_pseudo(&self, pseudo: PseudoElementType) -> Self;
+    ///
+    /// Returns `None` if this pseudo doesn't apply to the given element for one of
+    /// the following reasons:
+    ///
+    ///  1. `pseudo` is eager and is not defined in the stylesheet. In this case, there
+    ///     is not reason to process the pseudo element at all.
+    ///  2. `pseudo` is for `::servo-details-summary` or `::servo-details-content` and
+    ///     it doesn't apply to this element, either because it isn't a details or is
+    ///     in the wrong state.
+    fn with_pseudo(&self, pseudo: PseudoElement) -> Option<Self>;
 
     /// Returns the type ID of this node.
     /// Returns `None` if this is a pseudo-element; otherwise, returns `Some`.
@@ -362,58 +304,7 @@ pub trait ThreadSafeLayoutElement<'dom>:
 
     fn style_data(&self) -> AtomicRef<ElementData>;
 
-    fn get_pseudo_element_type(&self) -> PseudoElementType;
-
-    #[inline]
-    fn get_before_pseudo(&self) -> Option<Self> {
-        if self
-            .style_data()
-            .styles
-            .pseudos
-            .get(&PseudoElement::Before)
-            .is_some()
-        {
-            Some(self.with_pseudo(PseudoElementType::Before))
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    fn get_after_pseudo(&self) -> Option<Self> {
-        if self
-            .style_data()
-            .styles
-            .pseudos
-            .get(&PseudoElement::After)
-            .is_some()
-        {
-            Some(self.with_pseudo(PseudoElementType::After))
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    fn get_details_summary_pseudo(&self) -> Option<Self> {
-        if self.has_local_name(&local_name!("details")) && self.has_namespace(&ns!(html)) {
-            Some(self.with_pseudo(PseudoElementType::DetailsSummary))
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    fn get_details_content_pseudo(&self) -> Option<Self> {
-        if self.has_local_name(&local_name!("details")) &&
-            self.has_namespace(&ns!(html)) &&
-            self.get_attr(&ns!(), &local_name!("open")).is_some()
-        {
-            Some(self.with_pseudo(PseudoElementType::DetailsContent))
-        } else {
-            None
-        }
-    }
+    fn pseudo_element(&self) -> Option<PseudoElement>;
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
@@ -422,12 +313,11 @@ pub trait ThreadSafeLayoutElement<'dom>:
     #[inline]
     fn style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
         let data = self.style_data();
-        match self.get_pseudo_element_type() {
-            PseudoElementType::Normal => data.styles.primary().clone(),
-            other => {
+        match self.pseudo_element() {
+            None => data.styles.primary().clone(),
+            Some(style_pseudo) => {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
                 // cached before.
-                let style_pseudo = other.style_pseudo_element();
                 match style_pseudo.cascade_type() {
                     // Already computed during the cascade.
                     PseudoElementCascadeType::Eager => self
@@ -483,14 +373,9 @@ pub trait ThreadSafeLayoutElement<'dom>:
     #[inline]
     fn resolved_style(&self) -> Arc<ComputedValues> {
         let data = self.style_data();
-        match self.get_pseudo_element_type() {
-            PseudoElementType::Normal => data.styles.primary().clone(),
-            other => data
-                .styles
-                .pseudos
-                .get(&other.style_pseudo_element())
-                .unwrap()
-                .clone(),
+        match self.pseudo_element() {
+            None => data.styles.primary().clone(),
+            Some(pseudo_element) => data.styles.pseudos.get(&pseudo_element).unwrap().clone(),
         }
     }
 
@@ -505,4 +390,10 @@ pub trait ThreadSafeLayoutElement<'dom>:
     /// of the parent data is fine, since the bottom-up traversal will not process
     /// the parent until all the children have been processed.
     fn is_body_element_of_html_element_root(&self) -> bool;
+
+    /// Returns whether this node is the root element in an HTML document element.
+    ///
+    /// Note that, like `Self::is_body_element_of_html_element_root`, this accesses the parent.
+    /// As in that case, since this is an immutable borrow, we do not violate thread safety.
+    fn is_root(&self) -> bool;
 }

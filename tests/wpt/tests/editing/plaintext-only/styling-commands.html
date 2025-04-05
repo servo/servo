@@ -61,6 +61,9 @@ addEventListener("load", () => {
       function onInput(event) {
         inputEvent = `input={inputType="${event.inputType}"}`;
       }
+      test(() => {
+        assert_false(document.queryCommandEnabled(testing.command));
+      }, `${t.name}: the command should be disabled`);
       let ret;
       try {
         editingHost.addEventListener("input", onInput);

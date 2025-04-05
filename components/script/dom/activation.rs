@@ -2,18 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use script_layout_interface::ReflowGoal;
-
 use crate::dom::element::Element;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlinputelement::InputActivationState;
-use crate::dom::node::window_from_node;
-use crate::dom::window::ReflowReason;
 use crate::script_runtime::CanGc;
 
 /// Trait for elements with defined activation behavior
-pub trait Activatable {
+pub(crate) trait Activatable {
     fn as_element(&self) -> &Element;
 
     // Is this particular instance of the element activatable?
@@ -35,23 +31,9 @@ pub trait Activatable {
     // https://html.spec.whatwg.org/multipage/#concept-selector-active
     fn enter_formal_activation_state(&self) {
         self.as_element().set_active_state(true);
-
-        let win = window_from_node(self.as_element());
-        win.reflow(
-            ReflowGoal::Full,
-            ReflowReason::ElementStateChanged,
-            CanGc::note(),
-        );
     }
 
     fn exit_formal_activation_state(&self) {
         self.as_element().set_active_state(false);
-
-        let win = window_from_node(self.as_element());
-        win.reflow(
-            ReflowGoal::Full,
-            ReflowReason::ElementStateChanged,
-            CanGc::note(),
-        );
     }
 }

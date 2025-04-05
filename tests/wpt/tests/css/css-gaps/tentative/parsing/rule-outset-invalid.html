@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Gaps: parsing *-rule-outset with invalid values</title>
+  <link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#outset">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    test_invalid_value('column-rule-outset', 'auto');
+    test_invalid_value('column-rule-outset', 'none');
+    test_invalid_value('row-rule-outset', '10');
+    test_invalid_value('row-rule-outset', '10px 20px');
+  </script>
+</body>
+</html>

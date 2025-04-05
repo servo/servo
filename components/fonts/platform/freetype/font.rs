@@ -9,30 +9,30 @@ use std::{mem, ptr};
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use freetype_sys::{
-    ft_sfnt_head, ft_sfnt_os2, FT_Byte, FT_Done_Face, FT_Error, FT_F26Dot6, FT_Face, FT_Fixed,
-    FT_Get_Char_Index, FT_Get_Kerning, FT_Get_Sfnt_Table, FT_GlyphSlot, FT_Int32, FT_Load_Glyph,
-    FT_Long, FT_MulFix, FT_New_Face, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size,
-    FT_Short, FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_ULong, FT_UShort, FT_Vector,
-    FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES, FT_FACE_FLAG_SCALABLE, FT_KERNING_DEFAULT,
-    FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_STYLE_FLAG_ITALIC, TT_OS2,
+    FT_Byte, FT_Done_Face, FT_Error, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES,
+    FT_FACE_FLAG_SCALABLE, FT_Face, FT_Fixed, FT_Get_Char_Index, FT_Get_Kerning, FT_Get_Sfnt_Table,
+    FT_GlyphSlot, FT_Int32, FT_KERNING_DEFAULT, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING,
+    FT_Load_Glyph, FT_Long, FT_MulFix, FT_New_Face, FT_New_Memory_Face, FT_Pos,
+    FT_STYLE_FLAG_ITALIC, FT_Select_Size, FT_Set_Char_Size, FT_Short, FT_Size_Metrics, FT_SizeRec,
+    FT_UInt, FT_ULong, FT_UShort, FT_Vector, TT_OS2, ft_sfnt_head, ft_sfnt_os2,
 };
 use log::debug;
 use parking_lot::ReentrantMutex;
+use style::Zero;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
-use style::Zero;
 use webrender_api::FontInstanceFlags;
 
-use super::library_handle::FreeTypeLibraryHandle;
 use super::LocalFontIdentifier;
+use super::library_handle::FreeTypeLibraryHandle;
+use crate::FontData;
 use crate::font::{
     FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods,
 };
 use crate::font_template::FontTemplateDescriptor;
 use crate::glyph::GlyphId;
 use crate::system_font_service::FontIdentifier;
-use crate::FontData;
 
 // This constant is not present in the freetype
 // bindings due to bindgen not handling the way
@@ -573,7 +573,7 @@ struct TtHeader {
     glyph_data_format: FT_Short,
 }
 
-extern "C" {
+unsafe extern "C" {
     fn FT_Load_Sfnt_Table(
         face: FT_Face,
         tag: FT_ULong,

@@ -3,36 +3,37 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use serde::Serialize;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
-use style::values::specified::text::TextDecorationLine;
 
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
-use crate::fragment_tree::{BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags};
-use crate::geom::LogicalSides;
-use crate::layout_box_base::LayoutBoxBase;
+use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
+use crate::layout_box_base::{
+    CacheableLayoutResult, CacheableLayoutResultAndInputs, LayoutBoxBase,
+};
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContents;
 use crate::sizing::{self, ComputeInlineContentSizes, InlineContentSizesResult};
-use crate::style_ext::{AspectRatio, DisplayInside};
+use crate::style_ext::{AspectRatio, DisplayInside, LayoutStyle};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
-use crate::{ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, LogicalVec2};
+use crate::{
+    ConstraintSpace, ContainingBlock, IndefiniteContainingBlock, LogicalVec2, PropagatedBoxTreeData,
+};
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct IndependentFormattingContext {
     pub base: LayoutBoxBase,
     pub contents: IndependentFormattingContextContents,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum IndependentFormattingContextContents {
     NonReplaced(IndependentNonReplacedContents),
     Replaced(ReplacedContents),
@@ -40,7 +41,7 @@ pub(crate) enum IndependentFormattingContextContents {
 
 // Private so that code outside of this module cannot match variants.
 // It should got through methods instead.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum IndependentNonReplacedContents {
     Flow(BlockFormattingContext),
     Flex(FlexContainer),
@@ -51,7 +52,7 @@ pub(crate) enum IndependentNonReplacedContents {
 
 /// The baselines of a layout or a [`crate::fragment_tree::BoxFragment`]. Some layout
 /// uses the first and some layout uses the last.
-#[derive(Clone, Copy, Debug, Default, Serialize)]
+#[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct Baselines {
     pub first: Option<Au>,
     pub last: Option<Au>,
@@ -66,39 +67,13 @@ impl Baselines {
     }
 }
 
-pub(crate) struct IndependentLayout {
-    pub fragments: Vec<Fragment>,
-
-    /// <https://drafts.csswg.org/css2/visudet.html#root-height>
-    pub content_block_size: Au,
-
-    /// The contents of a table may force it to become wider than what we would expect
-    /// from 'width' and 'min-width'. This is the resulting inline content size,
-    /// or None for non-table layouts.
-    pub content_inline_size_for_table: Option<Au>,
-
-    /// The offset of the last inflow baseline of this layout in the content area, if
-    /// there was one. This is used to propagate baselines to the ancestors of `display:
-    /// inline-block`.
-    pub baselines: Baselines,
-
-    /// Whether or not this layout depends on the containing block size.
-    pub depends_on_block_constraints: bool,
-}
-
-pub(crate) struct IndependentLayoutResult {
-    pub fragment: BoxFragment,
-    pub baselines: Option<Baselines>,
-    pub pbm_sums: LogicalSides<Au>,
-}
-
 impl IndependentFormattingContext {
     pub fn construct<'dom, Node: NodeExt<'dom>>(
         context: &LayoutContext,
         node_and_style_info: &NodeAndStyleInfo<Node>,
         display_inside: DisplayInside,
         contents: Contents,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
 
@@ -111,7 +86,7 @@ impl IndependentFormattingContext {
                             context,
                             node_and_style_info,
                             non_replaced_contents,
-                            propagated_text_decoration_line,
+                            propagated_data,
                             is_list_item,
                         ))
                     },
@@ -120,7 +95,7 @@ impl IndependentFormattingContext {
                             context,
                             node_and_style_info,
                             non_replaced_contents,
-                            propagated_text_decoration_line,
+                            propagated_data,
                         ))
                     },
                     DisplayInside::Flex => {
@@ -128,7 +103,7 @@ impl IndependentFormattingContext {
                             context,
                             node_and_style_info,
                             non_replaced_contents,
-                            propagated_text_decoration_line,
+                            propagated_data,
                         ))
                     },
                     DisplayInside::Table => {
@@ -146,7 +121,7 @@ impl IndependentFormattingContext {
                             node_and_style_info,
                             table_grid_style,
                             non_replaced_contents,
-                            propagated_text_decoration_line,
+                            propagated_data,
                         ))
                     },
                 };
@@ -205,10 +180,12 @@ impl IndependentFormattingContext {
         auto_block_size_stretches_to_containing_block: bool,
     ) -> InlineContentSizesResult {
         sizing::outer_inline(
-            self.style(),
+            &self.layout_style(),
             containing_block,
             auto_minimum,
             auto_block_size_stretches_to_containing_block,
+            self.is_replaced(),
+            true, /* establishes_containing_block */
             |padding_border_sums| self.preferred_aspect_ratio(padding_border_sums),
             |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
         )
@@ -227,6 +204,18 @@ impl IndependentFormattingContext {
             },
         }
     }
+
+    #[inline]
+    pub(crate) fn layout_style(&self) -> LayoutStyle {
+        match &self.contents {
+            IndependentFormattingContextContents::NonReplaced(content) => {
+                content.layout_style(&self.base)
+            },
+            IndependentFormattingContextContents::Replaced(content) => {
+                content.layout_style(&self.base)
+            },
+        }
+    }
 }
 
 impl IndependentNonReplacedContents {
@@ -236,18 +225,20 @@ impl IndependentNonReplacedContents {
         positioning_context: &mut PositioningContext,
         containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
-    ) -> IndependentLayout {
+        depends_on_block_constraints: bool,
+    ) -> CacheableLayoutResult {
         match self {
             IndependentNonReplacedContents::Flow(bfc) => bfc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
+                depends_on_block_constraints,
             ),
             IndependentNonReplacedContents::Flex(fc) => fc.layout(
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
-                containing_block,
+                depends_on_block_constraints,
             ),
             IndependentNonReplacedContents::Grid(fc) => fc.layout(
                 layout_context,
@@ -260,7 +251,77 @@ impl IndependentNonReplacedContents {
                 positioning_context,
                 containing_block_for_children,
                 containing_block,
+                depends_on_block_constraints,
             ),
+        }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(
+            name = "IndependentNonReplacedContents::layout_with_caching",
+            skip_all,
+            fields(servo_profiling = true),
+            level = "trace",
+        )
+    )]
+    pub fn layout_with_caching(
+        &self,
+        layout_context: &LayoutContext,
+        positioning_context: &mut PositioningContext,
+        containing_block_for_children: &ContainingBlock,
+        containing_block: &ContainingBlock,
+        base: &LayoutBoxBase,
+        depends_on_block_constraints: bool,
+    ) -> CacheableLayoutResult {
+        if let Some(cache) = base.cached_layout_result.borrow().as_ref() {
+            if cache.containing_block_for_children_size.inline ==
+                containing_block_for_children.size.inline &&
+                (cache.containing_block_for_children_size.block ==
+                    containing_block_for_children.size.block ||
+                    !(cache.result.depends_on_block_constraints ||
+                        depends_on_block_constraints))
+            {
+                positioning_context.append(cache.positioning_context.clone());
+                return cache.result.clone();
+            }
+            #[cfg(feature = "tracing")]
+            tracing::debug!(
+                name: "NonReplaced cache miss",
+                cached = ?cache.containing_block_for_children_size,
+                required = ?containing_block_for_children.size,
+            );
+        }
+
+        let mut child_positioning_context = PositioningContext::new_for_subtree(
+            positioning_context.collects_for_nearest_positioned_ancestor(),
+        );
+
+        let result = self.layout(
+            layout_context,
+            &mut child_positioning_context,
+            containing_block_for_children,
+            containing_block,
+            depends_on_block_constraints,
+        );
+
+        *base.cached_layout_result.borrow_mut() = Some(CacheableLayoutResultAndInputs {
+            result: result.clone(),
+            positioning_context: child_positioning_context.clone(),
+            containing_block_for_children_size: containing_block_for_children.size.clone(),
+        });
+        positioning_context.append(child_positioning_context);
+
+        result
+    }
+
+    #[inline]
+    pub(crate) fn layout_style<'a>(&'a self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
+        match self {
+            IndependentNonReplacedContents::Flow(fc) => fc.layout_style(base),
+            IndependentNonReplacedContents::Flex(fc) => fc.layout_style(),
+            IndependentNonReplacedContents::Grid(fc) => fc.layout_style(),
+            IndependentNonReplacedContents::Table(fc) => fc.layout_style(None),
         }
     }
 
@@ -268,6 +329,11 @@ impl IndependentNonReplacedContents {
     pub(crate) fn preferred_aspect_ratio(&self) -> Option<AspectRatio> {
         // TODO: support preferred aspect ratios on non-replaced boxes.
         None
+    }
+
+    #[inline]
+    pub(crate) fn is_table(&self) -> bool {
+        matches!(self, Self::Table(_))
     }
 }
 

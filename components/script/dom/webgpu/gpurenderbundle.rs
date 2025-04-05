@@ -3,17 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUDevice, WebGPURenderBundle, WebGPURequest};
+use webgpu_traits::{WebGPU, WebGPUDevice, WebGPURenderBundle, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderBundleMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPURenderBundle {
+pub(crate) struct GPURenderBundle {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -41,12 +42,13 @@ impl GPURenderBundle {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         render_bundle: WebGPURenderBundle,
         device: WebGPUDevice,
         channel: WebGPU,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderBundle::new_inherited(
@@ -56,12 +58,13 @@ impl GPURenderBundle {
                 label,
             )),
             global,
+            can_gc,
         )
     }
 }
 
 impl GPURenderBundle {
-    pub fn id(&self) -> WebGPURenderBundle {
+    pub(crate) fn id(&self) -> WebGPURenderBundle {
         self.render_bundle
     }
 }

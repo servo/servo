@@ -18,5 +18,6 @@ ipc-channel = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true }
 servo-media = { workspace = true }
+servo_config = { path = "../config" }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }

@@ -1,5 +1,5 @@
 // META: title=validation tests for WebNN API constant interface
-// META: global=window,dedicatedworker
+// META: global=window,worker
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -32,7 +32,62 @@ const tests = [
                              // one by given dimensions
     }
   },
-  // TODO (crbug.com/329702838): Test building a constant with float16 data type
+  {
+    name: '[constant] Test building a constant with float16 data type',
+    descriptor: {dataType: 'float16', shape: [2, 3]},
+    buffer: {type: Float16Array, byteLength: 6 * 2},
+    output: {dataType: 'float16', shape: [2, 3]}
+  },
+  {
+    name:
+        '[constant] Throw if byte length of float16 buffer doesn\'t match the given dimensions',
+    descriptor: {dataType: 'float16', shape: [2, 3]},
+    buffer: {
+      type: Float16Array,
+      byteLength: 6 * 2 - 2  // The buffer's byte length is less than the
+                             // one by given dimensions
+    }
+  },
+  {
+    name:
+        '[constant] Throw if using Float32Array buffer for float16 operand data type',
+    descriptor: {dataType: 'float16', shape: [2, 3]},
+    buffer: {
+      type: Float32Array,
+      byteLength: 6 * 4,
+    },
+    viewTestOnly: true
+  },
+  {
+    name:
+        '[constant] Throw if using Int16Array buffer for float16 operand data type',
+    descriptor: {dataType: 'float16', shape: [2, 3]},
+    buffer: {
+      type: Int16Array,
+      byteLength: 6 * 2,
+    },
+    viewTestOnly: true
+  },
+
+  // TODO(crbug.com/399459942): remove below two Uint16Array buffer tests for
+  // float16 data type when implementation removes it.
+  {
+    name:
+        '[constant] Test building a constant with float16 data type using Uint16Array buffer',
+    descriptor: {dataType: 'float16', shape: [2, 3]},
+    buffer: {type: Uint16Array, byteLength: 6 * 2},
+    output: {dataType: 'float16', shape: [2, 3]}
+  },
+  {
+    name:
+        '[constant] Throw if byte length of float16 buffer (using Uint16Array buffer) doesn\'t match the given dimensions',
+    descriptor: {dataType: 'float16', shape: [2, 3]},
+    buffer: {
+      type: Uint16Array,
+      byteLength: 6 * 2 - 2  // The buffer's byte length is less than the
+                             // one by given dimensions
+    }
+  },
   {
     name: '[constant] Test building a constant with int32 data type',
     descriptor: {dataType: 'int32', shape: [2, 3]},
@@ -116,10 +171,16 @@ const tests = [
   },
   {
     name:
-        '[constant] Throw if buffer view\'s type doesn\'t match the operand data type',
+        '[constant] Throw if using Int32Array buffer for float32 operand data type',
     descriptor: {dataType: 'float32', shape: [2, 3]},
     buffer: {type: Int32Array, byteLength: 6 * 4},
     viewTestOnly: true
+  },
+  {
+    name:
+        '[constant] Throw if the operand data type isn\'t of type MLOperandDataType',
+    descriptor: {dataType: 'int16', shape: [2, 3]},
+    buffer: {type: Int16Array, byteLength: 6 * 2}
   }
 ];
 
@@ -128,8 +189,6 @@ tests.forEach(
       const builder = new MLGraphBuilder(context);
       const buffer = new ArrayBuffer(test.buffer.byteLength);
       const bufferView = new test.buffer.type(buffer);
-      const sharedBuffer = new SharedArrayBuffer(test.buffer.byteLength);
-      const sharedBufferView = new test.buffer.type(sharedBuffer);
 
       if (test.viewTestOnly === undefined || test.viewTestOnly === false) {
         // Test building constant from ArrayBuffer.
@@ -141,15 +200,19 @@ tests.forEach(
           assert_throws_js(
               TypeError, () => builder.constant(test.descriptor, buffer));
         }
-        // Test building constant from SharedArrayBuffer.
-        if (test.output) {
-          const constantOperand =
-              builder.constant(test.descriptor, sharedBuffer);
-          assert_equals(constantOperand.dataType, test.output.dataType);
-          assert_array_equals(constantOperand.shape, test.output.shape);
-        } else {
-          assert_throws_js(
-              TypeError, () => builder.constant(test.descriptor, sharedBuffer));
+        if ('SharedArrayBuffer' in globalThis) {
+          // Test building constant from SharedArrayBuffer.
+          const sharedBuffer = new SharedArrayBuffer(test.buffer.byteLength);
+          if (test.output) {
+            const constantOperand =
+                builder.constant(test.descriptor, sharedBuffer);
+            assert_equals(constantOperand.dataType, test.output.dataType);
+            assert_array_equals(constantOperand.shape, test.output.shape);
+          } else {
+            assert_throws_js(
+                TypeError,
+                () => builder.constant(test.descriptor, sharedBuffer));
+          }
         }
       }
 
@@ -162,15 +225,19 @@ tests.forEach(
         assert_throws_js(
             TypeError, () => builder.constant(test.descriptor, bufferView));
       }
-      // Test building constant from shared ArrayBufferView.
-      if (test.output) {
-        const constantOperand =
-            builder.constant(test.descriptor, sharedBufferView);
-        assert_equals(constantOperand.dataType, test.output.dataType);
-        assert_array_equals(constantOperand.shape, test.output.shape);
-      } else {
-        assert_throws_js(
-            TypeError,
-            () => builder.constant(test.descriptor, sharedBufferView));
+      if ('SharedArrayBuffer' in globalThis) {
+        // Test building constant from shared ArrayBufferView.
+        const sharedBuffer = new SharedArrayBuffer(test.buffer.byteLength);
+        const sharedBufferView = new test.buffer.type(sharedBuffer);
+        if (test.output) {
+          const constantOperand =
+              builder.constant(test.descriptor, sharedBufferView);
+          assert_equals(constantOperand.dataType, test.output.dataType);
+          assert_array_equals(constantOperand.shape, test.output.shape);
+        } else {
+          assert_throws_js(
+              TypeError,
+              () => builder.constant(test.descriptor, sharedBufferView));
+        }
       }
     }, test.name));

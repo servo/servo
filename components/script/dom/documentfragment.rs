@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;
@@ -18,7 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::htmlcollection::HTMLCollection;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
@@ -26,7 +26,7 @@ use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
-pub struct DocumentFragment {
+pub(crate) struct DocumentFragment {
     node: Node,
     /// Caches for the getElement methods
     id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
@@ -34,14 +34,14 @@ pub struct DocumentFragment {
 
 impl DocumentFragment {
     /// Creates a new DocumentFragment.
-    pub fn new_inherited(document: &Document) -> DocumentFragment {
+    pub(crate) fn new_inherited(document: &Document) -> DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(document),
             id_map: DomRefCell::new(HashMapTracedValues::new()),
         }
     }
 
-    pub fn new(document: &Document, can_gc: CanGc) -> DomRoot<DocumentFragment> {
+    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         Self::new_with_proto(document, None, can_gc)
     }
 
@@ -58,7 +58,7 @@ impl DocumentFragment {
         )
     }
 
-    pub fn id_map(&self) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
+    pub(crate) fn id_map(&self) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
         &self.id_map
     }
 }
@@ -77,8 +77,8 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(&self) -> DomRoot<HTMLCollection> {
-        let window = window_from_node(self);
-        HTMLCollection::children(&window, self.upcast())
+        let window = self.owner_window();
+        HTMLCollection::children(&window, self.upcast(), CanGc::note())
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid

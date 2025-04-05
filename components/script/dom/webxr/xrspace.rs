@@ -14,10 +14,11 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrinputsource::XRInputSource;
 use crate::dom::xrjointspace::XRJointSpace;
 use crate::dom::xrreferencespace::XRReferenceSpace;
-use crate::dom::xrsession::{cast_transform, ApiPose, XRSession};
+use crate::dom::xrsession::{ApiPose, XRSession, cast_transform};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRSpace {
+pub(crate) struct XRSpace {
     eventtarget: EventTarget,
     session: Dom<XRSession>,
     input_source: MutNullableDom<XRInputSource>,
@@ -26,7 +27,7 @@ pub struct XRSpace {
 }
 
 impl XRSpace {
-    pub fn new_inherited(session: &XRSession) -> XRSpace {
+    pub(crate) fn new_inherited(session: &XRSession) -> XRSpace {
         XRSpace {
             eventtarget: EventTarget::new_inherited(),
             session: Dom::from_ref(session),
@@ -48,19 +49,21 @@ impl XRSpace {
         }
     }
 
-    pub fn new_inputspace(
+    pub(crate) fn new_inputspace(
         global: &GlobalScope,
         session: &XRSession,
         input: &XRInputSource,
         is_grip_space: bool,
+        can_gc: CanGc,
     ) -> DomRoot<XRSpace> {
         reflect_dom_object(
             Box::new(XRSpace::new_inputspace_inner(session, input, is_grip_space)),
             global,
+            can_gc,
         )
     }
 
-    pub fn space(&self) -> Space {
+    pub(crate) fn space(&self) -> Space {
         if let Some(rs) = self.downcast::<XRReferenceSpace>() {
             rs.space()
         } else if let Some(j) = self.downcast::<XRJointSpace>() {
@@ -87,7 +90,7 @@ impl XRSpace {
     /// The reference origin used is common between all
     /// get_pose calls for spaces from the same device, so this can be used to compare
     /// with other spaces
-    pub fn get_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
+    pub(crate) fn get_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
         if let Some(reference) = self.downcast::<XRReferenceSpace>() {
             reference.get_pose(base_pose)
         } else if let Some(joint) = self.downcast::<XRJointSpace>() {
@@ -114,7 +117,7 @@ impl XRSpace {
         }
     }
 
-    pub fn session(&self) -> &XRSession {
+    pub(crate) fn session(&self) -> &XRSession {
         &self.session
     }
 }

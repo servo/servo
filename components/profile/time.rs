@@ -17,7 +17,7 @@ use profile_traits::time::{
     TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use servo_config::opts::OutputOptions;
-use time_03::Duration;
+use time::Duration;
 
 use crate::trace_dump::TraceDump;
 
@@ -85,56 +85,8 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::LayoutTextShaping => "| + ",
             _ => "",
         };
-        let name = match *self {
-            ProfilerCategory::Compositing => "Compositing",
-            ProfilerCategory::LayoutPerform => "Layout",
-            ProfilerCategory::LayoutStyleRecalc => "Style Recalc",
-            ProfilerCategory::LayoutTextShaping => "Text Shaping",
-            ProfilerCategory::LayoutRestyleDamagePropagation => "Restyle Damage Propagation",
-            ProfilerCategory::LayoutGeneratedContent => "Generated Content Resolution",
-            ProfilerCategory::LayoutFloatPlacementSpeculation => "Float Placement Speculation",
-            ProfilerCategory::LayoutMain => "Primary Layout Pass",
-            ProfilerCategory::LayoutStoreOverflow => "Store Overflow",
-            ProfilerCategory::LayoutParallelWarmup => "Parallel Warmup",
-            ProfilerCategory::LayoutDispListBuild => "Display List Construction",
-            ProfilerCategory::ImageSaving => "Image Saving",
-            ProfilerCategory::ScriptAttachLayout => "Script Attach Layout",
-            ProfilerCategory::ScriptConstellationMsg => "Script Constellation Msg",
-            ProfilerCategory::ScriptDevtoolsMsg => "Script Devtools Msg",
-            ProfilerCategory::ScriptDocumentEvent => "Script Document Event",
-            ProfilerCategory::ScriptDomEvent => "Script Dom Event",
-            ProfilerCategory::ScriptEvaluate => "Script JS Evaluate",
-            ProfilerCategory::ScriptFileRead => "Script File Read",
-            ProfilerCategory::ScriptHistoryEvent => "Script History Event",
-            ProfilerCategory::ScriptImageCacheMsg => "Script Image Cache Msg",
-            ProfilerCategory::ScriptInputEvent => "Script Input Event",
-            ProfilerCategory::ScriptNetworkEvent => "Script Network Event",
-            ProfilerCategory::ScriptParseHTML => "Script Parse HTML",
-            ProfilerCategory::ScriptParseXML => "Script Parse XML",
-            ProfilerCategory::ScriptPlannedNavigation => "Script Planned Navigation",
-            ProfilerCategory::ScriptPortMessage => "Script Port Message",
-            ProfilerCategory::ScriptResize => "Script Resize",
-            ProfilerCategory::ScriptEvent => "Script Event",
-            ProfilerCategory::ScriptUpdateReplacedElement => "Script Update Replaced Element",
-            ProfilerCategory::ScriptSetScrollState => "Script Set Scroll State",
-            ProfilerCategory::ScriptSetViewport => "Script Set Viewport",
-            ProfilerCategory::ScriptTimerEvent => "Script Timer Event",
-            ProfilerCategory::ScriptStylesheetLoad => "Script Stylesheet Load",
-            ProfilerCategory::ScriptWebSocketEvent => "Script Web Socket Event",
-            ProfilerCategory::ScriptWorkerEvent => "Script Worker Event",
-            ProfilerCategory::ScriptServiceWorkerEvent => "Script Service Worker Event",
-            ProfilerCategory::ScriptEnterFullscreen => "Script Enter Fullscreen",
-            ProfilerCategory::ScriptExitFullscreen => "Script Exit Fullscreen",
-            ProfilerCategory::ScriptWorkletEvent => "Script Worklet Event",
-            ProfilerCategory::ScriptPerformanceEvent => "Script Performance Event",
-            ProfilerCategory::ScriptWebGPUMsg => "Script WebGPU Message",
-            ProfilerCategory::TimeToFirstPaint => "Time To First Paint",
-            ProfilerCategory::TimeToFirstContentfulPaint => "Time To First Contentful Paint",
-            ProfilerCategory::TimeToInteractive => "Time to Interactive",
-            ProfilerCategory::IpcReceiver => "Blocked at IPC Receive",
-            ProfilerCategory::IpcBytesReceiver => "Blocked at IPC Bytes Receive",
-        };
-        format!("{}{}", padding, name)
+        let name: &'static str = self.into();
+        format!("{padding}{name}")
     }
 }
 
@@ -173,10 +125,12 @@ impl Profiler {
                         let chan = chan.clone();
                         thread::Builder::new()
                             .name("TimeProfTimer".to_owned())
-                            .spawn(move || loop {
-                                thread::sleep(std::time::Duration::from_secs_f64(period));
-                                if chan.send(ProfilerMsg::Print).is_err() {
-                                    break;
+                            .spawn(move || {
+                                loop {
+                                    thread::sleep(std::time::Duration::from_secs_f64(period));
+                                    if chan.send(ProfilerMsg::Print).is_err() {
+                                        break;
+                                    }
                                 }
                             })
                             .expect("Thread spawning failed");
@@ -199,14 +153,16 @@ impl Profiler {
                     // No-op to handle messages when the time profiler is not printing:
                     thread::Builder::new()
                         .name("TimeProfiler".to_owned())
-                        .spawn(move || loop {
-                            match port.recv() {
-                                Err(_) => break,
-                                Ok(ProfilerMsg::Exit(chan)) => {
-                                    let _ = chan.send(());
-                                    break;
-                                },
-                                _ => {},
+                        .spawn(move || {
+                            loop {
+                                match port.recv() {
+                                    Err(_) => break,
+                                    Ok(ProfilerMsg::Exit(chan)) => {
+                                        let _ = chan.send(());
+                                        break;
+                                    },
+                                    _ => {},
+                                }
                             }
                         })
                         .expect("Thread spawning failed");

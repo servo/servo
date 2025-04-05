@@ -7,40 +7,46 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-const params = new URLSearchParams(location.search.substr(1));
-const is_starting_page = !params.has('new');
+const params = new URLSearchParams(location.search);
 
-if (is_starting_page) {
-  requestAnimationFrame(() => requestAnimationFrame( () => {
-    location.replace(location.href + '?new');
-  }));
-} else {
-  promise_test(async () => {
-    const sequence = [];
-    requestAnimationFrame(() => {
-      sequence.push("rAF");
-      Promise.resolve().then(() => {
-        sequence.push("rAF-microtask");
-      })
+switch (params.get("mode") || "test") {
+case "test":
+  promise_test(async t => {
+    const sequence = await new Promise(resolve => {
+      window.test_finished = s => { resolve(s) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
     });
-    const transition = await new Promise(resolve => addEventListener('pagereveal', event => {
-      sequence.push("pagereveal");
-      assert_true("viewTransition" in event, "PageRevealEvent should have a viewTransition");
-      assert_not_equals(event.viewTransition, null, "PageRevealEvent should have a non-null viewTransition");
 
-      event.viewTransition.ready.then(() => {
-        sequence.push("ready");
-      });
-      event.viewTransition.updateCallbackDone.then(() => {
-        sequence.push("updateCallbackDone");
-      });
-
-      resolve(event.viewTransition);
-    }));
-
-    await transition.finished;
-    sequence.push("finished");
     assert_array_equals(sequence, ["pagereveal", "updateCallbackDone", "ready", "rAF", "rAF-microtask", "finished"]);
+  });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace('?mode=new');
+  }));
+  break;
+case "new":
+  const sequence = [];
+  requestAnimationFrame(() => {
+    sequence.push("rAF");
+    Promise.resolve().then(() => {
+      sequence.push("rAF-microtask");
+    });
+  });
+
+  addEventListener('pagereveal', event => {
+    sequence.push("pagereveal");
+    event.viewTransition.ready.then(() => {
+      sequence.push("ready");
+    });
+    event.viewTransition.updateCallbackDone.then(() => {
+      sequence.push("updateCallbackDone");
+    });
+    event.viewTransition.finished.then(() => {
+      sequence.push("finished");
+      window.opener.test_finished(sequence);
+    });
   });
 }
 </script>

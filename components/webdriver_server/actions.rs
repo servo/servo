@@ -6,11 +6,10 @@ use std::collections::HashSet;
 use std::time::{Duration, Instant};
 use std::{cmp, thread};
 
-use compositing_traits::ConstellationMsg;
+use constellation_traits::EmbedderToConstellationMessage;
+use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
-use script_traits::webdriver_msg::WebDriverScriptCommand;
-use script_traits::{MouseButton, MouseEventType, WebDriverCommandMsg};
 use webdriver::actions::{
     ActionSequence, ActionsType, GeneralAction, KeyAction, KeyActionItem, KeyDownAction,
     KeyUpAction, NullActionItem, PointerAction, PointerActionItem, PointerActionParameters,
@@ -80,18 +79,6 @@ fn compute_tick_duration(tick_actions: &ActionSequence) -> u64 {
         ActionsType::Wheel { .. } => todo!("Not implemented."),
     }
     duration
-}
-
-fn u64_to_mouse_button(button: u64) -> Option<MouseButton> {
-    if MouseButton::Left as u64 == button {
-        Some(MouseButton::Left)
-    } else if MouseButton::Middle as u64 == button {
-        Some(MouseButton::Middle)
-    } else if MouseButton::Right as u64 == button {
-        Some(MouseButton::Right)
-    } else {
-        None
-    }
 }
 
 impl Handler {
@@ -219,7 +206,7 @@ impl Handler {
         let cmd_msg =
             WebDriverCommandMsg::KeyboardAction(session.browsing_context_id, keyboard_event);
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
     }
 
@@ -247,7 +234,7 @@ impl Handler {
             let cmd_msg =
                 WebDriverCommandMsg::KeyboardAction(session.browsing_context_id, keyboard_event);
             self.constellation_chan
-                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                 .unwrap();
         }
     }
@@ -290,17 +277,17 @@ impl Handler {
             },
         });
 
-        if let Some(button) = u64_to_mouse_button(action.button) {
-            let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-                MouseEventType::MouseDown,
-                button,
-                pointer_input_state.x as f32,
-                pointer_input_state.y as f32,
-            );
-            self.constellation_chan
-                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
-                .unwrap();
-        }
+        let button = (action.button as u16).into();
+        let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
+            session.webview_id,
+            MouseButtonAction::Down,
+            button,
+            pointer_input_state.x as f32,
+            pointer_input_state.y as f32,
+        );
+        self.constellation_chan
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
+            .unwrap();
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action
@@ -337,17 +324,17 @@ impl Handler {
             },
         });
 
-        if let Some(button) = u64_to_mouse_button(action.button) {
-            let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
-                MouseEventType::MouseUp,
-                button,
-                pointer_input_state.x as f32,
-                pointer_input_state.y as f32,
-            );
-            self.constellation_chan
-                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
-                .unwrap();
-        }
+        let button = (action.button as u16).into();
+        let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
+            session.webview_id,
+            MouseButtonAction::Up,
+            button,
+            pointer_input_state.x as f32,
+            pointer_input_state.y as f32,
+        );
+        self.constellation_chan
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
+            .unwrap();
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action
@@ -385,34 +372,28 @@ impl Handler {
             PointerOrigin::Pointer => (start_x + x_offset, start_y + y_offset),
             PointerOrigin::Element(ref x) => {
                 let (sender, receiver) = ipc::channel().unwrap();
-                self.top_level_script_command(WebDriverScriptCommand::GetElementInViewCenterPoint(
-                    x.to_string(),
-                    sender,
-                ))
+                self.browsing_context_script_command(
+                    WebDriverScriptCommand::GetElementInViewCenterPoint(x.to_string(), sender),
+                )
                 .unwrap();
 
-                match receiver.recv().unwrap() {
-                    Ok(point) => match point {
-                        Some(point) => point,
-                        None => return Err(ErrorStatus::UnknownError),
-                    },
-                    Err(_) => return Err(ErrorStatus::UnknownError),
-                }
+                let Some(point) = receiver.recv().unwrap()? else {
+                    return Err(ErrorStatus::UnknownError);
+                };
+                point
             },
         };
 
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd_msg = WebDriverCommandMsg::GetWindowSize(
-            self.session.as_ref().unwrap().top_level_browsing_context_id,
-            sender,
-        );
+        let cmd_msg =
+            WebDriverCommandMsg::GetWindowSize(self.session.as_ref().unwrap().webview_id, sender);
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
         // Steps 7 - 8
-        let viewport = receiver.recv().unwrap().initial_viewport;
-        if x < 0 || x as f32 > viewport.width || y < 0 || y as f32 > viewport.height {
+        let viewport_size = receiver.recv().unwrap();
+        if x < 0 || x as f32 > viewport_size.width || y < 0 || y as f32 > viewport_size.height {
             return Err(ErrorStatus::MoveTargetOutOfBounds);
         }
 
@@ -446,14 +427,8 @@ impl Handler {
         target_y: i64,
         tick_start: Instant,
     ) {
-        let pointer_input_state = match self
-            .session
-            .as_mut()
-            .unwrap()
-            .input_state_table
-            .get_mut(source_id)
-            .unwrap()
-        {
+        let session = self.session.as_mut().unwrap();
+        let pointer_input_state = match session.input_state_table.get_mut(source_id).unwrap() {
             InputSourceState::Null => unreachable!(),
             InputSourceState::Key(_) => unreachable!(),
             InputSourceState::Pointer(pointer_input_state) => pointer_input_state,
@@ -490,9 +465,10 @@ impl Handler {
             // Step 7
             if x != current_x || y != current_y {
                 // Step 7.2
-                let cmd_msg = WebDriverCommandMsg::MouseMoveAction(x as f32, y as f32);
+                let cmd_msg =
+                    WebDriverCommandMsg::MouseMoveAction(session.webview_id, x as f32, y as f32);
                 self.constellation_chan
-                    .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+                    .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                     .unwrap();
                 // Step 7.3
                 pointer_input_state.x = x;

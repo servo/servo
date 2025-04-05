@@ -1,21 +1,22 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSS Pseudo-Elements Test: highlight styling: custom properties are not applicable properties in highlight pseudos</title>
+<title>CSS Pseudo-Elements Test: highlight styling: custom properties are applicable properties in highlight pseudos</title>
 <link rel="author" title="Delan Azabani" href="mailto:dazabani@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-styling">
 <link rel="match" href="highlight-styling-001-ref.html">
-<meta name="assert" value="This test verifies that ::selection styles cannot set custom properties.">
+<meta name="assert" value="This test verifies that ::selection styles can set custom properties and they over-ride the originating element.">
 <script src="support/selections.js"></script>
 <link rel="stylesheet" href="support/highlights.css">
 <style>
     main {
+        --x: red;
         font-size: 7em;
         margin: 0.5em;
     }
     main::selection {
-        --x: red;
+        --x: green;
         color: white;
-        background-color: var(--x, green);
+        background-color: var(--x, blue);
     }
 </style>
 <p>Test passes if the text below is white on green.

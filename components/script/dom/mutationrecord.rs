@@ -6,14 +6,15 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace};
 
 use crate::dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecord_Binding::MutationRecordMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MutationRecord {
+pub(crate) struct MutationRecord {
     reflector_: Reflector,
     record_type: DOMString,
     target: Dom<Node>,
@@ -27,12 +28,13 @@ pub struct MutationRecord {
 }
 
 impl MutationRecord {
-    #[allow(crown::unrooted_must_root)]
-    pub fn attribute_mutated(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn attribute_mutated(
         target: &Node,
         attribute_name: &LocalName,
         attribute_namespace: Option<&Namespace>,
         old_value: Option<DOMString>,
+        can_gc: CanGc,
     ) -> DomRoot<MutationRecord> {
         let record = Box::new(MutationRecord::new_inherited(
             "attributes",
@@ -45,12 +47,13 @@ impl MutationRecord {
             None,
             None,
         ));
-        reflect_dom_object(record, &*window_from_node(target))
+        reflect_dom_object(record, &*target.owner_window(), can_gc)
     }
 
-    pub fn character_data_mutated(
+    pub(crate) fn character_data_mutated(
         target: &Node,
         old_value: Option<DOMString>,
+        can_gc: CanGc,
     ) -> DomRoot<MutationRecord> {
         reflect_dom_object(
             Box::new(MutationRecord::new_inherited(
@@ -64,21 +67,24 @@ impl MutationRecord {
                 None,
                 None,
             )),
-            &*window_from_node(target),
+            &*target.owner_window(),
+            can_gc,
         )
     }
 
-    pub fn child_list_mutated(
+    pub(crate) fn child_list_mutated(
         target: &Node,
         added_nodes: Option<&[&Node]>,
         removed_nodes: Option<&[&Node]>,
         next_sibling: Option<&Node>,
         prev_sibling: Option<&Node>,
+        can_gc: CanGc,
     ) -> DomRoot<MutationRecord> {
-        let window = window_from_node(target);
-        let added_nodes = added_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
+        let window = target.owner_window();
+        let added_nodes =
+            added_nodes.map(|list| NodeList::new_simple_list_slice(&window, list, can_gc));
         let removed_nodes =
-            removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
+            removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list, can_gc));
 
         reflect_dom_object(
             Box::new(MutationRecord::new_inherited(
@@ -93,6 +99,7 @@ impl MutationRecord {
                 prev_sibling,
             )),
             &*window,
+            can_gc,
         )
     }
 
@@ -151,18 +158,14 @@ impl MutationRecordMethods<crate::DomTypeHolder> for MutationRecord {
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes
     fn AddedNodes(&self) -> DomRoot<NodeList> {
-        self.added_nodes.or_init(|| {
-            let window = window_from_node(&*self.target);
-            NodeList::empty(&window)
-        })
+        self.added_nodes
+            .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::note()))
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-removednodes
     fn RemovedNodes(&self) -> DomRoot<NodeList> {
-        self.removed_nodes.or_init(|| {
-            let window = window_from_node(&*self.target);
-            NodeList::empty(&window)
-        })
+        self.removed_nodes
+            .or_init(|| NodeList::empty(&self.target.owner_window(), CanGc::note()))
     }
 
     // https://dom.spec.whatwg.org/#dom-mutationrecord-previoussibling

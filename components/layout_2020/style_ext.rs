@@ -3,34 +3,40 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use style::Zero;
+use style::color::AbsoluteColor;
 use style::computed_values::direction::T as Direction;
+use style::computed_values::isolation::T as ComputedIsolation;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::computed_values::unicode_bidi::T as UnicodeBidi;
 use style::logical_geometry::{Direction as AxisDirection, WritingMode};
+use style::properties::ComputedValues;
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
-use style::properties::ComputedValues;
+use style::properties::style_structs::Border;
 use style::servo::selector_parser::PseudoElement;
+use style::values::CSSFloat;
 use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
-use style::values::computed::{AlignItems, BorderStyle, Inset, LengthPercentage, Margin};
+use style::values::computed::{AlignItems, BorderStyle, Color, Inset, LengthPercentage, Margin};
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
+use style::values::generics::transform::{GenericRotate, GenericScale, GenericTranslate};
 use style::values::specified::align::AlignFlags;
-use style::values::specified::{box_ as stylo, Overflow};
-use style::values::CSSFloat;
-use style::Zero;
+use style::values::specified::{Overflow, WillChangeBits, box_ as stylo};
 use webrender_api as wr;
+use webrender_api::units::LayoutTransform;
 
-use crate::dom_traversal::Contents;
+use crate::dom_traversal::{Contents, NonReplacedContents};
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
-    PhysicalVec, Size,
+    AuOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalSides,
+    PhysicalSize, Size, Sizes,
 };
+use crate::table::TableLayoutStyle;
 use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -48,6 +54,11 @@ pub(crate) enum DisplayGeneratingBox {
     },
     /// <https://drafts.csswg.org/css-display-3/#layout-specific-display>
     LayoutInternal(DisplayLayoutInternal),
+}
+#[derive(Clone, Copy, Debug)]
+pub struct AxesOverflow {
+    pub x: Overflow,
+    pub y: Overflow,
 }
 
 impl DisplayGeneratingBox {
@@ -71,6 +82,22 @@ impl DisplayGeneratingBox {
                 inside: DisplayInside::Flow {
                     is_list_item: false,
                 },
+            }
+        } else if matches!(
+            contents,
+            Contents::NonReplaced(NonReplacedContents::OfTextControl)
+        ) {
+            // If it's an input or textarea, make sure the display-inside is flow-root.
+            // <https://html.spec.whatwg.org/multipage/#form-controls>
+            if let DisplayGeneratingBox::OutsideInside { outside, .. } = self {
+                DisplayGeneratingBox::OutsideInside {
+                    outside: *outside,
+                    inside: DisplayInside::FlowRoot {
+                        is_list_item: false,
+                    },
+                }
+            } else {
+                *self
             }
         } else {
             *self
@@ -141,6 +168,22 @@ impl PaddingBorderMargin {
             padding_border_sums: LogicalVec2::zero(),
         }
     }
+
+    pub(crate) fn sums_auto_is_zero(
+        &self,
+        ignore_block_margins: LogicalSides1D<bool>,
+    ) -> LogicalVec2<Au> {
+        let margin = self.margin.auto_is(Au::zero);
+        let mut sums = self.padding_border_sums;
+        sums.inline += margin.inline_sum();
+        if !ignore_block_margins.start {
+            sums.block += margin.block_start;
+        }
+        if !ignore_block_margins.end {
+            sums.block += margin.block_end;
+        }
+        sums
+    }
 }
 
 /// Resolved `aspect-ratio` property with respect to a specific element. Depends
@@ -189,31 +232,51 @@ impl AspectRatio {
 
 #[derive(Clone)]
 pub(crate) struct ContentBoxSizesAndPBM {
-    pub content_box_size: LogicalVec2<Size<Au>>,
-    pub content_min_box_size: LogicalVec2<Size<Au>>,
-    pub content_max_box_size: LogicalVec2<Size<Au>>,
+    pub content_box_sizes: LogicalVec2<Sizes>,
     pub pbm: PaddingBorderMargin,
     pub depends_on_block_constraints: bool,
+    pub preferred_size_computes_to_auto: LogicalVec2<bool>,
 }
 
-impl From<ContentBoxSizesAndPBM> for ContentBoxSizesAndPBMDeprecated {
-    fn from(sizes: ContentBoxSizesAndPBM) -> Self {
-        Self {
-            content_box_size: sizes.content_box_size.map(Size::to_auto_or),
-            content_min_box_size: sizes.content_min_box_size.map(Size::to_auto_or),
-            content_max_box_size: sizes.content_max_box_size.map(Size::to_numeric),
-            pbm: sizes.pbm.clone(),
-            depends_on_block_constraints: sizes.depends_on_block_constraints,
-        }
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct BorderStyleColor {
+    pub style: BorderStyle,
+    pub color: AbsoluteColor,
+}
+
+impl BorderStyleColor {
+    pub(crate) fn new(style: BorderStyle, color: AbsoluteColor) -> Self {
+        Self { style, color }
+    }
+
+    pub(crate) fn from_border(
+        border: &Border,
+        current_color: &AbsoluteColor,
+    ) -> PhysicalSides<Self> {
+        let resolve = |color: &Color| color.resolve_to_absolute(current_color);
+        PhysicalSides::<Self>::new(
+            Self::new(border.border_top_style, resolve(&border.border_top_color)),
+            Self::new(
+                border.border_right_style,
+                resolve(&border.border_right_color),
+            ),
+            Self::new(
+                border.border_bottom_style,
+                resolve(&border.border_bottom_color),
+            ),
+            Self::new(border.border_left_style, resolve(&border.border_left_color)),
+        )
+    }
+
+    pub(crate) fn hidden() -> Self {
+        Self::new(BorderStyle::Hidden, AbsoluteColor::TRANSPARENT_BLACK)
     }
 }
 
-pub(crate) struct ContentBoxSizesAndPBMDeprecated {
-    pub content_box_size: LogicalVec2<AuOrAuto>,
-    pub content_min_box_size: LogicalVec2<AuOrAuto>,
-    pub content_max_box_size: LogicalVec2<Option<Au>>,
-    pub pbm: PaddingBorderMargin,
-    pub depends_on_block_constraints: bool,
+impl Default for BorderStyleColor {
+    fn default() -> Self {
+        Self::new(BorderStyle::None, AbsoluteColor::TRANSPARENT_BLACK)
+    }
 }
 
 pub(crate) trait ComputedValuesExt {
@@ -231,79 +294,38 @@ pub(crate) trait ComputedValuesExt {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalVec2<Size<LengthPercentage>>;
-    fn content_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>>;
-    fn content_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto>;
     fn content_box_size_for_box_size(
         &self,
         box_size: LogicalVec2<Size<Au>>,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Size<Au>>;
-    fn content_min_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>>;
-    fn content_min_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto>;
     fn content_min_box_size_for_min_size(
         &self,
         box_size: LogicalVec2<Size<Au>>,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Size<Au>>;
-    fn content_max_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>>;
-    fn content_max_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Option<Au>>;
     fn content_max_box_size_for_max_size(
         &self,
         box_size: LogicalVec2<Size<Au>>,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Size<Au>>;
-    fn content_box_sizes_and_padding_border_margin(
-        &self,
-        containing_block: &IndefiniteContainingBlock,
-    ) -> ContentBoxSizesAndPBM;
-    fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
-    fn padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-        &self,
-        writing_mode: WritingMode,
-        containing_block_inline_size: Au,
-    ) -> PaddingBorderMargin;
-    fn padding(
+    fn border_style_color(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<&LengthPercentage>;
-    fn border_style(&self, containing_block_writing_mode: WritingMode)
-        -> LogicalSides<BorderStyle>;
-    fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au>;
+    ) -> LogicalSides<BorderStyleColor>;
     fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn margin(
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
+    fn is_transformable(&self, fragment_flags: FragmentFlags) -> bool;
     fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
+    fn z_index_applies(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
-    fn effective_overflow(&self) -> PhysicalVec<Overflow>;
-    fn establishes_block_formatting_context(&self) -> bool;
+    fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow;
+    fn establishes_block_formatting_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
-    fn establishes_scroll_container(&self) -> bool;
+    fn establishes_scroll_container(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_containing_block_for_absolute_descendants(
         &self,
         fragment_flags: FragmentFlags,
@@ -329,13 +351,14 @@ pub(crate) trait ComputedValuesExt {
         &self,
         writing_mode: WritingMode,
     ) -> bool;
+    fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool;
 }
 
 impl ComputedValuesExt for ComputedValues {
     fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
         fn convert(inset: &Inset) -> LengthPercentageOrAuto<'_> {
             match inset {
-                Inset::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
+                Inset::LengthPercentage(v) => LengthPercentageOrAuto::LengthPercentage(v),
                 Inset::Auto => LengthPercentageOrAuto::Auto,
                 Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
                 Inset::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
@@ -396,26 +419,6 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    fn content_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>> {
-        let box_size = self
-            .box_size(containing_block.style.writing_mode)
-            .percentages_relative_to(containing_block);
-        self.content_box_size_for_box_size(box_size, pbm)
-    }
-
-    fn content_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto> {
-        self.content_box_size(containing_block, pbm)
-            .map(Size::to_auto_or)
-    }
-
     fn content_box_size_for_box_size(
         &self,
         box_size: LogicalVec2<Size<Au>>,
@@ -432,29 +435,6 @@ impl ComputedValuesExt for ComputedValues {
         }
     }
 
-    fn content_min_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>> {
-        let min_size = self
-            .min_box_size(containing_block.style.writing_mode)
-            .map_inline_and_block_sizes(
-                |lp| lp.to_used_value(containing_block.size.inline),
-                |lp| lp.to_used_value(containing_block.size.block.auto_is(Au::zero)),
-            );
-        self.content_min_box_size_for_min_size(min_size, pbm)
-    }
-
-    fn content_min_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<AuOrAuto> {
-        self.content_min_box_size(containing_block, pbm)
-            .map(Size::to_auto_or)
-    }
-
     fn content_min_box_size_for_min_size(
         &self,
         min_box_size: LogicalVec2<Size<Au>>,
@@ -468,27 +448,6 @@ impl ComputedValuesExt for ComputedValues {
                 |value| Au::zero().max(value - pbm.padding_border_sums.block),
             ),
         }
-    }
-
-    fn content_max_box_size(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Size<Au>> {
-        let max_box_size = self
-            .max_box_size(containing_block.style.writing_mode)
-            .percentages_relative_to(containing_block);
-
-        self.content_max_box_size_for_max_size(max_box_size, pbm)
-    }
-
-    fn content_max_box_size_deprecated(
-        &self,
-        containing_block: &ContainingBlock,
-        pbm: &PaddingBorderMargin,
-    ) -> LogicalVec2<Option<Au>> {
-        self.content_max_box_size(containing_block, pbm)
-            .map(Size::to_numeric)
     }
 
     fn content_max_box_size_for_max_size(
@@ -507,138 +466,13 @@ impl ComputedValuesExt for ComputedValues {
         }
     }
 
-    fn content_box_sizes_and_padding_border_margin(
-        &self,
-        containing_block: &IndefiniteContainingBlock,
-    ) -> ContentBoxSizesAndPBM {
-        // <https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution>
-        // If max size properties or preferred size properties are set to a value containing
-        // indefinite percentages, we treat the entire value as the initial value of the property.
-        // However, for min size properties, as well as for margins and paddings,
-        // we instead resolve indefinite percentages against zero.
-        let containing_block_size = containing_block.size.map(|value| value.non_auto());
-        let containing_block_size_auto_is_zero =
-            containing_block_size.map(|value| value.unwrap_or_else(Au::zero));
-        let writing_mode = containing_block.writing_mode;
-        let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-            writing_mode,
-            containing_block.size.inline.auto_is(Au::zero),
-        );
-        let box_size = self.box_size(writing_mode);
-        let min_size = self.min_box_size(writing_mode);
-        let max_size = self.max_box_size(writing_mode);
-        let depends_on_block_constraints = |size: &Size<LengthPercentage>| {
-            match size {
-                // fit-content is like clamp(min-content, stretch, max-content), but currently
-                // min-content and max-content have the same behavior in the block axis,
-                // so there is no dependency on block constraints.
-                // TODO: for flex and grid layout, min-content and max-content should be different.
-                // TODO: We are assuming that Size::Initial doesn't stretch. However, it may actually
-                // stretch flex and grid items depending on the CSS Align properties, in that case
-                // the caller needs to take care of it.
-                Size::Stretch => true,
-                Size::Numeric(length_percentage) => length_percentage.has_percentage(),
-                _ => false,
-            }
-        };
-
-        let depends_on_block_constraints = depends_on_block_constraints(&box_size.block) ||
-            depends_on_block_constraints(&min_size.block) ||
-            depends_on_block_constraints(&max_size.block) ||
-            self.depends_on_block_constraints_due_to_relative_positioning(writing_mode);
-
-        let box_size = box_size.maybe_percentages_relative_to_basis(&containing_block_size);
-        let content_box_size = self
-            .content_box_size_for_box_size(box_size, &pbm)
-            .map(|v| v.map(Au::from));
-        let min_size = min_size.percentages_relative_to_basis(&containing_block_size_auto_is_zero);
-        let content_min_box_size = self
-            .content_min_box_size_for_min_size(min_size, &pbm)
-            .map(|v| v.map(Au::from));
-        let max_size = max_size.maybe_percentages_relative_to_basis(&containing_block_size);
-        let content_max_box_size = self
-            .content_max_box_size_for_max_size(max_size, &pbm)
-            .map(|v| v.map(Au::from));
-        ContentBoxSizesAndPBM {
-            content_box_size,
-            content_min_box_size,
-            content_max_box_size,
-            pbm,
-            depends_on_block_constraints,
-        }
-    }
-
-    fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
-        self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-            containing_block.style.writing_mode,
-            containing_block.size.inline,
-        )
-    }
-
-    fn padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-        &self,
-        writing_mode: WritingMode,
-        containing_block_inline_size: Au,
-    ) -> PaddingBorderMargin {
-        let padding = self
-            .padding(writing_mode)
-            .percentages_relative_to(containing_block_inline_size);
-        let border = self.border_width(writing_mode);
-        let margin = self
-            .margin(writing_mode)
-            .percentages_relative_to(containing_block_inline_size);
-        PaddingBorderMargin {
-            padding_border_sums: LogicalVec2 {
-                inline: padding.inline_sum() + border.inline_sum(),
-                block: padding.block_sum() + border.block_sum(),
-            },
-            padding,
-            border,
-            margin,
-        }
-    }
-
-    fn padding(
+    fn border_style_color(
         &self,
         containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<&LengthPercentage> {
-        let padding = self.get_padding();
+    ) -> LogicalSides<BorderStyleColor> {
+        let current_color = self.get_inherited_text().clone_color();
         LogicalSides::from_physical(
-            &PhysicalSides::new(
-                &padding.padding_top.0,
-                &padding.padding_right.0,
-                &padding.padding_bottom.0,
-                &padding.padding_left.0,
-            ),
-            containing_block_writing_mode,
-        )
-    }
-
-    fn border_style(
-        &self,
-        containing_block_writing_mode: WritingMode,
-    ) -> LogicalSides<BorderStyle> {
-        let border = self.get_border();
-        LogicalSides::from_physical(
-            &PhysicalSides::new(
-                border.border_top_style,
-                border.border_right_style,
-                border.border_bottom_style,
-                border.border_left_style,
-            ),
-            containing_block_writing_mode,
-        )
-    }
-
-    fn border_width(&self, containing_block_writing_mode: WritingMode) -> LogicalSides<Au> {
-        let border = self.get_border();
-        LogicalSides::from_physical(
-            &PhysicalSides::new(
-                border.border_top_width,
-                border.border_right_width,
-                border.border_bottom_width,
-                border.border_left_width,
-            ),
+            &BorderStyleColor::from_border(self.get_border(), &current_color),
             containing_block_writing_mode,
         )
     }
@@ -646,7 +480,7 @@ impl ComputedValuesExt for ComputedValues {
     fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
         fn convert(inset: &Margin) -> LengthPercentageOrAuto<'_> {
             match inset {
-                Margin::LengthPercentage(ref v) => LengthPercentageOrAuto::LengthPercentage(v),
+                Margin::LengthPercentage(v) => LengthPercentageOrAuto::LengthPercentage(v),
                 Margin::Auto => LengthPercentageOrAuto::Auto,
                 Margin::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
             }
@@ -667,9 +501,14 @@ impl ComputedValuesExt for ComputedValues {
         LogicalSides::from_physical(&self.physical_margin(), containing_block_writing_mode)
     }
 
-    /// Returns true if this style has a transform, or perspective property set and
-    /// it applies to this element.
-    fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool {
+    fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool {
+        self.get_box().display.is_inline_flow() &&
+            !fragment_flags
+                .intersects(FragmentFlags::IS_REPLACED | FragmentFlags::IS_TEXT_CONTROL)
+    }
+
+    /// Returns true if this is a transformable element.
+    fn is_transformable(&self, fragment_flags: FragmentFlags) -> bool {
         // "A transformable element is an element in one of these categories:
         //   * all elements whose layout is governed by the CSS box model except for
         //     non-replaced inline boxes, table-column boxes, and table-column-group
@@ -677,38 +516,77 @@ impl ComputedValuesExt for ComputedValues {
         //   * all SVG paint server elements, the clipPath element  and SVG renderable
         //     elements with the exception of any descendant element of text content
         //     elements."
-        // https://drafts.csswg.org/css-transforms/#transformable-element
-        if self.get_box().display.is_inline_flow() &&
-            !fragment_flags.contains(FragmentFlags::IS_REPLACED)
-        {
-            return false;
-        }
+        // <https://drafts.csswg.org/css-transforms/#transformable-element>
+        // TODO: check for all cases listed in the above spec.
+        !self.is_inline_box(fragment_flags)
+    }
 
-        !self.get_box().transform.0.is_empty() || self.get_box().perspective != Perspective::None
+    /// Returns true if this style has a transform, or perspective property set and
+    /// it applies to this element.
+    fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool {
+        self.is_transformable(fragment_flags) &&
+            (!self.get_box().transform.0.is_empty() ||
+                self.get_box().scale != GenericScale::None ||
+                self.get_box().rotate != GenericRotate::None ||
+                self.get_box().translate != GenericTranslate::None ||
+                self.get_box().perspective != Perspective::None)
+    }
+
+    /// Whether the `z-index` property applies to this fragment.
+    fn z_index_applies(&self, fragment_flags: FragmentFlags) -> bool {
+        // As per CSS 2 § 9.9.1, `z-index` applies to positioned elements.
+        // <http://www.w3.org/TR/CSS2/visuren.html#z-index>
+        if self.get_box().position != ComputedPosition::Static {
+            return true;
+        }
+        // More modern specs also apply it to flex and grid items.
+        // - From <https://www.w3.org/TR/css-flexbox-1/#painting>:
+        //   > Flex items paint exactly the same as inline blocks [CSS2], except that order-modified
+        //   > document order is used in place of raw document order, and z-index values other than auto
+        //   > create a stacking context even if position is static (behaving exactly as if position
+        //   > were relative).
+        // - From <https://drafts.csswg.org/css-flexbox/#painting>:
+        //   > The painting order of grid items is exactly the same as inline blocks [CSS2], except that
+        //   > order-modified document order is used in place of raw document order, and z-index values
+        //   > other than auto create a stacking context even if position is static (behaving exactly
+        //   > as if position were relative).
+        fragment_flags.contains(FragmentFlags::IS_FLEX_OR_GRID_ITEM)
     }
 
     /// Get the effective z-index of this fragment. Z-indices only apply to positioned elements
     /// per CSS 2 9.9.1 (<http://www.w3.org/TR/CSS2/visuren.html#z-index>), so this value may differ
     /// from the value specified in the style.
     fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32 {
-        // From <https://drafts.csswg.org/css-flexbox/#painting>:
-        // > Flex items paint exactly the same as inline blocks [CSS2], except that order-modified
-        // > document order is used in place of raw document order, and z-index values other than auto
-        // > create a stacking context even if position is static (behaving exactly as if position
-        // > were relative).
-        match self.get_box().position {
-            ComputedPosition::Static if !fragment_flags.contains(FragmentFlags::IS_FLEX_ITEM) => 0,
-            _ => self.get_position().z_index.integer_or(0),
+        if self.z_index_applies(fragment_flags) {
+            self.get_position().z_index.integer_or(0)
+        } else {
+            0
         }
     }
 
     /// Get the effective overflow of this box. The property only applies to block containers,
     /// flex containers, and grid containers. And some box types only accept a few values.
     /// <https://www.w3.org/TR/css-overflow-3/#overflow-control>
-    fn effective_overflow(&self) -> PhysicalVec<Overflow> {
+    fn effective_overflow(&self, fragment_flags: FragmentFlags) -> AxesOverflow {
         let style_box = self.get_box();
-        let overflow_x = style_box.overflow_x;
-        let overflow_y = style_box.overflow_y;
+        let mut overflow_x = style_box.overflow_x;
+        let mut overflow_y = style_box.overflow_y;
+
+        // From <https://www.w3.org/TR/css-overflow-4/#overflow-control>:
+        // "On replaced elements, the used values of all computed values other than visible is clip."
+        if fragment_flags.contains(FragmentFlags::IS_REPLACED) {
+            if overflow_x != Overflow::Visible {
+                overflow_x = Overflow::Clip;
+            }
+            if overflow_y != Overflow::Visible {
+                overflow_y = Overflow::Clip;
+            }
+            return AxesOverflow {
+                x: overflow_x,
+                y: overflow_y,
+            };
+        }
+
         let ignores_overflow = match style_box.display.inside() {
             stylo::DisplayInside::Table => {
                 // According to <https://drafts.csswg.org/css-tables/#global-style-overrides>,
@@ -734,17 +612,24 @@ impl ComputedValuesExt for ComputedValues {
             },
             _ => false,
         };
+
         if ignores_overflow {
-            PhysicalVec::new(Overflow::Visible, Overflow::Visible)
+            AxesOverflow {
+                x: Overflow::Visible,
+                y: Overflow::Visible,
+            }
         } else {
-            PhysicalVec::new(overflow_x, overflow_y)
+            AxesOverflow {
+                x: overflow_x,
+                y: overflow_y,
+            }
         }
     }
 
     /// Return true if this style is a normal block and establishes
     /// a new block formatting context.
-    fn establishes_block_formatting_context(&self) -> bool {
-        if self.establishes_scroll_container() {
+    fn establishes_block_formatting_context(&self, fragment_flags: FragmentFlags) -> bool {
+        if self.establishes_scroll_container(fragment_flags) {
             return true;
         }
 
@@ -756,69 +641,120 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // Per <https://drafts.csswg.org/css-align/#distribution-block>:
+        // Block containers with an `align-content` value that is not `normal` should
+        // form an independent block formatting context. This should really only happen
+        // for block containers, but we do not support subgrid containers yet which is the
+        // only other case.
+        if self.get_position().align_content.0.primary() != AlignFlags::NORMAL {
+            return true;
+        }
+
         // TODO: We need to handle CSS Contain here.
         false
     }
 
     /// Whether or not the `overflow` value of this style establishes a scroll container.
-    fn establishes_scroll_container(&self) -> bool {
-        self.effective_overflow().x.is_scrollable()
+    fn establishes_scroll_container(&self, fragment_flags: FragmentFlags) -> bool {
+        // Checking one axis suffices, because the computed value ensures that
+        // either both axes are scrollable, or none is scrollable.
+        self.effective_overflow(fragment_flags).x.is_scrollable()
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool {
-        let effects = self.get_effects();
-        if effects.opacity != 1.0 {
+        // From <https://www.w3.org/TR/css-will-change/#valdef-will-change-custom-ident>:
+        // > If any non-initial value of a property would create a stacking context on the element,
+        // > specifying that property in will-change must create a stacking context on the element.
+        let will_change_bits = self.clone_will_change().bits;
+        if will_change_bits
+            .intersects(WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL | WillChangeBits::OPACITY)
+        {
             return true;
         }
 
-        if effects.mix_blend_mode != ComputedMixBlendMode::Normal {
-            return true;
-        }
-
-        if self.has_transform_or_perspective(fragment_flags) {
-            return true;
-        }
-
-        if !self.get_effects().filter.0.is_empty() {
-            return true;
-        }
-
-        if self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
-            self.overrides_transform_style()
+        // From <https://www.w3.org/TR/CSS2/visuren.html#z-index>, values different than `auto`
+        // make the box establish a stacking context.
+        if self.z_index_applies(fragment_flags) &&
+            (!self.get_position().z_index.is_auto() ||
+                will_change_bits.intersects(WillChangeBits::Z_INDEX))
         {
             return true;
         }
 
         // Fixed position and sticky position always create stacking contexts.
-        // TODO(mrobinson): We need to handle sticky positioning here when we support it.
-        if self.get_box().position == ComputedPosition::Fixed {
+        // Note `will-change: position` is handled above by `STACKING_CONTEXT_UNCONDITIONAL`.
+        if matches!(
+            self.get_box().position,
+            ComputedPosition::Fixed | ComputedPosition::Sticky
+        ) {
             return true;
         }
 
+        // From <https://www.w3.org/TR/css-transforms-1/#transform-rendering>
+        // > For elements whose layout is governed by the CSS box model, any value other than
+        // > `none` for the `transform` property results in the creation of a stacking context.
+        // From <https://www.w3.org/TR/css-transforms-2/#transform-style-property>
+        // > A computed value of `preserve-3d` for `transform-style` on a transformable element
+        // > establishes both a stacking context and a containing block for all descendants.
+        // From <https://www.w3.org/TR/css-transforms-2/#perspective-property>
+        // > any value other than none establishes a stacking context.
+        // TODO: handle individual transform properties (`translate`, `scale` and `rotate`).
+        // <https://www.w3.org/TR/css-transforms-2/#individual-transforms>
+        if self.is_transformable(fragment_flags) &&
+            (!self.get_box().transform.0.is_empty() ||
+                self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
+                self.get_box().perspective != Perspective::None ||
+                will_change_bits
+                    .intersects(WillChangeBits::TRANSFORM | WillChangeBits::PERSPECTIVE))
+        {
+            return true;
+        }
+
+        // From <https://www.w3.org/TR/css-color-3/#transparency>
+        // > implementations must create a new stacking context for any element with opacity less than 1.
+        // Note `will-change: opacity` is handled above by `WillChangeBits::OPACITY`.
+        let effects = self.get_effects();
+        if effects.opacity != 1.0 {
+            return true;
+        }
+
+        // From <https://www.w3.org/TR/filter-effects-1/#FilterProperty>
+        // > A computed value of other than `none` results in the creation of a stacking context
+        // Note `will-change: filter` is handled above by `STACKING_CONTEXT_UNCONDITIONAL`.
+        if !effects.filter.0.is_empty() {
+            return true;
+        }
+
+        // From <https://www.w3.org/TR/compositing-1/#mix-blend-mode>
+        // > Applying a blendmode other than `normal` to the element must establish a new stacking context
+        // Note `will-change: mix-blend-mode` is handled above by `STACKING_CONTEXT_UNCONDITIONAL`.
+        if effects.mix_blend_mode != ComputedMixBlendMode::Normal {
+            return true;
+        }
+
+        // From <https://www.w3.org/TR/css-masking-1/#the-clip-path>
+        // > A computed value of other than `none` results in the creation of a stacking context.
+        // Note `will-change: clip-path` is handled above by `STACKING_CONTEXT_UNCONDITIONAL`.
         if self.get_svg().clip_path != ClipPath::None {
             return true;
         }
 
-        // Statically positioned fragments don't establish stacking contexts if the previous
-        // conditions are not fulfilled. Furthermore, z-index doesn't apply to statically
-        // positioned fragments (except for flex items, see below).
-        //
-        // From <https://drafts.csswg.org/css-flexbox/#painting>:
-        // > Flex items paint exactly the same as inline blocks [CSS2], except that order-modified
-        // > document order is used in place of raw document order, and z-index values other than auto
-        // > create a stacking context even if position is static (behaving exactly as if position
-        // > were relative).
-        if self.get_box().position == ComputedPosition::Static &&
-            !fragment_flags.contains(FragmentFlags::IS_FLEX_ITEM)
-        {
-            return false;
+        // From <https://www.w3.org/TR/compositing-1/#isolation>
+        // > For CSS, setting `isolation` to `isolate` will turn the element into a stacking context.
+        // Note `will-change: isolation` is handled above by `STACKING_CONTEXT_UNCONDITIONAL`.
+        if self.get_box().isolation == ComputedIsolation::Isolate {
+            return true;
         }
 
-        // For absolutely and relatively positioned fragments we only establish a stacking
-        // context if there is a z-index set.
-        // See https://www.w3.org/TR/CSS2/visuren.html#z-index
-        !self.get_position().z_index.is_auto()
+        // From https://www.w3.org/TR/CSS22/visuren.html#z-index:
+        // > The root element forms the root stacking context.
+        if fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT) {
+            return true;
+        }
+
+        // TODO: We need to handle CSS Contain here.
+        false
     }
 
     /// Returns true if this style establishes a containing block for absolute
@@ -832,6 +768,18 @@ impl ComputedValuesExt for ComputedValues {
         fragment_flags: FragmentFlags,
     ) -> bool {
         if self.establishes_containing_block_for_all_descendants(fragment_flags) {
+            return true;
+        }
+
+        // From <https://www.w3.org/TR/css-will-change/#valdef-will-change-custom-ident>:
+        // > If any non-initial value of a property would cause the element to
+        // > generate a containing block for absolutely positioned elements, specifying that property in
+        // > will-change must cause the element to generate a containing block for absolutely positioned elements.
+        if self
+            .clone_will_change()
+            .bits
+            .intersects(WillChangeBits::POSITION)
+        {
             return true;
         }
 
@@ -851,6 +799,25 @@ impl ComputedValuesExt for ComputedValues {
         }
 
         if !self.get_effects().filter.0.is_empty() {
+            return true;
+        }
+
+        // See <https://drafts.csswg.org/css-transforms-2/#transform-style-property>.
+        if self.is_transformable(fragment_flags) &&
+            self.get_box().transform_style == ComputedTransformStyle::Preserve3d
+        {
+            return true;
+        }
+        // From <https://www.w3.org/TR/css-will-change/#valdef-will-change-custom-ident>:
+        // > If any non-initial value of a property would cause the element to generate a
+        // > containing block for fixed positioned elements, specifying that property in will-change
+        // > must cause the element to generate a containing block for fixed positioned elements.
+        let will_change_bits = self.clone_will_change().bits;
+        if will_change_bits.intersects(WillChangeBits::FIXPOS_CB_NON_SVG) ||
+            (will_change_bits
+                .intersects(WillChangeBits::TRANSFORM | WillChangeBits::PERSPECTIVE) &&
+                self.is_transformable(fragment_flags))
+        {
             return true;
         }
 
@@ -920,7 +887,7 @@ impl ComputedValuesExt for ComputedValues {
     /// Whether or not this style specifies a non-transparent background.
     fn background_is_transparent(&self) -> bool {
         let background = self.get_background();
-        let color = self.resolve_color(background.background_color.clone());
+        let color = self.resolve_color(&background.background_color);
         color.alpha == 0.0 &&
             background
                 .background_image
@@ -968,7 +935,7 @@ impl ComputedValuesExt for ComputedValues {
         resolved_auto_value: AlignItems,
         resolved_normal_value: AlignItems,
     ) -> AlignItems {
-        match self.clone_align_self().0 .0 {
+        match self.clone_align_self().0.0 {
             AlignFlags::AUTO => resolved_auto_value,
             AlignFlags::NORMAL => resolved_normal_value,
             value => AlignItems(value),
@@ -992,6 +959,175 @@ impl ComputedValuesExt for ComputedValues {
                 .is_some_and(LengthPercentage::has_percentage)
         };
         has_percentage(box_offsets.block_start) || has_percentage(box_offsets.block_end)
+    }
+}
+
+pub(crate) enum LayoutStyle<'a> {
+    Default(&'a ComputedValues),
+    Table(TableLayoutStyle<'a>),
+}
+
+impl LayoutStyle<'_> {
+    #[inline]
+    pub(crate) fn style(&self) -> &ComputedValues {
+        match self {
+            Self::Default(style) => style,
+            Self::Table(table) => table.style(),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn is_table(&self) -> bool {
+        matches!(self, Self::Table(_))
+    }
+
+    pub(crate) fn content_box_sizes_and_padding_border_margin(
+        &self,
+        containing_block: &IndefiniteContainingBlock,
+    ) -> ContentBoxSizesAndPBM {
+        // <https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution>
+        // If max size properties or preferred size properties are set to a value containing
+        // indefinite percentages, we treat the entire value as the initial value of the property.
+        // However, for min size properties, as well as for margins and paddings,
+        // we instead resolve indefinite percentages against zero.
+        let containing_block_size_or_zero =
+            containing_block.size.map(|value| value.unwrap_or_default());
+        let writing_mode = containing_block.writing_mode;
+        let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+            writing_mode,
+            containing_block_size_or_zero.inline,
+        );
+        let style = self.style();
+        let box_size = style.box_size(writing_mode);
+        let min_size = style.min_box_size(writing_mode);
+        let max_size = style.max_box_size(writing_mode);
+        let preferred_size_computes_to_auto = box_size.map(|size| size.is_initial());
+
+        let depends_on_block_constraints = |size: &Size<LengthPercentage>| {
+            match size {
+                // fit-content is like clamp(min-content, stretch, max-content), but currently
+                // min-content and max-content have the same behavior in the block axis,
+                // so there is no dependency on block constraints.
+                // TODO: for flex and grid layout, min-content and max-content should be different.
+                // TODO: We are assuming that Size::Initial doesn't stretch. However, it may actually
+                // stretch flex and grid items depending on the CSS Align properties, in that case
+                // the caller needs to take care of it.
+                Size::Stretch => true,
+                Size::Numeric(length_percentage) => length_percentage.has_percentage(),
+                _ => false,
+            }
+        };
+        let depends_on_block_constraints = depends_on_block_constraints(&box_size.block) ||
+            depends_on_block_constraints(&min_size.block) ||
+            depends_on_block_constraints(&max_size.block) ||
+            style.depends_on_block_constraints_due_to_relative_positioning(writing_mode);
+
+        let box_size = box_size.map_with(&containing_block.size, |size, basis| {
+            size.resolve_percentages_for_preferred(*basis)
+        });
+        let content_box_size = style.content_box_size_for_box_size(box_size, &pbm);
+        let min_size = min_size.percentages_relative_to_basis(&containing_block_size_or_zero);
+        let content_min_box_size = style.content_min_box_size_for_min_size(min_size, &pbm);
+        let max_size = max_size.map_with(&containing_block.size, |size, basis| {
+            size.resolve_percentages_for_max(*basis)
+        });
+        let content_max_box_size = style.content_max_box_size_for_max_size(max_size, &pbm);
+        ContentBoxSizesAndPBM {
+            content_box_sizes: LogicalVec2 {
+                block: Sizes::new(
+                    content_box_size.block,
+                    content_min_box_size.block,
+                    content_max_box_size.block,
+                ),
+                inline: Sizes::new(
+                    content_box_size.inline,
+                    content_min_box_size.inline,
+                    content_max_box_size.inline,
+                ),
+            },
+            pbm,
+            depends_on_block_constraints,
+            preferred_size_computes_to_auto,
+        }
+    }
+
+    pub(crate) fn padding_border_margin(
+        &self,
+        containing_block: &ContainingBlock,
+    ) -> PaddingBorderMargin {
+        self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+            containing_block.style.writing_mode,
+            containing_block.size.inline,
+        )
+    }
+
+    pub(crate) fn padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+        &self,
+        writing_mode: WritingMode,
+        containing_block_inline_size: Au,
+    ) -> PaddingBorderMargin {
+        let padding = self
+            .padding(writing_mode)
+            .percentages_relative_to(containing_block_inline_size);
+        let style = self.style();
+        let border = self.border_width(writing_mode);
+        let margin = style
+            .margin(writing_mode)
+            .percentages_relative_to(containing_block_inline_size);
+        PaddingBorderMargin {
+            padding_border_sums: LogicalVec2 {
+                inline: padding.inline_sum() + border.inline_sum(),
+                block: padding.block_sum() + border.block_sum(),
+            },
+            padding,
+            border,
+            margin,
+        }
+    }
+
+    pub(crate) fn padding(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> LogicalSides<LengthPercentage> {
+        if matches!(self, Self::Table(table) if table.collapses_borders()) {
+            // https://drafts.csswg.org/css-tables/#collapsed-style-overrides
+            // > The padding of the table-root is ignored (as if it was set to 0px).
+            return LogicalSides::zero();
+        }
+        let padding = self.style().get_padding().clone();
+        LogicalSides::from_physical(
+            &PhysicalSides::new(
+                padding.padding_top.0,
+                padding.padding_right.0,
+                padding.padding_bottom.0,
+                padding.padding_left.0,
+            ),
+            containing_block_writing_mode,
+        )
+    }
+
+    pub(crate) fn border_width(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> LogicalSides<Au> {
+        let border_width = match self {
+            // For tables in collapsed-borders mode we halve the border widths, because
+            // > in this model, the width of the table includes half the table border.
+            // https://www.w3.org/TR/CSS22/tables.html#collapsing-borders
+            Self::Table(table) if table.collapses_borders() => table
+                .halved_collapsed_border_widths()
+                .to_physical(self.style().writing_mode),
+            _ => {
+                let border = self.style().get_border();
+                PhysicalSides::new(
+                    border.border_top_width,
+                    border.border_right_width,
+                    border.border_bottom_width,
+                    border.border_left_width,
+                )
+            },
+        };
+        LogicalSides::from_physical(&border_width, containing_block_writing_mode)
     }
 }
 
@@ -1030,7 +1166,7 @@ impl From<stylo::Display> for Display {
             // This should not be a value of DisplayInside, but oh well
             // special-case display: contents because we still want it to work despite the early return
             stylo::DisplayOutside::None if inside == stylo::DisplayInside::Contents => {
-                return Display::Contents
+                return Display::Contents;
             },
             stylo::DisplayOutside::None => return Display::None,
         };
@@ -1077,5 +1213,18 @@ impl Clamp for Au {
 
     fn clamp_between_extremums(self, min: Self, max: Option<Self>) -> Self {
         self.clamp_below_max(max).max(min)
+    }
+}
+
+pub(crate) trait TransformExt {
+    fn change_basis(&self, x: f32, y: f32, z: f32) -> Self;
+}
+
+impl TransformExt for LayoutTransform {
+    /// <https://drafts.csswg.org/css-transforms/#transformation-matrix-computation>
+    fn change_basis(&self, x: f32, y: f32, z: f32) -> Self {
+        let pre_translation = Self::translation(x, y, z);
+        let post_translation = Self::translation(-x, -y, -z);
+        post_translation.then(self).then(&pre_translation)
     }
 }

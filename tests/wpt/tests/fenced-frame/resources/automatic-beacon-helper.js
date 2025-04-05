@@ -60,8 +60,7 @@ async function setupAutomaticBeacon(
               window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
             });
             // Add a cross-origin iframe that will perform the top-level
-            // navigation. Do not set the 'Allow-Fenced-Frame-Automatic-Beacons'
-            // header to true.
+            // navigation.
             const iframe = await attachIFrameContext({
               origin: get_host_info().HTTPS_REMOTE_ORIGIN,
               headers: [[

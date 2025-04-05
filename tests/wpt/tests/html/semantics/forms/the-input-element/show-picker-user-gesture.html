@@ -5,39 +5,39 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<body></body>
+
+<body>
 <script type=module>
 import inputTypes from "./input-types.js";
 
-for (const inputType of inputTypes) {
-  test(() => {
-    const input = document.createElement("input");
-    input.setAttribute("type", inputType);
+// File pickers can't be closed.
+const types = inputTypes.filter((t) => t != 'file');
 
+function createElement(t,type) {
+  const input = document.createElement("input");
+  input.setAttribute("type", type);
+  document.body.appendChild(input);
+  t.add_cleanup(() => input.remove());
+  return input;
+}
+for (const inputType of types) {
+  promise_test(async (t) => {
+    const input = createElement(t,inputType);
     assert_throws_dom('NotAllowedError', () => { input.showPicker(); });
   }, `input[type=${inputType}] showPicker() requires a user gesture`);
-}
 
-for (const inputType of inputTypes) {
-  promise_test(async t => {
-    const input = document.createElement("input");
-    input.setAttribute("type", inputType);
-
+  promise_test(async (t) => {
+    const input = createElement(t,inputType);
     await test_driver.bless('show picker');
     input.showPicker();
     input.blur();
   }, `input[type=${inputType}] showPicker() does not throw when user activation is active`);
-}
 
-for (const inputType of inputTypes) {
-  promise_test(async () => {
-    const input = document.createElement('input');
-    input.setAttribute('type', inputType);
-
+  promise_test(async (t) => {
+    const input = createElement(t,inputType);
     await test_driver.bless('show picker');
     input.showPicker();
     input.blur();
-
     assert_false(navigator.userActivation.isActive);
   }, `input[type=${inputType}] showPicker() consumes user activation`);
 }

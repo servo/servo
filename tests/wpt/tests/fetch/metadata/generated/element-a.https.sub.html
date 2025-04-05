@@ -477,6 +477,46 @@ Sources:
           assert_array_equals(headers['sec-fetch-user'], ['?1']);
         });
   }, 'sec-fetch-user - no attributes with user activation');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      makeRequestURL(key, ['httpsCrossSite'], {mime: 'text/html'}),
+      {
+        test: t,
+        userActivated: false,
+        attributes: {}
+      }
+    );
+
+    // `induceRequest` does not necessarily trigger a navigation, so the Python
+    // handler must be polled until it has received the initial request.
+    return retrieve(key, {poll: true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Cross-site - no attributes');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+
+    induceRequest(
+      makeRequestURL(key, ['httpsSameSite'], {mime: 'text/html'}),
+      {
+        test: t,
+        userActivated: false,
+        attributes: {}
+      }
+    );
+
+    // `induceRequest` does not necessarily trigger a navigation, so the Python
+    // handler must be polled until it has received the initial request.
+    return retrieve(key, {poll: true})
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Same site - no attributes');
   </script>
   </body>
 </html>

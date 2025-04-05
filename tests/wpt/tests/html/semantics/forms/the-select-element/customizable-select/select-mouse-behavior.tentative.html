@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name=timeout content=long>
 <link rel=author href="mailto:jarhar@chromium.org">
 <link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1422275">
 <link rel=help href="https://github.com/openui/open-ui/issues/433#issuecomment-1452461404">
@@ -15,6 +16,8 @@ select, select::picker(select) {
 }
 </style>
 
+<div id=lightdismiss>light dismiss</div>
+
 <label for=custombutton>custom button</label>
 <select id=custombutton>
   <button>button</button>
@@ -29,6 +32,15 @@ select, select::picker(select) {
 </select>
 
 <script>
+function touch(element) {
+  return (new test_driver.Actions()
+    .addPointer('finger', 'touch')
+    .pointerMove(1, 1, {origin: element})
+    .pointerDown()
+    .pointerUp())
+    .send();
+}
+
 for (const id of ['fallbackbutton', 'custombutton']) {
   const select = document.getElementById(id);
   const optionOne = select.querySelector('option.one');
@@ -63,7 +75,11 @@ for (const id of ['fallbackbutton', 'custombutton']) {
     let firedChange = false;
     select.addEventListener('input', () => firedInput = true);
     select.addEventListener('change', () => firedChange = true);
-    await test_driver.click(optionTwo);
+    await (new test_driver.Actions()
+      .pointerMove(1, 1, {origin: optionTwo})
+      .pointerDown()
+      .pointerUp())
+      .send();
     assert_false(select.matches(':open'),
       'Select should be closed after clicking an option.');
     assert_equals(select.value, 'two',
@@ -79,5 +95,26 @@ for (const id of ['fallbackbutton', 'custombutton']) {
     assert_false(select.matches(':open'),
       'select picker should be closed after clicking the label.');
   }, `${id}: Clicking the label should focus the select button without opening the picker.`);
+
+  promise_test(async () => {
+    select.value = 'one';
+    await touch(select);
+    assert_true(select.matches(':open'),
+      'Select should open after touching button.');
+
+    await touch(optionTwo);
+    assert_equals(select.value, 'two',
+      'select.value should be updated after touching another option.');
+    assert_false(select.matches(':open'),
+      'Picker should close after touching an option.');
+
+    await touch(select);
+    assert_true(select.matches(':open'),
+      'Select should re-open after touching button.');
+
+    await touch(document.getElementById('lightdismiss'));
+    assert_false(select.matches(':open'),
+      'Select should close via light dismiss when touching outside the picker.');
+  }, `${id}: Touch input should work the same as mouse input.`);
 }
 </script>

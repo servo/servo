@@ -6,7 +6,6 @@ import shutil
 import site
 import sys
 import sysconfig
-from pathlib import Path
 from shutil import which
 
 # The `pkg_resources` module is provided by `setuptools`, which is itself a
@@ -50,11 +49,40 @@ class Virtualenv:
             self._working_set = None
         call(*self.virtualenv, self.path)
 
+    def get_paths(self):
+        """Wrapper around sysconfig.get_paths(), returning the appropriate paths for the env."""
+        if "venv" in sysconfig.get_scheme_names():
+            # This should always be used on Python 3.11 and above.
+            scheme = "venv"
+        elif os.name == "nt":
+            # This matches nt_venv, unless sysconfig has been modified.
+            scheme = "nt"
+        elif os.name == "posix":
+            # This matches posix_venv, unless sysconfig has been modified.
+            scheme = "posix_prefix"
+        elif sys.version_info >= (3, 10):
+            # Using the default scheme is somewhat fragile, as various Python
+            # distributors (e.g., what Debian and Fedora package, and what Xcode
+            # includes) change the default scheme away from the upstream
+            # defaults, but it's about as good as we can do.
+            scheme = sysconfig.get_default_scheme()
+        else:
+            # This is explicitly documented as having previously existed in the 3.10
+            # docs, and has existed since CPython 2.7 and 3.1 (but not 3.0).
+            scheme = sysconfig._get_default_scheme()
+
+        vars = {
+            "base": self.path,
+            "platbase": self.path,
+            "installed_base": self.path,
+            "installed_platbase": self.path,
+        }
+
+        return sysconfig.get_paths(scheme, vars)
+
     @property
     def bin_path(self):
-        if sys.platform in ("win32", "cygwin"):
-            return os.path.join(self.path, "Scripts")
-        return os.path.join(self.path, "bin")
+        return self.get_paths()["scripts"]
 
     @property
     def pip_path(self):
@@ -67,24 +95,10 @@ class Virtualenv:
 
     @property
     def lib_path(self):
-        base = self.path
-
-        # this block is literally taken from virtualenv 16.4.3
-        IS_PYPY = hasattr(sys, "pypy_version_info")
-        IS_JYTHON = sys.platform.startswith("java")
-        if IS_JYTHON:
-            site_packages = os.path.join(base, "Lib", "site-packages")
-        elif IS_PYPY:
-            site_packages = os.path.join(base, "site-packages")
-        else:
-            IS_WIN = sys.platform == "win32"
-            if IS_WIN:
-                site_packages = os.path.join(base, "Lib", "site-packages")
-            else:
-                version = f"{sys.version_info.major}.{sys.version_info.minor}"
-                site_packages = os.path.join(base, "lib", f"python{version}", "site-packages")
-
-        return site_packages
+        # We always return platlib here, even if it differs to purelib, because we can
+        # always install pure-Python code into the platlib safely too. It's also very
+        # unlikely to differ for a venv.
+        return self.get_paths()["platlib"]
 
     @property
     def working_set(self):
@@ -97,43 +111,35 @@ class Virtualenv:
         return self._working_set
 
     def activate(self):
-        if sys.platform == 'darwin':
+        if sys.platform == "darwin":
             # The default Python on macOS sets a __PYVENV_LAUNCHER__ environment
             # variable which affects invocation of python (e.g. via pip) in a
             # virtualenv. Unset it if present to avoid this. More background:
             # https://github.com/web-platform-tests/wpt/issues/27377
             # https://github.com/python/cpython/pull/9516
-            os.environ.pop('__PYVENV_LAUNCHER__', None)
+            os.environ.pop("__PYVENV_LAUNCHER__", None)
+
+        paths = self.get_paths()
 
         # Setup the path and site packages as if we'd launched with the virtualenv active
-        bin_dir = os.path.join(self.path, "bin")
+        bin_dir = paths["scripts"]
         os.environ["PATH"] = os.pathsep.join([bin_dir] + os.environ.get("PATH", "").split(os.pathsep))
+
+        # While not required (`./venv/bin/python3` won't set it, but
+        # `source ./venv/bin/activate && python3` will), we have historically set this.
         os.environ["VIRTUAL_ENV"] = self.path
 
         prev_length = len(sys.path)
 
-        schemes = sysconfig.get_scheme_names()
-        if "venv" in schemes:
-            scheme = "venv"
-        else:
-            scheme = "nt" if os.name == "nt" else "posix_user"
-        sys_paths = sysconfig.get_paths(scheme)
-        data_path = sys_paths["data"]
-        added = set()
         # Add the venv library paths as sitedirs.
-        # This converts system paths like /usr/local/lib/python3.10/site-packages
-        # to venv-relative paths like {self.path}/lib/python3.10/site-packages and adds
-        # those paths as site dirs to be used for module import.
         for key in ["purelib", "platlib"]:
-            host_path = Path(sys_paths[key])
-            relative_path = host_path.relative_to(data_path)
-            site_dir = os.path.normpath(os.path.normcase(Path(self.path) / relative_path))
-            if site_dir not in added:
-                site.addsitedir(site_dir)
-                added.add(site_dir)
+            site.addsitedir(paths[key])
+
+        # Rearrange the path
         sys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]
 
-        sys.real_prefix = sys.prefix
+        # Change prefixes, similar to what initconfig/site does for venvs.
+        sys.exec_prefix = self.path
         sys.prefix = self.path
 
     def start(self):

@@ -2,18 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use GPUSupportedLimits_Binding::GPUSupportedLimitsMethods;
 use dom_struct::dom_struct;
 use num_traits::bounds::UpperBounded;
-use webgpu::wgt::Limits;
-use GPUSupportedLimits_Binding::GPUSupportedLimitsMethods;
+use wgpu_types::Limits;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUSupportedLimits_Binding;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUSupportedLimits {
+pub(crate) struct GPUSupportedLimits {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in wgpu-types"]
     #[no_trace]
@@ -28,8 +29,8 @@ impl GPUSupportedLimits {
         }
     }
 
-    pub fn new(global: &GlobalScope, limits: Limits) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(limits)), global)
+    pub(crate) fn new(global: &GlobalScope, limits: Limits, can_gc: CanGc) -> DomRoot<Self> {
+        reflect_dom_object(Box::new(Self::new_inherited(limits)), global, can_gc)
     }
 }
 
@@ -198,7 +199,7 @@ impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
 }
 
 /// Returns false if unknown limit or other value error
-pub fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
+pub(crate) fn set_limit(limits: &mut Limits, limit: &str, value: u64) -> bool {
     /// per spec defaults are lower bounds for values
     ///
     /// <https://www.w3.org/TR/webgpu/#limit-class-maximum>

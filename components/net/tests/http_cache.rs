@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::TEST_PIPELINE_ID;
-use http::header::{HeaderValue, EXPIRES};
 use http::StatusCode;
+use http::header::{EXPIRES, HeaderValue};
 use net::http_cache::HttpCache;
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::{Response, ResponseBody};
@@ -20,7 +20,7 @@ fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
         ResponseBody::Done(vec![]),
     ];
     let url = ServoUrl::parse("https://servo.org").unwrap();
-    let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+    let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .origin(url.origin())
         .build();

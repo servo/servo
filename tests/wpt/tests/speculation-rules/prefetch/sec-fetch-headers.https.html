@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>Prefetch request's Sec-Fetch-* request headers</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<script>
+"use strict";
+
+setup(() => assertSpeculationRulesIsSupported());
+
+// https://wicg.github.io/nav-speculation/prefetch.html#create-a-navigation-request
+
+promise_test(async t => {
+  const agent = await spawnWindow(t);
+  const nextUrl = agent.getExecutorURL({ page: 2 });
+  await agent.forceSinglePrefetch(nextUrl);
+  await agent.navigate(nextUrl);
+
+  const headers = await agent.getRequestHeaders();
+  assert_prefetched(headers, "must be prefetched");
+  assert_equals(headers.sec_fetch_dest, "document", "Sec-Fetch-Dest");
+}, 'Sec-Fetch-Dest');
+
+promise_test(async t => {
+  const agent = await spawnWindow(t);
+  const nextUrl = agent.getExecutorURL({ page: 2 });
+  await agent.forceSinglePrefetch(nextUrl);
+  await agent.navigate(nextUrl);
+
+  const headers = await agent.getRequestHeaders();
+  assert_prefetched(headers, "must be prefetched");
+  assert_equals(headers.sec_fetch_mode, "navigate", "Sec-Fetch-Mode");
+}, 'Sec-Fetch-Mode');
+
+promise_test(async t => {
+  const agent = await spawnWindow(t);
+  const nextUrl = new URL('/common/redirect.py', location.href);
+  const finalUrl = agent.getExecutorURL({ page: 2 });
+  nextUrl.searchParams.set('location', finalUrl);
+  await agent.forceSinglePrefetch(nextUrl);
+  await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
+
+  const headers = await agent.getRequestHeaders();
+  assert_prefetched(headers, "must be prefetched");
+  assert_equals(headers.sec_fetch_dest, "document", "Sec-Fetch-Dest");
+}, 'Sec-Fetch-Dest with redirects');
+
+promise_test(async t => {
+  const agent = await spawnWindow(t);
+  const nextUrl = new URL('/common/redirect.py', location.href);
+  const finalUrl = agent.getExecutorURL({ page: 2 });
+  nextUrl.searchParams.set('location', finalUrl);
+  await agent.forceSinglePrefetch(nextUrl);
+  await agent.navigate(nextUrl, {expectedDestinationUrl: finalUrl});
+
+  const headers = await agent.getRequestHeaders();
+  assert_prefetched(headers, "must be prefetched");
+  assert_equals(headers.sec_fetch_mode, "navigate", "Sec-Fetch-Mode");
+}, 'Sec-Fetch-Mode with redirects');
+</script>

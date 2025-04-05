@@ -8,12 +8,11 @@ use std::ops::Range;
 use app_units::Au;
 use base::text::is_bidi_control;
 use fonts::{
-    FontContext, FontRef, GlyphRun, ShapingFlags, ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
+    FontContext, FontRef, GlyphRun, LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
 use fonts_traits::ByteIndex;
 use log::warn;
 use range::Range as ServoRange;
-use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -38,10 +37,9 @@ pub(crate) const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
 pub(crate) const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 42;
 
 /// <https://www.w3.org/TR/css-display-3/#css-text-run>
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct TextRun {
     pub base_fragment_info: BaseFragmentInfo,
-    #[serde(skip_serializing)]
     pub parent_style: Arc<ComputedValues>,
     pub text_range: Range<usize>,
 
@@ -64,14 +62,13 @@ enum SegmentStartSoftWrapPolicy {
     FollowLinebreaker,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct TextRunSegment {
     /// The index of this font in the parent [`super::InlineFormattingContext`]'s collection of font
     /// information.
     pub font_index: usize,
 
     /// The [`Script`] of this segment.
-    #[serde(skip_serializing)]
     pub script: Script,
 
     /// The bidi Level of this segment.
@@ -433,17 +430,29 @@ impl TextRun {
                 continue;
             }
 
-            let Some(font) =
-                font_group
-                    .write()
-                    .find_by_codepoint(font_context, character, next_character)
-            else {
+            // If the script and BiDi level do not change, use the current font as the first fallback. This
+            // can potentially speed up fallback on long font lists or with uncommon scripts which might be
+            // at the bottom of the list.
+            let script = Script::from(character);
+            let bidi_level = bidi_info.levels[current_byte_index];
+            let current_font = current.as_ref().and_then(|(text_run_segment, font)| {
+                if text_run_segment.bidi_level == bidi_level && text_run_segment.script == script {
+                    Some(font.clone())
+                } else {
+                    None
+                }
+            });
+
+            let Some(font) = font_group.write().find_by_codepoint(
+                font_context,
+                character,
+                next_character,
+                current_font,
+            ) else {
                 continue;
             };
 
             // If the existing segment is compatible with the character, keep going.
-            let script = Script::from(character);
-            let bidi_level = bidi_info.levels[current_byte_index];
             if let Some(current) = current.as_mut() {
                 if current.0.update_if_compatible(
                     &font,

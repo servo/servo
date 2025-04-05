@@ -20,17 +20,17 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::framerate::FramerateActor;
 use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
 
 pub struct TimelineActor {
     name: String,
     script_sender: IpcSender<DevtoolScriptControlMsg>,
     marker_types: Vec<TimelineMarkerType>,
-    pipeline: PipelineId,
+    pipeline_id: PipelineId,
     is_recording: Arc<Mutex<bool>>,
     stream: RefCell<Option<TcpStream>>,
 
@@ -132,14 +132,14 @@ static DEFAULT_TIMELINE_DATA_PULL_TIMEOUT: u64 = 200; //ms
 impl TimelineActor {
     pub fn new(
         name: String,
-        pipeline: PipelineId,
+        pipeline_id: PipelineId,
         script_sender: IpcSender<DevtoolScriptControlMsg>,
     ) -> TimelineActor {
         let marker_types = vec![TimelineMarkerType::Reflow, TimelineMarkerType::DOMEvent];
 
         TimelineActor {
             name,
-            pipeline,
+            pipeline_id,
             marker_types,
             script_sender,
             is_recording: Arc::new(Mutex::new(false)),
@@ -163,20 +163,22 @@ impl TimelineActor {
 
         thread::Builder::new()
             .name("PullTimelineData".to_owned())
-            .spawn(move || loop {
-                if !*is_recording.lock().unwrap() {
-                    break;
-                }
+            .spawn(move || {
+                loop {
+                    if !*is_recording.lock().unwrap() {
+                        break;
+                    }
 
-                let mut markers = vec![];
-                while let Ok(Some(marker)) = receiver.try_recv() {
-                    markers.push(emitter.marker(marker));
-                }
-                if emitter.send(markers).is_err() {
-                    break;
-                }
+                    let mut markers = vec![];
+                    while let Ok(Some(marker)) = receiver.try_recv() {
+                        markers.push(emitter.marker(marker));
+                    }
+                    if emitter.send(markers).is_err() {
+                        break;
+                    }
 
-                thread::sleep(Duration::from_millis(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT));
+                    thread::sleep(Duration::from_millis(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT));
+                }
             })
             .expect("Thread spawning failed");
     }
@@ -202,7 +204,7 @@ impl Actor for TimelineActor {
                 let (tx, rx) = ipc::channel::<Option<TimelineMarker>>().unwrap();
                 self.script_sender
                     .send(SetTimelineMarkers(
-                        self.pipeline,
+                        self.pipeline_id,
                         self.marker_types.clone(),
                         tx,
                     ))
@@ -223,7 +225,7 @@ impl Actor for TimelineActor {
                     if let Some(true) = with_ticks.as_bool() {
                         let framerate_actor = Some(FramerateActor::create(
                             registry,
-                            self.pipeline,
+                            self.pipeline_id,
                             self.script_sender.clone(),
                         ));
                         *self.framerate_actor.borrow_mut() = framerate_actor;
@@ -264,7 +266,7 @@ impl Actor for TimelineActor {
                 let _ = stream.write_json_packet(&msg);
                 self.script_sender
                     .send(DropTimelineMarkers(
-                        self.pipeline,
+                        self.pipeline_id,
                         self.marker_types.clone(),
                     ))
                     .unwrap();

@@ -17,7 +17,7 @@ import os
 import re
 import subprocess
 import sys
-from typing import List
+from typing import Any, Dict, List
 
 import colorama
 import toml
@@ -34,6 +34,7 @@ WPT_CONFIG_INI_PATH = os.path.join(WPT_PATH, "config.ini")
 URL_REGEX = re.compile(br'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 UTF8_URL_REGEX = re.compile(r'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 CARGO_LOCK_FILE = os.path.join(TOPDIR, "Cargo.lock")
+CARGO_DENY_CONFIG_FILE = os.path.join(TOPDIR, "deny.toml")
 
 ERROR_RAW_URL_IN_RUSTDOC = "Found raw link in rustdoc. Please escape it with angle brackets or use a markdown link."
 
@@ -45,7 +46,6 @@ config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
     "check-alphabetical-order": True,
-    "check-ordered-json-keys": [],
     "lint-scripts": [],
     "blocked-packages": {},
     "ignore": {
@@ -88,7 +88,9 @@ WEBIDL_STANDARDS = [
     b"//encoding.spec.whatwg.org",
     b"//fetch.spec.whatwg.org",
     b"//html.spec.whatwg.org",
+    b"//streams.spec.whatwg.org",
     b"//url.spec.whatwg.org",
+    b"//urlpattern.spec.whatwg.org",
     b"//xhr.spec.whatwg.org",
     b"//w3c.github.io",
     b"//heycam.github.io/webidl",
@@ -100,6 +102,8 @@ WEBIDL_STANDARDS = [
     b"//github.com/immersive-web/webxr-test-api/",
     b"//github.com/immersive-web/webxr-hands-input/",
     b"//gpuweb.github.io",
+    b"//notifications.spec.whatwg.org",
+    b"//testutils.spec.whatwg.org/",
     # Not a URL
     b"// This interface is entirely internal to Servo, and should not be"
     + b" accessible to\n// web pages."
@@ -213,6 +217,9 @@ def uncomment(line):
 
 
 def is_apache_licensed(header):
+    if "SPDX-License-Identifier: Apache-2.0 OR MIT" in header:
+        return True
+
     if APACHE in header:
         return any(c in header for c in COPYRIGHT)
 
@@ -363,125 +370,54 @@ def check_flake8(file_name, contents):
         yield line_num, message.strip()
 
 
-def check_cargo_lock_file(only_changed_files: bool):
-    if only_changed_files and not list(git_changes_since_last_merge("./Cargo.lock")):
-        print("\r ➤  Skipping `Cargo.lock` lint checks, because it is unchanged.")
-        return
-
-    yield from run_custom_cargo_lock_lints(CARGO_LOCK_FILE)
-    yield from validate_dependency_licenses()
-
-
-def run_custom_cargo_lock_lints(cargo_lock_filename: str, print_text: bool = True):
-    if print_text:
-        print(f"\r ➤  Linting cargo lock ({cargo_lock_filename})...")
-    with open(cargo_lock_filename) as cargo_lock_file:
-        content = toml.load(cargo_lock_file)
-
-    def find_reverse_dependencies(name, content):
-        for package in itertools.chain([content.get("root", {})], content["package"]):
-            for dependency in package.get("dependencies", []):
-                parts = dependency.split()
-                dependency = (parts[0], parts[1] if len(parts) > 1 else None, parts[2] if len(parts) > 2 else None)
-                if dependency[0] == name:
-                    yield package["name"], package["version"], dependency
-
-    # Package names to be neglected (as named by cargo)
-    exceptions = config["ignore"]["packages"]
-
-    packages_by_name = {}
-    for package in content.get("package", []):
-        if "replace" in package:
-            continue
-        source = package.get("source", "")
-        if source == r"registry+https://github.com/rust-lang/crates.io-index":
-            source = "crates.io"
-        packages_by_name.setdefault(package["name"], []).append((package["version"], source))
-
-    for name in exceptions:
-        if name not in packages_by_name:
-            yield (cargo_lock_filename, 1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
-
-    for (name, packages) in packages_by_name.items():
-        has_duplicates = len(packages) > 1
-        duplicates_allowed = name in exceptions
-
-        if has_duplicates == duplicates_allowed:
-            continue
-
-        if duplicates_allowed:
-            message = 'duplicates for `{}` are allowed, but only single version found'.format(name)
-        else:
-            message = "duplicate versions for package `{}`".format(name)
-
-        packages.sort()
-        packages_dependencies = list(find_reverse_dependencies(name, content))
-        for version, source in packages:
-            short_source = source.split("#")[0].replace("git+", "")
-            message += "\n\t\033[93mThe following packages depend on version {} from '{}':\033[0m" \
-                       .format(version, short_source)
-            for pname, package_version, dependency in packages_dependencies:
-                if (not dependency[1] or version in dependency[1]) and \
-                   (not dependency[2] or short_source in dependency[2]):
-                    message += "\n\t\t" + pname + " " + package_version
-        yield (cargo_lock_filename, 1, message)
-
-    # Check to see if we are transitively using any blocked packages
-    blocked_packages = config["blocked-packages"]
-    # Create map to keep track of visited exception packages
-    visited_whitelisted_packages = {package: {} for package in blocked_packages.keys()}
-
-    for package in content.get("package", []):
-        package_name = package.get("name")
-        package_version = package.get("version")
-        for dependency in package.get("dependencies", []):
-            dependency = dependency.split()
-            dependency_name = dependency[0]
-            whitelist = blocked_packages.get(dependency_name)
-            if whitelist is not None:
-                if package_name not in whitelist:
-                    fmt = "Package {} {} depends on blocked package {}."
-                    message = fmt.format(package_name, package_version, dependency_name)
-                    yield (cargo_lock_filename, 1, message)
-                else:
-                    visited_whitelisted_packages[dependency_name][package_name] = True
-
-    # Check if all the exceptions to blocked packages actually depend on the blocked package
-    for dependency_name, package_names in blocked_packages.items():
-        for package_name in package_names:
-            if not visited_whitelisted_packages[dependency_name].get(package_name):
-                fmt = "Package {} is not required to be an exception of blocked package {}."
-                message = fmt.format(package_name, dependency_name)
-                yield (cargo_lock_filename, 1, message)
-
-
-def validate_dependency_licenses():
-    print("\r ➤  Checking licenses of Rust dependencies...")
-    result = subprocess.run(["cargo-deny", "--format=json", "check", "licenses"], encoding='utf-8',
+def run_cargo_deny_lints():
+    print("\r ➤  Running `cargo-deny` checks...")
+    result = subprocess.run(["cargo-deny", "--format=json", "--all-features", "check"],
+                            encoding='utf-8',
                             capture_output=True)
-    if result.returncode == 0:
-        return False
     assert result.stderr is not None, "cargo deny should return error information via stderr when failing"
 
-    error_info = [json.loads(json_struct) for json_struct in result.stderr.splitlines()]
-    error_messages = []
-    num_license_errors = 'unknown'
-    for error in error_info:
-        error_fields = error['fields']
-        if error['type'] == 'summary':
-            num_license_errors = error_fields['licenses']['errors']
-        elif 'graphs' in error_fields and error_fields['graphs']:
-            crate = error_fields['graphs'][0]['Krate']
-            license_name = error_fields['notes'][0]
-            message = f'Rejected license "{license_name}". Run `cargo deny` for more details'
-            error_messages.append(
-                f'Rust dependency {crate["name"]}@{crate["version"]}: {message}')
-        else:
-            error_messages.append(error_fields['message'])
+    errors = []
+    for line in result.stderr.splitlines():
+        error_fields = json.loads(line)["fields"]
+        error_code = error_fields.get("code", "unknown")
+        error_severity = error_fields.get("severity", "unknown")
+        message = error_fields.get("message", "")
+        labels = error_fields.get("labels", [])
 
-    print(f'    `cargo deny` reported {num_license_errors} licenses errors')
-    for message in error_messages:
-        yield (CARGO_LOCK_FILE, 1, message)
+        span = ""
+        line = 1
+        if len(labels) > 0:
+            span = labels[0]["span"]
+            line = labels[0]["line"]
+
+        # This is an effort to detect the license failures, so that we can print
+        # a more helpful message -- which normally does not include the license
+        # name.
+        if error_code == "rejected":
+            crate = CargoDenyKrate(error_fields["graphs"][0])
+            license_name = error_fields["notes"][0]
+            errors.append((
+                CARGO_LOCK_FILE,
+                1,
+                f"Rust dependency {crate}: Rejected license \"{license_name}\""
+            ))
+        # This detects if a crate has been marked as banned in the configuration file.
+        elif error_code == "banned":
+            crate = CargoDenyKrate(error_fields["graphs"][0])
+            parents = ", ".join([str(parent) for parent in crate.parents])
+            errors.append((CARGO_LOCK_FILE, 1, f"{message}: used by ({parents})"))
+        # This detects when two version of a crate have been used, but are not skipped
+        # by the configuration file.
+        elif error_code == "duplicate":
+            errors.append((CARGO_LOCK_FILE, 1, f"{message}:\n {span}"))
+        # This detects any other problem, typically caused by an unnecessary exception
+        # in the deny.toml file.
+        elif error_severity in ["warning", "error"]:
+            errors.append((CARGO_DENY_CONFIG_FILE, line, f"{message}: {span}"))
+
+    for error in errors:
+        yield error
 
 
 def check_toml(file_name, lines):
@@ -778,44 +714,6 @@ def check_webidl_spec(file_name, contents):
     yield (0, "No specification link found.")
 
 
-def check_for_possible_duplicate_json_keys(key_value_pairs):
-    keys = [x[0] for x in key_value_pairs]
-    seen_keys = set()
-    for key in keys:
-        if key in seen_keys:
-            raise KeyError("Duplicated Key (%s)" % key)
-
-        seen_keys.add(key)
-
-
-def check_for_alphabetical_sorted_json_keys(key_value_pairs):
-    for a, b in zip(key_value_pairs[:-1], key_value_pairs[1:]):
-        if a[0] > b[0]:
-            raise KeyError("Unordered key (found %s before %s)" % (a[0], b[0]))
-
-
-def check_json_requirements(filename):
-    def check_fn(key_value_pairs):
-        check_for_possible_duplicate_json_keys(key_value_pairs)
-        if filename in normilize_paths(config["check-ordered-json-keys"]):
-            check_for_alphabetical_sorted_json_keys(key_value_pairs)
-    return check_fn
-
-
-def check_json(filename, contents):
-    if not filename.endswith(".json"):
-        return
-
-    try:
-        json.loads(contents, object_pairs_hook=check_json_requirements(filename))
-    except ValueError as e:
-        match = re.search(r"line (\d+) ", e.args[0])
-        line_no = match and match.group(1)
-        yield (line_no, e.args[0])
-    except KeyError as e:
-        yield (None, e.args[0])
-
-
 def check_that_manifests_exist():
     # Determine the metadata and test directories from the configuration file.
     metadata_dirs = []
@@ -1077,14 +975,12 @@ def scan(only_changed_files=False, progress=False):
     directory_errors = check_directory_files(config['check_ext'])
     # standard checks
     files_to_check = filter_files('.', only_changed_files, progress)
-    checking_functions = (check_flake8, check_webidl_spec, check_json)
+    checking_functions = (check_flake8, check_webidl_spec)
     line_checking_functions = (check_license, check_by_line, check_toml, check_shell,
                                check_rust, check_spec, check_modeline)
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
-    # These checks are essentially checking a single file.
-    cargo_lock_errors = check_cargo_lock_file(only_changed_files)
-
+    cargo_lock_errors = run_cargo_deny_lints()
     wpt_errors = run_wpt_lints(only_changed_files)
 
     # chain all the iterators
@@ -1100,3 +996,14 @@ def scan(only_changed_files=False, progress=False):
               + f"{colorama.Fore.RED}{error[2]}{colorama.Style.RESET_ALL}")
 
     return int(error is not None)
+
+
+class CargoDenyKrate:
+    def __init__(self, data: Dict[Any, Any]):
+        crate = data['Krate']
+        self.name = crate['name']
+        self.version = crate['version']
+        self.parents = [CargoDenyKrate(parent) for parent in data.get('parents', [])]
+
+    def __str__(self):
+        return f"{self.name}@{self.version}"

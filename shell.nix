@@ -5,12 +5,12 @@
   buildAndroid ? false
 }:
 with import (builtins.fetchTarball {
-  url = "https://github.com/NixOS/nixpkgs/archive/d04953086551086b44b6f3c6b7eeb26294f207da.tar.gz";
+  url = "https://github.com/NixOS/nixpkgs/archive/1e5b653dff12029333a6546c11e108ede13052eb.tar.gz";
 }) {
   overlays = [
     (import (builtins.fetchTarball {
       # Bumped the channel in rust-toolchain.toml? Bump this commit too!
-      url = "https://github.com/oxalica/rust-overlay/archive/0be641045af6d8666c11c2c40e45ffc9667839b5.tar.gz";
+      url = "https://github.com/oxalica/rust-overlay/archive/7c5892ad87b90d72668964975eebd4e174ff6204.tar.gz";
     }))
   ];
   config = {
@@ -81,10 +81,17 @@ stdenv.mkDerivation (androidEnvironment // {
     llvmPackages.bintools # provides lld
 
     udev # Needed by libudev-sys for GamePad API.
+    wireshark-cli  # for `tshark` in etc/devtools_parser.py
 
     # Build utilities
     cmake dbus gcc git pkg-config which llvm perl yasm m4
-    (python3.withPackages (ps: with ps; [virtualenv pip dbus]))
+
+    # Ensure the Python version is same as the one in `.python-version` file so
+    # that `uv` will just symlink to the one in nix store. Otherwise `uv` will
+    # download a pre-built binary that won't work on nix.
+    # FIXME: dbus python module needs to be installed into the virtual environment.
+    python311
+    uv
 
     # This pins gnumake to 4.3 since 4.4 breaks jobserver
     # functionality in mozjs and causes builds to be extremely
@@ -128,6 +135,10 @@ stdenv.mkDerivation (androidEnvironment // {
     # [WARN  script::dom::gpu] Could not get GPUAdapter ("NotFound")
     # TLA Err: Error: Couldn't request WebGPU adapter.
     vulkan-loader
+
+    # $ cargo run -p libservo --example winit_minimal
+    # Unable to load the libEGL shared object
+    libGL
   ];
 
   shellHook = ''

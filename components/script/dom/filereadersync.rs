@@ -13,7 +13,7 @@ use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::FileReaderSyncMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
@@ -22,12 +22,12 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct FileReaderSync {
+pub(crate) struct FileReaderSync {
     reflector: Reflector,
 }
 
 impl FileReaderSync {
-    pub fn new_inherited() -> FileReaderSync {
+    pub(crate) fn new_inherited() -> FileReaderSync {
         FileReaderSync {
             reflector: Reflector::new(),
         }
@@ -98,14 +98,19 @@ impl FileReaderSyncMethods<crate::DomTypeHolder> for FileReaderSync {
     }
 
     /// <https://w3c.github.io/FileAPI/#readAsArrayBufferSyncSection>
-    fn ReadAsArrayBuffer(&self, cx: JSContext, blob: &Blob) -> Fallible<ArrayBuffer> {
+    fn ReadAsArrayBuffer(
+        &self,
+        cx: JSContext,
+        blob: &Blob,
+        can_gc: CanGc,
+    ) -> Fallible<ArrayBuffer> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
         // step 2
         rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
 
-        create_buffer_source::<ArrayBufferU8>(cx, &blob_contents, array_buffer.handle_mut())
+        create_buffer_source::<ArrayBufferU8>(cx, &blob_contents, array_buffer.handle_mut(), can_gc)
             .map_err(|_| Error::JSFailed)
     }
 }

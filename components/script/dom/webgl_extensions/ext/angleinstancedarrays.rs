@@ -9,12 +9,13 @@ use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::{
     ANGLEInstancedArraysConstants, ANGLEInstancedArraysMethods,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct ANGLEInstancedArrays {
+pub(crate) struct ANGLEInstancedArrays {
     reflector_: Reflector,
     ctx: Dom<WebGLRenderingContext>,
 }
@@ -31,10 +32,11 @@ impl ANGLEInstancedArrays {
 impl WebGLExtension for ANGLEInstancedArrays {
     type Extension = Self;
 
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<Self> {
+    fn new(ctx: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(ANGLEInstancedArrays::new_inherited(ctx)),
             &*ctx.global(),
+            can_gc,
         )
     }
 

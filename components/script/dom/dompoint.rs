@@ -2,21 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+
+use base::id::DomPointId;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_traits::serializable::DomPoint;
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
 use crate::dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
 #[dom_struct]
-pub struct DOMPoint {
+pub(crate) struct DOMPoint {
     point: DOMPointReadOnly,
 }
 
@@ -28,7 +34,7 @@ impl DOMPoint {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         x: f64,
         y: f64,
@@ -56,7 +62,7 @@ impl DOMPoint {
         )
     }
 
-    pub fn new_from_init(
+    pub(crate) fn new_from_init(
         global: &GlobalScope,
         p: &DOMPointInit,
         can_gc: CanGc,
@@ -122,5 +128,51 @@ impl DOMPointMethods<crate::DomTypeHolder> for DOMPoint {
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
     fn SetW(&self, value: f64) {
         self.point.SetW(value);
+    }
+}
+
+impl Serializable for DOMPoint {
+    type Id = DomPointId;
+    type Data = DomPoint;
+
+    fn serialize(&self) -> Result<(Self::Id, Self::Data), ()> {
+        let serialized = DomPoint {
+            x: self.X(),
+            y: self.Y(),
+            z: self.Z(),
+            w: self.W(),
+        };
+        Ok((DomPointId::new(), serialized))
+    }
+
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()>
+    where
+        Self: Sized,
+    {
+        Ok(Self::new(
+            owner,
+            serialized.x,
+            serialized.y,
+            serialized.z,
+            serialized.w,
+            can_gc,
+        ))
+    }
+
+    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+        match data {
+            StructuredData::Reader(reader) => &mut reader.points,
+            StructuredData::Writer(writer) => &mut writer.points,
+        }
+    }
+
+    fn deserialized_storage(
+        reader: &mut StructuredDataReader,
+    ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
+        &mut reader.dom_points
     }
 }

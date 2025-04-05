@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{hash_map, HashMap};
+use std::collections::{HashMap, hash_map};
 
 use base::id::{BrowsingContextId, PipelineId};
 
@@ -14,52 +14,56 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::window::Window;
 
-/// The collection of all [`Document`]s managed by the [`crate::script_thread::SriptThread`].
+/// The collection of all [`Document`]s managed by the [`crate::script_thread::ScriptThread`].
 /// This is stored as a mapping of [`PipelineId`] to [`Document`], but for updating the
 /// rendering, [`Document`]s should be processed in order via [`Self::documents_in_order`].
 #[derive(JSTraceable)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DocumentCollection {
     map: HashMapTracedValues<PipelineId, Dom<Document>>,
 }
 
 impl DocumentCollection {
-    pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
+    pub(crate) fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
         self.map.insert(pipeline_id, Dom::from_ref(doc));
     }
 
-    pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
+    pub(crate) fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
         self.map
             .remove(&pipeline_id)
             .map(|ref doc| DomRoot::from_ref(&**doc))
     }
 
-    pub fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
+    pub(crate) fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
         self.map
             .get(&pipeline_id)
             .map(|doc| DomRoot::from_ref(&**doc))
     }
 
-    pub fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
+    pub(crate) fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
         self.find_document(pipeline_id)
             .map(|doc| DomRoot::from_ref(doc.window()))
     }
 
-    pub fn find_global(&self, pipeline_id: PipelineId) -> Option<DomRoot<GlobalScope>> {
+    pub(crate) fn find_global(&self, pipeline_id: PipelineId) -> Option<DomRoot<GlobalScope>> {
         self.find_window(pipeline_id)
             .map(|window| DomRoot::from_ref(window.upcast()))
     }
 
-    pub fn find_iframe(
+    pub(crate) fn find_iframe(
         &self,
         pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
     ) -> Option<DomRoot<HTMLIFrameElement>> {
-        self.find_document(pipeline_id)
-            .and_then(|doc| doc.find_iframe(browsing_context_id))
+        self.find_document(pipeline_id).and_then(|document| {
+            document
+                .iframes()
+                .get(browsing_context_id)
+                .map(|iframe| iframe.element.as_rooted())
+        })
     }
 
-    pub fn iter(&self) -> DocumentsIter<'_> {
+    pub(crate) fn iter(&self) -> DocumentsIter<'_> {
         DocumentsIter {
             iter: self.map.iter(),
         }
@@ -83,15 +87,12 @@ impl DocumentCollection {
     ///
     /// [update-the-rendering]: https://html.spec.whatwg.org/multipage/#update-the-rendering
     pub(crate) fn documents_in_order(&self) -> Vec<PipelineId> {
-        // TODO: This is a fairly expensive operation, because iterating iframes requires walking
-        // the *entire* DOM for a document. Instead this should be cached and marked as dirty when
-        // the DOM of a document changes or documents are added or removed from our set.
         DocumentTree::new(self).documents_in_order()
     }
 }
 
 impl Default for DocumentCollection {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn default() -> Self {
         Self {
             map: HashMapTracedValues::new(),
@@ -99,12 +100,12 @@ impl Default for DocumentCollection {
     }
 }
 
-#[allow(crown::unrooted_must_root)]
-pub struct DocumentsIter<'a> {
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+pub(crate) struct DocumentsIter<'a> {
     iter: hash_map::Iter<'a, PipelineId, Dom<Document>>,
 }
 
-impl<'a> Iterator for DocumentsIter<'a> {
+impl Iterator for DocumentsIter<'_> {
     type Item = (PipelineId, DomRoot<Document>);
 
     fn next(&mut self) -> Option<(PipelineId, DomRoot<Document>)> {
@@ -140,7 +141,8 @@ impl DocumentTree {
         let mut tree = DocumentTree::default();
         for (id, document) in documents.iter() {
             let children: Vec<PipelineId> = document
-                .iter_iframes()
+                .iframes()
+                .iter()
                 .filter_map(|iframe| iframe.pipeline_id())
                 .filter(|iframe_pipeline_id| documents.find_document(*iframe_pipeline_id).is_some())
                 .collect();

@@ -42,6 +42,15 @@ cases:
       - headerName: sec-fetch-user
         origins: [httpCrossSite]
         description: Not sent to non-trustworthy cross-site destination
+      - headerName: sec-fetch-storage-access
+        origins: [httpOrigin]
+        description: Not sent to non-trustworthy same-origin destination
+      - headerName: sec-fetch-storage-access
+        origins: [httpSameSite]
+        description: Not sent to non-trustworthy same-site destination
+      - headerName: sec-fetch-storage-access
+        origins: [httpCrossSite]
+        description: Not sent to non-trustworthy cross-site destination
     template_axes:
       # The `AudioWorklet` interface is only available in secure contexts
       # https://webaudio.github.io/web-audio-api/#AudioWorklet
@@ -86,6 +95,7 @@ cases:
       window-location.sub.html: [{}]
       script-module-import-dynamic.sub.html: [{}]
       script-module-import-static.sub.html: [{}]
+      script-json-module-import-static.sub.html: [{}]
       svg-image.sub.html: [{}]
       window-history.sub.html: [{}]
       worker-dedicated-importscripts.sub.html: [{}]
@@ -107,6 +117,9 @@ cases:
         origins: [httpOrigin]
         description: Not sent to non-trustworthy same-origin destination
       - headerName: sec-fetch-user
+        origins: [httpOrigin]
+        description: Not sent to non-trustworthy same-origin destination
+      - headerName: sec-fetch-storage-access
         origins: [httpOrigin]
         description: Not sent to non-trustworthy same-origin destination
     template_axes:
@@ -140,6 +153,7 @@ cases:
       window-location.sub.html: []
       script-module-import-dynamic.sub.html: []
       script-module-import-static.sub.html: []
+      script-json-module-import-static.sub.html: []
       svg-image.sub.html: []
       window-history.sub.html: []
       worker-dedicated-importscripts.sub.html: []
@@ -208,6 +222,7 @@ cases:
       window-location.sub.html: [{}]
       script-module-import-dynamic.sub.html: [{}]
       script-module-import-static.sub.html: [{}]
+      script-json-module-import-static.sub.html: [{}]
       serviceworker.https.sub.html: [{}]
       svg-image.sub.html: [{}]
       window-history.sub.html: [{}]
@@ -284,6 +299,7 @@ cases:
       window-location.sub.html: [{}]
       script-module-import-dynamic.sub.html: [{}]
       script-module-import-static.sub.html: [{}]
+      script-json-module-import-static.sub.html: [{}]
       svg-image.sub.html: [{}]
       worker-dedicated-importscripts.sub.html: [{}]
 
@@ -378,6 +394,7 @@ cases:
       window-location.sub.html: [{}]
       script-module-import-dynamic.sub.html: [{}]
       script-module-import-static.sub.html: [{}]
+      script-json-module-import-static.sub.html: [{}]
       svg-image.sub.html: [{}]
       worker-dedicated-importscripts.sub.html: [{}]
 
@@ -419,6 +436,7 @@ cases:
       header-link.sub.html: []
       script-module-import-static.sub.html: []
       script-module-import-dynamic.sub.html: []
+      script-json-module-import-static.sub.html: []
       # Service Workers' redirect mode is "error"
       serviceworker.https.sub.html: []
       # Interstitial locations in an HTTP redirect chain are not added to the
@@ -607,6 +625,8 @@ cases:
         - expected: cors
       script-module-import-static.sub.html:
         - expected: cors
+      script-json-module-import-static.sub.html:
+        - expected: cors
       # https://svgwg.org/svg2-draft/linking.html#processingURL-fetch
       svg-image.sub.html:
         - expected: no-cors
@@ -735,6 +755,8 @@ cases:
         - expected: script
       script-module-import-static.sub.html:
         - expected: script
+      script-json-module-import-static.sub.html:
+        - expected: json
       serviceworker.https.sub.html:
         - expected: serviceworker
       # Implemented as "image" in Chromium and Firefox, but specified as
@@ -838,6 +860,8 @@ cases:
         - expected: NULL
       script-module-import-static.sub.html:
         - expected: NULL
+      script-json-module-import-static.sub.html:
+        - expected: NULL
       serviceworker.https.sub.html:
         - expected: NULL
       svg-image.sub.html:
@@ -848,3 +872,72 @@ cases:
           expected: NULL
       worker-dedicated-importscripts.sub.html:
         - expected: NULL
+  # Sec-Fetch-Storage-Access
+  - all_subtests:
+      headerName: sec-fetch-storage-access
+      filename_flags: [https]
+    common_axis:
+        - description: Cross-site
+          origins: [httpsCrossSite]
+          expected: none
+        - description: Same site
+          origins: [httpsSameSite]
+          expected: NULL
+    template_axes:
+      # Service Workers' redirect mode is "error"
+      serviceworker.https.sub.html: [{}]
+      # Interstitial locations in an HTTP redirect chain are not added to the
+      # session history, so these requests cannot be initiated using the
+      # History API.
+      css-images.sub.html:
+        - filename_flags: [tentative]
+      element-audio.sub.html: [{}]
+      element-embed.sub.html: [{}]
+      element-frame.sub.html: [{}]
+      element-iframe.sub.html: [{}]
+      element-img.sub.html:
+        - sourceAttr: src
+        - sourceAttr: srcset
+      element-img-environment-change.sub.html: [{}]
+      element-input-image.sub.html: [{}]
+      element-link-icon.sub.html: [{}]
+      element-link-prefetch.optional.sub.html: [{}]
+      element-picture.sub.html: [{}]
+      element-script.sub.html: [{}]
+      element-video.sub.html: [{}]
+      element-video-poster.sub.html: [{}]
+      fetch.sub.html: [{ init: { mode: no-cors , credentials: include }  }]
+      fetch-via-serviceworker.https.sub.html: [{ init: { mode: no-cors , credentials: include } }]
+      header-link.sub.html:
+        - rel: icon
+        - rel: stylesheet
+      svg-image.sub.html: [{}]
+      worker-dedicated-constructor.sub.html: []
+      worker-dedicated-importscripts.sub.html: [{}]
+  # The following are cases where the Sec-Fetch-Storage-Access header should
+  # not be attached at all.
+  - all_subtests:
+      headerName: sec-fetch-storage-access
+      filename_flags: [https]
+    common_axis:
+        - description: Cross-site
+          origins: [httpsCrossSite]
+          expected: NULL
+        - description: Same site
+          origins: [httpsSameSite]
+          expected: NULL
+    template_axes:
+      audioworklet.https.sub.html: [{}]
+      css-font-face.sub.html:
+        - filename_flags: [tentative]
+      element-meta-refresh.optional.sub.html: [{}]
+      element-a.sub.html: [{}]
+      element-area.sub.html: [{}]
+      form-submission.sub.html:
+        - method: GET
+        - method: POST
+      header-refresh.optional.sub.html: [{}]
+      script-module-import-dynamic.sub.html: [{}]
+      script-module-import-static.sub.html: [{}]
+      window-history.sub.html: [{}]
+      window-location.sub.html: [{}]

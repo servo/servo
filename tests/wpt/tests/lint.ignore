@@ -51,6 +51,7 @@ TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.sxg
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.wbn
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.avif
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.annexb
+TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.crx
 
 ## .gitignore
 W3C-TEST.ORG: .gitignore
@@ -101,6 +102,7 @@ TRAILING WHITESPACE: webvtt/parsing/file-parsing/support/*.vtt
 TRAILING WHITESPACE: webvtt/parsing/file-parsing/tests/support/*.vtt
 TRAILING WHITESPACE: xhr/resources/headers-some-are-empty.asis
 TRAILING WHITESPACE: content-security-policy/support/manifest.json
+TRAILING WHITESPACE: dom/xslt/resources/testu1LINE.xml
 
 # Intentional use of print statements
 PRINT STATEMENT: dom/nodes/Document-createElement-namespace-tests/generate.py
@@ -123,6 +125,7 @@ CONSOLE: webaudio/resources/audit.js:41
 
 # Intentional use of console.*
 CONSOLE: infrastructure/webdriver/bidi/subscription.html
+CONSOLE: infrastructure/webdriver/bidi/subscription.window.js
 
 # use of console in a public library - annotation-model ensures
 # it is not actually used
@@ -282,8 +285,12 @@ SET TIMEOUT: service-workers/service-worker/resources/resource-timing-worker.js
 SET TIMEOUT: shadow-dom/Document-prototype-currentScript.html
 SET TIMEOUT: shadow-dom/scroll-to-the-fragment-in-shadow-tree.html
 SET TIMEOUT: shadow-dom/slotchange-event.html
-SET TIMEOUT: trusted-types/block-string-assignment-to-DOMWindowTimers-setTimeout-setInterval.html
-SET TIMEOUT: trusted-types/DOMWindowTimers-setTimeout-setInterval.html
+SET TIMEOUT: trusted-types/support/block-string-assignment-to-DOMWindowTimers-setTimeout-setInterval.js
+SET TIMEOUT: trusted-types/support/DOMWindowTimers-setTimeout-setInterval.js
+SET TIMEOUT: trusted-types/support/should-sink-type-mismatch-violation-be-blocked-by-csp-002-worker-multiple-violations.js
+SET TIMEOUT: trusted-types/support/should-sink-type-mismatch-violation-be-blocked-by-csp-location.js
+SET TIMEOUT: trusted-types/support/trusted-types-reporting-check-report-sink-mismatch.js
+SET TIMEOUT: trusted-types/support/trusted-types-reporting-for-DOMWindowTimers-setTimeout-setInterval.js
 SET TIMEOUT: user-timing/*
 SET TIMEOUT: web-animations/crashtests/reparent-animating-element-002.html
 SET TIMEOUT: web-animations/timing-model/animations/*
@@ -399,6 +406,7 @@ SET TIMEOUT: requestidlecallback/deadline-after-expired-timer.html
 SET TIMEOUT: resources/*
 SET TIMEOUT: scheduler/tentative/current-task-signal-async-abort.any.js
 SET TIMEOUT: scheduler/tentative/current-task-signal-async-priority.any.js
+SET TIMEOUT: screen-capture/tentative/getdisplaymedia-captured-surface-resolution.https.html
 SET TIMEOUT: speculation-rules/prerender/resources/activation-start.html
 SET TIMEOUT: speculation-rules/prerender/resources/prerender-response-code.html
 SET TIMEOUT: speculation-rules/prerender/resources/prerender-while-prerender-outer.html
@@ -469,8 +477,7 @@ CONSOLE: css/css-shapes/shape-outside/supported-shapes/support/test-utils.js
 CONSOLE: css/css-values/viewport-units-css2-001.html
 CONSOLE: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001*.html
 CONSOLE: css/css-writing-modes/tools/generators/template.html
-CONSOLE: bluetooth/characteristic/readValue/characteristic-is-removed.https.window.js
-CONSOLE: bluetooth/resources/bluetooth-test.js
+CONSOLE: bluetooth/legacy/characteristic/readValue/characteristic-is-removed.https.window.js
 
 TRAILING WHITESPACE: css/css-fonts/support/fonts/gsubtest-lookup3.ufo/features.fea
 
@@ -480,10 +487,10 @@ SET TIMEOUT: css/css-transitions/events-007.html
 SET TIMEOUT: css/css-transitions/support/generalParallelTest.js
 SET TIMEOUT: css/css-transitions/support/runParallelAsyncHarness.js
 SET TIMEOUT: css/css-transitions/transitioncancel-001.html
-SET TIMEOUT: css/css-values/reference/vh_not_refreshing_on_chrome-ref.html
-SET TIMEOUT: css/css-values/reference/vh_not_refreshing_on_chrome_iframe-ref.html
-SET TIMEOUT: css/css-values/vh_not_refreshing_on_chrome.html
-SET TIMEOUT: css/css-values/support/vh_not_refreshing_on_chrome_iframe.html
+SET TIMEOUT: css/css-values/reference/vh-update-and-transition-in-subframe-ref.html
+SET TIMEOUT: css/css-values/reference/vh-update-and-transition-in-subframe-iframe-ref.html
+SET TIMEOUT: css/css-values/vh-update-and-transition-in-subframe.html
+SET TIMEOUT: css/css-values/vh-update-and-transition-in-subframe-iframe.html
 SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001.html
 SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001a.html
 SET TIMEOUT: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001b.html
@@ -655,6 +662,9 @@ AHEM SYSTEM FONT: css/css-fonts/font-size-adjust-metrics-override-ref.html
 AHEM SYSTEM FONT: css/css-fonts/line-gap-override.html
 AHEM SYSTEM FONT: css/css-fonts/parsing/font-size-adjust-computed.html
 AHEM SYSTEM FONT: css/css-fonts/size-adjust-unicode-range-system-fallback.html
+AHEM SYSTEM FONT: css/css-overflow/line-clamp/block-ellipsis-010.html
+AHEM SYSTEM FONT: css/css-overflow/line-clamp/reference/block-ellipsis-010-ref.html
+AHEM SYSTEM FONT: css/css-overflow/line-clamp/reference/block-ellipsis-010-alt-ref.html
 AHEM SYSTEM FONT: html/dom/render-blocking/remove-attr-unblocks-rendering.optional.html
 AHEM SYSTEM FONT: html/dom/render-blocking/remove-element-unblocks-rendering.optional.html
 
@@ -688,7 +698,6 @@ TESTHARNESS-IN-OTHER-TYPE: css/css-text/white-space/pre-line-br-with-whitespace-
 TESTHARNESS-IN-OTHER-TYPE: css/css-text/white-space/pre-with-whitespace-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/css-writing-modes/bidi-inline-fragment-crash.html
 TESTHARNESS-IN-OTHER-TYPE: dom/svg-insert-crash.html
-TESTHARNESS-IN-OTHER-TYPE: editing/run/first-letter-crossing-engine-boundary-crash.html
 TESTHARNESS-IN-OTHER-TYPE: html/canvas/element/manual/wide-gamut-canvas/imagedata-no-color-settings-crash.html
 TESTHARNESS-IN-OTHER-TYPE: html/semantics/embedded-content/the-object-element/block-object-with-ruby-crash.html
 TESTHARNESS-IN-OTHER-TYPE: html/semantics/forms/the-input-element/time-datalist-crash.html
@@ -768,15 +777,8 @@ HTML INVALID SYNTAX: mathml/crashtests/mozilla/411603-1.html
 HTML INVALID SYNTAX: quirks/percentage-height-calculation.html
 HTML INVALID SYNTAX: trusted-types/TrustedTypePolicyFactory-getAttributeType-namespace.html
 
-# Tests which include testdriver.js but aren't testharness.js tests
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-grid/grid-model/grid-layout-stale-001.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-grid/grid-model/grid-layout-stale-002.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-scroll-anchoring/fullscreen-crash.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-shadow-parts/interaction-with-nested-pseudo-class.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-text-decor/invalidation/text-decoration-thickness.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-view-transitions/hit-test-unpainted-element.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-view-transitions/hit-test-unrelated-element.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: css/selectors/remove-hovered-element.html
+# Tests that incorrectly include `testdriver.js`, which isn't supported for some
+# test types.
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-IndexedDB-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-getUniqueId-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-isSameEntry-manual.https.html
@@ -806,13 +808,15 @@ TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemWritableFileS
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showDirectoryPicker-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showOpenFilePicker-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showSaveFilePicker-manual.https.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/crashtests/fieldset-middleclick.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: infrastructure/testdriver/click_child_crossorigin.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: infrastructure/testdriver/click_child_testdriver.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: mediacapture-streams/MediaStreamTrack-end-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-payment-method-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-shipping-address-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-shipping-option-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/payment-request-event-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/supports-shipping-contact-delegation-manual.https.html
-TESTDRIVER-IN-UNSUPPORTED-TYPE: shadow-dom/crashtests/move-to-new-tree-1343016.html
+
+# Tests automatically imported from the WebAssembly/spec repository that should be removed after getting fixed upstream.
+SET TIMEOUT: wasm/core/js/harness/testharness.js
+ASSERT_THROWS: wasm/core/js/harness/testharness.js
+GENERATE_TESTS: wasm/core/js/harness/testharness.js
+PROMISE_REJECTS: wasm/core/js/harness/testharness.js

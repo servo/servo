@@ -18,50 +18,54 @@
   "use strict";
 
   function clickWithModifier(label, key) {
-    new test_driver.Actions()
+    return (new test_driver.Actions()
       .keyDown(key)
       .pointerMove(0, 0, { origin: label })
       .pointerDown()
       .pointerUp()
       .addTick()
-      .keyUp(key)
+      .keyUp(key))
       .send()
   }
 
-  async_test(t => {
+  promise_test(async () => {
     const label = document.getElementById("click-label");
     const input = document.getElementById("click");
 
-    input.addEventListener("click", t.step_func_done());
-    new test_driver.click(label)
-
+    let receivedClick = false;
+    input.addEventListener("click", () => receivedClick = true);
+    await test_driver.click(label);
+    assert_true(receivedClick);
   }, "label with for attribute should proxy click events to the associated element on click");
 
-  async_test(t => {
+  promise_test(async () => {
     const label = document.getElementById("shift-label");
     const input = document.getElementById("shift");
 
-    input.addEventListener("click", t.step_func_done());
-    clickWithModifier(label, "\uE008"); // ShiftLeft
-
+    let receivedClick = false;
+    input.addEventListener("click", () => receivedClick = true);
+    await clickWithModifier(label, "\uE008"); // ShiftLeft
+    assert_true(receivedClick);
   }, "label with for attribute should proxy click events to the associated element on shift click");
 
-  async_test(t => {
+  promise_test(async () => {
     const label = document.getElementById("alt-label");
     const input = document.getElementById("alt");
 
-    input.addEventListener("click", t.step_func_done());
-    clickWithModifier(label, "\uE00A"); // AltLeft
-
+    let receivedClick = false;
+    input.addEventListener("click", () => receivedClick = true);
+    await clickWithModifier(label, "\uE00A"); // AltLeft
+    assert_true(receivedClick);
   }, "label with for attribute should proxy click events to the associated element on alt click");
 
-  async_test(t => {
+  promise_test(async () => {
     const label = document.getElementById("meta-label");
     const input = document.getElementById("meta");
 
-    input.addEventListener("click", t.step_func_done());
-    clickWithModifier(label, "\uE03D"); // OSLeft
-
+    let receivedClick = false;
+    input.addEventListener("click", () => receivedClick = true);
+    await clickWithModifier(label, "\uE03D"); // OSLeft
+    assert_true(receivedClick);
   }, "label with for attribute should proxy click events to the associated element on meta click");
 
 </script>

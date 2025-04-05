@@ -1,4 +1,4 @@
-promise_test(async t => {
+promise_test(async (t) => {
   const source = new Observable(subscriber => {
     subscriber.next(1);
     subscriber.next(2);
@@ -24,24 +24,17 @@ promise_test(async t => {
 }, "reduce(): Reduces the values of the Observable, starting with the " +
    "initial seed value");
 
-promise_test(async () => {
+promise_test(async (t) => {
   let error = new Error('from the source');
   const source = new Observable(subscriber => {
     subscriber.next(1);
     subscriber.error(error);
   });
 
-  let thrownError = null;
-  try {
-    await source.reduce((acc, value) => acc + value, 0);
-  } catch (error) {
-    thrownError = error;
-  }
-
-  assert_equals(thrownError, error);
+  return promise_rejects_exactly(t, error, source.reduce((acc, value) => acc + value, 0));
 }, "reduce(): Rejects if the source observable emits an error");
 
-promise_test(async t => {
+promise_test(async (t) => {
   const source = new Observable(subscriber => {
     subscriber.next(1);
     subscriber.next(2);
@@ -66,7 +59,7 @@ promise_test(async t => {
 }, "reduce(): Seeds with the first value of the source, if no initial value " +
    "is provided");
 
-promise_test(async () => {
+promise_test(async (t) => {
   const logs = [];
 
   const source = new Observable(subscriber => {
@@ -82,21 +75,16 @@ promise_test(async () => {
   });
 
   const error = new Error('from the reducer');
-  let thrownError = null;
 
-  try {
-    await source.reduce((acc, value) => {
-      if (value === 2) {
-        logs.push('throw error');
-        throw error;
-      }
-      return acc + value;
-    }, 0);
-  } catch (error) {
-    thrownError = error;
-  }
+  const promiseToResult = source.reduce((acc, value) => {
+    if (value === 2) {
+      logs.push('throw error');
+      throw error;
+    }
+    return acc + value;
+  }, 0);
 
-  assert_equals(thrownError, error);
+  await promise_rejects_exactly(t, error, promiseToResult);
 
   assert_array_equals(logs, [
     'next 1',
@@ -118,7 +106,7 @@ promise_test(async () => {
   assert_equals(result, 'seed');
 }, "reduce(): When source is empty, promise resolves with initial value");
 
-promise_test(async () => {
+promise_test(async (t) => {
   // This tests behavior that is analogous to `[].reduce(() => 'reduced')`,
   // which throws a TypeError.
 
@@ -126,18 +114,11 @@ promise_test(async () => {
     subscriber.complete();
   });
 
-  let thrownError = null;
-  try {
-    await source.reduce(() => 'reduced');
-  } catch (error) {
-    thrownError = error;
-  }
-
-  assert_true(thrownError instanceof TypeError);
+  return promise_rejects_js(t, TypeError, source.reduce(() => 'reduced'));
 }, "reduce(): When source is empty, AND no seed value is provided, the " +
    "promise rejects with a TypeError");
 
-promise_test(async t => {
+promise_test(async (t) => {
   let tornDown = false;
   const source = new Observable((subscriber) => {
     subscriber.addTeardown(() => {
@@ -153,14 +134,19 @@ promise_test(async t => {
     assert_true(tornDown);
   }, 0);
 
-  let thrownError = null;
-  try {
-    await source.reduce(() => 'reduced', 'seed', { signal: abortController.signal });
-  } catch (error) {
-    thrownError = error;
-  }
-
-  assert_true(thrownError instanceof DOMException);
-  assert_equals(thrownError.name, 'AbortError');
+  return promise_rejects_dom(t, 'AbortError', source.reduce(() => 'reduced', 'seed', { signal: abortController.signal }));
 }, "reduce(): Reject with an AbortError if the subscription is aborted " +
    "before the source completes");
+
+promise_test(async () => {
+  const source = new Observable(subscriber => {
+    subscriber.complete();
+  });
+
+  const values = [{}, [], new Error("some error")];
+
+  for (let value of values) {
+    const result = await source.reduce(() => {}, value);
+    assert_equals(result, value);
+  }
+}, "reduce(): Reduces the values for different objects");

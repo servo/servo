@@ -12,14 +12,14 @@ use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{
-    reflect_dom_object, reflect_dom_object_with_proto, Reflector,
+    Reflector, reflect_dom_object, reflect_dom_object_with_proto,
 };
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMRectReadOnly {
+pub(crate) struct DOMRectReadOnly {
     reflector_: Reflector,
     x: Cell<f64>,
     y: Cell<f64>,
@@ -28,7 +28,7 @@ pub struct DOMRectReadOnly {
 }
 
 impl DOMRectReadOnly {
-    pub fn new_inherited(x: f64, y: f64, width: f64, height: f64) -> DOMRectReadOnly {
+    pub(crate) fn new_inherited(x: f64, y: f64, width: f64, height: f64) -> DOMRectReadOnly {
         DOMRectReadOnly {
             x: Cell::new(x),
             y: Cell::new(y),
@@ -38,7 +38,7 @@ impl DOMRectReadOnly {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         x: f64,
@@ -55,19 +55,33 @@ impl DOMRectReadOnly {
         )
     }
 
-    pub fn set_x(&self, value: f64) {
+    pub(crate) fn new_from_dictionary(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        dictionary: &DOMRectInit,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMRectReadOnly> {
+        reflect_dom_object_with_proto(
+            Box::new(create_a_domrectreadonly_from_the_dictionary(dictionary)),
+            global,
+            proto,
+            can_gc,
+        )
+    }
+
+    pub(crate) fn set_x(&self, value: f64) {
         self.x.set(value);
     }
 
-    pub fn set_y(&self, value: f64) {
+    pub(crate) fn set_y(&self, value: f64) {
         self.y.set(value);
     }
 
-    pub fn set_width(&self, value: f64) {
+    pub(crate) fn set_width(&self, value: f64) {
         self.width.set(value);
     }
 
-    pub fn set_height(&self, value: f64) {
+    pub(crate) fn set_height(&self, value: f64) {
         self.height.set(value);
     }
 }
@@ -89,11 +103,11 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-fromrect
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMRectReadOnly> {
         let dom_rect = create_a_domrectreadonly_from_the_dictionary(other);
 
-        reflect_dom_object(Box::new(dom_rect), global)
+        reflect_dom_object(Box::new(dom_rect), global, CanGc::note())
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-x
@@ -158,7 +172,7 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
 }
 
 /// <https://drafts.fxtf.org/geometry/#ref-for-create-a-domrectreadonly-from-the-dictionary>
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 pub(super) fn create_a_domrectreadonly_from_the_dictionary(other: &DOMRectInit) -> DOMRectReadOnly {
     // NOTE: We trivially combine all three steps into one
 

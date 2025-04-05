@@ -3,21 +3,27 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::collections::HashMap;
+use std::num::NonZeroU32;
 
+use base::id::{DomPointId, DomPointIndex, PipelineNamespaceId};
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_traits::serializable::DomPoint;
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
+use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
 #[dom_struct]
-pub struct DOMPointReadOnly {
+pub(crate) struct DOMPointReadOnly {
     reflector_: Reflector,
     x: Cell<f64>,
     y: Cell<f64>,
@@ -27,7 +33,7 @@ pub struct DOMPointReadOnly {
 
 #[allow(non_snake_case)]
 impl DOMPointReadOnly {
-    pub fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPointReadOnly {
+    pub(crate) fn new_inherited(x: f64, y: f64, z: f64, w: f64) -> DOMPointReadOnly {
         DOMPointReadOnly {
             x: Cell::new(x),
             y: Cell::new(y),
@@ -37,7 +43,7 @@ impl DOMPointReadOnly {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         x: f64,
         y: f64,
@@ -110,7 +116,7 @@ impl DOMPointReadOnlyMethods<crate::DomTypeHolder> for DOMPointReadOnly {
 }
 
 #[allow(non_snake_case)]
-pub trait DOMPointWriteMethods {
+pub(crate) trait DOMPointWriteMethods {
     fn SetX(&self, value: f64);
     fn SetY(&self, value: f64);
     fn SetZ(&self, value: f64);
@@ -132,5 +138,72 @@ impl DOMPointWriteMethods for DOMPointReadOnly {
 
     fn SetW(&self, value: f64) {
         self.w.set(value);
+    }
+}
+
+impl Serializable for DOMPointReadOnly {
+    type Id = DomPointId;
+    type Data = DomPoint;
+
+    fn serialize(&self) -> Result<(Self::Id, Self::Data), ()> {
+        let serialized = DomPoint {
+            x: self.x.get(),
+            y: self.y.get(),
+            z: self.z.get(),
+            w: self.w.get(),
+        };
+        Ok((DomPointId::new(), serialized))
+    }
+
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()>
+    where
+        Self: Sized,
+    {
+        Ok(Self::new(
+            owner,
+            serialized.x,
+            serialized.y,
+            serialized.z,
+            serialized.w,
+            can_gc,
+        ))
+    }
+
+    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+        match data {
+            StructuredData::Reader(r) => &mut r.points,
+            StructuredData::Writer(w) => &mut w.points,
+        }
+    }
+
+    fn deserialized_storage(
+        reader: &mut StructuredDataReader,
+    ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
+        &mut reader.points_read_only
+    }
+}
+
+impl From<StorageKey> for DomPointId {
+    fn from(storage_key: StorageKey) -> DomPointId {
+        let namespace_id = PipelineNamespaceId(storage_key.name_space);
+        let index = DomPointIndex(
+            NonZeroU32::new(storage_key.index).expect("Deserialized point index is zero"),
+        );
+
+        DomPointId {
+            namespace_id,
+            index,
+        }
+    }
+}
+
+impl IntoStorageKey for DomPointId {
+    fn into_storage_key(self) -> StorageKey {
+        let DomPointIndex(index) = self.index;
+        StorageKey::new(self.namespace_id, index)
     }
 }

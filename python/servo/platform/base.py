@@ -60,6 +60,7 @@ class Base:
         installed_something = False
         if not skip_platform:
             installed_something |= self._platform_bootstrap(force)
+        self.install_rust_toolchain()
         if not skip_lints:
             installed_something |= self.install_taplo(force)
             installed_something |= self.install_cargo_deny(force)
@@ -67,6 +68,14 @@ class Base:
 
         if not installed_something:
             print("Dependencies were already installed!")
+
+    def install_rust_toolchain(self):
+        # rustup 1.28.0, and rustup 1.28.1+ with RUSTUP_AUTO_INSTALL=0, require us to explicitly
+        # install the Rust toolchain before trying to use it.
+        print(" * Installing Rust toolchain...")
+        if subprocess.call(["rustup", "show", "active-toolchain"]) != 0:
+            if subprocess.call(["rustup", "toolchain", "install"]) != 0:
+                raise EnvironmentError("Installation of Rust toolchain failed.")
 
     def install_taplo(self, force: bool) -> bool:
         if not force and shutil.which("taplo") is not None:
@@ -79,13 +88,21 @@ class Base:
         return True
 
     def install_cargo_deny(self, force: bool) -> bool:
-        if not force and shutil.which("cargo-deny") is not None:
+        def cargo_deny_installed():
+            if force or not shutil.which("cargo-deny"):
+                return False
+            # Tidy needs at least version 0.18.1 installed.
+            result = subprocess.run(["cargo-deny", "--version"],
+                                    encoding='utf-8', capture_output=True)
+            (major, minor, micro) = result.stdout.strip().split(" ")[1].split(".", 2)
+            return (int(major), int(minor), int(micro)) >= (0, 18, 1)
+
+        if cargo_deny_installed():
             return False
 
         print(" * Installing cargo-deny...")
         if subprocess.call(["cargo", "install", "cargo-deny", "--locked"]) != 0:
             raise EnvironmentError("Installation of cargo-deny failed.")
-
         return True
 
     def install_crown(self, force: bool) -> bool:

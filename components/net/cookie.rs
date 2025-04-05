@@ -10,8 +10,8 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use std::time::SystemTime;
 
 use cookie::Cookie;
-use net_traits::pub_domains::is_pub_domain;
 use net_traits::CookieSource;
+use net_traits::pub_domains::is_pub_domain;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
@@ -183,7 +183,7 @@ impl ServoCookie {
         let has_case_insensitive_prefix = |value: &str, prefix: &str| {
             value
                 .get(..prefix.len())
-                .map_or(false, |p| p.eq_ignore_ascii_case(prefix))
+                .is_some_and(|p| p.eq_ignore_ascii_case(prefix))
         };
         if has_case_insensitive_prefix(cookie.name(), "__Secure-") &&
             !cookie.secure().unwrap_or(false)
@@ -206,6 +206,7 @@ impl ServoCookie {
 
             // 3. The cookie-attribute-list contains an attribute with an attribute-name of "Path",
             // and the cookie's path is /.
+            #[allow(clippy::nonminimal_bool)]
             if !has_path_specified || !cookie.path().is_some_and(|path| path == "/") {
                 return None;
             }

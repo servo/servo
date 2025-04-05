@@ -39,7 +39,7 @@
     });
 
     await wait_for_load(frame);
-    assert_true(await subframe_focused(frame, "autofocus"), "'autofocus' should work.");
+    assert_true(await subframe_focused(frame, "autofocus", /*timeout=*/1000), "'autofocus' should work.");
     window.focus(); // Reset focus state in subframe.
     assert_true(await subframe_focused(frame, "focus-input"), "'element.focus' should work.");
     window.focus(); // Reset focus state in subframe.

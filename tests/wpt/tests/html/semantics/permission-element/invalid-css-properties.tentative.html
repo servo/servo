@@ -13,7 +13,8 @@
     clip-path: circle(10px);
     filter: blur(10px);
     mask: url('test-url');
-    padding-left: 10px;
+    padding-left: 10px; /* this is not allowed because width is not set to 'auto' */
+    width: 200px;
     transform: rotate(10);
     border: 0px;
   }

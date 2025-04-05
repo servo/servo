@@ -158,7 +158,7 @@ function build_node_tree(root, docstr) {
   for (const line of docstr.split("\n")) {
     const [_, indent, remainder] = line.match(/^\| ( *)(.*)/);
     const level = indent.length / 2;
-    if (match = remainder.match(/^<([a-z]* )?([a-zA-Z_]*)>$/)) {
+    if (match = remainder.match(/^<([a-z]* )?([a-zA-Z0-9_-]*)>$/)) {
       // `Element nodes must be represented by a "<, the tag name string, ">".`
       append_child_at(root, level, create_element(match[2], match[1]));
     } else if (match = remainder.match(/^"([^"]*)"$/)) {
@@ -206,11 +206,13 @@ function assert_subtree_equals(node1, node2) {
     current1 = tree1.nextNode();
     current2 = tree2.nextNode();
 
+    if (!current1) break;
+
     // Conceptually, we only want to check whether a.isEqualNode(b). But that
     // yields terrible error messages ("expected true but got false"). With
     // this being a test suite and all, let's invest a bit of effort into nice
     // error messages.
-    if (current1 && !current1.isEqualNode(current2)) {
+    if (!current1.isEqualNode(current2)) {
       let breadcrumbs = "";
       let current = current1;
       while (current) {
@@ -222,10 +224,16 @@ function assert_subtree_equals(node1, node2) {
       assert_true(current1.isEqualNode(current2),
           `${current1}.isEqual(${current2}) fails. Path: ${breadcrumbs}.`);
     }
-   } while (current1);
+
+    // NodeIterator does not recurse into template contents. So we need to do
+    // this manually.
+    if (is_html_template(current1) && is_html_template(current2)) {
+      assert_subtree_equals(current1.content, current2.content);
+    }
+  } while (current1);
 
   // Ensure that both iterators have come to an end.
-  assert_false(!!current2, "Additional nodes at the of node2.");
+  assert_false(!!current2, "Additional nodes at the of node2.\n");
 }
 
 function assert_testcase(node, testcase) {

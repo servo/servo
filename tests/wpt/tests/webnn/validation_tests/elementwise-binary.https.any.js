@@ -1,21 +1,32 @@
 // META: title=validation tests for WebNN API element-wise binary operations
-// META: global=window,dedicatedworker
-// META: variant=?cpu
-// META: variant=?gpu
-// META: variant=?npu
+// META: global=window
+// META: variant=?op=add&device=cpu
+// META: variant=?op=add&device=gpu
+// META: variant=?op=add&device=npu
+// META: variant=?op=sub&device=cpu
+// META: variant=?op=sub&device=gpu
+// META: variant=?op=sub&device=npu
+// META: variant=?op=mul&device=cpu
+// META: variant=?op=mul&device=gpu
+// META: variant=?op=mul&device=npu
+// META: variant=?op=div&device=cpu
+// META: variant=?op=div&device=gpu
+// META: variant=?op=div&device=npu
+// META: variant=?op=max&device=cpu
+// META: variant=?op=max&device=gpu
+// META: variant=?op=max&device=npu
+// META: variant=?op=min&device=cpu
+// META: variant=?op=min&device=gpu
+// META: variant=?op=min&device=npu
+// META: variant=?op=pow&device=cpu
+// META: variant=?op=pow&device=gpu
+// META: variant=?op=pow&device=npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
 
-const kElementwiseBinaryOperators = [
-  'add',
-  'sub',
-  'mul',
-  'div',
-  'max',
-  'min',
-  'pow',
-];
+const queryParams = new URLSearchParams(window.location.search);
+const operatorName = queryParams.get('op');
 
 const label = 'elementwise_binary_op';
 const regrexp = new RegExp('\\[' + label + '\\]');
@@ -54,39 +65,35 @@ const tests = [
   },
 ];
 
-function runElementWiseBinaryTests(operatorName, tests) {
-  tests.forEach(test => {
-    promise_test(async t => {
-      const builder = new MLGraphBuilder(context);
-      if (!context.opSupportLimits().input.dataTypes.includes(
-              test.a.dataType)) {
-        assert_throws_js(TypeError, () => builder.input('a', test.a));
-        return;
-      }
-      if (!context.opSupportLimits().input.dataTypes.includes(
-              test.b.dataType)) {
-        assert_throws_js(TypeError, () => builder.input('b', test.b));
-        return;
-      }
-      const a = builder.input('a', test.a);
-      const b = builder.input('b', test.b);
+tests.forEach(test => {
+  promise_test(async t => {
+    const builder = new MLGraphBuilder(context);
+    if (!context.opSupportLimits().input.dataTypes.includes(
+            test.a.dataType)) {
+      assert_throws_js(TypeError, () => builder.input('a', test.a));
+      return;
+    }
+    if (!context.opSupportLimits().input.dataTypes.includes(
+            test.b.dataType)) {
+      assert_throws_js(TypeError, () => builder.input('b', test.b));
+      return;
+    }
+    const a = builder.input('a', test.a);
+    const b = builder.input('b', test.b);
 
-      if (test.output) {
-        const output = builder[operatorName](a, b);
-        assert_equals(output.dataType, test.output.dataType);
-        assert_array_equals(output.shape, test.output.shape);
-      } else {
-        const options = {label};
-        assert_throws_with_label(
-            () => builder[operatorName](a, b, options), regrexp);
-      }
-    }, test.name.replace('[binary]', `[${operatorName}]`));
-  });
-}
-
-kElementwiseBinaryOperators.forEach((operatorName) => {
-  validateTwoInputsOfSameDataType(operatorName, label);
-  validateTwoInputsBroadcastable(operatorName, label);
-  validateTwoInputsFromMultipleBuilders(operatorName);
-  runElementWiseBinaryTests(operatorName, tests);
+    if (test.output) {
+      const output = builder[operatorName](a, b);
+      assert_equals(output.dataType, test.output.dataType);
+      assert_array_equals(output.shape, test.output.shape);
+    } else {
+      const options = {label};
+      assert_throws_with_label(
+          () => builder[operatorName](a, b, options), regrexp);
+    }
+  }, test.name.replace('[binary]', `[${operatorName}]`));
 });
+
+validateTwoInputsOfSameDataType(operatorName, label);
+validateTwoInputsBroadcastable(operatorName, label);
+validateTwoInputsFromMultipleBuilders(operatorName);
+validateTwoBroadcastableInputsTensorLimit(operatorName, label);

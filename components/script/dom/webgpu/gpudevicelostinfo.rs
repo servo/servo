@@ -9,13 +9,14 @@ use dom_struct::dom_struct;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUDeviceLostInfoMethods, GPUDeviceLostReason,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUDeviceLostInfo {
+pub(crate) struct GPUDeviceLostInfo {
     reflector_: Reflector,
     message: DOMString,
     reason: GPUDeviceLostReason,
@@ -30,14 +31,16 @@ impl GPUDeviceLostInfo {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         message: DOMString,
         reason: GPUDeviceLostReason,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUDeviceLostInfo::new_inherited(message, reason)),
             global,
+            can_gc,
         )
     }
 }

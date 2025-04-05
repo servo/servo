@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<head>
+  <title>Optimization of requestAnimationFrame callbacks that don't modify the DOM shouldn't break animations</title>
+  <link rel="author" title="Mukilan Thiyagarajan" href="mailto:mukilan@igalia.com">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="target">0</div>
+</body>
+<script>
+"use strict";
+async_test(function(test) {
+  let frame = 0;
+  const draw = (t) => {
+    frame += 1;
+    if (frame < 11) {
+      // Don't mutate the DOM for 10 frames to meet the threshold for Servo's
+      // spurious frame optimization to kick in.
+      requestAnimationFrame(draw);
+    } else if (frame == 11) {
+      // Don't schedule next rAF so the compositor's tick is disabled.
+      // This is specific to Servo as the spurious frame detection at the
+      // time of this test was broken.
+      test.step_timeout(() => {
+        requestAnimationFrame(draw);
+      }, 0);
+    } else {
+      // Normal frames.
+      document.getElementById('target').innerText = t;
+      requestAnimationFrame(draw);
+    }
+  };
+
+  let target = document.getElementById('target');
+  test.step_timeout(test.step_func_done(() => {
+    assert_greater_than(parseInt(target.innerText), 500);
+  }), 550);
+  requestAnimationFrame(draw);
+});
+</script>

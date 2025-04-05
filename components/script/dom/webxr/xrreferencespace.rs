@@ -10,23 +10,24 @@ use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::{
     XRReferenceSpaceMethods, XRReferenceSpaceType,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{cast_transform, ApiPose, BaseTransform, XRSession};
+use crate::dom::xrsession::{ApiPose, BaseTransform, XRSession, cast_transform};
 use crate::dom::xrspace::XRSpace;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRReferenceSpace {
+pub(crate) struct XRReferenceSpace {
     xrspace: XRSpace,
     offset: Dom<XRRigidTransform>,
     ty: XRReferenceSpaceType,
 }
 
 impl XRReferenceSpace {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         session: &XRSession,
         offset: &XRRigidTransform,
         ty: XRReferenceSpaceType,
@@ -39,30 +40,32 @@ impl XRReferenceSpace {
     }
 
     #[allow(unused)]
-    pub fn new(
-        global: &GlobalScope,
+    pub(crate) fn new(
+        window: &Window,
         session: &XRSession,
         ty: XRReferenceSpaceType,
         can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpace> {
-        let offset = XRRigidTransform::identity(global, can_gc);
-        Self::new_offset(global, session, ty, &offset)
+        let offset = XRRigidTransform::identity(window, can_gc);
+        Self::new_offset(&window.global(), session, ty, &offset, can_gc)
     }
 
     #[allow(unused)]
-    pub fn new_offset(
+    pub(crate) fn new_offset(
         global: &GlobalScope,
         session: &XRSession,
         ty: XRReferenceSpaceType,
         offset: &XRRigidTransform,
+        can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpace> {
         reflect_dom_object(
             Box::new(XRReferenceSpace::new_inherited(session, offset, ty)),
             global,
+            can_gc,
         )
     }
 
-    pub fn space(&self) -> Space {
+    pub(crate) fn space(&self) -> Space {
         let base = match self.ty {
             XRReferenceSpaceType::Local => webxr_api::BaseSpace::Local,
             XRReferenceSpaceType::Viewer => webxr_api::BaseSpace::Viewer,
@@ -74,7 +77,7 @@ impl XRReferenceSpace {
         Space { base, offset }
     }
 
-    pub fn ty(&self) -> XRReferenceSpaceType {
+    pub(crate) fn ty(&self) -> XRReferenceSpaceType {
         self.ty
     }
 }
@@ -83,12 +86,13 @@ impl XRReferenceSpaceMethods<crate::DomTypeHolder> for XRReferenceSpace {
     /// <https://immersive-web.github.io/webxr/#dom-xrreferencespace-getoffsetreferencespace>
     fn GetOffsetReferenceSpace(&self, new: &XRRigidTransform, can_gc: CanGc) -> DomRoot<Self> {
         let offset = new.transform().then(&self.offset.transform());
-        let offset = XRRigidTransform::new(&self.global(), offset, can_gc);
+        let offset = XRRigidTransform::new(self.global().as_window(), offset, can_gc);
         Self::new_offset(
             &self.global(),
             self.upcast::<XRSpace>().session(),
             self.ty,
             &offset,
+            CanGc::note(),
         )
     }
 
@@ -101,7 +105,7 @@ impl XRReferenceSpace {
     ///
     /// This is equivalent to `get_pose(self).inverse()` (in column vector notation),
     /// but with better types
-    pub fn get_base_transform(&self, base_pose: &Frame) -> Option<BaseTransform> {
+    pub(crate) fn get_base_transform(&self, base_pose: &Frame) -> Option<BaseTransform> {
         let pose = self.get_pose(base_pose)?;
         Some(pose.inverse().cast_unit())
     }
@@ -111,7 +115,7 @@ impl XRReferenceSpace {
     /// The reference origin used is common between all
     /// get_pose calls for spaces from the same device, so this can be used to compare
     /// with other spaces
-    pub fn get_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
+    pub(crate) fn get_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
         let pose = self.get_unoffset_pose(base_pose)?;
         let offset = self.offset.transform();
         // pose is a transform from the unoffset space to native space,
@@ -124,7 +128,7 @@ impl XRReferenceSpace {
     /// Gets pose represented by this space
     ///
     /// Does not apply originOffset, use get_viewer_pose instead if you need it
-    pub fn get_unoffset_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
+    pub(crate) fn get_unoffset_pose(&self, base_pose: &Frame) -> Option<ApiPose> {
         match self.ty {
             XRReferenceSpaceType::Local => {
                 // The eye-level pose is basically whatever the headset pose was at t=0, which
@@ -145,7 +149,7 @@ impl XRReferenceSpace {
         }
     }
 
-    pub fn get_bounds(&self) -> Option<Vec<Point2D<f32, Floor>>> {
+    pub(crate) fn get_bounds(&self) -> Option<Vec<Point2D<f32, Floor>>> {
         self.upcast::<XRSpace>()
             .session()
             .with_session(|s| s.reference_space_bounds())

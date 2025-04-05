@@ -355,6 +355,72 @@ Sources:
           assert_not_own_property(headers, 'sec-fetch-user');
         });
   }, 'sec-fetch-user - Not sent to non-trustworthy cross-site destination - history.forward');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpOrigin'], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-origin destination - history.back');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpOrigin'], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-origin destination - history.forward');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpSameSite'], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-site destination - history.back');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpSameSite'], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-site destination - history.forward');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpCrossSite'], responseParams);
+
+    return induceBackRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy cross-site destination - history.back');
+
+  promise_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpCrossSite'], responseParams);
+
+    return induceForwardRequest(url, t, () => retrieve(key))
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy cross-site destination - history.forward');
   </script>
   </body>
 </html>

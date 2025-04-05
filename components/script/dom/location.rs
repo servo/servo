@@ -4,13 +4,13 @@
 
 use dom_struct::dom_struct;
 use net_traits::request::Referrer;
-use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
+use script_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::document::Document;
@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[derive(PartialEq)]
-pub enum NavigationType {
+pub(crate) enum NavigationType {
     /// The "[`Location`-object navigate][1]" steps.
     ///
     /// [1]: https://html.spec.whatwg.org/multipage/#location-object-navigate
@@ -44,7 +44,7 @@ pub enum NavigationType {
 }
 
 #[dom_struct]
-pub struct Location {
+pub(crate) struct Location {
     reflector_: Reflector,
     window: Dom<Window>,
 }
@@ -57,15 +57,15 @@ impl Location {
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<Location> {
-        reflect_dom_object(Box::new(Location::new_inherited(window)), window)
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<Location> {
+        reflect_dom_object(Box::new(Location::new_inherited(window)), window, can_gc)
     }
 
     /// Navigate the relevant `Document`'s browsing context.
-    pub fn navigate(
+    pub(crate) fn navigate(
         &self,
         url: ServoUrl,
-        replacement_flag: HistoryEntryReplacement,
+        history_handling: NavigationHistoryBehavior,
         navigation_type: NavigationType,
         can_gc: CanGc,
     ) {
@@ -125,9 +125,11 @@ impl Location {
             referrer,
             referrer_policy,
             None, // Top navigation doesn't inherit secure context
+            Some(source_document.insecure_requests_policy()),
+            source_document.has_trustworthy_ancestor_origin(),
         );
         self.window
-            .load_url(replacement_flag, reload_triggered, load_data, can_gc);
+            .load_url(history_handling, reload_triggered, load_data, can_gc);
     }
 
     /// Get if this `Location`'s [relevant `Document`][1] is non-null.
@@ -229,7 +231,7 @@ impl Location {
                 // Step 6: Location-object navigate to copyURL.
                 self.navigate(
                     copy_url,
-                    HistoryEntryReplacement::Disabled,
+                    NavigationHistoryBehavior::Push,
                     NavigationType::Normal,
                     can_gc,
                 );
@@ -242,7 +244,7 @@ impl Location {
     /// [`reload()`][1]).
     ///
     /// [1]: https://html.spec.whatwg.org/multipage/#dom-location-reload
-    pub fn reload_without_origin_check(&self, can_gc: CanGc) {
+    pub(crate) fn reload_without_origin_check(&self, can_gc: CanGc) {
         // > When a user requests that the active document of a browsing context
         // > be reloaded through a user interface element, the user agent should
         // > navigate the browsing context to the same resource as that
@@ -250,14 +252,14 @@ impl Location {
         let url = self.window.get_url();
         self.navigate(
             url,
-            HistoryEntryReplacement::Enabled,
+            NavigationHistoryBehavior::Replace,
             NavigationType::ReloadByConstellation,
             can_gc,
         );
     }
 
     #[allow(dead_code)]
-    pub fn origin(&self) -> &MutableOrigin {
+    pub(crate) fn origin(&self) -> &MutableOrigin {
         self.window.origin()
     }
 }
@@ -286,7 +288,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
         let url = self.get_url_if_same_origin()?;
         self.navigate(
             url,
-            HistoryEntryReplacement::Enabled,
+            NavigationHistoryBehavior::Replace,
             NavigationType::ReloadByScript,
             can_gc,
         );
@@ -308,7 +310,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             // the replacement flag set.
             self.navigate(
                 url,
-                HistoryEntryReplacement::Enabled,
+                NavigationHistoryBehavior::Replace,
                 NavigationType::Normal,
                 can_gc,
             );
@@ -420,7 +422,7 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             // Step 3: Location-object navigate to the resulting URL record.
             self.navigate(
                 url,
-                HistoryEntryReplacement::Disabled,
+                NavigationHistoryBehavior::Push,
                 NavigationType::Normal,
                 can_gc,
             );

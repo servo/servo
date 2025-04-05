@@ -17,7 +17,7 @@ use crate::script_runtime::CanGc;
 
 /// <https://gpuweb.github.io/gpuweb/#gpupipelineerror>
 #[dom_struct]
-pub struct GPUPipelineError {
+pub(crate) struct GPUPipelineError {
     exception: DOMException,
     reason: GPUPipelineErrorReason,
 }
@@ -30,7 +30,7 @@ impl GPUPipelineError {
         }
     }
 
-    pub fn new_with_proto(
+    pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,
@@ -45,7 +45,7 @@ impl GPUPipelineError {
         )
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         message: DOMString,
         reason: GPUPipelineErrorReason,

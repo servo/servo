@@ -11,8 +11,15 @@
 <script>
 test_invalid_value("corner-shape", "auto");
 test_invalid_value("corner-shape", "none");
-test_invalid_value("corner-shape", "scoop");
 test_invalid_value("corner-shape", "10px");
 test_invalid_value("corner-shape", "10%");
 test_invalid_value("corner-shape", "round round round round round");
+test_invalid_value("corner-shape", "superellipse(8 8)");
+test_invalid_value("corner-shape", "superellipse(,)");
+test_invalid_value("corner-shape", "superellipse(4,0.1)");
+test_invalid_value("corner-shape", "superellipse(foo)");
+test_invalid_value("corner-shape", "superellipse(1 abc)");
+test_invalid_value("corner-shape", "superellipse(1) / bevel");
+test_invalid_value("corner-shape", "superellipse(1) / superellipse(3)");
+test_invalid_value("corner-shape", "superellipse(1), superellipse(3)");
 </script>

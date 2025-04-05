@@ -46,10 +46,13 @@
 //!   Note: WebRender has a reduced fork of this crate, so that we can avoid
 //!   publishing this crate on crates.io.
 
+use std::cell::OnceCell;
+use std::collections::BinaryHeap;
 use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
+use std::sync::Arc;
 
-pub use style_malloc_size_of::MallocSizeOfOps;
+pub use stylo_malloc_size_of::MallocSizeOfOps;
 use uuid::Uuid;
 
 /// Trait for measuring the "deep" heap usage of a data structure. This is the
@@ -137,8 +140,8 @@ macro_rules! malloc_size_of_is_0(
 
 impl MallocSizeOf for keyboard_types::Key {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match self {
-            keyboard_types::Key::Character(ref string) => {
+        match &self {
+            keyboard_types::Key::Character(string) => {
                 <String as MallocSizeOf>::size_of(string, ops)
             },
             _ => 0,
@@ -158,7 +161,7 @@ impl MallocSizeOf for String {
     }
 }
 
-impl<'a, T: ?Sized> MallocSizeOf for &'a T {
+impl<T: ?Sized> MallocSizeOf for &'_ T {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // Zero makes sense for a non-owning reference.
         0
@@ -247,7 +250,7 @@ impl<T: MallocSizeOf> MallocSizeOf for std::cell::RefCell<T> {
     }
 }
 
-impl<'a, B: ?Sized + ToOwned> MallocSizeOf for std::borrow::Cow<'a, B>
+impl<B: ?Sized + ToOwned> MallocSizeOf for std::borrow::Cow<'_, B>
 where
     B::Owned: MallocSizeOf,
 {
@@ -348,6 +351,12 @@ impl<T: MallocSizeOf> MallocSizeOf for thin_vec::ThinVec<T> {
             n += elem.size_of(ops);
         }
         n
+    }
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for BinaryHeap<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.iter().map(|element| element.size_of(ops)).sum()
     }
 }
 
@@ -468,6 +477,14 @@ impl<T> MallocSizeOf for std::marker::PhantomData<T> {
     }
 }
 
+impl<T: MallocSizeOf> MallocSizeOf for OnceCell<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.get()
+            .map(|interior| interior.size_of(ops))
+            .unwrap_or_default()
+    }
+}
+
 // See https://github.com/rust-lang/rust/issues/68318:
 // We don't want MallocSizeOf to be defined for Rc and Arc. If negative trait bounds are
 // ever allowed, this code should be uncommented.  Instead, there is a compile-fail test for
@@ -500,6 +517,38 @@ impl<T> MallocConditionalShallowSizeOf for servo_arc::Arc<T> {
 impl<T: MallocSizeOf> MallocConditionalSizeOf for servo_arc::Arc<T> {
     fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if ops.have_seen_ptr(self.heap_ptr()) {
+            0
+        } else {
+            self.unconditional_size_of(ops)
+        }
+    }
+}
+
+impl<T> MallocUnconditionalShallowSizeOf for Arc<T> {
+    fn unconditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        unsafe { ops.malloc_size_of(Arc::as_ptr(self)) }
+    }
+}
+
+impl<T: MallocSizeOf> MallocUnconditionalSizeOf for Arc<T> {
+    fn unconditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.unconditional_shallow_size_of(ops) + (**self).size_of(ops)
+    }
+}
+
+impl<T> MallocConditionalShallowSizeOf for Arc<T> {
+    fn conditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if ops.have_seen_ptr(Arc::as_ptr(self)) {
+            0
+        } else {
+            self.unconditional_shallow_size_of(ops)
+        }
+    }
+}
+
+impl<T: MallocSizeOf> MallocConditionalSizeOf for Arc<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if ops.have_seen_ptr(Arc::as_ptr(self)) {
             0
         } else {
             self.unconditional_size_of(ops)
@@ -599,6 +648,14 @@ impl MallocSizeOf for url::Host {
     }
 }
 
+impl MallocSizeOf for url::Url {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // TODO: This is an estimate, but a real size should be calculated in `rust-url` once
+        // it has support for `malloc_size_of`.
+        self.to_string().size_of(ops)
+    }
+}
+
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Vector2D<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.x.size_of(ops) + self.y.size_of(ops)
@@ -620,6 +677,12 @@ impl<T> MallocSizeOf for crossbeam_channel::Sender<T> {
 }
 
 impl<T> MallocSizeOf for tokio::sync::mpsc::UnboundedSender<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
+impl<T> MallocSizeOf for ipc_channel::ipc::IpcSender<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0
     }
@@ -656,6 +719,8 @@ malloc_size_of_is_0!(std::sync::atomic::AtomicUsize);
 malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
+malloc_size_of_is_0!(style::font_face::SourceList);
+malloc_size_of_is_0!(style::queries::values::PrefersColorScheme);
 
 macro_rules! malloc_size_of_is_webrender_malloc_size_of(
     ($($ty:ty),+) => (
@@ -685,12 +750,12 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::MixBlendMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::NormalBorder);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::RepeatMode);
 
-macro_rules! malloc_size_of_is_style_malloc_size_of(
+macro_rules! malloc_size_of_is_stylo_malloc_size_of(
     ($($ty:ty),+) => (
         $(
             impl MallocSizeOf for $ty {
                 fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-                    <$ty as style_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+                    <$ty as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
                 }
             }
         )+
@@ -701,10 +766,10 @@ impl<S> MallocSizeOf for style::author_styles::GenericAuthorStyles<S>
 where
     S: style::stylesheets::StylesheetInDocument
         + std::cmp::PartialEq
-        + style_malloc_size_of::MallocSizeOf,
+        + stylo_malloc_size_of::MallocSizeOf,
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        <style::author_styles::GenericAuthorStyles<S> as style_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+        <style::author_styles::GenericAuthorStyles<S> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
     }
 }
 
@@ -712,30 +777,30 @@ impl<S> MallocSizeOf for style::stylesheet_set::DocumentStylesheetSet<S>
 where
     S: style::stylesheets::StylesheetInDocument
         + std::cmp::PartialEq
-        + style_malloc_size_of::MallocSizeOf,
+        + stylo_malloc_size_of::MallocSizeOf,
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        <style::stylesheet_set::DocumentStylesheetSet<S> as style_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+        <style::stylesheet_set::DocumentStylesheetSet<S> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
     }
 }
 
-malloc_size_of_is_style_malloc_size_of!(style::animation::DocumentAnimationSet);
-malloc_size_of_is_style_malloc_size_of!(style::attr::AttrIdentifier);
-malloc_size_of_is_style_malloc_size_of!(style::attr::AttrValue);
-malloc_size_of_is_style_malloc_size_of!(style::color::AbsoluteColor);
-malloc_size_of_is_style_malloc_size_of!(style::computed_values::font_variant_caps::T);
-malloc_size_of_is_style_malloc_size_of!(style::dom::OpaqueNode);
-malloc_size_of_is_style_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
-malloc_size_of_is_style_malloc_size_of!(style::media_queries::MediaList);
-malloc_size_of_is_style_malloc_size_of!(style::properties::style_structs::Font);
-malloc_size_of_is_style_malloc_size_of!(style::selector_parser::PseudoElement);
-malloc_size_of_is_style_malloc_size_of!(style::selector_parser::RestyleDamage);
-malloc_size_of_is_style_malloc_size_of!(style::selector_parser::Snapshot);
-malloc_size_of_is_style_malloc_size_of!(style::shared_lock::SharedRwLock);
-malloc_size_of_is_style_malloc_size_of!(style::stylesheets::DocumentStyleSheet);
-malloc_size_of_is_style_malloc_size_of!(style::stylist::Stylist);
-malloc_size_of_is_style_malloc_size_of!(style::values::computed::FontStretch);
-malloc_size_of_is_style_malloc_size_of!(style::values::computed::FontStyle);
-malloc_size_of_is_style_malloc_size_of!(style::values::computed::FontWeight);
-malloc_size_of_is_style_malloc_size_of!(style::values::computed::font::SingleFontFamily);
-malloc_size_of_is_style_malloc_size_of!(style_dom::ElementState);
+malloc_size_of_is_stylo_malloc_size_of!(style::animation::DocumentAnimationSet);
+malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrIdentifier);
+malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrValue);
+malloc_size_of_is_stylo_malloc_size_of!(style::color::AbsoluteColor);
+malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_caps::T);
+malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
+malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
+malloc_size_of_is_stylo_malloc_size_of!(style::media_queries::MediaList);
+malloc_size_of_is_stylo_malloc_size_of!(style::properties::style_structs::Font);
+malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::PseudoElement);
+malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::RestyleDamage);
+malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::Snapshot);
+malloc_size_of_is_stylo_malloc_size_of!(style::shared_lock::SharedRwLock);
+malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::DocumentStyleSheet);
+malloc_size_of_is_stylo_malloc_size_of!(style::stylist::Stylist);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStretch);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStyle);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontWeight);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::font::SingleFontFamily);
+malloc_size_of_is_stylo_malloc_size_of!(stylo_dom::ElementState);

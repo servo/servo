@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use core::convert::Infallible;
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
@@ -16,7 +15,8 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
     HttpResponse as DevtoolsHttpResponse, NetworkEvent,
 };
-use futures::{future, StreamExt, TryFutureExt, TryStreamExt};
+use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy};
+use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
@@ -25,13 +25,18 @@ use headers::{
     IfModifiedSince, LastModified, Pragma, Referer, UserAgent,
 };
 use http::header::{
-    self, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
-    CONTENT_TYPE,
+    self, ACCEPT, AUTHORIZATION, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
+    CONTENT_TYPE, HeaderValue, RANGE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
+use http_body_util::combinators::BoxBody;
+use http_body_util::{BodyExt, Full};
+use hyper::Response as HyperResponse;
+use hyper::body::{Bytes, Frame};
+use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
-use hyper::{Body, Client, Response as HyperResponse};
 use hyper_serde::Serde;
+use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
@@ -39,43 +44,37 @@ use net_traits::http_status::HttpStatus;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
-    get_cors_unsafe_header_names, is_cors_non_wildcard_request_header_name,
-    is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
-    BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator, Origin, RedirectMode,
-    Referrer, Request, RequestBuilder, RequestMode, ResponseTainting, ServiceWorkersMode,
-    Window as RequestWindow,
+    BodyChunkRequest, BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator,
+    Origin, RedirectMode, Referrer, Request, RequestBuilder, RequestMode, ResponseTainting,
+    ServiceWorkersMode, Window as RequestWindow, get_cors_unsafe_header_names,
+    is_cors_non_wildcard_request_header_name, is_cors_safelisted_method,
+    is_cors_safelisted_request_header,
 };
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
-    CookieSource, FetchMetadata, NetworkError, RedirectEndValue, RedirectStartValue,
-    ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
+    CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
+    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{
-    channel, unbounded_channel, Receiver as TokioReceiver, Sender as TokioSender,
-    UnboundedReceiver, UnboundedSender,
+    Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
+    unbounded_channel,
 };
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::async_runtime::HANDLE;
-use crate::connector::{
-    create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
-    Connector,
-};
+use crate::connector::{CertificateErrorOverrideManager, Connector};
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
-use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target};
+use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
-use crate::resource_thread::AuthCache;
-
-/// <https://fetch.spec.whatwg.org/#document-accept-header-value>
-pub const DOCUMENT_ACCEPT_HEADER_VALUE: HeaderValue =
-    HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+use crate::resource_thread::{AuthCache, AuthCacheEntry};
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -100,27 +99,35 @@ pub struct HttpState {
     pub http_cache_state: HttpCacheState,
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
-    pub client: Client<Connector, Body>,
+    pub client: Client<Connector, crate::connector::BoxedBody>,
     pub override_manager: CertificateErrorOverrideManager,
+    pub embedder_proxy: Mutex<EmbedderProxy>,
 }
 
-impl Default for HttpState {
-    fn default() -> Self {
-        let override_manager = CertificateErrorOverrideManager::new();
-        Self {
-            hsts_list: RwLock::new(HstsList::default()),
-            cookie_jar: RwLock::new(CookieStorage::new(150)),
-            auth_cache: RwLock::new(AuthCache::default()),
-            history_states: RwLock::new(HashMap::new()),
-            http_cache: RwLock::new(HttpCache::default()),
-            http_cache_state: Mutex::new(HashMap::new()),
-            client: create_http_client(create_tls_config(
-                CACertificates::Default,
-                false, /* ignore_certificate_errors */
-                override_manager.clone(),
-            )),
-            override_manager,
+impl HttpState {
+    fn request_authentication(
+        &self,
+        request: &Request,
+        response: &Response,
+    ) -> Option<AuthenticationResponse> {
+        // We do not make an authentication request for non-WebView associated HTTP requests.
+        let webview_id = request.target_webview_id?;
+        let for_proxy = response.status == StatusCode::PROXY_AUTHENTICATION_REQUIRED;
+
+        // If this is not actually a navigation request return None.
+        if request.mode != RequestMode::Navigate {
+            return None;
         }
+
+        let embedder_proxy = self.embedder_proxy.lock().unwrap();
+        let (ipc_sender, ipc_receiver) = ipc::channel().unwrap();
+        embedder_proxy.send(EmbedderMsg::RequestAuthentication(
+            webview_id,
+            request.url(),
+            for_proxy,
+            ipc_sender,
+        ));
+        ipc_receiver.recv().ok()?
     }
 }
 
@@ -158,18 +165,6 @@ fn set_default_accept_encoding(headers: &mut HeaderMap) {
     headers.insert(
         header::ACCEPT_ENCODING,
         HeaderValue::from_static("gzip, deflate, br"),
-    );
-}
-
-pub fn set_default_accept_language(headers: &mut HeaderMap) {
-    if headers.contains_key(header::ACCEPT_LANGUAGE) {
-        return;
-    }
-
-    // TODO(eijebong): Change this once typed headers are done
-    headers.insert(
-        header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US,en;q=0.5"),
     );
 }
 
@@ -458,7 +453,7 @@ enum BodyChunk {
 enum BodyStream {
     /// A receiver that can be used in Body::wrap_stream,
     /// for streaming the request over the network.
-    Chunked(TokioReceiver<Vec<u8>>),
+    Chunked(TokioReceiver<Result<Frame<Bytes>, hyper::Error>>),
     /// A body whose bytes are buffered
     /// and sent in one chunk over the network.
     Buffered(UnboundedReceiver<BodyChunk>),
@@ -468,7 +463,7 @@ enum BodyStream {
 /// used to enqueue chunks.
 enum BodySink {
     /// A Tokio sender used to feed chunks to the network stream.
-    Chunked(TokioSender<Vec<u8>>),
+    Chunked(TokioSender<Result<Frame<Bytes>, hyper::Error>>),
     /// A Crossbeam sender used to send chunks to the fetch worker,
     /// where they will be buffered
     /// in order to ensure they are not streamed them over the network.
@@ -478,13 +473,13 @@ enum BodySink {
 impl BodySink {
     fn transmit_bytes(&self, bytes: Vec<u8>) {
         match self {
-            BodySink::Chunked(ref sender) => {
+            BodySink::Chunked(sender) => {
                 let sender = sender.clone();
                 HANDLE.lock().unwrap().as_mut().unwrap().spawn(async move {
-                    let _ = sender.send(bytes).await;
+                    let _ = sender.send(Ok(Frame::data(bytes.into()))).await;
                 });
             },
-            BodySink::Buffered(ref sender) => {
+            BodySink::Buffered(sender) => {
                 let _ = sender.send(BodyChunk::Chunk(bytes));
             },
         }
@@ -493,7 +488,7 @@ impl BodySink {
     fn close(&self) {
         match self {
             BodySink::Chunked(_) => { /* no need to close sender */ },
-            BodySink::Buffered(ref sender) => {
+            BodySink::Buffered(sender) => {
                 let _ = sender.send(BodyChunk::Done);
             },
         }
@@ -502,7 +497,7 @@ impl BodySink {
 
 #[allow(clippy::too_many_arguments)]
 async fn obtain_response(
-    client: &Client<Connector, Body>,
+    client: &Client<Connector, crate::connector::BoxedBody>,
     url: &ServoUrl,
     method: &Method,
     request_headers: &mut HeaderMap,
@@ -584,7 +579,7 @@ async fn obtain_response(
                         },
                     };
 
-                    devtools_bytes.lock().unwrap().append(&mut bytes.clone());
+                    devtools_bytes.lock().unwrap().extend_from_slice(&bytes);
 
                     // Step 5.1.2.2, transmit chunk over the network,
                     // currently implemented by sending the bytes to the fetch worker.
@@ -602,7 +597,7 @@ async fn obtain_response(
             let body = match stream {
                 BodyStream::Chunked(receiver) => {
                     let stream = ReceiverStream::new(receiver);
-                    Body::wrap_stream(stream.map(Ok::<_, Infallible>))
+                    BoxBody::new(http_body_util::StreamBody::new(stream))
                 },
                 BodyStream::Buffered(mut receiver) => {
                     // Accumulate bytes received over IPC into a vector.
@@ -616,7 +611,7 @@ async fn obtain_response(
                             None => warn!("Failed to read all chunks from request body."),
                         }
                     }
-                    body.into()
+                    Full::new(body.into()).map_err(|_| unreachable!()).boxed()
                 },
             };
             HyperRequest::builder()
@@ -627,7 +622,11 @@ async fn obtain_response(
             HyperRequest::builder()
                 .method(method)
                 .uri(encoded_url)
-                .body(Body::empty())
+                .body(
+                    http_body_util::Empty::new()
+                        .map_err(|_| unreachable!())
+                        .boxed(),
+                )
         };
 
         context
@@ -712,7 +711,11 @@ async fn obtain_response(
                     debug!("Not notifying devtools (no request_id)");
                     None
                 };
-                future::ready(Ok((Decoder::detect(res, is_secure_scheme), msg)))
+
+                future::ready(Ok((
+                    Decoder::detect(res.map(|r| r.boxed()), is_secure_scheme),
+                    msg,
+                )))
             })
             .map_err(move |error| {
                 NetworkError::from_hyper_error(
@@ -728,7 +731,7 @@ async fn obtain_response(
 #[async_recursion]
 #[allow(clippy::too_many_arguments)]
 pub async fn http_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     cors_flag: bool,
     cors_preflight_flag: bool,
@@ -739,11 +742,12 @@ pub async fn http_fetch(
 ) -> Response {
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
-    // Step 1
-    let mut response: Option<Response> = None;
+    // Step 1 Let request be fetchParams’s request.
+    let request = &mut fetch_params.request;
 
     // Step 2
-    // nothing to do, since actual_response is a function on response
+    // Let response and internalResponse be null.
+    let mut response: Option<Response> = None;
 
     // Step 3
     if request.service_workers_mode == ServiceWorkersMode::All {
@@ -777,12 +781,12 @@ pub async fn http_fetch(
     if response.is_none() {
         // Substep 1
         if cors_preflight_flag {
-            let method_cache_match = cache.match_method(&*request, request.method.clone());
+            let method_cache_match = cache.match_method(request, request.method.clone());
 
             let method_mismatch = !method_cache_match &&
                 (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
             let header_mismatch = request.headers.iter().any(|(name, value)| {
-                !cache.match_header(&*request, name) &&
+                !cache.match_header(request, name) &&
                     !is_cors_safelisted_request_header(&name, &value)
             });
 
@@ -811,7 +815,7 @@ pub async fn http_fetch(
             .set_attribute(ResourceAttribute::RequestStart);
 
         let mut fetch_result = http_network_or_cache_fetch(
-            request,
+            fetch_params,
             authentication_fetch_flag,
             cors_flag,
             done_chan,
@@ -820,13 +824,15 @@ pub async fn http_fetch(
         .await;
 
         // Substep 4
-        if cors_flag && cors_check(request, &fetch_result).is_err() {
+        if cors_flag && cors_check(&fetch_params.request, &fetch_result).is_err() {
             return Response::network_error(NetworkError::Internal("CORS check failed".into()));
         }
 
         fetch_result.return_internal = false;
         response = Some(fetch_result);
     }
+
+    let request = &mut fetch_params.request;
 
     // response is guaranteed to be something by now
     let mut response = response.unwrap();
@@ -878,7 +884,13 @@ pub async fn http_fetch(
                 // set back to default
                 response.return_internal = true;
                 http_redirect_fetch(
-                    request, cache, response, cors_flag, target, done_chan, context,
+                    fetch_params,
+                    cache,
+                    response,
+                    cors_flag,
+                    target,
+                    done_chan,
+                    context,
                 )
                 .await
             },
@@ -892,7 +904,7 @@ pub async fn http_fetch(
         .lock()
         .unwrap()
         .set_attribute(ResourceAttribute::RedirectCount(
-            request.redirect_count as u16,
+            fetch_params.request.redirect_count as u16,
         ));
 
     response.resource_timing = Arc::clone(&context.timing);
@@ -925,7 +937,7 @@ impl Drop for RedirectEndTimer {
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
 #[async_recursion]
 pub async fn http_redirect_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     cache: &mut CorsCache,
     response: Response,
     cors_flag: bool,
@@ -935,7 +947,9 @@ pub async fn http_redirect_fetch(
 ) -> Response {
     let mut redirect_end_timer = RedirectEndTimer(Some(context.timing.clone()));
 
-    // Step 1
+    // Step 1: Let request be fetchParams’s request.
+    let request = &mut fetch_params.request;
+
     assert!(response.return_internal);
 
     let location_url = response.actual_response().location_url.clone();
@@ -996,7 +1010,7 @@ pub async fn http_redirect_fetch(
     // Step 8: Increase request’s redirect count by 1.
     request.redirect_count += 1;
 
-    // Step 7
+    // Step 9
     let same_origin = match request.origin {
         Origin::Origin(ref origin) => *origin == location_url.origin(),
         Origin::Client => panic!(
@@ -1086,8 +1100,15 @@ pub async fn http_redirect_fetch(
     let recursive_flag = request.redirect_mode != RedirectMode::Manual;
 
     // Step 22: Return the result of running main fetch given fetchParams and recursive.
-    let fetch_response =
-        main_fetch(request, cache, recursive_flag, target, done_chan, context).await;
+    let fetch_response = main_fetch(
+        fetch_params,
+        cache,
+        recursive_flag,
+        target,
+        done_chan,
+        context,
+    )
+    .await;
 
     // TODO: timing allow check
     context
@@ -1102,20 +1123,23 @@ pub async fn http_redirect_fetch(
     fetch_response
 }
 
-/// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
+/// [HTTP network or cache fetch](https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch)
 #[async_recursion]
 async fn http_network_or_cache_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     authentication_fetch_flag: bool,
     cors_flag: bool,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
     // Step 1. Let request be fetchParams’s request.
-    // NOTE: We get request as an argument (Fetchparams are not implemented, see #33616)
+    let request = &mut fetch_params.request;
 
-    // Step 3. Let httpRequest be null.
-    let mut http_request;
+    // Step 2. Let httpFetchParams be null.
+    let http_fetch_params: &mut FetchParams;
+    let mut fetch_params_copy: FetchParams;
+
+    // Step 3. Let httpRequest be null. (See step 8 for initialization)
 
     // Step 4. Let response be null.
     let mut response: Option<Response> = None;
@@ -1129,15 +1153,17 @@ async fn http_network_or_cache_fetch(
     let request_has_no_window = request.window == RequestWindow::NoWindow;
 
     let http_request = if request_has_no_window && request.redirect_mode == RedirectMode::Error {
-        request
+        http_fetch_params = fetch_params;
+        &mut http_fetch_params.request
     }
     // Step 8.2 Otherwise:
     else {
-        // Step 8.2.1: Set httpRequest to a clone of request.
-        http_request = request.clone();
+        // Step 8.2.1 - 8.2.3: Set httpRequest to a clone of request
+        // and Set httpFetchParams to a copy of fetchParams.
+        fetch_params_copy = fetch_params.clone();
+        http_fetch_params = &mut fetch_params_copy;
 
-        // TODO(#33616): Step 8.2.2-8.2.3
-        &mut http_request
+        &mut http_fetch_params.request
     };
 
     // Step 8.3: Let includeCredentials be true if one of:
@@ -1229,10 +1255,9 @@ async fn http_network_or_cache_fetch(
     // Step 8.15: If httpRequest’s header list does not contain `User-Agent`, then user agents
     // should append (`User-Agent`, default `User-Agent` value) to httpRequest’s header list.
     if !http_request.headers.contains_key(header::USER_AGENT) {
-        let user_agent = context.user_agent.clone().into_owned();
         http_request
             .headers
-            .typed_insert::<UserAgent>(user_agent.parse().unwrap());
+            .typed_insert::<UserAgent>(context.user_agent.parse().unwrap());
     }
 
     // Steps 8.16 to 8.18
@@ -1514,8 +1539,9 @@ async fn http_network_or_cache_fetch(
         // Step 10.2 Let forwardResponse be the result of running HTTP-network fetch given httpFetchParams,
         // includeCredentials, and isNewConnectionFetch.
         let forward_response =
-            http_network_fetch(http_request, include_credentials, done_chan, context).await;
+            http_network_fetch(http_fetch_params, include_credentials, done_chan, context).await;
 
+        let http_request = &mut http_fetch_params.request;
         // Step 10.3 If httpRequest’s method is unsafe and forwardResponse’s status is in the range 200 to 399,
         // inclusive, invalidate appropriate stored responses in httpCache, as per the
         // "Invalidating Stored Responses" chapter of HTTP Caching, and set storedResponse to null.
@@ -1552,6 +1578,8 @@ async fn http_network_or_cache_fetch(
             }
         }
     }
+
+    let http_request = &mut http_fetch_params.request;
     // The cache has been updated, set its state to ready to construct.
     update_http_cache_state(context, http_request);
 
@@ -1569,8 +1597,12 @@ async fn http_network_or_cache_fetch(
     }
 
     // TODO(#33616): Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
-    // TODO(#33616): Step 12. If httpRequest’s header list contains `Range`,
-    // then set response’s range-requested flag.
+
+    // Step 12. If httpRequest’s header list contains `Range`, then set response’s range-requested flag.
+    if http_request.headers.contains_key(RANGE) {
+        response.range_requested = true;
+    }
+
     // TODO(#33616): Step 13 Set response’s request-includes-credentials to includeCredentials.
 
     // Step 14. If response’s status is 401, httpRequest’s response tainting is not "cors",
@@ -1581,19 +1613,34 @@ async fn http_network_or_cache_fetch(
     {
         // TODO: Step 14.1 Spec says requires testing on multiple WWW-Authenticate headers
 
+        let request = &mut fetch_params.request;
+
         // Step 14.2 If request’s body is non-null, then:
-        if http_request.body.is_some() {
+        if request.body.is_some() {
             // TODO Implement body source
         }
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
-        if !http_request.use_url_credentials || authentication_fetch_flag {
-            // TODO(#33616, #27439): Prompt the user for username and password from the window
+        if !request.use_url_credentials || authentication_fetch_flag {
+            let Some(credentials) = context.state.request_authentication(request, &response) else {
+                return response;
+            };
 
-            // Wrong, but will have to do until we are able to prompt the user
-            // otherwise this creates an infinite loop
-            // We basically pretend that the user declined to enter credentials (#33616)
-            return response;
+            if let Err(err) = request
+                .current_url_mut()
+                .set_username(&credentials.username)
+            {
+                error!("error setting username for url: {:?}", err);
+                return response;
+            };
+
+            if let Err(err) = request
+                .current_url_mut()
+                .set_password(Some(&credentials.password))
+            {
+                error!("error setting password for url: {:?}", err);
+                return response;
+            };
         }
 
         // Make sure this is set to None,
@@ -1602,7 +1649,7 @@ async fn http_network_or_cache_fetch(
 
         // Step 14.4 Set response to the result of running HTTP-network-or-cache fetch given fetchParams and true.
         response = http_network_or_cache_fetch(
-            http_request,
+            fetch_params,
             true, /* authentication flag */
             cors_flag,
             done_chan,
@@ -1613,6 +1660,7 @@ async fn http_network_or_cache_fetch(
 
     // Step 15. If response’s status is 407, then:
     if response.status == StatusCode::PROXY_AUTHENTICATION_REQUIRED {
+        let request = &mut fetch_params.request;
         // Step 15.1 If request’s window is "no-window", then return a network error.
 
         if request_has_no_window {
@@ -1625,15 +1673,37 @@ async fn http_network_or_cache_fetch(
 
         // TODO(#33616): Step 15.3 If fetchParams is canceled, then return
         // the appropriate network error for fetchParams.
-        // TODO(#33616): Step 15.4 Prompt the end user as appropriate in request’s window and store the
-        // result as a proxy-authentication entry.
+
+        // Step 15.4 Prompt the end user as appropriate in request’s window
+        // window and store the result as a proxy-authentication entry.
+        let Some(credentials) = context.state.request_authentication(request, &response) else {
+            return response;
+        };
+
+        // Store the credentials as a proxy-authentication entry.
+        let entry = AuthCacheEntry {
+            user_name: credentials.username,
+            password: credentials.password,
+        };
+        {
+            let mut auth_cache = context.state.auth_cache.write().unwrap();
+            let key = request.current_url().origin().ascii_serialization();
+            auth_cache.entries.insert(key, entry);
+        }
+
+        // Make sure this is set to None,
+        // since we're about to start a new `http_network_or_cache_fetch`.
+        *done_chan = None;
 
         // Step 15.5 Set response to the result of running HTTP-network-or-cache fetch given fetchParams.
-
-        // Wrong, but will have to do until we are able to prompt the user
-        // otherwise this creates an infinite loop
-        // We basically pretend that the user declined to enter credentials (#33616)
-        return response;
+        response = http_network_or_cache_fetch(
+            fetch_params,
+            false, /* authentication flag */
+            cors_flag,
+            done_chan,
+            context,
+        )
+        .await;
     }
 
     // TODO(#33616): Step 16. If all of the following are true:
@@ -1737,15 +1807,15 @@ impl Drop for ResponseEndTimer {
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
 async fn http_network_fetch(
-    request: &mut Request,
+    fetch_params: &mut FetchParams,
     credentials_flag: bool,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
     let mut response_end_timer = ResponseEndTimer(Some(context.timing.clone()));
 
-    // Step 1
-    // nothing to do here, since credentials_flag is already a boolean
+    // Step 1: Let request be fetchParams’s request.
+    let request = &mut fetch_params.request;
 
     // Step 2
     // TODO be able to create connection using current url's origin and credentials
@@ -1864,14 +1934,15 @@ async fn http_network_fetch(
     let timing = context.timing.lock().unwrap().clone();
     let mut response = Response::new(url.clone(), timing);
 
-    response.status = HttpStatus::new(
-        res.status(),
-        res.status()
-            .canonical_reason()
-            .unwrap_or("")
-            .as_bytes()
-            .to_vec(),
-    );
+    let status_text = res
+        .extensions()
+        .get::<ReasonPhrase>()
+        .map(ReasonPhrase::as_bytes)
+        .or_else(|| res.status().canonical_reason().map(str::as_bytes))
+        .map(Vec::from)
+        .unwrap_or_default();
+    response.status = HttpStatus::new(res.status(), status_text);
+
     info!("got {:?} response for {:?}", res.status(), request.url());
     response.headers = res.headers().clone();
     response.referrer = request.referrer.to_url().cloned();
@@ -1894,7 +1965,7 @@ async fn http_network_fetch(
     let meta_status = meta.status;
     let meta_headers = meta.headers;
     let cancellation_listener = context.cancellation_listener.clone();
-    if cancellation_listener.lock().unwrap().cancelled() {
+    if cancellation_listener.cancelled() {
         return Response::network_error(NetworkError::Internal("Fetch aborted".into()));
     }
 
@@ -1933,7 +2004,7 @@ async fn http_network_fetch(
                 warn!("Error streaming response body: {:?}", e);
             })
             .try_fold(res_body, move |res_body, chunk| {
-                if cancellation_listener.lock().unwrap().cancelled() {
+                if cancellation_listener.cancelled() {
                     *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
                     let _ = done_sender.send(Data::Cancelled);
                     return future::ready(Err(()));
@@ -2033,21 +2104,25 @@ async fn cors_preflight_fetch(
     context: &FetchContext,
 ) -> Response {
     // Step 1
-    let mut preflight = RequestBuilder::new(request.current_url(), request.referrer.clone())
-        .method(Method::OPTIONS)
-        .origin(match &request.origin {
-            Origin::Client => {
-                unreachable!("We shouldn't get Client origin in cors_preflight_fetch.")
-            },
-            Origin::Origin(origin) => origin.clone(),
-        })
-        .pipeline_id(request.pipeline_id)
-        .initiator(request.initiator)
-        .destination(request.destination)
-        .referrer_policy(request.referrer_policy)
-        .mode(RequestMode::CorsMode)
-        .response_tainting(ResponseTainting::CorsTainting)
-        .build();
+    let mut preflight = RequestBuilder::new(
+        request.target_webview_id,
+        request.current_url(),
+        request.referrer.clone(),
+    )
+    .method(Method::OPTIONS)
+    .origin(match &request.origin {
+        Origin::Client => {
+            unreachable!("We shouldn't get Client origin in cors_preflight_fetch.")
+        },
+        Origin::Origin(origin) => origin.clone(),
+    })
+    .pipeline_id(request.pipeline_id)
+    .initiator(request.initiator)
+    .destination(request.destination)
+    .referrer_policy(request.referrer_policy)
+    .mode(RequestMode::CorsMode)
+    .response_tainting(ResponseTainting::CorsTainting)
+    .build();
 
     // Step 2
     preflight
@@ -2072,8 +2147,9 @@ async fn cors_preflight_fetch(
     }
 
     // Step 6
+    let mut fetch_params = FetchParams::new(preflight);
     let response =
-        http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context).await;
+        http_network_or_cache_fetch(&mut fetch_params, false, false, &mut None, context).await;
     // Step 7
     if cors_check(request, &response).is_ok() && response.status.code().is_success() {
         // Substep 1

@@ -5,102 +5,45 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
-use script_traits::ScriptMsg;
-use webgpu::wgt::PowerPreference;
-use webgpu::{wgc, WebGPUResponse};
+use script_traits::ScriptToConstellationMessage;
+use webgpu_traits::WebGPUAdapterResponse;
+use wgpu_types::PowerPreference;
 
+use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUMethods, GPUPowerPreference, GPURequestAdapterOptions, GPUTextureFormat,
 };
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::webgpu::gpuadapter::GPUAdapter;
 use crate::realms::InRealm;
+use crate::routed_promise::{RoutedPromiseListener, route_promise};
 use crate::script_runtime::CanGc;
-use crate::task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
 #[allow(clippy::upper_case_acronyms)]
-pub struct GPU {
+pub(crate) struct GPU {
     reflector_: Reflector,
+    /// Same object for <https://www.w3.org/TR/webgpu/#dom-gpu-wgsllanguagefeatures>
+    wgsl_language_features: MutNullableDom<WGSLLanguageFeatures>,
 }
 
 impl GPU {
-    pub fn new_inherited() -> GPU {
+    pub(crate) fn new_inherited() -> GPU {
         GPU {
             reflector_: Reflector::new(),
+            wgsl_language_features: MutNullableDom::default(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<GPU> {
-        reflect_dom_object(Box::new(GPU::new_inherited()), global)
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<GPU> {
+        reflect_dom_object(Box::new(GPU::new_inherited()), global, can_gc)
     }
-}
-
-pub trait AsyncWGPUListener {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc);
-}
-
-struct WGPUResponse<T: AsyncWGPUListener + DomObject> {
-    trusted: TrustedPromise,
-    receiver: Trusted<T>,
-}
-
-impl<T: AsyncWGPUListener + DomObject> WGPUResponse<T> {
-    #[allow(crown::unrooted_must_root)]
-    fn response(self, response: WebGPUResponse, can_gc: CanGc) {
-        let promise = self.trusted.root();
-        self.receiver
-            .root()
-            .handle_response(response, &promise, can_gc);
-    }
-}
-
-pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
-    promise: &Rc<Promise>,
-    receiver: &T,
-) -> IpcSender<WebGPUResponse> {
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let task_source = receiver.global().dom_manipulation_task_source();
-    let canceller = receiver
-        .global()
-        .task_canceller(TaskSourceName::DOMManipulation);
-    let mut trusted: Option<TrustedPromise> = Some(TrustedPromise::new(promise.clone()));
-    let trusted_receiver = Trusted::new(receiver);
-    ROUTER.add_typed_route(
-        action_receiver,
-        Box::new(move |message| {
-            let trusted = if let Some(trusted) = trusted.take() {
-                trusted
-            } else {
-                error!("WebGPU callback called twice!");
-                return;
-            };
-
-            let context = WGPUResponse {
-                trusted,
-                receiver: trusted_receiver.clone(),
-            };
-            let result = task_source.queue_with_canceller(
-                task!(process_webgpu_task: move|| {
-                    context.response(message.unwrap(), CanGc::note());
-                }),
-                &canceller,
-            );
-            if let Err(err) = result {
-                error!("Failed to queue GPU listener-task: {:?}", err);
-            }
-        }),
-    );
-    action_sender
 }
 
 impl GPUMethods<crate::DomTypeHolder> for GPU {
@@ -113,7 +56,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
     ) -> Rc<Promise> {
         let global = &self.global();
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = response_async(&promise, self);
+        let sender = route_promise(&promise, self);
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,
             Some(GPUPowerPreference::High_performance) => PowerPreference::HighPerformance,
@@ -123,9 +66,9 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
 
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan
-            .send(ScriptMsg::RequestAdapter(
+            .send(ScriptToConstellationMessage::RequestAdapter(
                 sender,
-                wgc::instance::RequestAdapterOptions {
+                wgpu_core::instance::RequestAdapterOptions {
                     power_preference,
                     compatible_surface: None,
                     force_fallback_adapter: options.forceFallbackAdapter,
@@ -134,22 +77,33 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
             ))
             .is_err()
         {
-            promise.reject_error(Error::Operation);
+            promise.reject_error(Error::Operation, can_gc);
         }
         promise
     }
 
-    // https://gpuweb.github.io/gpuweb/#dom-gpu-getpreferredcanvasformat
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpu-getpreferredcanvasformat>
     fn GetPreferredCanvasFormat(&self) -> GPUTextureFormat {
         // TODO: real implementation
         GPUTextureFormat::Rgba8unorm
     }
+
+    /// <https://www.w3.org/TR/webgpu/#dom-gpu-wgsllanguagefeatures>
+    fn WgslLanguageFeatures(&self, can_gc: CanGc) -> DomRoot<WGSLLanguageFeatures> {
+        self.wgsl_language_features
+            .or_init(|| WGSLLanguageFeatures::new(&self.global(), None, can_gc))
+    }
 }
 
-impl AsyncWGPUListener for GPU {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>, can_gc: CanGc) {
+impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
+    fn handle_response(
+        &self,
+        response: WebGPUAdapterResponse,
+        promise: &Rc<Promise>,
+        can_gc: CanGc,
+    ) {
         match response {
-            WebGPUResponse::Adapter(Ok(adapter)) => {
+            Some(Ok(adapter)) => {
                 let adapter = GPUAdapter::new(
                     &self.global(),
                     adapter.channel,
@@ -164,17 +118,16 @@ impl AsyncWGPUListener for GPU {
                     adapter.adapter_id,
                     can_gc,
                 );
-                promise.resolve_native(&adapter);
+                promise.resolve_native(&adapter, can_gc);
             },
-            WebGPUResponse::Adapter(Err(e)) => {
+            Some(Err(e)) => {
                 warn!("Could not get GPUAdapter ({:?})", e);
-                promise.resolve_native(&None::<GPUAdapter>);
+                promise.resolve_native(&None::<GPUAdapter>, can_gc);
             },
-            WebGPUResponse::None => {
+            None => {
                 warn!("Couldn't get a response, because WebGPU is disabled");
-                promise.resolve_native(&None::<GPUAdapter>);
+                promise.resolve_native(&None::<GPUAdapter>, can_gc);
             },
-            _ => unreachable!("GPU received wrong WebGPUResponse"),
         }
     }
 }

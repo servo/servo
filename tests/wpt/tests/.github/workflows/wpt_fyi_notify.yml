@@ -8,8 +8,7 @@ on:
 jobs:
   wpt-fyi-notify:
     name: "Notify wpt.fyi"
-    runs-on:
-      - ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: "wpt.fyi"
         uses: fjogeleit/http-request-action@v1

@@ -10,7 +10,7 @@
 // META: variant=?11-15
 // META: variant=?16-20
 
-'use strict;'
+'use strict';
 
 // To better isolate from private aggregation tests run in parallel,
 // don't use the usual origin here.
@@ -162,6 +162,8 @@ function createAuctionConfigOverrides(
         maybeDelay(fragments.sellerDelay),
     seller: MAIN_ORIGIN,
     interestGroupBuyers: [MAIN_ORIGIN],
+    privateAggregationConfig:
+      { aggregationCoordinatorOrigin: window.location.origin },
     ...moreAuctionConfigOverrides
   };
 }

@@ -15,7 +15,7 @@ use crate::dom::node::Node;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLQuoteElement {
+pub(crate) struct HTMLQuoteElement {
     htmlelement: HTMLElement,
 }
 
@@ -30,8 +30,8 @@ impl HTMLQuoteElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,

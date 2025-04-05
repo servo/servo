@@ -238,8 +238,8 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
             self.clear_eol = DEFAULT_CLEAR_EOL_CODE
 
             try:
-                import blessings
-                self.terminal = blessings.Terminal()
+                import blessed
+                self.terminal = blessed.Terminal()
                 self.move_up = self.terminal.move_up
                 self.clear_eol = self.terminal.clear_eol
             except Exception as exception:
@@ -327,7 +327,10 @@ class ServoFormatter(mozlog.formatters.base.BaseFormatter, ServoHandler):
 
         output += u"Ran %i tests finished in %.1f seconds.\n" % (
             self.completed_tests, (data["time"] - self.suite_start_time) / 1000)
-        output += f"  \u2022 {len(self.expected.values())} ran as expected.\n"
+
+        # Sum the number of expected test results from each category
+        expected_test_results = sum(self.expected.values())
+        output += f"  \u2022 {expected_test_results} ran as expected.\n"
         if self.number_skipped:
             output += f"    \u2022 {self.number_skipped} skipped.\n"
 

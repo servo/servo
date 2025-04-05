@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::future::Future;
 use std::ops::Bound;
 use std::pin::Pin;
@@ -106,19 +106,15 @@ pub fn range_not_satisfiable_error(response: &mut Response) {
 }
 
 /// Get the range bounds if the `Range` header is present.
-pub fn get_range_request_bounds(range: Option<Range>) -> RangeRequestBounds {
+pub fn get_range_request_bounds(range: Option<Range>, len: u64) -> RangeRequestBounds {
     if let Some(ref range) = range {
-        let (start, end) = match range
-            .iter()
-            .collect::<Vec<(Bound<u64>, Bound<u64>)>>()
-            .first()
-        {
-            Some(&(Bound::Included(start), Bound::Unbounded)) => (start, None),
-            Some(&(Bound::Included(start), Bound::Included(end))) => {
+        let (start, end) = match range.satisfiable_ranges(len).next() {
+            Some((Bound::Included(start), Bound::Unbounded)) => (start, None),
+            Some((Bound::Included(start), Bound::Included(end))) => {
                 // `end` should be less or equal to `start`.
                 (start, Some(i64::max(start as i64, end as i64)))
             },
-            Some(&(Bound::Unbounded, Bound::Included(offset))) => {
+            Some((Bound::Unbounded, Bound::Included(offset))) => {
                 return RangeRequestBounds::Pending(offset);
             },
             _ => (0, None),

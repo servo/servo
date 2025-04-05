@@ -1,5 +1,5 @@
 // META: title=test WebNN API element-wise ceil operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -242,6 +242,212 @@ const ceilTests = [
             27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
           ],
           'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float32'}
+        }
+      }
+    }
+  },
+
+  // float16 tests
+  {
+    'name': 'ceil float16 0D scalar',
+    'graph': {
+      'inputs': {
+        'ceilInput':
+            {'data': [67.375], 'descriptor': {shape: [], dataType: 'float16'}}
+      },
+      'operators': [{
+        'name': 'ceil',
+        'arguments': [{'input': 'ceilInput'}],
+        'outputs': 'ceilOutput'
+      }],
+      'expectedOutputs': {
+        'ceilOutput':
+            {'data': [68], 'descriptor': {shape: [], dataType: 'float16'}}
+      }
+    }
+  },
+  {
+    'name': 'ceil float16 1D constant tensor',
+    'graph': {
+      'inputs': {
+        'ceilInput': {
+          'data': [
+            67.375,     36.78125,  99.125,     -22.59375, 32.6875,
+            17.6875,    5.6328125, 12.96875,   83.125,    -29.296875,
+            19.84375,   65.25,     26.3125,    24.28125,  -48.40625,
+            -5.6171875, 61.53125,  -87.8125,   69.6875,   5.00390625,
+            84.375,     -9.390625, -27.859375, -34.90625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'ceil',
+        'arguments': [{'input': 'ceilInput'}],
+        'outputs': 'ceilOutput'
+      }],
+      'expectedOutputs': {
+        'ceilOutput': {
+          'data': [
+            68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
+            27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'ceil float16 1D tensor',
+    'graph': {
+      'inputs': {
+        'ceilInput': {
+          'data': [
+            67.375,     36.78125,  99.125,     -22.59375, 32.6875,
+            17.6875,    5.6328125, 12.96875,   83.125,    -29.296875,
+            19.84375,   65.25,     26.3125,    24.28125,  -48.40625,
+            -5.6171875, 61.53125,  -87.8125,   69.6875,   5.00390625,
+            84.375,     -9.390625, -27.859375, -34.90625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'ceil',
+        'arguments': [{'input': 'ceilInput'}],
+        'outputs': 'ceilOutput'
+      }],
+      'expectedOutputs': {
+        'ceilOutput': {
+          'data': [
+            68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
+            27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'ceil float16 2D tensor',
+    'graph': {
+      'inputs': {
+        'ceilInput': {
+          'data': [
+            67.375,     36.78125,  99.125,     -22.59375, 32.6875,
+            17.6875,    5.6328125, 12.96875,   83.125,    -29.296875,
+            19.84375,   65.25,     26.3125,    24.28125,  -48.40625,
+            -5.6171875, 61.53125,  -87.8125,   69.6875,   5.00390625,
+            84.375,     -9.390625, -27.859375, -34.90625
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'ceil',
+        'arguments': [{'input': 'ceilInput'}],
+        'outputs': 'ceilOutput'
+      }],
+      'expectedOutputs': {
+        'ceilOutput': {
+          'data': [
+            68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
+            27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'ceil float16 3D tensor',
+    'graph': {
+      'inputs': {
+        'ceilInput': {
+          'data': [
+            67.375,     36.78125,  99.125,     -22.59375, 32.6875,
+            17.6875,    5.6328125, 12.96875,   83.125,    -29.296875,
+            19.84375,   65.25,     26.3125,    24.28125,  -48.40625,
+            -5.6171875, 61.53125,  -87.8125,   69.6875,   5.00390625,
+            84.375,     -9.390625, -27.859375, -34.90625
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'ceil',
+        'arguments': [{'input': 'ceilInput'}],
+        'outputs': 'ceilOutput'
+      }],
+      'expectedOutputs': {
+        'ceilOutput': {
+          'data': [
+            68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
+            27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'ceil float16 4D tensor',
+    'graph': {
+      'inputs': {
+        'ceilInput': {
+          'data': [
+            67.375,     36.78125,  99.125,     -22.59375, 32.6875,
+            17.6875,    5.6328125, 12.96875,   83.125,    -29.296875,
+            19.84375,   65.25,     26.3125,    24.28125,  -48.40625,
+            -5.6171875, 61.53125,  -87.8125,   69.6875,   5.00390625,
+            84.375,     -9.390625, -27.859375, -34.90625
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'ceil',
+        'arguments': [{'input': 'ceilInput'}],
+        'outputs': 'ceilOutput'
+      }],
+      'expectedOutputs': {
+        'ceilOutput': {
+          'data': [
+            68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
+            27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'ceil float16 5D tensor',
+    'graph': {
+      'inputs': {
+        'ceilInput': {
+          'data': [
+            67.375,     36.78125,  99.125,     -22.59375, 32.6875,
+            17.6875,    5.6328125, 12.96875,   83.125,    -29.296875,
+            19.84375,   65.25,     26.3125,    24.28125,  -48.40625,
+            -5.6171875, 61.53125,  -87.8125,   69.6875,   5.00390625,
+            84.375,     -9.390625, -27.859375, -34.90625
+          ],
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'ceil',
+        'arguments': [{'input': 'ceilInput'}],
+        'outputs': 'ceilOutput'
+      }],
+      'expectedOutputs': {
+        'ceilOutput': {
+          'data': [
+            68, 37, 100, -22, 33, 18,  6,  13, 84, -29, 20,  66,
+            27, 25, -48, -5,  62, -87, 70, 6,  85, -9,  -27, -34
+          ],
+          'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
         }
       }
     }

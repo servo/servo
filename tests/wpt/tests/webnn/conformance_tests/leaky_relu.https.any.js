@@ -1,5 +1,5 @@
 // META: title=test WebNN API leakyRelu operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -422,6 +422,452 @@ const leakyReluTests = [
             0
           ],
           'descriptor': {shape: [1, 2, 1, 3, 4], dataType: 'float32'}
+        }
+      }
+    }
+  },
+
+  // float16 tests
+  {
+    'name': 'leakyRelu float16 1D constant tensor default options',
+    'graph': {
+      'inputs': {
+        'leakyReluInput': {
+          'data': [
+            -19.046875,   50.78125,   -69.5625,     -80.5625,  -90.375,
+            76,           66.3125,    -84.125,      -17.1875,  -87.5,
+            -3.416015625, -22.765625, -2.509765625, 18.9375,   98.625,
+            55.34375,     -33.1875,   -46.03125,    -61.46875, 64.25,
+            21.46875,     -31.515625, -41.28125,    -65.625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'leakyRelu',
+        'arguments': [{'input': 'leakyReluInput'}],
+        'outputs': 'leakyReluOutput'
+      }],
+      'expectedOutputs': {
+        'leakyReluOutput': {
+          'data': [
+            -0.1904296875,
+            50.78125,
+            -0.69580078125,
+            -0.8056640625,
+            -0.90380859375,
+            76,
+            66.3125,
+            -0.84130859375,
+            -0.171875,
+            -0.875,
+            -0.034149169921875,
+            -0.2276611328125,
+            -0.0251007080078125,
+            18.9375,
+            98.625,
+            55.34375,
+            -0.331787109375,
+            -0.460205078125,
+            -0.61474609375,
+            64.25,
+            21.46875,
+            -0.315185546875,
+            -0.412841796875,
+            -0.65625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'leakyRelu float16 0D tensor default options',
+    'graph': {
+      'inputs': {
+        'leakyReluInput': {
+          'data': [-19.046875],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'leakyRelu',
+        'arguments': [{'input': 'leakyReluInput'}],
+        'outputs': 'leakyReluOutput'
+      }],
+      'expectedOutputs': {
+        'leakyReluOutput': {
+          'data': [-0.1904296875],
+          'descriptor': {shape: [], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'leakyRelu float16 1D tensor default options',
+    'graph': {
+      'inputs': {
+        'leakyReluInput': {
+          'data': [
+            -19.046875,   50.78125,   -69.5625,     -80.5625,  -90.375,
+            76,           66.3125,    -84.125,      -17.1875,  -87.5,
+            -3.416015625, -22.765625, -2.509765625, 18.9375,   98.625,
+            55.34375,     -33.1875,   -46.03125,    -61.46875, 64.25,
+            21.46875,     -31.515625, -41.28125,    -65.625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'leakyRelu',
+        'arguments': [{'input': 'leakyReluInput'}],
+        'outputs': 'leakyReluOutput'
+      }],
+      'expectedOutputs': {
+        'leakyReluOutput': {
+          'data': [
+            -0.1904296875,
+            50.78125,
+            -0.69580078125,
+            -0.8056640625,
+            -0.90380859375,
+            76,
+            66.3125,
+            -0.84130859375,
+            -0.171875,
+            -0.875,
+            -0.034149169921875,
+            -0.2276611328125,
+            -0.0251007080078125,
+            18.9375,
+            98.625,
+            55.34375,
+            -0.331787109375,
+            -0.460205078125,
+            -0.61474609375,
+            64.25,
+            21.46875,
+            -0.315185546875,
+            -0.412841796875,
+            -0.65625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'leakyRelu float16 2D tensor default options',
+    'graph': {
+      'inputs': {
+        'leakyReluInput': {
+          'data': [
+            -19.046875,   50.78125,   -69.5625,     -80.5625,  -90.375,
+            76,           66.3125,    -84.125,      -17.1875,  -87.5,
+            -3.416015625, -22.765625, -2.509765625, 18.9375,   98.625,
+            55.34375,     -33.1875,   -46.03125,    -61.46875, 64.25,
+            21.46875,     -31.515625, -41.28125,    -65.625
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'leakyRelu',
+        'arguments': [{'input': 'leakyReluInput'}],
+        'outputs': 'leakyReluOutput'
+      }],
+      'expectedOutputs': {
+        'leakyReluOutput': {
+          'data': [
+            -0.1904296875,
+            50.78125,
+            -0.69580078125,
+            -0.8056640625,
+            -0.90380859375,
+            76,
+            66.3125,
+            -0.84130859375,
+            -0.171875,
+            -0.875,
+            -0.034149169921875,
+            -0.2276611328125,
+            -0.0251007080078125,
+            18.9375,
+            98.625,
+            55.34375,
+            -0.331787109375,
+            -0.460205078125,
+            -0.61474609375,
+            64.25,
+            21.46875,
+            -0.315185546875,
+            -0.412841796875,
+            -0.65625
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'leakyRelu float16 3D tensor default options',
+    'graph': {
+      'inputs': {
+        'leakyReluInput': {
+          'data': [
+            -19.046875,   50.78125,   -69.5625,     -80.5625,  -90.375,
+            76,           66.3125,    -84.125,      -17.1875,  -87.5,
+            -3.416015625, -22.765625, -2.509765625, 18.9375,   98.625,
+            55.34375,     -33.1875,   -46.03125,    -61.46875, 64.25,
+            21.46875,     -31.515625, -41.28125,    -65.625
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'leakyRelu',
+        'arguments': [{'input': 'leakyReluInput'}],
+        'outputs': 'leakyReluOutput'
+      }],
+      'expectedOutputs': {
+        'leakyReluOutput': {
+          'data': [
+            -0.1904296875,
+            50.78125,
+            -0.69580078125,
+            -0.8056640625,
+            -0.90380859375,
+            76,
+            66.3125,
+            -0.84130859375,
+            -0.171875,
+            -0.875,
+            -0.034149169921875,
+            -0.2276611328125,
+            -0.0251007080078125,
+            18.9375,
+            98.625,
+            55.34375,
+            -0.331787109375,
+            -0.460205078125,
+            -0.61474609375,
+            64.25,
+            21.46875,
+            -0.315185546875,
+            -0.412841796875,
+            -0.65625
+          ],
+          'descriptor': {shape: [2, 3, 4], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'leakyRelu float16 4D tensor default options',
+    'graph': {
+      'inputs': {
+        'leakyReluInput': {
+          'data': [
+            -19.046875,   50.78125,   -69.5625,     -80.5625,  -90.375,
+            76,           66.3125,    -84.125,      -17.1875,  -87.5,
+            -3.416015625, -22.765625, -2.509765625, 18.9375,   98.625,
+            55.34375,     -33.1875,   -46.03125,    -61.46875, 64.25,
+            21.46875,     -31.515625, -41.28125,    -65.625
+          ],
+          'descriptor': {shape: [1, 2, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'leakyRelu',
+        'arguments': [{'input': 'leakyReluInput'}],
+        'outputs': 'leakyReluOutput'
+      }],
+      'expectedOutputs': {
+        'leakyReluOutput': {
+          'data': [
+            -0.1904296875,
+            50.78125,
+            -0.69580078125,
+            -0.8056640625,
+            -0.90380859375,
+            76,
+            66.3125,
+            -0.84130859375,
+            -0.171875,
+            -0.875,
+            -0.034149169921875,
+            -0.2276611328125,
+            -0.0251007080078125,
+            18.9375,
+            98.625,
+            55.34375,
+            -0.331787109375,
+            -0.460205078125,
+            -0.61474609375,
+            64.25,
+            21.46875,
+            -0.315185546875,
+            -0.412841796875,
+            -0.65625
+          ],
+          'descriptor': {shape: [1, 2, 3, 4], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'leakyRelu float16 5D tensor default options',
+    'graph': {
+      'inputs': {
+        'leakyReluInput': {
+          'data': [
+            -19.046875,   50.78125,   -69.5625,     -80.5625,  -90.375,
+            76,           66.3125,    -84.125,      -17.1875,  -87.5,
+            -3.416015625, -22.765625, -2.509765625, 18.9375,   98.625,
+            55.34375,     -33.1875,   -46.03125,    -61.46875, 64.25,
+            21.46875,     -31.515625, -41.28125,    -65.625
+          ],
+          'descriptor': {shape: [1, 2, 1, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'leakyRelu',
+        'arguments': [{'input': 'leakyReluInput'}],
+        'outputs': 'leakyReluOutput'
+      }],
+      'expectedOutputs': {
+        'leakyReluOutput': {
+          'data': [
+            -0.1904296875,
+            50.78125,
+            -0.69580078125,
+            -0.8056640625,
+            -0.90380859375,
+            76,
+            66.3125,
+            -0.84130859375,
+            -0.171875,
+            -0.875,
+            -0.034149169921875,
+            -0.2276611328125,
+            -0.0251007080078125,
+            18.9375,
+            98.625,
+            55.34375,
+            -0.331787109375,
+            -0.460205078125,
+            -0.61474609375,
+            64.25,
+            21.46875,
+            -0.315185546875,
+            -0.412841796875,
+            -0.65625
+          ],
+          'descriptor': {shape: [1, 2, 1, 3, 4], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'leakyRelu float16 1D tensor negative options.alpha',
+    'graph': {
+      'inputs': {
+        'leakyReluInput': {
+          'data': [
+            -19.046875,   50.78125,   -69.5625,     -80.5625,  -90.375,
+            76,           66.3125,    -84.125,      -17.1875,  -87.5,
+            -3.416015625, -22.765625, -2.509765625, 18.9375,   98.625,
+            55.34375,     -33.1875,   -46.03125,    -61.46875, 64.25,
+            21.46875,     -31.515625, -41.28125,    -65.625
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'leakyRelu',
+        'arguments': [
+          {'input': 'leakyReluInput'},
+          {'options': {'alpha': -97.70109193608776}}
+        ],
+        'outputs': 'leakyReluOutput'
+      }],
+      'expectedOutputs': {
+        'leakyReluOutput': {
+          'data': [
+            1861, 50.78125, 6796,   7872,  8832,     76,      66.3125, 8216,
+            1679, 8552,     333.75, 2224,  245.25,   18.9375, 98.625,  55.34375,
+            3242, 4496,     6004,   64.25, 21.46875, 3080,    4034,    6412
+          ],
+          'descriptor': {shape: [24], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'leakyRelu float16 2D tensor positive options.alpha',
+    'graph': {
+      'inputs': {
+        'leakyReluInput': {
+          'data': [
+            -19.046875,   50.78125,   -69.5625,     -80.5625,  -90.375,
+            76,           66.3125,    -84.125,      -17.1875,  -87.5,
+            -3.416015625, -22.765625, -2.509765625, 18.9375,   98.625,
+            55.34375,     -33.1875,   -46.03125,    -61.46875, 64.25,
+            21.46875,     -31.515625, -41.28125,    -65.625
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'leakyRelu',
+        'arguments': [
+          {'input': 'leakyReluInput'},
+          {'options': {'alpha': 35.799162942273234}}
+        ],
+        'outputs': 'leakyReluOutput'
+      }],
+      'expectedOutputs': {
+        'leakyReluOutput': {
+          'data': [
+            -682,    50.78125, -2490,    -2884,    -3236,     76,
+            66.3125, -3012,    -615.5,   -3132,    -122.3125, -815,
+            -89.875, 18.9375,  98.625,   55.34375, -1188,     -1648,
+            -2200,   64.25,    21.46875, -1128,    -1478,     -2350
+          ],
+          'descriptor': {shape: [4, 6], dataType: 'float16'}
+        }
+      }
+    }
+  },
+  {
+    'name': 'leakyRelu float16 5D tensor options.alpha=0.0',
+    'graph': {
+      'inputs': {
+        'leakyReluInput': {
+          'data': [
+            -19.046875,   50.78125,   -69.5625,     -80.5625,  -90.375,
+            76,           66.3125,    -84.125,      -17.1875,  -87.5,
+            -3.416015625, -22.765625, -2.509765625, 18.9375,   98.625,
+            55.34375,     -33.1875,   -46.03125,    -61.46875, 64.25,
+            21.46875,     -31.515625, -41.28125,    -65.625
+          ],
+          'descriptor': {shape: [1, 2, 1, 3, 4], dataType: 'float16'}
+        }
+      },
+      'operators': [{
+        'name': 'leakyRelu',
+        'arguments': [{'input': 'leakyReluInput'}, {'options': {'alpha': 0}}],
+        'outputs': 'leakyReluOutput'
+      }],
+      'expectedOutputs': {
+        'leakyReluOutput': {
+          'data': [
+            0, 50.78125, 0, 0,     0,        76,      66.3125, 0,
+            0, 0,        0, 0,     0,        18.9375, 98.625,  55.34375,
+            0, 0,        0, 64.25, 21.46875, 0,       0,       0
+          ],
+          'descriptor': {shape: [1, 2, 1, 3, 4], dataType: 'float16'}
         }
       }
     }

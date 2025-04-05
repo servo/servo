@@ -1,0 +1,12 @@
+<!doctype html>
+<title>SVG image that uses a data: URL</title>
+<link rel="match" href="../struct/reftests/reference/green-100x100.html">
+<img src="data:image/svg+xml,
+  <svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'>
+    <image href='data:image/svg+xml,
+      &amp;lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot;>
+        &amp;lt;rect width=&quot;100&quot; height=&quot;100&quot; fill=&quot;green&quot;/>
+      &amp;lt;/svg>
+    '/>
+  </svg>
+">

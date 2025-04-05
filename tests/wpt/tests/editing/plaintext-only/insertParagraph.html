@@ -31,12 +31,17 @@ addEventListener("load", () => {
    * insertParagraph command in plaintext-only is available only with document.execCommand.
    * It should work as same as contenteditable=true, therefore, this test checks only
    * basic behavior.  Various edge cases should be tested in run/insertparagraph.html.
+   *
+   * Currently, <br> is used for padding line break in empty paragraph.  This won't appear
+   * in `.textContent` of the editing host, but the paragraph itself does not appear in
+   * the value too.  Therefore, web apps anyway need to use `.innerHTML` to get the result.
+   * So, using <br> should not be a problem for web apps.
    */
 
   for (const data of [
     {
       initialInnerHTML: "<p>[]AB</p>",
-      expected: useBR ? "<p><br></p><p>AB</p>" : "<p>\n</p><p>AB</p>",
+      expected: "<p><br></p><p>AB</p>",
     },
     {
       initialInnerHTML: "<p>A[]B</p>",
@@ -44,7 +49,7 @@ addEventListener("load", () => {
     },
     {
       initialInnerHTML: "<p>AB[]</p>",
-      expected: useBR ? "<p>AB</p><p><br></p>" : "<p>AB</p><p>\n</p>",
+      expected: "<p>AB</p><p><br></p>",
     },
     {
       initialInnerHTML: `<p style="white-space:normal">[]AB</p>`,
@@ -52,27 +57,19 @@ addEventListener("load", () => {
     },
     {
       initialInnerHTML: `<p style="white-space:pre">[]AB</p>`,
-      expected: useBR
-        ? `<p style="white-space:pre"><br></p><p style="white-space:pre">AB</p>`
-        : `<p style="white-space:pre">\n</p><p style="white-space:pre">AB</p>`,
+      expected: `<p style="white-space:pre"><br></p><p style="white-space:pre">AB</p>`,
     },
     {
       initialInnerHTML: `<p style="white-space:pre-line">[]AB</p>`,
-      expected: useBR
-        ? `<p style="white-space:pre-line"><br></p><p style="white-space:pre-line">AB</p>`
-        : `<p style="white-space:pre-line">\n</p><p style="white-space:pre-line">AB</p>`,
+      expected: `<p style="white-space:pre-line"><br></p><p style="white-space:pre-line">AB</p>`,
     },
     {
       initialInnerHTML: `<p style="white-space:pre-wrap">[]AB</p>`,
-      expected: useBR
-        ? `<p style="white-space:pre-wrap"><br></p><p style="white-space:pre-wrap">AB</p>`
-        : `<p style="white-space:pre-wrap">\n</p><p style="white-space:pre-wrap">AB</p>`,
+      expected: `<p style="white-space:pre-wrap"><br></p><p style="white-space:pre-wrap">AB</p>`,
     },
     {
       initialInnerHTML: "<ul><li>[]AB</li></ul>",
-      expected: useBR
-        ? "<ul><li><br></li><li>AB</li></ul>"
-        : "<ul><li>\n</li><li>AB</li></ul>",
+      expected: "<ul><li><br></li><li>AB</li></ul>",
     },
     {
       initialInnerHTML: "<ul><li>A[]B</li></ul>",
@@ -80,9 +77,7 @@ addEventListener("load", () => {
     },
     {
       initialInnerHTML: "<ul><li>AB[]</li></ul>",
-      expected: useBR
-        ? "<ul><li>AB</li><li><br></li></ul>"
-        : "<ul><li>AB</li><li>\n</li></ul>",
+      expected: "<ul><li>AB</li><li><br></li></ul>",
     },
   ]) {
     test(() => {

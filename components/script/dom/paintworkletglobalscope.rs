@@ -11,24 +11,23 @@ use std::thread;
 use std::time::Duration;
 
 use base::id::PipelineId;
-use crossbeam_channel::{unbounded, Sender};
+use crossbeam_channel::{Sender, unbounded};
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
 use js::jsapi::{
-    HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject,
-    JS_ClearPendingException, JS_IsExceptionPending, NewArrayObject, Value,
+    HandleValueArray, Heap, IsCallable, IsConstructor, JS_ClearPendingException,
+    JS_IsExceptionPending, JSAutoRealm, JSObject, NewArrayObject, Value,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Call, Construct1};
 use js::rust::{HandleValue, Runtime};
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
-use profile_traits::ipc;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
-use servo_atoms::Atom;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style_traits::{CSSPixel, SpeculativePainter};
+use stylo_atoms::Atom;
 use webrender_api::units::DevicePixel;
 
 use super::bindings::trace::HashMapTracedValues;
@@ -49,11 +48,11 @@ use crate::dom::paintsize::PaintSize;
 use crate::dom::stylepropertymapreadonly::StylePropertyMapReadOnly;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit, WorkletTask};
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
 #[dom_struct]
-pub struct PaintWorkletGlobalScope {
+pub(crate) struct PaintWorkletGlobalScope {
     /// The worklet global for this object
     worklet_global: WorkletGlobalScope,
     /// The image cache
@@ -86,7 +85,7 @@ pub struct PaintWorkletGlobalScope {
 
 impl PaintWorkletGlobalScope {
     #[allow(unsafe_code)]
-    pub fn new(
+    pub(crate) fn new(
         runtime: &Runtime,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
@@ -120,14 +119,19 @@ impl PaintWorkletGlobalScope {
                 missing_image_urls: Vec::new(),
             }),
         });
-        unsafe { PaintWorkletGlobalScopeBinding::Wrap(JSContext::from_ptr(runtime.cx()), global) }
+        unsafe {
+            PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
+                JSContext::from_ptr(runtime.cx()),
+                global,
+            )
+        }
     }
 
-    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
+    pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
         self.image_cache.clone()
     }
 
-    pub fn perform_a_worklet_task(&self, task: PaintWorkletTask) {
+    pub(crate) fn perform_a_worklet_task(&self, task: PaintWorkletTask) {
         match task {
             PaintWorkletTask::DrawAPaintImage(
                 name,
@@ -150,6 +154,7 @@ impl PaintWorkletGlobalScope {
                     let map = StylePropertyMapReadOnly::from_iter(
                         self.upcast(),
                         properties.iter().cloned(),
+                        CanGc::note(),
                     );
                     let result =
                         self.draw_a_paint_image(&name, size, device_pixel_ratio, &map, &arguments);
@@ -175,6 +180,7 @@ impl PaintWorkletGlobalScope {
                     let map = StylePropertyMapReadOnly::from_iter(
                         self.upcast(),
                         properties.iter().cloned(),
+                        CanGc::note(),
                     );
                     let result =
                         self.draw_a_paint_image(&name, size, device_pixel_ratio, &map, &arguments);
@@ -214,10 +220,12 @@ impl PaintWorkletGlobalScope {
             device_pixel_ratio,
             properties,
             arguments,
+            CanGc::note(),
         )
     }
 
     /// <https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback>
+    #[allow(clippy::too_many_arguments)]
     #[allow(unsafe_code)]
     fn invoke_a_paint_callback(
         &self,
@@ -227,6 +235,7 @@ impl PaintWorkletGlobalScope {
         device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
         properties: &StylePropertyMapReadOnly,
         arguments: &[String],
+        can_gc: CanGc,
     ) -> DrawAPaintImageResult {
         debug!(
             "Invoking a paint callback {}({},{}) at {:?}.",
@@ -268,7 +277,7 @@ impl PaintWorkletGlobalScope {
             Entry::Occupied(entry) => paint_instance.set(entry.get().get()),
             Entry::Vacant(entry) => {
                 // Step 5.2-5.3
-                let args = HandleValueArray::new();
+                let args = HandleValueArray::empty();
                 rooted!(in(*cx) let mut result = null_mut::<JSObject>());
                 unsafe {
                     Construct1(*cx, class_constructor.handle(), &args, result.handle_mut());
@@ -301,28 +310,27 @@ impl PaintWorkletGlobalScope {
         rendering_context.set_bitmap_dimensions(size_in_px, device_pixel_ratio);
 
         // Step 9
-        let paint_size = PaintSize::new(self, size_in_px);
+        let paint_size = PaintSize::new(self, size_in_px, can_gc);
 
         // TODO: Step 10
         // Steps 11-12
         debug!("Invoking paint function {}.", name);
-        rooted_vec!(let arguments_values <- arguments.iter().cloned()
-                    .map(|argument| CSSStyleValue::new(self.upcast(), argument)));
-        let arguments_value_vec: Vec<JSVal> = arguments_values
-            .iter()
-            .map(|argument| ObjectValue(argument.reflector().get_jsobject().get()))
-            .collect();
-        let arguments_value_array =
-            unsafe { HandleValueArray::from_rooted_slice(&arguments_value_vec) };
+        rooted_vec!(let mut arguments_values);
+        for argument in arguments {
+            let style_value = CSSStyleValue::new(self.upcast(), argument.clone(), can_gc);
+            arguments_values.push(ObjectValue(style_value.reflector().get_jsobject().get()));
+        }
+        let arguments_value_array = HandleValueArray::from(&arguments_values);
         rooted!(in(*cx) let argument_object = unsafe { NewArrayObject(*cx, &arguments_value_array) });
 
-        let args_slice = [
-            ObjectValue(rendering_context.reflector().get_jsobject().get()),
-            ObjectValue(paint_size.reflector().get_jsobject().get()),
-            ObjectValue(properties.reflector().get_jsobject().get()),
-            ObjectValue(argument_object.get()),
-        ];
-        let args = unsafe { HandleValueArray::from_rooted_slice(&args_slice) };
+        rooted_vec!(let mut callback_args);
+        callback_args.push(ObjectValue(
+            rendering_context.reflector().get_jsobject().get(),
+        ));
+        callback_args.push(ObjectValue(paint_size.reflector().get_jsobject().get()));
+        callback_args.push(ObjectValue(properties.reflector().get_jsobject().get()));
+        callback_args.push(ObjectValue(argument_object.get()));
+        let args = HandleValueArray::from(&callback_args);
 
         rooted!(in(*cx) let mut result = UndefinedValue());
         unsafe {
@@ -345,19 +353,13 @@ impl PaintWorkletGlobalScope {
             return self.invalid_image(size_in_dpx, missing_image_urls);
         }
 
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone())
-            .expect("IPC channel creation.");
-        rendering_context.send_data(sender);
-        let image_key = match receiver.recv() {
-            Ok(data) => Some(data.image_key),
-            _ => None,
-        };
+        let image_key = rendering_context.image_key();
 
         DrawAPaintImageResult {
             width: size_in_dpx.width,
             height: size_in_dpx.height,
             format: PixelFormat::BGRA8,
-            image_key,
+            image_key: Some(image_key),
             missing_image_urls,
         }
     }
@@ -422,7 +424,7 @@ impl PaintWorkletGlobalScope {
                     .expect("Locking a painter.")
                     .schedule_a_worklet_task(WorkletTask::Paint(task));
 
-                let timeout = pref!(dom.worklet.timeout_ms) as u64;
+                let timeout = pref!(dom_worklet_timeout_ms) as u64;
 
                 receiver
                     .recv_timeout(Duration::from_millis(timeout))
@@ -437,7 +439,7 @@ impl PaintWorkletGlobalScope {
 }
 
 /// Tasks which can be peformed by a paint worklet
-pub enum PaintWorkletTask {
+pub(crate) enum PaintWorkletTask {
     DrawAPaintImage(
         Atom,
         Size2D<f32, CSSPixel>,
@@ -454,7 +456,7 @@ pub enum PaintWorkletTask {
 /// This type is dangerous, because it contains uboxed `Heap<JSVal>` values,
 /// which can't be moved.
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PaintDefinition {
     #[ignore_malloc_size_of = "mozjs"]
     class_constructor: Heap<JSVal>,
@@ -494,7 +496,7 @@ impl PaintDefinition {
 
 impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobalScope {
     #[allow(unsafe_code)]
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     /// <https://drafts.css-houdini.org/css-paint-api/#dom-paintworkletglobalscope-registerpaint>
     fn RegisterPaint(&self, name: DOMString, paint_ctor: Rc<VoidFunction>) -> Fallible<()> {
         let name = Atom::from(name);
@@ -561,7 +563,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
         }
 
         // Step 19.
-        let context = PaintRenderingContext2D::new(self);
+        let context = PaintRenderingContext2D::new(self, CanGc::note());
         let definition = PaintDefinition::new(
             paint_val.handle(),
             paint_function.handle(),

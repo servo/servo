@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: UA style interactivity for dialog:modal</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#inertness">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<dialog id="t1"></dialog>
+<dialog id="t2" inert></dialog>
+<div inert>
+  <dialog id="t3"></dialog>
+</div>
+<dialog id="d4">
+  <div id="t4" inert></div>
+</dialog>
+<dialog id="t5" style="interactivity:inert"></dialog>
+<script>
+  test((t) => {
+    t.add_cleanup(() => { t1.close(); });
+    assert_equals(getComputedStyle(t1).interactivity, "auto", "before showModal");
+    t1.showModal();
+    assert_equals(getComputedStyle(t1).interactivity, "auto", "after showModal");
+  }, "UA dialog:modal interactivity rule");
+
+  test((t) => {
+    t.add_cleanup(() => { t2.close(); });
+    assert_equals(getComputedStyle(t2).interactivity, "inert", "before showModal");
+    t2.showModal();
+    assert_equals(getComputedStyle(t2).interactivity, "inert", "after showModal");
+  }, "UA [inert] rule wins over UA dialog:modal inert rule");
+
+  test((t) => {
+    t.add_cleanup(() => { t3.close(); });
+    assert_equals(getComputedStyle(t3).interactivity, "inert", "before showModal");
+    t3.showModal();
+    assert_equals(getComputedStyle(t3).interactivity, "auto", "after showModal");
+  }, "UA dialog:modal rule overriding inherited [inert] 'interactivity:inert' rule");
+
+  test((t) => {
+    t.add_cleanup(() => { d4.close(); });
+    assert_equals(getComputedStyle(t4).interactivity, "inert", "before showModal");
+    d4.showModal();
+    assert_equals(getComputedStyle(t4).interactivity, "inert", "after showModal");
+  }, "UA [inert] rule overriding inherited dialog:modal 'interactivity:auto' rule");
+
+  test((t) => {
+    t.add_cleanup(() => { t5.close(); });
+    assert_equals(getComputedStyle(t5).interactivity, "inert", "before showModal");
+    t5.showModal();
+    assert_equals(getComputedStyle(t5).interactivity, "inert", "after showModal");
+  }, "Author 'interactivity:inert' overrides UA dialog:modal 'interactivity:auto' rule");
+
+</script>

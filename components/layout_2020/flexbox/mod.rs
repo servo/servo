@@ -2,35 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use geom::{FlexAxis, MainStartCrossStart};
-use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::logical_geometry::WritingMode;
+use style::properties::ComputedValues;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
-use style::properties::ComputedValues;
 use style::values::computed::{AlignContent, JustifyContent};
 use style::values::specified::align::AlignFlags;
-use style::values::specified::text::TextDecorationLine;
 
+use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::construct_modern::{ModernContainerBuilder, ModernItemKind};
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
-use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
+use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
-use crate::ContainingBlock;
+use crate::positioned::AbsolutelyPositionedBox;
 
 mod geom;
 mod layout;
 
 /// A structure to hold the configuration of a flex container for use during layout
 /// and preferred width calculation.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 pub(crate) struct FlexContainerConfig {
     container_is_single_line: bool,
     writing_mode: WritingMode,
@@ -88,11 +85,10 @@ impl FlexContainerConfig {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) struct FlexContainer {
     children: Vec<ArcRefCell<FlexLevelBox>>,
 
-    #[serde(skip_serializing)]
     style: ServoArc<ComputedValues>,
 
     /// The configuration of this [`FlexContainer`].
@@ -104,12 +100,10 @@ impl FlexContainer {
         context: &LayoutContext,
         info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         contents: NonReplacedContents,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
-        let text_decoration_line =
-            propagated_text_decoration_line | info.style.clone_text_decoration_line();
-
-        let mut builder = ModernContainerBuilder::new(context, info, text_decoration_line);
+        let mut builder =
+            ModernContainerBuilder::new(context, info, propagated_data.union(&info.style));
         contents.traverse(context, info, &mut builder);
         let items = builder.finish();
 
@@ -143,17 +137,14 @@ impl FlexContainer {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(crate) enum FlexLevelBox {
     FlexItem(FlexItemBox),
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
 }
 
-#[derive(Serialize)]
 pub(crate) struct FlexItemBox {
     independent_formatting_context: IndependentFormattingContext,
-    #[serde(skip)]
-    block_content_size_cache: ArcRefCell<Option<CachedBlockSizeContribution>>,
 }
 
 impl std::fmt::Debug for FlexItemBox {
@@ -166,7 +157,6 @@ impl FlexItemBox {
     fn new(independent_formatting_context: IndependentFormattingContext) -> Self {
         Self {
             independent_formatting_context,
-            block_content_size_cache: Default::default(),
         }
     }
 
@@ -176,21 +166,5 @@ impl FlexItemBox {
 
     fn base_fragment_info(&self) -> BaseFragmentInfo {
         self.independent_formatting_context.base_fragment_info()
-    }
-}
-
-struct CachedBlockSizeContribution {
-    containing_block_inline_size: Au,
-    layout: IndependentLayout,
-    positioning_context: PositioningContext,
-}
-
-impl CachedBlockSizeContribution {
-    fn compatible_with_item_as_containing_block(
-        &self,
-        item_as_containing_block: &ContainingBlock,
-    ) -> bool {
-        item_as_containing_block.size.inline == self.containing_block_inline_size &&
-            item_as_containing_block.size.block.is_auto()
     }
 }

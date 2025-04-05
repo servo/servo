@@ -3,36 +3,28 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::mem;
-use std::os::raw::c_void;
 use std::rc::Rc;
 
-use getopts::Options;
-use servo::compositing::windowing::EmbedderEvent;
-use servo::compositing::CompositeTarget;
-pub use servo::config::prefs::{add_user_prefs, PrefValue};
-use servo::embedder_traits::resources;
+use dpi::PhysicalSize;
+use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
 /// The EventLoopWaker::wake function will be called from any thread.
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
-pub use servo::embedder_traits::EventLoopWaker;
-pub use servo::embedder_traits::{InputMethodType, MediaSessionPlaybackState, PromptResult};
-use servo::servo_config::{opts, pref};
-use servo::servo_url::ServoUrl;
+pub use servo::EventLoopWaker;
 pub use servo::webrender_api::units::DeviceIntRect;
-use servo::webrender_traits::RenderingContext;
-use servo::{self, gl, Servo};
-use surfman::{Connection, SurfaceType};
+use servo::{self, Servo, resources};
+pub use servo::{InputMethodType, MediaSessionPlaybackState, WindowRenderingContext};
 
 use crate::egl::android::resources::ResourceReaderInstance;
-use crate::egl::host_trait::HostTrait;
-use crate::egl::servo_glue::{
-    Coordinates, ServoEmbedderCallbacks, ServoGlue, ServoWindowCallbacks,
+use crate::egl::app_state::{
+    Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
 };
+use crate::egl::host_trait::HostTrait;
+use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
 thread_local! {
-    pub static SERVO: RefCell<Option<ServoGlue>> = RefCell::new(None);
+    pub static APP: RefCell<Option<Rc<RunningAppState>>> = const { RefCell::new(None) };
 }
 
 pub struct InitOptions {
@@ -41,96 +33,93 @@ pub struct InitOptions {
     pub coordinates: Coordinates,
     pub density: f32,
     #[cfg(feature = "webxr")]
-    pub xr_discovery: Option<webxr::Discovery>,
-    pub surfman_integration: SurfmanIntegration,
-    pub prefs: Option<HashMap<String, PrefValue>>,
-}
-
-/// Controls how this embedding's rendering will integrate with the embedder.
-pub enum SurfmanIntegration {
-    /// Render directly to a provided native widget (see surfman::NativeWidget).
-    Widget(*mut c_void),
+    pub xr_discovery: Option<servo::webxr::Discovery>,
+    pub window_handle: RawWindowHandle,
+    pub display_handle: RawDisplayHandle,
 }
 
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
 pub fn init(
     mut init_opts: InitOptions,
-    gl: Rc<dyn gl::Gl>,
     waker: Box<dyn EventLoopWaker>,
     callbacks: Box<dyn HostTrait>,
 ) -> Result<(), &'static str> {
-    crate::init_tracing();
+    crate::init_crypto();
     resources::set(Box::new(ResourceReaderInstance::new()));
 
-    if let Some(prefs) = init_opts.prefs {
-        add_user_prefs(prefs);
-    }
-
-    let mut args = mem::replace(&mut init_opts.args, vec![]);
-    // opts::from_cmdline_args expects the first argument to be the binary name.
+    // `parse_command_line_arguments` expects the first argument to be the binary name.
+    let mut args = mem::take(&mut init_opts.args);
     args.insert(0, "servo".to_string());
-    opts::from_cmdline_args(Options::new(), &args);
 
-    let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
-    let pref_url = ServoUrl::parse(&pref!(shell.homepage)).ok();
-    let blank_url = ServoUrl::parse("about:blank").ok();
-
-    let url = embedder_url.or(pref_url).or(blank_url).unwrap();
-
-    gl.clear_color(1.0, 1.0, 1.0, 1.0);
-    gl.clear(gl::COLOR_BUFFER_BIT);
-    gl.finish();
-
-    // Initialize surfman
-    let connection = Connection::new().or(Err("Failed to create connection"))?;
-    let adapter = connection
-        .create_adapter()
-        .or(Err("Failed to create adapter"))?;
-    let surface_type = match init_opts.surfman_integration {
-        SurfmanIntegration::Widget(native_widget) => {
-            let native_widget = unsafe {
-                connection.create_native_widget_from_ptr(
-                    native_widget,
-                    init_opts.coordinates.framebuffer.to_untyped(),
-                )
-            };
-            SurfaceType::Widget { native_widget }
+    let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
+        ArgumentParsingResult::ContentProcess(..) => {
+            unreachable!("Android does not have support for multiprocess yet.")
+        },
+        ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+            (opts, preferences, servoshell_preferences)
         },
     };
-    let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
-        .or(Err("Failed to create surface manager"))?;
+
+    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
+
+    let (display_handle, window_handle) = unsafe {
+        (
+            DisplayHandle::borrow_raw(init_opts.display_handle),
+            WindowHandle::borrow_raw(init_opts.window_handle),
+        )
+    };
+
+    let size = init_opts.coordinates.viewport.size;
+    let rendering_context = Rc::new(
+        WindowRenderingContext::new(
+            display_handle,
+            window_handle,
+            PhysicalSize::new(size.width as u32, size.height as u32),
+        )
+        .expect("Could not create RenderingContext"),
+    );
 
     let window_callbacks = Rc::new(ServoWindowCallbacks::new(
         callbacks,
         RefCell::new(init_opts.coordinates),
         init_opts.density,
-        rendering_context.clone(),
     ));
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(
         waker,
         #[cfg(feature = "webxr")]
         init_opts.xr_discovery,
-        gl.clone(),
     ));
 
     let servo = Servo::new(
+        opts,
+        preferences,
+        rendering_context.clone(),
         embedder_callbacks,
         window_callbacks.clone(),
-        None,
-        CompositeTarget::Window,
+        Default::default(),
     );
 
-    SERVO.with(|s| {
-        let mut servo_glue = ServoGlue::new(rendering_context, servo.servo, window_callbacks, None);
-        let _ = servo_glue.process_event(EmbedderEvent::NewWebView(url, servo.browser_id));
-        *s.borrow_mut() = Some(servo_glue);
+    APP.with(|app| {
+        let app_state = RunningAppState::new(
+            init_opts.url,
+            rendering_context,
+            servo,
+            window_callbacks,
+            servoshell_preferences,
+        );
+        *app.borrow_mut() = Some(app_state);
     });
 
     Ok(())
 }
 
 pub fn deinit() {
-    SERVO.with(|s| s.replace(None).unwrap().deinit());
+    APP.with(|app| {
+        let app = app.replace(None).unwrap();
+        if let Some(app_state) = Rc::into_inner(app) {
+            app_state.deinit()
+        }
+    });
 }

@@ -2,24 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::fmt;
 use std::hash::Hash;
 use std::sync::atomic::Ordering;
+use std::{fmt, slice};
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
+use constellation_traits::UntrustedNodeAddress;
+use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
 use js::jsapi::JSObject;
 use script_layout_interface::wrapper_traits::{
-    LayoutNode, PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{LayoutNodeType, StyleData};
-use script_traits::UntrustedNodeAddress;
+use selectors::Element as _;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use selectors::bloom::{BloomFilter, BLOOM_HASH_MASK};
+use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
-use servo_atoms::Atom;
+use style::CaseSensitivityExt;
 use style::animation::AnimationSetKey;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
@@ -29,23 +30,25 @@ use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, TDocument, TElement, TNode, TShadowRoot};
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{
-    extended_filtering, AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass, PseudoElement,
-    SelectorImpl,
+    AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass, PseudoElement, SelectorImpl,
+    extended_filtering,
 };
 use style::shared_lock::Locked as StyleLocked;
+use style::stylesheets::scope_rule::ImplicitScopeRoot;
 use style::values::computed::Display;
 use style::values::{AtomIdent, AtomString};
-use style::CaseSensitivityExt;
-use style_dom::ElementState;
+use stylo_atoms::Atom;
+use stylo_dom::ElementState;
 
 use crate::dom::attr::AttrHelpersForLayout;
 use crate::dom::bindings::inheritance::{
-    CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId, NodeTypeId,
-    TextTypeId,
+    Castable, CharacterDataTypeId, DocumentFragmentTypeId, ElementTypeId, HTMLElementTypeId,
+    NodeTypeId, TextTypeId,
 };
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::characterdata::LayoutCharacterDataHelpers;
 use crate::dom::element::{Element, LayoutElementHelpers};
+use crate::dom::htmlslotelement::HTMLSlotElement;
 use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
 use crate::layout_dom::{ServoLayoutNode, ServoShadowRoot, ServoThreadSafeLayoutNode};
 
@@ -56,7 +59,7 @@ pub struct ServoLayoutElement<'dom> {
     element: LayoutDom<'dom, Element>,
 }
 
-impl<'dom> fmt::Debug for ServoLayoutElement<'dom> {
+impl fmt::Debug for ServoLayoutElement<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "<{}", self.element.local_name())?;
         if let Some(id) = self.id() {
@@ -140,41 +143,64 @@ impl<'dom> ServoLayoutElement<'dom> {
     }
 }
 
-pub struct DomChildrenIncludingShadowDom<N> {
-    children: DomChildren<N>,
-    children_in_shadow_root: Option<DomChildren<N>>,
+pub enum DOMDescendantIterator<E>
+where
+    E: TElement,
+{
+    /// Iterating over the children of a node, including children of a potential
+    /// [ShadowRoot](crate::dom::shadow_root::ShadowRoot)
+    Children(DomChildren<E::ConcreteNode>),
+    /// Iterating over the content's of a [`<slot>`](HTMLSlotElement) element.
+    Slottables { slot: E, index: usize },
 }
 
-impl<N> Iterator for DomChildrenIncludingShadowDom<N>
+impl<E> Iterator for DOMDescendantIterator<E>
 where
-    N: TNode,
+    E: TElement,
 {
-    type Item = N;
+    type Item = E::ConcreteNode;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.children
-            .next()
-            .or_else(|| self.children_in_shadow_root.as_mut()?.next())
+        match self {
+            Self::Children(children) => children.next(),
+            Self::Slottables { slot, index } => {
+                let slottables = slot.slotted_nodes();
+                let slot = slottables.get(*index)?;
+                *index += 1;
+                Some(*slot)
+            },
+        }
     }
 }
 
 impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     type ConcreteNode = ServoLayoutNode<'dom>;
-    type TraversalChildrenIterator = DomChildrenIncludingShadowDom<Self::ConcreteNode>;
+    type TraversalChildrenIterator = DOMDescendantIterator<Self>;
 
     fn as_node(&self) -> ServoLayoutNode<'dom> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
     fn traversal_children(&self) -> LayoutIterator<Self::TraversalChildrenIterator> {
-        let children = DomChildrenIncludingShadowDom {
-            children: self.as_node().dom_children(),
-            children_in_shadow_root: self
-                .shadow_root()
-                .map(|shadow| shadow.as_node().dom_children()),
+        let iterator = if self.slotted_nodes().is_empty() {
+            let children = if let Some(shadow_root) = self.shadow_root() {
+                shadow_root.as_node().dom_children()
+            } else {
+                self.as_node().dom_children()
+            };
+            DOMDescendantIterator::Children(children)
+        } else {
+            DOMDescendantIterator::Slottables {
+                slot: *self,
+                index: 0,
+            }
         };
 
-        LayoutIterator(children)
+        LayoutIterator(iterator)
+    }
+
+    fn traversal_parent(&self) -> Option<Self> {
+        self.as_node().traversal_parent()
     }
 
     fn is_html_element(&self) -> bool {
@@ -465,15 +491,39 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     {
     }
 
-    /// Convert an opaque element back into the element.
-    fn unopaque(opaque: ::selectors::OpaqueElement) -> Self {
-        unsafe {
-            let ptr = opaque.as_const_ptr::<JSObject>();
+    /// Returns the implicit scope root for given sheet index and host.
+    fn implicit_scope_for_sheet_in_shadow_root(
+        opaque_host: ::selectors::OpaqueElement,
+        sheet_index: usize,
+    ) -> Option<ImplicitScopeRoot> {
+        // As long as this "unopaqued" element does not escape this function, we're not leaking
+        // potentially-mutable elements from opaque elements.
+        let host = unsafe {
+            let ptr = opaque_host.as_const_ptr::<JSObject>();
             let untrusted_address = UntrustedNodeAddress::from_id(ptr as usize);
             let node = Node::from_untrusted_node_address(untrusted_address);
             let trusted_address = node.to_trusted_node_address();
             let servo_layout_node = ServoLayoutNode::new(&trusted_address);
             servo_layout_node.as_element().unwrap()
+        };
+        host.shadow_root()?.implicit_scope_for_sheet(sheet_index)
+    }
+
+    fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
+        let Some(slot_element) = self.element.unsafe_get().downcast::<HTMLSlotElement>() else {
+            return &[];
+        };
+        let assigned_nodes = slot_element.assigned_nodes();
+
+        // SAFETY:
+        // Self::ConcreteNode (aka ServoLayoutNode) and Slottable are guaranteed to have the same
+        // layout and alignment as ptr::NonNull<T>. Lifetimes are not an issue because the
+        // slottables are being kept alive by the slot element.
+        unsafe {
+            slice::from_raw_parts(
+                assigned_nodes.as_ptr() as *const Self::ConcreteNode,
+                assigned_nodes.len(),
+            )
         }
     }
 }
@@ -632,6 +682,9 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::Invalid |
             NonTSPseudoClass::Modal |
+            NonTSPseudoClass::MozMeterOptimum |
+            NonTSPseudoClass::MozMeterSubOptimum |
+            NonTSPseudoClass::MozMeterSubSubOptimum |
             NonTSPseudoClass::Optional |
             NonTSPseudoClass::OutOfRange |
             NonTSPseudoClass::PlaceholderShown |
@@ -689,7 +742,12 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
     }
 
     fn is_html_slot_element(&self) -> bool {
-        self.element.is_html_element() && self.local_name() == &local_name!("slot")
+        self.element.is::<HTMLSlotElement>()
+    }
+
+    #[allow(unsafe_code)]
+    fn assigned_slot(&self) -> Option<Self> {
+        self.as_node().assigned_slot()
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
@@ -728,9 +786,9 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
 pub struct ServoThreadSafeLayoutElement<'dom> {
     pub(super) element: ServoLayoutElement<'dom>,
 
-    /// The pseudo-element type, with (optionally)
-    /// a specified display value to override the stylesheet.
-    pub(super) pseudo: PseudoElementType,
+    /// The pseudo-element type for this element, or `None` if it is the non-pseudo
+    /// version of the element.
+    pub(super) pseudo: Option<PseudoElement>,
 }
 
 impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> {
@@ -744,15 +802,39 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
         }
     }
 
-    fn get_pseudo_element_type(&self) -> PseudoElementType {
+    fn pseudo_element(&self) -> Option<PseudoElement> {
         self.pseudo
     }
 
-    fn with_pseudo(&self, pseudo: PseudoElementType) -> Self {
-        ServoThreadSafeLayoutElement {
-            element: self.element,
-            pseudo,
+    fn with_pseudo(&self, pseudo_element_type: PseudoElement) -> Option<Self> {
+        if pseudo_element_type.is_eager() &&
+            self.style_data()
+                .styles
+                .pseudos
+                .get(&pseudo_element_type)
+                .is_none()
+        {
+            return None;
         }
+
+        if pseudo_element_type == PseudoElement::DetailsSummary &&
+            (!self.has_local_name(&local_name!("details")) || !self.has_namespace(&ns!(html)))
+        {
+            return None;
+        }
+
+        if pseudo_element_type == PseudoElement::DetailsContent &&
+            (!self.has_local_name(&local_name!("details")) ||
+                !self.has_namespace(&ns!(html)) ||
+                self.get_attr(&ns!(), &local_name!("open")).is_none())
+        {
+            return None;
+        }
+
+        Some(ServoThreadSafeLayoutElement {
+            element: self.element,
+            pseudo: Some(pseudo_element_type),
+        })
     }
 
     fn type_id(&self) -> Option<LayoutNodeType> {
@@ -786,6 +868,10 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
     fn is_body_element_of_html_element_root(&self) -> bool {
         self.element.is_html_document_body_element()
     }
+
+    fn is_root(&self) -> bool {
+        self.element.is_root()
+    }
 }
 
 /// This implementation of `::selectors::Element` is used for implementing lazy
@@ -800,7 +886,7 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
 ///
 /// Note that the element implementation is needed only for selector matching,
 /// not for inheritance (styles are inherited appropriately).
-impl<'dom> ::selectors::Element for ServoThreadSafeLayoutElement<'dom> {
+impl ::selectors::Element for ServoThreadSafeLayoutElement<'_> {
     type Impl = SelectorImpl;
 
     fn opaque(&self) -> ::selectors::OpaqueElement {
@@ -847,8 +933,7 @@ impl<'dom> ::selectors::Element for ServoThreadSafeLayoutElement<'dom> {
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
-        debug!("ServoThreadSafeLayoutElement::is_html_element_in_html_document called");
-        true
+        self.element.is_html_element_in_html_document()
     }
 
     #[inline]

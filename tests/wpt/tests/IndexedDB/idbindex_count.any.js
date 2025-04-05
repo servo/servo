@@ -21,7 +21,7 @@ async_test(t => {
     };
 
     open_rq.onsuccess = function(e) {
-      const rq = db.transaction("store", "readonly", { durability: 'relaxed' })
+      const rq = db.transaction("store", "readonly")
         .objectStore("store")
         .index("index")
         .count();
@@ -48,7 +48,7 @@ async_test(t => {
     };
 
     open_rq.onsuccess = function(e) {
-      const rq = db.transaction("store", "readonly", { durability: 'relaxed' })
+      const rq = db.transaction("store", "readonly")
         .objectStore("store")
         .index("index")
         .count(IDBKeyRange.bound('data0', 'data4'));
@@ -95,7 +95,7 @@ async_test(t => {
     };
 
     open_rq.onsuccess = function(e) {
-      const index = db.transaction("store", "readonly", { durability: 'relaxed' })
+      const index = db.transaction("store", "readonly")
         .objectStore("store")
         .index("index");
 

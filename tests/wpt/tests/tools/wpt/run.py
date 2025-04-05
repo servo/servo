@@ -46,11 +46,9 @@ def create_parser():
     from wptrunner import wptcommandline
 
     parser = argparse.ArgumentParser(add_help=False, parents=[install.channel_args])
-    parser.add_argument("product", action="store",
-                        help="Browser to run tests in")
-    parser.add_argument("--affected", action="store", default=None,
-                        help="Run affected tests since revish")
-    parser.add_argument("--yes", "-y", dest="prompt", action="store_false", default=True,
+    parser.add_argument("product", help="Browser to run tests in")
+    parser.add_argument("--affected", help="Run affected tests since revish")
+    parser.add_argument("--yes", "-y", dest="prompt", action="store_false",
                         help="Don't prompt before installing components")
     parser.add_argument("--install-browser", action="store_true",
                         help="Install the browser from the release channel specified by --channel "
@@ -58,7 +56,7 @@ def create_parser():
     parser.add_argument("--install-webdriver", action="store_true",
                         help="Install WebDriver from the release channel specified by --channel "
                         "(or the nightly channel by default).")
-    parser.add_argument("--logcat-dir", action="store", default=None,
+    parser.add_argument("--logcat-dir",
                         help="Directory to write Android logcat files to")
     parser._add_container_actions(wptcommandline.create_parser())
     return parser

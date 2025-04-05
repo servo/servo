@@ -7,16 +7,16 @@ use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::XPathExpressionBinding::XPathExpressionMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::dom::xpathresult::{XPathResult, XPathResultType};
 use crate::script_runtime::CanGc;
-use crate::xpath::{evaluate_parsed_xpath, Expr};
+use crate::xpath::{Expr, evaluate_parsed_xpath};
 
 #[dom_struct]
-pub struct XPathExpression {
+pub(crate) struct XPathExpression {
     reflector_: Reflector,
     window: Dom<Window>,
     #[no_trace]
@@ -32,7 +32,7 @@ impl XPathExpression {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,

@@ -14,11 +14,13 @@ path = "lib.rs"
 [dependencies]
 base = { workspace = true }
 ipc-channel = { workspace = true }
+log = { workspace = true }
+parking_lot = { workspace = true }
 profile_traits = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_config = { path = "../config" }
-time_03 = { workspace = true }
+time = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 task_info = { path = "../../support/rust-task_info" }
@@ -28,5 +30,6 @@ regex = { workspace = true }
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 libc = { workspace = true }
+
 [target.'cfg(not(any(target_os = "windows", target_env = "ohos")))'.dependencies]
 tikv-jemalloc-sys = { workspace = true }

@@ -13,7 +13,7 @@ function createDbRecordAndValidate(record, t) {
     store.add(record);
 
     openRequest.onsuccess = t.step_func(event => {
-      const rq = db.transaction('store', 'readonly', {durability: 'relaxed'})
+      const rq = db.transaction('store', 'readonly')
                      .objectStore('store')
                      .get(record.key);
 
@@ -70,7 +70,7 @@ async_test(t => {
   });
 
   open_rq.onsuccess = t.step_func(event => {
-    const rq = db.transaction('store', 'readonly', {durability: 'relaxed'})
+    const rq = db.transaction('store', 'readonly')
                    .objectStore('store')
                    .get(IDBKeyRange.bound(3, 6));
 
@@ -91,9 +91,7 @@ async_test(t => {
   });
 
   open_rq.onsuccess = t.step_func(event => {
-    const store = db.transaction('store', 'readonly', {
-                      durability: 'relaxed'
-                    }).objectStore('store');
+    const store = db.transaction('store', 'readonly').objectStore('store');
 
     // Abort the transaction immediately.
     store.transaction.abort();
@@ -118,9 +116,7 @@ async_test(t => {
   });
 
   open_rq.onsuccess = t.step_func(event => {
-    const store = db.transaction('store', 'readonly', {
-                      durability: 'relaxed'
-                    }).objectStore('store');
+    const store = db.transaction('store', 'readonly').objectStore('store');
 
     // Attempt to use an invalid key (null)
     assert_throws_dom('DataError', () => {

@@ -105,7 +105,7 @@ promise_test(async () => {
 
 promise_test(async () => {
   // Scroll up and right to have enough space on both axes.
-  scroller.scrollTop = -250;
+  scroller.scrollTop = -350;
   scroller.scrollLeft = 250;
   await waitUntilNextAnimationFrame();
   assert_fallback_position(anchored, anchor, 'top');

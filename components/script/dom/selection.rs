@@ -12,15 +12,14 @@ use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
 use crate::script_runtime::CanGc;
-use crate::task_source::TaskSource;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 enum Direction {
@@ -30,7 +29,7 @@ enum Direction {
 }
 
 #[dom_struct]
-pub struct Selection {
+pub(crate) struct Selection {
     reflector_: Reflector,
     document: Dom<Document>,
     range: MutNullableDom<Range>,
@@ -49,10 +48,11 @@ impl Selection {
         }
     }
 
-    pub fn new(document: &Document) -> DomRoot<Selection> {
+    pub(crate) fn new(document: &Document, can_gc: CanGc) -> DomRoot<Selection> {
         reflect_dom_object(
             Box::new(Selection::new_inherited(document)),
             &*document.global(),
+            can_gc,
         )
     }
 
@@ -80,7 +80,7 @@ impl Selection {
         }
     }
 
-    pub fn queue_selectionchange_task(&self) {
+    pub(crate) fn queue_selectionchange_task(&self) {
         if self.task_queued.get() {
             // Spec doesn't specify not to queue multiple tasks,
             // but it's much easier to code range operations if
@@ -88,8 +88,8 @@ impl Selection {
             return;
         }
         let this = Trusted::new(self);
-        let window = window_from_node(&*self.document);
-        window
+        self.document
+            .owner_global()
             .task_manager()
             .user_interaction_task_source() // w3c/selection-api#117
             .queue(
@@ -97,10 +97,8 @@ impl Selection {
                     let this = this.root();
                     this.task_queued.set(false);
                     this.document.upcast::<EventTarget>().fire_event(atom!("selectionchange"), CanGc::note());
-                }),
-                window.upcast(),
-            )
-            .expect("Couldn't queue selectionchange task!");
+                })
+            );
         self.task_queued.set(true);
     }
 
@@ -169,11 +167,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
     // https://w3c.github.io/selection-api/#dom-selection-rangecount
     fn RangeCount(&self) -> u32 {
-        if self.range.get().is_some() {
-            1
-        } else {
-            0
-        }
+        if self.range.get().is_some() { 1 } else { 0 }
     }
 
     // https://w3c.github.io/selection-api/#dom-selection-type

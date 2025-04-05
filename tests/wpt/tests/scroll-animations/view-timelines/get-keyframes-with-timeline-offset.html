@@ -87,6 +87,23 @@
 
     promise_test(async t => {
       let anim = createAnimation(t, [
+        { offset: "cover -100%", opacity: "0" },
+        { offset: "cover 200%", opacity: "1" },
+      ]);
+      let frames = anim.effect.getKeyframes();
+      let expected = [
+        { offset: { rangeName: 'cover', offset: CSS.percent(-100) },
+          computedOffset: -4, easing: "linear", composite: "auto",
+          opacity: "0" },
+        { offset: { rangeName: 'cover', offset: CSS.percent(200) },
+          computedOffset: 5, easing: "linear", composite: "auto",
+          opacity: "1" }
+      ];
+      assert_frame_lists_equal(frames, expected);
+    }, 'Offsets can be outside [0%,100%] for keyframes with timeline range names');
+
+    promise_test(async t => {
+      let anim = createAnimation(t, [
         { offset: "contain 75%", marginLeft: "0px", opacity: "0" },
         { offset: "contain 25%", marginRight: "0px", opacity: "1" }
       ]);

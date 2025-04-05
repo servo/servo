@@ -1,5 +1,5 @@
 // META: title=test WebNN API tensor operations
-// META: global=window,dedicatedworker
+// META: global=window,worker
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -128,6 +128,17 @@ const testCreateTensorFails = (testName, tensorDescriptor) => {
   }, `${testName} / ${tensorDescriptor.dataType}`);
 };
 
+
+promise_test(async t => {
+  const tensorDescriptor = {
+    dataType: 'int32',
+    shape: [(context.opSupportLimits().maxTensorByteLength + 1) / 4],
+    writable: true,
+  };
+  await promise_rejects_js(
+    t, TypeError, context.createTensor(tensorDescriptor));
+}, `create too large tensor byte length that exceeds limit`);
+
 /**
  * Asserts the tensor data in MLTensor matches expected.
  * @param {MLContext} mlContext - The context used to create the tensor.
@@ -164,44 +175,46 @@ const testWriteTensor = (testName) => {
     }
   });
 
-  promise_test(async () => {
-    const tensorDescriptor = {
-      dataType: 'int32',
-      shape: [4],
-      readable: true,
-      writable: true,
-    };
-    const tensorByteLength = sizeOfDescriptor(tensorDescriptor);
+  if ('SharedArrayBuffer' in globalThis) {
+    promise_test(async () => {
+      const tensorDescriptor = {
+        dataType: 'int32',
+        shape: [4],
+        readable: true,
+        writable: true,
+      };
+      const tensorByteLength = sizeOfDescriptor(tensorDescriptor);
 
-    // Required to use SharedArrayBuffer.
-    assert_true(
-        self.crossOriginIsolated,
-        'The page is served with COOP and COEP, it should be cross-origin-isolated.');
+      // Required to use SharedArrayBuffer.
+      assert_true(
+          self.crossOriginIsolated,
+          'The page is served with COOP and COEP, it should be cross-origin-isolated.');
 
-    let arrayBuffer = new ArrayBuffer(tensorByteLength);
-    let arrayBufferView = new Int32Array(arrayBuffer);
-    arrayBufferView.fill(7);
+      let arrayBuffer = new ArrayBuffer(tensorByteLength);
+      let arrayBufferView = new Int32Array(arrayBuffer);
+      arrayBufferView.fill(7);
 
-    let sharedArrayBuffer = new SharedArrayBuffer(tensorByteLength);
-    let sharedArrayBufferView = new Int32Array(sharedArrayBuffer);
-    sharedArrayBufferView.fill(7);
+      let sharedArrayBuffer = new SharedArrayBuffer(tensorByteLength);
+      let sharedArrayBufferView = new Int32Array(sharedArrayBuffer);
+      sharedArrayBufferView.fill(7);
 
-    const tensors = await Promise.all([
-      mlContext.createTensor(tensorDescriptor),
-      mlContext.createTensor(tensorDescriptor),
-      mlContext.createTensor(tensorDescriptor),
-      mlContext.createTensor(tensorDescriptor)
-    ]);
+      const tensors = await Promise.all([
+        mlContext.createTensor(tensorDescriptor),
+        mlContext.createTensor(tensorDescriptor),
+        mlContext.createTensor(tensorDescriptor),
+        mlContext.createTensor(tensorDescriptor)
+      ]);
 
-    mlContext.writeTensor(tensors[0], arrayBuffer);
-    mlContext.writeTensor(tensors[2], arrayBufferView);
-    mlContext.writeTensor(tensors[1], sharedArrayBuffer);
-    mlContext.writeTensor(tensors[3], sharedArrayBufferView);
+      mlContext.writeTensor(tensors[0], arrayBuffer);
+      mlContext.writeTensor(tensors[2], arrayBufferView);
+      mlContext.writeTensor(tensors[1], sharedArrayBuffer);
+      mlContext.writeTensor(tensors[3], sharedArrayBufferView);
 
-    await Promise.all(tensors.map(async (tensor) => {
-      assert_tensor_data_equals(mlContext, tensor, arrayBufferView);
-    }));
-  }, `${testName} / write with different kinds of buffers`);
+      await Promise.all(tensors.map(async (tensor) => {
+        assert_tensor_data_equals(mlContext, tensor, arrayBufferView);
+      }));
+    }, `${testName} / write with different kinds of buffers`);
+  }
 
   promise_test(async () => {
     const tensorDescriptor = {

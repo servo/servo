@@ -29,7 +29,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog, get_test_
             return arguments[0].shadowRoot.querySelector("input")
             """, args=(host,))
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = find_elements(session, shadow_root.id, "css selector", "input")
         value = assert_success(response)
@@ -51,10 +51,11 @@ def check_user_prompt_closed_with_exception(session, create_dialog, get_test_pag
         host = session.find.css("custom-element", all=False)
         shadow_root = host.shadow_root
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = find_elements(session, shadow_root.id, "css selector", "input")
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 
@@ -69,12 +70,13 @@ def check_user_prompt_not_closed_but_exception(session, create_dialog, get_test_
         host = session.find.css("custom-element", all=False)
         shadow_root = host.shadow_root
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = find_elements(session, shadow_root.id, "css selector", "input")
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
-        assert session.alert.text == dialog_type
+        assert session.alert.text == "cheese"
         session.alert.dismiss()
 
     return check_user_prompt_not_closed_but_exception

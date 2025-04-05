@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
@@ -23,7 +23,7 @@ use crate::script_runtime::CanGc;
 const DEFAULT_SPAN: u32 = 1;
 
 #[dom_struct]
-pub struct HTMLTableColElement {
+pub(crate) struct HTMLTableColElement {
     htmlelement: HTMLElement,
 }
 
@@ -38,8 +38,8 @@ impl HTMLTableColElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -67,7 +67,7 @@ impl HTMLTableColElementMethods<crate::DomTypeHolder> for HTMLTableColElement {
     make_uint_setter!(SetSpan, "span", DEFAULT_SPAN);
 }
 
-pub trait HTMLTableColElementLayoutHelpers<'dom> {
+pub(crate) trait HTMLTableColElementLayoutHelpers<'dom> {
     fn get_span(self) -> Option<u32>;
     fn get_width(self) -> LengthOrPercentageOrAuto;
 }

@@ -7,12 +7,13 @@ use dom_struct::dom_struct;
 
 use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
 use crate::dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct OESStandardDerivatives {
+pub(crate) struct OESStandardDerivatives {
     reflector_: Reflector,
 }
 
@@ -26,10 +27,11 @@ impl OESStandardDerivatives {
 
 impl WebGLExtension for OESStandardDerivatives {
     type Extension = OESStandardDerivatives;
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESStandardDerivatives> {
+    fn new(ctx: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<OESStandardDerivatives> {
         reflect_dom_object(
             Box::new(OESStandardDerivatives::new_inherited()),
             &*ctx.global(),
+            can_gc,
         )
     }
 

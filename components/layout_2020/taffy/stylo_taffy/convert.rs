@@ -8,11 +8,11 @@ mod stylo {
     pub(crate) use style::properties::longhands::aspect_ratio::computed_value::T as AspectRatio;
     pub(crate) use style::properties::longhands::position::computed_value::T as Position;
     pub(crate) use style::values::computed::{LengthPercentage, Percentage};
+    pub(crate) use style::values::generics::NonNegative;
     pub(crate) use style::values::generics::length::{
         GenericLengthPercentageOrNormal, GenericMargin, GenericMaxSize, GenericSize,
     };
     pub(crate) use style::values::generics::position::{Inset as GenericInset, PreferredRatio};
-    pub(crate) use style::values::generics::NonNegative;
     pub(crate) use style::values::specified::align::{AlignFlags, ContentDistribution};
     pub(crate) use style::values::specified::box_::{
         Display, DisplayInside, DisplayOutside, Overflow,
@@ -54,6 +54,7 @@ pub fn dimension(val: &stylo::Size) -> taffy::Dimension {
         stylo::Size::MaxContent => taffy::Dimension::Auto,
         stylo::Size::MinContent => taffy::Dimension::Auto,
         stylo::Size::FitContent => taffy::Dimension::Auto,
+        stylo::Size::FitContentFunction(_) => taffy::Dimension::Auto,
         stylo::Size::Stretch => taffy::Dimension::Auto,
 
         // Anchor positioning will be flagged off for time being
@@ -71,6 +72,7 @@ pub fn max_size_dimension(val: &stylo::MaxSize) -> taffy::Dimension {
         stylo::MaxSize::MaxContent => taffy::Dimension::Auto,
         stylo::MaxSize::MinContent => taffy::Dimension::Auto,
         stylo::MaxSize::FitContent => taffy::Dimension::Auto,
+        stylo::MaxSize::FitContentFunction(_) => taffy::Dimension::Auto,
         stylo::MaxSize::Stretch => taffy::Dimension::Auto,
 
         // Anchor positioning will be flagged off for time being
@@ -136,7 +138,7 @@ pub fn position(input: stylo::Position) -> taffy::Position {
         // TODO: support position:fixed and sticky
         stylo::Position::Absolute => taffy::Position::Absolute,
         stylo::Position::Fixed => taffy::Position::Absolute,
-        stylo::Position::Sticky => taffy::Position::Absolute,
+        stylo::Position::Sticky => taffy::Position::Relative,
     }
 }
 
@@ -147,6 +149,7 @@ pub fn overflow(input: stylo::Overflow) -> taffy::Overflow {
         stylo::Overflow::Visible => taffy::Overflow::Visible,
         stylo::Overflow::Hidden => taffy::Overflow::Hidden,
         stylo::Overflow::Scroll => taffy::Overflow::Scroll,
+        stylo::Overflow::Clip => taffy::Overflow::Clip,
         // TODO: Support Overflow::Auto in Taffy
         stylo::Overflow::Auto => taffy::Overflow::Scroll,
     }
@@ -156,7 +159,7 @@ pub fn overflow(input: stylo::Overflow) -> taffy::Overflow {
 pub fn aspect_ratio(input: stylo::AspectRatio) -> Option<f32> {
     match input.ratio {
         stylo::PreferredRatio::None => None,
-        stylo::PreferredRatio::Ratio(val) => Some(val.0 .0 / val.1 .0),
+        stylo::PreferredRatio::Ratio(val) => Some(val.0.0 / val.1.0),
     }
 }
 
@@ -167,6 +170,8 @@ pub fn content_alignment(input: stylo::ContentDistribution) -> Option<taffy::Ali
         stylo::AlignFlags::AUTO => None,
         stylo::AlignFlags::START => Some(taffy::AlignContent::Start),
         stylo::AlignFlags::END => Some(taffy::AlignContent::End),
+        stylo::AlignFlags::LEFT => Some(taffy::AlignContent::Start),
+        stylo::AlignFlags::RIGHT => Some(taffy::AlignContent::End),
         stylo::AlignFlags::FLEX_START => Some(taffy::AlignContent::FlexStart),
         stylo::AlignFlags::STRETCH => Some(taffy::AlignContent::Stretch),
         stylo::AlignFlags::FLEX_END => Some(taffy::AlignContent::FlexEnd),
@@ -182,13 +187,17 @@ pub fn content_alignment(input: stylo::ContentDistribution) -> Option<taffy::Ali
 #[inline]
 pub fn item_alignment(input: stylo::AlignFlags) -> Option<taffy::AlignItems> {
     match input.value() {
-        stylo::AlignFlags::NORMAL => None,
         stylo::AlignFlags::AUTO => None,
+        stylo::AlignFlags::NORMAL => Some(taffy::AlignItems::Stretch),
         stylo::AlignFlags::STRETCH => Some(taffy::AlignItems::Stretch),
         stylo::AlignFlags::FLEX_START => Some(taffy::AlignItems::FlexStart),
         stylo::AlignFlags::FLEX_END => Some(taffy::AlignItems::FlexEnd),
+        stylo::AlignFlags::SELF_START => Some(taffy::AlignItems::Start),
+        stylo::AlignFlags::SELF_END => Some(taffy::AlignItems::End),
         stylo::AlignFlags::START => Some(taffy::AlignItems::Start),
         stylo::AlignFlags::END => Some(taffy::AlignItems::End),
+        stylo::AlignFlags::LEFT => Some(taffy::AlignItems::Start),
+        stylo::AlignFlags::RIGHT => Some(taffy::AlignItems::End),
         stylo::AlignFlags::CENTER => Some(taffy::AlignItems::Center),
         stylo::AlignFlags::BASELINE => Some(taffy::AlignItems::Baseline),
         // Should never be hit. But no real reason to panic here.

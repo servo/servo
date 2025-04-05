@@ -24,7 +24,7 @@ function MessageHandler(e)
     open_rq.onsuccess = function(e) {
         db = e.target.result
         db.onerror = function() { self.postMessage("db.error") }
-        db.transaction("store", "readonly", {durability: 'relaxed'}).objectStore("store").get(1).onsuccess = function(e) {
+        db.transaction("store", "readonly").objectStore("store").get(1).onsuccess = function(e) {
             self.postMessage(e.target.result)
             db.close()
         }

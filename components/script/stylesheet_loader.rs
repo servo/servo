@@ -5,17 +5,16 @@
 use std::io::{Read, Seek, Write};
 use std::sync::atomic::AtomicBool;
 
-use base::id::PipelineId;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
 use mime::{self, Mime};
-use net_traits::request::{CorsSettings, Destination, Referrer, RequestBuilder, RequestId};
+use net_traits::request::{CorsSettings, Destination, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType,
 };
 use servo_arc::Arc;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ServoUrl;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
@@ -29,7 +28,7 @@ use style::values::CssUrl;
 use crate::document_loader::LoadType;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -37,17 +36,17 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmllinkelement::{HTMLLinkElement, RequestGenerationId};
-use crate::dom::node::{containing_shadow_root, document_from_node, window_from_node};
+use crate::dom::node::NodeTraits;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::CanGc;
 use crate::unminify::{
-    create_output_file, create_temp_files, execute_js_beautify, BeautifyFileType,
+    BeautifyFileType, create_output_file, create_temp_files, execute_js_beautify,
 };
 
-pub trait StylesheetOwner {
+pub(crate) trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
     /// trigger a document-load-blocking load).
     fn parser_inserted(&self) -> bool;
@@ -66,14 +65,14 @@ pub trait StylesheetOwner {
     fn set_origin_clean(&self, origin_clean: bool);
 }
 
-pub enum StylesheetContextSource {
+pub(crate) enum StylesheetContextSource {
     // NB: `media` is just an option so we avoid cloning it.
     LinkElement { media: Option<MediaList> },
     Import(Arc<Stylesheet>),
 }
 
 /// The context required for asynchronously loading an external stylesheet.
-pub struct StylesheetContext {
+pub(crate) struct StylesheetContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLElement>,
     source: StylesheetContextSource,
@@ -179,7 +178,7 @@ impl FetchResponseListener for StylesheetContext {
             let protocol_encoding_label = metadata.charset.as_deref();
             let final_url = metadata.final_url;
 
-            let win = window_from_node(&*elem);
+            let win = elem.owner_window();
 
             let loader = StylesheetLoader::for_element(&elem);
             match self.source {
@@ -189,7 +188,7 @@ impl FetchResponseListener for StylesheetContext {
                     // else we risk applying the wrong stylesheet when responses come out-of-order.
                     let is_stylesheet_load_applicable = self
                         .request_generation_id
-                        .map_or(true, |gen| gen == link.get_request_generation_id());
+                        .is_none_or(|generation| generation == link.get_request_generation_id());
                     if is_stylesheet_load_applicable {
                         let shared_lock = document.style_shared_lock().clone();
                         let sheet = Arc::new(Stylesheet::from_bytes(
@@ -288,31 +287,34 @@ impl ResourceTimingListener for StylesheetContext {
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        document_from_node(&*self.elem.root()).global()
+        self.elem.root().owner_document().global()
     }
 }
 
-pub struct StylesheetLoader<'a> {
+pub(crate) struct StylesheetLoader<'a> {
     elem: &'a HTMLElement,
 }
 
 impl<'a> StylesheetLoader<'a> {
-    pub fn for_element(element: &'a HTMLElement) -> Self {
+    pub(crate) fn for_element(element: &'a HTMLElement) -> Self {
         StylesheetLoader { elem: element }
     }
 }
 
-impl<'a> StylesheetLoader<'a> {
-    pub fn load(
+impl StylesheetLoader<'_> {
+    pub(crate) fn load(
         &self,
         source: StylesheetContextSource,
         url: ServoUrl,
         cors_setting: Option<CorsSettings>,
         integrity_metadata: String,
     ) {
-        let document = document_from_node(self.elem);
-        let shadow_root = containing_shadow_root(self.elem).map(|sr| Trusted::new(&*sr));
-        let gen = self
+        let document = self.elem.owner_document();
+        let shadow_root = self
+            .elem
+            .containing_shadow_root()
+            .map(|sr| Trusted::new(&*sr));
+        let generation = self
             .elem
             .downcast::<HTMLLinkElement>()
             .map(HTMLLinkElement::get_request_generation_id);
@@ -325,7 +327,7 @@ impl<'a> StylesheetLoader<'a> {
             document: Trusted::new(&*document),
             shadow_root,
             origin_clean: true,
-            request_generation_id: gen,
+            request_generation_id: generation,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         };
 
@@ -340,40 +342,27 @@ impl<'a> StylesheetLoader<'a> {
             document.increment_script_blocking_stylesheet_count();
         }
 
-        let request = stylesheet_fetch_request(
+        // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
+        let request = create_a_potential_cors_request(
+            Some(document.webview_id()),
             url.clone(),
+            Destination::Style,
             cors_setting,
-            document.origin().immutable().clone(),
-            self.elem.global().pipeline_id(),
+            None,
             self.elem.global().get_referrer(),
-            referrer_policy,
-            integrity_metadata,
-        );
-        let request = document.prepare_request(request);
+            document.insecure_requests_policy(),
+            document.has_trustworthy_ancestor_or_current_origin(),
+        )
+        .origin(document.origin().immutable().clone())
+        .pipeline_id(Some(self.elem.global().pipeline_id()))
+        .referrer_policy(referrer_policy)
+        .integrity_metadata(integrity_metadata);
 
         document.fetch(LoadType::Stylesheet(url), request, context);
     }
 }
 
-// This function is also used to prefetch a stylesheet in `script::dom::servoparser::prefetch`.
-// https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
-pub(crate) fn stylesheet_fetch_request(
-    url: ServoUrl,
-    cors_setting: Option<CorsSettings>,
-    origin: ImmutableOrigin,
-    pipeline_id: PipelineId,
-    referrer: Referrer,
-    referrer_policy: ReferrerPolicy,
-    integrity_metadata: String,
-) -> RequestBuilder {
-    create_a_potential_cors_request(url, Destination::Style, cors_setting, None, referrer)
-        .origin(origin)
-        .pipeline_id(Some(pipeline_id))
-        .referrer_policy(referrer_policy)
-        .integrity_metadata(integrity_metadata)
-}
-
-impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
+impl StyleStylesheetLoader for StylesheetLoader<'_> {
     /// Request a stylesheet after parsing a given `@import` rule, and return
     /// the constructed `@import` rule.
     fn request_stylesheet(
@@ -387,7 +376,7 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
         layer: ImportLayer,
     ) -> Arc<Locked<ImportRule>> {
         // Ensure the supports conditions for this @import are true, if not, refuse to load
-        if !supports.as_ref().map_or(true, |s| s.enabled) {
+        if !supports.as_ref().is_none_or(|s| s.enabled) {
             return Arc::new(lock.wrap(ImportRule {
                 url,
                 stylesheet: ImportSheet::new_refused(),

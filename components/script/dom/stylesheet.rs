@@ -12,9 +12,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::element::Element;
 use crate::dom::medialist::MediaList;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct StyleSheet {
+pub(crate) struct StyleSheet {
     reflector_: Reflector,
     type_: DOMString,
     href: Option<DOMString>,
@@ -22,8 +23,8 @@ pub struct StyleSheet {
 }
 
 impl StyleSheet {
-    #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
         type_: DOMString,
         href: Option<DOMString>,
         title: Option<DOMString>,
@@ -55,7 +56,9 @@ impl StyleSheetMethods<crate::DomTypeHolder> for StyleSheet {
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-media
     fn Media(&self) -> DomRoot<MediaList> {
-        self.downcast::<CSSStyleSheet>().unwrap().medialist()
+        self.downcast::<CSSStyleSheet>()
+            .unwrap()
+            .medialist(CanGc::note())
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-title

@@ -183,14 +183,22 @@ test_position_area_order('most-block-size --bottom-sweep, --left-sweep', '--left
 test_position_area_order('most-inline-size --right-sweep, --left-sweep, --bottom-sweep, --top-sweep', '--left-sweep');
 test_position_area_order('most-block-size --right-sweep, --left-sweep, --bottom-sweep, --top-sweep', '--top-sweep');
 
+// NOTE: the css-anchor-position-1 spec requires that only a minimum of five
+// fallback positions be respected. So this test, while intended to test across
+// all 8 fallbacks, intentionally leaves off 3 of them.
 test_position_area_order(`most-inline-size
   --right-sweep, --left-sweep, --bottom-sweep, --top-sweep,
-  --right, --left, --bottom, --top
-  `, '--left-sweep');
+  /* --right, --left, --bottom, --top */
+  --bottom
+  `, '--bottom');
 
+// NOTE: the css-anchor-position-1 spec requires that only a minimum of five
+// fallback positions be respected. So this test, while intended to test across
+// all 8 fallbacks, intentionally leaves off 3 of them.
 test_position_area_order(`most-block-size
   --right-sweep, --left-sweep, --bottom-sweep, --top-sweep,
-  --right, --left, --bottom, --top
+  /* --right, --left, --bottom, --top */
+  --right
   `, '--right');
 
 </script>

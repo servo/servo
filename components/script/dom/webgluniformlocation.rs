@@ -6,12 +6,13 @@
 use canvas_traits::webgl::{WebGLContextId, WebGLProgramId};
 use dom_struct::dom_struct;
 
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WebGLUniformLocation {
+pub(crate) struct WebGLUniformLocation {
     reflector_: Reflector,
     id: i32,
     #[no_trace]
@@ -43,7 +44,8 @@ impl WebGLUniformLocation {
         }
     }
 
-    pub fn new(
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
         window: &Window,
         id: i32,
         context_id: WebGLContextId,
@@ -51,6 +53,7 @@ impl WebGLUniformLocation {
         link_generation: u64,
         size: Option<i32>,
         type_: u32,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(Self::new_inherited(
@@ -62,30 +65,31 @@ impl WebGLUniformLocation {
                 type_,
             )),
             window,
+            can_gc,
         )
     }
 
-    pub fn id(&self) -> i32 {
+    pub(crate) fn id(&self) -> i32 {
         self.id
     }
 
-    pub fn program_id(&self) -> WebGLProgramId {
+    pub(crate) fn program_id(&self) -> WebGLProgramId {
         self.program_id
     }
 
-    pub fn context_id(&self) -> WebGLContextId {
+    pub(crate) fn context_id(&self) -> WebGLContextId {
         self.context_id
     }
 
-    pub fn link_generation(&self) -> u64 {
+    pub(crate) fn link_generation(&self) -> u64 {
         self.link_generation
     }
 
-    pub fn size(&self) -> Option<i32> {
+    pub(crate) fn size(&self) -> Option<i32> {
         self.size
     }
 
-    pub fn type_(&self) -> u32 {
+    pub(crate) fn type_(&self) -> u32 {
         self.type_
     }
 }

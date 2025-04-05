@@ -383,7 +383,7 @@ test(() => {
   `);
   let inp = tree.querySelector("input");
   assert_equals(html_direction(inp), "rtl");
-  inp.type = "month";
+  inp.type = "number";
   assert_equals(html_direction(inp), "ltr");
   tree.remove();
 }, 'input direction changes if it stops being auto-directionality form-associated');

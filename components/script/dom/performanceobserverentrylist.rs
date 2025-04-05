@@ -6,15 +6,16 @@ use dom_struct::dom_struct;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PerformanceObserverEntryListBinding::PerformanceObserverEntryListMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::PerformanceEntryList;
 use crate::dom::performanceentry::PerformanceEntry;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PerformanceObserverEntryList {
+pub(crate) struct PerformanceObserverEntryList {
     reflector_: Reflector,
     entries: DomRefCell<PerformanceEntryList>,
 }
@@ -27,13 +28,14 @@ impl PerformanceObserverEntryList {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         global: &GlobalScope,
         entries: PerformanceEntryList,
+        can_gc: CanGc,
     ) -> DomRoot<PerformanceObserverEntryList> {
         let observer_entry_list = PerformanceObserverEntryList::new_inherited(entries);
-        reflect_dom_object(Box::new(observer_entry_list), global)
+        reflect_dom_object(Box::new(observer_entry_list), global, can_gc)
     }
 }
 

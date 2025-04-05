@@ -10,7 +10,7 @@ use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 
 use base::cross_process_instant::CrossProcessInstant;
-use log::{debug, warn};
+use log::debug;
 use serde_json::{Map, Value};
 
 /// General actor system infrastructure.
@@ -32,7 +32,7 @@ pub(crate) trait Actor: Any + ActorAsAny {
         msg_type: &str,
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
-        id: StreamId,
+        stream_id: StreamId,
     ) -> Result<ActorMessageStatus, ()>;
     fn name(&self) -> String;
     fn cleanup(&self, _id: StreamId) {}
@@ -77,9 +77,9 @@ impl ActorRegistry {
         }
     }
 
-    pub(crate) fn cleanup(&self, id: StreamId) {
+    pub(crate) fn cleanup(&self, stream_id: StreamId) {
         for actor in self.actors.values() {
-            actor.cleanup(id);
+            actor.cleanup(stream_id);
         }
     }
 
@@ -170,26 +170,27 @@ impl ActorRegistry {
         &mut self,
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
-        id: StreamId,
+        stream_id: StreamId,
     ) -> Result<(), ()> {
         let to = match msg.get("to") {
             Some(to) => to.as_str().unwrap(),
             None => {
-                warn!("Received unexpected message: {:?}", msg);
+                log::warn!("Received unexpected message: {:?}", msg);
                 return Err(());
             },
         };
 
         match self.actors.get(to) {
-            None => debug!("message received for unknown actor \"{}\"", to),
+            None => log::warn!("message received for unknown actor \"{}\"", to),
             Some(actor) => {
                 let msg_type = msg.get("type").unwrap().as_str().unwrap();
-                if actor.handle_message(self, msg_type, msg, stream, id)? !=
+                if actor.handle_message(self, msg_type, msg, stream, stream_id)? !=
                     ActorMessageStatus::Processed
                 {
-                    debug!(
+                    log::warn!(
                         "unexpected message type \"{}\" found for actor \"{}\"",
-                        msg_type, to
+                        msg_type,
+                        to
                     );
                 }
             },

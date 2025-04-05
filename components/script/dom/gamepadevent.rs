@@ -4,29 +4,28 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::GamepadEventBinding;
 use crate::dom::bindings::codegen::Bindings::GamepadEventBinding::GamepadEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::gamepad::Gamepad;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GamepadEvent {
+pub(crate) struct GamepadEvent {
     event: Event,
     gamepad: Dom<Gamepad>,
 }
 
-pub enum GamepadEventType {
+pub(crate) enum GamepadEventType {
     Connected,
     Disconnected,
 }
@@ -39,19 +38,19 @@ impl GamepadEvent {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
+    pub(crate) fn new(
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         gamepad: &Gamepad,
         can_gc: CanGc,
     ) -> DomRoot<GamepadEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, gamepad, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, gamepad, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -61,7 +60,7 @@ impl GamepadEvent {
     ) -> DomRoot<GamepadEvent> {
         let ev = reflect_dom_object_with_proto(
             Box::new(GamepadEvent::new_inherited(gamepad)),
-            global,
+            window,
             proto,
             can_gc,
         );
@@ -72,8 +71,8 @@ impl GamepadEvent {
         ev
     }
 
-    pub fn new_with_type(
-        global: &GlobalScope,
+    pub(crate) fn new_with_type(
+        window: &Window,
         event_type: GamepadEventType,
         gamepad: &Gamepad,
         can_gc: CanGc,
@@ -83,7 +82,7 @@ impl GamepadEvent {
             GamepadEventType::Disconnected => "gamepaddisconnected",
         };
 
-        GamepadEvent::new(global, name.into(), false, false, gamepad, can_gc)
+        GamepadEvent::new(window, name.into(), false, false, gamepad, can_gc)
     }
 }
 
@@ -97,7 +96,7 @@ impl GamepadEventMethods<crate::DomTypeHolder> for GamepadEvent {
         init: &GamepadEventBinding::GamepadEventInit,
     ) -> Fallible<DomRoot<GamepadEvent>> {
         Ok(GamepadEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

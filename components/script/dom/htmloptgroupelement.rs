@@ -3,12 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
-use style_dom::ElementState;
+use script_bindings::str::DOMString;
+use stylo_dom::ElementState;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
+use crate::dom::bindings::codegen::GenericBindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
@@ -16,14 +18,15 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{BindContext, Node, ShadowIncluding, UnbindContext};
+use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
+/// <https://html.spec.whatwg.org/multipage/#htmloptgroupelement>
 #[dom_struct]
-pub struct HTMLOptGroupElement {
+pub(crate) struct HTMLOptGroupElement {
     htmlelement: HTMLElement,
 }
 
@@ -43,8 +46,8 @@ impl HTMLOptGroupElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -61,17 +64,18 @@ impl HTMLOptGroupElement {
         )
     }
 
-    fn update_select_validity(&self) {
-        if let Some(select) = self
-            .upcast::<Node>()
-            .ancestors()
-            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
-            .next()
-        {
+    fn update_select_validity(&self, can_gc: CanGc) {
+        if let Some(select) = self.owner_select_element() {
             select
                 .validity_state()
-                .perform_validation_and_update(ValidationFlags::all());
+                .perform_validation_and_update(ValidationFlags::all(), can_gc);
         }
+    }
+
+    fn owner_select_element(&self) -> Option<DomRoot<HTMLSelectElement>> {
+        self.upcast::<Node>()
+            .GetParentNode()
+            .and_then(DomRoot::downcast)
     }
 }
 
@@ -81,6 +85,12 @@ impl HTMLOptGroupElementMethods<crate::DomTypeHolder> for HTMLOptGroupElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-optgroup-disabled
     make_bool_setter!(SetDisabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage/#dom-optgroup-label
+    make_getter!(Label, "label");
+
+    // https://html.spec.whatwg.org/multipage/#dom-optgroup-label
+    make_setter!(SetLabel, "label");
 }
 
 impl VirtualMethods for HTMLOptGroupElement {
@@ -88,8 +98,10 @@ impl VirtualMethods for HTMLOptGroupElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         if attr.local_name() == &local_name!("disabled") {
             let disabled_state = match mutation {
                 AttributeMutation::Set(None) => true,
@@ -122,26 +134,21 @@ impl VirtualMethods for HTMLOptGroupElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
-        self.update_select_validity();
+        self.update_select_validity(can_gc);
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
-        if let Some(select) = context
-            .parent
-            .inclusive_ancestors(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<HTMLSelectElement>)
-            .next()
-        {
+        if let Some(select) = context.parent.downcast::<HTMLSelectElement>() {
             select
                 .validity_state()
-                .perform_validation_and_update(ValidationFlags::all());
+                .perform_validation_and_update(ValidationFlags::all(), can_gc);
         }
     }
 }

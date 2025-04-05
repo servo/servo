@@ -197,7 +197,8 @@ promise_setup(async () => {
   if (navigator.ml === undefined) {
     return;
   }
-  const deviceType = location.search.substring(1);
+  const deviceType = new URLSearchParams(location.search).get('device') ||
+      location.search.substring(1);
   context = await navigator.ml.createContext({deviceType: deviceType});
 }, {explicit_timeout: true});
 
@@ -246,6 +247,24 @@ function validateTwoInputsBroadcastable(operationName, label) {
       }
     }
   }, `[${operationName}] TypeError is expected if two inputs aren't broadcastable`);
+}
+
+function validateTwoBroadcastableInputsTensorLimit(operationName, label) {
+  if (navigator.ml === undefined) {
+    return;
+  }
+  promise_test(async t => {
+    const builder = new MLGraphBuilder(context);
+
+    const a = builder.input('a', {dataType: 'float32',
+        shape: [context.opSupportLimits().maxTensorByteLength / 4, 1]});
+    const b = builder.input('b', {dataType: 'float32', shape: [1, 5] });
+
+    const options = {label};
+    const regrexp = new RegExp('\\[' + label + '\\]');
+    assert_throws_with_label(
+        () => builder[operationName](a, b, options), regrexp);
+  }, `[${operationName}] throw if the output tensor byte length exceeds limit`);
 }
 
 function validateTwoInputsOfSameDataType(operationName, label) {
@@ -566,8 +585,6 @@ function validateTwoInputsFromMultipleBuilders(operatorName) {
 
 function multi_builder_test(func, description) {
   promise_test(async t => {
-    const context = await navigator.ml.createContext();
-
     const builder = new MLGraphBuilder(context);
     const otherBuilder = new MLGraphBuilder(context);
 

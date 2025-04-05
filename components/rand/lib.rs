@@ -18,8 +18,8 @@ use malloc_size_of_derive::MallocSizeOf;
 /// This crate fixes that, by only using one `OsRng`, which is just
 /// used to seed and re-seed an `ServoRng`.
 use rand::distributions::{Distribution, Standard};
-use rand::rngs::adapter::ReseedingRng;
 use rand::rngs::OsRng;
+use rand::rngs::adapter::ReseedingRng;
 pub use rand::seq::SliceRandom;
 pub use rand::{Rng, RngCore, SeedableRng};
 use rand_isaac::isaac::IsaacCore;
@@ -185,7 +185,7 @@ pub fn random<T>() -> T
 where
     Standard: Distribution<T>,
 {
-    thread_rng().gen()
+    thread_rng().r#gen()
 }
 
 // TODO(eijebong): Replace calls to this by random once `uuid::Uuid` implements `rand::Rand` again.

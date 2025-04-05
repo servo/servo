@@ -39,7 +39,7 @@ function getTrusted(element, attr) {
 //
 // Run the set of tests, assuming that is_tt_enabled reflects whether Trusted
 // Types is currently enabled (& enforced) or not.
-function runTests(is_tt_enabled) {
+function runTests(is_tt_enabled, description_suffix) {
   for (const [element, attr] of [
       [ 'script', 'src' ],
       [ 'div', 'innerHTML' ],
@@ -62,14 +62,17 @@ function runTests(is_tt_enabled) {
           } else {
             elem[attr] = value;
           }
-        }, `${is_tt_enabled ? "TT enabled" : "TT disabled"}: ${element}.${attr} = ${value.constructor.name} on a ${connected ? "connected" : "non-connected"} element.`);
+        }, `${is_tt_enabled ? "TT enabled" : "TT disabled"}: ${element}.${attr}
+            = ${value.constructor.name} on a
+            ${connected ? "connected" : "non-connected"} element
+            ${description_suffix}`);
       }
     }
   }
 }
 
 // Run the tests without TT first.
-runTests(false);
+runTests(false, "");
 
 // Now run the tests a second time, with TT enabled. To accomplish this, insert
 // a suitable <meta> element.
@@ -77,5 +80,14 @@ const meta = document.createElement("meta");
 meta.setAttribute("http-equiv", "Content-Security-Policy");
 meta.setAttribute("content", "require-trusted-types-for 'script';");
 document.head.appendChild(meta);
-runTests(true);
+runTests(true, "");
+
+// Remove the meta element and re-run the tests, expecting exceptions.
+// That is, trusted types are still enforced. That behavior is required by
+// <https://www.w3.org/TR/CSP3/#meta-element> 's note
+// "Modifications to the content attribute of a meta element after the element
+// has been parsed will be ignored.".
+meta.remove();
+runTests(true,
+  `after removing the "require-trusted-types-for 'script' directive`);
 </script>

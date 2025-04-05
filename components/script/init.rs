@@ -62,15 +62,15 @@ unsafe extern "C" fn is_dom_object(obj: *mut JSObject) -> bool {
 #[allow(unsafe_code)]
 pub fn init() -> JSEngineSetup {
     unsafe {
-        if pref!(js.disable_jit) {
+        if pref!(js_disable_jit) {
             js::jsapi::DisableJitBackend();
         }
         proxyhandler::init();
 
         // Create the global vtables used by the (generated) DOM
         // bindings to implement JS proxies.
-        RegisterBindings::RegisterProxyHandlers();
-        RegisterBindings::InitAllStatics();
+        RegisterBindings::RegisterProxyHandlers::<crate::DomTypeHolder>();
+        RegisterBindings::InitAllStatics::<crate::DomTypeHolder>();
 
         js::glue::InitializeMemoryReporter(Some(is_dom_object));
     }

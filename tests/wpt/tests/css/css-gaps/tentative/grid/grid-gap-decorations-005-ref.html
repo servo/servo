@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .container {
+    width: 110px;
+    height: 110px;
+    background: green;
+
+    column-count: 2;
+    column-gap: 10px;
+
+    column-rule-color: pink;
+    column-rule-style: double;
+    column-rule-width: 5px;
+
+    overflow: hidden;
+  }
+
+  .item {
+    background: skyblue;
+    height: 50px;
+    width: 100%;
+    margin: 0;
+  }
+
+  .double {
+    margin: 0px;
+    padding: 0px;
+    height: 0px;
+
+    width: 110px;
+    border-bottom: 5px double;
+    border-color: pink;
+    position: absolute;
+    /*
+      The top position of the double border is set to 52.5px
+      to account for 10px gap and 5px height of the double border,
+      in order to center it in the gap.
+    */
+    top: 52.5px;
+  }
+
+  /* For 2x2 grid-like layout, add a 10px bottom margin to
+    odd children(#1 & #3) to simulate a horizontal row gap.*/
+  .item:nth-child(odd) {
+    margin-bottom: 10px;
+  }
+</style>
+<div class="container">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>
+
+<div class="double">
+</div>

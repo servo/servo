@@ -12,15 +12,16 @@ use webxr_api::{ApiSpace, View};
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
+use crate::dom::xrsession::{BaseSpace, BaseTransform, XRSession, cast_transform};
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRView {
+pub(crate) struct XRView {
     reflector_: Reflector,
     session: Dom<XRSession>,
     eye: XREye,
@@ -54,8 +55,8 @@ impl XRView {
         }
     }
 
-    pub fn new<V: Copy>(
-        global: &GlobalScope,
+    pub(crate) fn new<V: Copy>(
+        window: &Window,
         session: &XRSession,
         view: &View<V>,
         eye: XREye,
@@ -64,7 +65,7 @@ impl XRView {
         can_gc: CanGc,
     ) -> DomRoot<XRView> {
         let transform: RigidTransform3D<f32, V, BaseSpace> = view.transform.then(to_base);
-        let transform = XRRigidTransform::new(global, cast_transform(transform), can_gc);
+        let transform = XRRigidTransform::new(window, cast_transform(transform), can_gc);
 
         reflect_dom_object(
             Box::new(XRView::new_inherited(
@@ -74,15 +75,16 @@ impl XRView {
                 viewport_index,
                 view.cast_unit(),
             )),
-            global,
+            window,
+            can_gc,
         )
     }
 
-    pub fn session(&self) -> &XRSession {
+    pub(crate) fn session(&self) -> &XRSession {
         &self.session
     }
 
-    pub fn viewport_index(&self) -> usize {
+    pub(crate) fn viewport_index(&self) -> usize {
         self.viewport_index
     }
 }
@@ -94,17 +96,17 @@ impl XRViewMethods<crate::DomTypeHolder> for XRView {
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix>
-    fn ProjectionMatrix(&self, _cx: JSContext) -> Float32Array {
+    fn ProjectionMatrix(&self, _cx: JSContext, can_gc: CanGc) -> Float32Array {
         if !self.proj.is_initialized() {
             let cx = GlobalScope::get_cx();
             // row_major since euclid uses row vectors
             let proj = self.view.projection.to_array();
             self.proj
-                .set_data(cx, &proj)
+                .set_data(cx, &proj, can_gc)
                 .expect("Failed to set projection matrix.")
         }
         self.proj
-            .get_buffer()
+            .get_typed_array()
             .expect("Failed to get projection matrix.")
     }
 

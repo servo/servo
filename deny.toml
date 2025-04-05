@@ -12,10 +12,12 @@ feature-depth = 1
 # https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
 [advisories]
 ignore = [
-    #"RUSTSEC-0000-0000",
-    #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
-    #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
-    #{ crate = "a-crate-that-is-yanked@0.1.1", reason = "you can specify why you are ignoring the yanked crate" },
+    # This has been yanked, but upgrading to the next version breaks some WPT tests.
+    # It needs investigation.
+    "url@2.5.3",
+
+    # The crate `paste` is no longer maintained.
+    "RUSTSEC-2024-0436",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -33,14 +35,13 @@ allow = [
     "BSL-1.0",
     "CC0-1.0",
     "ISC",
-    "LicenseRef-UFL-1.0", # No official SPDX, see https://github.com/emilk/egui/issues/2321.
     "MIT",
     "MPL-2.0",
     "OpenSSL",
     "OFL-1.1",
+    "Ubuntu-font-1.0",
     "Unicode-3.0",
     "Zlib",
-    "zlib-acknowledgement",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
@@ -50,22 +51,6 @@ confidence-threshold = 0.8
 # Allow 1 or more licenses on a per-crate basis, so that particular licenses
 # aren't accepted for every possible crate as with the normal allow list
 exceptions = [
-    # Each entry is the crate and version constraint, and its specific allow
-    # list
-    { allow = ["OFL-1.1", "LicenseRef-UFL-1.0"], crate = "epaint" },
-    { allow = ["Unicode-DFS-2016"], crate = "unicode-ident" },
-]
-
-# Some crates don't have (easily) machine readable licensing information,
-# adding a clarification entry for it allows you to manually specify the
-# licensing information
-[[licenses.clarify]]
-crate = "ring"
-# The SPDX expression for the license requirements of the crate
-expression = "MIT AND ISC AND OpenSSL"
-license-files = [
-    # Each entry is a crate relative path, and the (opaque) hash of its contents
-    { path = "LICENSE", hash = 0xbd0eed23 },
 ]
 
 
@@ -73,21 +58,109 @@ license-files = [
 # More documentation about the 'bans' section can be found here:
 # https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
 [bans]
-multiple-versions = "warn"
-wildcards = "warn"
-highlight = "all"
-workspace-default-features = "allow"
 external-default-features = "allow"
+highlight = "all"
+multiple-versions = "deny"
+wildcards = "allow"
+workspace-default-features = "allow"
+
 # List of crates that are allowed. Use with care!
-allow = [
-    #"ansi_term@0.11.0",
-    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is allowed" },
-]
-# List of crates to deny
+allow = []
+
+# List of crates to deny:
 deny = [
-    #"ansi_term@0.11.0",
-    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is banned" },
-    # Wrapper crates can optionally be specified to allow the crate when it
-    # is a direct dependency of the otherwise banned crate
-    #{ crate = "ansi_term@0.11.0", wrappers = ["this-crate-directly-depends-on-ansi_term"] },
+    "num",
+    { crate = "rand", wrappers = [
+        "ipc-channel",
+        "phf_generator",
+        "quickcheck",
+        "servo_rand",
+        "tracing-perfetto",
+        "tungstenite",
+    ] },
 ]
+
+# List of crates to skip for the duplicate check:
+skip = [
+    "bitflags",
+    "cookie",
+    "futures",
+    "hermit-abi",
+    "redox_syscall",
+    "wayland-sys",
+
+    # Duplicated by aws-lc-rs
+    "bindgen",
+
+    # New versions of these dependencies is pulled in by GStreamer / GLib.
+    "itertools",
+    "toml",
+
+    # Duplicated by egui-file-dialog
+    "windows",
+    "windows-implement",
+    "windows-interface",
+    "windows-result",
+
+    # Duplicated by winit.
+    "windows-sys",
+    "windows-targets",
+    "windows_aarch64_gnullvm",
+    "windows_aarch64_msvc",
+    "windows_i686_gnu",
+    "windows_i686_msvc",
+    "windows_x86_64_gnu",
+    "windows_x86_64_gnullvm",
+    "windows_x86_64_msvc",
+
+    # wgpu has the latest and greatest.
+    "foreign-types",
+    "foreign-types-shared",
+    "metal",
+    "windows-core",
+    "hashbrown",
+
+    # wgpu-hal depends on 0.5.0.
+    "ndk-sys",
+
+    # icu (from mozjs) uses old version
+    # tracing-subscriber (tokio-rs/tracing#3033) uses old version
+    # regex -> regex-automata 0.4.7
+    # icu_list -> regex-automata 0.2.0
+    # tracing-subscriber -> matchers -> regex-automata 0.1.0
+    "regex-automata",
+
+    # tracing-subscriber (tokio-rs/tracing#3033) uses old version
+    # regex [-> regex-automata 0.4.7] -> regex-syntax 0.8.4
+    # tracing-subscriber -> matchers -> regex-automata 0.1.0 -> regex-syntax 0.6.29
+    "regex-syntax",
+
+    # rust-content-security-policy uses newest base64.
+    "base64",
+
+    # gilrs is on 0.10.0, but Servo is still on 0.9.4
+    "core-foundation",
+
+    # wgpu crates still depend on 1.1.0
+    "rustc-hash",
+
+    # wgpu depends on thiserror 2, while rest is still on 1
+    "thiserror",
+    "thiserror-impl",
+
+    # duplicated by webdriver
+    "h2",
+    "headers",
+    "headers-core",
+    "http",
+    "http-body",
+    "hyper",
+
+    # duplicated by font-kit
+    "redox_users",
+    "dirs-sys",
+]
+
+# github.com organizations to allow git sources for
+[sources.allow-org]
+github = ["pcwalton", "servo", "gfx-rs"]

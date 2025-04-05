@@ -24,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::{
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{RTCErrorDetailType, RTCErrorInit};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -38,7 +38,7 @@ use crate::dom::rtcpeerconnection::RTCPeerConnection;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCDataChannel {
+pub(crate) struct RTCDataChannel {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "defined in servo-media"]
     servo_media_id: DataChannelId,
@@ -55,8 +55,8 @@ pub struct RTCDataChannel {
 }
 
 impl RTCDataChannel {
-    #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
         peer_connection: &RTCPeerConnection,
         label: USVString,
         options: &RTCDataChannelInit,
@@ -90,12 +90,13 @@ impl RTCDataChannel {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         peer_connection: &RTCPeerConnection,
         label: USVString,
         options: &RTCDataChannelInit,
         servo_media_id: Option<DataChannelId>,
+        can_gc: CanGc,
     ) -> DomRoot<RTCDataChannel> {
         let rtc_data_channel = reflect_dom_object(
             Box::new(RTCDataChannel::new_inherited(
@@ -105,6 +106,7 @@ impl RTCDataChannel {
                 servo_media_id,
             )),
             global,
+            can_gc,
         );
 
         peer_connection.register_data_channel(rtc_data_channel.servo_media_id, &rtc_data_channel);
@@ -112,7 +114,7 @@ impl RTCDataChannel {
         rtc_data_channel
     }
 
-    pub fn on_open(&self, can_gc: CanGc) {
+    pub(crate) fn on_open(&self, can_gc: CanGc) {
         let event = Event::new(
             &self.global(),
             atom!("open"),
@@ -123,7 +125,7 @@ impl RTCDataChannel {
         event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
-    pub fn on_close(&self, can_gc: CanGc) {
+    pub(crate) fn on_close(&self, can_gc: CanGc) {
         let event = Event::new(
             &self.global(),
             atom!("close"),
@@ -137,8 +139,9 @@ impl RTCDataChannel {
             .unregister_data_channel(&self.servo_media_id);
     }
 
-    pub fn on_error(&self, error: WebRtcError, can_gc: CanGc) {
+    pub(crate) fn on_error(&self, error: WebRtcError, can_gc: CanGc) {
         let global = self.global();
+        let window = global.as_window();
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
         let init = RTCErrorInit {
@@ -152,13 +155,13 @@ impl RTCDataChannel {
         let message = match error {
             WebRtcError::Backend(message) => DOMString::from(message),
         };
-        let error = RTCError::new(&global, &init, message, can_gc);
-        let event = RTCErrorEvent::new(&global, atom!("error"), false, false, &error, can_gc);
+        let error = RTCError::new(window, &init, message, can_gc);
+        let event = RTCErrorEvent::new(window, atom!("error"), false, false, &error, can_gc);
         event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 
     #[allow(unsafe_code)]
-    pub fn on_message(&self, channel_message: DataChannelMessage, can_gc: CanGc) {
+    pub(crate) fn on_message(&self, channel_message: DataChannelMessage, can_gc: CanGc) {
         unsafe {
             let global = self.global();
             let cx = GlobalScope::get_cx();
@@ -180,12 +183,14 @@ impl RTCDataChannel {
                     },
                     "arraybuffer" => {
                         rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-                        assert!(ArrayBuffer::create(
-                            *cx,
-                            CreateWith::Slice(&data),
-                            array_buffer.handle_mut()
-                        )
-                        .is_ok());
+                        assert!(
+                            ArrayBuffer::create(
+                                *cx,
+                                CreateWith::Slice(&data),
+                                array_buffer.handle_mut()
+                            )
+                            .is_ok()
+                        );
 
                         (*array_buffer).to_jsval(*cx, message.handle_mut());
                     },
@@ -205,7 +210,7 @@ impl RTCDataChannel {
         }
     }
 
-    pub fn on_state_change(&self, state: DataChannelState, can_gc: CanGc) {
+    pub(crate) fn on_state_change(&self, state: DataChannelState, can_gc: CanGc) {
         if let DataChannelState::Closing = state {
             let event = Event::new(
                 &self.global(),

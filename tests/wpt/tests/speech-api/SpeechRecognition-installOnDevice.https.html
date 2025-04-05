@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>SpeechRecognition installOnDevice</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async (t) => {
+  const validLang = "en-US";
+  const invalidLang = "invalid language code";
+  window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  // Test that it returns a promise.
+  const validResultPromise = SpeechRecognition.installOnDevice(validLang);
+  assert_true(
+    validResultPromise instanceof Promise,
+    "installOnDevice should return a Promise."
+  );
+
+  // Verify the resolved value is a boolean.
+  const validResult = await validResultPromise;
+  assert_true(
+    typeof validResult === "boolean",
+    "The resolved value of the installOnDevice promise should be a boolean."
+  );
+
+  // Verify that the method returns true when called with a supported language code.
+  assert_equals(
+    validResult,
+    true,
+    "installOnDevice should resolve with `true` when called with a supported language code."
+  );
+
+  // Test that it returns a promise.
+  const invalidResultPromise = SpeechRecognition.installOnDevice(invalidLang);
+  const invalidResult = await invalidResultPromise;
+  assert_equals(
+    invalidResult,
+    false,
+    "installOnDevice should resolve with `false` when called with an unsupported language code."
+  );
+}, "SpeechRecognition.installOnDevice resolves with a boolean value.");
+
+promise_test(async (t) => {
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  const frameWindow = iframe.contentWindow;
+  const frameDOMException = frameWindow.DOMException;
+  const frameSpeechRecognition =
+    frameWindow.SpeechRecognition || frameWindow.webkitSpeechRecognition;
+
+  iframe.remove();
+  await promise_rejects_dom(
+    t,
+    "InvalidStateError",
+    frameDOMException,
+    frameSpeechRecognition.installOnDevice("en-US"),
+  );
+}, "SpeechRecognition.installOnDevice rejects in a detached context.");
+</script>

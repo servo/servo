@@ -35,11 +35,11 @@ pub fn deinit(clean_shutdown: bool) {
     }
 }
 
-#[link_section = "__TEXT,__info_plist"]
-#[no_mangle]
+#[unsafe(link_section = "__TEXT,__info_plist")]
+#[unsafe(no_mangle)]
 pub static INFO_PLIST: [u8; 619] = *include_bytes!("Info.plist");
 
 #[link(name = "count_threads")]
-extern "C" {
+unsafe extern "C" {
     fn macos_count_running_threads() -> i32;
 }

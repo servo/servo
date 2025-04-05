@@ -12,7 +12,7 @@ from wptrunner.update import setup_logging, WPTUpdate  # noqa: F401
 from wptrunner.update.base import exit_unclean  # noqa: F401
 from wptrunner import wptcommandline  # noqa: F401
 
-from . import WPT_PATH, update_args_for_legacy_layout
+from . import WPT_PATH
 from . import manifestupdate
 
 TEST_ROOT = os.path.join(WPT_PATH, 'tests')
@@ -60,9 +60,7 @@ def remove_unused_metadata():
     for meta_root in META_ROOTS:
         for base_dir, dir_names, files in os.walk(meta_root):
             # Skip recursing into any directories that were previously found to be missing.
-            if base_dir in unused_dirs:
-                # Skip processing any subdirectories of known missing directories.
-                unused_dirs += [os.path.join(base_dir, x) for x in dir_names]
+            if any([os.path.commonpath([base_dir, unused_dir]) == unused_dir for unused_dir in unused_dirs]):
                 continue
 
             for dir_name in dir_names:
@@ -111,9 +109,6 @@ def update_tests(**kwargs) -> int:
     if hasattr(wptcommandline, 'check_paths'):
         wptcommandline.check_paths(kwargs["test_paths"])
 
-    if kwargs.pop("legacy_layout"):
-        update_args_for_legacy_layout(kwargs)
-
     if kwargs.get('sync', False):
         return do_sync(**kwargs)
 
@@ -127,8 +122,4 @@ def run_update(**kwargs) -> bool:
 
 
 def create_parser(**_kwargs):
-    parser = wptcommandline.create_parser_update()
-    parser.add_argument("--legacy-layout", "--layout-2013", "--with-layout-2013",
-                        default=False, action="store_true",
-                        help="Use expected results for the legacy layout engine")
-    return parser
+    return wptcommandline.create_parser_update()

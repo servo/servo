@@ -9,13 +9,14 @@ use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::MediaDeviceInfoBinding::{
     MediaDeviceInfoMethods, MediaDeviceKind,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaDeviceInfo {
+pub(crate) struct MediaDeviceInfo {
     reflector_: Reflector,
     device_id: DOMString,
     kind: MediaDeviceKind,
@@ -39,18 +40,20 @@ impl MediaDeviceInfo {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         device_id: &str,
         kind: MediaDeviceKind,
         label: &str,
         group_id: &str,
+        can_gc: CanGc,
     ) -> DomRoot<MediaDeviceInfo> {
         reflect_dom_object(
             Box::new(MediaDeviceInfo::new_inherited(
                 device_id, kind, label, group_id,
             )),
             global,
+            can_gc,
         )
     }
 }

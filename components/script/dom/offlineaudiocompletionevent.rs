@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::audiobuffer::AudioBuffer;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -21,20 +21,20 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct OfflineAudioCompletionEvent {
+pub(crate) struct OfflineAudioCompletionEvent {
     event: Event,
     rendered_buffer: Dom<AudioBuffer>,
 }
 
 impl OfflineAudioCompletionEvent {
-    pub fn new_inherited(rendered_buffer: &AudioBuffer) -> OfflineAudioCompletionEvent {
+    pub(crate) fn new_inherited(rendered_buffer: &AudioBuffer) -> OfflineAudioCompletionEvent {
         OfflineAudioCompletionEvent {
             event: Event::new_inherited(),
             rendered_buffer: Dom::from_ref(rendered_buffer),
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: Atom,
         bubbles: EventBubbles,

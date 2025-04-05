@@ -125,6 +125,11 @@
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
 
+    const pc1Candidates = new Set();
+    const pc2Candidates = new Set();
+    pc1.addEventListener('icecandidate', e => { if (e.candidate) pc1Candidates.add(e.candidate.candidate); });
+    pc2.addEventListener('icecandidate', e => { if (e.candidate) pc2Candidates.add(e.candidate.candidate); });
+
     return createDataChannelPair(t, {}, pc1, pc2)
     .then(([channel1, channel2]) => {
       // Send a ping message and wait for it just to make sure
@@ -135,6 +140,22 @@
     .then(() => {
       const iceTransport1 = getIceTransportFromSctp(pc1);
       const iceTransport2 = getIceTransportFromSctp(pc2);
+
+      test(() => {
+          const candidatePair1 = iceTransport1.getSelectedCandidatePair();
+          const candidatePair2 = iceTransport2.getSelectedCandidatePair();
+
+          assert_equals(candidatePair1.local.candidate, candidatePair2.remote.candidate,
+              'Expect selected local candidate of one pc is the selected remote candidate or another');
+
+          assert_equals(candidatePair1.remote.candidate, candidatePair2.local.candidate,
+              'Expect selected local candidate of one pc is the selected remote candidate or another');
+
+          assert_true(pc1Candidates.has(candidatePair1.local.candidate), "pc1 selected local candidate in pc1 candidates");
+          assert_true(pc1Candidates.has(candidatePair2.remote.candidate), "pc2 selected remote candidate in pc1 candidates");
+          assert_true(pc2Candidates.has(candidatePair2.local.candidate), "pc2 selected local candidate in pc2 candidates");
+          assert_true(pc2Candidates.has(candidatePair1.remote.candidate), "pc1 selected remote candidate in pc2 candidates");
+      }, "Validate selected candidate pair");
 
       validateConnectedIceTransport(iceTransport1);
       validateConnectedIceTransport(iceTransport2);
@@ -148,15 +169,6 @@
         iceTransport1.getRemoteCandidates().length,
         iceTransport2.getLocalCandidates().length,
         `Expect iceTransport1 to have same number of remote candidate as iceTransport2's local candidates`);
-
-      const candidatePair1 = iceTransport1.getSelectedCandidatePair();
-      const candidatePair2 = iceTransport2.getSelectedCandidatePair();
-
-      assert_equals(candidatePair1.local.candidate, candidatePair2.remote.candidate,
-        'Expect selected local candidate of one pc is the selected remote candidate or another');
-
-      assert_equals(candidatePair1.remote.candidate, candidatePair2.local.candidate,
-        'Expect selected local candidate of one pc is the selected remote candidate or another');
 
       assert_equals(iceTransport1.role, 'controlling',
         `Expect offerer's iceTransport to take the controlling role`);
@@ -467,5 +479,21 @@
     const result = await Promise.race([closedEvent, new Promise(r => t.step_timeout(r, 1000))]);
     assert_equals(result, undefined, 'statechange event should not fire when transitioning to closed due to PC.close()');
   }, 'RTCIceTransport should synchronously transition to "closed" with no event if the underlying transport is closed due to PC.close()');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const {sender} = pc1.addTransceiver('audio');
+
+    // Candidates only go in one direction, like in webrtc-stats/getStats-remote-candidate-address.html
+    // This means the remote candidates are peer-reflexive candidates.
+    pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+    exchangeOfferAnswer(pc1, pc2);
+    await listenToConnected(pc1);
+
+    assert_equals(sender.transport.iceTransport.getRemoteCandidates().length, 0);
+  }, 'RTCIceTransport does not expose remote peer-reflexive candidates.');
 
 </script>

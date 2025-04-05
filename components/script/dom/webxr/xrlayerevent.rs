@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::XRLayerEventBinding::{
@@ -20,13 +20,13 @@ use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/uievents/#interface-uievent
 #[dom_struct]
-pub struct XRLayerEvent {
+pub(crate) struct XRLayerEvent {
     event: Event,
     layer: Dom<XRLayer>,
 }
 
 impl XRLayerEvent {
-    pub fn new_inherited(layer: &XRLayer) -> XRLayerEvent {
+    pub(crate) fn new_inherited(layer: &XRLayer) -> XRLayerEvent {
         XRLayerEvent {
             event: Event::new_inherited(),
             layer: Dom::from_ref(layer),

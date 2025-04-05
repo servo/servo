@@ -1,5 +1,5 @@
 // META: title=validation tests for WebNN API gemm operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -7,12 +7,14 @@
 
 'use strict';
 
+const label = 'gemm_xxx';
 const kExampleInputDescriptor = {
   dataType: 'float32',
   shape: [2, 2]
 };
 
 validateTwoInputsFromMultipleBuilders('gemm');
+validateTwoBroadcastableInputsTensorLimit('gemm', label);
 
 multi_builder_test(async (t, builder, otherBuilder) => {
   const cFromOtherBuilder = otherBuilder.input('c', kExampleInputDescriptor);
@@ -22,8 +24,6 @@ multi_builder_test(async (t, builder, otherBuilder) => {
   const b = builder.input('b', kExampleInputDescriptor);
   assert_throws_js(TypeError, () => builder.gemm(a, b, options));
 }, '[gemm] throw if c option is from another builder');
-
-const label = 'gemm_xxx';
 
 const tests = [
   {

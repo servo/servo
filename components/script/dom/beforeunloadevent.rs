@@ -5,7 +5,7 @@
 #![allow(dead_code)]
 
 use dom_struct::dom_struct;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
@@ -16,10 +16,11 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#beforeunloadevent
 #[dom_struct]
-pub struct BeforeUnloadEvent {
+pub(crate) struct BeforeUnloadEvent {
     event: Event,
     return_value: DomRefCell<DOMString>,
 }
@@ -32,17 +33,18 @@ impl BeforeUnloadEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<BeforeUnloadEvent> {
-        reflect_dom_object(Box::new(BeforeUnloadEvent::new_inherited()), window)
+    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<BeforeUnloadEvent> {
+        reflect_dom_object(Box::new(BeforeUnloadEvent::new_inherited()), window, can_gc)
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
+        can_gc: CanGc,
     ) -> DomRoot<BeforeUnloadEvent> {
-        let ev = BeforeUnloadEvent::new_uninitialized(window);
+        let ev = BeforeUnloadEvent::new_uninitialized(window, can_gc);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));

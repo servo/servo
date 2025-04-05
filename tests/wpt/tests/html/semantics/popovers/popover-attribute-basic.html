@@ -92,10 +92,8 @@ window.onload = () => {
     assert_equals(popover.popover,'manual','Invalid values should reflect as "manual"');
     popover.removeAttribute('popover');
     assert_equals(popover.popover,null,'No value should reflect as null');
-    if (popoverHintSupported()) {
-      popover.popover='hint';
-      assert_equals(popover.getAttribute('popover'),'hint');
-    }
+    popover.popover='hint';
+    assert_equals(popover.getAttribute('popover'),'hint');
     popover.popover='auto';
     assert_equals(popover.getAttribute('popover'),'auto');
     popover.popover='';
@@ -156,12 +154,10 @@ window.onload = () => {
     const popover = createPopover(t);
     popover.showPopover();
     assert_true(popover.matches(':popover-open'));
-    if (popoverHintSupported()) {
-      popover.setAttribute('popover','hint'); // Change popover type
-      assert_false(popover.matches(':popover-open'));
-      popover.showPopover();
-      assert_true(popover.matches(':popover-open'));
-    }
+    popover.setAttribute('popover','hint'); // Change popover type
+    assert_false(popover.matches(':popover-open'));
+    popover.showPopover();
+    assert_true(popover.matches(':popover-open'));
     popover.setAttribute('popover','manual');
     assert_false(popover.matches(':popover-open'));
     popover.showPopover();
@@ -176,7 +172,7 @@ window.onload = () => {
     assert_false(popover.matches(':popover-open'),'From "auto" to "invalid" (which is interpreted as "manual") should close the popover');
   },'Changing attribute values should close open popovers');
 
-  const validTypes = popoverHintSupported() ? ["auto","hint","manual"] : ["auto","manual"];
+  const validTypes = ["auto","hint","manual"];
   validTypes.forEach(type => {
     test((t) => {
       const popover = createPopover(t);
@@ -318,7 +314,7 @@ window.onload = () => {
         popover.popover = type;
         break;
       default:
-        assert_notreached();
+        assert_unreached();
     }
   }
   ["attr","idl"].forEach(method => {

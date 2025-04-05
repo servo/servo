@@ -5,20 +5,21 @@
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice};
 use crate::dom::gamepadbutton::GamepadButton;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 // https://w3c.github.io/gamepad/#gamepadbutton-interface
 #[dom_struct]
-pub struct GamepadButtonList {
+pub(crate) struct GamepadButtonList {
     reflector_: Reflector,
     list: Vec<Dom<GamepadButton>>,
 }
 
 impl GamepadButtonList {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(list: &[&GamepadButton]) -> GamepadButtonList {
         GamepadButtonList {
             reflector_: Reflector::new(),
@@ -26,8 +27,16 @@ impl GamepadButtonList {
         }
     }
 
-    pub fn new(global: &GlobalScope, list: &[&GamepadButton]) -> DomRoot<GamepadButtonList> {
-        reflect_dom_object(Box::new(GamepadButtonList::new_inherited(list)), global)
+    pub(crate) fn new(
+        global: &GlobalScope,
+        list: &[&GamepadButton],
+        can_gc: CanGc,
+    ) -> DomRoot<GamepadButtonList> {
+        reflect_dom_object(
+            Box::new(GamepadButtonList::new_inherited(list)),
+            global,
+            can_gc,
+        )
     }
 }
 
@@ -53,27 +62,27 @@ impl GamepadButtonListMethods<crate::DomTypeHolder> for GamepadButtonList {
 impl GamepadButtonList {
     /// Initialize the number of buttons in the "standard" gamepad mapping.
     /// <https://www.w3.org/TR/gamepad/#dfn-initializing-buttons>
-    pub fn init_buttons(global: &GlobalScope) -> DomRoot<GamepadButtonList> {
+    pub(crate) fn init_buttons(global: &GlobalScope, can_gc: CanGc) -> DomRoot<GamepadButtonList> {
         let standard_buttons = &[
-            GamepadButton::new(global, false, false), // Bottom button in right cluster
-            GamepadButton::new(global, false, false), // Right button in right cluster
-            GamepadButton::new(global, false, false), // Left button in right cluster
-            GamepadButton::new(global, false, false), // Top button in right cluster
-            GamepadButton::new(global, false, false), // Top left front button
-            GamepadButton::new(global, false, false), // Top right front button
-            GamepadButton::new(global, false, false), // Bottom left front button
-            GamepadButton::new(global, false, false), // Bottom right front button
-            GamepadButton::new(global, false, false), // Left button in center cluster
-            GamepadButton::new(global, false, false), // Right button in center cluster
-            GamepadButton::new(global, false, false), // Left stick pressed button
-            GamepadButton::new(global, false, false), // Right stick pressed button
-            GamepadButton::new(global, false, false), // Top button in left cluster
-            GamepadButton::new(global, false, false), // Bottom button in left cluster
-            GamepadButton::new(global, false, false), // Left button in left cluster
-            GamepadButton::new(global, false, false), // Right button in left cluster
-            GamepadButton::new(global, false, false), // Center button in center cluster
+            GamepadButton::new(global, false, false, can_gc), // Bottom button in right cluster
+            GamepadButton::new(global, false, false, can_gc), // Right button in right cluster
+            GamepadButton::new(global, false, false, can_gc), // Left button in right cluster
+            GamepadButton::new(global, false, false, can_gc), // Top button in right cluster
+            GamepadButton::new(global, false, false, can_gc), // Top left front button
+            GamepadButton::new(global, false, false, can_gc), // Top right front button
+            GamepadButton::new(global, false, false, can_gc), // Bottom left front button
+            GamepadButton::new(global, false, false, can_gc), // Bottom right front button
+            GamepadButton::new(global, false, false, can_gc), // Left button in center cluster
+            GamepadButton::new(global, false, false, can_gc), // Right button in center cluster
+            GamepadButton::new(global, false, false, can_gc), // Left stick pressed button
+            GamepadButton::new(global, false, false, can_gc), // Right stick pressed button
+            GamepadButton::new(global, false, false, can_gc), // Top button in left cluster
+            GamepadButton::new(global, false, false, can_gc), // Bottom button in left cluster
+            GamepadButton::new(global, false, false, can_gc), // Left button in left cluster
+            GamepadButton::new(global, false, false, can_gc), // Right button in left cluster
+            GamepadButton::new(global, false, false, can_gc), // Center button in center cluster
         ];
-        rooted_vec!(let buttons <- standard_buttons.iter().map(|button| DomRoot::from_ref(&**button)));
-        Self::new(global, buttons.r())
+        rooted_vec!(let buttons <- standard_buttons.iter().map(DomRoot::as_traced));
+        Self::new(global, buttons.r(), can_gc)
     }
 }

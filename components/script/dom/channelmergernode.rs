@@ -7,7 +7,8 @@ use js::rust::HandleObject;
 use servo_media::audio::channel_node::ChannelNodeOptions;
 use servo_media::audio::node::AudioNodeInit;
 
-use crate::dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
+use crate::conversions::Convert;
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper, MAX_CHANNEL_COUNT};
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
@@ -22,13 +23,13 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct ChannelMergerNode {
+pub(crate) struct ChannelMergerNode {
     node: AudioNode,
 }
 
 impl ChannelMergerNode {
-    #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
         _: &Window,
         context: &BaseAudioContext,
         options: &ChannelMergerOptions,
@@ -47,17 +48,18 @@ impl ChannelMergerNode {
             return Err(Error::IndexSize);
         }
 
+        let num_inputs = options.numberOfInputs;
         let node = AudioNode::new_inherited(
-            AudioNodeInit::ChannelMergerNode(options.into()),
+            AudioNodeInit::ChannelMergerNode(options.convert()),
             context,
             node_options,
-            options.numberOfInputs, // inputs
-            1,                      // outputs
+            num_inputs, // inputs
+            1,          // outputs
         )?;
         Ok(ChannelMergerNode { node })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &ChannelMergerOptions,
@@ -66,7 +68,7 @@ impl ChannelMergerNode {
         Self::new_with_proto(window, None, context, options, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
@@ -97,10 +99,10 @@ impl ChannelMergerNodeMethods<crate::DomTypeHolder> for ChannelMergerNode {
     }
 }
 
-impl<'a> From<&'a ChannelMergerOptions> for ChannelNodeOptions {
-    fn from(options: &'a ChannelMergerOptions) -> Self {
-        Self {
-            channels: options.numberOfInputs as u8,
+impl Convert<ChannelNodeOptions> for ChannelMergerOptions {
+    fn convert(self) -> ChannelNodeOptions {
+        ChannelNodeOptions {
+            channels: self.numberOfInputs as u8,
         }
     }
 }

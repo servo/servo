@@ -80,5 +80,20 @@ Sources:
           assert_not_own_property(headers, 'sec-fetch-user');
         });
   }, 'sec-fetch-user - Not sent to non-trustworthy same-origin destination, no options');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(
+      key,
+      ['httpOrigin'],
+      { mime: 'application/javascript', body: 'postMessage("")' }
+    );
+
+    return induceRequest(url)
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Not sent to non-trustworthy same-origin destination, no options');
   </script>
 </html>

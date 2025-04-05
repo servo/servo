@@ -3,17 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use embedder_traits::GamepadSupportedHapticEffects;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
-use script_traits::GamepadSupportedHapticEffects;
 use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRInputSourceMethods, XRTargetRayMode,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::gamepad::Gamepad;
 use crate::dom::globalscope::GlobalScope;
@@ -24,7 +24,7 @@ use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRInputSource {
+pub(crate) struct XRInputSource {
     reflector: Reflector,
     session: Dom<XRSession>,
     #[ignore_malloc_size_of = "Defined in rust-webxr"]
@@ -39,7 +39,7 @@ pub struct XRInputSource {
 }
 
 impl XRInputSource {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         global: &GlobalScope,
         session: &XRSession,
         info: InputSource,
@@ -73,7 +73,7 @@ impl XRInputSource {
     }
 
     #[allow(unsafe_code)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         session: &XRSession,
         info: InputSource,
@@ -82,6 +82,7 @@ impl XRInputSource {
         let source = reflect_dom_object(
             Box::new(XRInputSource::new_inherited(global, session, info, can_gc)),
             global,
+            can_gc,
         );
 
         let _ac = enter_realm(global);
@@ -94,15 +95,15 @@ impl XRInputSource {
         source
     }
 
-    pub fn id(&self) -> InputId {
+    pub(crate) fn id(&self) -> InputId {
         self.info.id
     }
 
-    pub fn session(&self) -> &XRSession {
+    pub(crate) fn session(&self) -> &XRSession {
         &self.session
     }
 
-    pub fn update_gamepad_state(&self, frame: InputFrame) {
+    pub(crate) fn update_gamepad_state(&self, frame: InputFrame) {
         frame
             .button_values
             .iter()
@@ -115,7 +116,7 @@ impl XRInputSource {
         });
     }
 
-    pub fn gamepad(&self) -> &DomRoot<Gamepad> {
+    pub(crate) fn gamepad(&self) -> &DomRoot<Gamepad> {
         &self.gamepad
     }
 }
@@ -144,7 +145,7 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
     fn TargetRaySpace(&self) -> DomRoot<XRSpace> {
         self.target_ray_space.or_init(|| {
             let global = self.global();
-            XRSpace::new_inputspace(&global, &self.session, self, false)
+            XRSpace::new_inputspace(&global, &self.session, self, false, CanGc::note())
         })
     }
 
@@ -153,7 +154,7 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
         if self.info.supports_grip {
             Some(self.grip_space.or_init(|| {
                 let global = self.global();
-                XRSpace::new_inputspace(&global, &self.session, self, true)
+                XRSpace::new_inputspace(&global, &self.session, self, true, CanGc::note())
             }))
         } else {
             None
@@ -180,7 +181,7 @@ impl XRInputSourceMethods<crate::DomTypeHolder> for XRInputSource {
     fn GetHand(&self) -> Option<DomRoot<XRHand>> {
         self.info.hand_support.as_ref().map(|hand| {
             self.hand
-                .or_init(|| XRHand::new(&self.global(), self, hand.clone()))
+                .or_init(|| XRHand::new(&self.global(), self, hand.clone(), CanGc::note()))
         })
     }
 }

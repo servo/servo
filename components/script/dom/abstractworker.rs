@@ -7,25 +7,25 @@ use servo_url::ImmutableOrigin;
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::script_runtime::CommonScriptMsg;
+use crate::messaging::CommonScriptMsg;
 
 /// Messages used to control the worker event loops
-pub enum WorkerScriptMsg {
+pub(crate) enum WorkerScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
     /// Message sent through Worker.postMessage
     DOMMessage {
         origin: ImmutableOrigin,
-        data: StructuredSerializedData,
+        data: Box<StructuredSerializedData>,
     },
 }
 
-pub struct SimpleWorkerErrorHandler<T: DomObject> {
-    pub addr: Trusted<T>,
+pub(crate) struct SimpleWorkerErrorHandler<T: DomObject> {
+    pub(crate) addr: Trusted<T>,
 }
 
 impl<T: DomObject> SimpleWorkerErrorHandler<T> {
-    pub fn new(addr: Trusted<T>) -> SimpleWorkerErrorHandler<T> {
+    pub(crate) fn new(addr: Trusted<T>) -> SimpleWorkerErrorHandler<T> {
         SimpleWorkerErrorHandler { addr }
     }
 }

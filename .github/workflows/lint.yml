@@ -6,9 +6,6 @@ on:
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
-  CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
 
 jobs:
@@ -27,13 +24,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 2 # This is necessary for `test-tidy`.
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.6
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Install taplo
         uses: baptiste0928/cargo-install@v3
         with:
@@ -43,16 +37,15 @@ jobs:
         uses: baptiste0928/cargo-install@v3
         with:
           crate: cargo-deny
+          version: 0.18
           locked: true
-      - name: Bootstrap Python
-        run: python3 -m pip install --upgrade pip
       - name: Bootstrap dependencies
         run: |
           sudo apt update
-          python3 ./mach bootstrap
+          ./mach bootstrap
       # TODO: Do GitHub anotaions
       - name: Clippy
         run: |
-          python3 ./mach clippy --use-crown --locked -- -- --deny warnings
+          ./mach clippy --use-crown --locked -- -- --deny warnings
       - name: Tidy
-        run: python3 ./mach test-tidy --no-progress --all
+        run: ./mach test-tidy --no-progress --all

@@ -7,13 +7,14 @@ use dom_struct::dom_struct;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleValueBinding::CSSStyleValueMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CSSStyleValue {
+pub(crate) struct CSSStyleValue {
     reflector: Reflector,
     value: String,
 }
@@ -26,8 +27,16 @@ impl CSSStyleValue {
         }
     }
 
-    pub fn new(global: &GlobalScope, value: String) -> DomRoot<CSSStyleValue> {
-        reflect_dom_object(Box::new(CSSStyleValue::new_inherited(value)), global)
+    pub(crate) fn new(
+        global: &GlobalScope,
+        value: String,
+        can_gc: CanGc,
+    ) -> DomRoot<CSSStyleValue> {
+        reflect_dom_object(
+            Box::new(CSSStyleValue::new_inherited(value)),
+            global,
+            can_gc,
+        )
     }
 }
 
@@ -43,7 +52,7 @@ impl CSSStyleValue {
     /// TODO: This should really always be an absolute URL, but we currently
     /// return relative URLs for computed values, so we pass in a base.
     /// <https://github.com/servo/servo/issues/17625>
-    pub fn get_url(&self, base_url: ServoUrl) -> Option<ServoUrl> {
+    pub(crate) fn get_url(&self, base_url: ServoUrl) -> Option<ServoUrl> {
         let mut input = ParserInput::new(&self.value);
         let mut parser = Parser::new(&mut input);
         parser

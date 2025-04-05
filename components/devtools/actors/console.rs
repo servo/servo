@@ -17,7 +17,7 @@ use devtools_traits::EvaluateJSReply::{
 };
 use devtools_traits::{
     CachedConsoleMessage, CachedConsoleMessageTypes, ConsoleLog, ConsoleMessage,
-    DevtoolScriptControlMsg, LogLevel, PageError,
+    DevtoolScriptControlMsg, PageError,
 };
 use ipc_channel::ipc::{self, IpcSender};
 use log::debug;
@@ -152,10 +152,10 @@ impl ConsoleActor {
             Root::BrowsingContext(bc) => UniqueId::Pipeline(
                 registry
                     .find::<BrowsingContextActor>(bc)
-                    .active_pipeline
+                    .active_pipeline_id
                     .get(),
             ),
-            Root::DedicatedWorker(w) => UniqueId::Worker(registry.find::<WorkerActor>(w).id),
+            Root::DedicatedWorker(w) => UniqueId::Worker(registry.find::<WorkerActor>(w).worker_id),
         }
     }
 
@@ -272,38 +272,17 @@ impl ConsoleActor {
         id: UniqueId,
         registry: &ActorRegistry,
     ) {
-        let level = match console_message.log_level {
-            LogLevel::Debug => "debug",
-            LogLevel::Info => "info",
-            LogLevel::Warn => "warn",
-            LogLevel::Error => "error",
-            LogLevel::Clear => "clear",
-            _ => "log",
-        }
-        .to_owned();
-
-        let console_api = ConsoleLog {
-            level: level.clone(),
-            filename: console_message.filename.clone(),
-            line_number: console_message.line_number as u32,
-            column_number: console_message.column_number as u32,
-            time_stamp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
-            arguments: vec![console_message.message.clone()],
-        };
-
+        let log_message: ConsoleLog = console_message.into();
         self.cached_events
             .borrow_mut()
             .entry(id.clone())
             .or_default()
-            .push(CachedConsoleMessage::ConsoleLog(console_api.clone()));
+            .push(CachedConsoleMessage::ConsoleLog(log_message.clone()));
         if id == self.current_unique_id(registry) {
             if let Root::BrowsingContext(bc) = &self.root {
                 registry
                     .find::<BrowsingContextActor>(bc)
-                    .resource_available(console_api, "console-message".into())
+                    .resource_available(log_message, "console-message".into())
             };
         }
     }

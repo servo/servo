@@ -30,23 +30,14 @@ macro_rules! trace_script_msg {
     };
 }
 
-/// Log an event from layout at trace level.
-/// - To disable tracing: RUST_LOG='constellation<layout@=off'
-/// - To enable tracing: RUST_LOG='constellation<layout@'
-macro_rules! trace_layout_msg {
-    // This macro only exists to put the docs in the same file as the target prefix,
-    // so the macro definition is always the same.
-    ($event:expr, $($rest:tt)+) => {
-        ::log::trace!(target: $crate::tracing::LogTarget::log_target(&$event), $($rest)+)
-    };
-}
-
 /// Get the log target for an event, as a static string.
 pub(crate) trait LogTarget {
     fn log_target(&self) -> &'static str;
 }
 
 mod from_compositor {
+    use embedder_traits::InputEvent;
+
     use super::LogTarget;
 
     macro_rules! target {
@@ -55,71 +46,65 @@ mod from_compositor {
         };
     }
 
-    impl LogTarget for compositing_traits::ConstellationMsg {
+    impl LogTarget for constellation_traits::EmbedderToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::Exit => target!("Exit"),
-                Self::GetBrowsingContext(..) => target!("GetBrowsingContext"),
-                Self::GetPipeline(..) => target!("GetPipeline"),
                 Self::GetFocusTopLevelBrowsingContext(..) => {
                     target!("GetFocusTopLevelBrowsingContext")
                 },
                 Self::IsReadyToSaveImage(..) => target!("IsReadyToSaveImage"),
-                Self::Keyboard(..) => target!("Keyboard"),
-                Self::IMECompositionEvent(..) => target!("IMECompositionEvent"),
                 Self::AllowNavigationResponse(..) => target!("AllowNavigationResponse"),
                 Self::LoadUrl(..) => target!("LoadUrl"),
                 Self::ClearCache => target!("ClearCache"),
                 Self::TraverseHistory(..) => target!("TraverseHistory"),
-                Self::WindowSize(..) => target!("WindowSize"),
+                Self::ChangeViewportDetails(..) => target!("ChangeViewportDetails"),
                 Self::ThemeChange(..) => target!("ThemeChange"),
                 Self::TickAnimation(..) => target!("TickAnimation"),
                 Self::WebDriverCommand(..) => target!("WebDriverCommand"),
                 Self::Reload(..) => target!("Reload"),
                 Self::LogEntry(..) => target!("LogEntry"),
                 Self::NewWebView(..) => target!("NewWebView"),
-                Self::WebViewOpened(..) => target!("WebViewOpened"),
                 Self::CloseWebView(..) => target!("CloseWebView"),
                 Self::SendError(..) => target!("SendError"),
                 Self::FocusWebView(..) => target!("FocusWebView"),
                 Self::BlurWebView => target!("BlurWebView"),
-                Self::ForwardEvent(_, event) => event.log_target(),
+                Self::ForwardInputEvent(_webview_id, event, ..) => event.log_target(),
                 Self::SetCursor(..) => target!("SetCursor"),
-                Self::EnableProfiler(..) => target!("EnableProfiler"),
-                Self::DisableProfiler => target!("DisableProfiler"),
+                Self::ToggleProfiler(..) => target!("EnableProfiler"),
                 Self::ExitFullScreen(_) => target!("ExitFullScreen"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
-                Self::IMEDismissed => target!("IMEDismissed"),
-                Self::ReadyToPresent(..) => target!("ReadyToPresent"),
-                Self::Gamepad(..) => target!("Gamepad"),
+                Self::SetScrollStates(..) => target!("SetScrollStates"),
+                Self::PaintMetric(..) => target!("PaintMetric"),
             }
         }
     }
 
-    impl LogTarget for script_traits::CompositorEvent {
+    impl LogTarget for InputEvent {
         fn log_target(&self) -> &'static str {
             macro_rules! target_variant {
                 ($name:literal) => {
-                    target!("ForwardEvent(" $name ")")
+                    target!("ForwardInputEvent(" $name ")")
                 };
             }
             match self {
-                Self::ResizeEvent(..) => target_variant!("ResizeEvent"),
-                Self::MouseButtonEvent(..) => target_variant!("MouseButtonEvent"),
-                Self::MouseMoveEvent(..) => target_variant!("MouseMoveEvent"),
-                Self::TouchEvent(..) => target_variant!("TouchEvent"),
-                Self::WheelEvent(..) => target_variant!("WheelEvent"),
-                Self::KeyboardEvent(..) => target_variant!("KeyboardEvent"),
-                Self::CompositionEvent(..) => target_variant!("CompositionEvent"),
-                Self::IMEDismissedEvent => target_variant!("IMEDismissedEvent"),
-                Self::GamepadEvent(..) => target_variant!("GamepadEvent"),
+                InputEvent::EditingAction(..) => target_variant!("EditingAction"),
+                InputEvent::Gamepad(..) => target_variant!("Gamepad"),
+                InputEvent::Ime(..) => target_variant!("Ime"),
+                InputEvent::Keyboard(..) => target_variant!("Keyboard"),
+                InputEvent::MouseButton(..) => target_variant!("MouseButton"),
+                InputEvent::MouseMove(..) => target_variant!("MouseMove"),
+                InputEvent::Touch(..) => target_variant!("Touch"),
+                InputEvent::Wheel(..) => target_variant!("Wheel"),
             }
         }
     }
 }
 
 mod from_script {
+    use embedder_traits::LoadStatus;
+
     use super::LogTarget;
 
     macro_rules! target {
@@ -128,7 +113,7 @@ mod from_script {
         };
     }
 
-    impl LogTarget for script_traits::ScriptMsg {
+    impl LogTarget for script_traits::ScriptToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::CompleteMessagePortTransfer(..) => target!("CompleteMessagePortTransfer"),
@@ -150,7 +135,6 @@ mod from_script {
                 },
                 Self::ScheduleBroadcast(..) => target!("ScheduleBroadcast"),
                 Self::ForwardToEmbedder(msg) => msg.log_target(),
-                Self::InitiateNavigateRequest(..) => target!("InitiateNavigateRequest"),
                 Self::BroadcastStorageEvent(..) => target!("BroadcastStorageEvent"),
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),
                 Self::CreateCanvasPaintThread(..) => target!("CreateCanvasPaintThread"),
@@ -171,7 +155,7 @@ mod from_script {
                 Self::SetThrottledComplete(..) => target!("SetThrottledComplete"),
                 Self::ScriptLoadedURLInIFrame(..) => target!("ScriptLoadedURLInIFrame"),
                 Self::ScriptNewIFrame(..) => target!("ScriptNewIFrame"),
-                Self::ScriptNewAuxiliary(..) => target!("ScriptNewAuxiliary"),
+                Self::CreateAuxiliaryWebView(..) => target!("ScriptNewAuxiliary"),
                 Self::ActivateDocument => target!("ActivateDocument"),
                 Self::SetDocumentState(..) => target!("SetDocumentState"),
                 Self::SetLayoutEpoch(..) => target!("SetLayoutEpoch"),
@@ -189,6 +173,8 @@ mod from_script {
                 #[cfg(feature = "webgpu")]
                 Self::GetWebGPUChan(..) => target!("GetWebGPUChan"),
                 Self::TitleChanged(..) => target!("TitleChanged"),
+                Self::IFrameSizes(..) => target!("IFrameSizes"),
+                Self::ReportMemory(..) => target!("ReportMemory"),
             }
         }
     }
@@ -205,25 +191,35 @@ mod from_script {
                 Self::ChangePageTitle(..) => target_variant!("ChangePageTitle"),
                 Self::MoveTo(..) => target_variant!("MoveTo"),
                 Self::ResizeTo(..) => target_variant!("ResizeTo"),
-                Self::Prompt(..) => target_variant!("Prompt"),
+                Self::ShowSimpleDialog(..) => target_variant!("ShowSimpleDialog"),
+                Self::RequestAuthentication(..) => target_variant!("RequestAuthentication"),
                 Self::ShowContextMenu(..) => target_variant!("ShowContextMenu"),
                 Self::AllowNavigationRequest(..) => target_variant!("AllowNavigationRequest"),
                 Self::AllowOpeningWebView(..) => target_variant!("AllowOpeningWebView"),
-                Self::WebViewOpened(..) => target_variant!("WebViewOpened"),
                 Self::WebViewClosed(..) => target_variant!("WebViewClosed"),
                 Self::WebViewFocused(..) => target_variant!("WebViewFocused"),
                 Self::WebViewBlurred => target_variant!("WebViewBlurred"),
+                Self::WebResourceRequested(..) => target_variant!("WebResourceRequested"),
                 Self::AllowUnload(..) => target_variant!("AllowUnload"),
                 Self::Keyboard(..) => target_variant!("Keyboard"),
-                Self::GetClipboardContents(..) => target_variant!("GetClipboardContents"),
-                Self::SetClipboardContents(..) => target_variant!("SetClipboardContents"),
+                Self::ClearClipboard(..) => target_variant!("ClearClipboard"),
+                Self::GetClipboardText(..) => target_variant!("GetClipboardText"),
+                Self::SetClipboardText(..) => target_variant!("SetClipboardText"),
                 Self::SetCursor(..) => target_variant!("SetCursor"),
                 Self::NewFavicon(..) => target_variant!("NewFavicon"),
-                Self::HeadParsed => target_variant!("HeadParsed"),
                 Self::HistoryChanged(..) => target_variant!("HistoryChanged"),
-                Self::SetFullscreenState(..) => target_variant!("SetFullscreenState"),
-                Self::LoadStart => target_variant!("LoadStart"),
-                Self::LoadComplete => target_variant!("LoadComplete"),
+                Self::NotifyFullscreenStateChanged(..) => {
+                    target_variant!("NotifyFullscreenStateChanged")
+                },
+                Self::NotifyLoadStatusChanged(_, LoadStatus::Started) => {
+                    target_variant!("NotifyLoadStatusChanged(LoadStatus::Started)")
+                },
+                Self::NotifyLoadStatusChanged(_, LoadStatus::HeadParsed) => {
+                    target_variant!("NotifyLoadStatusChanged(LoadStatus::HeadParsed)")
+                },
+                Self::NotifyLoadStatusChanged(_, LoadStatus::Complete) => {
+                    target_variant!("NotifyLoadStatusChanged(LoadStatus::Complete")
+                },
                 Self::Panic(..) => target_variant!("Panic"),
                 Self::GetSelectedBluetoothDevice(..) => {
                     target_variant!("GetSelectedBluetoothDevice")
@@ -231,34 +227,16 @@ mod from_script {
                 Self::SelectFiles(..) => target_variant!("SelectFiles"),
                 Self::PromptPermission(..) => target_variant!("PromptPermission"),
                 Self::ShowIME(..) => target_variant!("ShowIME"),
-                Self::HideIME => target_variant!("HideIME"),
-                Self::Shutdown => target_variant!("Shutdown"),
+                Self::HideIME(..) => target_variant!("HideIME"),
                 Self::ReportProfile(..) => target_variant!("ReportProfile"),
                 Self::MediaSessionEvent(..) => target_variant!("MediaSessionEvent"),
                 Self::OnDevtoolsStarted(..) => target_variant!("OnDevtoolsStarted"),
-                Self::ReadyToPresent(..) => target_variant!("ReadyToPresent"),
-                Self::EventDelivered(..) => target_variant!("EventDelivered"),
+                Self::RequestDevtoolsConnection(..) => target_variant!("RequestDevtoolsConnection"),
                 Self::PlayGamepadHapticEffect(..) => target_variant!("PlayGamepadHapticEffect"),
                 Self::StopGamepadHapticEffect(..) => target_variant!("StopGamepadHapticEffect"),
-            }
-        }
-    }
-}
-
-mod from_layout {
-    use super::LogTarget;
-
-    macro_rules! target {
-        ($($name:literal)+) => {
-            concat!("constellation<layout@", $($name),+)
-        };
-    }
-
-    impl LogTarget for script_traits::LayoutMsg {
-        fn log_target(&self) -> &'static str {
-            match self {
-                Self::IFrameSizes(..) => target!("IFrameSizes"),
-                Self::PendingPaintMetric(..) => target!("PendingPaintMetric"),
+                Self::ShutdownComplete => target_variant!("ShutdownComplete"),
+                Self::ShowNotification(..) => target_variant!("ShowNotification"),
+                Self::ShowSelectElementMenu(..) => target_variant!("ShowSelectElementMenu"),
             }
         }
     }

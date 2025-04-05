@@ -52,6 +52,16 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
     assert_equals(entry.size, expectedSize);
   }
 
+  assert_greater_than_equal(entry.paintTime, timeLowerBound, 'paintTime should represent the time when the UA started painting');
+
+  // PaintTimingMixin
+  if ("presentationTime" in entry) {
+    assert_greater_than(entry.presentationTime, entry.paintTime);
+    assert_equals(entry.presentationTime, entry.renderTime);
+  } else {
+    assert_equals(entry.renderTime, entry.paintTime);
+  }
+
   if (options.includes('animated')) {
     assert_less_than(entry.renderTime, image_delay,
       'renderTime should be smaller than the delay applied to the second frame');

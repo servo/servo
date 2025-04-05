@@ -4,13 +4,13 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
+use servo_media::streams::registry::MediaStreamId;
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
@@ -20,20 +20,20 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MediaStream {
+pub(crate) struct MediaStream {
     eventtarget: EventTarget,
     tracks: DomRefCell<Vec<Dom<MediaStreamTrack>>>,
 }
 
 impl MediaStream {
-    pub fn new_inherited() -> MediaStream {
+    pub(crate) fn new_inherited() -> MediaStream {
         MediaStream {
             eventtarget: EventTarget::new_inherited(),
             tracks: DomRefCell::new(vec![]),
         }
     }
 
-    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MediaStream> {
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<MediaStream> {
         Self::new_with_proto(global, None, can_gc)
     }
 
@@ -50,23 +50,23 @@ impl MediaStream {
         )
     }
 
-    pub fn new_single(
+    pub(crate) fn new_single(
         global: &GlobalScope,
         id: MediaStreamId,
         ty: MediaStreamType,
         can_gc: CanGc,
     ) -> DomRoot<MediaStream> {
         let this = Self::new(global, can_gc);
-        let track = MediaStreamTrack::new(global, id, ty);
+        let track = MediaStreamTrack::new(global, id, ty, can_gc);
         this.AddTrack(&track);
         this
     }
 
-    pub fn get_tracks(&self) -> Ref<[Dom<MediaStreamTrack>]> {
+    pub(crate) fn get_tracks(&self) -> Ref<[Dom<MediaStreamTrack>]> {
         Ref::map(self.tracks.borrow(), |tracks| &**tracks)
     }
 
-    pub fn add_track(&self, track: &MediaStreamTrack) {
+    pub(crate) fn add_track(&self, track: &MediaStreamTrack) {
         self.tracks.borrow_mut().push(Dom::from_ref(track))
     }
 }

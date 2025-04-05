@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1941651">
+<style>
+  :root {
+    --disp: block;
+  }
+
+  @keyframes switch {
+    0% { --disp: none; }
+    100% { --disp: block; }
+  }
+
+  #target {
+    height: 100px;
+    width: 100px;
+    background-color: green;
+    animation: switch 0.5s;
+    display: var(--disp);
+  }
+</style>
+<div id="target">
+  <div></div>
+</div>
+<script>
+  target.addEventListener("animationend", function() {
+    document.documentElement.classList = "";
+  })
+  target.getBoundingClientRect();
+</script>

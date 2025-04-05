@@ -9,16 +9,16 @@ use std::iter::repeat;
 use log::warn;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use servo_arc::Arc;
-use style::properties::style_structs::Font;
 use style::properties::ComputedValues;
+use style::properties::style_structs::Font;
 use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
-use style::values::specified::TextDecorationLine;
 
 use super::{
     Table, TableCaption, TableSlot, TableSlotCell, TableSlotCoordinates, TableSlotOffset,
     TableTrack, TableTrackGroup, TableTrackGroupType,
 };
+use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, NodeExt};
@@ -39,7 +39,7 @@ pub(super) struct ResolvedSlotAndLocation<'a> {
     pub coords: TableSlotCoordinates,
 }
 
-impl<'a> ResolvedSlotAndLocation<'a> {
+impl ResolvedSlotAndLocation<'_> {
     fn covers_cell_at(&self, coords: TableSlotCoordinates) -> bool {
         let covered_in_x =
             coords.x >= self.coords.x && coords.x < self.coords.x + self.cell.colspan;
@@ -59,11 +59,11 @@ pub(crate) enum AnonymousTableContent<'dom, Node> {
     },
 }
 
-impl<'dom, Node> AnonymousTableContent<'dom, Node> {
+impl<Node> AnonymousTableContent<'_, Node> {
     fn is_whitespace_only(&self) -> bool {
         match self {
             Self::Element { .. } => false,
-            Self::Text(_, ref text) => text.chars().all(char_is_whitespace),
+            Self::Text(_, text) => text.chars().all(char_is_whitespace),
         }
     }
 
@@ -78,12 +78,14 @@ impl Table {
         info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         grid_style: Arc<ComputedValues>,
         contents: NonReplacedContents,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
-        let text_decoration_line =
-            propagated_text_decoration_line | info.style.clone_text_decoration_line();
-        let mut traversal =
-            TableBuilderTraversal::new(context, info, grid_style, text_decoration_line);
+        let mut traversal = TableBuilderTraversal::new(
+            context,
+            info,
+            grid_style,
+            propagated_data.union(&info.style),
+        );
         contents.traverse(context, info, &mut traversal);
         traversal.finish()
     }
@@ -92,27 +94,17 @@ impl Table {
         context: &LayoutContext,
         parent_info: &NodeAndStyleInfo<Node>,
         contents: Vec<AnonymousTableContent<'dom, Node>>,
-        propagated_text_decoration_line: style::values::specified::TextDecorationLine,
-    ) -> IndependentFormattingContext
+        propagated_data: PropagatedBoxTreeData,
+    ) -> (NodeAndStyleInfo<Node>, IndependentFormattingContext)
     where
         Node: crate::dom::NodeExt<'dom>,
     {
-        let grid_and_wrapper_style = context
-            .shared_context()
-            .stylist
-            .style_for_anonymous::<Node::ConcreteElement>(
-                &context.shared_context().guards,
-                &PseudoElement::ServoAnonymousTable,
-                &parent_info.style,
-            );
-        let anonymous_info = parent_info.new_anonymous(grid_and_wrapper_style.clone());
-
-        let mut table_builder = TableBuilderTraversal::new(
-            context,
-            &anonymous_info,
-            grid_and_wrapper_style.clone(),
-            propagated_text_decoration_line,
-        );
+        let table_info = parent_info
+            .pseudo(context, PseudoElement::ServoAnonymousTable)
+            .expect("Should never fail to create anonymous table info.");
+        let table_style = table_info.style.clone();
+        let mut table_builder =
+            TableBuilderTraversal::new(context, &table_info, table_style.clone(), propagated_data);
 
         for content in contents {
             match content {
@@ -135,12 +127,14 @@ impl Table {
         let mut table = table_builder.finish();
         table.anonymous = true;
 
-        IndependentFormattingContext {
-            base: LayoutBoxBase::new((&anonymous_info).into(), grid_and_wrapper_style),
+        let ifc = IndependentFormattingContext {
+            base: LayoutBoxBase::new((&table_info).into(), table_style),
             contents: IndependentFormattingContextContents::NonReplaced(
                 IndependentNonReplacedContents::Table(table),
             ),
-        }
+        };
+
+        (table_info, ifc)
     }
 
     /// Push a new slot into the last row of this table.
@@ -168,7 +162,7 @@ impl Table {
         let slot = self.get_slot(coords);
         match slot {
             Some(TableSlot::Cell(cell)) => vec![ResolvedSlotAndLocation { cell, coords }],
-            Some(TableSlot::Spanned(ref offsets)) => offsets
+            Some(TableSlot::Spanned(offsets)) => offsets
                 .iter()
                 .flat_map(|offset| self.resolve_slot_at(coords - *offset))
                 .collect(),
@@ -178,32 +172,6 @@ impl Table {
             },
         }
     }
-
-    /// Create a [`TableSlot::Spanned`] for the target cell at the given coordinates. If
-    /// no slots cover the target, then this returns [`None`]. Note: This does not handle
-    /// slots that cover the target using `colspan`, but instead only considers slots that
-    /// cover this slot via `rowspan`. `colspan` should be handled by appending to the
-    /// return value of this function.
-    fn create_spanned_slot_based_on_cell_above(
-        &self,
-        target_coords: TableSlotCoordinates,
-    ) -> Option<TableSlot> {
-        let coords_for_slot_above =
-            TableSlotCoordinates::new(target_coords.x, self.slots.len() - 2);
-        let slots_covering_slot_above = self.resolve_slot_at(coords_for_slot_above);
-
-        let coords_of_slots_that_cover_target: Vec<_> = slots_covering_slot_above
-            .into_iter()
-            .filter(|slot| slot.covers_cell_at(target_coords))
-            .map(|slot| target_coords - slot.coords)
-            .collect();
-
-        if coords_of_slots_that_cover_target.is_empty() {
-            None
-        } else {
-            Some(TableSlot::Spanned(coords_of_slots_that_cover_target))
-        }
-    }
 }
 
 impl TableSlot {
@@ -211,7 +179,9 @@ impl TableSlot {
     pub fn push_spanned(&mut self, new_offset: TableSlotOffset) {
         match *self {
             TableSlot::Cell { .. } => {
-                panic!("Should never have a table model error with an originating cell slot overlapping a spanned slot")
+                panic!(
+                    "Should never have a table model error with an originating cell slot overlapping a spanned slot"
+                )
             },
             TableSlot::Spanned(ref mut vec) => vec.insert(0, new_offset),
             TableSlot::Empty => {
@@ -242,9 +212,15 @@ impl TableBuilder {
         style: Arc<ComputedValues>,
         grid_style: Arc<ComputedValues>,
         base_fragment_info: BaseFragmentInfo,
+        percentage_columns_allowed_for_inline_content_sizes: bool,
     ) -> Self {
         Self {
-            table: Table::new(style, grid_style, base_fragment_info),
+            table: Table::new(
+                style,
+                grid_style,
+                base_fragment_info,
+                percentage_columns_allowed_for_inline_content_sizes,
+            ),
             incoming_rowspans: Vec::new(),
         }
     }
@@ -256,6 +232,7 @@ impl TableBuilder {
             testing_style.clone(),
             testing_style.clone(),
             BaseFragmentInfo::anonymous(),
+            true, /* percentage_columns_allowed_for_inline_content_sizes */
         )
     }
 
@@ -449,7 +426,7 @@ impl TableBuilder {
         for row_index in 0..self.table.size.height {
             let last_row_index_in_group = self.last_row_index_in_row_group_at_row_n(row_index);
             for cell in self.table.slots[row_index].iter_mut() {
-                if let TableSlot::Cell(ref mut cell) = cell {
+                if let TableSlot::Cell(cell) = cell {
                     if cell.rowspan == 1 {
                         continue;
                     }
@@ -505,6 +482,32 @@ impl TableBuilder {
         self.create_slots_for_cells_above_with_rowspan(false);
     }
 
+    /// Create a [`TableSlot::Spanned`] for the target cell at the given coordinates. If
+    /// no slots cover the target, then this returns [`None`]. Note: This does not handle
+    /// slots that cover the target using `colspan`, but instead only considers slots that
+    /// cover this slot via `rowspan`. `colspan` should be handled by appending to the
+    /// return value of this function.
+    fn create_spanned_slot_based_on_cell_above(
+        &self,
+        target_coords: TableSlotCoordinates,
+    ) -> Option<TableSlot> {
+        let y_above = self.current_y()?.checked_sub(1)?;
+        let coords_for_slot_above = TableSlotCoordinates::new(target_coords.x, y_above);
+        let slots_covering_slot_above = self.table.resolve_slot_at(coords_for_slot_above);
+
+        let coords_of_slots_that_cover_target: Vec<_> = slots_covering_slot_above
+            .into_iter()
+            .filter(|slot| slot.covers_cell_at(target_coords))
+            .map(|slot| target_coords - slot.coords)
+            .collect();
+
+        if coords_of_slots_that_cover_target.is_empty() {
+            None
+        } else {
+            Some(TableSlot::Spanned(coords_of_slots_that_cover_target))
+        }
+    }
+
     /// When not in the process of filling a cell, make sure any incoming rowspans are
     /// filled so that the next specified cell comes after them. Should have been called before
     /// [`Self::add_cell`]
@@ -527,8 +530,7 @@ impl TableBuilder {
 
             let new_cell = if *span != 0 {
                 *span -= 1;
-                self.table
-                    .create_spanned_slot_based_on_cell_above(current_coords)
+                self.create_spanned_slot_based_on_cell_above(current_coords)
                     .expect(
                         "Nonzero incoming rowspan cannot occur without a cell spanning this slot",
                     )
@@ -597,16 +599,13 @@ impl TableBuilder {
                 // This code creates a new slot in the case that there is a table model error.
                 let coords_of_spanned_cell =
                     TableSlotCoordinates::new(current_x_plus_colspan_offset, current_coords.y);
-                match self
-                    .table
+                let mut incoming_slot = self
                     .create_spanned_slot_based_on_cell_above(coords_of_spanned_cell)
-                {
-                    Some(mut incoming_slot) => {
-                        incoming_slot.push_spanned(new_offset);
-                        incoming_slot
-                    },
-                    None => TableSlot::new_spanned(new_offset),
-                }
+                    .expect(
+                        "Nonzero incoming rowspan cannot occur without a cell spanning this slot",
+                    );
+                incoming_slot.push_spanned(new_offset);
+                incoming_slot
             };
             self.table.push_new_slot_to_last_row(new_slot);
         }
@@ -627,9 +626,9 @@ pub(crate) struct TableBuilderTraversal<'style, 'dom, Node> {
     context: &'style LayoutContext<'style>,
     info: &'style NodeAndStyleInfo<Node>,
 
-    /// The value of the [`TextDecorationLine`] to use, either for the row group
+    /// The value of the [`PropagatedBoxTreeData`] to use, either for the row group
     /// if processing one or for the table itself if outside a row group.
-    current_text_decoration_line: TextDecorationLine,
+    current_propagated_data: PropagatedBoxTreeData,
 
     /// The [`TableBuilder`] for this [`TableBuilderTraversal`]. This is separated
     /// into another struct so that we can write unit tests against the builder.
@@ -649,13 +648,18 @@ where
         context: &'style LayoutContext<'style>,
         info: &'style NodeAndStyleInfo<Node>,
         grid_style: Arc<ComputedValues>,
-        text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         TableBuilderTraversal {
             context,
             info,
-            current_text_decoration_line: text_decoration_line,
-            builder: TableBuilder::new(info.style.clone(), grid_style, info.into()),
+            current_propagated_data: propagated_data,
+            builder: TableBuilder::new(
+                info.style.clone(),
+                grid_style,
+                info.into(),
+                propagated_data.allow_percentage_column_in_tables,
+            ),
             current_anonymous_row_content: Vec::new(),
             current_row_group_index: None,
         }
@@ -674,19 +678,12 @@ where
         }
 
         let row_content = std::mem::take(&mut self.current_anonymous_row_content);
-        let context = self.context;
-        let anonymous_style = self
-            .context
-            .shared_context()
-            .stylist
-            .style_for_anonymous::<Node::ConcreteElement>(
-                &context.shared_context().guards,
-                &PseudoElement::ServoAnonymousTableRow,
-                &self.info.style,
-            );
-        let anonymous_info = self.info.new_anonymous(anonymous_style.clone());
+        let anonymous_info = self
+            .info
+            .pseudo(self.context, PseudoElement::ServoAnonymousTableRow)
+            .expect("Should never fail to create anonymous row info.");
         let mut row_builder =
-            TableRowBuilder::new(self, &anonymous_info, self.current_text_decoration_line);
+            TableRowBuilder::new(self, &anonymous_info, self.current_propagated_data);
 
         for cell_content in row_content {
             match cell_content {
@@ -706,9 +703,10 @@ where
 
         row_builder.finish();
 
+        let style = anonymous_info.style.clone();
         self.push_table_row(TableTrack {
             base_fragment_info: (&anonymous_info).into(),
-            style: anonymous_style,
+            style,
             group_index: self.current_row_group_index,
             is_anonymous: true,
         });
@@ -725,8 +723,7 @@ where
     }
 }
 
-impl<'style, 'dom, Node: 'dom> TraversalHandler<'dom, Node>
-    for TableBuilderTraversal<'style, 'dom, Node>
+impl<'dom, Node: 'dom> TraversalHandler<'dom, Node> for TableBuilderTraversal<'_, 'dom, Node>
 where
     Node: NodeExt<'dom>,
 {
@@ -759,8 +756,8 @@ where
                         track_range: next_row_index..next_row_index,
                     });
 
-                    let previous_text_decoration_line = self.current_text_decoration_line;
-                    self.current_text_decoration_line |= info.style.clone_text_decoration_line();
+                    let previous_propagated_data = self.current_propagated_data;
+                    self.current_propagated_data = self.current_propagated_data.union(&info.style);
 
                     let new_row_group_index = self.builder.table.row_groups.len() - 1;
                     self.current_row_group_index = Some(new_row_group_index);
@@ -773,7 +770,7 @@ where
                     self.finish_anonymous_row_if_needed();
 
                     self.current_row_group_index = None;
-                    self.current_text_decoration_line = previous_text_decoration_line;
+                    self.current_propagated_data = previous_propagated_data;
                     self.builder.incoming_rowspans.clear();
 
                     // We are doing this until we have actually set a Box for this `BoxSlot`.
@@ -785,7 +782,7 @@ where
                     let context = self.context;
 
                     let mut row_builder =
-                        TableRowBuilder::new(self, info, self.current_text_decoration_line);
+                        TableRowBuilder::new(self, info, self.current_propagated_data);
                     NonReplacedContents::try_from(contents).unwrap().traverse(
                         context,
                         info,
@@ -858,7 +855,7 @@ where
                                 self.context,
                                 info,
                                 non_replaced_contents,
-                                self.current_text_decoration_line,
+                                self.current_propagated_data,
                                 false, /* is_list_item */
                             ))
                         },
@@ -911,8 +908,8 @@ struct TableRowBuilder<'style, 'builder, 'dom, 'a, Node> {
 
     current_anonymous_cell_content: Vec<AnonymousTableContent<'dom, Node>>,
 
-    /// The [`TextDecorationLine`] to use for all children of this row.
-    text_decoration_line: TextDecorationLine,
+    /// The [`PropagatedBoxTreeData`] to use for all children of this row.
+    propagated_data: PropagatedBoxTreeData,
 }
 
 impl<'style, 'builder, 'dom, 'a, Node: 'dom> TableRowBuilder<'style, 'builder, 'dom, 'a, Node>
@@ -922,17 +919,15 @@ where
     fn new(
         table_traversal: &'builder mut TableBuilderTraversal<'style, 'dom, Node>,
         info: &'a NodeAndStyleInfo<Node>,
-        propagated_text_decoration_line: TextDecorationLine,
+        propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         table_traversal.builder.start_row();
 
-        let text_decoration_line =
-            propagated_text_decoration_line | info.style.clone_text_decoration_line();
         TableRowBuilder {
             table_traversal,
             info,
             current_anonymous_cell_content: Vec::new(),
-            text_decoration_line,
+            propagated_data: propagated_data.union(&info.style),
         }
     }
 
@@ -949,17 +944,12 @@ where
         }
 
         let context = self.table_traversal.context;
-        let anonymous_style = context
-            .shared_context()
-            .stylist
-            .style_for_anonymous::<Node::ConcreteElement>(
-                &context.shared_context().guards,
-                &PseudoElement::ServoAnonymousTableCell,
-                &self.info.style,
-            );
-        let anonymous_info = self.info.new_anonymous(anonymous_style);
-        let mut builder =
-            BlockContainerBuilder::new(context, &anonymous_info, self.text_decoration_line);
+        let anonymous_info = self
+            .info
+            .pseudo(context, PseudoElement::ServoAnonymousTableCell)
+            .expect("Should never fail to create anonymous table cell info");
+        let propagated_data = self.propagated_data.disallowing_percentage_table_columns();
+        let mut builder = BlockContainerBuilder::new(context, &anonymous_info, propagated_data);
 
         for cell_content in self.current_anonymous_cell_content.drain(..) {
             match cell_content {
@@ -987,8 +977,7 @@ where
     }
 }
 
-impl<'style, 'builder, 'dom, 'a, Node: 'dom> TraversalHandler<'dom, Node>
-    for TableRowBuilder<'style, 'builder, 'dom, 'a, Node>
+impl<'dom, Node: 'dom> TraversalHandler<'dom, Node> for TableRowBuilder<'_, '_, 'dom, '_, Node>
 where
     Node: NodeExt<'dom>,
 {
@@ -1016,20 +1005,24 @@ where
                     // 65534 and `colspan` to 1000, so we also enforce the same limits
                     // when dealing with arbitrary DOM elements (perhaps created via
                     // script).
-                    let (rowspan, colspan) = info.node.map_or((1, 1), |node| {
-                        let node = node.to_threadsafe();
+                    let (rowspan, colspan) = if info.pseudo_element_type.is_none() {
+                        let node = info.node.to_threadsafe();
                         let rowspan = node.get_rowspan().unwrap_or(1).min(65534) as usize;
                         let colspan = node.get_colspan().unwrap_or(1).min(1000) as usize;
                         (rowspan, colspan)
-                    });
+                    } else {
+                        (1, 1)
+                    };
 
+                    let propagated_data =
+                        self.propagated_data.disallowing_percentage_table_columns();
                     let contents = match contents.try_into() {
                         Ok(non_replaced_contents) => {
                             BlockFormattingContext::construct(
                                 self.table_traversal.context,
                                 info,
                                 non_replaced_contents,
-                                self.text_decoration_line,
+                                propagated_data,
                                 false, /* is_list_item */
                             )
                         },
@@ -1128,10 +1121,16 @@ fn add_column<'dom, Node>(
 ) where
     Node: NodeExt<'dom>,
 {
-    let span = column_info
-        .node
-        .and_then(|node| node.to_threadsafe().get_span())
-        .map_or(1, |span| span.min(1000) as usize);
+    let span = if column_info.pseudo_element_type.is_none() {
+        column_info
+            .node
+            .to_threadsafe()
+            .get_span()
+            .unwrap_or(1)
+            .min(1000) as usize
+    } else {
+        1
+    };
 
     collection.extend(
         repeat(TableTrack {

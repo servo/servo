@@ -1,0 +1,7 @@
+Downloaded from https://github.com/paulmillr/noble-ed25519, version 2.2.3.
+
+This module has no dependencies, and is provided as a single file, index.js.
+
+The async functions on this library require no additional dependencies.
+For use by these tests, the async functions are entirely sufficient,
+and should be consistently used instead of the sync functions.

@@ -8,12 +8,13 @@ use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::PaintSizeBinding::PaintSizeMethods;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PaintSize {
+pub(crate) struct PaintSize {
     reflector: Reflector,
     width: Finite<f64>,
     height: Finite<f64>,
@@ -28,11 +29,12 @@ impl PaintSize {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &PaintWorkletGlobalScope,
         size: Size2D<f32, CSSPixel>,
+        can_gc: CanGc,
     ) -> DomRoot<PaintSize> {
-        reflect_dom_object(Box::new(PaintSize::new_inherited(size)), global)
+        reflect_dom_object(Box::new(PaintSize::new_inherited(size)), global, can_gc)
     }
 }
 

@@ -1,11 +1,14 @@
 // META: title=validation tests for WebNN API pad operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
 // META: script=../resources/utils_validation.js
 
 'use strict';
+
+const label = 'pad_xxx';
+const regrexp = new RegExp('\\[' + label + '\\]');
 
 multi_builder_test(async (t, builder, otherBuilder) => {
   const inputFromOtherBuilder =
@@ -19,7 +22,23 @@ multi_builder_test(async (t, builder, otherBuilder) => {
           builder.pad(inputFromOtherBuilder, beginningPadding, endingPadding));
 }, '[pad] throw if input is from another builder');
 
-const label = 'pad_xxx';
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+
+  const input = builder.input('input', {
+      dataType: 'float32',
+      shape: [1, context.opSupportLimits().maxTensorByteLength / 4]});
+
+  const options = {};
+  options.value = 0;
+  options.mode = 'constant';
+  options.label = label;
+  const beginningPadding = [1, 2];
+  const endingPadding = [1, 2];
+  assert_throws_with_label(
+      () => builder.pad(input, beginningPadding, endingPadding, options), regrexp);
+}, '[pad] throw if the output tensor byte length exceeds limit');
+
 const tests = [
   {
     name:
@@ -85,7 +104,6 @@ tests.forEach(
         assert_equals(output.dataType, test.output.dataType);
         assert_array_equals(output.shape, test.output.shape);
       } else {
-        const regrexp = new RegExp('\\[' + label + '\\]');
         assert_throws_with_label(
             () => builder.pad(
                 input, test.beginningPadding, test.endingPadding, test.options),

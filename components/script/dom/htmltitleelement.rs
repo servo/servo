@@ -20,7 +20,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLTitleElement {
+pub(crate) struct HTMLTitleElement {
     htmlelement: HTMLElement,
     popped: Cell<bool>,
 }
@@ -37,8 +37,8 @@ impl HTMLTitleElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -57,7 +57,7 @@ impl HTMLTitleElement {
 
     fn notify_title_changed(&self) {
         let node = self.upcast::<Node>();
-        if node.is_in_doc() {
+        if node.is_in_a_document_tree() {
             node.owner_doc().title_changed();
         }
     }
@@ -92,12 +92,12 @@ impl VirtualMethods for HTMLTitleElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
         let node = self.upcast::<Node>();
-        if context.tree_in_doc {
+        if context.tree_is_in_a_document_tree {
             node.owner_doc().title_changed();
         }
     }

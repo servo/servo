@@ -3,16 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::wgt::AdapterInfo;
+use wgpu_types::AdapterInfo;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUAdapterInfoMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::test::DOMString;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUAdapterInfo {
+pub(crate) struct GPUAdapterInfo {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in wgpu-types"]
     #[no_trace]
@@ -27,8 +28,8 @@ impl GPUAdapterInfo {
         }
     }
 
-    pub fn new(global: &GlobalScope, info: AdapterInfo) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(info)), global)
+    pub(crate) fn new(global: &GlobalScope, info: AdapterInfo, can_gc: CanGc) -> DomRoot<Self> {
+        reflect_dom_object(Box::new(Self::new_inherited(info)), global, can_gc)
     }
 }
 

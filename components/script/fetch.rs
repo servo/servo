@@ -5,28 +5,29 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use base::id::WebViewId;
 use ipc_channel::ipc;
 use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, Referrer, Request as NetTraitsRequest,
-    RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
+    CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
+    Request as NetTraitsRequest, RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
 };
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseListener,
     FetchResponseMsg, FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming,
-    ResourceTimingType,
+    ResourceTimingType, cancel_async_fetch,
 };
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{
     RequestInfo, RequestInit, RequestMethods,
 };
-use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
@@ -36,8 +37,8 @@ use crate::dom::promise::Promise;
 use crate::dom::request::Request;
 use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use crate::network_listener::{self, submit_timing_data, PreInvoke, ResourceTimingListener};
-use crate::realms::{enter_realm, InRealm};
+use crate::network_listener::{self, PreInvoke, ResourceTimingListener, submit_timing_data};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::CanGc;
 
 struct FetchContext {
@@ -51,45 +52,35 @@ struct FetchContext {
 /// in which case it will store the sender. You can manually cancel it
 /// or let it cancel on Drop in that case.
 #[derive(Default, JSTraceable, MallocSizeOf)]
-pub struct FetchCanceller {
-    #[ignore_malloc_size_of = "channels are hard"]
+pub(crate) struct FetchCanceller {
     #[no_trace]
-    cancel_chan: Option<ipc::IpcSender<()>>,
+    request_id: Option<RequestId>,
 }
 
 impl FetchCanceller {
     /// Create an empty FetchCanceller
-    pub fn new() -> Self {
-        Default::default()
-    }
-
-    /// Obtain an IpcReceiver to send over to Fetch, and initialize
-    /// the internal sender
-    pub fn initialize(&mut self) -> ipc::IpcReceiver<()> {
-        // cancel previous fetch
-        self.cancel();
-        let (rx, tx) = ipc::channel().unwrap();
-        self.cancel_chan = Some(rx);
-        tx
+    pub(crate) fn new(request_id: RequestId) -> Self {
+        Self {
+            request_id: Some(request_id),
+        }
     }
 
     /// Cancel a fetch if it is ongoing
-    pub fn cancel(&mut self) {
-        if let Some(chan) = self.cancel_chan.take() {
+    pub(crate) fn cancel(&mut self) {
+        if let Some(request_id) = self.request_id.take() {
             // stop trying to make fetch happen
             // it's not going to happen
 
-            // The receiver will be destroyed if the request has already completed;
-            // so we throw away the error. Cancellation is a courtesy call,
+            // No error handling here. Cancellation is a courtesy call,
             // we don't actually care if the other side heard.
-            let _ = chan.send(());
+            cancel_async_fetch(vec![request_id]);
         }
     }
 
     /// Use this if you don't want it to send a cancellation request
     /// on drop (e.g. if the fetch completes)
-    pub fn ignore(&mut self) {
-        let _ = self.cancel_chan.take();
+    pub(crate) fn ignore(&mut self) {
+        let _ = self.request_id.take();
     }
 }
 
@@ -123,12 +114,16 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         referrer: request.referrer.clone(),
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
+        target_webview_id: request.target_webview_id,
         redirect_mode: request.redirect_mode,
         integrity_metadata: request.integrity_metadata.clone(),
+        cryptographic_nonce_metadata: request.cryptographic_nonce_metadata.clone(),
         url_list: vec![],
         parser_metadata: request.parser_metadata,
         initiator: request.initiator,
         policy_container: request.policy_container,
+        insecure_requests_policy: request.insecure_requests_policy,
+        has_trustworthy_ancestor_origin: request.has_trustworthy_ancestor_origin,
         https_state: request.https_state,
         response_tainting: request.response_tainting,
         crash: None,
@@ -136,8 +131,9 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
 }
 
 /// <https://fetch.spec.whatwg.org/#fetch-method>
-#[allow(crown::unrooted_must_root, non_snake_case)]
-pub fn Fetch(
+#[allow(non_snake_case)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+pub(crate) fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
     init: RootedTraceableBox<RequestInit>,
@@ -156,8 +152,8 @@ pub fn Fetch(
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
     let request = match Request::Constructor(global, None, can_gc, input, init) {
         Err(e) => {
-            response.error_stream(e.clone());
-            promise.reject_error(e);
+            response.error_stream(e.clone(), can_gc);
+            promise.reject_error(e, can_gc);
             return promise;
         },
         Ok(r) => {
@@ -195,8 +191,7 @@ pub fn Fetch(
     global.fetch(
         request_init,
         fetch_context,
-        global.networking_task_source(),
-        None,
+        global.task_manager().networking_task_source().to_sendable(),
     );
 
     // Step 13. Return p.
@@ -214,7 +209,7 @@ impl FetchResponseListener for FetchContext {
         // TODO
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn process_response(
         &mut self,
         _: RequestId,
@@ -230,11 +225,17 @@ impl FetchResponseListener for FetchContext {
         match fetch_metadata {
             // Step 4.1
             Err(_) => {
-                promise.reject_error(Error::Type("Network error occurred".to_string()));
+                promise.reject_error(
+                    Error::Type("Network error occurred".to_string()),
+                    CanGc::note(),
+                );
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
                 response.set_type(DOMResponseType::Error, CanGc::note());
-                response.error_stream(Error::Type("Network error occurred".to_string()));
+                response.error_stream(
+                    Error::Type("Network error occurred".to_string()),
+                    CanGc::note(),
+                );
                 return;
             },
             // Step 4.2
@@ -273,7 +274,7 @@ impl FetchResponseListener for FetchContext {
         }
 
         // Step 4.3
-        promise.resolve_native(&self.response_object.root());
+        promise.resolve_native(&self.response_object.root(), CanGc::note());
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
@@ -289,7 +290,7 @@ impl FetchResponseListener for FetchContext {
     ) {
         let response = self.response_object.root();
         let _ac = enter_realm(&*response);
-        response.finish();
+        response.finish(CanGc::note());
         // TODO
         // ... trailerObject is not supported in Servo yet.
     }
@@ -331,7 +332,7 @@ fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata, can_gc: CanGc) 
 }
 
 /// Convenience function for synchronously loading a whole resource.
-pub fn load_whole_resource(
+pub(crate) fn load_whole_resource(
     request: RequestBuilder,
     core_resource_thread: &CoreResourceThread,
     global: &GlobalScope,
@@ -343,7 +344,7 @@ pub fn load_whole_resource(
     core_resource_thread
         .send(CoreResourceMsg::Fetch(
             request,
-            FetchChannels::ResponseMsg(action_sender, None),
+            FetchChannels::ResponseMsg(action_sender),
         ))
         .unwrap();
 
@@ -374,14 +375,18 @@ pub fn load_whole_resource(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request>
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn create_a_potential_cors_request(
+    webview_id: Option<WebViewId>,
     url: ServoUrl,
     destination: Destination,
     cors_setting: Option<CorsSettings>,
     same_origin_fallback: Option<bool>,
     referrer: Referrer,
+    insecure_requests_policy: InsecureRequestsPolicy,
+    has_trustworthy_ancestor_origin: bool,
 ) -> RequestBuilder {
-    RequestBuilder::new(url, referrer)
+    RequestBuilder::new(webview_id, url, referrer)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 1
         .mode(match cors_setting {
@@ -398,4 +403,6 @@ pub(crate) fn create_a_potential_cors_request(
         // Step 5
         .destination(destination)
         .use_url_credentials(true)
+        .insecure_requests_policy(insecure_requests_policy)
+        .has_trustworthy_ancestor_origin(has_trustworthy_ancestor_origin)
 }

@@ -144,7 +144,7 @@
       assert_percents_equal(
           anim.currentTime, 100/6,
           'animation\'s current time after bumping scroll position');
-      assert_equals(getComputedStyle(target).marginLeft, '50px');
+      assert_approx_equals(parseFloat(getComputedStyle(target).marginLeft), 50, 0.125);
 
       // Step 3: Try to update the range start via CSS.  This change must be
       // ignored since previously set programmatically.
@@ -154,8 +154,7 @@
       assert_percents_equal(
           anim.currentTime, 100/6,
           'Current time unchanged after change to ignored CSS property');
-      assert_equals(
-          getComputedStyle(target).marginLeft, '50px',
+      assert_approx_equals(parseFloat(getComputedStyle(target).marginLeft), 50, 0.125,
           'Margin-left unaffected by change to ignored CSS property');
 
     }, 'Animation API call rangeStart overrides animation-range-start');
@@ -214,7 +213,7 @@
       assert_percents_equal(
           anim.currentTime, 100/6,
           'animation\'s current time after bumping scroll position');
-      assert_equals(getComputedStyle(target).marginLeft, "50px");
+      assert_approx_equals(parseFloat(getComputedStyle(target).marginLeft), 50, 0.125);
 
       // Step 3: Try to update the range end via CSS. This change must be
       // ignored since previously set programmatically.
@@ -224,8 +223,7 @@
       assert_percents_equal(
           anim.currentTime, 100/6,
           'Current time unchanged after change to ignored CSS property');
-      assert_equals(
-          getComputedStyle(target).marginLeft, '50px',
+      assert_approx_equals(parseFloat(getComputedStyle(target).marginLeft), 50, 0.125,
           'Margin-left unaffected by change to ignored CSS property');
 
     }, 'Animation API call rangeEnd overrides animation-range-end');

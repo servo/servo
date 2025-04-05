@@ -12,10 +12,11 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::script_runtime::CanGc;
 
 /// Trait used internally by WebGLExtensions to store and
 /// handle the different WebGL extensions in a common list.
-pub trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
+pub(crate) trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
     fn instance_or_init(
         &self,
         ctx: &WebGLRenderingContext,
@@ -28,16 +29,16 @@ pub trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
     fn name(&self) -> &'static str;
 }
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct TypedWebGLExtensionWrapper<T: WebGLExtension> {
+pub(crate) struct TypedWebGLExtensionWrapper<T: WebGLExtension> {
     extension: MutNullableDom<T::Extension>,
 }
 
 /// Typed WebGL Extension implementation.
 /// Exposes the exact `MutNullableDom<DOMObject>` type defined by the extension.
 impl<T: WebGLExtension> TypedWebGLExtensionWrapper<T> {
-    pub fn new() -> TypedWebGLExtensionWrapper<T> {
+    pub(crate) fn new() -> TypedWebGLExtensionWrapper<T> {
         TypedWebGLExtensionWrapper {
             extension: MutNullableDom::new(None),
         }
@@ -57,7 +58,7 @@ where
         let mut enabled = true;
         let extension = self.extension.or_init(|| {
             enabled = false;
-            T::new(ctx)
+            T::new(ctx, CanGc::note())
         });
         if !enabled {
             self.enable(ext);

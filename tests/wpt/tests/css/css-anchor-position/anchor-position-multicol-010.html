@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Anchor-positioned elements in multicol with spanner, vertical-rl</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-pos">
+<style>
+  .anchor {
+    anchor-name: --tjor;
+    inline-size: 50px;
+    background: green;
+  }
+  .pos {
+    position: absolute;
+    position-anchor: --tjor;
+    inset-inline-start: anchor(outside);
+    inset-block-start: anchor(start);
+    inline-size: 50px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="writing-mode:vertical-rl; columns:2; inline-size:300px;">
+  <div style="position:relative; block-size:100px;">
+    <div style="inline-size:100px; block-size:50px; background:red;">
+      <div class="anchor" style="block-size:50px;"></div>
+      <div class="pos" style="block-size:50px;"></div>
+    </div>
+  </div>
+  <div style="column-span:all; inline-size:100px; block-size:10px; background:green; "></div>
+  <div style="position:relative; block-size:80px;">
+    <div style="inline-size:100px; block-size:40px; background:red;">
+      <div class="anchor" style="block-size:40px;"></div>
+      <div class="pos" style="block-size:40px;"></div>
+    </div>
+  </div>
+</div>

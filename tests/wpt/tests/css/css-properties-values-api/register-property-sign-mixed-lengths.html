@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#dom-css-registerproperty" />
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#supported-syntax-strings" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/utils.js"></script>
+<script>
+
+let assert_valid = test_initial_value_valid;
+let assert_invalid = test_initial_value_invalid;
+
+assert_valid("<length>", "calc(15px + (sign(100vh - 10px) * 5px))");
+assert_valid("<number>", "calc(15 + (sign(100vh - 10px) * 5))");
+assert_valid("<integer>", "calc(15 + (sign(100vh - 10px) * 5))");
+assert_valid("<angle>", "calc(15deg + (sign(100vh - 10px) * 5deg))");
+assert_valid("<time>", "calc(15s + (sign(100vh - 10px) * 5s))");
+assert_valid("<resolution>", "calc(15dppx + (sign(100vh - 10px) * 5dpi))");
+
+</script>

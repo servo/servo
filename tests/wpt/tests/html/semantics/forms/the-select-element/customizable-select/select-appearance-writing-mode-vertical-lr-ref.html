@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel=stylesheet href="resources/customizable-select-styles.css">
+
+<style>
+html {
+  writing-mode: vertical-lr;
+}
+</style>
+
+<div class=customizable-select-button id=button>
+  <div class=customizable-select-selectedcontent>one</div>
+</div>
+<div id=popover popover=auto anchor=button class=customizable-select-popover>
+  <div class="customizable-select-option selected">one</div>
+  <div class=customizable-select-option>two</div>
+</div>
+
+<script>
+document.getElementById('popover').showPopover();
+</script>

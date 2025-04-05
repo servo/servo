@@ -22,9 +22,8 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
     FilteredMetadata, NetworkError, ResourceFetchTiming, ResourceTimingType,
 };
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
-use utf8;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
@@ -33,7 +32,7 @@ use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -41,11 +40,10 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performanceresourcetiming::InitiatorType;
-use crate::fetch::{create_a_potential_cors_request, FetchCanceller};
+use crate::fetch::{FetchCanceller, create_a_potential_cors_request};
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
-use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
 
 const DEFAULT_RECONNECTION_TIME: Duration = Duration::from_millis(5000);
@@ -62,7 +60,7 @@ enum ReadyState {
 }
 
 #[dom_struct]
-pub struct EventSource {
+pub(crate) struct EventSource {
     eventtarget: EventTarget,
     #[no_trace]
     url: ServoUrl,
@@ -112,8 +110,7 @@ impl EventSourceContext {
         }
         let global = event_source.global();
         let event_source = self.event_source.clone();
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
+        global.task_manager().remote_event_task_source().queue(
             task!(announce_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
@@ -121,7 +118,6 @@ impl EventSourceContext {
                     event_source.upcast::<EventTarget>().fire_event(atom!("open"), CanGc::note());
                 }
             }),
-            &global,
         );
     }
 
@@ -145,8 +141,7 @@ impl EventSourceContext {
         let trusted_event_source = self.event_source.clone();
         let action_sender = self.action_sender.clone();
         let global = event_source.global();
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
+        global.task_manager().remote_event_task_source().queue(
             task!(reestablish_the_event_source_onnection: move || {
                 let event_source = trusted_event_source.root();
 
@@ -174,10 +169,8 @@ impl EventSourceContext {
                         action_sender,
                     }
                 );
-                // FIXME(nox): Why are errors silenced here?
-                let _ = event_source.global().schedule_callback(callback, duration);
+                event_source.global().schedule_callback(callback, duration);
             }),
-            &global,
         );
     }
 
@@ -258,15 +251,13 @@ impl EventSourceContext {
         let global = event_source.global();
         let event_source = self.event_source.clone();
         let event = Trusted::new(&*event);
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
+        global.task_manager().remote_event_task_source().queue(
             task!(dispatch_the_event_source_event: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event.root().upcast::<Event>().fire(event_source.upcast(), CanGc::note());
                 }
             }),
-            &global,
         );
     }
 
@@ -352,7 +343,7 @@ impl FetchResponseListener for EventSourceContext {
                     FetchMetadata::Unfiltered(m) => m,
                     FetchMetadata::Filtered { unsafe_, filtered } => match filtered {
                         FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => {
-                            return self.fail_the_connection()
+                            return self.fail_the_connection();
                         },
                         _ => unsafe_,
                     },
@@ -490,17 +481,16 @@ impl EventSource {
     }
 
     // https://html.spec.whatwg.org/multipage/#sse-processing-model:fail-the-connection-3
-    pub fn cancel(&self) {
+    pub(crate) fn cancel(&self) {
         self.canceller.borrow_mut().cancel();
         self.fail_the_connection();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fail-the-connection>
-    pub fn fail_the_connection(&self) {
+    pub(crate) fn fail_the_connection(&self) {
         let global = self.global();
         let event_source = Trusted::new(self);
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
+        global.task_manager().remote_event_task_source().queue(
             task!(fail_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
@@ -508,15 +498,14 @@ impl EventSource {
                     event_source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
                 }
             }),
-            &global,
         );
     }
 
-    pub fn request(&self) -> RequestBuilder {
+    pub(crate) fn request(&self) -> RequestBuilder {
         self.request.borrow().clone().unwrap()
     }
 
-    pub fn url(&self) -> &ServoUrl {
+    pub(crate) fn url(&self) -> &ServoUrl {
         &self.url
     }
 }
@@ -565,11 +554,14 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         // Step 8
         // TODO: Step 9 set request's client settings
         let mut request = create_a_potential_cors_request(
+            global.webview_id(),
             url_record,
             Destination::None,
             Some(cors_attribute_state),
             Some(true),
             global.get_referrer(),
+            global.insecure_requests_policy(),
+            global.has_trustworthy_ancestor_or_current_origin(),
         )
         .origin(global.origin().immutable().clone())
         .pipeline_id(Some(global.pipeline_id()));
@@ -603,10 +595,9 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             last_event_id: String::new(),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         };
-        let listener = NetworkListener {
+        let mut listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
-            task_source: global.networking_task_source(),
-            canceller: Some(global.task_canceller(TaskSourceName::Networking)),
+            task_source: global.task_manager().networking_task_source().into(),
         };
         ROUTER.add_typed_route(
             action_receiver,
@@ -614,12 +605,12 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
                 listener.notify_fetch(message.unwrap());
             }),
         );
-        let cancel_receiver = ev.canceller.borrow_mut().initialize();
+        *ev.canceller.borrow_mut() = FetchCanceller::new(request.id);
         global
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)),
+                FetchChannels::ResponseMsg(action_sender),
             ))
             .unwrap();
         // Step 13
@@ -660,7 +651,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct EventSourceTimeoutCallback {
+pub(crate) struct EventSourceTimeoutCallback {
     #[ignore_malloc_size_of = "Because it is non-owning"]
     event_source: Trusted<EventSource>,
     #[ignore_malloc_size_of = "Because it is non-owning"]
@@ -670,7 +661,7 @@ pub struct EventSourceTimeoutCallback {
 
 impl EventSourceTimeoutCallback {
     // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
-    pub fn invoke(self) {
+    pub(crate) fn invoke(self) {
         let event_source = self.event_source.root();
         let global = event_source.global();
         // Step 5.1
@@ -693,7 +684,7 @@ impl EventSourceTimeoutCallback {
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
                 request,
-                FetchChannels::ResponseMsg(self.action_sender, None),
+                FetchChannels::ResponseMsg(self.action_sender),
             ))
             .unwrap();
     }

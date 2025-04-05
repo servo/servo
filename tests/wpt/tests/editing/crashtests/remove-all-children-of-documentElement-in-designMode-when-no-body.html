@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.designMode = "on";
+  document.documentElement.innerText = "abc def\n"; // causes removing the implicit <body> element
+  let child;
+  while ((child = document.documentElement.lastChild)) {
+    child.remove();
+  }
+}, {once: true});
+</script>
+</head>
+</html>

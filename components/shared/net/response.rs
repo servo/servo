@@ -4,8 +4,8 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
 
 use headers::{ContentType, HeaderMapExt};
 use http::HeaderMap;
@@ -120,6 +120,9 @@ pub struct Response {
     /// track network metrics
     #[ignore_malloc_size_of = "Mutex heap size undefined"]
     pub resource_timing: Arc<Mutex<ResourceFetchTiming>>,
+
+    /// <https://fetch.spec.whatwg.org/#concept-response-range-requested-flag>
+    pub range_requested: bool,
 }
 
 impl Response {
@@ -142,6 +145,7 @@ impl Response {
             return_internal: true,
             aborted: Arc::new(AtomicBool::new(false)),
             resource_timing: Arc::new(Mutex::new(resource_timing)),
+            range_requested: false,
         }
     }
 
@@ -175,6 +179,7 @@ impl Response {
             resource_timing: Arc::new(Mutex::new(ResourceFetchTiming::new(
                 ResourceTimingType::Error,
             ))),
+            range_requested: false,
         }
     }
 

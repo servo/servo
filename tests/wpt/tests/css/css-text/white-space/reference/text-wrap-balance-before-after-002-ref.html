@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<style>
+.container {
+  font: 16px monospace;
+  margin: 1em;
+  width: 60ch;
+  outline: 1px dashed gray;
+}
+
+.text {
+  text-wrap: balance;
+}
+
+.text-before {
+  letter-spacing: -0.15ch;
+  margin-bottom: 1em;
+  text-wrap: balance;
+}
+
+.text-after {
+  text-wrap-style: stable;
+  margin-top: 1em;
+}
+</style>
+
+<p>The first two paragraphs should be separately balanced; the third should not use balancing:</p>
+
+<div class="container">
+<div class="text-before">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+</div>
+<div class="text">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+</div>
+<div class="text-after">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+</div>
+</div>

@@ -24,7 +24,7 @@ async_test(t => {
 
 
     open_rq.onsuccess = function(e) {
-        let rq = db.transaction("store", "readonly", {durability: 'relaxed'})
+        let rq = db.transaction("store", "readonly")
                    .objectStore("store")
                    .openCursor();
 
@@ -56,7 +56,7 @@ async_test(t => {
     };
 
     open_rq.onsuccess = function(e) {
-        let rq = db.transaction("store", "readonly", {durability: 'relaxed'})
+        let rq = db.transaction("store", "readonly")
                    .objectStore("store")
                    .index("index")
                    .openCursor();
@@ -81,7 +81,7 @@ async_test(t => {
     }
 
     open_rq.onsuccess = function (event) {
-        let txn = db.transaction("store", "readonly", {durability: 'relaxed'});
+        let txn = db.transaction("store", "readonly");
         let ostore = txn.objectStore("store");
         t.step(function(){
             assert_throws_dom("ReadOnlyError", function(){

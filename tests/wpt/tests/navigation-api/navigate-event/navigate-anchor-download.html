@@ -25,8 +25,7 @@ for (const [tag, download_attr] of tests) {
       assert_equals(e.destination.key, "");
       assert_equals(e.destination.id, "");
       assert_equals(e.destination.index, -1);
-      // NavigateEvent sourceElement is still in development, so test whether it is available.
-      if ("sourceElement" in e) assert_equals(e.sourceElement, a);
+      assert_equals(e.sourceElement, a);
       e.preventDefault();
     });
     a.click();

@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: parsing scroll-marker-group with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_invalid_value('scroll-marker-group', '10');
+  test_invalid_value('scroll-marker-group', 'true');
+  test_invalid_value('scroll-marker-group', 'default');
+  test_invalid_value('scroll-marker-group', 'set');
+  test_invalid_value('scroll-marker-group', 'before, after');
+</script>

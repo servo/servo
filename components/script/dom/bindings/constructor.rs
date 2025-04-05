@@ -5,12 +5,13 @@
 use std::ptr;
 
 use html5ever::interface::QualName;
-use html5ever::{local_name, namespace_url, ns, LocalName};
+use html5ever::{LocalName, local_name, namespace_url, ns};
 use js::conversions::ToJSValConvertible;
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, CurrentGlobalOrNull, JSAutoRealm, JSObject};
 use js::rust::wrappers::{JS_SetPrototype, JS_WrapObject};
 use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
+use script_bindings::interface::get_desired_proto;
 
 use super::utils::ProtoOrIfaceArray;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -31,18 +32,17 @@ use crate::dom::bindings::codegen::Bindings::{
     HTMLOptionElementBinding, HTMLOutputElementBinding, HTMLParagraphElementBinding,
     HTMLParamElementBinding, HTMLPictureElementBinding, HTMLPreElementBinding,
     HTMLProgressElementBinding, HTMLQuoteElementBinding, HTMLScriptElementBinding,
-    HTMLSelectElementBinding, HTMLSourceElementBinding, HTMLSpanElementBinding,
-    HTMLStyleElementBinding, HTMLTableCaptionElementBinding, HTMLTableCellElementBinding,
-    HTMLTableColElementBinding, HTMLTableElementBinding, HTMLTableRowElementBinding,
-    HTMLTableSectionElementBinding, HTMLTemplateElementBinding, HTMLTextAreaElementBinding,
-    HTMLTimeElementBinding, HTMLTitleElementBinding, HTMLTrackElementBinding,
-    HTMLUListElementBinding, HTMLVideoElementBinding,
+    HTMLSelectElementBinding, HTMLSlotElementBinding, HTMLSourceElementBinding,
+    HTMLSpanElementBinding, HTMLStyleElementBinding, HTMLTableCaptionElementBinding,
+    HTMLTableCellElementBinding, HTMLTableColElementBinding, HTMLTableElementBinding,
+    HTMLTableRowElementBinding, HTMLTableSectionElementBinding, HTMLTemplateElementBinding,
+    HTMLTextAreaElementBinding, HTMLTimeElementBinding, HTMLTitleElementBinding,
+    HTMLTrackElementBinding, HTMLUListElementBinding, HTMLVideoElementBinding,
 };
 use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::error::{throw_constructor_without_new, throw_dom_exception, Error};
+use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::interface::get_desired_proto;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::create::create_native_html_element;
@@ -54,8 +54,8 @@ use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
-// https://html.spec.whatwg.org/multipage/#htmlconstructor
-unsafe fn html_constructor(
+/// <https://html.spec.whatwg.org/multipage/#htmlconstructor>
+fn html_constructor(
     cx: JSContext,
     global: &GlobalScope,
     call_args: &CallArgs,
@@ -67,7 +67,7 @@ unsafe fn html_constructor(
     let window = global.downcast::<Window>().unwrap();
     let document = window.Document();
 
-    // Step 1
+    // Step 1. Let registry be current global object's custom element registry.
     let registry = window.CustomElements();
 
     // Step 2 https://html.spec.whatwg.org/multipage/#htmlconstructor
@@ -75,9 +75,16 @@ unsafe fn html_constructor(
 
     // The new_target might be a cross-compartment wrapper. Get the underlying object
     // so we can do the spec's object-identity checks.
-    rooted!(in(*cx) let new_target_unwrapped = UnwrapObjectDynamic(call_args.new_target().to_object(), *cx, true));
+    rooted!(in(*cx) let new_target_unwrapped = unsafe {
+        UnwrapObjectDynamic(call_args.new_target().to_object(), *cx, true)
+    });
     if new_target_unwrapped.is_null() {
-        throw_dom_exception(cx, global, Error::Type("new.target is null".to_owned()));
+        throw_dom_exception(
+            cx,
+            global,
+            Error::Type("new.target is null".to_owned()),
+            can_gc,
+        );
         return Err(());
     }
     if call_args.callee() == new_target_unwrapped.get() {
@@ -85,11 +92,13 @@ unsafe fn html_constructor(
             cx,
             global,
             Error::Type("new.target must not be the active function object".to_owned()),
+            can_gc,
         );
         return Err(());
     }
 
-    // Step 3
+    // Step 3. Let definition be the item in registry's custom element definition set with constructor
+    // equal to NewTarget. If there is no such item, then throw a TypeError.
     rooted!(in(*cx) let new_target = call_args.new_target().to_object());
     let definition = match registry.lookup_definition_by_constructor(new_target.handle()) {
         Some(definition) => definition,
@@ -98,40 +107,48 @@ unsafe fn html_constructor(
                 cx,
                 global,
                 Error::Type("No custom element definition found for new.target".to_owned()),
+                can_gc,
             );
             return Err(());
         },
     };
 
-    rooted!(in(*cx) let callee = UnwrapObjectStatic(call_args.callee()));
+    // Step 4. Let isValue be null.
+    let mut is_value = None;
+
+    rooted!(in(*cx) let callee = unsafe { UnwrapObjectStatic(call_args.callee()) });
     if callee.is_null() {
-        throw_dom_exception(cx, global, Error::Security);
+        throw_dom_exception(cx, global, Error::Security, can_gc);
         return Err(());
     }
 
     {
         let _ac = JSAutoRealm::new(*cx, callee.get());
         rooted!(in(*cx) let mut constructor = ptr::null_mut::<JSObject>());
-        rooted!(in(*cx) let global_object = CurrentGlobalOrNull(*cx));
+        rooted!(in(*cx) let global_object = unsafe { CurrentGlobalOrNull(*cx) });
 
+        // Step 5. If definition's local name is equal to definition's name
+        // (i.e., definition is for an autonomous custom element):
         if definition.is_autonomous() {
-            // Step 4
             // Since this element is autonomous, its active function object must be the HTMLElement
-
             // Retrieve the constructor object for HTMLElement
             HTMLElementBinding::GetConstructorObject(
                 cx,
                 global_object.handle(),
                 constructor.handle_mut(),
             );
-        } else {
-            // Step 5
+        }
+        // Step 6. Otherwise (i.e., if definition is for a customized built-in element):
+        else {
             get_constructor_object_from_local_name(
                 definition.local_name.clone(),
                 cx,
                 global_object.handle(),
                 constructor.handle_mut(),
             );
+
+            // Step 6.3 Set isValue to definition's name.
+            is_value = Some(definition.name.clone());
         }
         // Callee must be the same as the element interface's constructor object.
         if constructor.get() != callee.get() {
@@ -139,6 +156,7 @@ unsafe fn html_constructor(
                 cx,
                 global,
                 Error::Type("Custom element does not extend the proper interface".to_owned()),
+                can_gc,
             );
             return Err(());
         }
@@ -150,9 +168,9 @@ unsafe fn html_constructor(
 
     let entry = definition.construction_stack.borrow().last().cloned();
     let result = match entry {
-        // Step 8
+        // Step 7. If definition's construction stack is empty:
         None => {
-            // Step 8.1
+            // Step 7.1
             let name = QualName::new(None, ns!(html), definition.local_name.clone());
             // Any prototype used to create these elements will be overwritten before returning
             // from this function, so we don't bother overwriting the defaults here.
@@ -168,19 +186,24 @@ unsafe fn html_constructor(
                 )
             };
 
-            // Step 8.2 is performed in the generated caller code.
+            // Step 7.2-7.5 are performed in the generated caller code.
 
-            // Step 8.3
+            // Step 7.6 Set element's custom element state to "custom".
             element.set_custom_element_state(CustomElementState::Custom);
 
-            // Step 8.4
+            // Step 7.7 Set element's custom element definition to definition.
             element.set_custom_element_definition(definition.clone());
 
-            // Step 8.5
+            // Step 7.8 Set element's is value to isValue.
+            if let Some(is_value) = is_value {
+                element.set_is(is_value);
+            }
+
             if !check_type(&element) {
-                throw_dom_exception(cx, global, Error::InvalidState);
+                throw_dom_exception(cx, global, Error::InvalidState, can_gc);
                 return Err(());
             } else {
+                // Step 7.9 Return element.
                 element
             }
         },
@@ -195,7 +218,7 @@ unsafe fn html_constructor(
 
             // Step 13
             if !check_type(&element) {
-                throw_dom_exception(cx, global, Error::InvalidState);
+                throw_dom_exception(cx, global, Error::InvalidState, can_gc);
                 return Err(());
             } else {
                 element
@@ -206,19 +229,21 @@ unsafe fn html_constructor(
             let s = "Top of construction stack marked AlreadyConstructed due to \
                      a custom element constructor constructing itself after super()"
                 .to_string();
-            throw_dom_exception(cx, global, Error::Type(s));
+            throw_dom_exception(cx, global, Error::Type(s), can_gc);
             return Err(());
         },
     };
 
     rooted!(in(*cx) let mut element = result.reflector().get_jsobject().get());
-    if !JS_WrapObject(*cx, element.handle_mut()) {
-        return Err(());
+    unsafe {
+        if !JS_WrapObject(*cx, element.handle_mut()) {
+            return Err(());
+        }
+
+        JS_SetPrototype(*cx, element.handle(), prototype.handle());
+
+        result.to_jsval(*cx, MutableHandleValue::from_raw(call_args.rval()));
     }
-
-    JS_SetPrototype(*cx, element.handle(), prototype.handle());
-
-    result.to_jsval(*cx, MutableHandleValue::from_raw(call_args.rval()));
     Ok(())
 }
 
@@ -226,159 +251,155 @@ unsafe fn html_constructor(
 /// given local name. This list should only include elements marked with the
 /// [HTMLConstructor](https://html.spec.whatwg.org/multipage/#htmlconstructor)
 /// extended attribute.
-pub fn get_constructor_object_from_local_name(
+fn get_constructor_object_from_local_name(
     name: LocalName,
     cx: JSContext,
     global: HandleObject,
     rval: MutableHandleObject,
 ) -> bool {
-    macro_rules! get_constructor(
-        ($binding:ident) => ({
-            $binding::GetConstructorObject(cx, global, rval);
-            true
-        })
-    );
-
-    match name {
-        local_name!("a") => get_constructor!(HTMLAnchorElementBinding),
-        local_name!("abbr") => get_constructor!(HTMLElementBinding),
-        local_name!("acronym") => get_constructor!(HTMLElementBinding),
-        local_name!("address") => get_constructor!(HTMLElementBinding),
-        local_name!("area") => get_constructor!(HTMLAreaElementBinding),
-        local_name!("article") => get_constructor!(HTMLElementBinding),
-        local_name!("aside") => get_constructor!(HTMLElementBinding),
-        local_name!("audio") => get_constructor!(HTMLAudioElementBinding),
-        local_name!("b") => get_constructor!(HTMLElementBinding),
-        local_name!("base") => get_constructor!(HTMLBaseElementBinding),
-        local_name!("bdi") => get_constructor!(HTMLElementBinding),
-        local_name!("bdo") => get_constructor!(HTMLElementBinding),
-        local_name!("big") => get_constructor!(HTMLElementBinding),
-        local_name!("blockquote") => get_constructor!(HTMLQuoteElementBinding),
-        local_name!("body") => get_constructor!(HTMLBodyElementBinding),
-        local_name!("br") => get_constructor!(HTMLBRElementBinding),
-        local_name!("button") => get_constructor!(HTMLButtonElementBinding),
-        local_name!("canvas") => get_constructor!(HTMLCanvasElementBinding),
-        local_name!("caption") => get_constructor!(HTMLTableCaptionElementBinding),
-        local_name!("center") => get_constructor!(HTMLElementBinding),
-        local_name!("cite") => get_constructor!(HTMLElementBinding),
-        local_name!("code") => get_constructor!(HTMLElementBinding),
-        local_name!("col") => get_constructor!(HTMLTableColElementBinding),
-        local_name!("colgroup") => get_constructor!(HTMLTableColElementBinding),
-        local_name!("data") => get_constructor!(HTMLDataElementBinding),
-        local_name!("datalist") => get_constructor!(HTMLDataListElementBinding),
-        local_name!("dd") => get_constructor!(HTMLElementBinding),
-        local_name!("del") => get_constructor!(HTMLModElementBinding),
-        local_name!("details") => get_constructor!(HTMLDetailsElementBinding),
-        local_name!("dfn") => get_constructor!(HTMLElementBinding),
-        local_name!("dialog") => get_constructor!(HTMLDialogElementBinding),
-        local_name!("dir") => get_constructor!(HTMLDirectoryElementBinding),
-        local_name!("div") => get_constructor!(HTMLDivElementBinding),
-        local_name!("dl") => get_constructor!(HTMLDListElementBinding),
-        local_name!("dt") => get_constructor!(HTMLElementBinding),
-        local_name!("em") => get_constructor!(HTMLElementBinding),
-        local_name!("embed") => get_constructor!(HTMLEmbedElementBinding),
-        local_name!("fieldset") => get_constructor!(HTMLFieldSetElementBinding),
-        local_name!("figcaption") => get_constructor!(HTMLElementBinding),
-        local_name!("figure") => get_constructor!(HTMLElementBinding),
-        local_name!("font") => get_constructor!(HTMLFontElementBinding),
-        local_name!("footer") => get_constructor!(HTMLElementBinding),
-        local_name!("form") => get_constructor!(HTMLFormElementBinding),
-        local_name!("frame") => get_constructor!(HTMLFrameElementBinding),
-        local_name!("frameset") => get_constructor!(HTMLFrameSetElementBinding),
-        local_name!("h1") => get_constructor!(HTMLHeadingElementBinding),
-        local_name!("h2") => get_constructor!(HTMLHeadingElementBinding),
-        local_name!("h3") => get_constructor!(HTMLHeadingElementBinding),
-        local_name!("h4") => get_constructor!(HTMLHeadingElementBinding),
-        local_name!("h5") => get_constructor!(HTMLHeadingElementBinding),
-        local_name!("h6") => get_constructor!(HTMLHeadingElementBinding),
-        local_name!("head") => get_constructor!(HTMLHeadElementBinding),
-        local_name!("header") => get_constructor!(HTMLElementBinding),
-        local_name!("hgroup") => get_constructor!(HTMLElementBinding),
-        local_name!("hr") => get_constructor!(HTMLHRElementBinding),
-        local_name!("html") => get_constructor!(HTMLHtmlElementBinding),
-        local_name!("i") => get_constructor!(HTMLElementBinding),
-        local_name!("iframe") => get_constructor!(HTMLIFrameElementBinding),
-        local_name!("img") => get_constructor!(HTMLImageElementBinding),
-        local_name!("input") => get_constructor!(HTMLInputElementBinding),
-        local_name!("ins") => get_constructor!(HTMLModElementBinding),
-        local_name!("kbd") => get_constructor!(HTMLElementBinding),
-        local_name!("label") => get_constructor!(HTMLLabelElementBinding),
-        local_name!("legend") => get_constructor!(HTMLLegendElementBinding),
-        local_name!("li") => get_constructor!(HTMLLIElementBinding),
-        local_name!("link") => get_constructor!(HTMLLinkElementBinding),
-        local_name!("listing") => get_constructor!(HTMLPreElementBinding),
-        local_name!("main") => get_constructor!(HTMLElementBinding),
-        local_name!("map") => get_constructor!(HTMLMapElementBinding),
-        local_name!("mark") => get_constructor!(HTMLElementBinding),
-        local_name!("marquee") => get_constructor!(HTMLElementBinding),
-        local_name!("menu") => get_constructor!(HTMLMenuElementBinding),
-        local_name!("meta") => get_constructor!(HTMLMetaElementBinding),
-        local_name!("meter") => get_constructor!(HTMLMeterElementBinding),
-        local_name!("nav") => get_constructor!(HTMLElementBinding),
-        local_name!("nobr") => get_constructor!(HTMLElementBinding),
-        local_name!("noframes") => get_constructor!(HTMLElementBinding),
-        local_name!("noscript") => get_constructor!(HTMLElementBinding),
-        local_name!("object") => get_constructor!(HTMLObjectElementBinding),
-        local_name!("ol") => get_constructor!(HTMLOListElementBinding),
-        local_name!("optgroup") => get_constructor!(HTMLOptGroupElementBinding),
-        local_name!("option") => get_constructor!(HTMLOptionElementBinding),
-        local_name!("output") => get_constructor!(HTMLOutputElementBinding),
-        local_name!("p") => get_constructor!(HTMLParagraphElementBinding),
-        local_name!("param") => get_constructor!(HTMLParamElementBinding),
-        local_name!("picture") => get_constructor!(HTMLPictureElementBinding),
-        local_name!("plaintext") => get_constructor!(HTMLPreElementBinding),
-        local_name!("pre") => get_constructor!(HTMLPreElementBinding),
-        local_name!("progress") => get_constructor!(HTMLProgressElementBinding),
-        local_name!("q") => get_constructor!(HTMLQuoteElementBinding),
-        local_name!("rp") => get_constructor!(HTMLElementBinding),
-        local_name!("rt") => get_constructor!(HTMLElementBinding),
-        local_name!("ruby") => get_constructor!(HTMLElementBinding),
-        local_name!("s") => get_constructor!(HTMLElementBinding),
-        local_name!("samp") => get_constructor!(HTMLElementBinding),
-        local_name!("script") => get_constructor!(HTMLScriptElementBinding),
-        local_name!("section") => get_constructor!(HTMLElementBinding),
-        local_name!("select") => get_constructor!(HTMLSelectElementBinding),
-        local_name!("small") => get_constructor!(HTMLElementBinding),
-        local_name!("source") => get_constructor!(HTMLSourceElementBinding),
-        local_name!("span") => get_constructor!(HTMLSpanElementBinding),
-        local_name!("strike") => get_constructor!(HTMLElementBinding),
-        local_name!("strong") => get_constructor!(HTMLElementBinding),
-        local_name!("style") => get_constructor!(HTMLStyleElementBinding),
-        local_name!("sub") => get_constructor!(HTMLElementBinding),
-        local_name!("summary") => get_constructor!(HTMLElementBinding),
-        local_name!("sup") => get_constructor!(HTMLElementBinding),
-        local_name!("table") => get_constructor!(HTMLTableElementBinding),
-        local_name!("tbody") => get_constructor!(HTMLTableSectionElementBinding),
-        local_name!("td") => get_constructor!(HTMLTableCellElementBinding),
-        local_name!("template") => get_constructor!(HTMLTemplateElementBinding),
-        local_name!("textarea") => get_constructor!(HTMLTextAreaElementBinding),
-        local_name!("tfoot") => get_constructor!(HTMLTableSectionElementBinding),
-        local_name!("th") => get_constructor!(HTMLTableCellElementBinding),
-        local_name!("thead") => get_constructor!(HTMLTableSectionElementBinding),
-        local_name!("time") => get_constructor!(HTMLTimeElementBinding),
-        local_name!("title") => get_constructor!(HTMLTitleElementBinding),
-        local_name!("tr") => get_constructor!(HTMLTableRowElementBinding),
-        local_name!("tt") => get_constructor!(HTMLElementBinding),
-        local_name!("track") => get_constructor!(HTMLTrackElementBinding),
-        local_name!("u") => get_constructor!(HTMLElementBinding),
-        local_name!("ul") => get_constructor!(HTMLUListElementBinding),
-        local_name!("var") => get_constructor!(HTMLElementBinding),
-        local_name!("video") => get_constructor!(HTMLVideoElementBinding),
-        local_name!("wbr") => get_constructor!(HTMLElementBinding),
-        local_name!("xmp") => get_constructor!(HTMLPreElementBinding),
-        _ => false,
-    }
+    let constructor_fn = match name {
+        local_name!("a") => HTMLAnchorElementBinding::GetConstructorObject,
+        local_name!("abbr") => HTMLElementBinding::GetConstructorObject,
+        local_name!("acronym") => HTMLElementBinding::GetConstructorObject,
+        local_name!("address") => HTMLElementBinding::GetConstructorObject,
+        local_name!("area") => HTMLAreaElementBinding::GetConstructorObject,
+        local_name!("article") => HTMLElementBinding::GetConstructorObject,
+        local_name!("aside") => HTMLElementBinding::GetConstructorObject,
+        local_name!("audio") => HTMLAudioElementBinding::GetConstructorObject,
+        local_name!("b") => HTMLElementBinding::GetConstructorObject,
+        local_name!("base") => HTMLBaseElementBinding::GetConstructorObject,
+        local_name!("bdi") => HTMLElementBinding::GetConstructorObject,
+        local_name!("bdo") => HTMLElementBinding::GetConstructorObject,
+        local_name!("big") => HTMLElementBinding::GetConstructorObject,
+        local_name!("blockquote") => HTMLQuoteElementBinding::GetConstructorObject,
+        local_name!("body") => HTMLBodyElementBinding::GetConstructorObject,
+        local_name!("br") => HTMLBRElementBinding::GetConstructorObject,
+        local_name!("button") => HTMLButtonElementBinding::GetConstructorObject,
+        local_name!("canvas") => HTMLCanvasElementBinding::GetConstructorObject,
+        local_name!("caption") => HTMLTableCaptionElementBinding::GetConstructorObject,
+        local_name!("center") => HTMLElementBinding::GetConstructorObject,
+        local_name!("cite") => HTMLElementBinding::GetConstructorObject,
+        local_name!("code") => HTMLElementBinding::GetConstructorObject,
+        local_name!("col") => HTMLTableColElementBinding::GetConstructorObject,
+        local_name!("colgroup") => HTMLTableColElementBinding::GetConstructorObject,
+        local_name!("data") => HTMLDataElementBinding::GetConstructorObject,
+        local_name!("datalist") => HTMLDataListElementBinding::GetConstructorObject,
+        local_name!("dd") => HTMLElementBinding::GetConstructorObject,
+        local_name!("del") => HTMLModElementBinding::GetConstructorObject,
+        local_name!("details") => HTMLDetailsElementBinding::GetConstructorObject,
+        local_name!("dfn") => HTMLElementBinding::GetConstructorObject,
+        local_name!("dialog") => HTMLDialogElementBinding::GetConstructorObject,
+        local_name!("dir") => HTMLDirectoryElementBinding::GetConstructorObject,
+        local_name!("div") => HTMLDivElementBinding::GetConstructorObject,
+        local_name!("dl") => HTMLDListElementBinding::GetConstructorObject,
+        local_name!("dt") => HTMLElementBinding::GetConstructorObject,
+        local_name!("em") => HTMLElementBinding::GetConstructorObject,
+        local_name!("embed") => HTMLEmbedElementBinding::GetConstructorObject,
+        local_name!("fieldset") => HTMLFieldSetElementBinding::GetConstructorObject,
+        local_name!("figcaption") => HTMLElementBinding::GetConstructorObject,
+        local_name!("figure") => HTMLElementBinding::GetConstructorObject,
+        local_name!("font") => HTMLFontElementBinding::GetConstructorObject,
+        local_name!("footer") => HTMLElementBinding::GetConstructorObject,
+        local_name!("form") => HTMLFormElementBinding::GetConstructorObject,
+        local_name!("frame") => HTMLFrameElementBinding::GetConstructorObject,
+        local_name!("frameset") => HTMLFrameSetElementBinding::GetConstructorObject,
+        local_name!("h1") => HTMLHeadingElementBinding::GetConstructorObject,
+        local_name!("h2") => HTMLHeadingElementBinding::GetConstructorObject,
+        local_name!("h3") => HTMLHeadingElementBinding::GetConstructorObject,
+        local_name!("h4") => HTMLHeadingElementBinding::GetConstructorObject,
+        local_name!("h5") => HTMLHeadingElementBinding::GetConstructorObject,
+        local_name!("h6") => HTMLHeadingElementBinding::GetConstructorObject,
+        local_name!("head") => HTMLHeadElementBinding::GetConstructorObject,
+        local_name!("header") => HTMLElementBinding::GetConstructorObject,
+        local_name!("hgroup") => HTMLElementBinding::GetConstructorObject,
+        local_name!("hr") => HTMLHRElementBinding::GetConstructorObject,
+        local_name!("html") => HTMLHtmlElementBinding::GetConstructorObject,
+        local_name!("i") => HTMLElementBinding::GetConstructorObject,
+        local_name!("iframe") => HTMLIFrameElementBinding::GetConstructorObject,
+        local_name!("img") => HTMLImageElementBinding::GetConstructorObject,
+        local_name!("input") => HTMLInputElementBinding::GetConstructorObject,
+        local_name!("ins") => HTMLModElementBinding::GetConstructorObject,
+        local_name!("kbd") => HTMLElementBinding::GetConstructorObject,
+        local_name!("label") => HTMLLabelElementBinding::GetConstructorObject,
+        local_name!("legend") => HTMLLegendElementBinding::GetConstructorObject,
+        local_name!("li") => HTMLLIElementBinding::GetConstructorObject,
+        local_name!("link") => HTMLLinkElementBinding::GetConstructorObject,
+        local_name!("listing") => HTMLPreElementBinding::GetConstructorObject,
+        local_name!("main") => HTMLElementBinding::GetConstructorObject,
+        local_name!("map") => HTMLMapElementBinding::GetConstructorObject,
+        local_name!("mark") => HTMLElementBinding::GetConstructorObject,
+        local_name!("marquee") => HTMLElementBinding::GetConstructorObject,
+        local_name!("menu") => HTMLMenuElementBinding::GetConstructorObject,
+        local_name!("meta") => HTMLMetaElementBinding::GetConstructorObject,
+        local_name!("meter") => HTMLMeterElementBinding::GetConstructorObject,
+        local_name!("nav") => HTMLElementBinding::GetConstructorObject,
+        local_name!("nobr") => HTMLElementBinding::GetConstructorObject,
+        local_name!("noframes") => HTMLElementBinding::GetConstructorObject,
+        local_name!("noscript") => HTMLElementBinding::GetConstructorObject,
+        local_name!("object") => HTMLObjectElementBinding::GetConstructorObject,
+        local_name!("ol") => HTMLOListElementBinding::GetConstructorObject,
+        local_name!("optgroup") => HTMLOptGroupElementBinding::GetConstructorObject,
+        local_name!("option") => HTMLOptionElementBinding::GetConstructorObject,
+        local_name!("output") => HTMLOutputElementBinding::GetConstructorObject,
+        local_name!("p") => HTMLParagraphElementBinding::GetConstructorObject,
+        local_name!("param") => HTMLParamElementBinding::GetConstructorObject,
+        local_name!("picture") => HTMLPictureElementBinding::GetConstructorObject,
+        local_name!("plaintext") => HTMLPreElementBinding::GetConstructorObject,
+        local_name!("pre") => HTMLPreElementBinding::GetConstructorObject,
+        local_name!("progress") => HTMLProgressElementBinding::GetConstructorObject,
+        local_name!("q") => HTMLQuoteElementBinding::GetConstructorObject,
+        local_name!("rp") => HTMLElementBinding::GetConstructorObject,
+        local_name!("rt") => HTMLElementBinding::GetConstructorObject,
+        local_name!("ruby") => HTMLElementBinding::GetConstructorObject,
+        local_name!("s") => HTMLElementBinding::GetConstructorObject,
+        local_name!("samp") => HTMLElementBinding::GetConstructorObject,
+        local_name!("script") => HTMLScriptElementBinding::GetConstructorObject,
+        local_name!("section") => HTMLElementBinding::GetConstructorObject,
+        local_name!("select") => HTMLSelectElementBinding::GetConstructorObject,
+        local_name!("slot") => HTMLSlotElementBinding::GetConstructorObject,
+        local_name!("small") => HTMLElementBinding::GetConstructorObject,
+        local_name!("source") => HTMLSourceElementBinding::GetConstructorObject,
+        local_name!("span") => HTMLSpanElementBinding::GetConstructorObject,
+        local_name!("strike") => HTMLElementBinding::GetConstructorObject,
+        local_name!("strong") => HTMLElementBinding::GetConstructorObject,
+        local_name!("style") => HTMLStyleElementBinding::GetConstructorObject,
+        local_name!("sub") => HTMLElementBinding::GetConstructorObject,
+        local_name!("summary") => HTMLElementBinding::GetConstructorObject,
+        local_name!("sup") => HTMLElementBinding::GetConstructorObject,
+        local_name!("table") => HTMLTableElementBinding::GetConstructorObject,
+        local_name!("tbody") => HTMLTableSectionElementBinding::GetConstructorObject,
+        local_name!("td") => HTMLTableCellElementBinding::GetConstructorObject,
+        local_name!("template") => HTMLTemplateElementBinding::GetConstructorObject,
+        local_name!("textarea") => HTMLTextAreaElementBinding::GetConstructorObject,
+        local_name!("tfoot") => HTMLTableSectionElementBinding::GetConstructorObject,
+        local_name!("th") => HTMLTableCellElementBinding::GetConstructorObject,
+        local_name!("thead") => HTMLTableSectionElementBinding::GetConstructorObject,
+        local_name!("time") => HTMLTimeElementBinding::GetConstructorObject,
+        local_name!("title") => HTMLTitleElementBinding::GetConstructorObject,
+        local_name!("tr") => HTMLTableRowElementBinding::GetConstructorObject,
+        local_name!("tt") => HTMLElementBinding::GetConstructorObject,
+        local_name!("track") => HTMLTrackElementBinding::GetConstructorObject,
+        local_name!("u") => HTMLElementBinding::GetConstructorObject,
+        local_name!("ul") => HTMLUListElementBinding::GetConstructorObject,
+        local_name!("var") => HTMLElementBinding::GetConstructorObject,
+        local_name!("video") => HTMLVideoElementBinding::GetConstructorObject,
+        local_name!("wbr") => HTMLElementBinding::GetConstructorObject,
+        local_name!("xmp") => HTMLPreElementBinding::GetConstructorObject,
+        _ => return false,
+    };
+    constructor_fn(cx, global, rval);
+    true
 }
 
-pub fn pop_current_element_queue(can_gc: CanGc) {
+pub(crate) fn pop_current_element_queue(can_gc: CanGc) {
     ScriptThread::pop_current_element_queue(can_gc);
 }
 
-pub fn push_new_element_queue() {
+pub(crate) fn push_new_element_queue() {
     ScriptThread::push_new_element_queue();
 }
 
-pub unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
+pub(crate) fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
     cx: JSContext,
     args: &CallArgs,
     global: &GlobalScope,
@@ -400,27 +421,4 @@ pub unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
         can_gc,
     )
     .is_ok()
-}
-
-pub unsafe fn call_default_constructor(
-    cx: JSContext,
-    args: &CallArgs,
-    global: &GlobalScope,
-    proto_id: PrototypeList::ID,
-    ctor_name: &str,
-    creator: unsafe fn(JSContext, HandleObject, *mut ProtoOrIfaceArray),
-    constructor: impl FnOnce(JSContext, &CallArgs, &GlobalScope, HandleObject) -> bool,
-) -> bool {
-    if !args.is_constructing() {
-        throw_constructor_without_new(*cx, ctor_name);
-        return false;
-    }
-
-    rooted!(in(*cx) let mut desired_proto = ptr::null_mut::<JSObject>());
-    let proto_result = get_desired_proto(cx, args, proto_id, creator, desired_proto.handle_mut());
-    if proto_result.is_err() {
-        return false;
-    }
-
-    constructor(cx, args, global, desired_proto.handle())
 }

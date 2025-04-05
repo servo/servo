@@ -1,0 +1,88 @@
+<!doctype html>
+<title>CSS Test: ::scroll-button(inline-end) supports :disabled</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="match" href="scroll-buttons-disabled-snapping-ref.html">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
+  .scroller {
+    width: 50px;
+    height: 50px;
+    overflow: hidden;
+    margin: 20px;
+    box-sizing: border-box;
+  }
+
+  .horizontal {
+    white-space: nowrap;
+    scroll-snap-type: x mandatory;
+    padding: 0 20px;
+  }
+  .vertical {
+    white-space: nowrap;
+    scroll-snap-type: y mandatory;
+    padding: 20px 0;
+  }
+
+  .scroller div {
+    background: lightblue;
+    border: 2px solid blue;
+    /* Use an odd size to ensure that a rounded target scroll offset
+     * is handled correctly. */
+    width: 45px;
+    height: 45px;
+    margin: 5px;
+    box-sizing: border-box;
+    scroll-snap-align: center;
+  }
+
+  .scroller.horizontal div {
+    display: inline-block;
+  }
+
+  .scroller::scroll-button(*) {
+    box-sizing: border-box;
+    background: green;
+    border: 1px solid black;
+    display: inline-block;
+    height: 20px;
+    width: 20px;
+    color: white;
+  }
+
+  .scroller::scroll-button(*):disabled {
+    background: gray;
+  }
+
+  .scroller.vertical::scroll-button(block-start),
+  .scroller.vertical::scroll-button(block-end),
+  .scroller.horizontal::scroll-button(inline-start),
+  .scroller.horizontal::scroll-button(inline-end) {
+    content: " ";
+  }
+
+</style>
+<div class="horizontal scroller">
+  <div></div>
+  <div></div>
+</div>
+<div class="horizontal scroller">
+  <div></div>
+  <div></div>
+</div>
+<div class="vertical scroller">
+  <div></div>
+  <div></div>
+</div>
+<div class="vertical scroller">
+  <div></div>
+  <div></div>
+</div>
+<script>
+  const scrollers = document.querySelectorAll('.scroller');
+  scrollers[1].scrollLeft = 1000;
+  scrollers[3].scrollTop = 1000;
+</script>

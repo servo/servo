@@ -46,6 +46,8 @@
 
     assert_true(await FrameHasStorageAccess(frame), "innermost frame has storage access after refresh.");
     assert_true(await HasUnpartitionedCookie(frame), "innermost frame has access to cookies after refresh.");
+    let cookieOnLoad = await GetHTTPCookiesFromFrame(frame);
+    assert_true(cookieStringHasCookie("cookie", "unpartitioned", cookieOnLoad), "innermost frame has cookie in initial load");
   }, "Same-site-initiated same-origin navigations preserve storage access");
 
   promise_test(async (t) => {
@@ -59,7 +61,7 @@
     assert_false(await FrameHasStorageAccess(frame), "innermost frame has no storage access after refresh.");
     assert_false(await HasUnpartitionedCookie(frame), "innermost frame has no access to cookies after refresh.");
     let cookieOnLoad = await GetHTTPCookiesFromFrame(frame);
-    assert_false(cookieStringHasCookie("cookie", "unpartitioned", cookieOnLoad), "innermost frame has cookie in initial load");
+    assert_false(cookieStringHasCookie("cookie", "unpartitioned", cookieOnLoad), "innermost frame has no cookie in initial load");
   }, "Same-site-initiated cross-origin navigations do not preserve storage access");
 
 })();

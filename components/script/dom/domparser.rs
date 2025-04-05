@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
@@ -24,7 +24,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMParser {
+pub(crate) struct DOMParser {
     reflector_: Reflector,
     window: Dom<Window>, // XXXjdm Document instead?
 }
@@ -87,6 +87,10 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     None,
                     None,
                     Default::default(),
+                    false,
+                    false,
+                    Some(doc.insecure_requests_policy()),
+                    doc.has_trustworthy_ancestor_or_current_origin(),
                     can_gc,
                 );
                 ServoParser::parse_html_document(&document, Some(s), url, can_gc);
@@ -108,6 +112,10 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     None,
                     None,
                     Default::default(),
+                    false,
+                    false,
+                    Some(doc.insecure_requests_policy()),
+                    doc.has_trustworthy_ancestor_or_current_origin(),
                     can_gc,
                 );
                 ServoParser::parse_xml_document(&document, Some(s), url, can_gc);

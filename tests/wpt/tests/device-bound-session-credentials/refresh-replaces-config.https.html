@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DBSC refresh sends back new session config</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, waitForCookie, addCookieAndSessionCleanup, configureServer, setupShardedServerState, documentHasCookie } from "./helper.js";
+
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue1 = "auth_cookie=abcdef0123";
+    const expectedCookieAndAttributes1 = `${expectedCookieAndValue1};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    const expectedCookieAndValue2 = "other_cookie=ghijkl4567";
+    const expectedCookieAndAttributes2 = `${expectedCookieAndValue2};Domain=${location.hostname};Path=/device-bound-session-credentials`;
+    addCookieAndSessionCleanup(t);
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    await waitForCookie(expectedCookieAndValue1, /*expectCookie=*/true);
+
+    // Confirm that a request has the cookie set.
+    const authResponse = await fetch('verify_authenticated.py');
+    assert_equals(authResponse.status, 200);
+    // Confirm that a request does not have alternate cookie set.
+    const alternateAuthResponse = await fetch('verify_authenticated.py', {
+      method: 'POST',
+      body: expectedCookieAndValue2
+    });
+    assert_equals(alternateAuthResponse.status, 401);
+
+    // Configure server to change the cookie in the session config on next refresh.
+    configureServer({ cookieDetails: [{ nameAndValue: expectedCookieAndValue2 }] });
+
+    // Expire the first cookie and send a request, which triggers the refresh with the new session config.
+    expireCookie(expectedCookieAndAttributes1);
+    assert_false(documentHasCookie(expectedCookieAndValue1));
+    const authResponseAfterExpiry1 = await fetch('verify_authenticated.py');
+    assert_equals(authResponseAfterExpiry1.status, 401);
+    assert_false(documentHasCookie(expectedCookieAndValue1));
+
+    // Confirm the alternate cookie is set and included in requests.
+    assert_true(documentHasCookie(expectedCookieAndValue2));
+    const alternateAuthResponseAfterExpiry1 = await fetch('verify_authenticated.py', {
+      method: 'POST',
+      body: expectedCookieAndValue2
+    });
+    assert_equals(alternateAuthResponseAfterExpiry1.status, 200);
+
+    // Expire the second cookie. Confirm the second cookie is refreshed, and not the first.
+    expireCookie(expectedCookieAndAttributes2);
+    assert_false(documentHasCookie(expectedCookieAndValue2));
+    const alternateAuthResponseAfterExpiry2 = await fetch('verify_authenticated.py', {
+      method: 'POST',
+      body: expectedCookieAndValue2
+    });
+    assert_equals(alternateAuthResponseAfterExpiry2.status, 200);
+    assert_true(documentHasCookie(expectedCookieAndValue2));
+    assert_false(documentHasCookie(expectedCookieAndValue1));
+}, "Refresh can replace session config");
+</script>

@@ -12,7 +12,7 @@ use crate::dom::bindings::utils::AsVoidPtr;
 use crate::dom::node::Node;
 
 /// The primary types of values that an XPath expression returns as a result.
-pub enum Value {
+pub(crate) enum Value {
     Boolean(bool),
     /// A IEEE-754 double-precision floating point number
     Number(f64),
@@ -32,11 +32,11 @@ impl fmt::Debug for Value {
     }
 }
 
-pub fn str_to_num(s: &str) -> f64 {
+pub(crate) fn str_to_num(s: &str) -> f64 {
     s.trim().parse().unwrap_or(f64::NAN)
 }
 
-/// Helper for PartialEq<Value> implementations
+/// Helper for `PartialEq<Value>` implementations
 fn str_vals(nodes: &[DomRoot<Node>]) -> HashSet<String> {
     nodes
         .iter()
@@ -44,7 +44,7 @@ fn str_vals(nodes: &[DomRoot<Node>]) -> HashSet<String> {
         .collect()
 }
 
-/// Helper for PartialEq<Value> implementations
+/// Helper for `PartialEq<Value>` implementations
 fn num_vals(nodes: &[DomRoot<Node>]) -> Vec<f64> {
     nodes
         .iter()
@@ -78,7 +78,7 @@ impl PartialEq<Value> for Value {
 }
 
 impl Value {
-    pub fn boolean(&self) -> bool {
+    pub(crate) fn boolean(&self) -> bool {
         match *self {
             Value::Boolean(val) => val,
             Value::Number(n) => n != 0.0 && !n.is_nan(),
@@ -87,11 +87,11 @@ impl Value {
         }
     }
 
-    pub fn into_boolean(self) -> bool {
+    pub(crate) fn into_boolean(self) -> bool {
         self.boolean()
     }
 
-    pub fn number(&self) -> f64 {
+    pub(crate) fn number(&self) -> f64 {
         match *self {
             Value::Boolean(val) => {
                 if val {
@@ -106,11 +106,11 @@ impl Value {
         }
     }
 
-    pub fn into_number(self) -> f64 {
+    pub(crate) fn into_number(self) -> f64 {
         self.number()
     }
 
-    pub fn string(&self) -> string::String {
+    pub(crate) fn string(&self) -> string::String {
         match *self {
             Value::Boolean(v) => v.to_string(),
             Value::Number(n) => {
@@ -135,7 +135,7 @@ impl Value {
         }
     }
 
-    pub fn into_string(self) -> string::String {
+    pub(crate) fn into_string(self) -> string::String {
         match self {
             Value::String(val) => val,
             other => other.string(),
@@ -191,7 +191,7 @@ partial_eq_impl!(String, Value::String(ref v) => v);
 partial_eq_impl!(&str, Value::String(ref v) => v);
 partial_eq_impl!(Vec<DomRoot<Node>>, Value::Nodeset(ref v) => v);
 
-pub trait NodesetHelpers {
+pub(crate) trait NodesetHelpers {
     /// Returns the node that occurs first in [document order]
     ///
     /// [document order]: https://www.w3.org/TR/xpath/#dt-document-order

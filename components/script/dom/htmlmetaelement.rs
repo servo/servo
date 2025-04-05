@@ -10,7 +10,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
 use regex::bytes::Regex;
-use script_traits::HistoryEntryReplacement;
+use script_traits::NavigationHistoryBehavior;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 
@@ -23,33 +23,32 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::{DeclarativeRefresh, Document};
 use crate::dom::element::{AttributeMutation, Element};
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::location::NavigationType;
-use crate::dom::node::{document_from_node, window_from_node, BindContext, Node, UnbindContext};
+use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::timers::OneshotTimerCallback;
 
 #[dom_struct]
-pub struct HTMLMetaElement {
+pub(crate) struct HTMLMetaElement {
     htmlelement: HTMLElement,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct RefreshRedirectDue {
+pub(crate) struct RefreshRedirectDue {
     #[no_trace]
-    pub url: ServoUrl,
+    pub(crate) url: ServoUrl,
     #[ignore_malloc_size_of = "non-owning"]
-    pub window: DomRoot<Window>,
+    pub(crate) window: DomRoot<Window>,
 }
 impl RefreshRedirectDue {
-    pub fn invoke(self, can_gc: CanGc) {
+    pub(crate) fn invoke(self, can_gc: CanGc) {
         self.window.Location().navigate(
             self.url.clone(),
-            HistoryEntryReplacement::Enabled,
+            NavigationHistoryBehavior::Replace,
             NavigationType::DeclarativeRefresh,
             can_gc,
         );
@@ -67,8 +66,8 @@ impl HTMLMetaElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -146,7 +145,7 @@ impl HTMLMetaElement {
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
     fn shared_declarative_refresh_steps(&self, content: DOMString) {
         // 1
-        let document = document_from_node(self);
+        let document = self.owner_document();
         if document.will_declaratively_refresh() {
             return;
         }
@@ -206,8 +205,8 @@ impl HTMLMetaElement {
         // 12-13
         if document.completely_loaded() {
             // TODO: handle active sandboxing flag
-            let window = window_from_node(self);
-            window.upcast::<GlobalScope>().schedule_callback(
+            let window = self.owner_window();
+            window.as_global_scope().schedule_callback(
                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
                     window: window.clone(),
                     url: url_record,
@@ -241,6 +240,11 @@ impl HTMLMetaElementMethods<crate::DomTypeHolder> for HTMLMetaElement {
     make_getter!(HttpEquiv, "http-equiv");
     // https://html.spec.whatwg.org/multipage/#dom-meta-httpequiv
     make_atomic_setter!(SetHttpEquiv, "http-equiv");
+
+    // https://html.spec.whatwg.org/multipage/#dom-meta-scheme
+    make_getter!(Scheme, "scheme");
+    // https://html.spec.whatwg.org/multipage/#dom-meta-scheme
+    make_setter!(SetScheme, "scheme");
 }
 
 impl VirtualMethods for HTMLMetaElement {
@@ -248,9 +252,9 @@ impl VirtualMethods for HTMLMetaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
         if context.tree_connected {
@@ -258,17 +262,17 @@ impl VirtualMethods for HTMLMetaElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.attribute_mutated(attr, mutation);
+            s.attribute_mutated(attr, mutation, can_gc);
         }
 
         self.process_referrer_attribute();
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context);
+            s.unbind_from_tree(context, can_gc);
         }
 
         if context.tree_connected {

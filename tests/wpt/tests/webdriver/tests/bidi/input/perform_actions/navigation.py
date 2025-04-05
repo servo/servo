@@ -1,8 +1,6 @@
 import pytest
-import webdriver.bidi.error as error
 from webdriver.bidi.modules.input import Actions, get_element_origin
 
-from . import get_element_rect
 from .. import get_events
 
 pytestmark = pytest.mark.asyncio
@@ -28,7 +26,7 @@ PAGE_CONTENT = """
 """
 
 
-async def test_key(bidi_session, inline, top_context, get_element):
+async def test_key(bidi_session, inline, top_context):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
         url=inline(f"""
@@ -40,7 +38,6 @@ async def test_key(bidi_session, inline, top_context, get_element):
             """),
         wait="complete"
     )
-    input = await get_element("input")
 
     actions = Actions()
     (
@@ -56,8 +53,9 @@ async def test_key(bidi_session, inline, top_context, get_element):
         actions=actions, context=top_context["context"]
     )
 
-    with pytest.raises(error.NoSuchNodeException):
-        await get_element_rect(bidi_session, context=top_context, element=input)
+    # Check that the page was navigated
+    info = await bidi_session.browsing_context.get_tree(max_depth=1)
+    assert info[0]["url"] == inline(PAGE_CONTENT)
 
     events = await get_events(bidi_session, top_context["context"])
     assert len(events) == 1
@@ -80,16 +78,21 @@ async def test_pointer(bidi_session, inline, top_context, get_element):
         .pointer_down(button=0)
         .pointer_up(button=0)
         .pause(1000)
-        .pointer_move(x=200, y=200)
+        .pointer_move(x=300, y=200)
     )
 
     await bidi_session.input.perform_actions(
         actions=actions, context=top_context["context"]
     )
 
-    with pytest.raises(error.NoSuchNodeException):
-        await get_element_rect(bidi_session, context=top_context, element=input)
+    # Check that the page was navigated
+    info = await bidi_session.browsing_context.get_tree(max_depth=1)
+    assert info[0]["url"] == inline(PAGE_CONTENT)
 
     events = await get_events(bidi_session, top_context["context"])
     assert len(events) == 1
-    assert events[0] == [200, 200]
+
+    assert events[0] == [
+        pytest.approx(300, abs=1.0),
+        pytest.approx(200, abs=1.0)
+    ]

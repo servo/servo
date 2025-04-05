@@ -72,7 +72,7 @@ impl HttpStatus {
 
     /// Helper that relays is_success() from the underlying code.
     pub fn is_success(&self) -> bool {
-        StatusCode::from_u16(self.code).map_or(false, |s| s.is_success())
+        StatusCode::from_u16(self.code).is_ok_and(|s| s.is_success())
     }
 
     /// True when the object was created with `new_error`.

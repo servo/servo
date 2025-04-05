@@ -7,7 +7,7 @@ use servo_arc::Arc;
 use style::stylesheets::Stylesheet;
 
 use crate::dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetListMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
@@ -15,30 +15,31 @@ use crate::dom::element::Element;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum StyleSheetListOwner {
+pub(crate) enum StyleSheetListOwner {
     Document(Dom<Document>),
     ShadowRoot(Dom<ShadowRoot>),
 }
 
 impl StyleSheetListOwner {
-    pub fn stylesheet_count(&self) -> usize {
+    pub(crate) fn stylesheet_count(&self) -> usize {
         match *self {
             StyleSheetListOwner::Document(ref doc) => doc.stylesheet_count(),
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => shadow_root.stylesheet_count(),
         }
     }
 
-    pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
         match *self {
             StyleSheetListOwner::Document(ref doc) => doc.stylesheet_at(index),
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => shadow_root.stylesheet_at(index),
         }
     }
 
-    pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
+    pub(crate) fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
         match *self {
             StyleSheetListOwner::Document(ref doc) => doc.add_stylesheet(owner, sheet),
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
@@ -47,7 +48,7 @@ impl StyleSheetListOwner {
         }
     }
 
-    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
+    pub(crate) fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
         match *self {
             StyleSheetListOwner::Document(ref doc) => doc.remove_stylesheet(owner, s),
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
@@ -56,7 +57,7 @@ impl StyleSheetListOwner {
         }
     }
 
-    pub fn invalidate_stylesheets(&self) {
+    pub(crate) fn invalidate_stylesheets(&self) {
         match *self {
             StyleSheetListOwner::Document(ref doc) => doc.invalidate_stylesheets(),
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
@@ -67,13 +68,13 @@ impl StyleSheetListOwner {
 }
 
 #[dom_struct]
-pub struct StyleSheetList {
+pub(crate) struct StyleSheetList {
     reflector_: Reflector,
     document_or_shadow_root: StyleSheetListOwner,
 }
 
 impl StyleSheetList {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(doc_or_sr: StyleSheetListOwner) -> StyleSheetList {
         StyleSheetList {
             reflector_: Reflector::new(),
@@ -81,9 +82,17 @@ impl StyleSheetList {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(window: &Window, doc_or_sr: StyleSheetListOwner) -> DomRoot<StyleSheetList> {
-        reflect_dom_object(Box::new(StyleSheetList::new_inherited(doc_or_sr)), window)
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
+        window: &Window,
+        doc_or_sr: StyleSheetListOwner,
+        can_gc: CanGc,
+    ) -> DomRoot<StyleSheetList> {
+        reflect_dom_object(
+            Box::new(StyleSheetList::new_inherited(doc_or_sr)),
+            window,
+            can_gc,
+        )
     }
 }
 

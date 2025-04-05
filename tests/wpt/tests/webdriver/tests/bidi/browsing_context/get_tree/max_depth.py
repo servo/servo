@@ -33,6 +33,7 @@ async def test_null(
         children=1,
         parent=None,
         url=test_page_nested_frames,
+        client_window=top_context["clientWindow"],
     )
 
     child1_info = root_info["children"][0]
@@ -43,6 +44,7 @@ async def test_null(
         parent_expected=False,
         parent=None,
         url=test_page_same_origin_frame,
+        client_window=top_context["clientWindow"],
     )
     assert child1_info["context"] != root_info["context"]
 
@@ -54,6 +56,7 @@ async def test_null(
         parent_expected=False,
         parent=None,
         url=test_page,
+        client_window=top_context["clientWindow"],
     )
     assert child2_info["context"] != root_info["context"]
     assert child2_info["context"] != child1_info["context"]
@@ -79,6 +82,7 @@ async def test_top_level_only(bidi_session, top_context, test_page_nested_frames
         children=None,
         parent=None,
         url=test_page_nested_frames,
+        client_window=top_context["clientWindow"],
     )
 
 
@@ -107,6 +111,7 @@ async def test_top_level_and_one_child(
         children=1,
         parent=None,
         url=test_page_nested_frames,
+        client_window=top_context["clientWindow"],
     )
 
     child1_info = root_info["children"][0]
@@ -117,5 +122,6 @@ async def test_top_level_and_one_child(
         parent_expected=False,
         parent=None,
         url=test_page_same_origin_frame,
+        client_window=top_context["clientWindow"],
     )
     assert child1_info["context"] != root_info["context"]

@@ -13,9 +13,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::{CSSRule, SpecificCSSRule};
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CSSFontFaceRule {
+pub(crate) struct CSSFontFaceRule {
     cssrule: CSSRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -33,11 +34,12 @@ impl CSSFontFaceRule {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
         fontfacerule: Arc<Locked<FontFaceRule>>,
+        can_gc: CanGc,
     ) -> DomRoot<CSSFontFaceRule> {
         reflect_dom_object(
             Box::new(CSSFontFaceRule::new_inherited(
@@ -45,6 +47,7 @@ impl CSSFontFaceRule {
                 fontfacerule,
             )),
             window,
+            can_gc,
         )
     }
 }

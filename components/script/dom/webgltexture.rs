@@ -10,8 +10,8 @@ use std::cell::Cell;
 use std::cmp;
 
 use canvas_traits::webgl::{
-    webgl_channel, TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt,
-    WebGLCommand, WebGLError, WebGLResult, WebGLTextureId,
+    TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt, WebGLCommand,
+    WebGLError, WebGLResult, WebGLTextureId, webgl_channel,
 };
 use dom_struct::dom_struct;
 
@@ -19,7 +19,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
@@ -27,8 +27,9 @@ use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 #[cfg(feature = "webxr")]
 use crate::dom::xrsession::XRSession;
+use crate::script_runtime::CanGc;
 
-pub enum TexParameterValue {
+pub(crate) enum TexParameterValue {
     Float(f32),
     Int(i32),
     Bool(bool),
@@ -36,7 +37,7 @@ pub enum TexParameterValue {
 
 // Textures generated for WebXR are owned by the WebXR device, not by the WebGL thread
 // so the GL texture should not be deleted when the texture is garbage collected.
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 enum WebGLTextureOwner {
     WebGL,
@@ -48,7 +49,7 @@ const MAX_LEVEL_COUNT: usize = 31;
 const MAX_FACE_COUNT: usize = 6;
 
 #[dom_struct]
-pub struct WebGLTexture {
+pub(crate) struct WebGLTexture {
     webgl_object: WebGLObject,
     #[no_trace]
     id: WebGLTextureId,
@@ -98,16 +99,20 @@ impl WebGLTexture {
         }
     }
 
-    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+    pub(crate) fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateTexture(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLTexture::new(context, id))
+            .map(|id| WebGLTexture::new(context, id, CanGc::note()))
     }
 
-    pub fn new(context: &WebGLRenderingContext, id: WebGLTextureId) -> DomRoot<Self> {
+    pub(crate) fn new(
+        context: &WebGLRenderingContext,
+        id: WebGLTextureId,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLTexture::new_inherited(
                 context,
@@ -116,29 +121,32 @@ impl WebGLTexture {
                 None,
             )),
             &*context.global(),
+            can_gc,
         )
     }
 
     #[cfg(feature = "webxr")]
-    pub fn new_webxr(
+    pub(crate) fn new_webxr(
         context: &WebGLRenderingContext,
         id: WebGLTextureId,
         session: &XRSession,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLTexture::new_inherited(context, id, Some(session))),
             &*context.global(),
+            can_gc,
         )
     }
 }
 
 impl WebGLTexture {
-    pub fn id(&self) -> WebGLTextureId {
+    pub(crate) fn id(&self) -> WebGLTextureId {
         self.id
     }
 
     // NB: Only valid texture targets come here
-    pub fn bind(&self, target: u32) -> WebGLResult<()> {
+    pub(crate) fn bind(&self, target: u32) -> WebGLResult<()> {
         if self.is_invalid() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -166,7 +174,7 @@ impl WebGLTexture {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn initialize(
+    pub(crate) fn initialize(
         &self,
         target: TexImageTarget,
         width: u32,
@@ -194,7 +202,7 @@ impl WebGLTexture {
         Ok(())
     }
 
-    pub fn generate_mipmap(&self) -> WebGLResult<()> {
+    pub(crate) fn generate_mipmap(&self) -> WebGLResult<()> {
         let target = match self.target.get() {
             Some(target) => target,
             None => {
@@ -230,7 +238,7 @@ impl WebGLTexture {
         self.populate_mip_chain(self.base_mipmap_level, last_level)
     }
 
-    pub fn delete(&self, operation_fallibility: Operation) {
+    pub(crate) fn delete(&self, operation_fallibility: Operation) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             let context = self.upcast::<WebGLObject>().context();
@@ -264,7 +272,7 @@ impl WebGLTexture {
         }
     }
 
-    pub fn is_invalid(&self) -> bool {
+    pub(crate) fn is_invalid(&self) -> bool {
         // https://immersive-web.github.io/layers/#xrwebglsubimagetype
         #[cfg(feature = "webxr")]
         if let WebGLTextureOwner::WebXR(ref session) = self.owner {
@@ -275,15 +283,15 @@ impl WebGLTexture {
         self.is_deleted.get()
     }
 
-    pub fn is_immutable(&self) -> bool {
+    pub(crate) fn is_immutable(&self) -> bool {
         self.immutable_levels.get().is_some()
     }
 
-    pub fn target(&self) -> Option<u32> {
+    pub(crate) fn target(&self) -> Option<u32> {
         self.target.get()
     }
 
-    pub fn maybe_get_tex_parameter(&self, param: TexParameter) -> Option<TexParameterValue> {
+    pub(crate) fn maybe_get_tex_parameter(&self, param: TexParameter) -> Option<TexParameterValue> {
         match param {
             TexParameter::Int(TexParameterInt::TextureImmutableLevels) => Some(
                 TexParameterValue::Int(self.immutable_levels.get().unwrap_or(0) as i32),
@@ -297,7 +305,7 @@ impl WebGLTexture {
 
     /// We have to follow the conversion rules for GLES 2.0. See:
     /// <https://www.khronos.org/webgl/public-mailing-list/archives/1008/msg00014.html>
-    pub fn tex_parameter(&self, param: u32, value: TexParameterValue) -> WebGLResult<()> {
+    pub(crate) fn tex_parameter(&self, param: u32, value: TexParameterValue) -> WebGLResult<()> {
         let target = self.target().unwrap();
 
         let (int_value, float_value) = match value {
@@ -353,15 +361,15 @@ impl WebGLTexture {
         }
     }
 
-    pub fn min_filter(&self) -> u32 {
+    pub(crate) fn min_filter(&self) -> u32 {
         self.min_filter.get()
     }
 
-    pub fn mag_filter(&self) -> u32 {
+    pub(crate) fn mag_filter(&self) -> u32 {
         self.mag_filter.get()
     }
 
-    pub fn is_using_linear_filtering(&self) -> bool {
+    pub(crate) fn is_using_linear_filtering(&self) -> bool {
         let filters = [self.min_filter.get(), self.mag_filter.get()];
         filters.iter().any(|filter| {
             matches!(
@@ -374,7 +382,7 @@ impl WebGLTexture {
         })
     }
 
-    pub fn populate_mip_chain(&self, first_level: u32, last_level: u32) -> WebGLResult<()> {
+    pub(crate) fn populate_mip_chain(&self, first_level: u32, last_level: u32) -> WebGLResult<()> {
         let base_image_info = self
             .image_info_at_face(0, first_level)
             .ok_or(WebGLError::InvalidOperation)?;
@@ -448,12 +456,16 @@ impl WebGLTexture {
         }
     }
 
-    pub fn image_info_for_target(&self, target: &TexImageTarget, level: u32) -> Option<ImageInfo> {
+    pub(crate) fn image_info_for_target(
+        &self,
+        target: &TexImageTarget,
+        level: u32,
+    ) -> Option<ImageInfo> {
         let face_index = self.face_index_for_target(target);
         self.image_info_at_face(face_index, level)
     }
 
-    pub fn image_info_at_face(&self, face: u8, level: u32) -> Option<ImageInfo> {
+    pub(crate) fn image_info_at_face(&self, face: u8, level: u32) -> Option<ImageInfo> {
         let pos = (level * self.face_count.get() as u32) + face as u32;
         self.image_info_array.borrow()[pos as usize]
     }
@@ -476,15 +488,15 @@ impl WebGLTexture {
         self.image_info_at_face(0, self.base_mipmap_level)
     }
 
-    pub fn attach_to_framebuffer(&self, fb: &WebGLFramebuffer) {
+    pub(crate) fn attach_to_framebuffer(&self, fb: &WebGLFramebuffer) {
         self.attached_framebuffer.set(Some(fb));
     }
 
-    pub fn detach_from_framebuffer(&self) {
+    pub(crate) fn detach_from_framebuffer(&self) {
         self.attached_framebuffer.set(None);
     }
 
-    pub fn storage(
+    pub(crate) fn storage(
         &self,
         target: TexImageTarget,
         levels: u32,
@@ -544,7 +556,7 @@ impl Drop for WebGLTexture {
 }
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
-pub struct ImageInfo {
+pub(crate) struct ImageInfo {
     width: u32,
     height: u32,
     depth: u32,
@@ -555,19 +567,19 @@ pub struct ImageInfo {
 }
 
 impl ImageInfo {
-    pub fn width(&self) -> u32 {
+    pub(crate) fn width(&self) -> u32 {
         self.width
     }
 
-    pub fn height(&self) -> u32 {
+    pub(crate) fn height(&self) -> u32 {
         self.height
     }
 
-    pub fn internal_format(&self) -> TexFormat {
+    pub(crate) fn internal_format(&self) -> TexFormat {
         self.internal_format
     }
 
-    pub fn data_type(&self) -> Option<TexDataType> {
+    pub(crate) fn data_type(&self) -> Option<TexDataType> {
         self.data_type
     }
 
@@ -592,17 +604,17 @@ impl ImageInfo {
 }
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
-pub enum TexCompressionValidation {
+pub(crate) enum TexCompressionValidation {
     None,
     S3TC,
 }
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
-pub struct TexCompression {
+pub(crate) struct TexCompression {
     #[no_trace]
-    pub format: TexFormat,
-    pub bytes_per_block: u8,
-    pub block_width: u8,
-    pub block_height: u8,
-    pub validation: TexCompressionValidation,
+    pub(crate) format: TexFormat,
+    pub(crate) bytes_per_block: u8,
+    pub(crate) block_width: u8,
+    pub(crate) block_height: u8,
+    pub(crate) validation: TexCompressionValidation,
 }

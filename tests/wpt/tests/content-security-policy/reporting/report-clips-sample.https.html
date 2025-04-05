@@ -35,7 +35,7 @@
   }, `Unsafe indirect eval violation sample is clipped to ${trimmedSampleLength} characters.`);
 
   const functionBody = "return '1234567890123456789012345678901234567890';";
-  const sampleWithoutFunctionPrefix = `(a,b\n) {\nreturn ${functionBody}\n}`;
+  const sampleWithoutFunctionPrefix = `(a,b\n) {\n${functionBody}\n}`;
 
   promise_test(t => {
     assert_throws_js(EvalError, _ => {

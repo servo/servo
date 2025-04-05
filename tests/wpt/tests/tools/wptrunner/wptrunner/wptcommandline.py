@@ -57,7 +57,7 @@ scheme host and port.""")
     parser.add_argument("--no-manifest-download", action="store_false", dest="manifest_download",
                         help="Prevent download of the test manifest.")
 
-    parser.add_argument("--timeout-multiplier", action="store", type=float, default=None,
+    parser.add_argument("--timeout-multiplier", type=float,
                         help="Multiplier relative to standard test timeout to use")
     parser.add_argument("--run-by-dir", type=int, nargs="?", default=False,
                         help="Split run into groups by directories. With a parameter,"
@@ -65,87 +65,69 @@ scheme host and port.""")
                         "directory")
     parser.add_argument("-f", "--fully-parallel", action='store_true',
                         help='Run every test in a separate group for fully parallelism.')
-    parser.add_argument("--processes", action="store", type=int, default=None,
+    parser.add_argument("--processes", type=int,
                         help="Number of simultaneous processes to use")
-    parser.add_argument("--max-restarts", action="store", type=int, default=5,
+    parser.add_argument("--max-restarts", type=int, default=5,
                         help="Maximum number of browser restart retries")
 
-    parser.add_argument("--no-capture-stdio", action="store_true", default=False,
+    parser.add_argument("--no-capture-stdio", action="store_true",
                         help="Don't capture stdio and write to logging")
     parser.add_argument("--no-fail-on-unexpected", action="store_false",
-                        default=True,
                         dest="fail_on_unexpected",
                         help="Exit with status code 0 when test expectations are violated")
     parser.add_argument("--no-fail-on-unexpected-pass", action="store_false",
-                        default=True,
                         dest="fail_on_unexpected_pass",
                         help="Exit with status code 0 when all unexpected results are PASS")
     parser.add_argument("--no-restart-on-new-group", action="store_false",
-                        default=True,
                         dest="restart_on_new_group",
                         help="Don't restart test runner when start a new test group")
 
     mode_group = parser.add_argument_group("Mode")
     mode_group.add_argument("--list-test-groups", action="store_true",
-                            default=False,
                             help="List the top level directories containing tests that will run.")
     mode_group.add_argument("--list-disabled", action="store_true",
-                            default=False,
                             help="List the tests that are disabled on the current platform")
     mode_group.add_argument("--list-tests", action="store_true",
-                            default=False,
                             help="List all tests that will run")
     stability_group = mode_group.add_mutually_exclusive_group()
     stability_group.add_argument("--verify", action="store_true",
-                                 default=False,
                                  help="Run a stability check on the selected tests")
     stability_group.add_argument("--stability", action="store_true",
-                                 default=False,
                                  help=argparse.SUPPRESS)
     mode_group.add_argument("--verify-log-full", action="store_true",
-                            default=False,
                             help="Output per-iteration test results when running verify")
-    mode_group.add_argument("--verify-repeat-loop", action="store",
-                            default=10,
+    mode_group.add_argument("--verify-repeat-loop", default=10,
                             help="Number of iterations for a run that reloads each test without restart.",
                             type=int)
-    mode_group.add_argument("--verify-repeat-restart", action="store",
-                            default=5,
+    mode_group.add_argument("--verify-repeat-restart", default=5,
                             help="Number of iterations, for a run that restarts the runner between each iteration",
                             type=int)
     chaos_mode_group = mode_group.add_mutually_exclusive_group()
     chaos_mode_group.add_argument("--verify-no-chaos-mode", action="store_false",
-                                  default=True,
                                   dest="verify_chaos_mode",
                                   help="Disable chaos mode when running on Firefox")
     chaos_mode_group.add_argument("--verify-chaos-mode", action="store_true",
                                   default=True,
-                                  dest="verify_chaos_mode",
                                   help="Enable chaos mode when running on Firefox")
-    mode_group.add_argument("--verify-max-time", action="store",
-                            default=None,
+    mode_group.add_argument("--verify-max-time",
                             help="The maximum number of minutes for the job to run",
                             type=lambda x: timedelta(minutes=float(x)))
-    mode_group.add_argument("--repeat-max-time", action="store",
-                            default=100,
+    mode_group.add_argument("--repeat-max-time", default=100,
                             help="The maximum number of minutes for the test suite to attempt repeat runs",
                             type=int)
     output_results_group = mode_group.add_mutually_exclusive_group()
     output_results_group.add_argument("--verify-no-output-results", action="store_false",
                                       dest="verify_output_results",
-                                      default=True,
                                       help="Prints individuals test results and messages")
     output_results_group.add_argument("--verify-output-results", action="store_true",
-                                      dest="verify_output_results",
                                       default=True,
                                       help="Disable printing individuals test results and messages")
 
     test_selection_group = parser.add_argument_group("Test Selection")
-    test_selection_group.add_argument("--test-types", action="store",
-                                      nargs="*", default=wpttest.enabled_tests,
+    test_selection_group.add_argument("--test-types", nargs="*", default=wpttest.enabled_tests,
                                       choices=wpttest.enabled_tests,
                                       help="Test types to run")
-    test_selection_group.add_argument("--subsuite-file", action="store",
+    test_selection_group.add_argument("--subsuite-file",
                                       help="Path to JSON file containing subsuite configuration")
     # TODO use an empty string argument for the default subsuite
     test_selection_group.add_argument("--subsuite", action="append", dest="subsuites",
@@ -155,10 +137,12 @@ scheme host and port.""")
                                       "Tests from a small subsuite will be grouped in one group.")
     test_selection_group.add_argument("--include", action="append",
                                       help="URL prefix to include")
-    test_selection_group.add_argument("--include-file", action="store",
+    test_selection_group.add_argument("--include-file",
                                       help="A file listing URL prefix for tests")
     test_selection_group.add_argument("--exclude", action="append",
                                       help="URL prefix to exclude")
+    test_selection_group.add_argument("--exclude-file",
+                                      help="A file listing URL prefix for tests")
     test_selection_group.add_argument("--include-manifest", type=abs_path,
                                       help="Path to manifest listing tests to include")
     test_selection_group.add_argument("--test-groups", dest="test_groups_file", type=abs_path,
@@ -174,7 +158,6 @@ scheme host and port.""")
     # TODO(bashi): Remove this when WebTransport over HTTP/3 server is enabled by default.
     test_selection_group.add_argument("--enable-webtransport-h3",
                                       action="store_true",
-                                      dest="enable_webtransport_h3",
                                       default=None,
                                       help="Enable tests that require WebTransport over HTTP/3 server (default: false)")
     test_selection_group.add_argument("--no-enable-webtransport-h3", action="store_false", dest="enable_webtransport_h3",
@@ -186,7 +169,6 @@ scheme host and port.""")
                                       help="Labels applied to tests to exclude in the run. Takes precedence over `--tag`. "
                                            "Labels starting dir: are equivalent to top-level directories.")
     test_selection_group.add_argument("--default-exclude", action="store_true",
-                                      default=False,
                                       help="Only run the tests explicitly given in arguments. "
                                            "No tests will run if the list is empty, and the "
                                            "program will exit with status code 0.")
@@ -195,9 +177,9 @@ scheme host and port.""")
     debugging_group.add_argument('--debugger', const="__default__", nargs="?",
                                  help="run under a debugger, e.g. gdb or valgrind")
     debugging_group.add_argument('--debugger-args', help="arguments to the debugger")
-    debugging_group.add_argument("--rerun", action="store", type=int, default=1,
+    debugging_group.add_argument("--rerun", type=int, default=1,
                                  help="Number of times to re run each test without restarts")
-    debugging_group.add_argument("--repeat", action="store", type=int, default=1,
+    debugging_group.add_argument("--repeat", type=int, default=1,
                                  help="Number of times to run the tests, restarting between each run")
     debugging_group.add_argument("--repeat-until-unexpected", action="store_true", default=None,
                                  help="Run tests in a loop until one returns an unexpected result")
@@ -209,22 +191,22 @@ scheme host and port.""")
                                  help="Halt the test runner after each test (this happens by default if only a single test is run)")
     debugging_group.add_argument('--no-pause-after-test', dest="pause_after_test", action="store_false",
                                  help="Don't halt the test runner irrespective of the number of tests run")
-    debugging_group.add_argument('--debug-test', dest="debug_test", action="store_true",
+    debugging_group.add_argument('--debug-test', action="store_true",
                                  help="Run tests with additional debugging features enabled")
 
     debugging_group.add_argument('--pause-on-unexpected', action="store_true",
                                  help="Halt the test runner when an unexpected result is encountered")
     debugging_group.add_argument('--no-restart-on-unexpected', dest="restart_on_unexpected",
-                                 default=True, action="store_false",
+                                 action="store_false",
                                  help="Don't restart on an unexpected result")
 
-    debugging_group.add_argument("--symbols-path", action="store", type=url_or_path,
+    debugging_group.add_argument("--symbols-path", type=url_or_path,
                                  help="Path or url to symbols file used to analyse crash minidumps.")
-    debugging_group.add_argument("--stackwalk-binary", action="store", type=abs_path,
+    debugging_group.add_argument("--stackwalk-binary", type=abs_path,
                                  help="Path to stackwalker program used to analyse minidumps.")
     debugging_group.add_argument("--pdb", action="store_true",
                                  help="Drop into pdb on python exception")
-    debugging_group.add_argument("--leak-check", dest="leak_check", action="store_true", default=None,
+    debugging_group.add_argument("--leak-check", action="store_true", default=None,
                                  help=("Enable leak checking for supported browsers "
                                        "(Gecko: enabled by default for debug builds, "
                                        "silently ignored for opt, mobile)"))
@@ -232,66 +214,63 @@ scheme host and port.""")
                                  help="Disable leak checking")
 
     android_group = parser.add_argument_group("Android specific arguments")
-    android_group.add_argument("--adb-binary", action="store",
-                        help="Path to adb binary to use")
-    android_group.add_argument("--package-name", action="store",
-                        help="Android package name to run tests against")
+    android_group.add_argument("--adb-binary", help="Path to adb binary to use")
+    android_group.add_argument("--package-name",
+                               help="Android package name to run tests against")
     android_group.add_argument("--keep-app-data-directory", action="store_true",
                         help="Don't delete the app data directory")
     android_group.add_argument("--device-serial", action="append", default=[],
                         help="Running Android instances to connect to, if not emulator-5554")
 
     config_group = parser.add_argument_group("Configuration")
-    config_group.add_argument("--binary", action="store",
-                              type=abs_path, help="Desktop binary to run tests against")
+    config_group.add_argument("--binary", type=abs_path,
+                              help="Desktop binary to run tests against")
     config_group.add_argument('--binary-arg',
                               default=[], action="append", dest="binary_args",
                               help="Extra argument for the binary")
-    config_group.add_argument("--webdriver-binary", action="store", metavar="BINARY",
+    config_group.add_argument("--webdriver-binary", metavar="BINARY",
                               type=abs_path, help="WebDriver server binary to use")
     config_group.add_argument('--webdriver-arg',
                               default=[], action="append", dest="webdriver_args",
                               help="Extra argument for the WebDriver binary")
-    config_group.add_argument("--metadata", action="store", type=abs_path, dest="metadata_root",
-                              help="Path to root directory containing test metadata"),
-    config_group.add_argument("--tests", action="store", type=abs_path, dest="tests_root",
-                              help="Path to root directory containing test files"),
-    config_group.add_argument("--manifest", action="store", type=abs_path, dest="manifest_path",
+    config_group.add_argument("--metadata", type=abs_path, dest="metadata_root",
+                              help="Path to root directory containing test metadata")
+    config_group.add_argument("--tests", type=abs_path, dest="tests_root",
+                              help="Path to root directory containing test files")
+    config_group.add_argument("--manifest", type=abs_path, dest="manifest_path",
                               help="Path to test manifest (default is ${metadata_root}/MANIFEST.json)")
-    config_group.add_argument("--run-info", action="store", type=abs_path,
+    config_group.add_argument("--run-info", type=abs_path,
                               help="Path to directory containing extra json files to add to run info")
-    config_group.add_argument("--product", action="store", choices=product_choices,
-                              default=None, help="Browser against which to run tests")
-    config_group.add_argument("--browser-version", action="store",
-                              default=None, help="Informative string detailing the browser "
+    config_group.add_argument("--product", choices=product_choices,
+                              help="Browser against which to run tests")
+    config_group.add_argument("--browser-version",
+                              help="Informative string detailing the browser "
                               "release version. This is included in the run_info data.")
-    config_group.add_argument("--browser-channel", action="store",
-                              default=None, help="Informative string detailing the browser "
+    config_group.add_argument("--browser-channel",
+                              help="Informative string detailing the browser "
                               "release channel. This is included in the run_info data.")
-    config_group.add_argument("--config", action="store", type=abs_path, dest="config",
-                              help="Path to config file")
+    config_group.add_argument("--config", type=abs_path, help="Path to config file")
     config_group.add_argument("--install-fonts", action="store_true",
                               default=None,
                               help="Install additional system fonts on your system")
     config_group.add_argument("--no-install-fonts", dest="install_fonts", action="store_false",
                               help="Do not install additional system fonts on your system")
-    config_group.add_argument("--font-dir", action="store", type=abs_path, dest="font_dir",
-                              help="Path to local font installation directory", default=None)
-    config_group.add_argument("--inject-script", action="store", dest="inject_script", default=None,
+    config_group.add_argument("--font-dir", type=abs_path,
+                              help="Path to local font installation directory")
+    config_group.add_argument("--inject-script",
                               help="Path to script file to inject, useful for testing polyfills.")
     config_group.add_argument("--headless", action="store_true",
                               help="Run browser in headless mode", default=None)
     config_group.add_argument("--no-headless", action="store_false", dest="headless",
                               help="Don't run browser in headless mode")
-    config_group.add_argument("--instrument-to-file", action="store",
+    config_group.add_argument("--instrument-to-file",
                               help="Path to write instrumentation logs to")
     config_group.add_argument("--suppress-handler-traceback", action="store_true", default=None,
                               help="Don't write the stacktrace for exceptions in server handlers")
     config_group.add_argument("--no-suppress-handler-traceback", action="store_false",
                               dest="supress_handler_traceback",
                               help="Write the stacktrace for exceptions in server handlers")
-    config_group.add_argument("--ws-extra", action="append", default=None,
-                              dest="ws_extra",
+    config_group.add_argument("--ws-extra", action="append",
                               help="Extra paths containing websockets handlers")
 
     build_type = parser.add_mutually_exclusive_group()
@@ -303,58 +282,54 @@ scheme host and port.""")
                             help="Build is a release (overrides any mozinfo file)")
 
     chunking_group = parser.add_argument_group("Test Chunking")
-    chunking_group.add_argument("--total-chunks", action="store", type=int, default=1,
+    chunking_group.add_argument("--total-chunks", type=int, default=1,
                                 help="Total number of chunks to use")
-    chunking_group.add_argument("--this-chunk", action="store", type=int, default=1,
+    chunking_group.add_argument("--this-chunk", type=int, default=1,
                                 help="Chunk number to run")
-    chunking_group.add_argument("--chunk-type", action="store",
-                                choices=["none", "hash", "id_hash", "dir_hash"],
-                                default=None, help="Chunking type to use")
+    chunking_group.add_argument("--chunk-type", choices=["none", "hash", "id_hash", "dir_hash"],
+                                help="Chunking type to use")
 
     ssl_group = parser.add_argument_group("SSL/TLS")
-    ssl_group.add_argument("--ssl-type", action="store", default=None,
-                           choices=["openssl", "pregenerated", "none"],
+    ssl_group.add_argument("--ssl-type", choices=["openssl", "pregenerated", "none"],
                            help="Type of ssl support to enable (running without ssl may lead to spurious errors)")
 
-    ssl_group.add_argument("--openssl-binary", action="store",
-                           help="Path to openssl binary", default="openssl")
-    ssl_group.add_argument("--certutil-binary", action="store",
+    ssl_group.add_argument("--openssl-binary", default="openssl",
+                           help="Path to openssl binary")
+    ssl_group.add_argument("--certutil-binary",
                            help="Path to certutil binary for use with Firefox + ssl")
 
-    ssl_group.add_argument("--ca-cert-path", action="store", type=abs_path,
+    ssl_group.add_argument("--ca-cert-path", type=abs_path,
                            help="Path to ca certificate when using pregenerated ssl certificates")
-    ssl_group.add_argument("--host-key-path", action="store", type=abs_path,
+    ssl_group.add_argument("--host-key-path", type=abs_path,
                            help="Path to host private key when using pregenerated ssl certificates")
-    ssl_group.add_argument("--host-cert-path", action="store", type=abs_path,
+    ssl_group.add_argument("--host-cert-path", type=abs_path,
                            help="Path to host certificate when using pregenerated ssl certificates")
 
     gecko_group = parser.add_argument_group("Gecko-specific")
-    gecko_group.add_argument("--prefs-root", dest="prefs_root", action="store", type=abs_path,
+    gecko_group.add_argument("--prefs-root", type=abs_path,
                              help="Path to the folder containing browser prefs")
-    gecko_group.add_argument("--preload-browser", dest="preload_browser", action="store_true",
+    gecko_group.add_argument("--preload-browser", action="store_true",
                              default=None, help="Preload a gecko instance for faster restarts")
     gecko_group.add_argument("--no-preload-browser", dest="preload_browser", action="store_false",
                              default=None, help="Don't preload a gecko instance for faster restarts")
-    gecko_group.add_argument("--disable-e10s", dest="gecko_e10s", action="store_false", default=True,
+    gecko_group.add_argument("--disable-e10s", dest="gecko_e10s", action="store_false",
                              help="Run tests without electrolysis preferences")
-    gecko_group.add_argument("--disable-fission", dest="disable_fission", action="store_true", default=False,
+    gecko_group.add_argument("--disable-fission", action="store_true",
                              help="Disable fission in Gecko.")
-    gecko_group.add_argument("--stackfix-dir", dest="stackfix_dir", action="store",
+    gecko_group.add_argument("--stackfix-dir",
                              help="Path to directory containing assertion stack fixing scripts")
-    gecko_group.add_argument("--specialpowers-path", action="store",
+    gecko_group.add_argument("--specialpowers-path",
                              help="Path to specialPowers extension xpi file")
     gecko_group.add_argument("--setpref", dest="extra_prefs", action='append',
                              default=[], metavar="PREF=VALUE",
                              help="Defines an extra user preference (overrides those in prefs_root)")
-    gecko_group.add_argument("--reftest-internal", dest="reftest_internal", action="store_true",
+    gecko_group.add_argument("--reftest-internal", action="store_true",
                              default=None, help="Enable reftest runner implemented inside Marionette")
     gecko_group.add_argument("--reftest-external", dest="reftest_internal", action="store_false",
                              help="Disable reftest runner implemented inside Marionette")
-    gecko_group.add_argument("--reftest-screenshot", dest="reftest_screenshot", action="store",
-                             choices=["always", "fail", "unexpected"], default=None,
+    gecko_group.add_argument("--reftest-screenshot", choices=["always", "fail", "unexpected"],
                              help="With --reftest-internal, when to take a screenshot")
-    gecko_group.add_argument("--chaos", dest="chaos_mode_flags", action="store",
-                             nargs="?", const=0xFFFFFFFF, type=lambda x: int(x, 16),
+    gecko_group.add_argument("--chaos", dest="chaos_mode_flags", nargs="?", const=0xFFFFFFFF, type=lambda x: int(x, 16),
                              help="Enable chaos mode with the specified feature flag "
                              "(see http://searchfox.org/mozilla-central/source/mfbt/ChaosMode.h for "
                              "details). If no value is supplied, all features are activated")
@@ -369,17 +344,17 @@ scheme host and port.""")
                              help="Inject a user CSS stylesheet into every test.")
 
     chrome_group = parser.add_argument_group("Chrome-specific")
-    chrome_group.add_argument("--enable-mojojs", action="store_true", default=False,
-                             help="Enable MojoJS for testing. Note that this flag is usally "
+    chrome_group.add_argument("--enable-mojojs", action="store_true",
+                              help="Enable MojoJS for testing. Note that this flag is usally "
                              "enabled automatically by `wpt run`, if it succeeds in downloading "
                              "the right version of mojojs.zip or if --mojojs-path is specified.")
     chrome_group.add_argument("--mojojs-path",
                              help="Path to mojojs gen/ directory. If it is not specified, `wpt run` "
                              "will download and extract mojojs.zip into _venv2/mojojs/gen.")
-    chrome_group.add_argument("--enable-swiftshader", action="store_true", default=False,
-                             help="Enable SwiftShader for CPU-based 3D graphics. This can be used "
-                             "in environments with no hardware GPU available.")
-    chrome_group.add_argument("--enable-experimental", action="store_true", dest="enable_experimental",
+    chrome_group.add_argument("--enable-swiftshader", action="store_true",
+                              help="Enable SwiftShader for CPU-based 3D graphics. This can be used "
+                              "in environments with no hardware GPU available.")
+    chrome_group.add_argument("--enable-experimental", action="store_true",
                               help="Enable --enable-experimental-web-platform-features flag", default=None)
     chrome_group.add_argument("--no-enable-experimental", action="store_false", dest="enable_experimental",
                               help="Do not enable --enable-experimental-web-platform-features flag "
@@ -397,28 +372,20 @@ scheme host and port.""")
               "renderer process has a stable PID for a debugger to attach to."))
 
     sauce_group = parser.add_argument_group("Sauce Labs-specific")
-    sauce_group.add_argument("--sauce-browser", dest="sauce_browser",
-                             help="Sauce Labs browser name")
-    sauce_group.add_argument("--sauce-platform", dest="sauce_platform",
-                             help="Sauce Labs OS platform")
-    sauce_group.add_argument("--sauce-version", dest="sauce_version",
-                             help="Sauce Labs browser version")
-    sauce_group.add_argument("--sauce-build", dest="sauce_build",
-                             help="Sauce Labs build identifier")
-    sauce_group.add_argument("--sauce-tags", dest="sauce_tags", nargs="*",
+    sauce_group.add_argument("--sauce-browser", help="Sauce Labs browser name")
+    sauce_group.add_argument("--sauce-platform", help="Sauce Labs OS platform")
+    sauce_group.add_argument("--sauce-version", help="Sauce Labs browser version")
+    sauce_group.add_argument("--sauce-build", help="Sauce Labs build identifier")
+    sauce_group.add_argument("--sauce-tags", nargs="*",
                              help="Sauce Labs identifying tag", default=[])
-    sauce_group.add_argument("--sauce-tunnel-id", dest="sauce_tunnel_id",
+    sauce_group.add_argument("--sauce-tunnel-id",
                              help="Sauce Connect tunnel identifier")
-    sauce_group.add_argument("--sauce-user", dest="sauce_user",
-                             help="Sauce Labs user name")
-    sauce_group.add_argument("--sauce-key", dest="sauce_key",
-                             default=os.environ.get("SAUCE_ACCESS_KEY"),
+    sauce_group.add_argument("--sauce-user", help="Sauce Labs user name")
+    sauce_group.add_argument("--sauce-key", default=os.environ.get("SAUCE_ACCESS_KEY"),
                              help="Sauce Labs access key")
     sauce_group.add_argument("--sauce-connect-binary",
-                             dest="sauce_connect_binary",
                              help="Path to Sauce Connect binary")
-    sauce_group.add_argument("--sauce-init-timeout", action="store",
-                             type=int, default=30,
+    sauce_group.add_argument("--sauce-init-timeout", type=int, default=30,
                              help="Number of seconds to wait for Sauce "
                                   "Connect tunnel to be available before "
                                   "aborting")
@@ -433,11 +400,10 @@ scheme host and port.""")
                                    help="Path to GitHub checks output file")
 
     webkit_group = parser.add_argument_group("WebKit-specific")
-    webkit_group.add_argument("--webkit-port", dest="webkit_port",
-                              help="WebKit port")
+    webkit_group.add_argument("--webkit-port", help="WebKit port")
 
     safari_group = parser.add_argument_group("Safari-specific")
-    safari_group.add_argument("--kill-safari", dest="kill_safari", action="store_true", default=False,
+    safari_group.add_argument("--kill-safari", action="store_true",
                               help="Kill Safari when stopping the browser")
 
     parser.add_argument("test_list", nargs="*",
@@ -755,25 +721,25 @@ def create_parser_metadata_update(product_choices=None):
     parser = argparse.ArgumentParser("web-platform-tests-update",
                                      description="Update script for web-platform-tests tests.")
     # This will be removed once all consumers are updated to the properties-file based system
-    parser.add_argument("--product", action="store", choices=product_choices,
+    parser.add_argument("--product", choices=product_choices,
                         default="firefox", help=argparse.SUPPRESS)
-    parser.add_argument("--config", action="store", type=abs_path, help="Path to config file")
-    parser.add_argument("--metadata", action="store", type=abs_path, dest="metadata_root",
-                        help="Path to the folder containing test metadata"),
-    parser.add_argument("--tests", action="store", type=abs_path, dest="tests_root",
-                        help="Path to web-platform-tests"),
-    parser.add_argument("--manifest", action="store", type=abs_path, dest="manifest_path",
+    parser.add_argument("--config", type=abs_path, help="Path to config file")
+    parser.add_argument("--metadata", type=abs_path, dest="metadata_root",
+                        help="Path to the folder containing test metadata")
+    parser.add_argument("--tests", type=abs_path, dest="tests_root",
+                        help="Path to web-platform-tests")
+    parser.add_argument("--manifest", type=abs_path, dest="manifest_path",
                         help="Path to test manifest (default is ${metadata_root}/MANIFEST.json)")
-    parser.add_argument("--full", action="store_true", default=False,
+    parser.add_argument("--full", action="store_true",
                         help="For all tests that are updated, remove any existing conditions and missing subtests")
-    parser.add_argument("--disable-intermittent", nargs="?", action="store", const="unstable", default=None,
-        help=("Reason for disabling tests. When updating test results, disable tests that have "
-              "inconsistent results across many runs with the given reason."))
-    parser.add_argument("--update-intermittent", action="store_true", default=False,
+    parser.add_argument("--disable-intermittent", nargs="?", const="unstable",
+                        help=("Reason for disabling tests. When updating test results, disable tests that have "
+                              "inconsistent results across many runs with the given reason."))
+    parser.add_argument("--update-intermittent", action="store_true",
                         help="Update test metadata with expected intermittent statuses.")
-    parser.add_argument("--remove-intermittent", action="store_true", default=False,
+    parser.add_argument("--remove-intermittent", action="store_true",
                         help="Remove obsolete intermittent statuses from expected statuses.")
-    parser.add_argument("--no-remove-obsolete", action="store_false", dest="remove_obsolete", default=True,
+    parser.add_argument("--no-remove-obsolete", action="store_false", dest="remove_obsolete",
                         help="Don't remove metadata files that no longer correspond to a test file")
     parser.add_argument("--properties-file",
                         help="""Path to a JSON file containing run_info properties to use in update. This must be of the form
@@ -792,18 +758,18 @@ def create_parser_metadata_update(product_choices=None):
 
 def create_parser_update(product_choices=None):
     parser = create_parser_metadata_update(product_choices)
-    parser.add_argument("--sync-path", action="store", type=abs_path,
-                        help="Path to store git checkout of web-platform-tests during update"),
-    parser.add_argument("--remote_url", action="store",
-                        help="URL of web-platfrom-tests repository to sync against"),
-    parser.add_argument("--branch", action="store", type=abs_path,
+    parser.add_argument("--sync-path", type=abs_path,
+                        help="Path to store git checkout of web-platform-tests during update")
+    parser.add_argument("--remote_url",
+                        help="URL of web-platfrom-tests repository to sync against")
+    parser.add_argument("--branch", type=abs_path,
                         help="Remote branch to sync against")
-    parser.add_argument("--rev", action="store", help="Revision to sync to")
-    parser.add_argument("--patch", action="store_true", dest="patch", default=None,
+    parser.add_argument("--rev", help="Revision to sync to")
+    parser.add_argument("--patch", action="store_true", default=None,
                         help="Create a VCS commit containing the changes.")
     parser.add_argument("--no-patch", action="store_false", dest="patch",
                         help="Don't create a VCS commit containing the changes.")
-    parser.add_argument("--sync", dest="sync", action="store_true", default=False,
+    parser.add_argument("--sync", action="store_true",
                         help="Sync the tests with the latest from upstream (implies --patch)")
     parser.add_argument("--no-store-state", action="store_false", dest="store_state",
                         help="Store state so that steps can be resumed after failure")
@@ -811,16 +777,16 @@ def create_parser_update(product_choices=None):
                         help="Continue a previously started run of the update script")
     parser.add_argument("--abort", action="store_true",
                         help="Clear state from a previous incomplete run of the update script")
-    parser.add_argument("--exclude", action="store", nargs="*",
+    parser.add_argument("--exclude", nargs="*",
                         help="List of glob-style paths to exclude when syncing tests")
-    parser.add_argument("--include", action="store", nargs="*",
+    parser.add_argument("--include", nargs="*",
                         help="List of glob-style paths to include which would otherwise be excluded when syncing tests")
     return parser
 
 
 def create_parser_reduce(product_choices=None):
     parser = create_parser(product_choices)
-    parser.add_argument("target", action="store", help="Test id that is unstable")
+    parser.add_argument("target", help="Test id that is unstable")
     return parser
 
 

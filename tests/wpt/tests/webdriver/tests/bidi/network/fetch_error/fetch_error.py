@@ -6,10 +6,10 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from tests.support.sync import AsyncPoll
 
-from ... import number_interval
 from .. import (
     assert_fetch_error_event,
     assert_response_event,
+    get_network_event_timerange,
     FETCH_ERROR_EVENT,
     PAGE_EMPTY_HTML,
     RESPONSE_COMPLETED_EVENT,
@@ -86,9 +86,14 @@ async def test_aborted_request(
     )
     on_fetch_error = wait_for_event(FETCH_ERROR_EVENT)
     asyncio.ensure_future(
-        fetch(PAGE_INVALID_URL, context=new_tab, timeout_in_seconds=0)
+        fetch(slow_url, context=new_tab, timeout_in_seconds=0)
     )
     fetch_error_event = await wait_for_future_safe(on_fetch_error)
+    assert_fetch_error_event(
+        fetch_error_event,
+        expected_request={"url": slow_url},
+        context=new_tab["context"],
+    )
 
 
 @pytest.mark.asyncio
@@ -147,19 +152,16 @@ async def test_navigation_id(
     assert fetch_error_event["navigation"] is None
 
     on_fetch_error = wait_for_event(FETCH_ERROR_EVENT)
-    result = await bidi_session.browsing_context.navigate(
+    asyncio.ensure_future(bidi_session.browsing_context.navigate(
         context=new_tab["context"],
-        url=PAGE_INVALID_URL,
-    )
+        url=PAGE_INVALID_URL))
     fetch_error_event = await wait_for_future_safe(on_fetch_error)
 
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
         fetch_error_event,
         expected_request=expected_request,
-        navigation=result["navigation"],
     )
-    assert fetch_error_event["navigation"] == result["navigation"]
 
 
 @pytest.mark.parametrize(
@@ -240,7 +242,7 @@ async def test_request_timing_info(
     await wait_for_future_safe(on_fetch_error)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
@@ -315,10 +317,10 @@ async def test_redirect_navigation(
     on_fetch_error = wait_for_event(FETCH_ERROR_EVENT)
     on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
 
-    result = await bidi_session.browsing_context.navigate(
+    asyncio.ensure_future(bidi_session.browsing_context.navigate(
         context=new_tab["context"],
         url=redirect_url,
-    )
+    ))
 
     wait = AsyncPoll(bidi_session, timeout=2)
     fetch_error_event = await on_fetch_error
@@ -328,14 +330,12 @@ async def test_redirect_navigation(
     assert_response_event(
         response_completed_event,
         expected_request=expected_request,
-        navigation=result["navigation"],
         redirect_count=0,
     )
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
         fetch_error_event,
         expected_request=expected_request,
-        navigation=result["navigation"],
         redirect_count=1,
     )
 

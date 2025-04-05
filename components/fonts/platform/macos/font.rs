@@ -14,7 +14,7 @@ use core_foundation::string::UniChar;
 use core_graphics::font::CGGlyph;
 use core_text::font::CTFont;
 use core_text::font_descriptor::{
-    kCTFontDefaultOrientation, CTFontTraits, SymbolicTraitAccessors, TraitAccessors,
+    CTFontTraits, SymbolicTraitAccessors, TraitAccessors, kCTFontDefaultOrientation,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use log::debug;
@@ -24,9 +24,9 @@ use webrender_api::FontInstanceFlags;
 use super::core_text_font_cache::CoreTextFontCache;
 use super::font_list::LocalFontIdentifier;
 use crate::{
-    map_platform_values_to_style_values, FontData, FontIdentifier, FontMetrics, FontTableMethods,
-    FontTableTag, FontTemplateDescriptor, FractionalPixel, GlyphId, PlatformFontMethods, CBDT,
-    COLR, KERN, SBIX,
+    CBDT, COLR, FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTableTag,
+    FontTemplateDescriptor, FractionalPixel, GlyphId, KERN, PlatformFontMethods, SBIX,
+    map_platform_values_to_style_values,
 };
 
 const KERN_PAIR_LEN: usize = 6;
@@ -141,7 +141,7 @@ impl CachedKernTable {
     fn binary_search(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> Option<i16> {
         let pairs = &self.font_table.buffer()[self.pair_data_range.clone()];
 
-        let query = first_glyph << 16 | second_glyph;
+        let query = (first_glyph << 16) | second_glyph;
         let (mut start, mut end) = (0, pairs.len() / KERN_PAIR_LEN);
         while start < end {
             let i = (start + end) / 2;
@@ -149,7 +149,7 @@ impl CachedKernTable {
             match key.cmp(&query) {
                 Ordering::Less => start = i + 1,
                 Ordering::Equal => {
-                    return Some(BigEndian::read_i16(&pairs[i * KERN_PAIR_LEN + 4..]))
+                    return Some(BigEndian::read_i16(&pairs[i * KERN_PAIR_LEN + 4..]));
                 },
                 Ordering::Greater => end = i,
             }

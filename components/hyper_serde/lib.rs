@@ -287,7 +287,7 @@ impl<'de> Deserialize<'de> for De<ContentType> {
     }
 }
 
-impl<'a> Serialize for Ser<'a, ContentType> {
+impl Serialize for Ser<'_, ContentType> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -303,7 +303,7 @@ impl<'de> Deserialize<'de> for De<Cookie<'static>> {
     {
         struct CookieVisitor;
 
-        impl<'de> Visitor<'de> for CookieVisitor {
+        impl Visitor<'_> for CookieVisitor {
             type Value = De<Cookie<'static>>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -325,7 +325,7 @@ impl<'de> Deserialize<'de> for De<Cookie<'static>> {
     }
 }
 
-impl<'a, 'cookie> Serialize for Ser<'a, Cookie<'cookie>> {
+impl Serialize for Ser<'_, Cookie<'_>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -417,14 +417,14 @@ impl<'de> Deserialize<'de> for De<HeaderMap> {
     }
 }
 
-impl<'a> Serialize for Ser<'a, HeaderMap> {
+impl Serialize for Ser<'_, HeaderMap> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         struct Value<'headers>(&'headers [Vec<u8>], bool);
 
-        impl<'headers> Serialize for Value<'headers> {
+        impl Serialize for Value<'_> {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: Serializer,
@@ -468,7 +468,7 @@ impl<'de> Deserialize<'de> for De<Method> {
     {
         struct MethodVisitor;
 
-        impl<'de> Visitor<'de> for MethodVisitor {
+        impl Visitor<'_> for MethodVisitor {
             type Value = De<Method>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -487,7 +487,7 @@ impl<'de> Deserialize<'de> for De<Method> {
     }
 }
 
-impl<'a> Serialize for Ser<'a, Method> {
+impl Serialize for Ser<'_, Method> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -503,7 +503,7 @@ impl<'de> Deserialize<'de> for De<Mime> {
     {
         struct MimeVisitor;
 
-        impl<'de> Visitor<'de> for MimeVisitor {
+        impl Visitor<'_> for MimeVisitor {
             type Value = De<Mime>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -524,7 +524,7 @@ impl<'de> Deserialize<'de> for De<Mime> {
     }
 }
 
-impl<'a> Serialize for Ser<'a, Mime> {
+impl Serialize for Ser<'_, Mime> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -545,7 +545,7 @@ impl<'de> Deserialize<'de> for De<StatusCode> {
     }
 }
 
-impl<'a> Serialize for Ser<'a, StatusCode> {
+impl Serialize for Ser<'_, StatusCode> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -554,7 +554,7 @@ impl<'a> Serialize for Ser<'a, StatusCode> {
     }
 }
 
-impl<'a> Serialize for Ser<'a, (StatusCode, String)> {
+impl Serialize for Ser<'_, (StatusCode, String)> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -609,7 +609,7 @@ impl<'de> Deserialize<'de> for De<Uri> {
     {
         struct UriVisitor;
 
-        impl<'de> Visitor<'de> for UriVisitor {
+        impl Visitor<'_> for UriVisitor {
             type Value = De<Uri>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -630,7 +630,7 @@ impl<'de> Deserialize<'de> for De<Uri> {
     }
 }
 
-impl<'a> Serialize for Ser<'a, Uri> {
+impl Serialize for Ser<'_, Uri> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

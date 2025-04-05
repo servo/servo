@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
+#[cfg(feature = "webxr")]
 use std::rc::Rc;
 
 #[cfg(feature = "webgl_backtrace")]
@@ -12,11 +13,11 @@ use backtrace::Backtrace;
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
-    webgl_channel, AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType,
-    TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand, WebGLCommandBacktrace,
-    WebGLContextId, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender,
-    WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSendResult, WebGLSender, WebGLVersion,
-    YAxisTreatment,
+    AlphaTreatment, GLContextAttributes, GLLimits, GlType, Parameter, SizedDataType, TexDataType,
+    TexFormat, TexParameter, WebGLChan, WebGLCommand, WebGLCommandBacktrace, WebGLContextId,
+    WebGLError, WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender, WebGLProgramId,
+    WebGLResult, WebGLSLVersion, WebGLSendResult, WebGLSender, WebGLVersion, YAxisTreatment,
+    webgl_channel,
 };
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -35,6 +36,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use webrender_api::ImageKey;
 
+use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
@@ -51,23 +53,24 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::conversions::{DerivedFrom, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::cors_setting_for_element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::htmlcanvaselement::{utils as canvas_utils, LayoutCanvasRenderingContextHelpers};
-use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage};
+use crate::dom::htmlcanvaselement::{LayoutCanvasRenderingContextHelpers, utils as canvas_utils};
+use crate::dom::node::{Node, NodeDamage, NodeTraits};
+#[cfg(feature = "webxr")]
 use crate::dom::promise::Promise;
 use crate::dom::vertexarrayobject::VertexAttribData;
 use crate::dom::webgl_extensions::WebGLExtensions;
+use crate::dom::webgl_validations::WebGLValidator;
 use crate::dom::webgl_validations::tex_image_2d::{
     CommonCompressedTexImage2DValidatorResult, CommonTexImage2DValidator,
     CommonTexImage2DValidatorResult, CompressedTexImage2DValidator,
     CompressedTexSubImage2DValidator, TexImage2DValidator, TexImage2DValidatorResult,
 };
 use crate::dom::webgl_validations::types::TexImageTarget;
-use crate::dom::webgl_validations::WebGLValidator;
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglcontextevent::WebGLContextEvent;
@@ -117,7 +120,7 @@ fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     }
 }
 
-pub fn uniform_get<T, F>(triple: (&WebGLRenderingContext, WebGLProgramId, i32), f: F) -> T
+pub(crate) fn uniform_get<T, F>(triple: (&WebGLRenderingContext, WebGLProgramId, i32), f: F) -> T
 where
     F: FnOnce(WebGLProgramId, i32, WebGLSender<T>) -> WebGLCommand,
     T: for<'de> Deserialize<'de> + Serialize,
@@ -128,7 +131,7 @@ where
 }
 
 #[allow(unsafe_code)]
-pub unsafe fn uniform_typed<T>(
+pub(crate) unsafe fn uniform_typed<T>(
     cx: *mut JSContext,
     value: &[T::Element],
     mut retval: MutableHandleValue,
@@ -154,20 +157,20 @@ bitflags! {
 }
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
-pub enum VertexAttrib {
+pub(crate) enum VertexAttrib {
     Float(f32, f32, f32, f32),
     Int(i32, i32, i32, i32),
     Uint(u32, u32, u32, u32),
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum Operation {
+pub(crate) enum Operation {
     Fallible,
     Infallible,
 }
 
 #[dom_struct]
-pub struct WebGLRenderingContext {
+pub(crate) struct WebGLRenderingContext {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "Channels are hard"]
     webgl_sender: WebGLMessageSender,
@@ -215,14 +218,14 @@ pub struct WebGLRenderingContext {
 }
 
 impl WebGLRenderingContext {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         window: &Window,
         canvas: &HTMLCanvasElementOrOffscreenCanvas,
         webgl_version: WebGLVersion,
         size: Size2D<u32>,
         attrs: GLContextAttributes,
     ) -> Result<WebGLRenderingContext, String> {
-        if pref!(webgl.testing.context_creation_error) {
+        if pref!(webgl_testing_context_creation_error) {
             return Err("WebGL context creation error forced by pref `webgl.testing.context_creation_error`".into());
         }
 
@@ -281,8 +284,8 @@ impl WebGLRenderingContext {
         })
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         window: &Window,
         canvas: &HTMLCanvasElementOrOffscreenCanvas,
         webgl_version: WebGLVersion,
@@ -291,7 +294,7 @@ impl WebGLRenderingContext {
         can_gc: CanGc,
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         match WebGLRenderingContext::new_inherited(window, canvas, webgl_version, size, attrs) {
-            Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window)),
+            Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window, can_gc)),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(
@@ -315,116 +318,54 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn webgl_version(&self) -> WebGLVersion {
+    pub(crate) fn webgl_version(&self) -> WebGLVersion {
         self.webgl_version
     }
 
-    pub fn limits(&self) -> &GLLimits {
+    pub(crate) fn limits(&self) -> &GLLimits {
         &self.limits
     }
 
-    pub fn texture_unpacking_alignment(&self) -> u32 {
+    pub(crate) fn texture_unpacking_alignment(&self) -> u32 {
         self.texture_unpacking_alignment.get()
     }
 
-    pub fn current_vao(&self) -> DomRoot<WebGLVertexArrayObjectOES> {
+    pub(crate) fn current_vao(&self) -> DomRoot<WebGLVertexArrayObjectOES> {
         self.current_vao.or_init(|| {
             DomRoot::from_ref(
                 self.default_vao
-                    .init_once(|| WebGLVertexArrayObjectOES::new(self, None)),
+                    .init_once(|| WebGLVertexArrayObjectOES::new(self, None, CanGc::note())),
             )
         })
     }
 
-    pub fn current_vao_webgl2(&self) -> DomRoot<WebGLVertexArrayObject> {
+    pub(crate) fn current_vao_webgl2(&self) -> DomRoot<WebGLVertexArrayObject> {
         self.current_vao_webgl2.or_init(|| {
             DomRoot::from_ref(
                 self.default_vao_webgl2
-                    .init_once(|| WebGLVertexArrayObject::new(self, None)),
+                    .init_once(|| WebGLVertexArrayObject::new(self, None, CanGc::note())),
             )
         })
     }
 
-    pub fn current_vertex_attribs(&self) -> RefMut<Box<[VertexAttrib]>> {
+    pub(crate) fn current_vertex_attribs(&self) -> RefMut<Box<[VertexAttrib]>> {
         self.current_vertex_attribs.borrow_mut()
     }
 
-    pub fn recreate(&self, size: Size2D<u32>) {
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.webgl_sender.send_resize(size, sender).unwrap();
-        // FIXME(#21718) The backend is allowed to choose a size smaller than
-        // what was requested
-        self.size.set(size);
-
-        if let Err(msg) = receiver.recv().unwrap() {
-            error!("Error resizing WebGLContext: {}", msg);
-            return;
-        };
-
-        // ClearColor needs to be restored because after a resize the GLContext is recreated
-        // and the framebuffer is cleared using the default black transparent color.
-        let color = self.current_clear_color.get();
-        self.send_command(WebGLCommand::ClearColor(color.0, color.1, color.2, color.3));
-
-        // WebGL Spec: Scissor rect must not change if the canvas is resized.
-        // See: webgl/conformance-1.0.3/conformance/rendering/gl-scissor-canvas-dimensions.html
-        // NativeContext handling library changes the scissor after a resize, so we need to reset the
-        // default scissor when the canvas was created or the last scissor that the user set.
-        let rect = self.current_scissor.get();
-        self.send_command(WebGLCommand::Scissor(rect.0, rect.1, rect.2, rect.3));
-
-        // Bound texture must not change when the canvas is resized.
-        // Right now surfman generates a new FBO and the bound texture is changed
-        // in order to create a new render to texture attachment.
-        // Send a command to re-bind the TEXTURE_2D, if any.
-        if let Some(texture) = self
-            .textures
-            .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
-            .unwrap()
-            .get()
-        {
-            self.send_command(WebGLCommand::BindTexture(
-                constants::TEXTURE_2D,
-                Some(texture.id()),
-            ));
-        }
-
-        // Bound framebuffer must not change when the canvas is resized.
-        // Right now surfman generates a new FBO on resize.
-        // Send a command to re-bind the framebuffer, if any.
-        if let Some(fbo) = self.bound_draw_framebuffer.get() {
-            let id = WebGLFramebufferBindingRequest::Explicit(fbo.id());
-            self.send_command(WebGLCommand::BindFramebuffer(constants::FRAMEBUFFER, id));
-        }
-    }
-
-    pub fn context_id(&self) -> WebGLContextId {
-        self.webgl_sender.context_id()
-    }
-
-    pub fn onscreen(&self) -> bool {
-        match self.canvas {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                canvas.upcast::<Node>().is_connected()
-            },
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => false,
-        }
-    }
-
     #[inline]
-    pub fn send_command(&self, command: WebGLCommand) {
+    pub(crate) fn send_command(&self, command: WebGLCommand) {
         self.webgl_sender
             .send(command, capture_webgl_backtrace(self))
             .unwrap();
     }
 
-    pub fn send_command_ignored(&self, command: WebGLCommand) {
+    pub(crate) fn send_command_ignored(&self, command: WebGLCommand) {
         let _ = self
             .webgl_sender
             .send(command, capture_webgl_backtrace(self));
     }
 
-    pub fn webgl_error(&self, err: WebGLError) {
+    pub(crate) fn webgl_error(&self, err: WebGLError) {
         // TODO(emilio): Add useful debug messages to this
         warn!(
             "WebGL error: {:?}, previous error was {:?}",
@@ -457,7 +398,7 @@ impl WebGLRenderingContext {
     //
     // The WebGL spec mentions a couple more operations that trigger
     // this: clear() and getParameter(IMPLEMENTATION_COLOR_READ_*).
-    pub fn validate_framebuffer(&self) -> WebGLResult<()> {
+    pub(crate) fn validate_framebuffer(&self) -> WebGLResult<()> {
         match self.bound_draw_framebuffer.get() {
             Some(fb) => match fb.check_status_for_rendering() {
                 CompleteForRendering::Complete => Ok(()),
@@ -468,7 +409,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn validate_ownership<T>(&self, object: &T) -> WebGLResult<()>
+    pub(crate) fn validate_ownership<T>(&self, object: &T) -> WebGLResult<()>
     where
         T: DerivedFrom<WebGLObject>,
     {
@@ -478,7 +419,7 @@ impl WebGLRenderingContext {
         Ok(())
     }
 
-    pub fn with_location<F>(&self, location: Option<&WebGLUniformLocation>, f: F)
+    pub(crate) fn with_location<F>(&self, location: Option<&WebGLUniformLocation>, f: F)
     where
         F: FnOnce(&WebGLUniformLocation) -> WebGLResult<()>,
     {
@@ -495,7 +436,7 @@ impl WebGLRenderingContext {
         handle_potential_webgl_error!(self, f(location));
     }
 
-    pub fn textures(&self) -> &Textures {
+    pub(crate) fn textures(&self) -> &Textures {
         &self.textures
     }
 
@@ -536,28 +477,6 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn mark_as_dirty(&self) {
-        // If we have a bound framebuffer, then don't mark the canvas as dirty.
-        if self.bound_draw_framebuffer.get().is_some() {
-            return;
-        }
-
-        // Dirtying the canvas is unnecessary if we're actively displaying immersive
-        // XR content right now.
-        if self.global().as_window().in_immersive_xr_session() {
-            return;
-        }
-
-        match self.canvas {
-            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                let document = document_from_node(&**canvas);
-                document.add_dirty_webgl_canvas(self);
-            },
-            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
-        }
-    }
-
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
         if indx >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
@@ -576,7 +495,7 @@ impl WebGLRenderingContext {
         self.send_command(WebGLCommand::VertexAttrib(indx, x, y, z, w));
     }
 
-    pub fn get_current_framebuffer_size(&self) -> Option<(i32, i32)> {
+    pub(crate) fn get_current_framebuffer_size(&self) -> Option<(i32, i32)> {
         match self.bound_draw_framebuffer.get() {
             Some(fb) => fb.size(),
 
@@ -585,7 +504,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn get_texture_packing_alignment(&self) -> u8 {
+    pub(crate) fn get_texture_packing_alignment(&self) -> u8 {
         self.texture_packing_alignment.get()
     }
 
@@ -654,7 +573,7 @@ impl WebGLRenderingContext {
         )
     }
 
-    pub fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
+    pub(crate) fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
         Ok(Some(match source {
             TexImageSource::ImageData(image_data) => TexPixels::new(
                 image_data.to_shared_memory(),
@@ -665,7 +584,7 @@ impl WebGLRenderingContext {
             TexImageSource::HTMLImageElement(image) => {
                 let document = match self.canvas {
                     HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                        document_from_node(&**canvas)
+                        canvas.owner_document()
                     },
                     HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(ref _canvas) => {
                         // TODO: Support retrieving image pixels here for OffscreenCanvas
@@ -683,7 +602,7 @@ impl WebGLRenderingContext {
 
                 let window = match self.canvas {
                     HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                        window_from_node(&**canvas)
+                        canvas.owner_window()
                     },
                     // This is marked as unreachable as we should have returned already
                     HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => unreachable!(),
@@ -700,7 +619,7 @@ impl WebGLRenderingContext {
 
                 let size = Size2D::new(img.width, img.height);
 
-                TexPixels::new(img.bytes.clone(), size, img.format, false)
+                TexPixels::new(img.bytes(), size, img.format, false)
             },
             // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
@@ -731,7 +650,7 @@ impl WebGLRenderingContext {
     }
 
     // TODO(emilio): Move this logic to a validator.
-    pub fn validate_tex_image_2d_data(
+    pub(crate) fn validate_tex_image_2d_data(
         &self,
         width: u32,
         height: u32,
@@ -751,7 +670,7 @@ impl WebGLRenderingContext {
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
         // or FLOAT, a Float32Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
-        let data_type_matches = data.as_ref().map_or(true, |buffer| {
+        let data_type_matches = data.as_ref().is_none_or(|buffer| {
             Some(data_type.sized_data_type()) ==
                 array_buffer_type_to_sized_type(buffer.get_array_type()) &&
                 data_type.required_webgl_version() <= self.webgl_version()
@@ -777,7 +696,7 @@ impl WebGLRenderingContext {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn tex_image_2d(
+    pub(crate) fn tex_image_2d(
         &self,
         texture: &WebGLTexture,
         target: TexImageTarget,
@@ -957,7 +876,7 @@ impl WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
-    pub fn draw_arrays_instanced(
+    pub(crate) fn draw_arrays_instanced(
         &self,
         mode: u32,
         first: i32,
@@ -1025,7 +944,7 @@ impl WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
-    pub fn draw_elements_instanced(
+    pub(crate) fn draw_elements_instanced(
         &self,
         mode: u32,
         count: i32,
@@ -1118,7 +1037,7 @@ impl WebGLRenderingContext {
         Ok(())
     }
 
-    pub fn vertex_attrib_divisor(&self, index: u32, divisor: u32) {
+    pub(crate) fn vertex_attrib_divisor(&self, index: u32, divisor: u32) {
         if index >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
@@ -1132,42 +1051,15 @@ impl WebGLRenderingContext {
         self.send_command(WebGLCommand::VertexAttribDivisor { index, divisor });
     }
 
-    // Used by HTMLCanvasElement.toDataURL
-    //
-    // This emits errors quite liberally, but the spec says that this operation
-    // can fail and that it is UB what happens in that case.
-    //
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
-    pub fn get_image_data(&self, mut size: Size2D<u32>) -> Option<Vec<u8>> {
-        handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
-
-        let (fb_width, fb_height) = handle_potential_webgl_error!(
-            self,
-            self.get_current_framebuffer_size().ok_or(InvalidOperation),
-            return None
-        );
-        size.width = cmp::min(size.width, fb_width as u32);
-        size.height = cmp::min(size.height, fb_height as u32);
-
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::ReadPixels(
-            Rect::from_size(size),
-            constants::RGBA,
-            constants::UNSIGNED_BYTE,
-            sender,
-        ));
-        Some(receiver.recv().unwrap())
-    }
-
-    pub fn array_buffer(&self) -> Option<DomRoot<WebGLBuffer>> {
+    pub(crate) fn array_buffer(&self) -> Option<DomRoot<WebGLBuffer>> {
         self.bound_buffer_array.get()
     }
 
-    pub fn array_buffer_slot(&self) -> &MutNullableDom<WebGLBuffer> {
+    pub(crate) fn array_buffer_slot(&self) -> &MutNullableDom<WebGLBuffer> {
         &self.bound_buffer_array
     }
 
-    pub fn bound_buffer(&self, target: u32) -> WebGLResult<Option<DomRoot<WebGLBuffer>>> {
+    pub(crate) fn bound_buffer(&self, target: u32) -> WebGLResult<Option<DomRoot<WebGLBuffer>>> {
         match target {
             constants::ARRAY_BUFFER => Ok(self.bound_buffer_array.get()),
             constants::ELEMENT_ARRAY_BUFFER => Ok(self.current_vao().element_array_buffer().get()),
@@ -1175,32 +1067,32 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn buffer_usage(&self, usage: u32) -> WebGLResult<u32> {
+    pub(crate) fn buffer_usage(&self, usage: u32) -> WebGLResult<u32> {
         match usage {
             constants::STREAM_DRAW | constants::STATIC_DRAW | constants::DYNAMIC_DRAW => Ok(usage),
             _ => Err(WebGLError::InvalidEnum),
         }
     }
 
-    pub fn create_vertex_array(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
+    pub(crate) fn create_vertex_array(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::CreateVertexArray(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLVertexArrayObjectOES::new(self, Some(id)))
+            .map(|id| WebGLVertexArrayObjectOES::new(self, Some(id), CanGc::note()))
     }
 
-    pub fn create_vertex_array_webgl2(&self) -> Option<DomRoot<WebGLVertexArrayObject>> {
+    pub(crate) fn create_vertex_array_webgl2(&self) -> Option<DomRoot<WebGLVertexArrayObject>> {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::CreateVertexArray(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLVertexArrayObject::new(self, Some(id)))
+            .map(|id| WebGLVertexArrayObject::new(self, Some(id), CanGc::note()))
     }
 
-    pub fn delete_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
+    pub(crate) fn delete_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
         if let Some(vao) = vao {
             handle_potential_webgl_error!(self, self.validate_ownership(vao), return);
             // The default vertex array has no id and should never be passed around.
@@ -1218,7 +1110,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn delete_vertex_array_webgl2(&self, vao: Option<&WebGLVertexArrayObject>) {
+    pub(crate) fn delete_vertex_array_webgl2(&self, vao: Option<&WebGLVertexArrayObject>) {
         if let Some(vao) = vao {
             handle_potential_webgl_error!(self, self.validate_ownership(vao), return);
             // The default vertex array has no id and should never be passed around.
@@ -1236,7 +1128,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn is_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) -> bool {
+    pub(crate) fn is_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) -> bool {
         vao.is_some_and(|vao| {
             // The default vertex array has no id and should never be passed around.
             assert!(vao.id().is_some());
@@ -1244,7 +1136,7 @@ impl WebGLRenderingContext {
         })
     }
 
-    pub fn is_vertex_array_webgl2(&self, vao: Option<&WebGLVertexArrayObject>) -> bool {
+    pub(crate) fn is_vertex_array_webgl2(&self, vao: Option<&WebGLVertexArrayObject>) -> bool {
         vao.is_some_and(|vao| {
             // The default vertex array has no id and should never be passed around.
             assert!(vao.id().is_some());
@@ -1252,7 +1144,7 @@ impl WebGLRenderingContext {
         })
     }
 
-    pub fn bind_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
+    pub(crate) fn bind_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
         if let Some(vao) = vao {
             // The default vertex array has no id and should never be passed around.
             assert!(vao.id().is_some());
@@ -1268,7 +1160,7 @@ impl WebGLRenderingContext {
         self.current_vao.set(vao);
     }
 
-    pub fn bind_vertex_array_webgl2(&self, vao: Option<&WebGLVertexArrayObject>) {
+    pub(crate) fn bind_vertex_array_webgl2(&self, vao: Option<&WebGLVertexArrayObject>) {
         if let Some(vao) = vao {
             // The default vertex array has no id and should never be passed around.
             assert!(vao.id().is_some());
@@ -1298,7 +1190,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn initialize_framebuffer(&self, clear_bits: u32) {
+    pub(crate) fn initialize_framebuffer(&self, clear_bits: u32) {
         if clear_bits == 0 {
             return;
         }
@@ -1309,12 +1201,12 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn extension_manager(&self) -> &WebGLExtensions {
+    pub(crate) fn extension_manager(&self) -> &WebGLExtensions {
         &self.extension_manager
     }
 
     #[allow(unsafe_code)]
-    pub fn buffer_data(
+    pub(crate) fn buffer_data(
         &self,
         target: u32,
         data: Option<ArrayBufferViewOrArrayBuffer>,
@@ -1335,7 +1227,7 @@ impl WebGLRenderingContext {
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
     }
 
-    pub fn buffer_data_(
+    pub(crate) fn buffer_data_(
         &self,
         target: u32,
         size: i64,
@@ -1356,7 +1248,7 @@ impl WebGLRenderingContext {
     }
 
     #[allow(unsafe_code)]
-    pub fn buffer_sub_data(
+    pub(crate) fn buffer_sub_data(
         &self,
         target: u32,
         offset: i64,
@@ -1389,7 +1281,7 @@ impl WebGLRenderingContext {
         sender.send(data).unwrap();
     }
 
-    pub fn bind_buffer_maybe(
+    pub(crate) fn bind_buffer_maybe(
         &self,
         slot: &MutNullableDom<WebGLBuffer>,
         target: u32,
@@ -1413,11 +1305,11 @@ impl WebGLRenderingContext {
         slot.set(buffer);
     }
 
-    pub fn current_program(&self) -> Option<DomRoot<WebGLProgram>> {
+    pub(crate) fn current_program(&self) -> Option<DomRoot<WebGLProgram>> {
         self.current_program.get()
     }
 
-    pub fn uniform_check_program(
+    pub(crate) fn uniform_check_program(
         &self,
         program: &WebGLProgram,
         location: &WebGLUniformLocation,
@@ -1466,7 +1358,7 @@ impl WebGLRenderingContext {
         self.uniform_vec_section::<f32>(vec, offset, length, uniform_size, uniform_location)
     }
 
-    pub fn uniform_vec_section<T: Clone>(
+    pub(crate) fn uniform_vec_section<T: Clone>(
         &self,
         vec: Vec<T>,
         offset: u32,
@@ -1504,7 +1396,7 @@ impl WebGLRenderingContext {
         Ok(vec)
     }
 
-    pub fn uniform_matrix_section(
+    pub(crate) fn uniform_matrix_section(
         &self,
         vec: Float32ArrayOrUnrestrictedFloatSequence,
         offset: u32,
@@ -1523,15 +1415,15 @@ impl WebGLRenderingContext {
         self.uniform_vec_section::<f32>(vec, offset, length, uniform_size, uniform_location)
     }
 
-    pub fn get_draw_framebuffer_slot(&self) -> &MutNullableDom<WebGLFramebuffer> {
+    pub(crate) fn get_draw_framebuffer_slot(&self) -> &MutNullableDom<WebGLFramebuffer> {
         &self.bound_draw_framebuffer
     }
 
-    pub fn get_read_framebuffer_slot(&self) -> &MutNullableDom<WebGLFramebuffer> {
+    pub(crate) fn get_read_framebuffer_slot(&self) -> &MutNullableDom<WebGLFramebuffer> {
         &self.bound_read_framebuffer
     }
 
-    pub fn validate_new_framebuffer_binding(
+    pub(crate) fn validate_new_framebuffer_binding(
         &self,
         framebuffer: Option<&WebGLFramebuffer>,
     ) -> WebGLResult<()> {
@@ -1549,7 +1441,7 @@ impl WebGLRenderingContext {
         Ok(())
     }
 
-    pub fn bind_framebuffer_to(
+    pub(crate) fn bind_framebuffer_to(
         &self,
         target: u32,
         framebuffer: Option<&WebGLFramebuffer>,
@@ -1567,7 +1459,7 @@ impl WebGLRenderingContext {
         slot.set(framebuffer);
     }
 
-    pub fn renderbuffer_storage(
+    pub(crate) fn renderbuffer_storage(
         &self,
         target: u32,
         samples: i32,
@@ -1601,13 +1493,13 @@ impl WebGLRenderingContext {
         // FIXME: https://github.com/servo/servo/issues/13710
     }
 
-    pub fn valid_color_attachment_enum(&self, attachment: u32) -> bool {
+    pub(crate) fn valid_color_attachment_enum(&self, attachment: u32) -> bool {
         let last_slot = constants::COLOR_ATTACHMENT0 + self.limits().max_color_attachments - 1;
         constants::COLOR_ATTACHMENT0 <= attachment && attachment <= last_slot
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn compressed_tex_image_2d(
+    pub(crate) fn compressed_tex_image_2d(
         &self,
         target: u32,
         level: i32,
@@ -1675,7 +1567,7 @@ impl WebGLRenderingContext {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn compressed_tex_sub_image_2d(
+    pub(crate) fn compressed_tex_sub_image_2d(
         &self,
         target: u32,
         level: i32,
@@ -1724,7 +1616,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn uniform1iv(
+    pub(crate) fn uniform1iv(
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Int32ArrayOrLongSequence,
@@ -1760,7 +1652,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn uniform1fv(
+    pub(crate) fn uniform1fv(
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Float32ArrayOrUnrestrictedFloatSequence,
@@ -1778,7 +1670,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn uniform2fv(
+    pub(crate) fn uniform2fv(
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Float32ArrayOrUnrestrictedFloatSequence,
@@ -1796,7 +1688,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn uniform2iv(
+    pub(crate) fn uniform2iv(
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Int32ArrayOrLongSequence,
@@ -1814,7 +1706,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn uniform3fv(
+    pub(crate) fn uniform3fv(
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Float32ArrayOrUnrestrictedFloatSequence,
@@ -1832,7 +1724,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn uniform3iv(
+    pub(crate) fn uniform3iv(
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Int32ArrayOrLongSequence,
@@ -1850,7 +1742,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn uniform4iv(
+    pub(crate) fn uniform4iv(
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Int32ArrayOrLongSequence,
@@ -1868,7 +1760,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn uniform4fv(
+    pub(crate) fn uniform4fv(
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Float32ArrayOrUnrestrictedFloatSequence,
@@ -1886,7 +1778,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn uniform_matrix_2fv(
+    pub(crate) fn uniform_matrix_2fv(
         &self,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
@@ -1906,7 +1798,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn uniform_matrix_3fv(
+    pub(crate) fn uniform_matrix_3fv(
         &self,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
@@ -1926,7 +1818,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn uniform_matrix_4fv(
+    pub(crate) fn uniform_matrix_4fv(
         &self,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
@@ -1946,7 +1838,7 @@ impl WebGLRenderingContext {
         });
     }
 
-    pub fn get_buffer_param(
+    pub(crate) fn get_buffer_param(
         &self,
         buffer: Option<DomRoot<WebGLBuffer>>,
         parameter: u32,
@@ -1969,15 +1861,131 @@ impl WebGLRenderingContext {
     }
 }
 
+impl CanvasContext for WebGLRenderingContext {
+    type ID = WebGLContextId;
+
+    fn context_id(&self) -> Self::ID {
+        self.webgl_sender.context_id()
+    }
+
+    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+        self.canvas.clone()
+    }
+
+    fn resize(&self) {
+        let size = self.size().cast();
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.webgl_sender.send_resize(size, sender).unwrap();
+        // FIXME(#21718) The backend is allowed to choose a size smaller than
+        // what was requested
+        self.size.set(size);
+
+        if let Err(msg) = receiver.recv().unwrap() {
+            error!("Error resizing WebGLContext: {}", msg);
+            return;
+        };
+
+        // ClearColor needs to be restored because after a resize the GLContext is recreated
+        // and the framebuffer is cleared using the default black transparent color.
+        let color = self.current_clear_color.get();
+        self.send_command(WebGLCommand::ClearColor(color.0, color.1, color.2, color.3));
+
+        // WebGL Spec: Scissor rect must not change if the canvas is resized.
+        // See: webgl/conformance-1.0.3/conformance/rendering/gl-scissor-canvas-dimensions.html
+        // NativeContext handling library changes the scissor after a resize, so we need to reset the
+        // default scissor when the canvas was created or the last scissor that the user set.
+        let rect = self.current_scissor.get();
+        self.send_command(WebGLCommand::Scissor(rect.0, rect.1, rect.2, rect.3));
+
+        // Bound texture must not change when the canvas is resized.
+        // Right now surfman generates a new FBO and the bound texture is changed
+        // in order to create a new render to texture attachment.
+        // Send a command to re-bind the TEXTURE_2D, if any.
+        if let Some(texture) = self
+            .textures
+            .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
+            .unwrap()
+            .get()
+        {
+            self.send_command(WebGLCommand::BindTexture(
+                constants::TEXTURE_2D,
+                Some(texture.id()),
+            ));
+        }
+
+        // Bound framebuffer must not change when the canvas is resized.
+        // Right now surfman generates a new FBO on resize.
+        // Send a command to re-bind the framebuffer, if any.
+        if let Some(fbo) = self.bound_draw_framebuffer.get() {
+            let id = WebGLFramebufferBindingRequest::Explicit(fbo.id());
+            self.send_command(WebGLCommand::BindFramebuffer(constants::FRAMEBUFFER, id));
+        }
+    }
+
+    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
+        // TODO: add a method in WebGLRenderingContext to get the pixels.
+        None
+    }
+
+    // Used by HTMLCanvasElement.toDataURL
+    //
+    // This emits errors quite liberally, but the spec says that this operation
+    // can fail and that it is UB what happens in that case.
+    //
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
+    fn get_image_data(&self) -> Option<Vec<u8>> {
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
+        let mut size = self.size().cast();
+
+        let (fb_width, fb_height) = handle_potential_webgl_error!(
+            self,
+            self.get_current_framebuffer_size().ok_or(InvalidOperation),
+            return None
+        );
+        size.width = cmp::min(size.width, fb_width as u32);
+        size.height = cmp::min(size.height, fb_height as u32);
+
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        self.send_command(WebGLCommand::ReadPixels(
+            Rect::from_size(size),
+            constants::RGBA,
+            constants::UNSIGNED_BYTE,
+            sender,
+        ));
+        Some(receiver.recv().unwrap())
+    }
+
+    fn mark_as_dirty(&self) {
+        // If we have a bound framebuffer, then don't mark the canvas as dirty.
+        if self.bound_draw_framebuffer.get().is_some() {
+            return;
+        }
+
+        // Dirtying the canvas is unnecessary if we're actively displaying immersive
+        // XR content right now.
+        if self.global().as_window().in_immersive_xr_session() {
+            return;
+        }
+
+        match self.canvas {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+                canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                canvas.owner_document().add_dirty_webgl_canvas(self);
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(_) => {},
+        }
+    }
+}
+
 #[cfg(not(feature = "webgl_backtrace"))]
 #[inline]
-pub fn capture_webgl_backtrace<T: DomObject>(_: &T) -> WebGLCommandBacktrace {
+pub(crate) fn capture_webgl_backtrace<T: DomObject>(_: &T) -> WebGLCommandBacktrace {
     WebGLCommandBacktrace {}
 }
 
 #[cfg(feature = "webgl_backtrace")]
 #[cfg_attr(feature = "webgl_backtrace", allow(unsafe_code))]
-pub fn capture_webgl_backtrace<T: DomObject>(obj: &T) -> WebGLCommandBacktrace {
+pub(crate) fn capture_webgl_backtrace<T: DomObject>(obj: &T) -> WebGLCommandBacktrace {
     let bt = Backtrace::new();
     unsafe {
         capture_stack!(in(*obj.global().get_cx()) let stack);
@@ -2934,12 +2942,12 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn CreateBuffer(&self) -> Option<DomRoot<WebGLBuffer>> {
-        WebGLBuffer::maybe_new(self)
+        WebGLBuffer::maybe_new(self, CanGc::note())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn CreateFramebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
-        WebGLFramebuffer::maybe_new(self)
+        WebGLFramebuffer::maybe_new(self, CanGc::note())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
@@ -2954,7 +2962,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CreateProgram(&self) -> Option<DomRoot<WebGLProgram>> {
-        WebGLProgram::maybe_new(self)
+        WebGLProgram::maybe_new(self, CanGc::note())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -3128,7 +3136,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         index: u32,
     ) -> Option<DomRoot<WebGLActiveInfo>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
-        match program.get_active_uniform(index) {
+        match program.get_active_uniform(index, CanGc::note()) {
             Ok(ret) => Some(ret),
             Err(e) => {
                 self.webgl_error(e);
@@ -3144,7 +3152,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         index: u32,
     ) -> Option<DomRoot<WebGLActiveInfo>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
-        handle_potential_webgl_error!(self, program.get_active_attrib(index).map(Some), None)
+        handle_potential_webgl_error!(
+            self,
+            program.get_active_attrib(index, CanGc::note()).map(Some),
+            None
+        )
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3452,6 +3464,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             range_min,
             range_max,
             precision,
+            CanGc::note(),
         ))
     }
 
@@ -3462,7 +3475,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         name: DOMString,
     ) -> Option<DomRoot<WebGLUniformLocation>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
-        handle_potential_webgl_error!(self, program.get_uniform_location(name), None)
+        handle_potential_webgl_error!(
+            self,
+            program.get_uniform_location(name, CanGc::note()),
+            None
+        )
     }
 
     #[allow(unsafe_code)]
@@ -3535,7 +3552,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 constants::VERTEX_ATTRIB_ARRAY_STRIDE => retval.set(Int32Value(data.stride as i32)),
                 constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => unsafe {
                     if let Some(buffer) = data.buffer() {
-                        buffer.to_jsval(*cx, retval);
+                        buffer.to_jsval(*cx, retval.reborrow());
                     } else {
                         retval.set(NullValue());
                     }
@@ -4800,7 +4817,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     fn MakeXRCompatible(&self, can_gc: CanGc) -> Rc<Promise> {
         // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
         let p = Promise::new(&self.global(), can_gc);
-        p.resolve_native(&());
+        p.resolve_native(&(), can_gc);
         p
     }
 }
@@ -4848,7 +4865,7 @@ macro_rules! capabilities {
     };
     ($prev:ident, [$($name:ident = $value:expr;)*]) => {
         #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-        pub struct CapFlags(u16);
+        pub(crate) struct CapFlags(u16);
 
         bitflags! {
             impl CapFlags: u16 {
@@ -4879,9 +4896,9 @@ capabilities! {
     STENCIL_TEST,
 }
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct Textures {
+pub(crate) struct Textures {
     active_unit: Cell<u32>,
     units: Box<[TextureUnit]>,
 }
@@ -4897,7 +4914,7 @@ impl Textures {
         }
     }
 
-    pub fn active_unit_enum(&self) -> u32 {
+    pub(crate) fn active_unit_enum(&self) -> u32 {
         self.active_unit.get() + constants::TEXTURE0
     }
 
@@ -4910,7 +4927,7 @@ impl Textures {
         Ok(())
     }
 
-    pub fn active_texture_slot(
+    pub(crate) fn active_texture_slot(
         &self,
         target: u32,
         webgl_version: WebGLVersion,
@@ -4928,7 +4945,7 @@ impl Textures {
         }
     }
 
-    pub fn active_texture_for_image_target(
+    pub(crate) fn active_texture_for_image_target(
         &self,
         target: TexImageTarget,
     ) -> Option<DomRoot<WebGLTexture>> {
@@ -4959,7 +4976,7 @@ impl Textures {
     }
 }
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Default, JSTraceable, MallocSizeOf)]
 struct TextureUnit {
     tex_2d: MutNullableDom<WebGLTexture>,
@@ -4989,7 +5006,7 @@ impl TextureUnit {
     }
 }
 
-pub struct TexPixels {
+pub(crate) struct TexPixels {
     data: IpcSharedMemory,
     size: Size2D<u32>,
     pixel_format: Option<PixelFormat>,
@@ -5011,7 +5028,7 @@ impl TexPixels {
         }
     }
 
-    pub fn from_array(data: IpcSharedMemory, size: Size2D<u32>) -> Self {
+    pub(crate) fn from_array(data: IpcSharedMemory, size: Size2D<u32>) -> Self {
         Self {
             data,
             size,
@@ -5020,28 +5037,28 @@ impl TexPixels {
         }
     }
 
-    pub fn size(&self) -> Size2D<u32> {
+    pub(crate) fn size(&self) -> Size2D<u32> {
         self.size
     }
 }
 
-pub enum TexSource {
+pub(crate) enum TexSource {
     Pixels(TexPixels),
     BufferOffset(i64),
 }
 
 #[derive(JSTraceable)]
-pub struct WebGLCommandSender {
+pub(crate) struct WebGLCommandSender {
     #[no_trace]
     sender: WebGLChan,
 }
 
 impl WebGLCommandSender {
-    pub fn new(sender: WebGLChan) -> WebGLCommandSender {
+    pub(crate) fn new(sender: WebGLChan) -> WebGLCommandSender {
         WebGLCommandSender { sender }
     }
 
-    pub fn send(&self, msg: WebGLMsg) -> WebGLSendResult {
+    pub(crate) fn send(&self, msg: WebGLMsg) -> WebGLSendResult {
         self.sender.send(msg)
     }
 }
@@ -5061,19 +5078,23 @@ impl Clone for WebGLMessageSender {
 }
 
 impl WebGLMessageSender {
-    pub fn new(sender: WebGLMsgSender) -> WebGLMessageSender {
+    pub(crate) fn new(sender: WebGLMsgSender) -> WebGLMessageSender {
         WebGLMessageSender { sender }
     }
 
-    pub fn context_id(&self) -> WebGLContextId {
+    pub(crate) fn context_id(&self) -> WebGLContextId {
         self.sender.context_id()
     }
 
-    pub fn send(&self, msg: WebGLCommand, backtrace: WebGLCommandBacktrace) -> WebGLSendResult {
+    pub(crate) fn send(
+        &self,
+        msg: WebGLCommand,
+        backtrace: WebGLCommandBacktrace,
+    ) -> WebGLSendResult {
         self.sender.send(msg, backtrace)
     }
 
-    pub fn send_resize(
+    pub(crate) fn send_resize(
         &self,
         size: Size2D<u32>,
         sender: WebGLSender<Result<(), String>>,
@@ -5081,7 +5102,7 @@ impl WebGLMessageSender {
         self.sender.send_resize(size, sender)
     }
 
-    pub fn send_remove(&self) -> WebGLSendResult {
+    pub(crate) fn send_remove(&self) -> WebGLSendResult {
         self.sender.send_remove()
     }
 }

@@ -8,6 +8,7 @@
 
 use crossbeam_channel::Sender;
 use euclid::default::Size2D;
+use webrender_api::ImageKey;
 
 use crate::canvas::CanvasId;
 
@@ -17,9 +18,8 @@ pub mod webgl;
 
 pub enum ConstellationCanvasMsg {
     Create {
-        id_sender: Sender<CanvasId>,
+        sender: Sender<(CanvasId, ImageKey)>,
         size: Size2D<u64>,
-        antialias: bool,
     },
     Exit,
 }

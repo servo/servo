@@ -5,9 +5,25 @@ async function postAll(data) {
   }
 }
 
+function getJSON(data) {
+  const result = {};
+  try {
+    result.value = data.json();
+    result.ok = true;
+  } catch (e) {
+    result.ok = false;
+  }
+  return result;
+}
+
 onpush = async ev => {
   postAll({
     constructor: ev.constructor.name,
-    data: ev.data ? new Uint8Array(await ev.data.arrayBuffer()) : null, // .bytes() is Firefox only as of 2024-10
+    data: ev.data && {
+      text: ev.data.text(),
+      arrayBuffer: ev.data.arrayBuffer(),
+      json: getJSON(ev.data),
+      blob: ev.data.blob(),
+    },
   })
 }

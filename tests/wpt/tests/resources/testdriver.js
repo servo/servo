@@ -3,6 +3,26 @@
     var idCounter = 0;
     let testharness_context = null;
 
+    const features = (() => {
+        function getFeatures(scriptSrc) {
+            try {
+                const url = new URL(scriptSrc);
+                return url.searchParams.getAll('feature');
+            } catch (e) {
+                return [];
+            }
+        }
+
+        return getFeatures(document?.currentScript?.src ?? '');
+    })();
+
+    function assertBidiIsEnabled(){
+        if (!features.includes('bidi')) {
+            throw new Error(
+                "`?feature=bidi` is missing when importing testdriver.js but the test is using WebDriver BiDi APIs");
+        }
+    }
+
     function getInViewCenterPoint(rect) {
         var left = Math.max(0, rect.left);
         var right = Math.min(window.innerWidth, rect.right);
@@ -63,6 +83,42 @@
              */
             bluetooth: {
                 /**
+                 * Handle a bluetooth device prompt with the given params. Matches the
+                 * `bluetooth.handleRequestDevicePrompt
+                 * <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-handlerequestdeviceprompt-command>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.bluetooth.handleRequestDevicePrompt({
+                 *     prompt: "pmt-e0a234b",
+                 *     accept: true,
+                 *     device: "dvc-9b3b872"
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {string} params.prompt - The id of a bluetooth device prompt.
+                 * Matches the
+                 * `bluetooth.HandleRequestDevicePromptParameters:prompt <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-handlerequestdeviceprompt-command>`_
+                 * value.
+                 * @param {bool} params.accept - Whether to accept a bluetooth device prompt.
+                 * Matches the
+                 * `bluetooth.HandleRequestDevicePromptAcceptParameters:accept <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-handlerequestdeviceprompt-command>`_
+                 * value.
+                 * @param {string} params.device - The device id from a bluetooth device
+                 * prompt to be accepted. Matches the
+                 * `bluetooth.HandleRequestDevicePromptAcceptParameters:device <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-handlerequestdeviceprompt-command>`_
+                 * value.
+                 * @param {Context} [params.context] The optional context parameter specifies in
+                 * which browsing context the bluetooth device prompt should be handled. If not
+                 * provided, the current browsing context is used.
+                 * @returns {Promise} fulfilled after the bluetooth device prompt
+                 * is handled, or rejected if the operation fails.
+                 */
+                handle_request_device_prompt: function(params) {
+                    return window.test_driver_internal.bidi.bluetooth
+                        .handle_request_device_prompt(params);
+                },
+                /**
                  * Creates a simulated bluetooth adapter with the given params. Matches the
                  * `bluetooth.simulateAdapter <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateAdapter-command>`_
                  * WebDriver BiDi command.
@@ -85,6 +141,116 @@
                  */
                 simulate_adapter: function (params) {
                     return window.test_driver_internal.bidi.bluetooth.simulate_adapter(params);
+                },
+                /**
+                 * Creates a simulated bluetooth peripheral with the given params.
+                 * Matches the
+                 * `bluetooth.simulatePreconnectedPeripheral <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateconnectedperipheral-command>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.bluetooth.simulatePreconnectedPeripheral({
+                 *     "address": "09:09:09:09:09:09",
+                 *     "name": "Some Device",
+                 *     "manufacturerData": [{key: 17, data: "AP8BAX8="}],
+                 *     "knownServiceUuids": [
+                 *          "12345678-1234-5678-9abc-def123456789",
+                 *     ],
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {string} params.address - The address of the simulated
+                 * bluetooth peripheral. Matches the
+                 * `bluetooth.SimulatePreconnectedPeripheralParameters:address <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateconnectedperipheral-command>`_
+                 * value.
+                 * @param {string} params.name - The name of the simulated bluetooth
+                 * peripheral. Matches the
+                 * `bluetooth.SimulatePreconnectedPeripheralParameters:name <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateconnectedperipheral-command>`_
+                 * value.
+                 * @param {Array.ManufacturerData} params.manufacturerData - The manufacturerData of the
+                 * simulated bluetooth peripheral. Matches the
+                 * `bluetooth.SimulatePreconnectedPeripheralParameters:manufacturerData <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateconnectedperipheral-command>`_
+                 * value.
+                 * @param {string} params.knownServiceUuids - The knownServiceUuids of
+                 * the simulated bluetooth peripheral. Matches the
+                 * `bluetooth.SimulatePreconnectedPeripheralParameters:knownServiceUuids <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-simulateconnectedperipheral-command>`_
+                 * value.
+                 * @param {Context} [params.context] The optional context parameter
+                 * specifies in which browsing context the simulated bluetooth peripheral should be
+                 * set. If not provided, the current browsing context is used.
+                 * @returns {Promise} fulfilled after the simulated bluetooth peripheral is created
+                 * and set, or rejected if the operation fails.
+                 */
+                simulate_preconnected_peripheral: function(params) {
+                    return window.test_driver_internal.bidi.bluetooth
+                        .simulate_preconnected_peripheral(params);
+                },
+                /**
+                 * `bluetooth.RequestDevicePromptUpdatedParameters <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-requestdevicepromptupdated-event>`_
+                 * event.
+                 */
+                request_device_prompt_updated: {
+                    /**
+                     * @typedef {object} RequestDevicePromptUpdated
+                     * `bluetooth.RequestDevicePromptUpdatedParameters <https://webbluetoothcg.github.io/web-bluetooth/#bluetooth-requestdevicepromptupdated-event>`_
+                     * event.
+                     */
+
+                    /**
+                     * Subscribes to the event. Events will be emitted only if
+                     * there is a subscription for the event. This method does
+                     * not add actual listeners. To listen to the event, use the
+                     * `on` or `once` methods. The buffered events will be
+                     * emitted before the command promise is resolved.
+                     *
+                     * @param {object} [params] Parameters for the subscription.
+                     * @param {null|Array.<(Context)>} [params.contexts] The
+                     * optional contexts parameter specifies which browsing
+                     * contexts to subscribe to the event on. It should be
+                     * either an array of Context objects, or null. If null, the
+                     * event will be subscribed to globally. If omitted, the
+                     * event will be subscribed to on the current browsing
+                     * context.
+                     * @returns {Promise<void>} Resolves when the subscription
+                     * is successfully done.
+                     */
+                    subscribe: async function(params = {}) {
+                        assertBidiIsEnabled();
+                        return window.test_driver_internal.bidi.bluetooth
+                            .request_device_prompt_updated.subscribe(params);
+                    },
+                    /**
+                     * Adds an event listener for the event.
+                     *
+                     * @param {function(RequestDevicePromptUpdated): void} callback The
+                     * callback to be called when the event is emitted. The
+                     * callback is called with the event object as a parameter.
+                     * @returns {function(): void} A function that removes the
+                     * added event listener when called.
+                     */
+                    on: function(callback) {
+                        assertBidiIsEnabled();
+                        return window.test_driver_internal.bidi.bluetooth
+                            .request_device_prompt_updated.on(callback);
+                    },
+                    /**
+                     * Adds an event listener for the event that is only called
+                     * once and removed afterward.
+                     *
+                     * @return {Promise<RequestDevicePromptUpdated>} The promise which
+                     * is resolved with the event object when the event is emitted.
+                     */
+                    once: function() {
+                        assertBidiIsEnabled();
+                        return new Promise(resolve => {
+                            const remove_handler =
+                                window.test_driver_internal.bidi.bluetooth
+                                    .request_device_prompt_updated.on(event => {
+                                    resolve(event);
+                                    remove_handler();
+                                });
+                        });
+                    },
                 }
             },
             /**
@@ -115,6 +281,7 @@
                      * is successfully done.
                      */
                     subscribe: async function (params = {}) {
+                        assertBidiIsEnabled();
                         return window.test_driver_internal.bidi.log.entry_added.subscribe(params);
                     },
                     /**
@@ -127,6 +294,7 @@
                      * added event listener when called.
                      */
                     on: function (callback) {
+                        assertBidiIsEnabled();
                         return window.test_driver_internal.bidi.log.entry_added.on(callback);
                     },
                     /**
@@ -137,6 +305,7 @@
                      * with the event object when the event is emitted.
                      */
                     once: function () {
+                        assertBidiIsEnabled();
                         return new Promise(resolve => {
                             const remove_handler = window.test_driver_internal.bidi.log.entry_added.on(
                                 event => {
@@ -181,6 +350,7 @@
                  *                    the permission fails.
                  */
                 set_permission: function (params) {
+                    assertBidiIsEnabled();
                     return window.test_driver_internal.bidi.permissions.set_permission(
                         params);
                 }
@@ -250,8 +420,8 @@
             let wait_click = new Promise(resolve => button.addEventListener("click", resolve));
 
             return test_driver.click(button)
-                .then(wait_click)
-                .then(function() {
+                .then(() => wait_click)
+                .then(() => {
                     button.remove();
 
                     if (typeof action === "function") {
@@ -1258,7 +1428,7 @@
          * Causes a virtual pressure source to report a new reading.
          *
          * Matches the `Update virtual pressure source
-         * <https://w3c.github.io/compute-pressure/#update-virtual-pressure-source>`_
+         * <https://w3c.github.io/compute-pressure/?experimental=1#update-virtual-pressure-source>`_
          * WebDriver command.
          *
          * @param {String} source_type - A `virtual pressure source type
@@ -1267,6 +1437,8 @@
          * @param {String} sample - A `virtual pressure state
          *                          <https://w3c.github.io/compute-pressure/#dom-pressurestate>`_
          *                          such as "critical".
+         * @param {number} own_contribution_estimate - Optional, A `virtual own contribution estimate`
+         *                          <https://w3c.github.io/compute-pressure/?experimental=1#the-owncontributionestimate-attribute>`_
          * @param {WindowProxy} [context=null] - Browsing context in which to
          *                                       run the call, or null for the
          *                                       current browsing context.
@@ -1277,8 +1449,8 @@
          *                    virtual pressure source of the given type does not
          *                    exist).
          */
-        update_virtual_pressure_source: function(source_type, sample, context=null) {
-            return window.test_driver_internal.update_virtual_pressure_source(source_type, sample, context);
+        update_virtual_pressure_source: function(source_type, sample, own_contribution_estimate, context=null) {
+            return window.test_driver_internal.update_virtual_pressure_source(source_type, sample, own_contribution_estimate, context);
         },
 
         /**
@@ -1302,6 +1474,29 @@
          */
         remove_virtual_pressure_source: function(source_type, context=null) {
             return window.test_driver_internal.remove_virtual_pressure_source(source_type, context);
+        },
+
+        /**
+         * Sets which hashes are considered k-anonymous for the Protected
+         * Audience interest group with specified `owner` and `name`.
+         *
+         * Matches the `Set Protected Audience K-Anonymity
+         * <https://wicg.github.io/turtledove/#sctn-automation-set-protected-audience-k-anonymity>
+         * WebDriver command.
+         *
+         *  @param {String} owner - Origin of the owner of the interest group
+         *                          to modify
+         *  @param {String} name -  Name of the interest group to modify
+         *  @param {Array} hashes - An array of strings, each of which is a
+         *                          base64 ecoded hash to consider k-anonymous.
+         *
+         *  @returns {Promise} Fulfilled after the k-anonymity status for the
+         *                     specified Protected Audience interest group has
+         *                     been updated.
+         *
+         */
+        set_protected_audience_k_anonymity: function(owner, name, hashes, context = null) {
+            return window.test_driver_internal.set_protected_audience_k_anonymity(owner, name, hashes, context);
         }
     };
 
@@ -1316,9 +1511,27 @@
 
         bidi: {
             bluetooth: {
+                handle_request_device_prompt: function() {
+                    throw new Error(
+                        'bidi.bluetooth.handle_request_device_prompt is not implemented by testdriver-vendor.js');
+                },
                 simulate_adapter: function () {
                     throw new Error(
                         "bidi.bluetooth.simulate_adapter is not implemented by testdriver-vendor.js");
+                },
+                simulate_preconnected_peripheral: function() {
+                    throw new Error(
+                        'bidi.bluetooth.simulate_preconnected_peripheral is not implemented by testdriver-vendor.js');
+                },
+                request_device_prompt_updated: {
+                    async subscribe() {
+                        throw new Error(
+                            'bidi.bluetooth.request_device_prompt_updated.subscribe is not implemented by testdriver-vendor.js');
+                    },
+                    on() {
+                        throw new Error(
+                            'bidi.bluetooth.request_device_prompt_updated.on is not implemented by testdriver-vendor.js');
+                    }
                 }
             },
             log: {
@@ -1535,12 +1748,16 @@
             throw new Error("create_virtual_pressure_source() is not implemented by testdriver-vendor.js");
         },
 
-        async update_virtual_pressure_source(source_type, sample, context=null) {
+        async update_virtual_pressure_source(source_type, sample, own_contribution_estimate, context=null) {
             throw new Error("update_virtual_pressure_source() is not implemented by testdriver-vendor.js");
         },
 
         async remove_virtual_pressure_source(source_type, context=null) {
             throw new Error("remove_virtual_pressure_source() is not implemented by testdriver-vendor.js");
+        },
+
+        async set_protected_audience_k_anonymity(owner, name, hashes, context=null) {
+            throw new Error("set_protected_audience_k_anonymity() is not implemented by testdriver-vendor.js");
         }
     };
 })();

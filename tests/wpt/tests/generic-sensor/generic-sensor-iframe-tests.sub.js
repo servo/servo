@@ -48,6 +48,11 @@ function run_generic_sensor_iframe_tests(sensorData, readingData) {
     }, name, properties);
   }
 
+  promise_setup(async () => {
+    // Ensure window's document starts with focus so that it can receive data.
+    await test_driver.click(document.documentElement);
+  });
+
   sensor_test(async (t, readings) => {
     // This is a specialized EventWatcher that works with a sensor inside a
     // cross-origin iframe. We cannot manipulate the sensor object there

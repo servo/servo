@@ -5,8 +5,8 @@
 use std::borrow::Cow;
 
 use dom_struct::dom_struct;
-use webgpu::wgc::binding_model::BindGroupLayoutDescriptor;
-use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPURequest};
+use webgpu_traits::{WebGPU, WebGPUBindGroupLayout, WebGPURequest};
+use wgpu_core::binding_model::BindGroupLayoutDescriptor;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
@@ -14,15 +14,16 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBindGroupLayoutDescriptor, GPUBindGroupLayoutMethods,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpuconvert::convert_bind_group_layout_entry;
 use crate::dom::webgpu::gpudevice::GPUDevice;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUBindGroupLayout {
+pub(crate) struct GPUBindGroupLayout {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -46,11 +47,12 @@ impl GPUBindGroupLayout {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBindGroupLayout::new_inherited(
@@ -59,19 +61,21 @@ impl GPUBindGroupLayout {
                 label,
             )),
             global,
+            can_gc,
         )
     }
 }
 
 impl GPUBindGroupLayout {
-    pub fn id(&self) -> WebGPUBindGroupLayout {
+    pub(crate) fn id(&self) -> WebGPUBindGroupLayout {
         self.bind_group_layout
     }
 
     /// <https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUBindGroupLayoutDescriptor,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPUBindGroupLayout>> {
         let entries = descriptor
             .entries
@@ -108,6 +112,7 @@ impl GPUBindGroupLayout {
             device.channel().clone(),
             bgl,
             descriptor.parent.label.clone(),
+            can_gc,
         ))
     }
 }

@@ -23,8 +23,15 @@
 <input type="radio" form="after" name="after" id="after2"/>
 <input type="radio" form="after" name="after" id="after3"/>
 <form id="after"></form>
+<input type="radio" name="mix-form" form="mix-form" id="mix-form1">
+<form id="mix-form">
+  <input type="radio" name="mix-form" id="mix-form2"/>
+</form>
+<input type="radio" name="mix-form" form="mix-form" id="mix-form3"><br>
 <input type="radio" name="mix" id="mix1"/>
-<form id="mix"><input type="radio" name="mix" id="mix2"/></form>
+<form id="mix">
+  <input type="radio" name="mix" id="mix2"/>
+</form>
 <input type="radio" name="mix" id="mix3"/>
 <input type="radio" name="doc" id="doc1"/>
 <input type="radio" name="doc" id="doc2"/>
@@ -38,7 +45,7 @@ async function pressRight() {
 }
 
 promise_test(async () => {
-  for (const groupName of ["inside", "before", "after", "mix", "doc"]) {
+  for (const groupName of ["inside", "before", "after", "mix-form", "mix", "doc"]) {
     const firstInGroup = document.querySelector(`input[name="${groupName}"]`);
     const newInput = document.createElement("input");
     newInput.id = groupName + "New";
@@ -50,7 +57,7 @@ promise_test(async () => {
     firstInGroup.after(newInput);
   }
 
-  for (const formId of ["inside", "before", "after", "mix"]) {
+  for (const formId of ["inside", "before", "after", "mix-form", "mix"]) {
     document.forms[formId].elements[0].focus();
     for (const radio of document.forms[formId].elements) {
       assert_equals(radio, document.activeElement, `Navigated to next radio button in form '${formId}'`);

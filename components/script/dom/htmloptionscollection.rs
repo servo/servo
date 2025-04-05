@@ -24,12 +24,12 @@ use crate::dom::element::Element;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{document_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLOptionsCollection {
+pub(crate) struct HTMLOptionsCollection {
     collection: HTMLCollection,
 }
 
@@ -43,20 +43,22 @@ impl HTMLOptionsCollection {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         select: &HTMLSelectElement,
         filter: Box<dyn CollectionFilter + 'static>,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLOptionsCollection> {
         reflect_dom_object(
             Box::new(HTMLOptionsCollection::new_inherited(select, filter)),
             window,
+            can_gc,
         )
     }
 
     fn add_new_elements(&self, count: u32, can_gc: CanGc) -> ErrorResult {
         let root = self.upcast().root_node();
-        let document = document_from_node(&*root);
+        let document = root.owner_document();
 
         for _ in 0..count {
             let element =
@@ -115,7 +117,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
             let node = value.upcast::<Node>();
             let root = self.upcast().root_node();
             if n >= 0 {
-                Node::pre_insert(node, &root, None).map(|_| ())
+                Node::pre_insert(node, &root, None, can_gc).map(|_| ())
             } else {
                 let child = self.upcast().IndexedGetter(index).unwrap();
                 let child_node = child.upcast::<Node>();
@@ -218,7 +220,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
         };
 
         // Step 6
-        Node::pre_insert(node, &parent, reference_node.as_deref()).map(|_| ())
+        Node::pre_insert(node, &parent, reference_node.as_deref(), CanGc::note()).map(|_| ())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove>
@@ -238,11 +240,11 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex>
-    fn SetSelectedIndex(&self, index: i32) {
+    fn SetSelectedIndex(&self, index: i32, can_gc: CanGc) {
         self.upcast()
             .root_node()
             .downcast::<HTMLSelectElement>()
             .expect("HTMLOptionsCollection not rooted on a HTMLSelectElement")
-            .SetSelectedIndex(index)
+            .SetSelectedIndex(index, can_gc)
     }
 }

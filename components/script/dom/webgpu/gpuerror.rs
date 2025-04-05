@@ -4,11 +4,11 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use webgpu::{Error, ErrorFilter};
+use webgpu_traits::{Error, ErrorFilter};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{GPUErrorFilter, GPUErrorMethods};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -16,13 +16,13 @@ use crate::dom::types::{GPUInternalError, GPUOutOfMemoryError, GPUValidationErro
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUError {
+pub(crate) struct GPUError {
     reflector_: Reflector,
     message: DOMString,
 }
 
 impl GPUError {
-    pub fn new_inherited(message: DOMString) -> Self {
+    pub(crate) fn new_inherited(message: DOMString) -> Self {
         Self {
             reflector_: Reflector::new(),
             message,
@@ -30,12 +30,12 @@ impl GPUError {
     }
 
     #[allow(dead_code)]
-    pub fn new(global: &GlobalScope, message: DOMString, can_gc: CanGc) -> DomRoot<Self> {
+    pub(crate) fn new(global: &GlobalScope, message: DOMString, can_gc: CanGc) -> DomRoot<Self> {
         Self::new_with_proto(global, None, message, can_gc)
     }
 
     #[allow(dead_code)]
-    pub fn new_with_proto(
+    pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,
@@ -49,7 +49,7 @@ impl GPUError {
         )
     }
 
-    pub fn from_error(global: &GlobalScope, error: Error, can_gc: CanGc) -> DomRoot<Self> {
+    pub(crate) fn from_error(global: &GlobalScope, error: Error, can_gc: CanGc) -> DomRoot<Self> {
         match error {
             Error::Validation(msg) => DomRoot::upcast(GPUValidationError::new_with_proto(
                 global,
@@ -90,8 +90,12 @@ impl Convert<GPUErrorFilter> for ErrorFilter {
     }
 }
 
-impl GPUErrorFilter {
-    pub fn as_webgpu(&self) -> ErrorFilter {
+pub(crate) trait AsWebGpu {
+    fn as_webgpu(&self) -> ErrorFilter;
+}
+
+impl AsWebGpu for GPUErrorFilter {
+    fn as_webgpu(&self) -> ErrorFilter {
         match self {
             GPUErrorFilter::Validation => ErrorFilter::Validation,
             GPUErrorFilter::Out_of_memory => ErrorFilter::OutOfMemory,

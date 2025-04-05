@@ -1,0 +1,76 @@
+<!doctype HTML>
+<html class="reftest-wait">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test Reference:  The lang attribute.</title>
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    #canvas1 {
+      position: absolute;
+      left: 0px;
+      top: 0px;
+    }
+    #canvas2 {
+      position: absolute;
+      left: 0px;
+      top: 50px;
+    }
+    #canvas3 {
+      position: absolute;
+      left: 0px;
+      top: 100px;
+    }
+    #canvas4 {
+      position: absolute;
+      left: 0px;
+      top: 150px;
+    }
+  </style>
+  <script>
+    function generateReference() {
+      let test_font = new FontFace(
+        // Lato-Medium is a font with language specific ligatures.
+        "Lato-Medium",
+        "url(/fonts/Lato-Medium.ttf)"
+      );
+
+      test_font.load().then((font) => {
+        document.fonts.add(font);
+        var canvas1 = document.getElementById('canvas1');
+        var ctx1 = canvas1.getContext('2d');
+        ctx1.font = '25px Lato-Medium';
+        ctx1.fillText('fi', 60, 30);
+
+        var canvas2 = document.getElementById('canvas2');
+        var ctx2 = canvas2.getContext('2d');
+        ctx2.font = '25px Lato-Medium';
+        ctx2.fillText('fi', 60, 30);
+
+        var canvas3 = document.getElementById('canvas3');
+        var ctx3 = canvas3.getContext('2d');
+        ctx3.font = '25px Lato-Medium';
+        ctx3.fillText('fi', 60, 30);
+
+        var canvas4 = document.getElementById('canvas4');
+        var ctx4 = canvas4.getContext('2d');
+        ctx4.font = '25px Lato-Medium';
+        ctx4.fillText('fi', 60, 30);
+        takeScreenshot();
+      });
+    }
+  </script>
+  <body onload="generateReference()">
+    <canvas id="canvas1" lang="en" width="300" height="50">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+    <canvas id="canvas2" lang="tr" width="300" height="50">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+    <canvas id="canvas3" lang="en" width="300" height="50">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+    <canvas id="canvas4" lang="tr" width="300" height="50">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>

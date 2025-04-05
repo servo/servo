@@ -1,5 +1,5 @@
 // META: title=validation tests for WebNN API prelu operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -77,7 +77,7 @@ const tests = [
   },
   {
     name:
-        '[dequantizeLinear] Throw if the data type of zeroPoint is not int8 or uint8.',
+        '[quantizeLinear] Throw if the data type of zeroPoint is not int8 or uint8.',
     input: {dataType: 'float32', shape: [3, 2, 5]},
     scale: {dataType: 'float32', shape: [5]},
     zeroPoint: {dataType: 'float16', shape: [5]},

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="crbug.com/394980089">
+<style>
+  #scroller { overflow: scroll; scroll-marker-group: after; }
+  #item::scroll-marker { content: "X" }
+</style>
+<div id="scroller">
+  <canvas>
+    <div id="item">You don't see me</div>
+  </canvas>
+</div>

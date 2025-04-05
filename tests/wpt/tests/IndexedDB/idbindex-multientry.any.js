@@ -26,12 +26,12 @@ async_test(t => {
         'index', 'idxkeys', {multiEntry: true});
   };
   open_rq.onsuccess = function(e) {
-    let tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    let tx = db.transaction('store', 'readwrite');
     tx.objectStore('store').put(obj, 1).onsuccess = t.step_func(function(e) {
       assert_equals(e.target.result, 1, 'put\'d key');
     });
     tx.oncomplete = t.step_func(function() {
-      let idx = db.transaction('store', 'readonly', {durability: 'relaxed'})
+      let idx = db.transaction('store', 'readonly')
                     .objectStore('store')
                     .index('index');
       for (let i = 0; i < 1000; i++) {
@@ -63,7 +63,7 @@ async_test(t => {
   };
   open_rq.onsuccess = function(e) {
     let gotten_keys = [];
-    let idx = db.transaction('store', 'readonly', {durability: 'relaxed'})
+    let idx = db.transaction('store', 'readonly')
                   .objectStore('store')
                   .index('actors');
     idx.getKey('Odin').onsuccess = t.step_func(function(e) {

@@ -237,10 +237,10 @@ promise_test(async () => {
 
   let exported_promise = wrapped_export();
   AbeforeB.setB();
-  assert_true(AbeforeB.isAbeforeB());
 
   assert_equals(await exported_promise, 42);
-}, "Do not suspend if the import's return value is not a Promise");
+  assert_true(AbeforeB.isBbeforeA());
+}, "Do suspend even if the import's return value is not a Promise by wrapping it with Promise.resolve");
 
 promise_test(async (t) => {
   let tag = new WebAssembly.Tag({

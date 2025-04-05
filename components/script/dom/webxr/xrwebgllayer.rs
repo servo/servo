@@ -10,6 +10,8 @@ use euclid::{Rect, Size2D};
 use js::rust::HandleObject;
 use webxr_api::{ContextId as WebXRContextId, LayerId, LayerInit, Viewport};
 
+use crate::canvas_context::CanvasContext as _;
+use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
@@ -19,7 +21,7 @@ use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanva
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
@@ -34,21 +36,21 @@ use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
 use crate::script_runtime::CanGc;
 
-impl<'a> From<&'a XRWebGLLayerInit> for LayerInit {
-    fn from(init: &'a XRWebGLLayerInit) -> LayerInit {
+impl Convert<LayerInit> for XRWebGLLayerInit {
+    fn convert(self) -> LayerInit {
         LayerInit::WebGLLayer {
-            alpha: init.alpha,
-            antialias: init.antialias,
-            depth: init.depth,
-            stencil: init.stencil,
-            framebuffer_scale_factor: *init.framebufferScaleFactor as f32,
-            ignore_depth_values: init.ignoreDepthValues,
+            alpha: self.alpha,
+            antialias: self.antialias,
+            depth: self.depth,
+            stencil: self.stencil,
+            framebuffer_scale_factor: *self.framebufferScaleFactor as f32,
+            ignore_depth_values: self.ignoreDepthValues,
         }
     }
 }
 
 #[dom_struct]
-pub struct XRWebGLLayer {
+pub(crate) struct XRWebGLLayer {
     xr_layer: XRLayer,
     antialias: bool,
     depth: bool,
@@ -60,7 +62,7 @@ pub struct XRWebGLLayer {
 }
 
 impl XRWebGLLayer {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         session: &XRSession,
         context: &WebGLRenderingContext,
         init: &XRWebGLLayerInit,
@@ -103,19 +105,19 @@ impl XRWebGLLayer {
         )
     }
 
-    pub fn layer_id(&self) -> Option<LayerId> {
+    pub(crate) fn layer_id(&self) -> Option<LayerId> {
         self.xr_layer.layer_id()
     }
 
-    pub fn context_id(&self) -> WebGLContextId {
+    pub(crate) fn context_id(&self) -> WebGLContextId {
         self.xr_layer.context_id()
     }
 
-    pub fn session(&self) -> &XRSession {
+    pub(crate) fn session(&self) -> &XRSession {
         self.xr_layer.session()
     }
 
-    pub fn size(&self) -> Size2D<u32, Viewport> {
+    pub(crate) fn size(&self) -> Size2D<u32, Viewport> {
         if let Some(framebuffer) = self.framebuffer.as_ref() {
             let size = framebuffer.size().unwrap_or((0, 0));
             Size2D::new(
@@ -145,16 +147,16 @@ impl XRWebGLLayer {
         }
     }
 
-    pub fn begin_frame(&self, frame: &XRFrame) -> Option<()> {
+    pub(crate) fn begin_frame(&self, frame: &XRFrame) -> Option<()> {
         debug!("XRWebGLLayer begin frame");
         let framebuffer = self.framebuffer.as_ref()?;
         let context = framebuffer.upcast::<WebGLObject>().context();
         let sub_images = frame.get_sub_images(self.layer_id()?)?;
         let session = self.session();
         // TODO: Cache this texture
-        let color_texture_id =
-            WebGLTextureId::maybe_new(sub_images.sub_image.as_ref()?.color_texture)?;
-        let color_texture = WebGLTexture::new_webxr(context, color_texture_id, session);
+        let color_texture_id = WebGLTextureId::new(sub_images.sub_image.as_ref()?.color_texture?);
+        let color_texture =
+            WebGLTexture::new_webxr(context, color_texture_id, session, CanGc::note());
         let target = self.texture_target();
 
         // Save the current bindings
@@ -187,9 +189,9 @@ impl XRWebGLLayer {
             .ok()?;
         if let Some(id) = sub_images.sub_image.as_ref()?.depth_stencil_texture {
             // TODO: Cache this texture
-            let depth_stencil_texture_id = WebGLTextureId::maybe_new(id)?;
+            let depth_stencil_texture_id = WebGLTextureId::new(id);
             let depth_stencil_texture =
-                WebGLTexture::new_webxr(context, depth_stencil_texture_id, session);
+                WebGLTexture::new_webxr(context, depth_stencil_texture_id, session, CanGc::note());
             framebuffer
                 .texture2d_even_if_opaque(
                     constants::DEPTH_STENCIL_ATTACHMENT,
@@ -211,7 +213,7 @@ impl XRWebGLLayer {
         Some(())
     }
 
-    pub fn end_frame(&self, _frame: &XRFrame) -> Option<()> {
+    pub(crate) fn end_frame(&self, _frame: &XRFrame) -> Option<()> {
         debug!("XRWebGLLayer end frame");
         // TODO: invalidate the old texture
         let framebuffer = self.framebuffer.as_ref()?;
@@ -264,13 +266,13 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
             let size = session
                 .with_session(|session| session.recommended_framebuffer_resolution())
                 .ok_or(Error::Operation)?;
-            let framebuffer = WebGLFramebuffer::maybe_new_webxr(session, &context, size)
+            let framebuffer = WebGLFramebuffer::maybe_new_webxr(session, &context, size, can_gc)
                 .ok_or(Error::Operation)?;
 
             // Step 9.3. "Allocate and initialize resources compatible with session’s XR device,
             // including GPU accessible memory buffers, as required to support the compositing of layer."
             let context_id = WebXRContextId::from(context.context_id());
-            let layer_init = LayerInit::from(init);
+            let layer_init: LayerInit = init.convert();
             let layer_id = session
                 .with_session(|session| session.create_layer(context_id, layer_init))
                 .map_err(|_| Error::Operation)?;
@@ -362,6 +364,6 @@ impl XRWebGLLayerMethods<crate::DomTypeHolder> for XRWebGLLayer {
         // don't seem to do this for stereoscopic immersive sessions.
         // Revisit if Servo gets support for handheld AR/VR via ARCore/ARKit
 
-        Some(XRViewport::new(&self.global(), viewport))
+        Some(XRViewport::new(&self.global(), viewport, CanGc::note()))
     }
 }

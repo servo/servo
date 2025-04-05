@@ -77,6 +77,7 @@ const cleanup = () => {
 };
 
 promise_test(async t => {
+  await waitForCompositorCommit();
   t.add_cleanup(cleanup);
   scroller.scrollTo(0, 0);
   assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
@@ -117,7 +118,8 @@ promise_test(async t => {
 }, "Keyboard scrolling with vertical snap-area overflow");
 
 promise_test(async t => {
-  scroller.scrollTo(0, 0);
+  await waitForScrollReset(t, scroller);
+  await waitForCompositorCommit();
   assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
 
   // Ensure we can freely scroll in an oversized element.

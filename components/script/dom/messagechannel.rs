@@ -6,14 +6,14 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::MessageChannelBinding::MessageChannelMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct MessageChannel {
+pub(crate) struct MessageChannel {
     reflector_: Reflector,
     port1: Dom<MessagePort>,
     port2: Dom<MessagePort>,
@@ -27,10 +27,10 @@ impl MessageChannel {
         can_gc: CanGc,
     ) -> DomRoot<MessageChannel> {
         // Step 1
-        let port1 = MessagePort::new(incumbent);
+        let port1 = MessagePort::new(incumbent, can_gc);
 
         // Step 2
-        let port2 = MessagePort::new(incumbent);
+        let port2 = MessagePort::new(incumbent, can_gc);
 
         incumbent.track_message_port(&port1, None);
         incumbent.track_message_port(&port2, None);
@@ -47,7 +47,7 @@ impl MessageChannel {
         )
     }
 
-    pub fn new_inherited(port1: &MessagePort, port2: &MessagePort) -> MessageChannel {
+    pub(crate) fn new_inherited(port1: &MessagePort, port2: &MessagePort) -> MessageChannel {
         MessageChannel {
             reflector_: Reflector::new(),
             port1: Dom::from_ref(port1),

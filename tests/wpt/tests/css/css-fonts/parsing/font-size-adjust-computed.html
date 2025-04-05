@@ -19,10 +19,16 @@
     font-family: ahem-ex-500 !important;
     font-size: 1000px;
 }
+#container {
+    container-type: inline-size;
+    width: 10px;
+}
 </style>
 </head>
 <body>
-<div id="target"></div>
+<div id="container">
+  <div id="target"></div>
+</div>
 <script>
 function compareFontSizeAdjustFromFont(actual, expected) {
   // Depending on font configurations, the retrieved aspect_value may slightly
@@ -60,6 +66,13 @@ promise_test(async (t) => {
   test_computed_value('font-size-adjust', 'ch-width from-font', 'ch-width 1', undefined, {comparisonFunction: compareFontSizeAdjustFromFont});
   test_computed_value('font-size-adjust', 'ic-width from-font', 'ic-width 1', undefined, {comparisonFunction: compareFontSizeAdjustFromFont});
   test_computed_value('font-size-adjust', 'ic-height from-font', 'ic-height 1');
+
+  test_computed_value('font-size-adjust', 'calc(0.5)', '0.5');
+  test_computed_value('font-size-adjust', 'ex-height calc(0.5)', '0.5');  // default basis 'ex' omitted from serialization
+  test_computed_value('font-size-adjust', 'cap-height calc(0.5)', 'cap-height 0.5');
+  test_computed_value('font-size-adjust', 'cap-height calc(0.5 + 1)', 'cap-height 1.5');
+  test_computed_value('font-size-adjust', 'cap-height calc(-0.5)', 'cap-height 0');
+  test_computed_value('font-size-adjust', 'cap-height calc(10 + (sign(20cqw - 10px) * 5))', 'cap-height 5');
 })
 </script>
 </body>

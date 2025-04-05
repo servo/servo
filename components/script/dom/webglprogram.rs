@@ -6,17 +6,18 @@
 use std::cell::Cell;
 
 use canvas_traits::webgl::{
-    webgl_channel, ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand,
-    WebGLError, WebGLProgramId, WebGLResult,
+    ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand, WebGLError,
+    WebGLProgramId, WebGLResult, webgl_channel,
 };
 use dom_struct::dom_struct;
 use fnv::FnvHashSet;
 
+use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
@@ -24,9 +25,10 @@ use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::dom::webglshader::WebGLShader;
 use crate::dom::webgluniformlocation::WebGLUniformLocation;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WebGLProgram {
+pub(crate) struct WebGLProgram {
     webgl_object: WebGLObject,
     #[no_trace]
     id: WebGLProgramId,
@@ -67,30 +69,38 @@ impl WebGLProgram {
         }
     }
 
-    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+    pub(crate) fn maybe_new(
+        context: &WebGLRenderingContext,
+        can_gc: CanGc,
+    ) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateProgram(sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLProgram::new(context, id))
+            .map(|id| WebGLProgram::new(context, id, can_gc))
     }
 
-    pub fn new(context: &WebGLRenderingContext, id: WebGLProgramId) -> DomRoot<Self> {
+    pub(crate) fn new(
+        context: &WebGLRenderingContext,
+        id: WebGLProgramId,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLProgram::new_inherited(context, id)),
             &*context.global(),
+            can_gc,
         )
     }
 }
 
 impl WebGLProgram {
-    pub fn id(&self) -> WebGLProgramId {
+    pub(crate) fn id(&self) -> WebGLProgramId {
         self.id
     }
 
     /// glDeleteProgram
-    pub fn mark_for_deletion(&self, operation_fallibility: Operation) {
+    pub(crate) fn mark_for_deletion(&self, operation_fallibility: Operation) {
         if self.marked_for_deletion.get() {
             return;
         }
@@ -106,7 +116,7 @@ impl WebGLProgram {
         }
     }
 
-    pub fn in_use(&self, value: bool) {
+    pub(crate) fn in_use(&self, value: bool) {
         if self.is_in_use.get() == value {
             return;
         }
@@ -128,24 +138,24 @@ impl WebGLProgram {
         }
     }
 
-    pub fn is_in_use(&self) -> bool {
+    pub(crate) fn is_in_use(&self) -> bool {
         self.is_in_use.get()
     }
 
-    pub fn is_marked_for_deletion(&self) -> bool {
+    pub(crate) fn is_marked_for_deletion(&self) -> bool {
         self.marked_for_deletion.get()
     }
 
-    pub fn is_deleted(&self) -> bool {
+    pub(crate) fn is_deleted(&self) -> bool {
         self.marked_for_deletion.get() && !self.is_in_use.get()
     }
 
-    pub fn is_linked(&self) -> bool {
+    pub(crate) fn is_linked(&self) -> bool {
         self.linked.get()
     }
 
     /// glLinkProgram
-    pub fn link(&self) -> WebGLResult<()> {
+    pub(crate) fn link(&self) -> WebGLResult<()> {
         self.linked.set(false);
         self.link_generation
             .set(self.link_generation.get().checked_add(1).unwrap());
@@ -210,20 +220,20 @@ impl WebGLProgram {
         Ok(())
     }
 
-    pub fn active_attribs(&self) -> Ref<[ActiveAttribInfo]> {
+    pub(crate) fn active_attribs(&self) -> Ref<[ActiveAttribInfo]> {
         Ref::map(self.active_attribs.borrow(), |attribs| &**attribs)
     }
 
-    pub fn active_uniforms(&self) -> Ref<[ActiveUniformInfo]> {
+    pub(crate) fn active_uniforms(&self) -> Ref<[ActiveUniformInfo]> {
         Ref::map(self.active_uniforms.borrow(), |uniforms| &**uniforms)
     }
 
-    pub fn active_uniform_blocks(&self) -> Ref<[ActiveUniformBlockInfo]> {
+    pub(crate) fn active_uniform_blocks(&self) -> Ref<[ActiveUniformBlockInfo]> {
         Ref::map(self.active_uniform_blocks.borrow(), |blocks| &**blocks)
     }
 
     /// glValidateProgram
-    pub fn validate(&self) -> WebGLResult<()> {
+    pub(crate) fn validate(&self) -> WebGLResult<()> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -234,7 +244,7 @@ impl WebGLProgram {
     }
 
     /// glAttachShader
-    pub fn attach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
+    pub(crate) fn attach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
         if self.is_deleted() || shader.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -262,7 +272,7 @@ impl WebGLProgram {
     }
 
     /// glDetachShader
-    pub fn detach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
+    pub(crate) fn detach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -291,7 +301,7 @@ impl WebGLProgram {
     }
 
     /// glBindAttribLocation
-    pub fn bind_attrib_location(&self, index: u32, name: DOMString) -> WebGLResult<()> {
+    pub(crate) fn bind_attrib_location(&self, index: u32, name: DOMString) -> WebGLResult<()> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -313,7 +323,11 @@ impl WebGLProgram {
         Ok(())
     }
 
-    pub fn get_active_uniform(&self, index: u32) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
+    pub(crate) fn get_active_uniform(
+        &self,
+        index: u32,
+        can_gc: CanGc,
+    ) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
         }
@@ -326,11 +340,16 @@ impl WebGLProgram {
             data.size.unwrap_or(1),
             data.type_,
             data.name().into(),
+            can_gc,
         ))
     }
 
     /// glGetActiveAttrib
-    pub fn get_active_attrib(&self, index: u32) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
+    pub(crate) fn get_active_attrib(
+        &self,
+        index: u32,
+        can_gc: CanGc,
+    ) -> WebGLResult<DomRoot<WebGLActiveInfo>> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
         }
@@ -343,11 +362,12 @@ impl WebGLProgram {
             data.size,
             data.type_,
             data.name.clone().into(),
+            can_gc,
         ))
     }
 
     /// glGetAttribLocation
-    pub fn get_attrib_location(&self, name: DOMString) -> WebGLResult<i32> {
+    pub(crate) fn get_attrib_location(&self, name: DOMString) -> WebGLResult<i32> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -370,7 +390,7 @@ impl WebGLProgram {
     }
 
     /// glGetFragDataLocation
-    pub fn get_frag_data_location(&self, name: DOMString) -> WebGLResult<i32> {
+    pub(crate) fn get_frag_data_location(&self, name: DOMString) -> WebGLResult<i32> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -394,9 +414,10 @@ impl WebGLProgram {
     }
 
     /// glGetUniformLocation
-    pub fn get_uniform_location(
+    pub(crate) fn get_uniform_location(
         &self,
         name: DOMString,
+        can_gc: CanGc,
     ) -> WebGLResult<Option<DomRoot<WebGLUniformLocation>>> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
@@ -411,7 +432,7 @@ impl WebGLProgram {
 
         let (size, type_) = {
             let (base_name, array_index) = match parse_uniform_name(&name) {
-                Some((name, index)) if index.map_or(true, |i| i >= 0) => (name, index),
+                Some((name, index)) if index.is_none_or(|i| i >= 0) => (name, index),
                 _ => return Ok(None),
             };
 
@@ -449,10 +470,11 @@ impl WebGLProgram {
             self.link_generation.get(),
             size,
             type_,
+            can_gc,
         )))
     }
 
-    pub fn get_uniform_block_index(&self, name: DOMString) -> WebGLResult<u32> {
+    pub(crate) fn get_uniform_block_index(&self, name: DOMString) -> WebGLResult<u32> {
         if !self.link_called.get() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -472,7 +494,7 @@ impl WebGLProgram {
         Ok(receiver.recv().unwrap())
     }
 
-    pub fn get_uniform_indices(&self, names: Vec<DOMString>) -> WebGLResult<Vec<u32>> {
+    pub(crate) fn get_uniform_indices(&self, names: Vec<DOMString>) -> WebGLResult<Vec<u32>> {
         if !self.link_called.get() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -498,7 +520,11 @@ impl WebGLProgram {
         Ok(receiver.recv().unwrap())
     }
 
-    pub fn get_active_uniforms(&self, indices: Vec<u32>, pname: u32) -> WebGLResult<Vec<i32>> {
+    pub(crate) fn get_active_uniforms(
+        &self,
+        indices: Vec<u32>,
+        pname: u32,
+    ) -> WebGLResult<Vec<i32>> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -527,7 +553,7 @@ impl WebGLProgram {
         Ok(receiver.recv().unwrap())
     }
 
-    pub fn get_active_uniform_block_parameter(
+    pub(crate) fn get_active_uniform_block_parameter(
         &self,
         block_index: u32,
         pname: u32,
@@ -557,7 +583,7 @@ impl WebGLProgram {
         Ok(receiver.recv().unwrap())
     }
 
-    pub fn get_active_uniform_block_name(&self, block_index: u32) -> WebGLResult<String> {
+    pub(crate) fn get_active_uniform_block_name(&self, block_index: u32) -> WebGLResult<String> {
         if !self.link_called.get() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -573,7 +599,11 @@ impl WebGLProgram {
         Ok(receiver.recv().unwrap())
     }
 
-    pub fn bind_uniform_block(&self, block_index: u32, block_binding: u32) -> WebGLResult<()> {
+    pub(crate) fn bind_uniform_block(
+        &self,
+        block_index: u32,
+        block_binding: u32,
+    ) -> WebGLResult<()> {
         if block_index as usize >= self.active_uniform_blocks.borrow().len() {
             return Err(WebGLError::InvalidValue);
         }
@@ -594,7 +624,7 @@ impl WebGLProgram {
     }
 
     /// glGetProgramInfoLog
-    pub fn get_info_log(&self) -> WebGLResult<String> {
+    pub(crate) fn get_info_log(&self) -> WebGLResult<String> {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
         }
@@ -614,7 +644,7 @@ impl WebGLProgram {
         Ok(receiver.recv().unwrap())
     }
 
-    pub fn attached_shaders(&self) -> WebGLResult<Vec<DomRoot<WebGLShader>>> {
+    pub(crate) fn attached_shaders(&self) -> WebGLResult<Vec<DomRoot<WebGLShader>>> {
         if self.marked_for_deletion.get() {
             return Err(WebGLError::InvalidValue);
         }
@@ -629,15 +659,15 @@ impl WebGLProgram {
         )
     }
 
-    pub fn link_generation(&self) -> u64 {
+    pub(crate) fn link_generation(&self) -> u64 {
         self.link_generation.get()
     }
 
-    pub fn transform_feedback_varyings_length(&self) -> i32 {
+    pub(crate) fn transform_feedback_varyings_length(&self) -> i32 {
         self.transform_feedback_varyings_length.get()
     }
 
-    pub fn transform_feedback_buffer_mode(&self) -> i32 {
+    pub(crate) fn transform_feedback_buffer_mode(&self) -> i32 {
         self.transform_feedback_mode.get()
     }
 }
@@ -716,4 +746,4 @@ fn parse_uniform_name(name: &str) -> Option<(&str, Option<i32>)> {
     Some((&name[..bracket_pos], Some(index)))
 }
 
-pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
+pub(crate) const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;

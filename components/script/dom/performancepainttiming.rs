@@ -5,16 +5,17 @@
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use script_traits::ProgressiveWebMetricType;
-use time_03::Duration;
+use time::Duration;
 
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performanceentry::PerformanceEntry;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct PerformancePaintTiming {
+pub(crate) struct PerformancePaintTiming {
     entry: PerformanceEntry,
 }
 
@@ -40,13 +41,14 @@ impl PerformancePaintTiming {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         global: &GlobalScope,
         metric_type: ProgressiveWebMetricType,
         start_time: CrossProcessInstant,
+        can_gc: CanGc,
     ) -> DomRoot<PerformancePaintTiming> {
         let entry = PerformancePaintTiming::new_inherited(metric_type, start_time);
-        reflect_dom_object(Box::new(entry), global)
+        reflect_dom_object(Box::new(entry), global, can_gc)
     }
 }

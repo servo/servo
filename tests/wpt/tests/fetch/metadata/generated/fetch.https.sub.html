@@ -297,6 +297,33 @@ Sources:
           assert_not_own_property(headers, 'sec-fetch-user');
         });
   }, 'sec-fetch-user - no init');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpsCrossSite']),
+        {"credentials": "include", "mode": "no-cors"}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+        });
+  }, 'sec-fetch-storage-access - Cross-site, init: mode=no-cors, credentials=include');
+
+  promise_test(() => {
+    const key = '{{uuid()}}';
+
+    return induceRequest(
+        makeRequestURL(key, ['httpsSameSite']),
+        {"credentials": "include", "mode": "no-cors"}
+      )
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        });
+  }, 'sec-fetch-storage-access - Same site, init: mode=no-cors, credentials=include');
   </script>
   </body>
 </html>

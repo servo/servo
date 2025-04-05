@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct StaticRange {
+pub(crate) struct StaticRange {
     abstract_range: AbstractRange,
 }
 
@@ -40,7 +40,7 @@ impl StaticRange {
             ),
         }
     }
-    pub fn new_with_doc(
+    pub(crate) fn new_with_doc(
         document: &Document,
         proto: Option<HandleObject>,
         init: &StaticRangeInit,
@@ -49,7 +49,7 @@ impl StaticRange {
         StaticRange::new_with_proto(document, proto, init, can_gc)
     }
 
-    pub fn new_with_proto(
+    pub(crate) fn new_with_proto(
         document: &Document,
         proto: Option<HandleObject>,
         init: &StaticRangeInit,

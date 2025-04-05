@@ -7,7 +7,7 @@
 To add, update or remove a test file, please update the list below.
 
 Please provide full reference and steps to generate the test file so that
-any people can regenerate or update the file in the future.
+anybody can regenerate or update the file in the future.
 
 ## Notes
 * When updating the sample offsets and descriptions for tests using mp4 files, it's easiest to use [mp4box.js](https://gpac.github.io/mp4box.js/test/filereader.html).
@@ -54,9 +54,7 @@ gifski -o four-colors-flip.gif four-colors*.png
 
 ### four-colors-flip.avif
 ```
-ffmpeg -i four-colors-flip.gif -vcodec libaom-av1 -crf 16 four-colors-flip.mp4
-mp4box -add-image ref:primary:tk=1:samp=1 -ab avis -ab avif -ab miaf -brand avis four-colors-flip.mp4 -out four-colors-flip.avif
-mp4box -edits 1=r four-colors-flip.avif
+ffmpeg -i four-colors-flip.gif -crf 16 four-colors-flip.avif
 ```
 
 ### four-colors-limited-range-(420|422|444)-8bpc.avif

@@ -38,7 +38,19 @@ pub fn main() {
     desktop::cli::main()
 }
 
-pub fn init_tracing() {
+pub fn init_crypto() {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Error initializing crypto provider");
+}
+
+pub fn init_tracing(filter_directives: Option<&str>) {
+    #[cfg(not(feature = "tracing"))]
+    {
+        if filter_directives.is_some() {
+            log::debug!("The tracing feature was not selected - ignoring trace filter directives");
+        }
+    }
     #[cfg(feature = "tracing")]
     {
         use tracing_subscriber::layer::SubscriberExt;
@@ -63,14 +75,20 @@ pub fn init_tracing() {
 
         // Filter events and spans by the directives in SERVO_TRACING, using EnvFilter as a global filter.
         // <https://docs.rs/tracing-subscriber/0.3.18/tracing_subscriber/layer/index.html#global-filtering>
-        let filter = tracing_subscriber::EnvFilter::builder()
-            .with_default_directive(tracing::level_filters::LevelFilter::OFF.into())
-            .with_env_var("SERVO_TRACING")
-            .from_env_lossy();
+        let filter_builder = tracing_subscriber::EnvFilter::builder()
+            .with_default_directive(tracing::level_filters::LevelFilter::OFF.into());
+        let filter = if let Some(filters) = &filter_directives {
+            filter_builder.parse_lossy(filters)
+        } else {
+            filter_builder
+                .with_env_var("SERVO_TRACING")
+                .from_env_lossy()
+        };
+
         let subscriber = subscriber.with(filter);
 
         // Same as SubscriberInitExt::init, but avoids initialising the tracing-log compat layer,
-        // since it would break Servo’s FromScriptLogger and FromCompositorLogger.
+        // since it would break Servo’s FromScriptLogger and FromEmbederLogger.
         // <https://docs.rs/tracing-subscriber/0.3.18/tracing_subscriber/util/trait.SubscriberInitExt.html#method.init>
         // <https://docs.rs/tracing/0.1.40/tracing/#consuming-log-records>
         tracing::subscriber::set_global_default(subscriber)

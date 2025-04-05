@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Setting block-size/min-block-size/max-block-size on input[type=range] should be honored.</title>
+    <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+    <link rel="help" href="https://drafts.csswg.org/css-writing-modes/">
+</head>
+<body>
+    <input type="range" id="input">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+        const writingModes = [
+            "horizontal-tb",
+            "vertical-lr",
+            "vertical-rl",
+            "sideways-lr",
+            "sideways-rl",
+        ];
+        for (let writingMode of writingModes) {
+            test(t => {
+                t.add_cleanup(() => {
+                    input.style = "";
+                });
+                input.style.writingMode = writingMode;
+                input.style.blockSize = "10px";
+                const blockSize = () => {
+                    return writingMode == "horizontal-tb" ? getComputedStyle(input).height : getComputedStyle(input).width;
+                };
+                assert_equals(blockSize(), "10px", "block-size applies");
+                input.style.maxBlockSize = "8px";
+                assert_equals(blockSize(), "8px", "max-block-size applies");
+                input.style.minBlockSize = "15px";
+                assert_equals(blockSize(), "15px", "min-block-size applies");
+            }, `writing-mode: ${writingMode}`);
+        }
+    </script>
+</body>
+</html>

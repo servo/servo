@@ -6,12 +6,14 @@
 <script src="/css/support/parsing-testcommon.js"></script>
 <script>
 test_valid_value("hyphenate-limit-chars", "auto");
-test_valid_value("hyphenate-limit-chars", "auto auto");
-test_valid_value("hyphenate-limit-chars", "auto auto auto");
+test_valid_value("hyphenate-limit-chars", "auto auto", "auto");
+test_valid_value("hyphenate-limit-chars", "auto auto auto", "auto");
 test_valid_value("hyphenate-limit-chars", "5");
 test_valid_value("hyphenate-limit-chars", "5 2");
+test_valid_value("hyphenate-limit-chars", "5 2 2", "5 2");
 test_valid_value("hyphenate-limit-chars", "5 2 3");
 test_valid_value("hyphenate-limit-chars", "auto 2");
+test_valid_value("hyphenate-limit-chars", "auto 2 2", "auto 2");
 test_valid_value("hyphenate-limit-chars", "auto 2 auto");
 test_valid_value("hyphenate-limit-chars", "auto auto 2");
 </script>

@@ -1,0 +1,28 @@
+<!doctype HTML>
+<html dir="ltr">
+  <meta charset="utf-8">
+  <title>HTML5 Canvas Test: The direction attribute dynamically updates</title>
+  <link rel="match" href="canvas.2d.direction.dynamic-ref.html"/>
+  <link rel="author" href="mailto:schenney@chromium.org"/>
+  <link rel="help"
+    href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
+  <meta name="assert" content="Verify that a text direction change is applied."/>
+  <script type="text/javascript">
+    function runTest() {
+      var canvas = document.getElementById("canvas1");
+      var ctx = canvas.getContext("2d");
+
+      ctx.font = "25px serif";
+      ctx.fillText("ABC!", 60, 50);
+
+      canvas.setAttribute("dir", "ltr");
+      ctx.fillText("ABC!", 60, 100);
+    }
+  </script>
+  <body onload="runTest()">
+    <canvas dir="rtl" id="canvas1" width="300" height="150">
+      Browser does not support HTML5 Canvas.
+    </canvas>
+  </body>
+</html>
+

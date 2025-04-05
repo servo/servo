@@ -1374,6 +1374,151 @@ Sources:
       .then(t.step_func_done(), t.unreached_func());
   }, 'list-style-image sec-fetch-user');
 
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_equals(headers['sec-fetch-storage-access'], 'none');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-storage-access - Cross-site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-storage-access - Cross-site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-storage-access - Cross-site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-storage-access - Cross-site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsCrossSite']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_own_property(headers, 'sec-fetch-storage-access');
+          assert_array_equals(headers['sec-fetch-storage-access'], ['none']);
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-storage-access - Cross-site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite']);
+
+    declarations.push(`background-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        })
+        .then(t.step_func_done(), (error) => t.unreached_func());
+  }, 'background-image sec-fetch-storage-access - Same site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite']);
+
+    declarations.push(`border-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'border-image sec-fetch-storage-access - Same site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite']);
+
+    declarations.push(`content: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'content sec-fetch-storage-access - Same site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite']);
+
+    declarations.push(`cursor: url("${url}"), auto;`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'cursor sec-fetch-storage-access - Same site');
+
+  async_test((t) => {
+    const key = '{{uuid()}}';
+    const url = makeRequestURL(key, ['httpsSameSite']);
+
+    declarations.push(`list-style-image: url("${url}");`);
+
+    whenIframeReady
+      .then(() => retrieve(key))
+      .then((headers) => {
+          assert_not_own_property(headers, 'sec-fetch-storage-access');
+        })
+      .then(t.step_func_done(), t.unreached_func());
+  }, 'list-style-image sec-fetch-storage-access - Same site');
+
   iframe.srcdoc = declarations.map((declaration, index) => `
     <style>.el${index} { ${declaration} }</style><div class="el${index}"></div>`
     ).join('');

@@ -14,7 +14,7 @@
     let largestContentfulPaintTime = 0;
     const observer = new PerformanceObserver(
       t.step_func(function(entryList) {
-        entryList.getEntries().forEach(entry => {
+      entryList.getEntries().forEach(entry => {
           if (entry.name === 'first-paint') {
             assert_equals(firstPaintTime, 0, 'Only one first-paint entry.');
             assert_equals(entry.entryType, 'paint');

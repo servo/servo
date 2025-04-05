@@ -16,7 +16,7 @@ for (const entry of entries) {
             db.createObjectStore("store");
         },
         function open_func(t, db) {
-            const store = db.transaction("store", "readwrite", {durability: 'relaxed'}).objectStore("store");
+            const store = db.transaction("store", "readwrite").objectStore("store");
 
             for (let i = 1; i <= 10; ++i) {
                 store.put(i, i);

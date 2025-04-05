@@ -11,21 +11,21 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::{Arc, LazyLock};
 
 use app_units::Au;
-use base::cross_process_instant::CrossProcessInstant;
-use base::id::{BrowsingContextId, PipelineId};
 use base::Epoch;
+use base::id::{PipelineId, WebViewId};
+use constellation_traits::{ScrollState, UntrustedNodeAddress};
+use embedder_traits::ViewportDetails;
 use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
-use fonts::{FontContext, FontContextWebFontMethods, SystemFontServiceProxy};
-use fonts_traits::WebFontLoadFinishedCallback;
-use fxhash::FxHashMap;
+use fonts::{FontContext, FontContextWebFontMethods};
+use fonts_traits::StylesheetWebFontLoadFinishedCallback;
+use fxhash::{FxHashMap, FxHashSet};
 use ipc_channel::ipc::IpcSender;
 use layout::context::LayoutContext;
 use layout::display_list::{DisplayList, WebRenderImageInfo};
@@ -35,12 +35,10 @@ use layout::query::{
     process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
 };
 use layout::traversal::RecalcStyle;
-use layout::{layout_debug, BoxTree, FragmentTree};
-use log::{debug, error, warn};
+use layout::{BoxTree, FragmentTree};
+use log::{debug, error};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
-use net_traits::ResourceThreads;
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::time::{
@@ -49,19 +47,15 @@ use profile_traits::time::{
 use profile_traits::{path, time_profile};
 use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::{
-    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse,
-    ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
+    ImageAnimationState, Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType,
+    OffsetParentResponse, ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
-use script_traits::{
-    ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutMsg as ConstellationMsg,
-    PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress, WindowSizeData, WindowSizeType,
-};
+use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
-use servo_atoms::Atom;
 use servo_config::opts::{self, DebugOptions};
 use servo_config::pref;
-use servo_url::{ImmutableOrigin, ServoUrl};
-use style::animation::DocumentAnimationSet;
+use servo_url::ServoUrl;
+use style::animation::{AnimationSetKey, DocumentAnimationSet};
 use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
 };
@@ -87,11 +81,12 @@ use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength};
 use style::values::specified::font::KeywordInfo;
-use style::{driver, Zero};
+use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
+use stylo_atoms::Atom;
 use url::Url;
 use webrender_api::units::{DevicePixel, LayoutPixel};
-use webrender_api::{units, ExternalScrollId, HitTestFlags};
+use webrender_api::{ExternalScrollId, HitTestFlags, units};
 use webrender_traits::CrossProcessCompositorApi;
 
 // This mutex is necessary due to syncronisation issues between two different types of thread-local storage
@@ -107,6 +102,9 @@ pub struct LayoutThread {
     /// The ID of the pipeline that we belong to.
     id: PipelineId,
 
+    /// The webview that contains the pipeline we belong to.
+    webview_id: WebViewId,
+
     /// The URL of the pipeline that we belong to.
     url: ServoUrl,
 
@@ -116,11 +114,8 @@ pub struct LayoutThread {
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
 
-    /// The channel on which messages can be sent to the constellation.
-    constellation_chan: IpcSender<ConstellationMsg>,
-
     /// The channel on which messages can be sent to the script thread.
-    script_chan: IpcSender<ConstellationControlMsg>,
+    script_chan: IpcSender<ScriptThreadMessage>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
@@ -133,10 +128,6 @@ pub struct LayoutThread {
 
     /// Is this the first reflow in this LayoutThread?
     first_reflow: Cell<bool>,
-
-    /// Starts at zero, and increased by one every time a layout completes.
-    /// This can be used to easily check for invalid stale data.
-    generation: Cell<u32>,
 
     /// The box tree.
     box_tree: RefCell<Option<Arc<BoxTree>>>,
@@ -162,12 +153,6 @@ pub struct LayoutThread {
     /// Cross-process access to the Compositor API.
     compositor_api: CrossProcessCompositorApi,
 
-    /// Paint time metrics.
-    paint_time_metrics: PaintTimeMetrics,
-
-    /// The sizes of all iframes encountered during the last layout operation.
-    last_iframe_sizes: RefCell<FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>>,
-
     /// Debug options, copied from configuration to this `LayoutThread` in order
     /// to avoid having to constantly access the thread-safe global options.
     debug: DebugOptions,
@@ -177,57 +162,7 @@ pub struct LayoutFactoryImpl();
 
 impl LayoutFactory for LayoutFactoryImpl {
     fn create(&self, config: LayoutConfig) -> Box<dyn Layout> {
-        Box::new(LayoutThread::new(
-            config.id,
-            config.url,
-            config.is_iframe,
-            config.constellation_chan,
-            config.script_chan,
-            config.image_cache,
-            config.resource_threads,
-            config.system_font_service,
-            config.time_profiler_chan,
-            config.compositor_api,
-            config.paint_time_metrics,
-            config.window_size,
-        ))
-    }
-}
-
-#[derive(Debug)]
-struct ScriptReflowResult {
-    script_reflow: ScriptReflow,
-    result: RefCell<Option<ReflowComplete>>,
-}
-
-impl Deref for ScriptReflowResult {
-    type Target = ScriptReflow;
-    fn deref(&self) -> &ScriptReflow {
-        &self.script_reflow
-    }
-}
-
-impl DerefMut for ScriptReflowResult {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.script_reflow
-    }
-}
-
-impl ScriptReflowResult {
-    fn new(script_reflow: ScriptReflow) -> ScriptReflowResult {
-        ScriptReflowResult {
-            script_reflow,
-            result: RefCell::new(Some(Default::default())),
-        }
-    }
-}
-
-impl Drop for ScriptReflowResult {
-    fn drop(&mut self) {
-        self.script_reflow
-            .script_join_chan
-            .send(self.result.borrow_mut().take().unwrap())
-            .unwrap();
+        Box::new(LayoutThread::new(config))
     }
 }
 
@@ -244,10 +179,6 @@ impl Drop for LayoutThread {
 impl Layout for LayoutThread {
     fn device(&self) -> &Device {
         self.stylist.device()
-    }
-
-    fn waiting_for_web_fonts_to_load(&self) -> bool {
-        self.font_context.web_fonts_still_loading() != 0
     }
 
     fn current_epoch(&self) -> Epoch {
@@ -333,15 +264,6 @@ impl Layout for LayoutThread {
         get_the_text_steps(node)
     }
 
-    fn query_inner_window_dimension(
-        &self,
-        _context: BrowsingContextId,
-    ) -> Option<Size2D<f32, CSSPixel>> {
-        // TODO(jdm): port the iframe sizing code from layout2013's display
-        //            builder in order to support query iframe sizing.
-        None
-    }
-
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
@@ -365,7 +287,7 @@ impl Layout for LayoutThread {
             .compositor_api
             .hit_test(Some(self.id.into()), client_point, flags);
 
-        results.iter().map(|result| result.node.into()).collect()
+        results.iter().map(|result| result.node).collect()
     }
 
     #[cfg_attr(
@@ -507,14 +429,13 @@ impl Layout for LayoutThread {
         self.stylist.set_quirks_mode(quirks_mode);
     }
 
-    fn reflow(&mut self, script_reflow: ScriptReflow) {
-        let mut result = ScriptReflowResult::new(script_reflow);
+    fn reflow(&mut self, reflow_request: ReflowRequest) -> Option<ReflowResult> {
         time_profile!(
             profile_time::ProfilerCategory::LayoutPerform,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
-            || self.handle_reflow(&mut result),
-        );
+            || self.handle_reflow(reflow_request),
+        )
     }
 
     fn register_paint_worklet_modules(
@@ -525,40 +446,23 @@ impl Layout for LayoutThread {
     ) {
     }
 
-    fn set_scroll_states(&mut self, scroll_states: &[ScrollState]) {
+    fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]) {
         *self.scroll_offsets.borrow_mut() = scroll_states
             .iter()
             .map(|scroll_state| (scroll_state.scroll_id, scroll_state.scroll_offset))
             .collect();
     }
-
-    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: CrossProcessInstant) {
-        self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
-    }
 }
 
-#[allow(clippy::too_many_arguments)]
 impl LayoutThread {
-    #[allow(clippy::too_many_arguments)]
-    fn new(
-        id: PipelineId,
-        url: ServoUrl,
-        is_iframe: bool,
-        constellation_chan: IpcSender<ConstellationMsg>,
-        script_chan: IpcSender<ConstellationControlMsg>,
-        image_cache: Arc<dyn ImageCache>,
-        resource_threads: ResourceThreads,
-        system_font_service: Arc<SystemFontServiceProxy>,
-        time_profiler_chan: profile_time::ProfilerChan,
-        compositor_api: CrossProcessCompositorApi,
-        paint_time_metrics: PaintTimeMetrics,
-        window_size: WindowSizeData,
-    ) -> LayoutThread {
+    fn new(config: LayoutConfig) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
-        compositor_api.send_initial_transaction(id.into());
+        config
+            .compositor_api
+            .send_initial_transaction(config.id.into());
 
         let mut font = Font::initial_values();
-        let default_font_size = pref!(fonts.default_size);
+        let default_font_size = pref!(fonts_default_size);
         font.font_size = FontSize {
             computed_size: NonNegativeLength::new(default_font_size as f32),
             used_size: NonNegativeLength::new(default_font_size as f32),
@@ -567,48 +471,40 @@ impl LayoutThread {
 
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
-        let font_context = Arc::new(FontContext::new(
-            system_font_service,
-            compositor_api.clone(),
-            resource_threads,
-        ));
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,
-            window_size.initial_viewport,
-            Scale::new(window_size.device_pixel_ratio.get()),
-            Box::new(LayoutFontMetricsProvider(font_context.clone())),
+            config.viewport_details.size,
+            Scale::new(config.viewport_details.hidpi_scale_factor.get()),
+            Box::new(LayoutFontMetricsProvider(config.font_context.clone())),
             ComputedValues::initial_values_with_font_override(font),
             // TODO: obtain preferred color scheme from embedder
             PrefersColorScheme::Light,
         );
 
         LayoutThread {
-            id,
-            url,
-            is_iframe,
-            constellation_chan,
-            script_chan: script_chan.clone(),
-            time_profiler_chan,
+            id: config.id,
+            webview_id: config.webview_id,
+            url: config.url,
+            is_iframe: config.is_iframe,
+            script_chan: config.script_chan.clone(),
+            time_profiler_chan: config.time_profiler_chan,
             registered_painters: RegisteredPaintersImpl(Default::default()),
-            image_cache,
-            font_context,
+            image_cache: config.image_cache,
+            font_context: config.font_context,
             first_reflow: Cell::new(true),
-            generation: Cell::new(0),
             box_tree: Default::default(),
             fragment_tree: Default::default(),
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
             viewport_size: Size2D::new(
-                Au::from_f32_px(window_size.initial_viewport.width),
-                Au::from_f32_px(window_size.initial_viewport.height),
+                Au::from_f32_px(config.viewport_details.size.width),
+                Au::from_f32_px(config.viewport_details.size.height),
             ),
-            compositor_api,
+            compositor_api: config.compositor_api,
             scroll_offsets: Default::default(),
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             webrender_image_cache: Default::default(),
-            paint_time_metrics,
-            last_iframe_sizes: Default::default(),
             debug: opts::get().debug.clone(),
         }
     }
@@ -641,31 +537,32 @@ impl LayoutThread {
         &'a self,
         guards: StylesheetGuards<'a>,
         snapshot_map: &'a SnapshotMap,
-        origin: ImmutableOrigin,
-        animation_timeline_value: f64,
-        animations: &DocumentAnimationSet,
-        stylesheets_changed: bool,
+        reflow_request: &mut ReflowRequest,
         use_rayon: bool,
     ) -> LayoutContext<'a> {
-        let traversal_flags = match stylesheets_changed {
+        let traversal_flags = match reflow_request.stylesheets_changed {
             true => TraversalFlags::ForCSSRuleChanges,
             false => TraversalFlags::empty(),
         };
 
         LayoutContext {
             id: self.id,
-            origin,
+            origin: reflow_request.origin.clone(),
             style_context: self.build_shared_style_context(
                 guards,
                 snapshot_map,
-                animation_timeline_value,
-                animations,
+                reflow_request.animation_timeline_value,
+                &reflow_request.animations,
                 traversal_flags,
             ),
             image_cache: self.image_cache.clone(),
             font_context: self.font_context.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
-            pending_images: Mutex::new(vec![]),
+            pending_images: Mutex::default(),
+            node_image_animation_map: Arc::new(RwLock::new(std::mem::take(
+                &mut reflow_request.node_to_image_animation_map,
+            ))),
+            iframe_sizes: Mutex::default(),
             use_rayon,
         }
     }
@@ -684,28 +581,16 @@ impl LayoutThread {
         let web_font_finished_loading_callback = move |succeeded: bool| {
             let _ = locked_script_channel
                 .lock()
-                .send(ConstellationControlMsg::WebFontLoaded(
-                    pipeline_id,
-                    succeeded,
-                ));
+                .send(ScriptThreadMessage::WebFontLoaded(pipeline_id, succeeded));
         };
 
-        // Find all font-face rules and notify the font cache of them.
-        // GWTODO: Need to handle unloading web fonts.
-        let newly_loading_font_count = self.font_context.add_all_web_fonts_from_stylesheet(
+        self.font_context.add_all_web_fonts_from_stylesheet(
+            self.webview_id,
             stylesheet,
             guard,
             self.stylist.device(),
-            Arc::new(web_font_finished_loading_callback) as WebFontLoadFinishedCallback,
-            self.debug.load_webfonts_synchronously,
+            Arc::new(web_font_finished_loading_callback) as StylesheetWebFontLoadFinishedCallback,
         );
-
-        if self.debug.load_webfonts_synchronously && newly_loading_font_count > 0 {
-            // TODO: Handle failure in web font loading
-            let _ = self
-                .script_chan
-                .send(ConstellationControlMsg::WebFontLoaded(self.id, true));
-        }
     }
 
     /// The high-level routine that performs layout.
@@ -713,12 +598,12 @@ impl LayoutThread {
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_reflow(&mut self, data: &mut ScriptReflowResult) {
-        let document = unsafe { ServoLayoutNode::new(&data.document) };
+    fn handle_reflow(&mut self, mut reflow_request: ReflowRequest) -> Option<ReflowResult> {
+        let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
         let document = document.as_document().unwrap();
         let Some(root_element) = document.root_element() else {
             debug!("layout: No root node: bailing");
-            return;
+            return None;
         };
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
@@ -734,11 +619,15 @@ impl LayoutThread {
         };
 
         let had_used_viewport_units = self.stylist.device().used_viewport_units();
-        let viewport_size_changed = self.viewport_did_change(data.window_size);
-        let theme_changed = self.theme_did_change(data.theme);
+        let viewport_size_changed = self.viewport_did_change(reflow_request.viewport_details);
+        let theme_changed = self.theme_did_change(reflow_request.theme);
 
         if viewport_size_changed || theme_changed {
-            self.update_device(data.window_size, data.theme, &guards);
+            self.update_device(
+                reflow_request.viewport_details,
+                reflow_request.theme,
+                &guards,
+            );
         }
 
         if viewport_size_changed && had_used_viewport_units {
@@ -766,7 +655,7 @@ impl LayoutThread {
             }
         }
 
-        if data.stylesheets_changed {
+        if reflow_request.stylesheets_changed {
             self.stylist
                 .force_stylesheet_origins_dirty(Origin::Author.into());
         }
@@ -774,7 +663,7 @@ impl LayoutThread {
         // Flush shadow roots stylesheets if dirty.
         document.flush_shadow_roots_stylesheets(&mut self.stylist, guards.author);
 
-        let restyles = std::mem::take(&mut data.pending_restyles);
+        let restyles = std::mem::take(&mut reflow_request.pending_restyles);
         debug!("Draining restyles: {}", restyles.len());
 
         let mut map = SnapshotMap::new();
@@ -818,15 +707,12 @@ impl LayoutThread {
         let mut layout_context = self.build_layout_context(
             guards.clone(),
             &map,
-            data.origin.clone(),
-            data.animation_timeline_value,
-            &data.animations,
-            data.stylesheets_changed,
+            &mut reflow_request,
             rayon_pool.is_some(),
         );
 
         let dirty_root = unsafe {
-            ServoLayoutNode::new(&data.dirty_root.unwrap())
+            ServoLayoutNode::new(&reflow_request.dirty_root.unwrap())
                 .as_element()
                 .unwrap()
         };
@@ -904,18 +790,26 @@ impl LayoutThread {
         if let Some(root) = &*self.fragment_tree.borrow() {
             self.perform_post_style_recalc_layout_passes(
                 root.clone(),
-                &data.reflow_goal,
+                &reflow_request.reflow_goal,
                 &mut layout_context,
             );
         }
 
         self.first_reflow.set(false);
 
-        data.result.borrow_mut().as_mut().unwrap().pending_images =
-            std::mem::take(&mut *layout_context.pending_images.lock());
-        if let ReflowGoal::UpdateScrollNode(scroll_state) = data.reflow_goal {
+        if let ReflowGoal::UpdateScrollNode(scroll_state) = reflow_request.reflow_goal {
             self.update_scroll_node_state(&scroll_state);
         }
+
+        let pending_images = std::mem::take(&mut *layout_context.pending_images.lock());
+        let iframe_sizes = std::mem::take(&mut *layout_context.iframe_sizes.lock());
+        let node_to_image_animation_map =
+            std::mem::take(&mut *layout_context.node_image_animation_map.write());
+        Some(ReflowResult {
+            pending_images,
+            iframe_sizes,
+            node_to_image_animation_map,
+        })
     }
 
     fn update_scroll_node_state(&self, state: &ScrollState) {
@@ -924,6 +818,7 @@ impl LayoutThread {
             .insert(state.scroll_id, state.scroll_offset);
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
         self.compositor_api.send_scroll_node(
+            self.webview_id,
             self.id.into(),
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,
@@ -941,11 +836,10 @@ impl LayoutThread {
             &fragment_tree,
         );
 
-        if self.debug.trace_layout {
-            if let Some(box_tree) = &*self.box_tree.borrow() {
-                layout_debug::begin_trace(box_tree.clone(), fragment_tree.clone());
-            }
-        }
+        Self::cancel_image_animation_for_nodes_not_in_fragment_tree(
+            context.node_image_animation_map.clone(),
+            &fragment_tree,
+        );
 
         if !reflow_goal.needs_display_list() {
             return;
@@ -964,7 +858,8 @@ impl LayoutThread {
             fragment_tree.scrollable_overflow(),
             self.id.into(),
             epoch.into(),
-            fragment_tree.root_scroll_sensitivity,
+            fragment_tree.viewport_scroll_sensitivity,
+            self.first_reflow.get(),
         );
         display_list.wr.begin();
 
@@ -983,8 +878,7 @@ impl LayoutThread {
             display_list.build_stacking_context_tree(&fragment_tree, &self.debug);
 
         // Build the rest of the display list which inclues all of the WebRender primitives.
-        let (iframe_sizes, is_contentful) =
-            display_list.build(context, &fragment_tree, &root_stacking_context);
+        display_list.build(context, &fragment_tree, &root_stacking_context);
 
         if self.debug.dump_flow_tree {
             fragment_tree.print();
@@ -994,15 +888,12 @@ impl LayoutThread {
         }
         debug!("Layout done!");
 
-        // Observe notifications about rendered frames if needed right before
-        // sending the display list to WebRender in order to set time related
-        // Progressive Web Metrics.
-        self.paint_time_metrics
-            .maybe_observe_paint_time(self, epoch, is_contentful);
-
         if reflow_goal.needs_display() {
-            self.compositor_api
-                .send_display_list(display_list.compositor_info, display_list.wr.end().1);
+            self.compositor_api.send_display_list(
+                self.webview_id,
+                display_list.compositor_info,
+                display_list.wr.end().1,
+            );
 
             let (keys, instance_keys) = self
                 .font_context
@@ -1010,14 +901,6 @@ impl LayoutThread {
             self.compositor_api
                 .remove_unused_font_resources(keys, instance_keys)
         }
-
-        self.update_iframe_sizes(iframe_sizes);
-
-        if self.debug.trace_layout {
-            layout_debug::end_trace(self.generation.get());
-        }
-
-        self.generation.set(self.generation.get() + 1);
     }
 
     /// Returns profiling information which is passed to the time profiler.
@@ -1057,53 +940,27 @@ impl LayoutThread {
         }
     }
 
-    /// Update the recorded iframe sizes of the contents of layout and when these sizes changes,
-    /// send a message to the constellation informing it of the new sizes.
-    fn update_iframe_sizes(
-        &self,
-        new_iframe_sizes: FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>,
+    fn cancel_image_animation_for_nodes_not_in_fragment_tree(
+        image_animation_set: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
+        root: &FragmentTree,
     ) {
-        let old_iframe_sizes =
-            std::mem::replace(&mut *self.last_iframe_sizes.borrow_mut(), new_iframe_sizes);
-
-        if self.last_iframe_sizes.borrow().is_empty() {
-            return;
-        }
-
-        let size_messages: Vec<_> = self
-            .last_iframe_sizes
-            .borrow()
-            .iter()
-            .filter_map(|(browsing_context_id, size)| {
-                match old_iframe_sizes.get(browsing_context_id) {
-                    Some(old_size) if old_size != size => Some(IFrameSizeMsg {
-                        browsing_context_id: *browsing_context_id,
-                        size: *size,
-                        type_: WindowSizeType::Resize,
-                    }),
-                    None => Some(IFrameSizeMsg {
-                        browsing_context_id: *browsing_context_id,
-                        size: *size,
-                        type_: WindowSizeType::Initial,
-                    }),
-                    _ => None,
-                }
-            })
+        let mut image_animations = image_animation_set.write().to_owned();
+        let mut invalid_nodes: FxHashSet<AnimationSetKey> = image_animations
+            .keys()
+            .cloned()
+            .map(|node| AnimationSetKey::new(node, None))
             .collect();
-
-        if !size_messages.is_empty() {
-            let msg = ConstellationMsg::IFrameSizes(size_messages);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Layout resize to constellation failed ({}).", e);
-            }
+        root.remove_nodes_in_fragment_tree_from_set(&mut invalid_nodes);
+        for node in &invalid_nodes {
+            image_animations.remove(&node.node);
         }
     }
 
-    fn viewport_did_change(&mut self, window_size_data: WindowSizeData) -> bool {
-        let new_pixel_ratio = window_size_data.device_pixel_ratio.get();
+    fn viewport_did_change(&mut self, viewport_details: ViewportDetails) -> bool {
+        let new_pixel_ratio = viewport_details.hidpi_scale_factor.get();
         let new_viewport_size = Size2D::new(
-            Au::from_f32_px(window_size_data.initial_viewport.width),
-            Au::from_f32_px(window_size_data.initial_viewport.height),
+            Au::from_f32_px(viewport_details.size.width),
+            Au::from_f32_px(viewport_details.size.height),
         );
 
         // TODO: eliminate self.viewport_size in favour of using self.device.au_viewport_size()
@@ -1123,15 +980,15 @@ impl LayoutThread {
     /// Update layout given a new viewport. Returns true if the viewport changed or false if it didn't.
     fn update_device(
         &mut self,
-        window_size_data: WindowSizeData,
+        viewport_details: ViewportDetails,
         theme: PrefersColorScheme,
         guards: &StylesheetGuards,
     ) {
         let device = Device::new(
             MediaType::screen(),
             self.stylist.quirks_mode(),
-            window_size_data.initial_viewport,
-            Scale::new(window_size_data.device_pixel_ratio.get()),
+            viewport_details.size,
+            Scale::new(viewport_details.hidpi_scale_factor.get()),
             Box::new(LayoutFontMetricsProvider(self.font_context.clone())),
             self.stylist.device().default_computed_values().to_arc(),
             theme,
@@ -1143,12 +1000,6 @@ impl LayoutThread {
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
-    }
-}
-
-impl ProfilerMetadataFactory for LayoutThread {
-    fn new_metadata(&self) -> Option<TimerMetadata> {
-        self.profiler_metadata()
     }
 }
 
@@ -1321,7 +1172,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .or_else(|| {
                 font_group
                     .write()
-                    .find_by_codepoint(font_context, '0', None)?
+                    .find_by_codepoint(font_context, '0', None, None)?
                     .metrics
                     .zero_horizontal_advance
             })
@@ -1332,7 +1183,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .or_else(|| {
                 font_group
                     .write()
-                    .find_by_codepoint(font_context, '\u{6C34}', None)?
+                    .find_by_codepoint(font_context, '\u{6C34}', None, None)?
                     .metrics
                     .ic_horizontal_advance
             })
@@ -1351,8 +1202,8 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
 
     fn base_size_for_generic(&self, generic: GenericFontFamily) -> Length {
         Length::new(match generic {
-            GenericFontFamily::Monospace => pref!(fonts.default_monospace_size),
-            _ => pref!(fonts.default_size),
+            GenericFontFamily::Monospace => pref!(fonts_default_monospace_size),
+            _ => pref!(fonts_default_size),
         } as f32)
         .max(Length::new(0.0))
     }

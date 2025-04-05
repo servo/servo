@@ -21,7 +21,7 @@ promise_test(async () => {
 
   iframe.src = url.href;
   document.body.appendChild(iframe);
-  new Promise(r => iframe.onload = r);
+  await new Promise(r => iframe.onload = r);
 
  await fetch_tests_from_window(iframe.contentWindow);
 

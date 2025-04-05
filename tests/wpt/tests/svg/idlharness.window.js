@@ -111,6 +111,7 @@ idl_test(
       SVGGElement: ['objects.g'],
       SVGDefsElement: ['objects.defs'],
       SVGDescElement: ['objects.desc'],
+      SVGDiscardElement: ['objects.discard'],
       SVGTitleElement: ['objects.title'],
       SVGSymbolElement: ['objects.symbol'],
       SVGUseElement: ['objects.use'],

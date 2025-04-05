@@ -142,8 +142,42 @@ async def test_params_origin_invalid_value(bidi_session, top_context):
         )
 
 
+@pytest.mark.parametrize("value", [True, 42, "foo", []])
+async def test_params_format_invalid_type(bidi_session, top_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"], format=value
+        )
+
+
 async def test_params_format_invalid_value(bidi_session, top_context):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.browsing_context.capture_screenshot(
-            context=top_context["context"], format=FormatOptions(type="image/invalid")
+            context=top_context["context"], format={}
+        )
+
+
+@pytest.mark.parametrize("value", [None, True, 42, [], {}])
+async def test_params_format_type_invalid_type(bidi_session, top_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"], format=FormatOptions(type=value)
+        )
+
+
+@pytest.mark.parametrize("value", [True, "foo", [], {}])
+async def test_params_format_quality_invalid_type(bidi_session, top_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"], format=FormatOptions(
+                type="image/jpeg", quality=value)
+        )
+
+
+@pytest.mark.parametrize("value", [-0.1, 1.1])
+async def test_params_format_quality_invalid_value(bidi_session, top_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"], format=FormatOptions(
+                type="image/jpeg", quality=value)
         )

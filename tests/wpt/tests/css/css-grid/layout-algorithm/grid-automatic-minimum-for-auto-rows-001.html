@@ -39,7 +39,7 @@
 .gridAutoAndAuto { grid-template-rows: auto auto; }
 .gridAutoAndMinMaxAutoAuto { grid-template-rows: auto minmax(auto, auto); }
 .gridMinMaxAutoMaxContentAndAuto { grid-template-rows: minmax(auto, max-content) auto; }
-
+</style>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -230,7 +230,7 @@
 function testGridRowsValues(id, computedRowValue)
 {
   assert_equals(window.getComputedStyle(document.getElementById(id))
-      .getPropertyValue('grid-template-rows')", computedRowValue);
+      .getPropertyValue('grid-template-rows'), computedRowValue);
 }
 
 setup({ explicit_done: true });

@@ -13,15 +13,16 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Bootstrap
         run: |
-          python3 -m pip install --upgrade pip
           sudo apt update
-          python3 ./mach bootstrap --skip-lints
+          ./mach bootstrap --skip-lints
       - name: Set LIBCLANG_PATH # This is needed for bindgen in mozangle.
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Compile docs
-        run: python3 ./mach doc
+        run: ./mach doc
         env:
           RUSTDOCFLAGS: --document-private-items
       - name: Upload docs

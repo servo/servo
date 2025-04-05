@@ -21,7 +21,7 @@ function keygenerator(objects, expected_keys, desc, func) {
 
     open_rq.onsuccess = function(e) {
         let actual_keys = [];
-        let rq = db.transaction("store", "readonly", {durability: 'relaxed'})
+        let rq = db.transaction("store", "readonly")
                   .objectStore("store")
                   .openCursor();
         rq.onsuccess = t.step_func(function(e) {
@@ -83,7 +83,7 @@ async_test(t => {
 
     open_rq.onsuccess = function(e) {
         let actual_keys = [];
-        let rq = db.transaction("store", "readonly", {durability: 'relaxed'})
+        let rq = db.transaction("store", "readonly")
                  .objectStore("store")
                  .openCursor();
         rq.onsuccess = t.step_func(function(e) {
@@ -109,7 +109,7 @@ function big_key_test(key, description) {
       db.createObjectStore('store', {autoIncrement: true});
     },
     (t, db) => {
-      const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+      const tx = db.transaction('store', 'readwrite');
       const store = tx.objectStore('store');
       const value = 0;
       let request;
@@ -238,7 +238,7 @@ indexeddb_test(
     db.createObjectStore('store', {autoIncrement: true, keyPath: 'id'});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readwrite');
     t.onabort = t.unreached_func('transaction should not abort');
     const store = tx.objectStore('store');
     store.put({name: 'n'}).onsuccess = t.step_func(e => {
@@ -260,7 +260,7 @@ indexeddb_test(
     db.createObjectStore('store', {autoIncrement: true, keyPath: 'a.b.id'});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readwrite');
     t.onabort = t.unreached_func('transaction should not abort');
     const store = tx.objectStore('store');
     store.put({name: 'n'}).onsuccess = t.step_func(e => {
@@ -282,7 +282,7 @@ indexeddb_test(
     db.createObjectStore('store', {autoIncrement: true, keyPath: 'a.b.id'});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readwrite');
     t.onabort = t.unreached_func('transaction should not abort');
     const store = tx.objectStore('store');
     store.put({name: 'n1', b: {name: 'n2'}}).onsuccess = t.step_func(e => {
@@ -305,7 +305,7 @@ indexeddb_test(
     db.createObjectStore('store', {autoIncrement: true, keyPath: 'id'});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readwrite');
     const store = tx.objectStore('store');
 
     assert_throws_dom('DataError', () => {
@@ -321,7 +321,7 @@ indexeddb_test(
     db.createObjectStore('store', {autoIncrement: true, keyPath: 'a.b.id'});
   },
   (t, db) => {
-    const tx = db.transaction('store', 'readwrite', {durability: 'relaxed'});
+    const tx = db.transaction('store', 'readwrite');
     const store = tx.objectStore('store');
 
     assert_throws_dom('DataError', () => {
@@ -369,7 +369,7 @@ async_test(t => {
 
     open_rq.onsuccess = function(e) {
         let actual_keys = [];
-        let rq = db.transaction("store", "readonly", {durability: 'relaxed'})
+        let rq = db.transaction("store", "readonly")
                  .objectStore("store")
                  .openCursor();
         rq.onsuccess = t.step_func(function(e) {

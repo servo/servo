@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4: 'corner-shape' parametric rendering</title>
+<canvas id="target" width="400" height="400"></canvas>
+<script src="resources/resolve-corner-style.js"></script>
+<script src="resources/corner-utils.js"></script>
+<script src="resources/corner-shape.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+</style>
+<script>
+const canvas = document.getElementById("target");
+const params = new URLSearchParams(location.search);
+const width = params.get("width") || 200;
+const height = params.get("height") || 100;
+canvas.width = width * 3;
+canvas.height = height * 3;
+canvas.style.top = -height + "px";
+canvas.style.left = -width + "px";
+canvas.style.position = "relative";
+const ctx = canvas.getContext("2d");
+ctx.translate(width, height);
+const style = resolve_corner_style(Object.fromEntries(params.entries()), width, height);
+style['background-color'] = "green";
+render_rect_with_corner_shapes(style, ctx, width, height);
+</script>

@@ -16,25 +16,26 @@ on:
 jobs:
   decision:
     name: Generate Try Configuration
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
     steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
           sparse-checkout: |
             python/servo/try_parser.py
+            .github/actions/setup-python
+            .python-version
           sparse-checkout-cone-mode: false
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Get Configuration
         id: configuration
         run: |
           {
             echo 'result<<EOF'
-            python ./python/servo/try_parser.py ${{ github.event_name == 'pull_request' && 'linux lint' || 'fail-fast full' }}
+            python ./python/servo/try_parser.py ${{ github.event_name == 'pull_request' && 'linux-unit-tests lint' || github.event_name == 'push' && 'fail-fast full bencher production-bencher' || 'fail-fast full' }}
             echo EOF
            } >> $GITHUB_OUTPUT
 
@@ -50,9 +51,10 @@ jobs:
     secrets: inherit
     with:
       workflow: ${{ matrix.workflow }}
-      wpt-layout: ${{ matrix.wpt_layout }}
+      wpt: ${{ matrix.wpt }}
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
+      build-libservo: ${{ matrix.build_libservo }}
       wpt-args: ${{ matrix.wpt_args }}
       bencher: ${{ matrix.bencher }}
 

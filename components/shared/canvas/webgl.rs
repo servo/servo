@@ -33,7 +33,7 @@ pub fn webgl_channel<T>() -> Option<(WebGLSender<T>, WebGLReceiver<T>)>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    base::generic_channel::channel(servo_config::opts::multiprocess())
+    base::generic_channel::channel(servo_config::opts::get().multiprocess)
 }
 
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
@@ -272,6 +272,7 @@ pub enum WebGLCommand {
     BindFramebuffer(u32, WebGLFramebufferBindingRequest),
     BindRenderbuffer(u32, Option<WebGLRenderbufferId>),
     BindTexture(u32, Option<WebGLTextureId>),
+    BlitFrameBuffer(i32, i32, i32, i32, i32, i32, i32, i32, u32, u32),
     DisableVertexAttribArray(u32),
     EnableVertexAttribArray(u32),
     FramebufferRenderbuffer(u32, u32, u32, Option<WebGLRenderbufferId>),
@@ -569,15 +570,9 @@ macro_rules! define_resource_id {
         pub struct $name(nonzero_type!($type));
 
         impl $name {
-            #[allow(unsafe_code)]
             #[inline]
-            /// Create a new $name.
-            ///
-            /// # Safety
-            ///
-            /// Using an invalid OpenGL id may result in undefined behavior.
-            pub unsafe fn new(id: $type) -> Self {
-                $name(<nonzero_type!($type)>::new_unchecked(id))
+            pub fn new(id: nonzero_type!($type)) -> Self {
+                Self(id)
             }
 
             #[inline]
@@ -598,10 +593,10 @@ macro_rules! define_resource_id {
                 D: ::serde::Deserializer<'de>,
             {
                 let id = <$type>::deserialize(deserializer)?;
-                if id == 0 {
-                    Err(::serde::de::Error::custom("expected a non-zero value"))
+                if let Some(id) = <nonzero_type!($type)>::new(id) {
+                    Ok($name(id))
                 } else {
-                    Ok(unsafe { $name::new(id) })
+                    Err(::serde::de::Error::custom("expected a non-zero value"))
                 }
             }
         }

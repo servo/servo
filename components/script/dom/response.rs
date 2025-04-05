@@ -2,20 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::str::FromStr;
 
 use dom_struct::dom_struct;
 use http::header::HeaderMap as HyperHeaders;
 use hyper_serde::Serde;
-use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use net_traits::http_status::HttpStatus;
 use servo_url::ServoUrl;
 use url::Position;
 
-use crate::body::{consume_body, BodyMixin, BodyType, Extractable, ExtractedBody};
+use crate::body::{BodyMixin, BodyType, Extractable, ExtractedBody, consume_body};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding;
@@ -24,17 +22,18 @@ use crate::dom::bindings::codegen::Bindings::ResponseBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::headers::{is_obs_text, is_vchar, Guard, Headers};
+use crate::dom::headers::{Guard, Headers, is_obs_text, is_vchar};
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::{ExternalUnderlyingSource, ReadableStream};
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext, StreamConsumer};
+use crate::dom::readablestream::ReadableStream;
+use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
+use crate::script_runtime::{CanGc, StreamConsumer};
 
 #[dom_struct]
-pub struct Response {
+pub(crate) struct Response {
     reflector_: Reflector,
     headers_reflector: MutNullableDom<Headers>,
     #[no_trace]
@@ -53,11 +52,13 @@ pub struct Response {
 
 #[allow(non_snake_case)]
 impl Response {
-    pub fn new_inherited(global: &GlobalScope) -> Response {
+    pub(crate) fn new_inherited(global: &GlobalScope, can_gc: CanGc) -> Response {
         let stream = ReadableStream::new_with_external_underlying_source(
             global,
-            ExternalUnderlyingSource::FetchResponse,
-        );
+            UnderlyingSourceType::FetchResponse,
+            can_gc,
+        )
+        .expect("Failed to create ReadableStream with external underlying source");
         Response {
             reflector_: Reflector::new(),
             headers_reflector: Default::default(),
@@ -72,7 +73,7 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response
-    pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
         Self::new_with_proto(global, None, can_gc)
     }
 
@@ -82,16 +83,16 @@ impl Response {
         can_gc: CanGc,
     ) -> DomRoot<Response> {
         reflect_dom_object_with_proto(
-            Box::new(Response::new_inherited(global)),
+            Box::new(Response::new_inherited(global, can_gc)),
             global,
             proto,
             can_gc,
         )
     }
 
-    pub fn error_stream(&self, error: Error) {
+    pub(crate) fn error_stream(&self, error: Error, can_gc: CanGc) {
         if let Some(body) = self.body_stream.get() {
-            body.error_native(error);
+            body.error_native(error, can_gc);
         }
     }
 }
@@ -210,7 +211,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         } else {
             // Reset FetchResponse to an in-memory stream with empty byte sequence here for
             // no-init-body case
-            let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0), can_gc);
+            let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0), can_gc)?;
             r.body_stream.set(Some(&*stream));
         }
 
@@ -357,8 +358,8 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-body>
-    fn GetBody(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
-        self.body().map(|stream| stream.get_js_stream())
+    fn GetBody(&self) -> Option<DomRoot<ReadableStream>> {
+        self.body()
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-text
@@ -385,6 +386,11 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::ArrayBuffer, can_gc)
     }
+
+    /// <https://fetch.spec.whatwg.org/#dom-body-bytes>
+    fn Bytes(&self, can_gc: CanGc) -> std::rc::Rc<Promise> {
+        consume_body(self, BodyType::Bytes, can_gc)
+    }
 }
 
 fn serialize_without_fragment(url: &ServoUrl) -> &str {
@@ -392,12 +398,16 @@ fn serialize_without_fragment(url: &ServoUrl) -> &str {
 }
 
 impl Response {
-    pub fn set_type(&self, new_response_type: DOMResponseType, can_gc: CanGc) {
+    pub(crate) fn set_type(&self, new_response_type: DOMResponseType, can_gc: CanGc) {
         *self.response_type.borrow_mut() = new_response_type;
         self.set_response_members_by_type(new_response_type, can_gc);
     }
 
-    pub fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>, can_gc: CanGc) {
+    pub(crate) fn set_headers(
+        &self,
+        option_hyper_headers: Option<Serde<HyperHeaders>>,
+        can_gc: CanGc,
+    ) {
         self.Headers(can_gc)
             .set_headers(match option_hyper_headers {
                 Some(hyper_headers) => hyper_headers.into_inner(),
@@ -405,15 +415,15 @@ impl Response {
             });
     }
 
-    pub fn set_status(&self, status: &HttpStatus) {
+    pub(crate) fn set_status(&self, status: &HttpStatus) {
         self.status.borrow_mut().clone_from(status);
     }
 
-    pub fn set_final_url(&self, final_url: ServoUrl) {
+    pub(crate) fn set_final_url(&self, final_url: ServoUrl) {
         *self.url.borrow_mut() = Some(final_url);
     }
 
-    pub fn set_redirected(&self, is_redirected: bool) {
+    pub(crate) fn set_redirected(&self, is_redirected: bool) {
         *self.redirected.borrow_mut() = is_redirected;
     }
 
@@ -440,11 +450,11 @@ impl Response {
         }
     }
 
-    pub fn set_stream_consumer(&self, sc: Option<StreamConsumer>) {
+    pub(crate) fn set_stream_consumer(&self, sc: Option<StreamConsumer>) {
         *self.stream_consumer.borrow_mut() = sc;
     }
 
-    pub fn stream_chunk(&self, chunk: Vec<u8>, can_gc: CanGc) {
+    pub(crate) fn stream_chunk(&self, chunk: Vec<u8>, can_gc: CanGc) {
         // Note, are these two actually mutually exclusive?
         if let Some(stream_consumer) = self.stream_consumer.borrow().as_ref() {
             stream_consumer.consume_chunk(chunk.as_slice());
@@ -453,10 +463,10 @@ impl Response {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn finish(&self) {
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn finish(&self, can_gc: CanGc) {
         if let Some(body) = self.body_stream.get() {
-            body.close_native();
+            body.controller_close_native(can_gc);
         }
         let stream_consumer = self.stream_consumer.borrow_mut().take();
         if let Some(stream_consumer) = stream_consumer {

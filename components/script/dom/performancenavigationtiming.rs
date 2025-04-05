@@ -15,12 +15,13 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming
 /// Only the current document resource is included in the performance timeline;
 /// there is only one PerformanceNavigationTiming object in the performance timeline.
-pub struct PerformanceNavigationTiming {
+pub(crate) struct PerformanceNavigationTiming {
     // https://w3c.github.io/navigation-timing/#PerformanceResourceTiming
     performanceresourcetiming: PerformanceResourceTiming,
     document: Dom<Document>,
@@ -44,10 +45,11 @@ impl PerformanceNavigationTiming {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         fetch_start: CrossProcessInstant,
         document: &Document,
+        can_gc: CanGc,
     ) -> DomRoot<PerformanceNavigationTiming> {
         reflect_dom_object(
             Box::new(PerformanceNavigationTiming::new_inherited(
@@ -55,6 +57,7 @@ impl PerformanceNavigationTiming {
                 document,
             )),
             global,
+            can_gc,
         )
     }
 }

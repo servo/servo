@@ -7,17 +7,22 @@
 <script src="../trusted-click.js"></script>
 <iframe allowfullscreen></iframe>
 <script>
-
-    async function fullscreenNestedElements(iframe, outer, inner) {
+    async function fullscreenNestedElements(t, iframe, outer, inner) {
         // First request fullscreen for the outer element.
-        await Promise.all([fullScreenChange(), trusted_request(outer)]);
+        await Promise.all([fullScreenChange(), fullScreenChange(iframe.contentDocument), trusted_request(outer)]);
         assert_equals(document.fullscreenElement, iframe);
         assert_equals(iframe.contentDocument.fullscreenElement, outer);
 
+        document.onfullscreenchange = t.unreached_func(
+            "fullscreenchange event should not be emitted a second time for parent document."
+        );
+
         // Then request fullscreen for the inner element.
-        await Promise.all([fullScreenChange(), trusted_request(inner)]);
+        await Promise.all([fullScreenChange(iframe.contentDocument), trusted_request(inner)]);
         assert_equals(document.fullscreenElement, iframe);
         assert_equals(iframe.contentDocument.fullscreenElement, inner);
+
+        document.onfullscreenchange = null;
     }
 
     promise_test(async (t) => {
@@ -32,7 +37,7 @@
         const inner = iframeDoc.getElementById("inner");
 
         // Fullscreen outer, then inner, 2 elements in toplayer of <iframe>
-        await fullscreenNestedElements(iframe, outer, inner);
+        await fullscreenNestedElements(t, iframe, outer, inner);
 
         // Check if iframe sees (fullscreenchange, element) as per spec
         await Promise.all([fullScreenChange(iframeDoc), iframeDoc.exitFullscreen()]);
@@ -49,7 +54,7 @@
         assert_equals(iframeDoc.fullscreenElement, null);
         assert_equals(document.fullscreenElement, null);
 
-        await fullscreenNestedElements(iframe, outer, inner);
+        await fullscreenNestedElements(t, iframe, outer, inner);
 
         // Exit the top level document from fullscreen - should exit all documents below it as
         // per step 13 & 15 in https://fullscreen.spec.whatwg.org/#exit-fullscreen

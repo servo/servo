@@ -22,7 +22,7 @@ permissions: {}
 
 jobs:
   safari-results:
-    name: ${{ inputs.safari-technology-preview && 'Safari Technology Preview' || 'Safari' }}
+    name: ${{ matrix.current-chunk }} (of ${{ matrix.total-chunks }})
     runs-on:
       - self-hosted
       - webkit-ews

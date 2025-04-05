@@ -198,3 +198,35 @@ async def test_params_unsubscribe_from_one_context_with_global_subscription(
     # Try to unsubscribe from one context
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.unsubscribe(events=["log.entryAdded"], contexts=[top_context["context"]])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("subscriptions", [None, True, 42, {}, "foo"])
+async def test_params_subscriptions_invalid_type(bidi_session, subscriptions):
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.unsubscribe(subscriptions=subscriptions)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("subscription", [None, True, 42, {}, []])
+async def test_params_subscriptions_entry_invalid_type(bidi_session, subscription):
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.unsubscribe(subscriptions=[subscription])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("subscriptions", [[""], ["12345678-1234-5678-1234-567812345678"]])
+async def test_params_subscriptions_invalid_value(bidi_session, subscriptions):
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.unsubscribe(subscriptions=subscriptions)
+
+
+@pytest.mark.asyncio
+async def test_unsubscribe_with_subscription_id_twice(bidi_session):
+    result = await bidi_session.session.subscribe(events=["log.entryAdded"])
+
+    await bidi_session.session.unsubscribe(subscriptions=[result["subscription"]])
+
+    # Trying to unsubscribe second time with the same subscription id should fail.
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.unsubscribe(subscriptions=[result["subscription"]])

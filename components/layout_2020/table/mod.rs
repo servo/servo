@@ -70,13 +70,13 @@ mod layout;
 
 use std::ops::Range;
 
+use app_units::Au;
 pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
-use serde::Serialize;
 use servo_arc::Arc;
-use style::properties::style_structs::Font;
 use style::properties::ComputedValues;
+use style::properties::style_structs::Font;
 use style_traits::dom::OpaqueNode;
 
 use super::flow::BlockFormattingContext;
@@ -84,21 +84,22 @@ use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::BaseFragmentInfo;
+use crate::geom::PhysicalVec;
 use crate::layout_box_base::LayoutBoxBase;
+use crate::style_ext::BorderStyleColor;
+use crate::table::layout::TableLayout;
 
 pub type TableSize = Size2D<usize, UnknownUnit>;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct Table {
     /// The style of this table. These are the properties that apply to the "wrapper" ie the element
     /// that contains both the grid and the captions. Not all properties are actually used on the
     /// wrapper though, such as background and borders, which apply to the grid.
-    #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 
     /// The style of this table's grid. This is an anonymous style based on the table's style, but
     /// eliminating all the properties handled by the "wrapper."
-    #[serde(skip_serializing)]
     grid_style: Arc<ComputedValues>,
 
     /// The [`BaseFragmentInfo`] for this table's grid. This is necessary so that when the
@@ -129,6 +130,9 @@ pub struct Table {
 
     /// Whether or not this Table is anonymous.
     anonymous: bool,
+
+    /// Whether percentage columns are taken into account during inline content sizes calculation.
+    percentage_columns_allowed_for_inline_content_sizes: bool,
 }
 
 impl Table {
@@ -136,6 +140,7 @@ impl Table {
         style: Arc<ComputedValues>,
         grid_style: Arc<ComputedValues>,
         base_fragment_info: BaseFragmentInfo,
+        percentage_columns_allowed_for_inline_content_sizes: bool,
     ) -> Self {
         Self {
             style,
@@ -149,6 +154,7 @@ impl Table {
             slots: Vec::new(),
             size: TableSize::zero(),
             anonymous: false,
+            percentage_columns_allowed_for_inline_content_sizes,
         }
     }
 
@@ -170,11 +176,7 @@ impl Table {
     }
 
     fn resolve_first_cell(&self, coords: TableSlotCoordinates) -> Option<&TableSlotCell> {
-        let resolved_coords = match self.resolve_first_cell_coords(coords) {
-            Some(coords) => coords,
-            None => return None,
-        };
-
+        let resolved_coords = self.resolve_first_cell_coords(coords)?;
         let slot = self.get_slot(resolved_coords);
         match slot {
             Some(TableSlot::Cell(cell)) => Some(cell),
@@ -188,7 +190,7 @@ impl Table {
 type TableSlotCoordinates = Point2D<usize, UnknownUnit>;
 pub type TableSlotOffset = Vector2D<usize, UnknownUnit>;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct TableSlotCell {
     /// The [`LayoutBoxBase`] of this table cell.
     base: LayoutBoxBase,
@@ -226,7 +228,6 @@ impl TableSlotCell {
     }
 }
 
-#[derive(Serialize)]
 /// A single table slot. It may be an actual cell, or a reference
 /// to a previous cell that is spanned here
 ///
@@ -267,13 +268,12 @@ impl TableSlot {
 }
 
 /// A row or column of a table.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug)]
 pub struct TableTrack {
     /// The [`BaseFragmentInfo`] of this cell.
     base_fragment_info: BaseFragmentInfo,
 
     /// The style of this table column.
-    #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 
     /// The index of the table row or column group parent in the table's list of row or column
@@ -285,7 +285,7 @@ pub struct TableTrack {
     is_anonymous: bool,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq)]
 pub enum TableTrackGroupType {
     HeaderGroup,
     FooterGroup,
@@ -293,13 +293,12 @@ pub enum TableTrackGroupType {
     ColumnGroup,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct TableTrackGroup {
     /// The [`BaseFragmentInfo`] of this [`TableTrackGroup`].
     base_fragment_info: BaseFragmentInfo,
 
     /// The style of this [`TableTrackGroup`].
-    #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 
     /// The type of this [`TableTrackGroup`].
@@ -315,8 +314,29 @@ impl TableTrackGroup {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct TableCaption {
     /// The contents of this cell, with its own layout.
     context: ArcRefCell<IndependentFormattingContext>,
+}
+
+/// A calculated collapsed border.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct CollapsedBorder {
+    pub style_color: BorderStyleColor,
+    pub width: Au,
+}
+
+/// Represents a piecewise sequence of collapsed borders along a line.
+pub(crate) type CollapsedBorderLine = Vec<CollapsedBorder>;
+
+#[derive(Clone, Debug)]
+pub(crate) struct SpecificTableGridInfo {
+    pub collapsed_borders: PhysicalVec<Vec<CollapsedBorderLine>>,
+    pub track_sizes: PhysicalVec<Vec<Au>>,
+}
+
+pub(crate) struct TableLayoutStyle<'a> {
+    table: &'a Table,
+    layout: Option<&'a TableLayout<'a>>,
 }

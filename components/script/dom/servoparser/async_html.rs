@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(crown::unrooted_must_root)]
+#![cfg_attr(crown, allow(crown::unrooted_must_root))]
 
 use std::borrow::Cow;
 use std::cell::{Cell, Ref, RefCell, RefMut};
-use std::collections::vec_deque::VecDeque;
 use std::collections::HashMap;
+use std::collections::vec_deque::VecDeque;
 use std::thread;
 
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{SendTendril, StrTendril, Tendril};
@@ -20,7 +20,7 @@ use html5ever::tree_builder::{
     TreeBuilderOpts, TreeSink,
 };
 use html5ever::{
-    local_name, namespace_url, ns, Attribute as HtmlAttribute, ExpandedName, QualName,
+    Attribute as HtmlAttribute, ExpandedName, QualName, local_name, namespace_url, ns,
 };
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;
@@ -39,14 +39,14 @@ use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::node::Node;
 use crate::dom::processinginstruction::ProcessingInstruction;
-use crate::dom::servoparser::{create_element_for_token, ElementAttribute, ParsingAlgorithm};
+use crate::dom::servoparser::{ElementAttribute, ParsingAlgorithm, create_element_for_token};
 use crate::dom::virtualmethods::vtable_for;
 use crate::script_runtime::CanGc;
 
 type ParseNodeId = usize;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-pub struct ParseNode {
+pub(crate) struct ParseNode {
     id: ParseNodeId,
     #[no_trace]
     qual_name: Option<QualName>,
@@ -205,8 +205,8 @@ fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue 
 //   |_____________|                         |_______________|
 //
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
-pub struct Tokenizer {
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct Tokenizer {
     document: Dom<Document>,
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
@@ -222,7 +222,7 @@ pub struct Tokenizer {
 }
 
 impl Tokenizer {
-    pub fn new(
+    pub(crate) fn new(
         document: &Document,
         url: ServoUrl,
         fragment_context: Option<super::FragmentContext>,
@@ -267,6 +267,7 @@ impl Tokenizer {
         // Create new thread for HtmlTokenizer. This is where parser actions
         // will be generated from the input provided. These parser actions are then passed
         // onto the main thread to be executed.
+        let scripting_enabled = document.has_browsing_context();
         thread::Builder::new()
             .name(format!("Parse:{}", tokenizer.url.debug_compact()))
             .spawn(move || {
@@ -277,6 +278,7 @@ impl Tokenizer {
                     form_parse_node,
                     to_tokenizer_sender,
                     html_tokenizer_receiver,
+                    scripting_enabled,
                 );
             })
             .expect("HTML Parser thread spawning failed");
@@ -284,7 +286,7 @@ impl Tokenizer {
         tokenizer
     }
 
-    pub fn feed(
+    pub(crate) fn feed(
         &self,
         input: &BufferQueue,
         can_gc: CanGc,
@@ -330,7 +332,7 @@ impl Tokenizer {
         }
     }
 
-    pub fn end(&self, can_gc: CanGc) {
+    pub(crate) fn end(&self, can_gc: CanGc) {
         self.html_tokenizer_sender
             .send(ToHtmlTokenizerMsg::End)
             .unwrap();
@@ -353,11 +355,11 @@ impl Tokenizer {
         }
     }
 
-    pub fn url(&self) -> &ServoUrl {
+    pub(crate) fn url(&self) -> &ServoUrl {
         &self.url
     }
 
-    pub fn set_plaintext_state(&self) {
+    pub(crate) fn set_plaintext_state(&self) {
         self.html_tokenizer_sender
             .send(ToHtmlTokenizerMsg::SetPlainTextState)
             .unwrap();
@@ -544,7 +546,7 @@ impl Tokenizer {
                 let control = elem.and_then(|e| e.as_maybe_form_control());
 
                 if let Some(control) = control {
-                    control.set_form_owner_from_parser(&form);
+                    control.set_form_owner_from_parser(&form, can_gc);
                 }
             },
             ParseOperation::Pop { node } => {
@@ -573,9 +575,11 @@ fn run(
     form_parse_node: Option<ParseNode>,
     sender: Sender<ToTokenizerMsg>,
     receiver: Receiver<ToHtmlTokenizerMsg>,
+    scripting_enabled: bool,
 ) {
     let options = TreeBuilderOpts {
         ignore_missing_rules: true,
+        scripting_enabled,
         ..Default::default()
     };
 
@@ -634,7 +638,7 @@ struct ParseNodeData {
     is_integration_point: bool,
 }
 
-pub struct Sink {
+pub(crate) struct Sink {
     current_line: Cell<u64>,
     parse_node_data: RefCell<HashMap<ParseNodeId, ParseNodeData>>,
     next_parse_node_id: Cell<ParseNodeId>,
@@ -693,7 +697,7 @@ impl Sink {
     }
 }
 
-#[allow(crown::unrooted_must_root)]
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
 impl TreeSink for Sink {
     type Output = Self;
     fn finish(self) -> Self {
@@ -701,7 +705,10 @@ impl TreeSink for Sink {
     }
 
     type Handle = ParseNode;
-    type ElemName<'a> = ExpandedName<'a> where Self: 'a;
+    type ElemName<'a>
+        = ExpandedName<'a>
+    where
+        Self: 'a;
 
     fn get_document(&self) -> Self::Handle {
         self.document_node.clone()

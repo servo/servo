@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use html5ever::{local_name, namespace_prefix, namespace_url, ns, QualName};
+use html5ever::{QualName, local_name, namespace_prefix, namespace_url, ns};
 
 use super::parser::{
     AdditiveOp, Axis, EqualityOp, Expr, FilterExpr, KindTest, Literal, MultiplicativeOp, NodeTest,
@@ -21,7 +21,7 @@ use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::processinginstruction::ProcessingInstruction;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Error {
+pub(crate) enum Error {
     NotANodeset,
     InvalidPath,
     UnknownFunction { name: QualName },
@@ -57,14 +57,14 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-pub fn try_extract_nodeset(v: Value) -> Result<Vec<DomRoot<Node>>, Error> {
+pub(crate) fn try_extract_nodeset(v: Value) -> Result<Vec<DomRoot<Node>>, Error> {
     match v {
         Value::Nodeset(ns) => Ok(ns),
         _ => Err(Error::NotANodeset),
     }
 }
 
-pub trait Evaluatable: fmt::Debug {
+pub(crate) trait Evaluatable: fmt::Debug {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error>;
     /// Returns true if this expression evaluates to a primitive value, without needing to touch the DOM
     fn is_primitive(&self) -> bool;
@@ -226,9 +226,9 @@ impl Evaluatable for PathExpr {
                     },
                     (true, value) => {
                         error!(
-                        "Expected nodeset from step evaluation, got: {:?} node: {:?}, step: {:?}",
-                        value, node, step
-                    );
+                            "Expected nodeset from step evaluation, got: {:?} node: {:?}, step: {:?}",
+                            value, node, step
+                        );
                         return Ok(value);
                     },
                 }
@@ -264,14 +264,14 @@ impl TryFrom<&ParserQualName> for QualName {
     }
 }
 
-pub enum NameTestComparisonMode {
+pub(crate) enum NameTestComparisonMode {
     /// Namespaces must match exactly
     XHtml,
     /// Missing namespace information is treated as the HTML namespace
     Html,
 }
 
-pub fn element_name_test(
+pub(crate) fn element_name_test(
     expected_name: QualName,
     element_qualname: QualName,
     comparison_mode: NameTestComparisonMode,
@@ -485,8 +485,7 @@ impl Evaluatable for PredicateListExpr {
                 matched_nodes = narrowed_nodes;
                 trace!(
                     "[PredicateListExpr] Predicate {:?} matched nodes {:?}",
-                    predicate_expr,
-                    matched_nodes
+                    predicate_expr, matched_nodes
                 );
             }
             Ok(Value::Nodeset(matched_nodes))

@@ -44,7 +44,7 @@ async_test(t => {
   open_rq.onupgradeneeded = setOnUpgradeNeeded(dbObj, records);
 
   open_rq.onsuccess = function (e) {
-    let store = dbObj.db.transaction("test", "readonly", { durability: 'relaxed' })
+    let store = dbObj.db.transaction("test", "readonly")
       .objectStore("test");
 
     let cursor_rq = store.openCursor();
@@ -77,7 +77,7 @@ async_test(t => {
   open_rq.onupgradeneeded = setOnUpgradeNeeded(dbObj, records);
 
   open_rq.onsuccess = function (e) {
-    let cursor_rq = dbObj.db.transaction("test", "readonly", { durability: 'relaxed' })
+    let cursor_rq = dbObj.db.transaction("test", "readonly")
       .objectStore("test").openCursor();
 
     cursor_rq.onsuccess = t.step_func(function (e) {
@@ -105,7 +105,7 @@ async_test(t => {
   open_rq.onupgradeneeded = setOnUpgradeNeeded(dbObj, records);
 
   open_rq.onsuccess = function (e) {
-    let cursor_rq = dbObj.db.transaction("test", "readonly", { durability: 'relaxed' })
+    let cursor_rq = dbObj.db.transaction("test", "readonly")
       .objectStore("test")
       .openCursor(undefined, "next");
 
@@ -135,7 +135,7 @@ async_test(t => {
 
   open_rq.onsuccess = function (e) {
     let count = 0,
-      cursor_rq = dbObj.db.transaction("test", "readonly", { durability: 'relaxed' })
+      cursor_rq = dbObj.db.transaction("test", "readonly")
         .objectStore("test")
         .openCursor(null, "prev");
 
@@ -178,7 +178,7 @@ async_test(t => {
   open_rq.onupgradeneeded = setOnUpgradeNeeded(dbObj, records);
 
   open_rq.onsuccess = function (e) {
-    let cursor_rq = dbObj.db.transaction("test", "readonly", { durability: 'relaxed' })
+    let cursor_rq = dbObj.db.transaction("test", "readonly")
       .objectStore("test")
       .openCursor();
 
@@ -241,7 +241,7 @@ async_test(t => {
   open_rq.onupgradeneeded = setOnUpgradeNeededWithCleanup(t, dbObj, records);
 
   open_rq.onsuccess = function (e) {
-    let cursor_rq = dbObj.db.transaction("test", "readwrite", { durability: 'relaxed' })
+    let cursor_rq = dbObj.db.transaction("test", "readwrite")
       .objectStore("test")
       .openCursor();
 
@@ -282,7 +282,7 @@ async_test(t => {
   open_rq.onupgradeneeded = setOnUpgradeNeededWithCleanup(t, dbObj, records);
 
   open_rq.onsuccess = function (e) {
-    let cursor_rq = dbObj.db.transaction("test", "readwrite", { durability: 'relaxed' })
+    let cursor_rq = dbObj.db.transaction("test", "readwrite")
       .objectStore("test")
       .openCursor();
 

@@ -6,13 +6,14 @@ use dom_struct::dom_struct;
 use webxr_api::HitTestId;
 
 use crate::dom::bindings::codegen::Bindings::XRHitTestSourceBinding::XRHitTestSourceMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrsession::XRSession;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRHitTestSource {
+pub(crate) struct XRHitTestSource {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
@@ -29,18 +30,20 @@ impl XRHitTestSource {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         id: HitTestId,
         session: &XRSession,
+        can_gc: CanGc,
     ) -> DomRoot<XRHitTestSource> {
         reflect_dom_object(
             Box::new(XRHitTestSource::new_inherited(id, session)),
             global,
+            can_gc,
         )
     }
 
-    pub fn id(&self) -> HitTestId {
+    pub(crate) fn id(&self) -> HitTestId {
         self.id
     }
 }

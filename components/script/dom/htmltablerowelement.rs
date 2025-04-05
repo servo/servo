@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::color::AbsoluteColor;
@@ -18,26 +18,17 @@ use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{Element, LayoutElementHelpers};
-use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmltablecellelement::HTMLTableCellElement;
 use crate::dom::htmltableelement::HTMLTableElement;
 use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
-#[derive(JSTraceable)]
-struct CellsFilter;
-impl CollectionFilter for CellsFilter {
-    fn filter(&self, elem: &Element, root: &Node) -> bool {
-        (elem.is::<HTMLTableCellElement>()) &&
-            elem.upcast::<Node>().GetParentNode().as_deref() == Some(root)
-    }
-}
-
 #[dom_struct]
-pub struct HTMLTableRowElement {
+pub(crate) struct HTMLTableRowElement {
     htmlelement: HTMLElement,
     cells: MutNullableDom<HTMLCollection>,
 }
@@ -54,8 +45,8 @@ impl HTMLTableRowElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -95,9 +86,15 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     // https://html.spec.whatwg.org/multipage/#dom-tr-cells
     fn Cells(&self) -> DomRoot<HTMLCollection> {
         self.cells.or_init(|| {
-            let window = window_from_node(self);
-            let filter = Box::new(CellsFilter);
-            HTMLCollection::create(&window, self.upcast(), filter)
+            HTMLCollection::new_with_filter_fn(
+                &self.owner_window(),
+                self.upcast(),
+                |element, root| {
+                    (element.is::<HTMLTableCellElement>()) &&
+                        element.upcast::<Node>().GetParentNode().as_deref() == Some(root)
+                },
+                CanGc::note(),
+            )
         })
     }
 
@@ -108,13 +105,19 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
             index,
             || self.Cells(),
             || HTMLTableCellElement::new(local_name!("td"), None, &node.owner_doc(), None, can_gc),
+            can_gc,
         )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell
     fn DeleteCell(&self, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
-        node.delete_cell_or_row(index, || self.Cells(), |n| n.is::<HTMLTableCellElement>())
+        node.delete_cell_or_row(
+            index,
+            || self.Cells(),
+            |n| n.is::<HTMLTableCellElement>(),
+            CanGc::note(),
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-rowindex
@@ -155,7 +158,7 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     }
 }
 
-pub trait HTMLTableRowElementLayoutHelpers {
+pub(crate) trait HTMLTableRowElementLayoutHelpers {
     fn get_background_color(self) -> Option<AbsoluteColor>;
     fn get_height(self) -> LengthOrPercentageOrAuto;
 }

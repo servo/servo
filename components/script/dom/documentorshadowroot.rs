@@ -4,43 +4,45 @@
 
 use std::fmt;
 
+use constellation_traits::UntrustedNodeAddress;
 use euclid::default::Point2D;
 use script_layout_interface::{NodesFromPointQueryType, QueryMsg};
-use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
-use servo_atoms::Atom;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::scope_rule::ImplicitScopeRoot;
 use style::stylesheets::{Stylesheet, StylesheetContents};
+use stylo_atoms::Atom;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
-pub struct StyleSheetInDocument {
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct StyleSheetInDocument {
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    pub sheet: Arc<Stylesheet>,
-    pub owner: Dom<Element>,
+    pub(crate) sheet: Arc<Stylesheet>,
+    pub(crate) owner: Dom<Element>,
 }
 
 // This is necessary because this type is contained within a Stylo type which needs
 // Stylo's version of MallocSizeOf.
-impl style_malloc_size_of::MallocSizeOf for StyleSheetInDocument {
-    fn size_of(&self, ops: &mut style_malloc_size_of::MallocSizeOfOps) -> usize {
+impl stylo_malloc_size_of::MallocSizeOf for StyleSheetInDocument {
+    fn size_of(&self, ops: &mut stylo_malloc_size_of::MallocSizeOfOps) -> usize {
         <StyleSheetInDocument as malloc_size_of::MallocSizeOf>::size_of(self, ops)
     }
 }
@@ -82,20 +84,20 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
 }
 
 // https://w3c.github.io/webcomponents/spec/shadow/#extensions-to-the-documentorshadowroot-mixin
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct DocumentOrShadowRoot {
+pub(crate) struct DocumentOrShadowRoot {
     window: Dom<Window>,
 }
 
 impl DocumentOrShadowRoot {
-    pub fn new(window: &Window) -> Self {
+    pub(crate) fn new(window: &Window) -> Self {
         Self {
             window: Dom::from_ref(window),
         }
     }
 
-    pub fn nodes_from_point(
+    pub(crate) fn nodes_from_point(
         &self,
         client_point: &Point2D<f32>,
         query_type: NodesFromPointQueryType,
@@ -115,7 +117,7 @@ impl DocumentOrShadowRoot {
 
     #[allow(unsafe_code)]
     // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
-    pub fn element_from_point(
+    pub(crate) fn element_from_point(
         &self,
         x: Finite<f64>,
         y: Finite<f64>,
@@ -126,7 +128,7 @@ impl DocumentOrShadowRoot {
         let x = *x as f32;
         let y = *y as f32;
         let point = &Point2D::new(x, y);
-        let viewport = self.window.window_size().initial_viewport;
+        let viewport = self.window.viewport_details().size;
 
         if !has_browsing_context {
             return None;
@@ -143,9 +145,17 @@ impl DocumentOrShadowRoot {
             Some(address) => {
                 let node = unsafe { node::from_untrusted_node_address(*address) };
                 let parent_node = node.GetParentNode().unwrap();
+                let shadow_host = parent_node
+                    .downcast::<ShadowRoot>()
+                    .map(ShadowRootMethods::Host);
                 let element_ref = node
                     .downcast::<Element>()
-                    .unwrap_or_else(|| parent_node.downcast::<Element>().unwrap());
+                    .or(shadow_host.as_deref())
+                    .unwrap_or_else(|| {
+                        parent_node
+                            .downcast::<Element>()
+                            .expect("Hit node should have an element or shadowroot parent")
+                    });
 
                 Some(DomRoot::from_ref(element_ref))
             },
@@ -155,7 +165,7 @@ impl DocumentOrShadowRoot {
 
     #[allow(unsafe_code)]
     // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
-    pub fn elements_from_point(
+    pub(crate) fn elements_from_point(
         &self,
         x: Finite<f64>,
         y: Finite<f64>,
@@ -166,7 +176,7 @@ impl DocumentOrShadowRoot {
         let x = *x as f32;
         let y = *y as f32;
         let point = &Point2D::new(x, y);
-        let viewport = self.window.window_size().initial_viewport;
+        let viewport = self.window.viewport_details().size;
 
         if !has_browsing_context {
             return vec![];
@@ -199,7 +209,7 @@ impl DocumentOrShadowRoot {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
-    pub fn get_active_element(
+    pub(crate) fn get_active_element(
         &self,
         focused_element: Option<DomRoot<Element>>,
         body: Option<DomRoot<HTMLElement>>,
@@ -218,8 +228,8 @@ impl DocumentOrShadowRoot {
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
-    #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn remove_stylesheet(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
+    pub(crate) fn remove_stylesheet(
         owner: &Element,
         s: &Arc<Stylesheet>,
         mut stylesheets: StylesheetSetRef<StyleSheetInDocument>,
@@ -239,8 +249,8 @@ impl DocumentOrShadowRoot {
 
     /// Add a stylesheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
-    #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn add_stylesheet(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
+    pub(crate) fn add_stylesheet(
         owner: &Element,
         mut stylesheets: StylesheetSetRef<StyleSheetInDocument>,
         sheet: Arc<Stylesheet>,
@@ -267,7 +277,7 @@ impl DocumentOrShadowRoot {
     }
 
     /// Remove any existing association between the provided id/name and any elements in this document.
-    pub fn unregister_named_element(
+    pub(crate) fn unregister_named_element(
         &self,
         id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
         to_unregister: &Element,
@@ -295,7 +305,7 @@ impl DocumentOrShadowRoot {
     }
 
     /// Associate an element present in this document with the provided id/name.
-    pub fn register_named_element(
+    pub(crate) fn register_named_element(
         &self,
         id_map: &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>>>,
         element: &Element,
@@ -303,7 +313,10 @@ impl DocumentOrShadowRoot {
         root: DomRoot<Node>,
     ) {
         debug!("Adding named element {:p}: {:p} id={}", self, element, id);
-        assert!(element.upcast::<Node>().is_connected());
+        assert!(
+            element.upcast::<Node>().is_in_a_document_tree() ||
+                element.upcast::<Node>().is_in_a_shadow_tree()
+        );
         assert!(!id.is_empty());
         let mut id_map = id_map.borrow_mut();
         let elements = id_map.entry(id.clone()).or_default();

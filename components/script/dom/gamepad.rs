@@ -5,15 +5,15 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use embedder_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
 use js::typedarray::{Float64, Float64Array};
-use script_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
 
 use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
 use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
@@ -33,7 +33,7 @@ const AXIS_TILT_THRESHOLD: f64 = 0.5;
 const BUTTON_PRESS_THRESHOLD: f64 = 30.0 / 255.0;
 
 #[dom_struct]
-pub struct Gamepad {
+pub(crate) struct Gamepad {
     reflector_: Reflector,
     gamepad_id: u32,
     id: String,
@@ -89,7 +89,7 @@ impl Gamepad {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         gamepad_id: u32,
         id: String,
@@ -130,7 +130,7 @@ impl Gamepad {
         xr: bool,
         can_gc: CanGc,
     ) -> DomRoot<Gamepad> {
-        let button_list = GamepadButtonList::init_buttons(global);
+        let button_list = GamepadButtonList::init_buttons(global, can_gc);
         let vibration_actuator =
             GamepadHapticActuator::new(global, gamepad_id, supported_haptic_effects, can_gc);
         let index = if xr { -1 } else { 0 };
@@ -153,7 +153,7 @@ impl Gamepad {
             None,
             can_gc,
         );
-        gamepad.init_axes();
+        gamepad.init_axes(can_gc);
         gamepad
     }
 }
@@ -186,7 +186,9 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
 
     // https://w3c.github.io/gamepad/#dom-gamepad-axes
     fn Axes(&self, _cx: JSContext) -> Float64Array {
-        self.axes.get_buffer().expect("Failed to get gamepad axes.")
+        self.axes
+            .get_typed_array()
+            .expect("Failed to get gamepad axes.")
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
@@ -212,11 +214,11 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
 
 #[allow(dead_code)]
 impl Gamepad {
-    pub fn gamepad_id(&self) -> u32 {
+    pub(crate) fn gamepad_id(&self) -> u32 {
         self.gamepad_id
     }
 
-    pub fn update_connected(&self, connected: bool, has_gesture: bool, can_gc: CanGc) {
+    pub(crate) fn update_connected(&self, connected: bool, has_gesture: bool, can_gc: CanGc) {
         if self.connected.get() == connected {
             return;
         }
@@ -233,20 +235,21 @@ impl Gamepad {
         }
     }
 
-    pub fn index(&self) -> i32 {
+    pub(crate) fn index(&self) -> i32 {
         self.index.get()
     }
 
-    pub fn update_index(&self, index: i32) {
+    pub(crate) fn update_index(&self, index: i32) {
         self.index.set(index);
     }
 
-    pub fn update_timestamp(&self, timestamp: f64) {
+    pub(crate) fn update_timestamp(&self, timestamp: f64) {
         self.timestamp.set(timestamp);
     }
 
-    pub fn notify_event(&self, event_type: GamepadEventType, can_gc: CanGc) {
-        let event = GamepadEvent::new_with_type(&self.global(), event_type, self, can_gc);
+    pub(crate) fn notify_event(&self, event_type: GamepadEventType, can_gc: CanGc) {
+        let event =
+            GamepadEvent::new_with_type(self.global().as_window(), event_type, self, can_gc);
         event
             .upcast::<Event>()
             .fire(self.global().as_window().upcast::<EventTarget>(), can_gc);
@@ -254,7 +257,7 @@ impl Gamepad {
 
     /// Initialize the number of axes in the "standard" gamepad mapping.
     /// <https://www.w3.org/TR/gamepad/#dfn-initializing-axes>
-    fn init_axes(&self) {
+    fn init_axes(&self, can_gc: CanGc) {
         let initial_axes: Vec<f64> = vec![
             0., // Horizontal axis for left stick (negative left/positive right)
             0., // Vertical axis for left stick (negative up/positive down)
@@ -262,13 +265,13 @@ impl Gamepad {
             0., // Vertical axis for right stick (negative up/positive down)
         ];
         self.axes
-            .set_data(GlobalScope::get_cx(), &initial_axes)
+            .set_data(GlobalScope::get_cx(), &initial_axes, can_gc)
             .expect("Failed to set axes data on gamepad.")
     }
 
     #[allow(unsafe_code)]
     /// <https://www.w3.org/TR/gamepad/#dfn-map-and-normalize-axes>
-    pub fn map_and_normalize_axes(&self, axis_index: usize, value: f64) {
+    pub(crate) fn map_and_normalize_axes(&self, axis_index: usize, value: f64) {
         // Let normalizedValue be 2 (logicalValue − logicalMinimum) / (logicalMaximum − logicalMinimum) − 1.
         let numerator = value - self.axis_bounds.0;
         let denominator = self.axis_bounds.1 - self.axis_bounds.0;
@@ -277,7 +280,7 @@ impl Gamepad {
             if normalized_value.is_finite() {
                 let mut axis_vec = self
                     .axes
-                    .buffer_to_option()
+                    .typed_array_to_option()
                     .expect("Axes have not been initialized!");
                 unsafe {
                     axis_vec.as_mut_slice()[axis_index] = normalized_value;
@@ -291,7 +294,7 @@ impl Gamepad {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-map-and-normalize-buttons>
-    pub fn map_and_normalize_buttons(&self, button_index: usize, value: f64) {
+    pub(crate) fn map_and_normalize_buttons(&self, button_index: usize, value: f64) {
         // Let normalizedValue be (logicalValue − logicalMinimum) / (logicalMaximum − logicalMinimum).
         let numerator = value - self.button_bounds.0;
         let denominator = self.button_bounds.1 - self.button_bounds.0;
@@ -312,22 +315,22 @@ impl Gamepad {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-exposed>
-    pub fn exposed(&self) -> bool {
+    pub(crate) fn exposed(&self) -> bool {
         self.exposed.get()
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-exposed>
-    pub fn set_exposed(&self, exposed: bool) {
+    pub(crate) fn set_exposed(&self, exposed: bool) {
         self.exposed.set(exposed);
     }
 
-    pub fn vibration_actuator(&self) -> &GamepadHapticActuator {
+    pub(crate) fn vibration_actuator(&self) -> &GamepadHapticActuator {
         &self.vibration_actuator
     }
 }
 
 /// <https://www.w3.org/TR/gamepad/#dfn-gamepad-user-gesture>
-pub fn contains_user_gesture(update_type: GamepadUpdateType) -> bool {
+pub(crate) fn contains_user_gesture(update_type: GamepadUpdateType) -> bool {
     match update_type {
         GamepadUpdateType::Axis(_, value) => value.abs() > AXIS_TILT_THRESHOLD,
         GamepadUpdateType::Button(_, value) => value > BUTTON_PRESS_THRESHOLD,

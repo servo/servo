@@ -19,8 +19,9 @@ use std::string::String;
 use std::thread;
 use std::time::Duration;
 
+use base::id::WebViewId;
 use bitflags::bitflags;
-use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
+use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{
     BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions,
 };
@@ -76,7 +77,7 @@ pub trait BluetoothThreadFactory {
 impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
     fn new(embedder_proxy: EmbedderProxy) -> IpcSender<BluetoothRequest> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let adapter = if pref!(dom.bluetooth.enabled) {
+        let adapter = if pref!(dom_bluetooth_enabled) {
             BluetoothAdapter::new()
         } else {
             BluetoothAdapter::new_mock()
@@ -189,7 +190,7 @@ fn matches_filters(device: &BluetoothDevice, filters: &BluetoothScanfilterSequen
         return false;
     }
 
-    return filters.iter().any(|f| matches_filter(device, f));
+    filters.iter().any(|f| matches_filter(device, f))
 }
 
 fn is_mock_adapter(adapter: &BluetoothAdapter) -> bool {
@@ -387,6 +388,7 @@ impl BluetoothManager {
 
     fn select_device(
         &mut self,
+        webview_id: WebViewId,
         devices: Vec<BluetoothDevice>,
         adapter: &BluetoothAdapter,
     ) -> Option<String> {
@@ -408,11 +410,12 @@ impl BluetoothManager {
         }
 
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = (
-            None,
-            EmbedderMsg::GetSelectedBluetoothDevice(dialog_rows, ipc_sender),
-        );
-        self.embedder_proxy.send(msg);
+        self.embedder_proxy
+            .send(EmbedderMsg::GetSelectedBluetoothDevice(
+                webview_id,
+                dialog_rows,
+                ipc_sender,
+            ));
 
         match ipc_receiver.recv() {
             Ok(result) => result,
@@ -427,7 +430,7 @@ impl BluetoothManager {
         let mut device_id;
         let mut rng = servo_rand::thread_rng();
         loop {
-            device_id = rng.gen::<u32>().to_string();
+            device_id = rng.r#gen::<u32>().to_string();
             if !self.cached_devices.contains_key(&device_id) {
                 break;
             }
@@ -628,7 +631,7 @@ impl BluetoothManager {
         }
 
         // Step 9.
-        if let Some(address) = self.select_device(matched_devices, &adapter) {
+        if let Some(address) = self.select_device(options.webview_id(), matched_devices, &adapter) {
             let device_id = match self.address_to_id.get(&address) {
                 Some(id) => id.clone(),
                 None => return Err(BluetoothError::NotFound),

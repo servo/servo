@@ -11,7 +11,7 @@
 use std::cell::RefCell;
 use std::path::PathBuf;
 
-use base::id::BlobId;
+use base::id::{BlobId, DomPointId};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
 use serde::{Deserialize, Serialize};
@@ -57,6 +57,39 @@ impl FileBlob {
     /// Get the file id.
     pub fn get_id(&self) -> Uuid {
         self.id
+    }
+}
+
+impl crate::BroadcastClone for BlobImpl {
+    type Id = BlobId;
+
+    fn source(
+        data: &crate::StructuredSerializedData,
+    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+        &data.blobs
+    }
+
+    fn destination(
+        data: &mut crate::StructuredSerializedData,
+    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+        &mut data.blobs
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        let type_string = self.type_string();
+
+        if let BlobData::Memory(bytes) = self.blob_data() {
+            let blob_clone = BlobImpl::new_from_bytes(bytes.clone(), type_string);
+
+            // Note: we insert the blob at the original id,
+            // otherwise this will not match the storage key as serialized by SM in `serialized`.
+            // The clone has it's own new Id however.
+            return Some(blob_clone);
+        } else {
+            // Not panicking only because this is called from the constellation.
+            log::warn!("Serialized blob not in memory format(should never happen).");
+        }
+        None
     }
 }
 
@@ -147,5 +180,38 @@ impl BlobImpl {
     /// Get a mutable ref to the data
     pub fn blob_data_mut(&mut self) -> &mut BlobData {
         &mut self.blob_data
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// A serializable version of the DOMPoint/DOMPointReadOnly interface.
+pub struct DomPoint {
+    /// The x coordinate.
+    pub x: f64,
+    /// The y coordinate.
+    pub y: f64,
+    /// The z coordinate.
+    pub z: f64,
+    /// The w coordinate.
+    pub w: f64,
+}
+
+impl crate::BroadcastClone for DomPoint {
+    type Id = DomPointId;
+
+    fn source(
+        data: &crate::StructuredSerializedData,
+    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+        &data.points
+    }
+
+    fn destination(
+        data: &mut crate::StructuredSerializedData,
+    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+        &mut data.points
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
     }
 }

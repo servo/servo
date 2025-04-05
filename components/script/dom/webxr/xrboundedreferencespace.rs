@@ -7,24 +7,25 @@ use js::rust::MutableHandleValue;
 
 use crate::dom::bindings::codegen::Bindings::XRBoundedReferenceSpaceBinding::XRBoundedReferenceSpaceMethods;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::XRSession;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRBoundedReferenceSpace {
+pub(crate) struct XRBoundedReferenceSpace {
     reference_space: XRReferenceSpace,
     offset: Dom<XRRigidTransform>,
 }
 
 impl XRBoundedReferenceSpace {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         session: &XRSession,
         offset: &XRRigidTransform,
     ) -> XRBoundedReferenceSpace {
@@ -39,28 +40,31 @@ impl XRBoundedReferenceSpace {
     }
 
     #[allow(unused)]
-    pub fn new(
-        global: &GlobalScope,
+    pub(crate) fn new(
+        window: &Window,
         session: &XRSession,
         can_gc: CanGc,
     ) -> DomRoot<XRBoundedReferenceSpace> {
-        let offset = XRRigidTransform::identity(global, can_gc);
-        Self::new_offset(global, session, &offset)
+        let offset = XRRigidTransform::identity(window, can_gc);
+        let global = window.global();
+        Self::new_offset(&global, session, &offset, can_gc)
     }
 
     #[allow(unused)]
-    pub fn new_offset(
+    pub(crate) fn new_offset(
         global: &GlobalScope,
         session: &XRSession,
         offset: &XRRigidTransform,
+        can_gc: CanGc,
     ) -> DomRoot<XRBoundedReferenceSpace> {
         reflect_dom_object(
             Box::new(XRBoundedReferenceSpace::new_inherited(session, offset)),
             global,
+            can_gc,
         )
     }
 
-    pub fn reference_space(&self) -> &XRReferenceSpace {
+    pub(crate) fn reference_space(&self) -> &XRReferenceSpace {
         &self.reference_space
     }
 }
@@ -83,9 +87,9 @@ impl XRBoundedReferenceSpaceMethods<crate::DomTypeHolder> for XRBoundedReference
                 })
                 .collect();
 
-            to_frozen_array(&points, cx, retval)
+            to_frozen_array(&points, cx, retval, can_gc)
         } else {
-            to_frozen_array::<DomRoot<DOMPointReadOnly>>(&[], cx, retval)
+            to_frozen_array::<DomRoot<DOMPointReadOnly>>(&[], cx, retval, can_gc)
         }
     }
 }

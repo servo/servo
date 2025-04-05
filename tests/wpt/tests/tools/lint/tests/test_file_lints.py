@@ -350,37 +350,20 @@ def test_multiple_testharnessreport():
 def test_testdriver_in_unsupported():
     code = b"""
 <html xmlns="http://www.w3.org/1999/xhtml">
-<link rel="match" href="test-ref.html"/>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 </html>
 """
-    error_map = check_with_files(code)
 
-    for (filename, (errors, kind)) in error_map.items():
-        check_errors(errors)
-
-        if kind in ["web-lax", "web-strict"]:
-            assert errors == [
-                (
-                    "NON-EXISTENT-REF",
-                    "Reference test with a non-existent 'match' relationship reference: "
-                    "'test-ref.html'",
-                    filename,
-                    None,
-                ),
-                (
-                    "TESTDRIVER-IN-UNSUPPORTED-TYPE",
-                    "testdriver.js included in a reftest test, which doesn't support "
-                    "testdriver.js",
-                    filename,
-                    None,
-                ),
-            ]
-        elif kind == "python":
-            assert errors == [
-                ("PARSE-FAILED", "Unable to parse file", filename, 2),
-            ]
+    filename = os.path.join("html", "test-manual.html")
+    errors = check_file_contents("", filename, io.BytesIO(code))
+    check_errors(errors)
+    assert errors == [(
+        "TESTDRIVER-IN-UNSUPPORTED-TYPE",
+        "testdriver.js included in a manual test, which doesn't support testdriver.js",
+        filename,
+        None,
+    )]
 
 
 def test_early_testdriver_vendor():
@@ -412,6 +395,50 @@ def test_early_testdriver_vendor():
             ]
 
 
+def test_testdriver_allowed():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == []
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
+def test_testdriver_feature_bidi():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == []
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
 def test_multiple_testdriver():
     code = b"""
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -430,6 +457,215 @@ def test_multiple_testdriver():
         if kind in ["web-lax", "web-strict"]:
             assert errors == [
                 ("MULTIPLE-TESTDRIVER", "More than one `<script src='/resources/testdriver.js'>`", filename, None),
+            ]
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
+def test_multiple_testdriver_with_query_param():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == [
+                ("MULTIPLE-TESTDRIVER",
+                 "More than one `<script src='/resources/testdriver.js'>`",
+                 filename, None),
+            ]
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
+def test_testdriver_unsupported_query_param():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?foo"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == [
+                ("TESTDRIVER-UNSUPPORTED-QUERY-PARAMETER",
+                 "testdriver.js script seen with unsupported query parameters",
+                 filename, None),
+            ]
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
+def test_testdriver_vendor_query_param():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?vendor:param=foo"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == [
+                ('TESTDRIVER-UNSUPPORTED-QUERY-PARAMETER',
+                 'testdriver.js script seen with unsupported query parameters',
+                 filename, None)
+            ]
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
+def test_testdriver_unsupported_feature():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=unsupported_feature"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == [
+                ("TESTDRIVER-UNSUPPORTED-QUERY-PARAMETER",
+                 "testdriver.js script seen with unsupported query parameters",
+                 filename, None),
+            ]
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
+def test_testdriver_multiple_with_unsupported_features():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi&feature=unsupported_feature"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind == "web-lax":
+            assert errors == [
+                ('TESTDRIVER-UNSUPPORTED-QUERY-PARAMETER',
+                 'testdriver.js script seen with unsupported query parameters',
+                 filename, None)
+            ]
+        elif kind == "python":
+            assert errors == [
+                ('PARSE-FAILED', 'Unable to parse file', filename, 2),
+            ]
+        elif kind == "web-strict":
+            assert errors == [
+                ('PARSE-FAILED', 'Unable to parse file', filename, None),
+            ]
+
+
+def test_testdriver_multiple_vendor_features():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi&feature=vendor:feature"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind == "web-lax":
+            assert errors == []
+        elif kind == "python":
+            assert errors == [
+                ('PARSE-FAILED', 'Unable to parse file', filename, 2),
+            ]
+        elif kind == "web-strict":
+            assert errors == [
+                ('PARSE-FAILED', 'Unable to parse file', filename, None),
+            ]
+
+
+def test_testdriver_vendor_feature():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=vendor:feature"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == []
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
+def test_testdriver_unsupported_empty_feature():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature="></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == [
+                ("TESTDRIVER-UNSUPPORTED-QUERY-PARAMETER",
+                 "testdriver.js script seen with unsupported query parameters",
+                 filename, None),
             ]
         elif kind == "python":
             assert errors == [
@@ -999,6 +1235,34 @@ def test_invalid_web_features_file():
 
     assert errors == []
 
+
+def test_duplicate_keys_invalid_web_features_file():
+    code = b"""\
+features:
+- name: feature1
+  files:
+  - feature1-*
+features:
+- name: feature2
+  files:
+  - "feature2-*"
+"""
+    # Check when the value is named correctly. It should find the error.
+    errors = check_file_contents("", "css/WEB_FEATURES.yml", io.BytesIO(code))
+    check_errors(errors)
+
+    assert errors == [
+        ('INVALID-WEB-FEATURES-FILE',
+         'The WEB_FEATURES.yml file contains an invalid structure',
+         "css/WEB_FEATURES.yml",
+         None),
+    ]
+
+    # Check when the value is named incorrectly. It should not find the error.
+    errors = check_file_contents("", "css/OTHER_WEB_FEATURES.yml", io.BytesIO(code))
+    check_errors(errors)
+
+    assert errors == []
 
 def test_css_missing_file_manual():
     errors = check_file_contents("", "css/foo/bar-manual.html", io.BytesIO(b""))

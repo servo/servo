@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
@@ -17,29 +17,39 @@ use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::node::Node;
 use crate::dom::nodelist::{NodeList, NodeListType, RadioList, RadioListMode};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RadioNodeList {
+pub(crate) struct RadioNodeList {
     node_list: NodeList,
 }
 
 impl RadioNodeList {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(list_type: NodeListType) -> RadioNodeList {
         RadioNodeList {
             node_list: NodeList::new_inherited(list_type),
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<RadioNodeList> {
-        reflect_dom_object(Box::new(RadioNodeList::new_inherited(list_type)), window)
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
+        window: &Window,
+        list_type: NodeListType,
+        can_gc: CanGc,
+    ) -> DomRoot<RadioNodeList> {
+        reflect_dom_object(
+            Box::new(RadioNodeList::new_inherited(list_type)),
+            window,
+            can_gc,
+        )
     }
 
-    pub fn new_controls_except_image_inputs(
+    pub(crate) fn new_controls_except_image_inputs(
         window: &Window,
         form: &HTMLFormElement,
         name: &Atom,
+        can_gc: CanGc,
     ) -> DomRoot<RadioNodeList> {
         RadioNodeList::new(
             window,
@@ -48,17 +58,20 @@ impl RadioNodeList {
                 RadioListMode::ControlsExceptImageInputs,
                 name.clone(),
             )),
+            can_gc,
         )
     }
 
-    pub fn new_images(
+    pub(crate) fn new_images(
         window: &Window,
         form: &HTMLFormElement,
         name: &Atom,
+        can_gc: CanGc,
     ) -> DomRoot<RadioNodeList> {
         RadioNodeList::new(
             window,
             NodeListType::Radio(RadioList::new(form, RadioListMode::Images, name.clone())),
+            can_gc,
         )
     }
 }

@@ -14,10 +14,14 @@ on:
         required: false
         default: false
         type: boolean
-      wpt-layout:
+      wpt:
         required: false
-        type: string
+        type: boolean
       unit-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
         required: false
         default: false
         type: boolean
@@ -51,11 +55,14 @@ on:
         default: false
         required: false
         type: boolean
-      wpt-layout:
+      wpt:
         required: false
-        type: choice
-        options: ["none", "2013", "2020", "all"]
+        type: boolean
       unit-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
         required: false
         default: false
         type: boolean
@@ -104,53 +111,52 @@ jobs:
     name: Linux Build [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-        run: |
-          echo SCCACHE_GHA_ENABLED=true >> $GITHUB_ENV
-          echo RUSTC_WRAPPER=sccache >> $GITHUB_ENV
-          echo CCACHE=sccache >> $GITHUB_ENV
-          echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
-
       - uses: actions/checkout@v4
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
+        if: ${{ runner.environment != 'self-hosted' && github.event_name != 'pull_request_target' }}
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
       - uses: actions/checkout@v4
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
+        if: ${{ runner.environment != 'self-hosted' && github.event_name == 'pull_request_target' }}
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
       # Faster checkout for self-hosted runner that uses prebaked repo.
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name != 'pull_request_target' }}
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
         run: git fetch --depth=1 origin $GITHUB_SHA
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) && github.event_name == 'pull_request_target' }}
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
         run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
-      - if: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+      - if: ${{ runner.environment == 'self-hosted' }}
         # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
         # trees, in case the runner image was baked with a dirty working tree.
         run: |
           git switch --detach
           git reset --hard FETCH_HEAD
-
-      # Install missing tools in a GitHub-hosted runner.
-      - name: Run sccache-cache
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-        uses: mozilla-actions/sccache-action@v0.0.6
-      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) && !inputs.upload }} # not needed on ubuntu 20.04 used for nightly
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
-      - uses: actions/setup-python@v5
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        if: ${{ runner.environment != 'self-hosted' }}
         with:
-          python-version: '3.10'
-      - name: Bootstrap Python
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
-        run: python3 -m pip install --upgrade pip
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+      - name: Install LLVM and Clang
+        # Expliclity install Clang 14 on Ubuntu 20.04 used by the nightly job (#34713).
+        if: ${{ runner.environment != 'self-hosted' && inputs.upload }}
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: 14
+        # FIXME: It would be better to use the above step for regular Linux jobs
+        # and remove the following step, but currenty that is failing and needs investigation.
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        if: ${{ runner.environment != 'self-hosted' && !inputs.upload }} # not needed on ubuntu 20.04 used for nightly
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Setup Python
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
-        if: ${{ ! fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+        if: ${{ runner.environment != 'self-hosted' }}
         run: |
           sudo apt update
-          python3 ./mach bootstrap --skip-lints
+          ./mach bootstrap --skip-lints
 
       # Always install crown, even on self-hosted runners, because it is tightly
       # coupled to the rustc version, and we may have the wrong version if the
@@ -160,10 +166,10 @@ jobs:
 
       - name: Build (${{ inputs.profile }})
         run: |
-          python3 ./mach build --use-crown --locked --${{ inputs.profile }} --features "layout_2013"
+          ./mach build --use-crown --locked --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
-        run: xvfb-run python3 ./mach smoketest --${{ inputs.profile  }}
+        run: xvfb-run ./mach smoketest --${{ inputs.profile  }}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
@@ -172,24 +178,28 @@ jobs:
         with:
           timeout_minutes: 20
           max_attempts: 2 # https://github.com/servo/servo/issues/30683
-          command: python ./mach test-unit --${{ inputs.profile }}
+          command: ./mach test-unit --${{ inputs.profile }}
+      - name: Build libservo with examples
+        if: ${{ inputs.build-libservo }}
+        continue-on-error: true
+        run: cargo build -p libservo --all-targets
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-linux
+          name: cargo-timings-linux-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Build mach package
-        run: python3 ./mach package --${{ inputs.profile }}
+        run: ./mach package --${{ inputs.profile }}
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
-          name: linux
+          name: linux-${{ inputs.profile }}
           path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
-          python3 ./mach upload-nightly linux \
+          ./mach upload-nightly linux \
             --secret-from-environment \
             --github-release-id ${{ inputs.github-release-id }}
         env:
@@ -205,7 +215,7 @@ jobs:
           path: target.tar.gz
 
   wpt-2020:
-    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
+    if: ${{ inputs.wpt }}
     name: Linux WPT
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
@@ -213,24 +223,19 @@ jobs:
       wpt-args: ${{ inputs.wpt-args }}
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
-      wpt-layout: "layout-2020"
-    secrets: inherit
-
-  wpt-2013:
-    if: ${{ inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
-    name: Linux WPT (Legacy)
-    needs: ["build"]
-    uses: ./.github/workflows/linux-wpt.yml
-    with:
-      wpt-args: ${{ inputs.wpt-args }}
-      profile: ${{ inputs.profile }}
-      wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
-      wpt-layout: "layout-2013"
     secrets: inherit
 
   bencher:
     needs: ["build"]
-    # benches must be release (we will do benches for production profile in servo/servo-nightly-builds)
-    if: ${{ inputs.bencher && inputs.profile == 'release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_queue' }}
-    uses: ./.github/workflows/linux-bencher.yml
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    uses: ./.github/workflows/bencher.yml
+    with:
+      target: 'linux'
+      profile: ${{ inputs.profile }}
+      compressed-file-path: ${{ inputs.profile }}-binary-linux/target.tar.gz
+      binary-path: target/${{ inputs.profile }}/servo
+      file-size: true
+      # We only evaluate speedometer and dromaeo score in release
+      speedometer: ${{ inputs.profile == 'release' }}
+      dromaeo: ${{ inputs.profile == 'release' }}
     secrets: inherit

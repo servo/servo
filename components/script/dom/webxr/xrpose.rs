@@ -5,22 +5,22 @@
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::XRPoseBinding::XRPoseMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::ApiRigidTransform;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRPose {
+pub(crate) struct XRPose {
     reflector_: Reflector,
     transform: Dom<XRRigidTransform>,
 }
 
 impl XRPose {
-    pub fn new_inherited(transform: &XRRigidTransform) -> XRPose {
+    pub(crate) fn new_inherited(transform: &XRRigidTransform) -> XRPose {
         XRPose {
             reflector_: Reflector::new(),
             transform: Dom::from_ref(transform),
@@ -28,13 +28,13 @@ impl XRPose {
     }
 
     #[allow(unused)]
-    pub fn new(
-        global: &GlobalScope,
+    pub(crate) fn new(
+        window: &Window,
         transform: ApiRigidTransform,
         can_gc: CanGc,
     ) -> DomRoot<XRPose> {
-        let transform = XRRigidTransform::new(global, transform, can_gc);
-        reflect_dom_object(Box::new(XRPose::new_inherited(&transform)), global)
+        let transform = XRRigidTransform::new(window, transform, can_gc);
+        reflect_dom_object(Box::new(XRPose::new_inherited(&transform)), window, can_gc)
     }
 }
 

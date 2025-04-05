@@ -128,7 +128,7 @@ macro_rules! make_form_action_getter(
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            let doc = $crate::dom::node::document_from_node(self);
+            let doc = $crate::dom::node::NodeTraits::owner_document(self);
             let attr = element.get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname));
             let value = attr.as_ref().map(|attr| attr.value());
             let value = match value {
@@ -151,7 +151,8 @@ macro_rules! make_labels_getter(
             use $crate::dom::nodelist::NodeList;
             self.$memo.or_init(|| NodeList::new_labels_list(
                 self.upcast::<Node>().owner_doc().window(),
-                self.upcast::<HTMLElement>()
+                self.upcast::<HTMLElement>(),
+                CanGc::note()
                 )
             )
         }
@@ -410,7 +411,7 @@ macro_rules! define_event_handler(
 macro_rules! define_window_owned_event_handler(
     ($handler: ty, $event_type: ident, $getter: ident, $setter: ident) => (
         fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().$getter()
             } else {
@@ -419,7 +420,7 @@ macro_rules! define_window_owned_event_handler(
         }
 
         fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().$setter(listener)
             }
@@ -636,37 +637,22 @@ macro_rules! document_and_element_event_handlers(
     )
 );
 
-#[macro_export]
-macro_rules! rooted_vec {
-    (let mut $name:ident) => {
-        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
-        let mut $name = $crate::dom::bindings::trace::RootedVec::new(&mut root);
-    };
-    (let $name:ident <- $iter:expr) => {
-        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
-        let $name = $crate::dom::bindings::trace::RootedVec::from_iter(&mut root, $iter);
-    };
-    (let mut $name:ident <- $iter:expr) => {
-        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
-        let mut $name = $crate::dom::bindings::trace::RootedVec::from_iter(&mut root, $iter);
-    };
-}
-
 /// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.
 macro_rules! impl_performance_entry_struct(
     ($binding:ident, $struct:ident, $type:expr) => (
         use base::cross_process_instant::CrossProcessInstant;
-        use time_03::Duration;
+        use time::Duration;
 
         use crate::dom::bindings::reflector::reflect_dom_object;
         use crate::dom::bindings::root::DomRoot;
         use crate::dom::bindings::str::DOMString;
         use crate::dom::globalscope::GlobalScope;
         use crate::dom::performanceentry::PerformanceEntry;
+        use crate::script_runtime::CanGc;
         use dom_struct::dom_struct;
 
         #[dom_struct]
-        pub struct $struct {
+        pub(crate) struct $struct {
             entry: PerformanceEntry,
         }
 
@@ -681,13 +667,13 @@ macro_rules! impl_performance_entry_struct(
                 }
             }
 
-            #[allow(crown::unrooted_must_root)]
-            pub fn new(global: &GlobalScope,
+            #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+            pub(crate) fn new(global: &GlobalScope,
                        name: DOMString,
                        start_time: CrossProcessInstant,
                        duration: Duration) -> DomRoot<$struct> {
                 let entry = $struct::new_inherited(name, start_time, duration);
-                reflect_dom_object(Box::new(entry), global)
+                reflect_dom_object(Box::new(entry), global, CanGc::note())
             }
         }
     );

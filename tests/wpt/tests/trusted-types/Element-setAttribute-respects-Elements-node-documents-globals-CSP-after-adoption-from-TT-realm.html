@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      const iframeSrcdoc = `
+      <!DOCTYPE html>
+        <head>
+        <meta charset="utf-8">
+        <meta
+        http-equiv="Content-Security-Policy"
+        content="require-trusted-types-for 'script'"
+        />
+      </head>
+        <body>
+          <div id="nonSVGTestElements">
+            <iframe id="iframe.srcdoc" srcdoc="v"></iframe>
+            <script id="script.src" src="v"><\/script>
+          </div>
+          <svg id="svgTestElements">
+            <script id="script.href" href="v"><\/script>
+            <script id="script.xlink:href" xlink:href="v"><\/script>
+          </svg>
+      </body>`;
+
+      const testCases = [
+        ['iframe', 'srcdoc'],
+        ['script', 'src'],
+        ['script', 'href'],
+        ['script', 'xlink:href'],
+      ];
+
+      const sourceFrame = document.createElement("iframe");
+      sourceFrame.srcdoc = iframeSrcdoc;
+      document.body.append(sourceFrame);
+
+      sourceFrame.addEventListener("load", () => {
+        testCases.forEach(testCase => {
+          async_test(t => {
+            t.step_func_done(() => {
+              const elementId = testCase.join(".");
+              const sourceElement =
+                sourceFrame.contentWindow.document.getElementById(elementId);
+              const sourceAttr = sourceElement.getAttributeNode(testCase[1]);
+              sourceElement.removeAttributeNode(sourceAttr);
+
+              document.body.append(sourceElement);
+              // Now `sourceElement`'s node document's global should belong to
+              // a non-TT realm.
+              // Hence, below calls of `setAttributeNode` and `setAttributeNS`
+              // should not throw.
+              // See the analogous test
+              // <Element-setAttribute-respects-Elements-node-documents-globals-CSP-after-adoption-from-TT-realm.html>
+              // for details about the relevant specs.
+
+              sourceElement.setAttributeNode(sourceAttr);
+              sourceElement.setAttributeNS(sourceAttr.namespaceURI,
+                sourceAttr.name, sourceAttr.value);
+
+              assert_true(true,
+                "Neither `setAttributeNode` nor `setAttributeNS` threw");
+            })();
+          }, `Trusted types are not enforced for setAttributeNode and
+              setAttributeNS after moving the target node from a TT-realm to a
+              non-TT realm for ${testCase[0]}.${testCase[1]}`);
+        });
+      });
+    </script>
+  </body>
+</html>

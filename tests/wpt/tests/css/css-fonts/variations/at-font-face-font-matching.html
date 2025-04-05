@@ -3,6 +3,7 @@
 <head>
     <title>Testing @font-face font matching logic introduced in CSS Fonts level 4</title>
     <link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-matching-algorithm" />
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9389#issuecomment-2625314278">
     <meta name="timeout" content="long">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
@@ -21,7 +22,7 @@
         @font-face { font-family: W300; src: url('./resources/csstest-weights-300-kerned.ttf'); }
 
 
-        @font-face { font-family: descriptorPriorityTest; src: url('./resources/csstest-weights-100-kerned.ttf'); font-stretch : 125%; }
+        @font-face { font-family: descriptorPriorityTest; src: url('./resources/csstest-weights-100-kerned.ttf'); font-stretch: 125%; }
         @font-face { font-family: descriptorPriorityTest; src: url('./resources/csstest-weights-200-kerned.ttf'); font-style: italic; }
         @font-face { font-family: descriptorPriorityTest; src: url('./resources/csstest-weights-300-kerned.ttf'); font-weight: 350; }
     </style>
@@ -77,9 +78,9 @@
         }
 
         var descriptorPriorityCases = [
-            { weight: "normal", style: "oblique -5deg", stretch: "125%",   expectedFamily: "'W100'", description: "Stretch has higher priority than style"},
-            { weight: "350",    style: "normal",        stretch: "125%",   expectedFamily: "'W100'", description: "Stretch has higher priority than weight"},
-            { weight: "350",    style: "oblique -5deg", stretch: "normal", expectedFamily: "'W200'", description: "Style has higher priority than weight"}
+            { weight: "normal", style: "italic", stretch: "125%",   expectedFamily: "'W100'", description: "Stretch has higher priority than style"},
+            { weight: "350",    style: "normal", stretch: "125%",   expectedFamily: "'W100'", description: "Stretch has higher priority than weight"},
+            { weight: "350",    style: "italic", stretch: "normal", expectedFamily: "'W200'", description: "Style has higher priority than weight"}
         ];
 
         descriptorPriorityCases.forEach(function (testCase) {
@@ -126,7 +127,7 @@
         }
         function createFontFaceRules(fontFaceFamily, descriptorName, expectedMatch, unexpectedMatch) {
             dynamicStyles.innerHTML =
-                "@font-face { font-family: " + fontFaceFamily + "; src: url('./resources/csstest-weights-100-kerned.ttf'); "+ descriptorName + ": " + expectedMatch   + "; }" +
+                "@font-face { font-family: " + fontFaceFamily + "; src: url('./resources/csstest-weights-100-kerned.ttf'); " + descriptorName + ": " + expectedMatch   + "; }" +
                 "@font-face { font-family: " + fontFaceFamily + "; src: url('./resources/csstest-weights-200-kerned.ttf'); " + descriptorName + ": " + unexpectedMatch + "; }";
 
             return Promise.all([
@@ -179,15 +180,15 @@
         ]);
 
         testDescriptor("font-style", [
-            { value: "normal",         testDescriptors: ["normal", "oblique 0deg", "oblique 10deg 40deg", "oblique 20deg 30deg", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
-            { value: "italic",         testDescriptors: ["italic", "oblique 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 5deg 10deg", "oblique 5deg", "normal", "oblique 0deg", "oblique -60deg -30deg", "oblique -50deg -40deg" ] },
-            { value: "oblique 20deg",  testDescriptors: ["oblique 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 10deg", "italic", "oblique 0deg", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
-            { value: "oblique 21deg",  testDescriptors: ["oblique 21deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 20deg", "oblique 10deg", "italic", "oblique 0deg",  "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
-            { value: "oblique 10deg",  testDescriptors: ["oblique 10deg", "oblique 5deg", "oblique 15deg 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "italic", "oblique 0deg", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
-            { value: "oblique 0deg",   testDescriptors: ["oblique 0deg", "oblique 5deg", "oblique 15deg 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "italic", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
-            { value: "oblique -10deg", testDescriptors: ["oblique -10deg", "oblique -5deg", "oblique -1deg 0deg", "oblique -20deg -15deg", "oblique -60deg -30deg", "oblique -50deg -40deg", "italic", "oblique 0deg 10deg", "oblique 40deg 50deg" ] },
-            { value: "oblique -20deg", testDescriptors: ["oblique -20deg", "oblique -60deg -40deg", "oblique -10deg", "italic", "oblique 0deg", "oblique 30deg 60deg", "oblique 40deg 50deg"] },
-            { value: "oblique -21deg", testDescriptors: ["oblique -21deg", "oblique -60deg -40deg", "oblique -10deg", "italic", "oblique 0deg", "oblique 30deg 60deg", "oblique 40deg 50deg"] },
+            { value: "normal",         testDescriptors: ["normal", "oblique 10deg 40deg", "oblique 20deg 30deg", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
+            { value: "italic",         testDescriptors: ["italic", "oblique 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 5deg 10deg", "oblique 5deg", "normal", "oblique -60deg -30deg", "oblique -50deg -40deg" ] },
+            { value: "oblique 20deg",  testDescriptors: ["oblique 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 10deg", "oblique 0deg", "oblique -50deg -20deg", "oblique -40deg -30deg", "italic" ] },
+            { value: "oblique 21deg",  testDescriptors: ["oblique 21deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 20deg", "oblique 10deg", "oblique 0deg",  "oblique -50deg -20deg", "oblique -40deg -30deg", "italic" ] },
+            { value: "oblique 10deg",  testDescriptors: ["oblique 10deg", "oblique 5deg", "oblique 15deg 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 0deg", "oblique -50deg -20deg", "oblique -40deg -30deg", "italic" ] },
+            { value: "oblique 0deg",   testDescriptors: ["oblique 0deg", "oblique 5deg", "oblique 15deg 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique -50deg -20deg", "oblique -40deg -30deg", "italic" ] },
+            { value: "oblique -10deg", testDescriptors: ["oblique -10deg", "oblique -5deg", "oblique -1deg 0deg", "oblique -20deg -15deg", "oblique -60deg -30deg", "oblique -50deg -40deg", "oblique 0deg 10deg", "oblique 40deg 50deg", "italic" ] },
+            { value: "oblique -20deg", testDescriptors: ["oblique -20deg", "oblique -60deg -40deg", "oblique -10deg", "oblique 0deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "italic"] },
+            { value: "oblique -21deg", testDescriptors: ["oblique -21deg", "oblique -60deg -40deg", "oblique -10deg", "oblique 0deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "italic"] },
         ]);
 
     </script>

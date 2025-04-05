@@ -8,7 +8,7 @@ use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
 use style::stylesheets::StylesheetInDocument;
 
 /// Functionality common to DocumentStylesheetSet and AuthorStylesheetSet.
-pub enum StylesheetSetRef<'a, S>
+pub(crate) enum StylesheetSetRef<'a, S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
@@ -18,14 +18,14 @@ where
     Document(&'a mut DocumentStylesheetSet<S>),
 }
 
-impl<'a, S> StylesheetSetRef<'a, S>
+impl<S> StylesheetSetRef<'_, S>
 where
     S: StylesheetInDocument + PartialEq + 'static,
 {
     /// Appends a new stylesheet to the current set.
     ///
     /// No device implies not computing invalidations.
-    pub fn append_stylesheet(
+    pub(crate) fn append_stylesheet(
         &mut self,
         device: Option<&Device>,
         sheet: S,
@@ -38,7 +38,7 @@ where
     }
 
     /// Insert a given stylesheet before another stylesheet in the document.
-    pub fn insert_stylesheet_before(
+    pub(crate) fn insert_stylesheet_before(
         &mut self,
         device: Option<&Device>,
         sheet: S,
@@ -56,7 +56,7 @@ where
     }
 
     /// Remove a given stylesheet from the set.
-    pub fn remove_stylesheet(
+    pub(crate) fn remove_stylesheet(
         &mut self,
         device: Option<&Device>,
         sheet: S,

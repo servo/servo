@@ -21,7 +21,10 @@ main:active-view-transition #target {
   background: red;
 }
 
-::view-transition-group(*) {
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
   animation-play-state: paused;
 }
 </style>

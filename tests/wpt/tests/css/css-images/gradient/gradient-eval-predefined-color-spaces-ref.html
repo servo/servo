@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Gradient interpolation</title>
+  <link rel="author" title="Aaron Krajeski" href="mailto:aaronhk@chromium.org">
+  <style>
+   .swatch {
+       width: 100px;
+       height: 50px;
+   }
+ </style>
+ </head>
+ <body>
+ </body>
+ <script>
+  // https://www.w3.org/TR/css-color-4/#predefined
+  const COLOR_SPACES = [
+    "srgb",
+    "srgb-linear",
+    "display-p3",
+    "a98-rgb",
+    "prophoto-rgb",
+    "rec2020",
+  ];
+
+  for (cs of COLOR_SPACES) {
+    const swatch = document.createElement("div");
+    document.body.appendChild(swatch);
+    swatch.classList.add("swatch");
+    const grad = `color-mix(in ${cs}, color(srgb 1 0 0), color(srgb 0 1 0))`;
+    swatch.style.backgroundColor = grad;
+  }
+ </script>
+</html>

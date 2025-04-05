@@ -3,7 +3,7 @@
 <meta charset="UTF-8">
 {% if test_type == 'promise' %}<html class="reftest-wait">
 {% endif %}
-<link rel="match" href="{{ reference_file }}">
+<link rel="match" href="{{ reference_file_link }}">
 {% if fuzzy %}<meta name=fuzzy content="{{ fuzzy }}">
 {% endif %}
 {% if timeout %}<meta name="timeout" content="{{ timeout }}">
@@ -19,7 +19,7 @@
   const canvas = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
   const ctx = canvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
 
-  {{ code_offscreen | trim | indent(2) }}
+  {{ code | trim | indent(2) }}
 
   const outputCanvas = document.getElementById("canvas");
   outputCanvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %}).drawImage(canvas, 0, 0);

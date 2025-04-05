@@ -8,7 +8,7 @@ use std::time::Duration as StdDuration;
 use base::cross_process_instant::CrossProcessInstant;
 use net::hsts::{HstsEntry, HstsList};
 use net_traits::IncludeSubdomains;
-use time_03::Duration;
+use time::Duration;
 
 #[test]
 fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {
@@ -106,12 +106,14 @@ fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
     let mut entries_map = HashMap::new();
     entries_map.insert(
         "mozilla.org".to_owned(),
-        vec![HstsEntry::new(
-            "mozilla.org".to_owned(),
-            IncludeSubdomains::NotIncluded,
-            Some(StdDuration::from_secs(500000)),
-        )
-        .unwrap()],
+        vec![
+            HstsEntry::new(
+                "mozilla.org".to_owned(),
+                IncludeSubdomains::NotIncluded,
+                Some(StdDuration::from_secs(500000)),
+            )
+            .unwrap(),
+        ],
     );
     let mut list = HstsList {
         entries_map: entries_map,
@@ -182,12 +184,14 @@ fn test_push_entry_to_hsts_list_should_not_create_duplicate_entry() {
     let mut entries_map = HashMap::new();
     entries_map.insert(
         "mozilla.org".to_owned(),
-        vec![HstsEntry::new(
-            "mozilla.org".to_owned(),
-            IncludeSubdomains::NotIncluded,
-            None,
-        )
-        .unwrap()],
+        vec![
+            HstsEntry::new(
+                "mozilla.org".to_owned(),
+                IncludeSubdomains::NotIncluded,
+                None,
+            )
+            .unwrap(),
+        ],
     );
     let mut list = HstsList {
         entries_map: entries_map,
@@ -286,12 +290,14 @@ fn test_hsts_list_with_exact_domain_entry_is_is_host_secure() {
     let mut entries_map = HashMap::new();
     entries_map.insert(
         "mozilla.org".to_owned(),
-        vec![HstsEntry::new(
-            "mozilla.org".to_owned(),
-            IncludeSubdomains::NotIncluded,
-            None,
-        )
-        .unwrap()],
+        vec![
+            HstsEntry::new(
+                "mozilla.org".to_owned(),
+                IncludeSubdomains::NotIncluded,
+                None,
+            )
+            .unwrap(),
+        ],
     );
 
     let hsts_list = HstsList {
@@ -320,12 +326,14 @@ fn test_hsts_list_with_subdomain_when_include_subdomains_is_false_is_not_is_host
     let mut entries_map = HashMap::new();
     entries_map.insert(
         "mozilla.org".to_owned(),
-        vec![HstsEntry::new(
-            "mozilla.org".to_owned(),
-            IncludeSubdomains::NotIncluded,
-            None,
-        )
-        .unwrap()],
+        vec![
+            HstsEntry::new(
+                "mozilla.org".to_owned(),
+                IncludeSubdomains::NotIncluded,
+                None,
+            )
+            .unwrap(),
+        ],
     );
     let hsts_list = HstsList {
         entries_map: entries_map,

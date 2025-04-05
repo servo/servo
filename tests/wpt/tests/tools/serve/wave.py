@@ -79,7 +79,7 @@ class ConfigBuilder(serve.ConfigBuilder):
 def get_parser():
     parser = serve.get_parser()
     # Added wave specific arguments
-    parser.add_argument("--report", action="store_true", dest="report",
+    parser.add_argument("--report", action="store_true",
                         help="Flag for enabling the WPTReporting server")
     return parser
 

@@ -8,12 +8,12 @@ use crate::dom::bindings::codegen::Bindings::XMLHttpRequestEventTargetBinding::X
 use crate::dom::eventtarget::EventTarget;
 
 #[dom_struct]
-pub struct XMLHttpRequestEventTarget {
+pub(crate) struct XMLHttpRequestEventTarget {
     eventtarget: EventTarget,
 }
 
 impl XMLHttpRequestEventTarget {
-    pub fn new_inherited() -> XMLHttpRequestEventTarget {
+    pub(crate) fn new_inherited() -> XMLHttpRequestEventTarget {
         XMLHttpRequestEventTarget {
             eventtarget: EventTarget::new_inherited(),
         }

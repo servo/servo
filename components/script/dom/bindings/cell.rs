@@ -6,12 +6,12 @@
 
 use std::cell::{BorrowError, BorrowMutError};
 #[cfg(not(feature = "refcell_backtrace"))]
-pub use std::cell::{Ref, RefCell, RefMut};
+pub(crate) use std::cell::{Ref, RefCell, RefMut};
 
 #[cfg(feature = "refcell_backtrace")]
-pub use accountable_refcell::{ref_filter_map, Ref, RefCell, RefMut};
+pub(crate) use accountable_refcell::{Ref, RefCell, RefMut, ref_filter_map};
 #[cfg(not(feature = "refcell_backtrace"))]
-pub use ref_filter_map::ref_filter_map;
+pub(crate) use ref_filter_map::ref_filter_map;
 
 use crate::dom::bindings::root::{assert_in_layout, assert_in_script};
 
@@ -20,7 +20,7 @@ use crate::dom::bindings::root::{assert_in_layout, assert_in_script};
 /// This extends the API of `std::cell::RefCell` to allow unsafe access in
 /// certain situations, with dynamic checking in debug builds.
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
-pub struct DomRefCell<T> {
+pub(crate) struct DomRefCell<T> {
     value: RefCell<T>,
 }
 
@@ -42,7 +42,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if the value is currently mutably borrowed.
     #[allow(unsafe_code)]
-    pub unsafe fn borrow_for_layout(&self) -> &T {
+    pub(crate) unsafe fn borrow_for_layout(&self) -> &T {
         assert_in_layout();
         self.value
             .try_borrow_unguarded()
@@ -61,7 +61,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if this is called from anywhere other than the script thread.
     #[allow(unsafe_code, clippy::mut_from_ref)]
-    pub unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
+    pub(crate) unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
         assert_in_script();
         &mut *self.value.as_ptr()
     }
@@ -79,7 +79,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if this is called from anywhere other than the layout thread.
     #[allow(unsafe_code, clippy::mut_from_ref)]
-    pub unsafe fn borrow_mut_for_layout(&self) -> &mut T {
+    pub(crate) unsafe fn borrow_mut_for_layout(&self) -> &mut T {
         assert_in_layout();
         &mut *self.value.as_ptr()
     }
@@ -89,7 +89,7 @@ impl<T> DomRefCell<T> {
 // ===================================================
 impl<T> DomRefCell<T> {
     /// Create a new `DomRefCell` containing `value`.
-    pub fn new(value: T) -> DomRefCell<T> {
+    pub(crate) fn new(value: T) -> DomRefCell<T> {
         DomRefCell {
             value: RefCell::new(value),
         }
@@ -104,7 +104,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if the value is currently mutably borrowed.
     #[track_caller]
-    pub fn borrow(&self) -> Ref<T> {
+    pub(crate) fn borrow(&self) -> Ref<T> {
         self.value.borrow()
     }
 
@@ -117,7 +117,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if the value is currently borrowed.
     #[track_caller]
-    pub fn borrow_mut(&self) -> RefMut<T> {
+    pub(crate) fn borrow_mut(&self) -> RefMut<T> {
         self.value.borrow_mut()
     }
 
@@ -131,7 +131,7 @@ impl<T> DomRefCell<T> {
     /// # Panics
     ///
     /// Panics if this is called off the script thread.
-    pub fn try_borrow(&self) -> Result<Ref<T>, BorrowError> {
+    pub(crate) fn try_borrow(&self) -> Result<Ref<T>, BorrowError> {
         assert_in_script();
         self.value.try_borrow()
     }
@@ -146,8 +146,19 @@ impl<T> DomRefCell<T> {
     /// # Panics
     ///
     /// Panics if this is called off the script thread.
-    pub fn try_borrow_mut(&self) -> Result<RefMut<T>, BorrowMutError> {
+    pub(crate) fn try_borrow_mut(&self) -> Result<RefMut<T>, BorrowMutError> {
         assert_in_script();
         self.value.try_borrow_mut()
+    }
+}
+
+impl<T: Default> DomRefCell<T> {
+    /// Takes the wrapped value, leaving `Default::default()` in its place.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is currently borrowed.
+    pub(crate) fn take(&self) -> T {
+        self.value.take()
     }
 }

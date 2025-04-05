@@ -6,8 +6,8 @@
 <script src="../support/parsing-testcommon.js"></script>
 <script>
 function test_valid_length(value, expected) {
-  test_valid_value('letter-spacing', value, expected);
-  test_valid_value('letter-spacing', `calc(${value})`, expected);
+  test_valid_value('margin-top', value, expected);
+  test_valid_value('margin-top', `calc(${value})`, expected);
 }
 
 test_valid_length('clamp(1px, 2px, 3px)', 'calc(2px)');
@@ -39,6 +39,7 @@ test_valid_length('calc(0px - clamp(30px, 100px, 20px))', 'calc(-30px)');
 
 // mixed units that can't be resolved until computed-value time
 test_valid_length('clamp(1px, 1em, 1vh)', 'clamp(1px, 1em, 1vh)');
+test_valid_length('clamp(-18px, 3vw, -3vw)', 'clamp(-18px, 3vw, -3vw)', 'clamp(-18px, 3vw, -3vw)');
 test_valid_length('calc(0px + clamp(1px, 1em, 1vh))', 'calc(0px + clamp(1px, 1em, 1vh))');
 test_valid_length('calc(0px - clamp(1px, 1em, 1vh))', 'calc(0px - clamp(1px, 1em, 1vh))');
 </script>

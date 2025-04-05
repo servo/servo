@@ -8,7 +8,7 @@ use canvas_traits::webgl::{
     ActiveAttribInfo, WebGLCommand, WebGLError, WebGLResult, WebGLVersion, WebGLVertexArrayId,
 };
 
-use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
+use crate::dom::bindings::cell::{DomRefCell, Ref, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants2;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::root::{Dom, MutNullableDom};
@@ -16,8 +16,8 @@ use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
-pub struct VertexArrayObject {
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct VertexArrayObject {
     context: Dom<WebGLRenderingContext>,
     #[no_trace]
     id: Option<WebGLVertexArrayId>,
@@ -28,7 +28,7 @@ pub struct VertexArrayObject {
 }
 
 impl VertexArrayObject {
-    pub fn new(context: &WebGLRenderingContext, id: Option<WebGLVertexArrayId>) -> Self {
+    pub(crate) fn new(context: &WebGLRenderingContext, id: Option<WebGLVertexArrayId>) -> Self {
         let max_vertex_attribs = context.limits().max_vertex_attribs as usize;
         Self {
             context: Dom::from_ref(context),
@@ -40,15 +40,15 @@ impl VertexArrayObject {
         }
     }
 
-    pub fn id(&self) -> Option<WebGLVertexArrayId> {
+    pub(crate) fn id(&self) -> Option<WebGLVertexArrayId> {
         self.id
     }
 
-    pub fn is_deleted(&self) -> bool {
+    pub(crate) fn is_deleted(&self) -> bool {
         self.is_deleted.get()
     }
 
-    pub fn delete(&self, operation_fallibility: Operation) {
+    pub(crate) fn delete(&self, operation_fallibility: Operation) {
         assert!(self.id.is_some());
         if self.is_deleted.get() {
             return;
@@ -70,29 +70,29 @@ impl VertexArrayObject {
         }
     }
 
-    pub fn ever_bound(&self) -> bool {
+    pub(crate) fn ever_bound(&self) -> bool {
         self.ever_bound.get()
     }
 
-    pub fn set_ever_bound(&self) {
+    pub(crate) fn set_ever_bound(&self) {
         self.ever_bound.set(true);
     }
 
-    pub fn element_array_buffer(&self) -> &MutNullableDom<WebGLBuffer> {
+    pub(crate) fn element_array_buffer(&self) -> &MutNullableDom<WebGLBuffer> {
         &self.element_array_buffer
     }
 
-    pub fn get_vertex_attrib(&self, index: u32) -> Option<Ref<VertexAttribData>> {
+    pub(crate) fn get_vertex_attrib(&self, index: u32) -> Option<Ref<VertexAttribData>> {
         ref_filter_map(self.vertex_attribs.borrow(), |attribs| {
             attribs.get(index as usize)
         })
     }
 
-    pub fn set_vertex_attrib_type(&self, index: u32, type_: u32) {
+    pub(crate) fn set_vertex_attrib_type(&self, index: u32, type_: u32) {
         self.vertex_attribs.borrow_mut()[index as usize].type_ = type_;
     }
 
-    pub fn vertex_attrib_pointer(
+    pub(crate) fn vertex_attrib_pointer(
         &self,
         index: u32,
         size: i32,
@@ -173,15 +173,15 @@ impl VertexArrayObject {
         Ok(())
     }
 
-    pub fn vertex_attrib_divisor(&self, index: u32, value: u32) {
+    pub(crate) fn vertex_attrib_divisor(&self, index: u32, value: u32) {
         self.vertex_attribs.borrow_mut()[index as usize].divisor = value;
     }
 
-    pub fn enabled_vertex_attrib_array(&self, index: u32, value: bool) {
+    pub(crate) fn enabled_vertex_attrib_array(&self, index: u32, value: bool) {
         self.vertex_attribs.borrow_mut()[index as usize].enabled_as_array = value;
     }
 
-    pub fn unbind_buffer(&self, buffer: &WebGLBuffer) {
+    pub(crate) fn unbind_buffer(&self, buffer: &WebGLBuffer) {
         for attrib in &mut **self.vertex_attribs.borrow_mut() {
             if let Some(b) = attrib.buffer() {
                 if b.id() != buffer.id() {
@@ -201,7 +201,7 @@ impl VertexArrayObject {
         }
     }
 
-    pub fn validate_for_draw(
+    pub(crate) fn validate_for_draw(
         &self,
         required_len: u32,
         instance_count: u32,
@@ -261,21 +261,21 @@ impl Drop for VertexArrayObject {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
-pub struct VertexAttribData {
-    pub enabled_as_array: bool,
-    pub size: u8,
-    pub type_: u32,
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct VertexAttribData {
+    pub(crate) enabled_as_array: bool,
+    pub(crate) size: u8,
+    pub(crate) type_: u32,
     bytes_per_vertex: u8,
-    pub normalized: bool,
-    pub stride: u8,
-    pub offset: u32,
-    pub buffer: Option<Dom<WebGLBuffer>>,
-    pub divisor: u32,
+    pub(crate) normalized: bool,
+    pub(crate) stride: u8,
+    pub(crate) offset: u32,
+    pub(crate) buffer: Option<Dom<WebGLBuffer>>,
+    pub(crate) divisor: u32,
 }
 
 impl Default for VertexAttribData {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn default() -> Self {
         Self {
             enabled_as_array: false,
@@ -292,11 +292,11 @@ impl Default for VertexAttribData {
 }
 
 impl VertexAttribData {
-    pub fn buffer(&self) -> Option<&WebGLBuffer> {
+    pub(crate) fn buffer(&self) -> Option<&WebGLBuffer> {
         self.buffer.as_deref()
     }
 
-    pub fn max_vertices(&self) -> u32 {
+    pub(crate) fn max_vertices(&self) -> u32 {
         let capacity = (self.buffer().unwrap().capacity() as u32).saturating_sub(self.offset);
         if capacity < self.bytes_per_vertex as u32 {
             0

@@ -25,10 +25,6 @@ const originOption = new URL(location.href).searchParams.get('origin');
 const swOption = new URL(location.href).searchParams.get('sw');
 
 promise_test(async t => {
-  // Current Chromium's expected behavior: prefetch only works when there
-  // are no controlling service worker.
-  const expectsPrefetch = swOption === 'no-controller';
-
   const hostname = originOption === 'cross-site' ? '{{hosts[alt][www]}}'
                                                  : undefined;
   const win = await spawnWindow(t, { protocol: 'https', hostname: hostname });
@@ -62,7 +58,12 @@ promise_test(async t => {
     return requestHeaders;
   }, []);
 
-  if (expectsPrefetch) {
+  // Current Chromium's expected behavior:
+  // prefetch works when
+  // - there are no controlling service worker, or
+  // - same-origin prefetches with controlling service worker.
+  if (swOption === 'no-controller' ||
+      originOption === 'same-site') {
     assert_prefetched(headers, "Prefetched result should be served.");
     assert_equals(requestCount.prefetch, 1,
         'a prefetch request should be sent to the server.');

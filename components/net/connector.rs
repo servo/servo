@@ -6,17 +6,20 @@ use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
 use std::sync::{Arc, Mutex};
 
-use futures::task::{Context, Poll};
 use futures::Future;
+use futures::task::{Context, Poll};
 use http::uri::{Authority, Uri as Destination};
-use hyper::client::HttpConnector as HyperHttpConnector;
+use http_body_util::combinators::BoxBody;
+use hyper::body::Bytes;
 use hyper::rt::Executor;
-use hyper::service::Service;
-use hyper::{Body, Client};
 use hyper_rustls::HttpsConnector as HyperRustlsHttpsConnector;
+use hyper_util::client::legacy::Client;
+use hyper_util::client::legacy::connect::HttpConnector as HyperHttpConnector;
 use log::warn;
-use rustls::client::WebPkiVerifier;
-use rustls::{Certificate, ClientConfig, OwnedTrustAnchor, RootCertStore, ServerName};
+use rustls::client::WebPkiServerVerifier;
+use rustls::{ClientConfig, RootCertStore};
+use rustls_pki_types::{CertificateDer, ServerName, UnixTime};
+use tower_service::Service;
 
 use crate::async_runtime::HANDLE;
 use crate::hosts::replace_host;
@@ -80,10 +83,10 @@ pub type TlsConfig = ClientConfig;
 struct CertificateErrorOverrideManagerInternal {
     /// A mapping of certificates and their hosts, which have seen certificate errors.
     /// This is used to later create an override in this [CertificateErrorOverrideManager].
-    certificates_failing_to_verify: HashMap<ServerName, Certificate>,
+    certificates_failing_to_verify: HashMap<ServerName<'static>, CertificateDer<'static>>,
     /// A list of certificates that should be accepted despite encountering verification
     /// errors.
-    overrides: Vec<Certificate>,
+    overrides: Vec<CertificateDer<'static>>,
 }
 
 /// This data structure is used to track certificate verification errors and overrides.
@@ -100,7 +103,7 @@ impl CertificateErrorOverrideManager {
 
     /// Add a certificate to this manager's list of certificates for which to ignore
     /// validation errors.
-    pub fn add_override(&self, certificate: &Certificate) {
+    pub fn add_override(&self, certificate: &CertificateDer<'static>) {
         self.0.lock().unwrap().overrides.push(certificate.clone());
     }
 
@@ -110,9 +113,9 @@ impl CertificateErrorOverrideManager {
     pub(crate) fn remove_certificate_failing_verification(
         &self,
         host: &str,
-    ) -> Option<Certificate> {
+    ) -> Option<CertificateDer<'static>> {
         let server_name = match ServerName::try_from(host) {
-            Ok(name) => name,
+            Ok(name) => name.to_owned(),
             Err(error) => {
                 warn!("Could not convert host string into RustTLS ServerName: {error:?}");
                 return None;
@@ -149,11 +152,12 @@ pub fn create_tls_config(
         override_manager,
     );
     rustls::ClientConfig::builder()
-        .with_safe_defaults()
+        .dangerous()
         .with_custom_certificate_verifier(Arc::new(verifier))
         .with_no_client_auth()
 }
 
+#[derive(Clone)]
 struct TokioExecutor {}
 
 impl<F> Executor<F> for TokioExecutor
@@ -165,8 +169,9 @@ where
     }
 }
 
+#[derive(Debug)]
 struct CertificateVerificationOverrideVerifier {
-    webpki_verifier: WebPkiVerifier,
+    webpki_verifier: Arc<WebPkiServerVerifier>,
     ignore_certificate_errors: bool,
     override_manager: CertificateErrorOverrideManager,
 }
@@ -178,18 +183,8 @@ impl CertificateVerificationOverrideVerifier {
         override_manager: CertificateErrorOverrideManager,
     ) -> Self {
         let root_cert_store = match ca_certficates {
-            CACertificates::Default => {
-                let mut root_cert_store = rustls::RootCertStore::empty();
-                root_cert_store.add_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.iter().map(
-                    |trust_anchor| {
-                        OwnedTrustAnchor::from_subject_spki_name_constraints(
-                            trust_anchor.subject,
-                            trust_anchor.spki,
-                            trust_anchor.name_constraints,
-                        )
-                    },
-                ));
-                root_cert_store
+            CACertificates::Default => rustls::RootCertStore {
+                roots: webpki_roots::TLS_SERVER_ROOTS.to_vec(),
             },
             CACertificates::Override(root_cert_store) => root_cert_store,
         };
@@ -197,28 +192,52 @@ impl CertificateVerificationOverrideVerifier {
         Self {
             // See https://github.com/rustls/rustls/blame/v/0.21.6/rustls/src/client/builder.rs#L141
             // This is the default verifier for Rustls that we are wrapping.
-            webpki_verifier: WebPkiVerifier::new(root_cert_store, None),
+            webpki_verifier: WebPkiServerVerifier::builder(root_cert_store.into())
+                .build()
+                .unwrap(),
             ignore_certificate_errors,
             override_manager,
         }
     }
 }
 
-impl rustls::client::ServerCertVerifier for CertificateVerificationOverrideVerifier {
+impl rustls::client::danger::ServerCertVerifier for CertificateVerificationOverrideVerifier {
+    fn verify_tls12_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        self.webpki_verifier
+            .verify_tls12_signature(message, cert, dss)
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        message: &[u8],
+        cert: &CertificateDer<'_>,
+        dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        self.webpki_verifier
+            .verify_tls13_signature(message, cert, dss)
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        self.webpki_verifier.supported_verify_schemes()
+    }
+
     fn verify_server_cert(
         &self,
-        end_entity: &Certificate,
-        intermediates: &[Certificate],
-        server_name: &ServerName,
-        scts: &mut dyn Iterator<Item = &[u8]>,
+        end_entity: &CertificateDer<'_>,
+        intermediates: &[CertificateDer<'_>],
+        server_name: &ServerName<'_>,
         ocsp_response: &[u8],
-        now: std::time::SystemTime,
-    ) -> Result<rustls::client::ServerCertVerified, rustls::Error> {
+        now: UnixTime,
+    ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
         let error = match self.webpki_verifier.verify_server_cert(
             end_entity,
             intermediates,
             server_name,
-            scts,
             ocsp_response,
             now,
         ) {
@@ -228,13 +247,13 @@ impl rustls::client::ServerCertVerifier for CertificateVerificationOverrideVerif
 
         if self.ignore_certificate_errors {
             warn!("Ignoring certficate error: {error:?}");
-            return Ok(rustls::client::ServerCertVerified::assertion());
+            return Ok(rustls::client::danger::ServerCertVerified::assertion());
         }
 
         // If there's an override for this certificate, just accept it.
         for cert_with_exception in &*self.override_manager.0.lock().unwrap().overrides {
             if *end_entity == *cert_with_exception {
-                return Ok(rustls::client::ServerCertVerified::assertion());
+                return Ok(rustls::client::danger::ServerCertVerified::assertion());
             }
         }
         self.override_manager
@@ -242,12 +261,14 @@ impl rustls::client::ServerCertVerifier for CertificateVerificationOverrideVerif
             .lock()
             .unwrap()
             .certificates_failing_to_verify
-            .insert(server_name.clone(), end_entity.clone());
+            .insert(server_name.to_owned(), end_entity.clone().into_owned());
         Err(error)
     }
 }
 
-pub fn create_http_client(tls_config: TlsConfig) -> Client<Connector, Body> {
+pub type BoxedBody = BoxBody<Bytes, hyper::Error>;
+
+pub fn create_http_client(tls_config: TlsConfig) -> Client<Connector, BoxedBody> {
     let connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
@@ -255,8 +276,7 @@ pub fn create_http_client(tls_config: TlsConfig) -> Client<Connector, Body> {
         .enable_http2()
         .wrap_connector(ServoHttpConnector::new());
 
-    Client::builder()
+    Client::builder(TokioExecutor {})
         .http1_title_case_headers(true)
-        .executor(TokioExecutor {})
         .build(connector)
 }

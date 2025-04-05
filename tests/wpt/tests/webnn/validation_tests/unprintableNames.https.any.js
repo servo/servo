@@ -1,5 +1,5 @@
 // META: title=test graph inputs/outputs with unprintable names
-// META: global=window,dedicatedworker
+// META: global=window,worker
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu

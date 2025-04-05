@@ -3,22 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{namespace_url, ns, LocalName};
-use servo_atoms::Atom;
+use html5ever::{LocalName, namespace_url, ns};
 use style::str::HTML_SPACE_CHARACTERS;
+use stylo_atoms::Atom;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
-use crate::dom::node::window_from_node;
+use crate::dom::node::NodeTraits;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMTokenList {
+pub(crate) struct DOMTokenList {
     reflector_: Reflector,
     element: Dom<Element>,
     #[no_trace]
@@ -28,7 +28,7 @@ pub struct DOMTokenList {
 }
 
 impl DOMTokenList {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         element: &Element,
         local_name: LocalName,
         supported_tokens: Option<Vec<Atom>>,
@@ -41,19 +41,20 @@ impl DOMTokenList {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         element: &Element,
         local_name: &LocalName,
         supported_tokens: Option<Vec<Atom>>,
+        can_gc: CanGc,
     ) -> DomRoot<DOMTokenList> {
-        let window = window_from_node(element);
         reflect_dom_object(
             Box::new(DOMTokenList::new_inherited(
                 element,
                 local_name.clone(),
                 supported_tokens,
             )),
-            &*window,
+            &*element.owner_window(),
+            can_gc,
         )
     }
 

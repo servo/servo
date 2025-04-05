@@ -11,30 +11,34 @@
 </style>
 <script>
 const params = new URLSearchParams(location.search);
-const is_initial_page = !params.has('new');
 
-// This test navigates to itself with a changed query parameter. The test
-// checks are performed on the navigated-to document.
-if (is_initial_page) {
-  onload = () => {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      location.replace(location.href + '?new');
-    }));
-  };
-} else {
-  promise_test(async () => {
-    const ev = await new Promise(
-        resolve => addEventListener('pagereveal', e => resolve(e)));
+switch (params.get("mode") || "test") {
+case "test":
+  promise_test(async t => {
+    const event = await new Promise(resolve => {
+      window.did_reveal = e => { resolve(e) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
 
-    assert_not_equals(ev.viewTransition, null,
+    assert_not_equals(event.viewTransition, null,
         'Navigation with transition must have a viewTransition.');
 
-    assert_true('skipTransition' in ev.viewTransition,
+    assert_true('skipTransition' in event.viewTransition,
         'skipTransition in viewTransition');
-    assert_true('finished' in ev.viewTransition, 'finished in viewTransition');
-    assert_true('ready' in ev.viewTransition, 'ready in viewTransition');
-    assert_true('updateCallbackDone' in ev.viewTransition,
+    assert_true('finished' in event.viewTransition, 'finished in viewTransition');
+    assert_true('ready' in event.viewTransition, 'ready in viewTransition');
+    assert_true('updateCallbackDone' in event.viewTransition,
         'updateCallbackDone in viewTransition');
   });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace('?mode=new');
+  }));
+  break;
+case "new":
+  onpagereveal = e => window.opener.did_reveal(e);
+  break;
 }
 </script>

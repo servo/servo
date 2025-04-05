@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding;
@@ -26,7 +26,7 @@ use crate::dom::promise::Promise;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct PromiseRejectionEvent {
+pub(crate) struct PromiseRejectionEvent {
     event: Event,
     #[ignore_malloc_size_of = "Defined in mozjs"]
     promise: Heap<*mut JSObject>,
@@ -35,7 +35,7 @@ pub struct PromiseRejectionEvent {
 }
 
 impl PromiseRejectionEvent {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited() -> Self {
         PromiseRejectionEvent {
             event: Event::new_inherited(),
@@ -44,7 +44,7 @@ impl PromiseRejectionEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: EventBubbles,
@@ -65,7 +65,7 @@ impl PromiseRejectionEvent {
         )
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &GlobalScope,

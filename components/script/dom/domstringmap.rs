@@ -6,15 +6,15 @@ use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use crate::dom::bindings::error::ErrorResult;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::window_from_node;
+use crate::dom::node::NodeTraits;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMStringMap {
+pub(crate) struct DOMStringMap {
     reflector_: Reflector,
     element: Dom<HTMLElement>,
 }
@@ -27,9 +27,12 @@ impl DOMStringMap {
         }
     }
 
-    pub fn new(element: &HTMLElement) -> DomRoot<DOMStringMap> {
-        let window = window_from_node(element);
-        reflect_dom_object(Box::new(DOMStringMap::new_inherited(element)), &*window)
+    pub(crate) fn new(element: &HTMLElement, can_gc: CanGc) -> DomRoot<DOMStringMap> {
+        reflect_dom_object(
+            Box::new(DOMStringMap::new_inherited(element)),
+            &*element.owner_window(),
+            can_gc,
+        )
     }
 }
 
@@ -37,7 +40,7 @@ impl DOMStringMap {
 impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
     // https://html.spec.whatwg.org/multipage/#dom-domstringmap-removeitem
     fn NamedDeleter(&self, name: DOMString) {
-        self.element.delete_custom_attr(name)
+        self.element.delete_custom_attr(name, CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-domstringmap-setitem

@@ -6,13 +6,14 @@ use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::TextMetricsBinding::TextMetricsMethods;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 #[allow(non_snake_case)]
-pub struct TextMetrics {
+pub(crate) struct TextMetrics {
     reflector_: Reflector,
     width: Finite<f64>,
     actualBoundingBoxLeft: Finite<f64>,
@@ -63,7 +64,7 @@ impl TextMetrics {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         width: f64,
         actualBoundingBoxLeft: f64,
@@ -77,6 +78,7 @@ impl TextMetrics {
         hangingBaseline: f64,
         alphabeticBaseline: f64,
         ideographicBaseline: f64,
+        can_gc: CanGc,
     ) -> DomRoot<TextMetrics> {
         reflect_dom_object(
             Box::new(TextMetrics::new_inherited(
@@ -94,6 +96,7 @@ impl TextMetrics {
                 ideographicBaseline,
             )),
             global,
+            can_gc,
         )
     }
 }

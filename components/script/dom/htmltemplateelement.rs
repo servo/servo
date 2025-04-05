@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, namespace_url};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -11,15 +11,16 @@ use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTem
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{document_from_node, CloneChildrenFlag, Node};
+use crate::dom::node::{CloneChildrenFlag, Node, NodeTraits};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLTemplateElement {
+pub(crate) struct HTMLTemplateElement {
     htmlelement: HTMLElement,
 
     /// <https://html.spec.whatwg.org/multipage/#template-contents>
@@ -38,8 +39,8 @@ impl HTMLTemplateElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -58,13 +59,48 @@ impl HTMLTemplateElement {
         n.upcast::<Node>().set_weird_parser_insertion_mode();
         n
     }
+
+    pub(crate) fn set_contents(&self, document_fragment: Option<&DocumentFragment>) {
+        self.contents.set(document_fragment);
+    }
 }
 
+#[allow(unused_doc_comments)]
 impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
+    make_enumerated_getter!(
+        ShadowRootMode,
+        "shadowrootmode",
+        "open" | "closed",
+        missing => "",
+        invalid => ""
+    );
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootmode>
+    make_atomic_setter!(SetShadowRootMode, "shadowrootmode");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootdelegatesfocus>
+    make_bool_getter!(ShadowRootDelegatesFocus, "shadowrootdelegatesfocus");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootdelegatesfocus>
+    make_bool_setter!(SetShadowRootDelegatesFocus, "shadowrootdelegatesfocus");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootclonable>
+    make_bool_getter!(ShadowRootClonable, "shadowrootclonable");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootclonable>
+    make_bool_setter!(SetShadowRootClonable, "shadowrootclonable");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootserializable>
+    make_bool_getter!(ShadowRootSerializable, "shadowrootserializable");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-template-shadowrootserializable>
+    make_bool_setter!(SetShadowRootSerializable, "shadowrootserializable");
+
     /// <https://html.spec.whatwg.org/multipage/#dom-template-content>
     fn Content(&self, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         self.contents.or_init(|| {
-            let doc = document_from_node(self);
+            let doc = self.owner_document();
             doc.appropriate_template_contents_owner_document(can_gc)
                 .CreateDocumentFragment(can_gc)
         })
@@ -77,13 +113,14 @@ impl VirtualMethods for HTMLTemplateElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#template-adopting-steps>
-    fn adopting_steps(&self, old_doc: &Document) {
-        self.super_type().unwrap().adopting_steps(old_doc);
+    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
+        self.super_type().unwrap().adopting_steps(old_doc, can_gc);
         // Step 1.
-        let doc =
-            document_from_node(self).appropriate_template_contents_owner_document(CanGc::note());
+        let doc = self
+            .owner_document()
+            .appropriate_template_contents_owner_document(CanGc::note());
         // Step 2.
-        Node::adopt(self.Content(CanGc::note()).upcast(), &doc);
+        Node::adopt(self.Content(CanGc::note()).upcast(), &doc, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-template-element:concept-node-clone-ext>
@@ -92,10 +129,11 @@ impl VirtualMethods for HTMLTemplateElement {
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
+        can_gc: CanGc,
     ) {
         self.super_type()
             .unwrap()
-            .cloning_steps(copy, maybe_doc, clone_children);
+            .cloning_steps(copy, maybe_doc, clone_children, can_gc);
         if clone_children == CloneChildrenFlag::DoNotCloneChildren {
             // Step 1.
             return;

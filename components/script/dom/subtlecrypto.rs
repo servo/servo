@@ -12,16 +12,15 @@ use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, StreamCipher};
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{AeadInPlace, AesGcm, KeyInit};
 use aes_kw::{KekAes128, KekAes192, KekAes256};
+use aws_lc_rs::{digest, hkdf, hmac, pbkdf2};
 use base64::prelude::*;
 use cipher::consts::{U12, U16, U32};
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
-use js::jsapi::{JSObject, JS_NewObject};
+use js::jsapi::{JS_NewObject, JSObject};
 use js::jsval::ObjectValue;
 use js::rust::MutableHandleObject;
 use js::typedarray::ArrayBufferU8;
-use ring::{digest, hkdf, hmac, pbkdf2};
-use serde_json;
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -39,23 +38,16 @@ use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::import::module::SafeJSContext;
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::window::Window;
-use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
-use crate::task::TaskCanceller;
-use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
-use crate::task_source::TaskSource;
 
 // String constants for algorithms/curves
 const ALG_AES_CBC: &str = "AES-CBC";
@@ -120,7 +112,7 @@ type Aes192Gcm256Iv = AesGcm<Aes192, U32>;
 type Aes256Gcm256Iv = AesGcm<Aes256, U32>;
 
 #[dom_struct]
-pub struct SubtleCrypto {
+pub(crate) struct SubtleCrypto {
     reflector_: Reflector,
     #[no_trace]
     rng: DomRefCell<ServoRng>,
@@ -134,22 +126,8 @@ impl SubtleCrypto {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<SubtleCrypto> {
-        reflect_dom_object(Box::new(SubtleCrypto::new_inherited()), global)
-    }
-
-    fn task_source_with_canceller(&self) -> (DOMManipulationTaskSource, TaskCanceller) {
-        if let Some(window) = self.global().downcast::<Window>() {
-            window
-                .task_manager()
-                .dom_manipulation_task_source_with_canceller()
-        } else if let Some(worker_global) = self.global().downcast::<WorkerGlobalScope>() {
-            let task_source = worker_global.dom_manipulation_task_source();
-            let canceller = worker_global.task_canceller();
-            (task_source, canceller)
-        } else {
-            unreachable!("Couldn't downcast to Window or WorkerGlobalScope!");
-        }
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<SubtleCrypto> {
+        reflect_dom_object(Box::new(SubtleCrypto::new_inherited()), global, can_gc)
     }
 }
 
@@ -169,7 +147,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -178,35 +156,40 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        let (task_source, canceller) = self.task_source_with_canceller();
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
         let key_alg = key.algorithm();
         let valid_usage = key.usages().contains(&KeyUsage::Encrypt);
-        let _ = task_source.queue_with_canceller(
-            task!(encrypt: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(encrypt: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
                 let key = trusted_key.root();
 
                 if !valid_usage || normalized_algorithm.name() != key_alg {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
-                if let Err(e) = normalized_algorithm.encrypt(&subtle, &key, &data, cx, array_buffer_ptr.handle_mut()) {
-                    promise.reject_error(e);
+                if let Err(e) = normalized_algorithm.encrypt(
+                    &subtle,
+                    &key,
+                    &data,
+                    cx,
+                    array_buffer_ptr.handle_mut(),
+                    CanGc::note(),
+                ) {
+                    promise.reject_error(e, CanGc::note());
                     return;
                 }
-                promise.resolve_native(&*array_buffer_ptr.handle());
-            }),
-            &canceller,
-        );
-
+                promise.resolve_native(&*array_buffer_ptr.handle(), CanGc::note());
+            }));
         promise
     }
 
@@ -225,7 +208,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -234,14 +217,15 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        let (task_source, canceller) = self.task_source_with_canceller();
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
         let key_alg = key.algorithm();
         let valid_usage = key.usages().contains(&KeyUsage::Decrypt);
-        let _ = task_source.queue_with_canceller(
-            task!(decrypt: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(decrypt: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
                 let key = trusted_key.root();
@@ -249,27 +233,31 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
 
                 if !valid_usage || normalized_algorithm.name() != key_alg {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
-                if let Err(e) = normalized_algorithm.decrypt(&subtle, &key, &data, cx, array_buffer_ptr.handle_mut()) {
-                    promise.reject_error(e);
+                if let Err(e) = normalized_algorithm.decrypt(
+                    &subtle,
+                    &key,
+                    &data,
+                    cx,
+                    array_buffer_ptr.handle_mut(),
+                    CanGc::note(),
+                ) {
+                    promise.reject_error(e, CanGc::note());
                     return;
                 }
 
-                promise.resolve_native(&*array_buffer_ptr.handle());
-            }),
-            &canceller,
-        );
-
+                promise.resolve_native(&*array_buffer_ptr.handle(), CanGc::note());
+            }));
         promise
     }
 
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-sign>
     fn Sign(
         &self,
-        cx: SafeJSContext,
+        cx: JSContext,
         algorithm: AlgorithmIdentifier,
         key: &CryptoKey,
         data: ArrayBufferViewOrArrayBuffer,
@@ -292,7 +280,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -301,12 +289,13 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // NOTE: We did that in preparation of Step 4.
 
         // Step 6. Return promise and perform the remaining steps in parallel.
-        let (task_source, canceller) = self.task_source_with_canceller();
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
 
-        let _ = task_source.queue_with_canceller(
-            task!(sign: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(sign: move || {
                 // Step 7. If the following steps or referenced procedures say to throw an error, reject promise
                 // with the returned error and then terminate the algorithm.
                 let promise = trusted_promise.root();
@@ -315,14 +304,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 8. If the name member of normalizedAlgorithm is not equal to the name attribute of the
                 // [[algorithm]] internal slot of key then throw an InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm() {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
                 // Step 9. If the [[usages]] internal slot of key does not contain an entry that is "sign",
                 // then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Sign) {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -332,20 +321,18 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let result = match normalized_algorithm.sign(cx, &key, &data) {
                     Ok(signature) => signature,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
 
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                create_buffer_source::<ArrayBufferU8>(cx, &result, array_buffer_ptr.handle_mut())
+                create_buffer_source::<ArrayBufferU8>(cx, &result, array_buffer_ptr.handle_mut(), CanGc::note())
                     .expect("failed to create buffer source for exported key.");
 
                 // Step 9. Resolve promise with result.
-                promise.resolve_native(&*array_buffer_ptr);
-            }),
-            &canceller,
-        );
+                promise.resolve_native(&*array_buffer_ptr, CanGc::note());
+            }));
 
         promise
     }
@@ -353,7 +340,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-verify>
     fn Verify(
         &self,
-        cx: SafeJSContext,
+        cx: JSContext,
         algorithm: AlgorithmIdentifier,
         key: &CryptoKey,
         signature: ArrayBufferViewOrArrayBuffer,
@@ -385,7 +372,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -394,12 +381,13 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // NOTE: We did that in preparation of Step 6.
 
         // Step 7. Return promise and perform the remaining steps in parallel.
-        let (task_source, canceller) = self.task_source_with_canceller();
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_key = Trusted::new(key);
 
-        let _ = task_source.queue_with_canceller(
-            task!(sign: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(sign: move || {
                 // Step 8. If the following steps or referenced procedures say to throw an error, reject promise
                 // with the returned error and then terminate the algorithm.
                 let promise = trusted_promise.root();
@@ -408,14 +396,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 9. If the name member of normalizedAlgorithm is not equal to the name attribute of the
                 // [[algorithm]] internal slot of key then throw an InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm() {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
                 // Step 10. If the [[usages]] internal slot of key does not contain an entry that is "verify",
                 // then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Verify) {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -425,16 +413,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let result = match normalized_algorithm.verify(cx, &key, &data, &signature) {
                     Ok(result) => result,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
 
                 // Step 9. Resolve promise with result.
-                promise.resolve_native(&result);
-            }),
-            &canceller,
-        );
+                promise.resolve_native(&result, CanGc::note());
+            }));
 
         promise
     }
@@ -442,7 +428,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-digest>
     fn Digest(
         &self,
-        cx: SafeJSContext,
+        cx: JSContext,
         algorithm: AlgorithmIdentifier,
         data: ArrayBufferViewOrArrayBuffer,
         comp: InRealm,
@@ -464,7 +450,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(e) => {
                 // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -473,10 +459,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // NOTE: We did that in preparation of Step 4.
 
         // Step 6. Return promise and perform the remaining steps in parallel.
-        let (task_source, canceller) = self.task_source_with_canceller();
         let trusted_promise = TrustedPromise::new(promise.clone());
 
-        let _ = task_source.queue_with_canceller(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(generate_key: move || {
                 // Step 7. If the following steps or referenced procedures say to throw an error, reject promise
                 // with the returned error and then terminate the algorithm.
@@ -487,21 +472,20 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let digest = match normalized_algorithm.digest(&data) {
                     Ok(digest) => digest,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
 
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                create_buffer_source::<ArrayBufferU8>(cx, digest.as_ref(), array_buffer_ptr.handle_mut())
+                create_buffer_source::<ArrayBufferU8>(cx, digest.as_ref(), array_buffer_ptr.handle_mut(), CanGc::note())
                     .expect("failed to create buffer source for exported key.");
 
 
                 // Step 9. Resolve promise with result.
-                promise.resolve_native(&*array_buffer_ptr);
-            }),
-            &canceller,
+                promise.resolve_native(&*array_buffer_ptr, CanGc::note());
+            })
         );
 
         promise
@@ -521,27 +505,26 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm_for_generate_key(cx, &algorithm) {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
 
-        let (task_source, canceller) = self.task_source_with_canceller();
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let _ = task_source.queue_with_canceller(
-            task!(generate_key: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(generate_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
-                let key = normalized_algorithm.generate_key(&subtle, key_usages, extractable);
+                let key = normalized_algorithm.generate_key(&subtle, key_usages, extractable, CanGc::note());
 
                 match key {
-                    Ok(key) => promise.resolve_native(&key),
-                    Err(e) => promise.reject_error(e),
+                    Ok(key) => promise.resolve_native(&key, CanGc::note()),
+                    Err(e) => promise.reject_error(e, CanGc::note()),
                 }
-            }),
-            &canceller,
-        );
+            }));
 
         promise
     }
@@ -549,7 +532,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-deriveKey>
     fn DeriveKey(
         &self,
-        cx: SafeJSContext,
+        cx: JSContext,
         algorithm: AlgorithmIdentifier,
         base_key: &CryptoKey,
         derived_key_type: AlgorithmIdentifier,
@@ -568,7 +551,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -580,7 +563,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => algorithm,
                 Err(e) => {
                     // Step 5. If an error occurred, return a Promise rejected with normalizedDerivedKeyAlgorithmImport.
-                    promise.reject_error(e);
+                    promise.reject_error(e, can_gc);
                     return promise;
                 },
             };
@@ -592,7 +575,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 Ok(algorithm) => algorithm,
                 Err(e) => {
                     // Step 7. If an error occurred, return a Promise rejected with normalizedDerivedKeyAlgorithmLength.
-                    promise.reject_error(e);
+                    promise.reject_error(e, can_gc);
                     return promise;
                 },
             };
@@ -601,11 +584,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // NOTE: We created the promise earlier, after Step 1.
 
         // Step 9. Return promise and perform the remaining steps in parallel.
-        let (task_source, canceller) = self.task_source_with_canceller();
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_base_key = Trusted::new(base_key);
         let this = Trusted::new(self);
-        let _ = task_source.queue_with_canceller(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(derive_key: move || {
                 // Step 10. If the following steps or referenced procedures say to throw an error, reject promise
                 // with the returned error and then terminate the algorithm.
@@ -619,7 +601,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 12. If the [[usages]] internal slot of baseKey does not contain an entry that is
                 // "deriveKey", then throw an InvalidAccessError.
                 if !base_key.usages().contains(&KeyUsage::DeriveKey) {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -628,7 +610,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let length = match normalized_derived_key_algorithm_length.get_key_length() {
                     Ok(length) => length,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
@@ -638,7 +620,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let secret = match normalized_algorithm.derive_bits(&base_key, Some(length)){
                     Ok(secret) => secret,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
@@ -651,12 +633,13 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     KeyFormat::Raw,
                     &secret,
                     extractable,
-                    key_usages
+                    key_usages,
+                    CanGc::note()
                 );
                 let result = match result  {
                     Ok(key) => key,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
@@ -664,14 +647,13 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 17. If the [[type]] internal slot of result is "secret" or "private" and usages
                 // is empty, then throw a SyntaxError.
                 if matches!(result.Type(), KeyType::Secret | KeyType::Private) && result.usages().is_empty() {
-                    promise.reject_error(Error::Syntax);
+                    promise.reject_error(Error::Syntax, CanGc::note());
                     return;
                 }
 
                 // Step 17. Resolve promise with result.
-                promise.resolve_native(&*result);
+                promise.resolve_native(&*result, CanGc::note());
             }),
-            &canceller,
         );
 
         promise
@@ -680,7 +662,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://w3c.github.io/webcrypto/#dfn-SubtleCrypto-method-deriveBits>
     fn DeriveBits(
         &self,
-        cx: SafeJSContext,
+        cx: JSContext,
         algorithm: AlgorithmIdentifier,
         base_key: &CryptoKey,
         length: Option<u32>,
@@ -697,7 +679,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             Ok(algorithm) => algorithm,
             Err(e) => {
                 // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -706,12 +688,13 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // NOTE: We did that in preparation of Step 3.
 
         // Step 5. Return promise and perform the remaining steps in parallel.
-        let (task_source, canceller) = self.task_source_with_canceller();
         let trusted_promise = TrustedPromise::new(promise.clone());
         let trusted_base_key = Trusted::new(base_key);
 
-        let _ = task_source.queue_with_canceller(
-            task!(import_key: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(import_key: move || {
                 // Step 6. If the following steps or referenced procedures say to throw an error,
                 // reject promise with the returned error and then terminate the algorithm.
 
@@ -723,7 +706,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 8. If the [[usages]] internal slot of baseKey does not contain an entry that
                 // is "deriveBits", then throw an InvalidAccessError.
                 if !base_key.usages().contains(&KeyUsage::DeriveBits) {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -734,19 +717,17 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let result = match normalized_algorithm.derive_bits(&base_key, length) {
                     Ok(derived_bits) => derived_bits,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     }
                 };
 
-                create_buffer_source::<ArrayBufferU8>(cx, &result, array_buffer_ptr.handle_mut())
+                create_buffer_source::<ArrayBufferU8>(cx, &result, array_buffer_ptr.handle_mut(), CanGc::note())
                     .expect("failed to create buffer source for derived bits.");
 
                 // Step 10. Resolve promise with result.
-                promise.resolve_native(&*array_buffer_ptr);
-            }),
-            &canceller,
-        );
+                promise.resolve_native(&*array_buffer_ptr, CanGc::note());
+            }));
 
         promise
     }
@@ -767,7 +748,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm_for_import_key(cx, &algorithm) {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -778,7 +759,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let data_string = match json_web_key.k {
                     Some(s) => s.to_string(),
                     None => {
-                        promise.reject_error(Error::Syntax);
+                        promise.reject_error(Error::Syntax, can_gc);
                         return promise;
                     },
                 };
@@ -788,7 +769,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 {
                     Ok(data) => data,
                     Err(_) => {
-                        promise.reject_error(Error::Syntax);
+                        promise.reject_error(Error::Syntax, can_gc);
                         return promise;
                     },
                 }
@@ -798,21 +779,21 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             },
         };
 
-        let (task_source, canceller) = self.task_source_with_canceller();
         let this = Trusted::new(self);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let _ = task_source.queue_with_canceller(
-            task!(import_key: move || {
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(import_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
-                let imported_key = normalized_algorithm.import_key(&subtle, format, &data, extractable, key_usages);
+                let imported_key = normalized_algorithm.import_key(&subtle,
+                    format, &data, extractable, key_usages, CanGc::note());
                 match imported_key {
-                    Ok(k) => promise.resolve_native(&k),
-                    Err(e) => promise.reject_error(e),
+                    Ok(k) => promise.resolve_native(&k, CanGc::note()),
+                    Err(e) => promise.reject_error(e, CanGc::note()),
                 };
-            }),
-            &canceller,
-        );
+            }));
 
         promise
     }
@@ -827,11 +808,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
 
-        let (task_source, canceller) = self.task_source_with_canceller();
         let this = Trusted::new(self);
         let trusted_key = Trusted::new(key);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let _ = task_source.queue_with_canceller(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(export_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
@@ -840,11 +820,11 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 if matches!(
                     alg_name.as_str(), ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 | ALG_HKDF | ALG_PBKDF2
                 ) {
-                    promise.reject_error(Error::NotSupported);
+                    promise.reject_error(Error::NotSupported, CanGc::note());
                     return;
                 }
                 if !key.Extractable() {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
                 let exported_key = match alg_name.as_str() {
@@ -857,19 +837,19 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                             AesExportedKey::Raw(k) => {
                                 let cx = GlobalScope::get_cx();
                                 rooted!(in(*cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
-                                create_buffer_source::<ArrayBufferU8>(cx, &k, array_buffer_ptr.handle_mut())
+                                create_buffer_source::<ArrayBufferU8>(cx, &k, array_buffer_ptr.handle_mut(),
+                                    CanGc::note())
                                     .expect("failed to create buffer source for exported key.");
-                                promise.resolve_native(&array_buffer_ptr.get())
+                                promise.resolve_native(&array_buffer_ptr.get(), CanGc::note())
                             },
                             AesExportedKey::Jwk(k) => {
-                                promise.resolve_native(&k)
+                                promise.resolve_native(&k, CanGc::note())
                             },
                         }
                     },
-                    Err(e) => promise.reject_error(e),
+                    Err(e) => promise.reject_error(e, CanGc::note()),
                 }
             }),
-            &canceller,
         );
 
         promise
@@ -890,17 +870,16 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm_for_key_wrap(cx, &wrap_algorithm) {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
 
-        let (task_source, canceller) = self.task_source_with_canceller();
         let this = Trusted::new(self);
         let trusted_key = Trusted::new(key);
         let trusted_wrapping_key = Trusted::new(wrapping_key);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let _ = task_source.queue_with_canceller(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(wrap_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
@@ -912,21 +891,21 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let names_match = normalized_algorithm.name() == wrapping_alg_name.as_str();
 
                 if !valid_wrap_usage || !names_match || !key.Extractable() {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
                 if matches!(
                     alg_name.as_str(), ALG_SHA1 | ALG_SHA256 | ALG_SHA384 | ALG_SHA512 | ALG_HKDF | ALG_PBKDF2
                 ) {
-                    promise.reject_error(Error::NotSupported);
+                    promise.reject_error(Error::NotSupported, CanGc::note());
                     return;
                 }
 
                 let exported_key = match subtle.export_key_aes(format, &key) {
                     Ok(k) => k,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     },
                 };
@@ -939,19 +918,19 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         // TODO: Support more than just a subset of the JWK dict, or find a way to
                         // stringify via SM internals
                         let Some(k) = key.k else {
-                            promise.reject_error(Error::Syntax);
+                            promise.reject_error(Error::Syntax, CanGc::note());
                             return;
                         };
                         let Some(alg) = key.alg else {
-                            promise.reject_error(Error::Syntax);
+                            promise.reject_error(Error::Syntax, CanGc::note());
                             return;
                         };
                         let Some(ext) = key.ext else {
-                            promise.reject_error(Error::Syntax);
+                            promise.reject_error(Error::Syntax, CanGc::note());
                             return;
                         };
                         let Some(key_ops) = key.key_ops else {
-                            promise.reject_error(Error::Syntax);
+                            promise.reject_error(Error::Syntax, CanGc::note());
                             return;
                         };
                         let key_ops_str = key_ops.iter().map(|op| op.to_string()).collect::<Vec<String>>();
@@ -971,29 +950,29 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
                 let result = match normalized_algorithm {
                     KeyWrapAlgorithm::AesKw => {
-                        subtle.wrap_key_aes_kw(&wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut())
+                        subtle.wrap_key_aes_kw(&wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut(), CanGc::note())
                     },
                     KeyWrapAlgorithm::AesCbc(params) => {
-                        subtle.encrypt_aes_cbc(&params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut())
+                        subtle.encrypt_aes_cbc(&params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut(),
+                            CanGc::note())
                     },
                     KeyWrapAlgorithm::AesCtr(params) => {
                         subtle.encrypt_decrypt_aes_ctr(
-                            &params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut()
+                            &params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut(), CanGc::note()
                         )
                     },
                     KeyWrapAlgorithm::AesGcm(params) => {
                         subtle.encrypt_aes_gcm(
-                            &params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut()
+                            &params, &wrapping_key, &bytes, cx, array_buffer_ptr.handle_mut(), CanGc::note()
                         )
                     },
                 };
 
                 match result {
-                    Ok(_) => promise.resolve_native(&*array_buffer_ptr),
-                    Err(e) => promise.reject_error(e),
+                    Ok(_) => promise.resolve_native(&*array_buffer_ptr, CanGc::note()),
+                    Err(e) => promise.reject_error(e, CanGc::note()),
                 }
             }),
-            &canceller
         );
 
         promise
@@ -1021,7 +1000,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         let normalized_algorithm = match normalize_algorithm_for_key_wrap(cx, &unwrap_algorithm) {
             Ok(algorithm) => algorithm,
             Err(e) => {
-                promise.reject_error(e);
+                promise.reject_error(e, can_gc);
                 return promise;
             },
         };
@@ -1029,16 +1008,15 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm_for_import_key(cx, &unwrapped_key_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(e) => {
-                    promise.reject_error(e);
+                    promise.reject_error(e, can_gc);
                     return promise;
                 },
             };
 
-        let (task_source, canceller) = self.task_source_with_canceller();
         let this = Trusted::new(self);
         let trusted_key = Trusted::new(unwrapping_key);
         let trusted_promise = TrustedPromise::new(promise.clone());
-        let _ = task_source.queue_with_canceller(
+        self.global().task_manager().dom_manipulation_task_source().queue(
             task!(unwrap_key: move || {
                 let subtle = this.root();
                 let promise = trusted_promise.root();
@@ -1047,7 +1025,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let valid_usage = unwrapping_key.usages().contains(&KeyUsage::UnwrapKey);
 
                 if !valid_usage || normalized_algorithm.name() != alg_name.as_str() {
-                    promise.reject_error(Error::InvalidAccess);
+                    promise.reject_error(Error::InvalidAccess, CanGc::note());
                     return;
                 }
 
@@ -1056,21 +1034,25 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
                 let result = match normalized_algorithm {
                     KeyWrapAlgorithm::AesKw => {
-                        subtle.unwrap_key_aes_kw(&unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut())
+                        subtle.unwrap_key_aes_kw(&unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut(),
+                            CanGc::note())
                     },
                     KeyWrapAlgorithm::AesCbc(params) => {
                         subtle.decrypt_aes_cbc(
-                            &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut()
+                            &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut(),
+                            CanGc::note()
                         )
                     },
                     KeyWrapAlgorithm::AesCtr(params) => {
                         subtle.encrypt_decrypt_aes_ctr(
-                            &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut()
+                            &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut(),
+                            CanGc::note()
                         )
                     },
                     KeyWrapAlgorithm::AesGcm(params) => {
                         subtle.decrypt_aes_gcm(
-                            &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut()
+                            &params, &unwrapping_key, &wrapped_key_bytes, cx, array_buffer_ptr.handle_mut(),
+                            CanGc::note()
                         )
                     },
                 };
@@ -1078,7 +1060,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 let bytes = match result {
                     Ok(bytes) => bytes,
                     Err(e) => {
-                        promise.reject_error(e);
+                        promise.reject_error(e, CanGc::note());
                         return;
                     },
                 };
@@ -1089,18 +1071,18 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         match parse_jwk(&bytes, normalized_key_algorithm.clone(), extractable, &key_usages) {
                             Ok(bytes) => bytes,
                             Err(e) => {
-                                promise.reject_error(e);
+                                promise.reject_error(e, CanGc::note());
                                 return;
                             }
                         }
                     },
                 };
-                match normalized_key_algorithm.import_key(&subtle, format, &import_key_bytes, extractable, key_usages) {
-                    Ok(imported_key) => promise.resolve_native(&imported_key),
-                    Err(e) => promise.reject_error(e),
+                match normalized_key_algorithm.import_key(&subtle, format, &import_key_bytes,
+                    extractable, key_usages, CanGc::note()) {
+                    Ok(imported_key) => promise.resolve_native(&imported_key, CanGc::note()),
+                    Err(e) => promise.reject_error(e, CanGc::note()),
                 }
             }),
-            &canceller
         );
 
         promise
@@ -1111,9 +1093,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 // so they can be sent safely when running steps in parallel.
 
 #[derive(Clone, Debug)]
-pub struct SubtleAlgorithm {
+pub(crate) struct SubtleAlgorithm {
     #[allow(dead_code)]
-    pub name: String,
+    pub(crate) name: String,
 }
 
 impl From<DOMString> for SubtleAlgorithm {
@@ -1125,10 +1107,10 @@ impl From<DOMString> for SubtleAlgorithm {
 }
 
 #[derive(Clone, Debug)]
-pub struct SubtleAesCbcParams {
+pub(crate) struct SubtleAesCbcParams {
     #[allow(dead_code)]
-    pub name: String,
-    pub iv: Vec<u8>,
+    pub(crate) name: String,
+    pub(crate) iv: Vec<u8>,
 }
 
 impl From<RootedTraceableBox<AesCbcParams>> for SubtleAesCbcParams {
@@ -1145,10 +1127,10 @@ impl From<RootedTraceableBox<AesCbcParams>> for SubtleAesCbcParams {
 }
 
 #[derive(Clone, Debug)]
-pub struct SubtleAesCtrParams {
-    pub name: String,
-    pub counter: Vec<u8>,
-    pub length: u8,
+pub(crate) struct SubtleAesCtrParams {
+    pub(crate) name: String,
+    pub(crate) counter: Vec<u8>,
+    pub(crate) length: u8,
 }
 
 impl From<RootedTraceableBox<AesCtrParams>> for SubtleAesCtrParams {
@@ -1166,11 +1148,11 @@ impl From<RootedTraceableBox<AesCtrParams>> for SubtleAesCtrParams {
 }
 
 #[derive(Clone, Debug)]
-pub struct SubtleAesGcmParams {
-    pub name: String,
-    pub iv: Vec<u8>,
-    pub additional_data: Option<Vec<u8>>,
-    pub tag_length: Option<u8>,
+pub(crate) struct SubtleAesGcmParams {
+    pub(crate) name: String,
+    pub(crate) iv: Vec<u8>,
+    pub(crate) additional_data: Option<Vec<u8>>,
+    pub(crate) tag_length: Option<u8>,
 }
 
 impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
@@ -1194,9 +1176,9 @@ impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
 }
 
 #[derive(Clone, Debug)]
-pub struct SubtleAesKeyGenParams {
-    pub name: String,
-    pub length: u16,
+pub(crate) struct SubtleAesKeyGenParams {
+    pub(crate) name: String,
+    pub(crate) length: u16,
 }
 
 impl From<AesKeyGenParams> for SubtleAesKeyGenParams {
@@ -1280,7 +1262,7 @@ impl SubtleHmacKeyGenParams {
 }
 /// <https://w3c.github.io/webcrypto/#hkdf-params>
 #[derive(Clone, Debug)]
-pub struct SubtleHkdfParams {
+pub(crate) struct SubtleHkdfParams {
     /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams-hash>
     hash: DigestAlgorithm,
 
@@ -1311,7 +1293,7 @@ impl SubtleHkdfParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params>
 #[derive(Clone, Debug)]
-pub struct SubtlePbkdf2Params {
+pub(crate) struct SubtlePbkdf2Params {
     /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-salt>
     salt: Vec<u8>,
 
@@ -1689,6 +1671,7 @@ impl SubtleCrypto {
         data: &[u8],
         cx: JSContext,
         handle: MutableHandleObject,
+        can_gc: CanGc,
     ) -> Result<Vec<u8>, Error> {
         if params.iv.len() != 16 {
             return Err(Error::Operation);
@@ -1713,7 +1696,7 @@ impl SubtleCrypto {
             _ => return Err(Error::Data),
         };
 
-        create_buffer_source::<ArrayBufferU8>(cx, &ct, handle)
+        create_buffer_source::<ArrayBufferU8>(cx, &ct, handle, can_gc)
             .expect("failed to create buffer source for exported key.");
 
         Ok(ct)
@@ -1727,6 +1710,7 @@ impl SubtleCrypto {
         data: &[u8],
         cx: JSContext,
         handle: MutableHandleObject,
+        can_gc: CanGc,
     ) -> Result<Vec<u8>, Error> {
         if params.iv.len() != 16 {
             return Err(Error::Operation);
@@ -1757,7 +1741,7 @@ impl SubtleCrypto {
             _ => return Err(Error::Data),
         };
 
-        create_buffer_source::<ArrayBufferU8>(cx, plaintext, handle)
+        create_buffer_source::<ArrayBufferU8>(cx, plaintext, handle, can_gc)
             .expect("failed to create buffer source for exported key.");
 
         Ok(plaintext.to_vec())
@@ -1771,6 +1755,7 @@ impl SubtleCrypto {
         data: &[u8],
         cx: JSContext,
         handle: MutableHandleObject,
+        can_gc: CanGc,
     ) -> Result<Vec<u8>, Error> {
         if params.counter.len() != 16 || params.length == 0 || params.length > 128 {
             return Err(Error::Operation);
@@ -1795,7 +1780,7 @@ impl SubtleCrypto {
             _ => return Err(Error::Data),
         };
 
-        create_buffer_source::<ArrayBufferU8>(cx, &ciphertext, handle)
+        create_buffer_source::<ArrayBufferU8>(cx, &ciphertext, handle, can_gc)
             .expect("failed to create buffer source for exported key.");
 
         Ok(ciphertext)
@@ -1809,6 +1794,7 @@ impl SubtleCrypto {
         plaintext: &[u8],
         cx: JSContext,
         handle: MutableHandleObject,
+        can_gc: CanGc,
     ) -> Result<Vec<u8>, Error> {
         // Step 1. If plaintext has a length greater than 2^39 - 256 bytes, then throw an OperationError.
         if plaintext.len() as u64 > (2 << 39) - 256 {
@@ -1915,7 +1901,7 @@ impl SubtleCrypto {
         ciphertext.extend_from_slice(&tag.unwrap()[..tag_length as usize / 8]);
 
         // Step 8. Return the result of creating an ArrayBuffer containing ciphertext.
-        create_buffer_source::<ArrayBufferU8>(cx, &ciphertext, handle)
+        create_buffer_source::<ArrayBufferU8>(cx, &ciphertext, handle, can_gc)
             .expect("failed to create buffer source for encrypted ciphertext");
 
         Ok(ciphertext)
@@ -1929,6 +1915,7 @@ impl SubtleCrypto {
         ciphertext: &[u8],
         cx: JSContext,
         handle: MutableHandleObject,
+        can_gc: CanGc,
     ) -> Result<Vec<u8>, Error> {
         // Step 1.
         // FIXME: aes_gcm uses a fixed tag length
@@ -2039,7 +2026,7 @@ impl SubtleCrypto {
         // Let plaintext be the output P of the Authenticated Decryption Function.
 
         // Step 9. Return the result of creating an ArrayBuffer containing plaintext.
-        create_buffer_source::<ArrayBufferU8>(cx, &plaintext, handle)
+        create_buffer_source::<ArrayBufferU8>(cx, &plaintext, handle, can_gc)
             .expect("failed to create buffer source for decrypted plaintext");
 
         Ok(plaintext)
@@ -2054,6 +2041,7 @@ impl SubtleCrypto {
         usages: Vec<KeyUsage>,
         key_gen_params: &SubtleAesKeyGenParams,
         extractable: bool,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         let mut rand = vec![0; key_gen_params.length as usize / 8];
         self.rng.borrow_mut().fill_bytes(&mut rand);
@@ -2118,6 +2106,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             handle,
+            can_gc,
         );
 
         Ok(crypto_key)
@@ -2130,6 +2119,7 @@ impl SubtleCrypto {
         usages: Vec<KeyUsage>,
         params: &SubtleHmacKeyGenParams,
         extractable: bool,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a SyntaxError.
         if usages
@@ -2195,6 +2185,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             Handle::Hmac(key_data),
+            can_gc,
         );
 
         // Step 15. Return key.
@@ -2211,6 +2202,7 @@ impl SubtleCrypto {
         extractable: bool,
         usages: Vec<KeyUsage>,
         alg_name: &str,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         if usages.iter().any(|usage| {
             !matches!(
@@ -2253,6 +2245,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             handle,
+            can_gc,
         );
 
         Ok(crypto_key)
@@ -2320,6 +2313,7 @@ impl SubtleCrypto {
         data: &[u8],
         extractable: bool,
         usages: Vec<KeyUsage>,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         // Step 1. Let keyData be the key data to be imported.
         // Step 2.  If format is "raw":
@@ -2357,6 +2351,7 @@ impl SubtleCrypto {
                 algorithm_object.handle(),
                 usages,
                 Handle::Hkdf(data.to_vec()),
+                can_gc,
             );
 
             // Step 8. Return key.
@@ -2376,6 +2371,7 @@ impl SubtleCrypto {
         key_data: &[u8],
         extractable: bool,
         usages: Vec<KeyUsage>,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         // Step 1. Let keyData be the key data to be imported.
         // Step 2. If usages contains an entry which is not "sign" or "verify", then throw a SyntaxError.
@@ -2454,6 +2450,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             Handle::Hmac(truncated_data),
+            can_gc,
         );
 
         // Step 15. Return key.
@@ -2467,6 +2464,7 @@ impl SubtleCrypto {
         bytes: &[u8],
         cx: JSContext,
         handle: MutableHandleObject,
+        can_gc: CanGc,
     ) -> Result<Vec<u8>, Error> {
         // Step 1. If plaintext is not a multiple of 64 bits in length, then throw an OperationError.
         if bytes.len() % 8 != 0 {
@@ -2504,7 +2502,7 @@ impl SubtleCrypto {
             _ => return Err(Error::Operation),
         };
 
-        create_buffer_source::<ArrayBufferU8>(cx, &wrapped_key, handle)
+        create_buffer_source::<ArrayBufferU8>(cx, &wrapped_key, handle, can_gc)
             .expect("failed to create buffer source for wrapped key.");
 
         // 3. Return ciphertext.
@@ -2518,6 +2516,7 @@ impl SubtleCrypto {
         bytes: &[u8],
         cx: JSContext,
         handle: MutableHandleObject,
+        can_gc: CanGc,
     ) -> Result<Vec<u8>, Error> {
         // Step 1. Let plaintext be the result of performing the Key Unwrap operation described in Section 2.2.2
         //         of [RFC3394] with ciphertext as the input ciphertext and using the default Initial Value defined
@@ -2551,7 +2550,7 @@ impl SubtleCrypto {
             _ => return Err(Error::Operation),
         };
 
-        create_buffer_source::<ArrayBufferU8>(cx, &unwrapped_key, handle)
+        create_buffer_source::<ArrayBufferU8>(cx, &unwrapped_key, handle, can_gc)
             .expect("failed to create buffer source for unwrapped key.");
 
         // 3. Return plaintext.
@@ -2566,6 +2565,7 @@ impl SubtleCrypto {
         data: &[u8],
         extractable: bool,
         usages: Vec<KeyUsage>,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         // Step 1. If format is not "raw", throw a NotSupportedError
         if format != KeyFormat::Raw {
@@ -2605,6 +2605,7 @@ impl SubtleCrypto {
             algorithm_object.handle(),
             usages,
             Handle::Pbkdf2(data.to_vec()),
+            can_gc,
         );
 
         // Step 9. Return key.
@@ -2612,7 +2613,7 @@ impl SubtleCrypto {
     }
 }
 
-pub enum AesExportedKey {
+pub(crate) enum AesExportedKey {
     Raw(Vec<u8>),
     Jwk(Box<JsonWebKey>),
 }
@@ -2629,7 +2630,11 @@ fn data_to_jwk_params(alg: &str, size: &str, key: &[u8]) -> (DOMString, DOMStrin
     (jwk_alg, DOMString::from(data))
 }
 
-impl KeyAlgorithm {
+trait AlgorithmFromName {
+    fn from_name(name: DOMString, out: MutableHandleObject, cx: JSContext);
+}
+
+impl AlgorithmFromName for KeyAlgorithm {
     /// Fill the object referenced by `out` with an [KeyAlgorithm]
     /// of the specified name and size.
     #[allow(unsafe_code)]
@@ -2642,7 +2647,16 @@ impl KeyAlgorithm {
     }
 }
 
-impl HmacKeyAlgorithm {
+trait AlgorithmFromLengthAndHash {
+    fn from_length_and_hash(
+        length: u32,
+        hash: DigestAlgorithm,
+        out: MutableHandleObject,
+        cx: JSContext,
+    );
+}
+
+impl AlgorithmFromLengthAndHash for HmacKeyAlgorithm {
     #[allow(unsafe_code)]
     fn from_length_and_hash(
         length: u32,
@@ -2664,7 +2678,11 @@ impl HmacKeyAlgorithm {
     }
 }
 
-impl AesKeyAlgorithm {
+trait AlgorithmFromNameAndSize {
+    fn from_name_and_size(name: DOMString, size: u16, out: MutableHandleObject, cx: JSContext);
+}
+
+impl AlgorithmFromNameAndSize for AesKeyAlgorithm {
     /// Fill the object referenced by `out` with an [AesKeyAlgorithm]
     /// of the specified name and size.
     #[allow(unsafe_code)]
@@ -2838,25 +2856,28 @@ impl ImportKeyAlgorithm {
         secret: &[u8],
         extractable: bool,
         key_usages: Vec<KeyUsage>,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match self {
             Self::AesCbc => {
-                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CBC)
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CBC, can_gc)
             },
             Self::AesCtr => {
-                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CTR)
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_CTR, can_gc)
             },
             Self::AesKw => {
-                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_KW)
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_KW, can_gc)
             },
             Self::AesGcm => {
-                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_GCM)
+                subtle.import_key_aes(format, secret, extractable, key_usages, ALG_AES_GCM, can_gc)
             },
             Self::Hmac(params) => {
-                subtle.import_key_hmac(params, format, secret, extractable, key_usages)
+                subtle.import_key_hmac(params, format, secret, extractable, key_usages, can_gc)
             },
-            Self::Pbkdf2 => subtle.import_key_pbkdf2(format, secret, extractable, key_usages),
-            Self::Hkdf => subtle.import_key_hkdf(format, secret, extractable, key_usages),
+            Self::Pbkdf2 => {
+                subtle.import_key_pbkdf2(format, secret, extractable, key_usages, can_gc)
+            },
+            Self::Hkdf => subtle.import_key_hkdf(format, secret, extractable, key_usages, can_gc),
         }
     }
 }
@@ -2888,11 +2909,14 @@ impl EncryptionAlgorithm {
         data: &[u8],
         cx: JSContext,
         result: MutableHandleObject,
+        can_gc: CanGc,
     ) -> Result<Vec<u8>, Error> {
         match self {
-            Self::AesCbc(params) => subtle.encrypt_aes_cbc(params, key, data, cx, result),
-            Self::AesCtr(params) => subtle.encrypt_decrypt_aes_ctr(params, key, data, cx, result),
-            Self::AesGcm(params) => subtle.encrypt_aes_gcm(params, key, data, cx, result),
+            Self::AesCbc(params) => subtle.encrypt_aes_cbc(params, key, data, cx, result, can_gc),
+            Self::AesCtr(params) => {
+                subtle.encrypt_decrypt_aes_ctr(params, key, data, cx, result, can_gc)
+            },
+            Self::AesGcm(params) => subtle.encrypt_aes_gcm(params, key, data, cx, result, can_gc),
         }
     }
 
@@ -2904,11 +2928,14 @@ impl EncryptionAlgorithm {
         data: &[u8],
         cx: JSContext,
         result: MutableHandleObject,
+        can_gc: CanGc,
     ) -> Result<Vec<u8>, Error> {
         match self {
-            Self::AesCbc(params) => subtle.decrypt_aes_cbc(params, key, data, cx, result),
-            Self::AesCtr(params) => subtle.encrypt_decrypt_aes_ctr(params, key, data, cx, result),
-            Self::AesGcm(params) => subtle.decrypt_aes_gcm(params, key, data, cx, result),
+            Self::AesCbc(params) => subtle.decrypt_aes_cbc(params, key, data, cx, result, can_gc),
+            Self::AesCtr(params) => {
+                subtle.encrypt_decrypt_aes_ctr(params, key, data, cx, result, can_gc)
+            },
+            Self::AesGcm(params) => subtle.decrypt_aes_gcm(params, key, data, cx, result, can_gc),
         }
     }
 }
@@ -2946,10 +2973,11 @@ impl KeyGenerationAlgorithm {
         subtle: &SubtleCrypto,
         usages: Vec<KeyUsage>,
         extractable: bool,
+        can_gc: CanGc,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match self {
-            Self::Aes(params) => subtle.generate_key_aes(usages, params, extractable),
-            Self::Hmac(params) => subtle.generate_key_hmac(usages, params, extractable),
+            Self::Aes(params) => subtle.generate_key_aes(usages, params, extractable, can_gc),
+            Self::Hmac(params) => subtle.generate_key_hmac(usages, params, extractable, can_gc),
         }
     }
 }

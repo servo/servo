@@ -5,8 +5,8 @@
 //! Machinery for [tasks](https://html.spec.whatwg.org/multipage/#concept-task).
 
 use std::fmt;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 macro_rules! task {
     ($name:ident: move || $body:tt) => {{
@@ -29,7 +29,7 @@ macro_rules! task {
 }
 
 /// A task that can be run. The name method is for profiling purposes.
-pub trait TaskOnce: Send {
+pub(crate) trait TaskOnce: Send {
     #[allow(unsafe_code)]
     fn name(&self) -> &'static str {
         ::std::any::type_name::<Self>()
@@ -39,7 +39,7 @@ pub trait TaskOnce: Send {
 }
 
 /// A boxed version of `TaskOnce`.
-pub trait TaskBox: Send {
+pub(crate) trait TaskBox: Send {
     fn name(&self) -> &'static str;
 
     fn run_box(self: Box<Self>);
@@ -67,50 +67,42 @@ impl fmt::Debug for dyn TaskBox {
 }
 
 /// Encapsulated state required to create cancellable tasks from non-script threads.
-#[derive(Clone)]
-pub struct TaskCanceller {
-    pub cancelled: Arc<AtomicBool>,
+#[derive(Clone, Default, JSTraceable, MallocSizeOf)]
+pub(crate) struct TaskCanceller {
+    #[ignore_malloc_size_of = "This is difficult, because only one of them should be measured"]
+    pub(crate) cancelled: Arc<AtomicBool>,
 }
 
 impl TaskCanceller {
-    /// Returns a wrapped `task` that will be cancelled if the `TaskCanceller`
-    /// says so.
-    pub fn wrap_task<T>(&self, task: T) -> impl TaskOnce
+    /// Returns a wrapped `task` that will be cancelled if the `TaskCanceller` says so.
+    pub(crate) fn wrap_task<T>(&self, task: T) -> impl TaskOnce + use<T>
     where
         T: TaskOnce,
     {
         CancellableTask {
-            cancelled: self.cancelled.clone(),
+            canceller: self.clone(),
             inner: task,
         }
     }
-}
 
-/// A task that can be cancelled by toggling a shared flag.
-pub struct CancellableTask<T: TaskOnce> {
-    cancelled: Arc<AtomicBool>,
-    inner: T,
-}
-
-impl<T> CancellableTask<T>
-where
-    T: TaskOnce,
-{
-    fn is_cancelled(&self) -> bool {
+    pub(crate) fn cancelled(&self) -> bool {
         self.cancelled.load(Ordering::SeqCst)
     }
 }
 
-impl<T> TaskOnce for CancellableTask<T>
-where
-    T: TaskOnce,
-{
+/// A task that can be cancelled by toggling a shared flag.
+pub(crate) struct CancellableTask<T: TaskOnce> {
+    canceller: TaskCanceller,
+    inner: T,
+}
+
+impl<T: TaskOnce> TaskOnce for CancellableTask<T> {
     fn name(&self) -> &'static str {
         self.inner.name()
     }
 
     fn run_once(self) {
-        if !self.is_cancelled() {
+        if !self.canceller.cancelled() {
             self.inner.run_once()
         }
     }

@@ -6,9 +6,9 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from tests.support.sync import AsyncPoll
 
-from ... import number_interval
 from .. import (
     assert_before_request_sent_event,
+    get_network_event_timerange,
     PAGE_DATA_URL_HTML,
     PAGE_DATA_URL_IMAGE,
     PAGE_EMPTY_HTML,
@@ -283,6 +283,7 @@ async def test_request_cookies(
 
 @pytest.mark.asyncio
 async def test_request_timing_info(
+    bidi_session,
     url,
     wait_for_event,
     wait_for_future_safe,
@@ -301,7 +302,7 @@ async def test_request_timing_info(
     await wait_for_future_safe(on_before_request_sent)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
 
@@ -474,7 +475,7 @@ async def test_serviceworker_request(
     await wait_for_future_safe(on_before_request_sent)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
 
@@ -491,7 +492,13 @@ async def test_serviceworker_request(
 
 @pytest.mark.asyncio
 async def test_url_with_fragment(
-    url, wait_for_event, wait_for_future_safe, fetch, setup_network_test, current_time
+    bidi_session,
+    url,
+    wait_for_event,
+    wait_for_future_safe,
+    fetch,
+    setup_network_test,
+    current_time,
 ):
     fragment_url = url(f"{PAGE_EMPTY_HTML}#foo")
 
@@ -507,7 +514,7 @@ async def test_url_with_fragment(
     await wait_for_future_safe(on_before_request_sent)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
 
@@ -552,7 +559,7 @@ async def test_navigate_data_url(
     await wait_for_future_safe(on_before_request_sent)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
 
@@ -576,6 +583,7 @@ async def test_navigate_data_url(
 )
 @pytest.mark.asyncio
 async def test_fetch_data_url(
+    bidi_session,
     wait_for_event,
     wait_for_future_safe,
     fetch,
@@ -595,7 +603,7 @@ async def test_fetch_data_url(
     await wait_for_future_safe(on_before_request_sent)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
 

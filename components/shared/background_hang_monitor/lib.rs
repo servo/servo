@@ -20,13 +20,14 @@ pub enum ScriptHangAnnotation {
     ConstellationMsg,
     DevtoolsMsg,
     DocumentEvent,
-    DomEvent,
     FileRead,
+    FontLoading,
     FormPlannedNavigation,
     ImageCacheMsg,
     InputEvent,
     HistoryEvent,
     NetworkEvent,
+    Rendering,
     Resize,
     ScriptEvent,
     SetScrollState,
@@ -204,9 +205,8 @@ pub trait BackgroundHangMonitorExitSignal: Send {
 /// Messages to control the sampling profiler.
 #[derive(Deserialize, Serialize)]
 pub enum BackgroundHangMonitorControlMsg {
-    /// Enable the sampler, with a given sampling rate and max total sampling duration.
-    EnableSampler(Duration, Duration),
-    DisableSampler,
+    /// Toggle the sampler, with a given sampling rate and max total sampling duration.
+    ToggleSampler(Duration, Duration),
     /// Exit, and propagate the signal to monitored components.
     Exit(IpcSender<()>),
 }

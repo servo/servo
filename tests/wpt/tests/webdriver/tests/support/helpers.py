@@ -1,3 +1,4 @@
+import base64
 import collections
 import math
 import sys
@@ -118,10 +119,13 @@ def deep_update(source, overrides):
     """
     for key, value in overrides.items():
         if isinstance(value, collections.abc.Mapping) and value:
-            returned = deep_update(source.get(key, {}), value)
-            source[key] = returned
+            source[key] = deep_update(source.get(key, {}), value)
+        elif isinstance(value, list) and isinstance(source.get(key), list) and value:
+            # Concatenate lists, ensuring all elements are kept without duplicates
+            source[key] = list(dict.fromkeys(source[key] + value))
         else:
-            source[key] = overrides[key]
+            source[key] = value
+
     return source
 
 
@@ -298,3 +302,17 @@ def wait_for_new_handle(session, handles_before):
         message="No new window has been opened")
 
     return wait.until(find_new_handle)
+
+
+def get_extension_path(filename):
+    return os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), "webextensions", filename
+    )
+
+
+def get_base64_for_extension_file(filename):
+    with open(
+        get_extension_path(filename),
+        "rb",
+    ) as file:
+        return base64.b64encode(file.read()).decode("utf-8")

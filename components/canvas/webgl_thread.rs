@@ -25,13 +25,13 @@ use canvas_traits::webgl::{
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use glow::{
-    self as gl, bytes_per_type, components_per_format, ActiveTransformFeedback, Context as Gl,
-    HasContext, NativeFramebuffer, NativeTransformFeedback, NativeUniformLocation,
-    NativeVertexArray, PixelUnpackData, ShaderPrecisionFormat,
+    self as gl, ActiveTransformFeedback, Context as Gl, HasContext, NativeTransformFeedback,
+    NativeUniformLocation, NativeVertexArray, PixelUnpackData, ShaderPrecisionFormat,
+    bytes_per_type, components_per_format,
 };
 use half::f16;
 use log::{debug, error, trace, warn};
-use pixels::{self, unmultiply_inplace, PixelFormat};
+use pixels::{self, PixelFormat, unmultiply_inplace};
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
 use surfman::{
     self, Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device,
@@ -49,7 +49,6 @@ use crate::webgl_limits::GLLimitsDetect;
 #[cfg(feature = "webxr")]
 use crate::webxr::{WebXRBridge, WebXRBridgeContexts, WebXRBridgeInit};
 
-type GLuint = u32;
 type GLint = i32;
 
 fn native_uniform_location(location: i32) -> Option<NativeUniformLocation> {
@@ -296,15 +295,7 @@ impl WebGLThread {
         while let Ok(msg) = self.receiver.recv() {
             let exit = self.handle_msg(msg, &webgl_chan);
             if exit {
-                // Call remove_context functions in order to correctly delete WebRender image keys.
-                let context_ids: Vec<WebGLContextId> = self.contexts.keys().copied().collect();
-                for id in context_ids {
-                    self.remove_webgl_context(id);
-                }
-
-                // Block on shutting-down WebRender.
-                self.webrender_api.shut_down(true);
-                return;
+                break;
             }
         }
     }
@@ -388,6 +379,14 @@ impl WebGLThread {
                 self.handle_swap_buffers(swap_ids, sender, sent_time);
             },
             WebGLMsg::Exit(sender) => {
+                // Call remove_context functions in order to correctly delete WebRender image keys.
+                let context_ids: Vec<WebGLContextId> = self.contexts.keys().copied().collect();
+                for id in context_ids {
+                    self.remove_webgl_context(id);
+                }
+
+                // Block on shutting-down WebRender.
+                self.webrender_api.shut_down(true);
                 if let Err(e) = sender.send(()) {
                     warn!("Failed to send response to WebGLMsg::Exit ({e})");
                 }
@@ -606,10 +605,7 @@ impl WebGLThread {
             .framebuffer_object;
 
         unsafe {
-            gl.bind_framebuffer(
-                gl::FRAMEBUFFER,
-                NonZeroU32::new(framebuffer).map(NativeFramebuffer),
-            );
+            gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer);
             gl.viewport(0, 0, size.width as i32, size.height as i32);
             gl.scissor(0, 0, size.width as i32, size.height as i32);
             gl.clear_color(0., 0., 0., !has_alpha as u32 as f32);
@@ -839,7 +835,7 @@ impl WebGLThread {
                 .unwrap()
                 .unwrap();
             debug!(
-                "... rebound framebuffer {}, new back buffer surface is {:?}",
+                "... rebound framebuffer {:?}, new back buffer surface is {:?}",
                 framebuffer_object, id
             );
 
@@ -959,6 +955,7 @@ impl WebGLThread {
             id: ExternalImageId(context_id.0),
             channel_index: 0,
             image_type: ExternalImageType::TextureHandle(image_buffer_kind),
+            normalized_uvs: false,
         };
         ImageData::External(data)
     }
@@ -1387,6 +1384,22 @@ impl WebGLImpl {
             },
             WebGLCommand::BindTexture(target, id) => unsafe {
                 gl.bind_texture(target, id.map(WebGLTextureId::glow))
+            },
+            WebGLCommand::BlitFrameBuffer(
+                src_x0,
+                src_y0,
+                src_x1,
+                src_y1,
+                dst_x0,
+                dst_y0,
+                dst_x1,
+                dst_y1,
+                mask,
+                filter,
+            ) => unsafe {
+                gl.blit_framebuffer(
+                    src_x0, src_y0, src_x1, src_y1, dst_x0, dst_y0, dst_x1, dst_y1, mask, filter,
+                );
             },
             WebGLCommand::Uniform1f(uniform_id, v) => unsafe {
                 gl.uniform_1_f32(native_uniform_location(uniform_id).as_ref(), v)
@@ -2682,14 +2695,13 @@ impl WebGLImpl {
     ) {
         let id = match request {
             WebGLFramebufferBindingRequest::Explicit(id) => Some(id.glow()),
-            WebGLFramebufferBindingRequest::Default => NonZeroU32::new(
+            WebGLFramebufferBindingRequest::Default => {
                 device
                     .context_surface_info(ctx)
                     .unwrap()
                     .expect("No surface attached!")
-                    .framebuffer_object,
-            )
-            .map(NativeFramebuffer),
+                    .framebuffer_object
+            },
         };
 
         debug!("WebGLImpl::bind_framebuffer: {:?}", id);
@@ -2774,7 +2786,7 @@ fn prepare_pixels(
         },
         Some(AlphaTreatment::Unmultiply) => {
             assert!(pixel_format.is_some());
-            unmultiply_inplace(pixels.to_mut());
+            unmultiply_inplace::<false>(pixels.to_mut());
         },
         None => {},
     }
@@ -2869,10 +2881,10 @@ fn image_to_tex_image_data(
             for i in 0..pixel_count {
                 let p = {
                     let rgba = &pixels[i * 4..i * 4 + 4];
-                    (rgba[0] as u16 & 0xf0) << 8 |
-                        (rgba[1] as u16 & 0xf0) << 4 |
+                    ((rgba[0] as u16 & 0xf0) << 8) |
+                        ((rgba[1] as u16 & 0xf0) << 4) |
                         (rgba[2] as u16 & 0xf0) |
-                        (rgba[3] as u16 & 0xf0) >> 4
+                        ((rgba[3] as u16 & 0xf0) >> 4)
                 };
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
@@ -2883,10 +2895,10 @@ fn image_to_tex_image_data(
             for i in 0..pixel_count {
                 let p = {
                     let rgba = &pixels[i * 4..i * 4 + 4];
-                    (rgba[0] as u16 & 0xf8) << 8 |
-                        (rgba[1] as u16 & 0xf8) << 3 |
-                        (rgba[2] as u16 & 0xf8) >> 2 |
-                        (rgba[3] as u16) >> 7
+                    ((rgba[0] as u16 & 0xf8) << 8) |
+                        ((rgba[1] as u16 & 0xf8) << 3) |
+                        ((rgba[2] as u16 & 0xf8) >> 2) |
+                        ((rgba[3] as u16) >> 7)
                 };
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
@@ -2897,9 +2909,9 @@ fn image_to_tex_image_data(
             for i in 0..pixel_count {
                 let p = {
                     let rgb = &pixels[i * 4..i * 4 + 3];
-                    (rgb[0] as u16 & 0xf8) << 8 |
-                        (rgb[1] as u16 & 0xfc) << 3 |
-                        (rgb[2] as u16 & 0xf8) >> 3
+                    ((rgb[0] as u16 & 0xf8) << 8) |
+                        ((rgb[1] as u16 & 0xfc) << 3) |
+                        ((rgb[2] as u16 & 0xf8) >> 3)
                 };
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
@@ -3045,15 +3057,15 @@ fn premultiply_inplace(format: TexFormat, data_type: TexDataType, pixels: &mut [
         (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
             for rgba in pixels.chunks_mut(2) {
                 let pix = NativeEndian::read_u16(rgba);
-                let extend_to_8_bits = |val| (val | val << 4) as u8;
-                let r = extend_to_8_bits(pix >> 12 & 0x0f);
-                let g = extend_to_8_bits(pix >> 8 & 0x0f);
-                let b = extend_to_8_bits(pix >> 4 & 0x0f);
+                let extend_to_8_bits = |val| (val | (val << 4)) as u8;
+                let r = extend_to_8_bits((pix >> 12) & 0x0f);
+                let g = extend_to_8_bits((pix >> 8) & 0x0f);
+                let b = extend_to_8_bits((pix >> 4) & 0x0f);
                 let a = extend_to_8_bits(pix & 0x0f);
                 NativeEndian::write_u16(
                     rgba,
-                    ((pixels::multiply_u8_color(r, a) & 0xf0) as u16) << 8 |
-                        ((pixels::multiply_u8_color(g, a) & 0xf0) as u16) << 4 |
+                    (((pixels::multiply_u8_color(r, a) & 0xf0) as u16) << 8) |
+                        (((pixels::multiply_u8_color(g, a) & 0xf0) as u16) << 4) |
                         ((pixels::multiply_u8_color(b, a) & 0xf0) as u16) |
                         ((a & 0x0f) as u16),
                 );
@@ -3172,9 +3184,8 @@ struct FramebufferRebindingInfo {
 impl FramebufferRebindingInfo {
     fn detect(device: &Device, context: &Context, gl: &Gl) -> FramebufferRebindingInfo {
         unsafe {
-            let (mut read_framebuffer, mut draw_framebuffer) = ([0], [0]);
-            gl.get_parameter_i32_slice(gl::READ_FRAMEBUFFER_BINDING, &mut read_framebuffer);
-            gl.get_parameter_i32_slice(gl::DRAW_FRAMEBUFFER_BINDING, &mut draw_framebuffer);
+            let read_framebuffer = gl.get_parameter_framebuffer(gl::READ_FRAMEBUFFER_BINDING);
+            let draw_framebuffer = gl.get_parameter_framebuffer(gl::DRAW_FRAMEBUFFER_BINDING);
 
             let context_surface_framebuffer = device
                 .context_surface_info(context)
@@ -3183,10 +3194,10 @@ impl FramebufferRebindingInfo {
                 .framebuffer_object;
 
             let mut flags = FramebufferRebindingFlags::empty();
-            if context_surface_framebuffer == read_framebuffer[0] as GLuint {
+            if context_surface_framebuffer == read_framebuffer {
                 flags.insert(FramebufferRebindingFlags::REBIND_READ_FRAMEBUFFER);
             }
-            if context_surface_framebuffer == draw_framebuffer[0] as GLuint {
+            if context_surface_framebuffer == draw_framebuffer {
                 flags.insert(FramebufferRebindingFlags::REBIND_DRAW_FRAMEBUFFER);
             }
 
@@ -3211,23 +3222,13 @@ impl FramebufferRebindingInfo {
             .flags
             .contains(FramebufferRebindingFlags::REBIND_READ_FRAMEBUFFER)
         {
-            unsafe {
-                gl.bind_framebuffer(
-                    gl::READ_FRAMEBUFFER,
-                    NonZeroU32::new(context_surface_framebuffer).map(NativeFramebuffer),
-                )
-            };
+            unsafe { gl.bind_framebuffer(gl::READ_FRAMEBUFFER, context_surface_framebuffer) };
         }
         if self
             .flags
             .contains(FramebufferRebindingFlags::REBIND_DRAW_FRAMEBUFFER)
         {
-            unsafe {
-                gl.bind_framebuffer(
-                    gl::DRAW_FRAMEBUFFER,
-                    NonZeroU32::new(context_surface_framebuffer).map(NativeFramebuffer),
-                )
-            };
+            unsafe { gl.bind_framebuffer(gl::DRAW_FRAMEBUFFER, context_surface_framebuffer) };
         }
 
         unsafe {

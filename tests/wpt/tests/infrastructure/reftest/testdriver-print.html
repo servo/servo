@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>print-reftests support testdriver.js</title>
+<link rel="match" href="reftest_match-print-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  * { margin: 0; padding: 0; }
+  div { page-break-after: always; }
+</style>
+<button>Add a page</button>
+<div>page 1</div>
+<script>
+  const button = document.querySelector("button");
+  button.addEventListener("click", () => {
+    button.remove();
+    const page2 = document.createElement("div");
+    page2.innerText = "page 2";
+    document.body.appendChild(page2);
+    document.documentElement.classList.remove("reftest-wait");
+  });
+  test_driver.click(button);
+</script>

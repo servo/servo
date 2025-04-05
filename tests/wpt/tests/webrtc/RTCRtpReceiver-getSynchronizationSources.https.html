@@ -100,14 +100,4 @@ promise_test(async t => {
   assert_less_than_equal(ssrc.audioLevel, 1);
 }, '[audio-only] RTCRtpSynchronizationSource.audioLevel is a number [0, 1]');
 
-// This test only passes if the implementation is sending the RFC 6464 extension
-// header and the "vad" extension attribute is not "off", otherwise
-// voiceActivityFlag is absent. TODO: Consider moving this test to an
-// optional-to-implement subfolder?
-promise_test(async t => {
-  const receiver = await initiateSingleTrackCallAndReturnReceiver(t, 'audio');
-  const [ssrc] = await listenForSSRCs(t, receiver);
-  assert_equals(typeof ssrc.voiceActivityFlag, 'boolean');
-}, '[audio-only] RTCRtpSynchronizationSource.voiceActivityFlag is a boolean');
-
 </script>

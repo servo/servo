@@ -16,7 +16,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
     def check_user_prompt_closed_without_exception(dialog_type, retval):
         assert not is_fullscreen(session)
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = fullscreen(session)
         assert_success(response)
@@ -32,10 +32,11 @@ def check_user_prompt_closed_with_exception(session, create_dialog):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
         assert not is_fullscreen(session)
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = fullscreen(session)
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
         assert not is_fullscreen(session)
@@ -48,12 +49,13 @@ def check_user_prompt_not_closed_but_exception(session, create_dialog):
     def check_user_prompt_not_closed_but_exception(dialog_type):
         assert not is_fullscreen(session)
 
-        create_dialog(dialog_type, text=dialog_type)
+        create_dialog(dialog_type, text="cheese")
 
         response = fullscreen(session)
-        assert_error(response, "unexpected alert open")
+        assert_error(response, "unexpected alert open",
+                     data={"text": "cheese"})
 
-        assert session.alert.text == dialog_type
+        assert session.alert.text == "cheese"
         session.alert.dismiss()
 
         assert not is_fullscreen(session)

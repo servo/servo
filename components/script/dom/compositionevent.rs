@@ -18,25 +18,25 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CompositionEvent {
+pub(crate) struct CompositionEvent {
     uievent: UIEvent,
     data: DOMString,
 }
 
 impl CompositionEvent {
-    pub fn new_inherited() -> CompositionEvent {
+    pub(crate) fn new_inherited() -> CompositionEvent {
         CompositionEvent {
             uievent: UIEvent::new_inherited(),
             data: DOMString::new(),
         }
     }
 
-    pub fn new_uninitialized(window: &Window) -> DomRoot<CompositionEvent> {
-        reflect_dom_object(Box::new(CompositionEvent::new_inherited()), window)
+    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<CompositionEvent> {
+        reflect_dom_object(Box::new(CompositionEvent::new_inherited()), window, can_gc)
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: DOMString,
         can_bubble: bool,
@@ -77,7 +77,7 @@ impl CompositionEvent {
         ev
     }
 
-    pub fn data(&self) -> &str {
+    pub(crate) fn data(&self) -> &str {
         &self.data
     }
 }

@@ -14,10 +14,9 @@ on:
         default: ""
         required: false
         type: string
-      wpt-layout:
+      wpt:
         required: false
-        type: choice
-        options: ["none", "2013", "2020", "all"]
+        type: boolean
       unit-tests:
         required: false
         type: boolean
@@ -28,19 +27,20 @@ on:
 jobs:
   decision:
     name: Generate Try Configuration
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
     steps:
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
           sparse-checkout: |
             python/servo/try_parser.py
+            .github/actions/setup-python
+            .python-version
           sparse-checkout-cone-mode: false
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Get Full Configuration
         id: full_config
         run: |
@@ -77,7 +77,7 @@ jobs:
             // Process `workflow_dispatch` provided configuration overrides.
             if (context.eventName == "workflow_dispatch") {
               // WPT-related overrides only affect Linux currently, as tests don't run by default on other platforms.
-              configuration.matrix[0].wpt_layout = "${{ inputs.wpt-layout }}" || "none";
+              configuration.matrix[0].wpt = Boolean(${{ inputs.wpt }});
               configuration.matrix[0].wpt_args = "${{ inputs.wpt-args }}" || "";
 
               let unit_tests = Boolean(${{ inputs.unit-tests }});
@@ -103,9 +103,10 @@ jobs:
     secrets: inherit
     with:
       workflow: ${{ matrix.workflow }}
-      wpt-layout: ${{ matrix.wpt_layout }}
+      wpt: ${{ matrix.wpt }}
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
+      build-libservo: ${{ matrix.build_libservo }}
       wpt-args: ${{ matrix.wpt_args }}
       bencher: ${{ matrix.bencher }}
 

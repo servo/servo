@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use base::id::PipelineId;
+use base::id::{PipelineId, WebViewId};
 use content_security_policy::{self as csp};
-use http::header::{HeaderName, AUTHORIZATION};
+use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use uuid::Uuid;
 
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
 use crate::response::HttpsState;
@@ -21,12 +21,11 @@ use crate::{ReferrerPolicy, ResourceTimingType};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 /// An id to differeniate one network request from another.
-pub struct RequestId(usize);
+pub struct RequestId(Uuid);
 
-impl RequestId {
-    pub fn next() -> Self {
-        static NEXT_REQUEST_ID: AtomicUsize = AtomicUsize::new(0);
-        Self(NEXT_REQUEST_ID.fetch_add(1, Ordering::Relaxed))
+impl Default for RequestId {
+    fn default() -> Self {
+        Self(servo_rand::random_uuid())
     }
 }
 
@@ -234,44 +233,91 @@ impl RequestBody {
     }
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum InsecureRequestsPolicy {
+    DoNotUpgrade,
+    Upgrade,
+}
+
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBuilder {
     pub id: RequestId,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-method>
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-url>
     pub url: ServoUrl,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
+
+    /// <https://fetch.spec.whatwg.org/#unsafe-request-flag>
     pub unsafe_request: bool,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-body>
     pub body: Option<RequestBody>,
+
+    /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
     pub service_workers_mode: ServiceWorkersMode,
     // TODO: client object
+    /// <https://fetch.spec.whatwg.org/#concept-request-destination>
     pub destination: Destination,
     pub synchronous: bool,
     pub mode: RequestMode,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-cache-mode>
     pub cache_mode: CacheMode,
+
+    /// <https://fetch.spec.whatwg.org/#use-cors-preflight-flag>
     pub use_cors_preflight: bool,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-credentials-mode>
     pub credentials_mode: CredentialsMode,
     pub use_url_credentials: bool,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-origin>
     pub origin: ImmutableOrigin,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub policy_container: RequestPolicyContainer,
-    // XXXManishearth these should be part of the client object
+    pub insecure_requests_policy: InsecureRequestsPolicy,
+    pub has_trustworthy_ancestor_origin: bool,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-referrer>
     pub referrer: Referrer,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-referrer-policy>
     pub referrer_policy: ReferrerPolicy,
     pub pipeline_id: Option<PipelineId>,
+    pub target_webview_id: Option<WebViewId>,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-redirect-mode>
     pub redirect_mode: RedirectMode,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-integrity-metadata>
     pub integrity_metadata: String,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-nonce-metadata>
+    pub cryptographic_nonce_metadata: String,
+
     // to keep track of redirects
     pub url_list: Vec<ServoUrl>,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-parser-metadata>
     pub parser_metadata: ParserMetadata,
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-initiator>
     pub initiator: Initiator,
     pub https_state: HttpsState,
     pub response_tainting: ResponseTainting,
@@ -280,9 +326,9 @@ pub struct RequestBuilder {
 }
 
 impl RequestBuilder {
-    pub fn new(url: ServoUrl, referrer: Referrer) -> RequestBuilder {
+    pub fn new(webview_id: Option<WebViewId>, url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
-            id: RequestId::next(),
+            id: RequestId::default(),
             method: Method::GET,
             url,
             headers: HeaderMap::new(),
@@ -298,11 +344,15 @@ impl RequestBuilder {
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
             policy_container: RequestPolicyContainer::default(),
+            insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
+            has_trustworthy_ancestor_origin: false,
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id: None,
+            target_webview_id: webview_id,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
+            cryptographic_nonce_metadata: "".to_owned(),
             url_list: vec![],
             parser_metadata: ParserMetadata::Default,
             initiator: Initiator::None,
@@ -312,31 +362,37 @@ impl RequestBuilder {
         }
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-initiator>
     pub fn initiator(mut self, initiator: Initiator) -> RequestBuilder {
         self.initiator = initiator;
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-method>
     pub fn method(mut self, method: Method) -> RequestBuilder {
         self.method = method;
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
     pub fn headers(mut self, headers: HeaderMap) -> RequestBuilder {
         self.headers = headers;
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#unsafe-request-flag>
     pub fn unsafe_request(mut self, unsafe_request: bool) -> RequestBuilder {
         self.unsafe_request = unsafe_request;
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-body>
     pub fn body(mut self, body: Option<RequestBody>) -> RequestBuilder {
         self.body = body;
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-destination>
     pub fn destination(mut self, destination: Destination) -> RequestBuilder {
         self.destination = destination;
         self
@@ -352,11 +408,13 @@ impl RequestBuilder {
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#use-cors-preflight-flag>
     pub fn use_cors_preflight(mut self, use_cors_preflight: bool) -> RequestBuilder {
         self.use_cors_preflight = use_cors_preflight;
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-credentials-mode>
     pub fn credentials_mode(mut self, credentials_mode: CredentialsMode) -> RequestBuilder {
         self.credentials_mode = credentials_mode;
         self
@@ -367,11 +425,13 @@ impl RequestBuilder {
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-origin>
     pub fn origin(mut self, origin: ImmutableOrigin) -> RequestBuilder {
         self.origin = origin;
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-referrer-policy>
     pub fn referrer_policy(mut self, referrer_policy: ReferrerPolicy) -> RequestBuilder {
         self.referrer_policy = referrer_policy;
         self
@@ -382,16 +442,25 @@ impl RequestBuilder {
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-redirect-mode>
     pub fn redirect_mode(mut self, redirect_mode: RedirectMode) -> RequestBuilder {
         self.redirect_mode = redirect_mode;
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-integrity-metadata>
     pub fn integrity_metadata(mut self, integrity_metadata: String) -> RequestBuilder {
         self.integrity_metadata = integrity_metadata;
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-nonce-metadata>
+    pub fn cryptographic_nonce_metadata(mut self, nonce_metadata: String) -> RequestBuilder {
+        self.cryptographic_nonce_metadata = nonce_metadata;
+        self
+    }
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-parser-metadata>
     pub fn parser_metadata(mut self, parser_metadata: ParserMetadata) -> RequestBuilder {
         self.parser_metadata = parser_metadata;
         self
@@ -412,8 +481,40 @@ impl RequestBuilder {
         self
     }
 
+    /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub fn policy_container(mut self, policy_container: PolicyContainer) -> RequestBuilder {
         self.policy_container = RequestPolicyContainer::PolicyContainer(policy_container);
+        self
+    }
+
+    pub fn insecure_requests_policy(
+        mut self,
+        insecure_requests_policy: InsecureRequestsPolicy,
+    ) -> RequestBuilder {
+        self.insecure_requests_policy = insecure_requests_policy;
+        self
+    }
+
+    pub fn has_trustworthy_ancestor_origin(
+        mut self,
+        has_trustworthy_ancestor_origin: bool,
+    ) -> RequestBuilder {
+        self.has_trustworthy_ancestor_origin = has_trustworthy_ancestor_origin;
+        self
+    }
+
+    /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
+    pub fn service_workers_mode(
+        mut self,
+        service_workers_mode: ServiceWorkersMode,
+    ) -> RequestBuilder {
+        self.service_workers_mode = service_workers_mode;
+        self
+    }
+
+    /// <https://fetch.spec.whatwg.org/#concept-request-cache-mode>
+    pub fn cache_mode(mut self, cache_mode: CacheMode) -> RequestBuilder {
+        self.cache_mode = cache_mode;
         self
     }
 
@@ -424,6 +525,7 @@ impl RequestBuilder {
             Some(Origin::Origin(self.origin)),
             self.referrer,
             self.pipeline_id,
+            self.target_webview_id,
             self.https_state,
         );
         request.initiator = self.initiator;
@@ -448,10 +550,13 @@ impl RequestBuilder {
         request.redirect_count = url_list.len() as u32 - 1;
         request.url_list = url_list;
         request.integrity_metadata = self.integrity_metadata;
+        request.cryptographic_nonce_metadata = self.cryptographic_nonce_metadata;
         request.parser_metadata = self.parser_metadata;
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
         request.policy_container = self.policy_container;
+        request.insecure_requests_policy = self.insecure_requests_policy;
+        request.has_trustworthy_ancestor_origin = self.has_trustworthy_ancestor_origin;
         request
     }
 }
@@ -460,16 +565,15 @@ impl RequestBuilder {
 /// the Fetch spec.
 #[derive(Clone, MallocSizeOf)]
 pub struct Request {
-    /// The id of this request so that the task that triggered it can route
-    /// messages to the correct listeners.
+    /// The unique id of this request so that the task that triggered it can route
+    /// messages to the correct listeners. This is a UUID that is generated when a request
+    /// is being built.
     pub id: RequestId,
     /// <https://fetch.spec.whatwg.org/#concept-request-method>
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub method: Method,
     /// <https://fetch.spec.whatwg.org/#local-urls-only-flag>
     pub local_urls_only: bool,
-    /// <https://fetch.spec.whatwg.org/#sandboxed-storage-area-urls-flag>
-    pub sandboxed_storage_area_urls: bool,
     /// <https://fetch.spec.whatwg.org/#concept-request-header-list>
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
@@ -479,7 +583,7 @@ pub struct Request {
     pub body: Option<RequestBody>,
     // TODO: client object
     pub window: Window,
-    // TODO: target browsing context
+    pub target_webview_id: Option<WebViewId>,
     /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
     pub keep_alive: bool,
     /// <https://fetch.spec.whatwg.org/#request-service-workers-mode>
@@ -512,6 +616,8 @@ pub struct Request {
     pub redirect_mode: RedirectMode,
     /// <https://fetch.spec.whatwg.org/#concept-request-integrity-metadata>
     pub integrity_metadata: String,
+    /// <https://fetch.spec.whatwg.org/#concept-request-nonce-metadata>
+    pub cryptographic_nonce_metadata: String,
     // Use the last method on url_list to act as spec current url field, and
     // first method to act as spec url field
     /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
@@ -524,6 +630,9 @@ pub struct Request {
     pub parser_metadata: ParserMetadata,
     /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
     pub policy_container: RequestPolicyContainer,
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#insecure-requests-policy>
+    pub insecure_requests_policy: InsecureRequestsPolicy,
+    pub has_trustworthy_ancestor_origin: bool,
     pub https_state: HttpsState,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
@@ -536,13 +645,13 @@ impl Request {
         origin: Option<Origin>,
         referrer: Referrer,
         pipeline_id: Option<PipelineId>,
+        webview_id: Option<WebViewId>,
         https_state: HttpsState,
     ) -> Request {
         Request {
             id,
             method: Method::GET,
             local_urls_only: false,
-            sandboxed_storage_area_urls: false,
             headers: HeaderMap::new(),
             unsafe_request: false,
             body: None,
@@ -555,6 +664,7 @@ impl Request {
             referrer,
             referrer_policy: ReferrerPolicy::EmptyString,
             pipeline_id,
+            target_webview_id: webview_id,
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,
@@ -563,11 +673,14 @@ impl Request {
             cache_mode: CacheMode::Default,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: String::new(),
+            cryptographic_nonce_metadata: String::new(),
             url_list: vec![url],
             parser_metadata: ParserMetadata::Default,
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
             policy_container: RequestPolicyContainer::Client,
+            insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
+            has_trustworthy_ancestor_origin: false,
             https_state,
             crash: None,
         }
@@ -590,7 +703,14 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#navigation-request>
     pub fn is_navigation_request(&self) -> bool {
-        self.destination == Destination::Document
+        matches!(
+            self.destination,
+            Destination::Document |
+                Destination::Embed |
+                Destination::Frame |
+                Destination::IFrame |
+                Destination::Object
+        )
     }
 
     /// <https://fetch.spec.whatwg.org/#subresource-request>
@@ -719,8 +839,41 @@ pub fn is_cors_safelisted_request_header<N: AsRef<str>, V: AsRef<[u8]>>(
         "accept" => is_cors_safelisted_request_accept(value),
         "accept-language" | "content-language" => is_cors_safelisted_language(value),
         "content-type" => is_cors_safelisted_request_content_type(value),
+        "range" => is_cors_safelisted_request_range(value),
         _ => false,
     }
+}
+
+pub fn is_cors_safelisted_request_range(value: &[u8]) -> bool {
+    if let Ok(value_str) = std::str::from_utf8(value) {
+        return validate_range_header(value_str);
+    }
+    false
+}
+
+fn validate_range_header(value: &str) -> bool {
+    let trimmed = value.trim();
+    if !trimmed.starts_with("bytes=") {
+        return false;
+    }
+
+    if let Some(range) = trimmed.strip_prefix("bytes=") {
+        let mut parts = range.split('-');
+        let start = parts.next();
+        let end = parts.next();
+
+        if let Some(start) = start {
+            if let Ok(start_num) = start.parse::<u64>() {
+                return match end {
+                    Some(e) if !e.is_empty() => {
+                        e.parse::<u64>().is_ok_and(|end_num| start_num <= end_num)
+                    },
+                    _ => true,
+                };
+            }
+        }
+    }
+    false
 }
 
 /// <https://fetch.spec.whatwg.org/#cors-safelisted-method>

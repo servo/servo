@@ -355,7 +355,7 @@ async_test(t => {
     }
 
     open_rq.onsuccess = function () {
-        let store = db.transaction("store", "readonly", { durability: 'relaxed' }).objectStore("store")
+        let store = db.transaction("store", "readonly").objectStore("store")
 
         assert_equals(store.indexNames[0], "", "indexNames[0]")
         assert_equals(store.indexNames.length, 1, "indexNames.length")
@@ -421,7 +421,7 @@ async_test(t => {
     }
 
     open_rq.onsuccess = function (event) {
-        let txn = db.transaction("store", "readwrite", { durability: 'relaxed' });
+        let txn = db.transaction("store", "readwrite");
         let ostore = txn.objectStore("store");
         t.step(function () {
             assert_throws_dom("InvalidStateError", function () {
@@ -438,7 +438,7 @@ indexeddb_test(
         let store = db.createObjectStore("s");
     },
     function (t, db) {
-        let txn = db.transaction("s", "readonly", { durability: 'relaxed' });
+        let txn = db.transaction("s", "readonly");
         let store = txn.objectStore("s");
         txn.oncomplete = function () {
             assert_throws_dom("InvalidStateError", function () {
@@ -523,7 +523,7 @@ indexeddb_test(
         store.put({ id: 1, num: 100 });
     },
     function (t, db) {
-        let store = db.transaction("Store1", "readwrite", { durability: 'relaxed' }).objectStore("Store1");
+        let store = db.transaction("Store1", "readwrite").objectStore("Store1");
 
         store.openCursor().onsuccess = t.step_func(function (e) {
             let item = e.target.result.value;
@@ -546,7 +546,7 @@ indexeddb_test(
         store.put({ num: 100 });
     },
     function (t, db) {
-        let store = db.transaction("Store2", "readwrite", { durability: 'relaxed' }).objectStore("Store2");
+        let store = db.transaction("Store2", "readwrite").objectStore("Store2");
         store.openCursor().onsuccess = t.step_func(function (e) {
             let item = e.target.result.value;
             store.index("CompoundKey").get([item.num, item.id]).onsuccess = t.step_func(function (e) {
@@ -588,7 +588,7 @@ indexeddb_test(
         store.put({ num: num++, other: [{}] });
     },
     function (t, db) {
-        let store = db.transaction("Store3", "readwrite", { durability: 'relaxed' }).objectStore("Store3");
+        let store = db.transaction("Store3", "readwrite").objectStore("Store3");
         const keys = [];
         let count;
         store.count().onsuccess = t.step_func(e => { count = e.target.result; });

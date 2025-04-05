@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -15,11 +15,11 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLDialogElement {
+pub(crate) struct HTMLDialogElement {
     htmlelement: HTMLElement,
     return_value: DomRefCell<DOMString>,
 }
@@ -36,8 +36,8 @@ impl HTMLDialogElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -102,11 +102,10 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     fn Close(&self, return_value: Option<DOMString>) {
         let element = self.upcast::<Element>();
         let target = self.upcast::<EventTarget>();
-        let win = window_from_node(self);
 
         // Step 1 & 2
         if element
-            .remove_attribute(&ns!(), &local_name!("open"))
+            .remove_attribute(&ns!(), &local_name!("open"), CanGc::note())
             .is_none()
         {
             return;
@@ -120,8 +119,9 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         // TODO: Step 4 implement pending dialog stack removal
 
         // Step 5
-        win.task_manager()
+        self.owner_global()
+            .task_manager()
             .dom_manipulation_task_source()
-            .queue_simple_event(target, atom!("close"), &win);
+            .queue_simple_event(target, atom!("close"));
     }
 }

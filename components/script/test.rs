@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // For compile-fail tests only.
-pub use crate::dom::bindings::cell::DomRefCell;
+//pub use crate::dom::bindings::cell::DomRefCell;
 pub use crate::dom::bindings::refcounted::TrustedPromise;
-pub use crate::dom::bindings::root::Dom;
+//pub use crate::dom::bindings::root::Dom;
 pub use crate::dom::bindings::str::{ByteString, DOMString};
 pub use crate::dom::headers::normalize_value;
-pub use crate::dom::node::Node;
+//pub use crate::dom::node::Node;
 
 pub mod area {
     pub use crate::dom::htmlareaelement::{Area, Shape};
@@ -61,9 +61,17 @@ pub mod size_of {
 }
 
 pub mod srcset {
-    pub use crate::dom::htmlimageelement::{parse_a_srcset_attribute, Descriptor, ImageSource};
+    pub use crate::dom::htmlimageelement::{Descriptor, ImageSource, parse_a_srcset_attribute};
 }
 
 pub mod timeranges {
     pub use crate::dom::timeranges::TimeRangesContainer;
+}
+
+pub mod textinput {
+    pub use crate::clipboard_provider::ClipboardProvider;
+    pub use crate::textinput::{
+        Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint, UTF8Bytes,
+        UTF16CodeUnits,
+    };
 }

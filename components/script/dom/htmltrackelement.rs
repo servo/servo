@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::HTMLTrackElementBinding::{
@@ -22,7 +22,7 @@ use crate::script_runtime::CanGc;
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 #[repr(u16)]
 #[allow(unused)]
-pub enum ReadyState {
+pub(crate) enum ReadyState {
     None = HTMLTrackElementConstants::NONE,
     Loading = HTMLTrackElementConstants::LOADING,
     Loaded = HTMLTrackElementConstants::LOADED,
@@ -30,7 +30,7 @@ pub enum ReadyState {
 }
 
 #[dom_struct]
-pub struct HTMLTrackElement {
+pub(crate) struct HTMLTrackElement {
     htmlelement: HTMLElement,
     ready_state: ReadyState,
     track: Dom<TextTrack>,
@@ -50,7 +50,7 @@ impl HTMLTrackElement {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -65,6 +65,7 @@ impl HTMLTrackElement {
             Default::default(),
             Default::default(),
             None,
+            can_gc,
         );
         Node::reflect_node_with_proto(
             Box::new(HTMLTrackElement::new_inherited(

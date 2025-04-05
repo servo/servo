@@ -1,6 +1,9 @@
 [
   "This contains assorted IDNA tests that IdnaTestV2 might not cover.",
   "Feel free to deduplicate with a clear commit message.",
+  "",
+  "If the test only applies to the URL Standard's 'domain to ASCII', ",
+  "and not to TR46's ToASCII, then tag it with `urlStandardOnly`",
   {
     "comment": "Label with hyphens in 3rd and 4th position",
     "input": "aa--",
@@ -239,11 +242,13 @@
   },
   {
     "input": "www.lookout.net\u2A7480",
-    "output": null
+    "output": null,
+    "urlStandardOnly": true
   },
   {
     "input": "www\u00A0.lookout.net",
-    "output": null
+    "output": null,
+    "urlStandardOnly": true
   },
   {
     "input": "\u1680lookout.net",
@@ -251,7 +256,8 @@
   },
   {
     "input": "\u001flookout.net",
-    "output": null
+    "output": null,
+    "urlStandardOnly": true
   },
   {
     "input": "look\u06DDout.net",
@@ -259,7 +265,7 @@
   },
   {
     "input": "look\u180Eout.net",
-    "output": null
+    "output": "lookout.net"
   },
   {
     "input": "look\u2060out.net",
@@ -291,7 +297,7 @@
   },
   {
     "input": "look\u206Bout.net",
-    "output": null
+    "output": "lookout.net"
   },
   {
     "input": "look\uDB40\uDC01out.net",
@@ -319,16 +325,15 @@
   },
   {
     "input": "\u04C0.com",
-    "output": null
+    "output": "xn--s5a.com"
   },
   {
-    "comment": "This is U+2F868 (which is mapped to U+36FC starting with Unicode 16.0)",
     "input": "\uD87E\uDC68.com",
     "output": "xn--snl.com"
   },
   {
     "input": "\u2183.com",
-    "output": null
+    "output": "xn--r5g.com"
   },
   {
     "input": "look\u034Fout.net",

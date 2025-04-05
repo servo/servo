@@ -85,6 +85,60 @@ test_with_window(function (contentWindow) {
 
 test_with_window(function (contentWindow) {
     const contentDocument = contentWindow.document;
+    contentDocument.write('<test-element>');
+
+    const element = contentDocument.querySelector('test-element');
+    assert_equals(Object.getPrototypeOf(element), contentWindow.HTMLElement.prototype);
+
+    let log = [];
+    class TestElement extends contentWindow.HTMLElement {
+        constructor() {
+            super();
+            this.remove();
+            log.push(create_constructor_log(this));
+        }
+        connectedCallback(...args) {
+            log.push(create_connected_callback_log(this, ...args));
+        }
+        disconnectedCallback(...args) {
+            log.push(create_disconnected_callback_log(this, ...args));
+        }
+    }
+    contentWindow.customElements.define('test-element', TestElement);
+    assert_equals(Object.getPrototypeOf(element), TestElement.prototype);
+
+    assert_equals(log.length, 2);
+    assert_constructor_log_entry(log[0], element);
+    assert_connected_log_entry(log[1], element);
+}, 'Upgrading a custom element must not invoke disconnectedCallback if the element is disconnected during upgrading');
+
+test_with_window(function (contentWindow) {
+    const contentDocument = contentWindow.document;
+    const element = contentDocument.createElement('test-element');
+    assert_equals(Object.getPrototypeOf(element), contentWindow.HTMLElement.prototype);
+
+    let log = [];
+    class TestElement extends contentWindow.HTMLElement {
+        constructor() {
+            super();
+            contentDocument.documentElement.appendChild(this);
+            log.push(create_constructor_log(this));
+        }
+        connectedCallback(...args) {
+            log.push(create_connected_callback_log(this, ...args));
+        }
+    }
+    contentWindow.customElements.define('test-element', TestElement);
+    contentWindow.customElements.upgrade(element);
+
+    assert_equals(Object.getPrototypeOf(element), TestElement.prototype);
+
+    assert_equals(log.length, 1);
+    assert_constructor_log_entry(log[0], element);
+}, 'Upgrading a disconnected custom element must not invoke connectedCallback if the element is connected during upgrading');
+
+test_with_window(function (contentWindow) {
+    const contentDocument = contentWindow.document;
     contentDocument.write('<test-element id="first-element">');
     contentDocument.write('<test-element id="second-element">');
 

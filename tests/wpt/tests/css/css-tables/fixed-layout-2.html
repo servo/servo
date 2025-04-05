@@ -3,6 +3,7 @@
 <link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/css-tables-3/#in-fixed-mode">
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10937">
+<meta name="assert" content="Fixed table layout is triggered except when inline-size is auto.">
 <link rel="stylesheet" href="./support/base.css">
 
 <style>
@@ -52,26 +53,25 @@ x-td > div {
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-let sizeData = {
-  "10px": true,
-  "100%": true,
-  "calc(10px + 100%)": true,
-  "auto": false,
-  "min-content": true,
-  "max-content": false,
-  "fit-content": true,
-  "calc-size(any, 10px + 100%)": true,
+let sizes = [
+  "10px",
+  "100%",
+  "calc(10px + 100%)",
+  "auto",
+  "min-content",
+  "max-content",
+  "fit-content",
+  "calc-size(any, 10px + 100%)",
+  "fit-content(0)",
+  "stretch",
+  "contain",
 
-  // These expectations are tentative, see https://github.com/w3c/csswg-drafts/issues/10937
-  "fit-content(0)": true,
-  "stretch": true,
-
-  // These are non-standard, expect the most popular behavior among the supporting implementations.
-  "-moz-available": true,
-  "-webkit-fill-available": true,
-  "intrinsic": false,
-  "min-intrinsic": false,
-};
+  // These are non-standard sizes.
+  "-moz-available",
+  "-webkit-fill-available",
+  "intrinsic",
+  "min-intrinsic",
+];
 
 function checkSize(size, allowsFixed) {
   let fragment = template.content.cloneNode(true);
@@ -101,15 +101,16 @@ function checkSize(size, allowsFixed) {
   }, size);
 }
 
-for (let [size, allowsFixed] of Object.entries(sizeData)) {
+for (let size of sizes) {
   if (CSS.supports("width", size)) {
+    let allowsFixed = size !== "auto";
     checkSize(size, allowsFixed);
 
-    // calc-size() should have the same behavior as its basis.
+    // calc-size() should trigger fixed table layout.
     // https://drafts.csswg.org/css-values-5/#calc-size
     let calcSize = "calc-size(" + size + ", size)";
     if (CSS.supports("width", calcSize)) {
-      checkSize(calcSize, allowsFixed);
+      checkSize(calcSize, true);
     }
   }
 }

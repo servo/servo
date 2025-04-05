@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{wgt, RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
+use webgpu_traits::{RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
 
 use crate::conversions::TryConvert;
 use crate::dom::bindings::cell::DomRefCell;
@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -21,9 +21,10 @@ use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::webgpu::gpurenderbundle::GPURenderBundle;
 use crate::dom::webgpu::gpurenderpipeline::GPURenderPipeline;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPURenderPassEncoder {
+pub(crate) struct GPURenderPassEncoder {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -50,12 +51,13 @@ impl GPURenderPassEncoder {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         render_pass: WebGPURenderPass,
         parent: &GPUCommandEncoder,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderPassEncoder::new_inherited(
@@ -65,6 +67,7 @@ impl GPURenderPassEncoder {
                 label,
             )),
             global,
+            can_gc,
         )
     }
 
@@ -167,11 +170,11 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
         self.send_render_command(RenderCommand::SetIndexBuffer {
             buffer_id: buffer.id().0,
             index_format: match index_format {
-                GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
-                GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
+                GPUIndexFormat::Uint16 => wgpu_types::IndexFormat::Uint16,
+                GPUIndexFormat::Uint32 => wgpu_types::IndexFormat::Uint32,
             },
             offset,
-            size: wgt::BufferSize::new(size),
+            size: wgpu_types::BufferSize::new(size),
         })
     }
 
@@ -181,7 +184,7 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
             slot,
             buffer_id: buffer.id().0,
             offset,
-            size: wgt::BufferSize::new(size),
+            size: wgpu_types::BufferSize::new(size),
         })
     }
 

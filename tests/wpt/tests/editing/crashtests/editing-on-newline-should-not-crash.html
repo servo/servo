@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pasting in selection with newline character should not crash</title>
+    <style>
+      #text {
+        white-space: pre-line;
+        border: 1px solid #ccc;
+        padding: 10px;
+        width: 300px;
+        height: 100px;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="text" contenteditable="true">This is a sample text.<br>
+    </div>
+    <script>
+      const div = document.getElementById("text");
+      function setSelectionToCopy() {
+        const range = document.createRange();
+        const selection = window.getSelection();
+        const textNode = div.firstChild;
+        // Set the Selection on first word "This".
+        range.setStart(textNode, 0);
+        range.setEnd(textNode, 4);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+      function setSelectionOnNewLine() {
+        const range = document.createRange();
+        const selection = window.getSelection();
+        const textNode = div.lastChild;
+        const newlineIndex = textNode.textContent.indexOf("\n");
+
+        if (newlineIndex !== -1) {
+          range.setStart(textNode, newlineIndex);
+          range.setEnd(textNode, newlineIndex + 1);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      }
+      setSelectionToCopy();
+      document.execCommand("copy");
+      setSelectionOnNewLine();
+      document.execCommand("paste");
+    </script>
+  </body>
+</html>

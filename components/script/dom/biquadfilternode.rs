@@ -14,7 +14,7 @@ use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::Convert;
-use crate::dom::audionode::AudioNode;
+use crate::dom::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
@@ -31,7 +31,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct BiquadFilterNode {
+pub(crate) struct BiquadFilterNode {
     node: AudioNode,
     gain: Dom<AudioParam>,
     frequency: Dom<AudioParam>,
@@ -41,11 +41,12 @@ pub struct BiquadFilterNode {
 }
 
 impl BiquadFilterNode {
-    #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
+        can_gc: CanGc,
     ) -> Fallible<BiquadFilterNode> {
         let node_options =
             options
@@ -70,6 +71,7 @@ impl BiquadFilterNode {
             options.gain, // default value
             f32::MIN,     // min value
             f32::MAX,     // max value
+            can_gc,
         );
         let q = AudioParam::new(
             window,
@@ -81,6 +83,7 @@ impl BiquadFilterNode {
             options.q, // default value
             f32::MIN,  // min value
             f32::MAX,  // max value
+            can_gc,
         );
         let frequency = AudioParam::new(
             window,
@@ -92,6 +95,7 @@ impl BiquadFilterNode {
             options.frequency, // default value
             f32::MIN,          // min value
             f32::MAX,          // max value
+            can_gc,
         );
         let detune = AudioParam::new(
             window,
@@ -103,6 +107,7 @@ impl BiquadFilterNode {
             options.detune, // default value
             f32::MIN,       // min value
             f32::MAX,       // max value
+            can_gc,
         );
         Ok(BiquadFilterNode {
             node,
@@ -114,7 +119,7 @@ impl BiquadFilterNode {
         })
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         context: &BaseAudioContext,
         options: &BiquadFilterOptions,
@@ -123,7 +128,7 @@ impl BiquadFilterNode {
         Self::new_with_proto(window, None, context, options, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
@@ -131,7 +136,7 @@ impl BiquadFilterNode {
         options: &BiquadFilterOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<BiquadFilterNode>> {
-        let node = BiquadFilterNode::new_inherited(window, context, options)?;
+        let node = BiquadFilterNode::new_inherited(window, context, options, can_gc)?;
         Ok(reflect_dom_object_with_proto(
             Box::new(node),
             window,
@@ -187,7 +192,7 @@ impl BiquadFilterNodeMethods<crate::DomTypeHolder> for BiquadFilterNode {
     }
 }
 
-impl<'a> Convert<BiquadFilterNodeOptions> for &'a BiquadFilterOptions {
+impl Convert<BiquadFilterNodeOptions> for &BiquadFilterOptions {
     fn convert(self) -> BiquadFilterNodeOptions {
         BiquadFilterNodeOptions {
             gain: *self.gain,

@@ -21,47 +21,47 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRTestBinding::{FakeXRDeviceInit, XRTestMethods};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::fakexrdevice::{get_origin, get_views, get_world, FakeXRDevice};
+use crate::dom::fakexrdevice::{FakeXRDevice, get_origin, get_views, get_world};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
-use crate::task_source::TaskSource;
 
 #[dom_struct]
-pub struct XRTest {
+pub(crate) struct XRTest {
     reflector: Reflector,
     devices_connected: DomRefCell<Vec<Dom<FakeXRDevice>>>,
 }
 
 impl XRTest {
-    pub fn new_inherited() -> XRTest {
+    pub(crate) fn new_inherited() -> XRTest {
         XRTest {
             reflector: Reflector::new(),
             devices_connected: DomRefCell::new(vec![]),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<XRTest> {
-        reflect_dom_object(Box::new(XRTest::new_inherited()), global)
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<XRTest> {
+        reflect_dom_object(Box::new(XRTest::new_inherited()), global, can_gc)
     }
 
     fn device_obtained(
         &self,
         response: Result<IpcSender<MockDeviceMsg>, XRError>,
         trusted: TrustedPromise,
+        can_gc: CanGc,
     ) {
         let promise = trusted.root();
         if let Ok(sender) = response {
-            let device = FakeXRDevice::new(&self.global(), sender);
+            let device = FakeXRDevice::new(&self.global(), sender, CanGc::note());
             self.devices_connected
                 .borrow_mut()
                 .push(Dom::from_ref(&device));
-            promise.resolve_native(&device);
+            promise.resolve_native(&device, can_gc);
         } else {
-            promise.reject_native(&());
+            promise.reject_native(&(), can_gc);
         }
     }
 }
@@ -77,7 +77,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             match get_origin(o) {
                 Ok(origin) => Some(origin),
                 Err(e) => {
-                    p.reject_error(e);
+                    p.reject_error(e, can_gc);
                     return p;
                 },
             }
@@ -89,7 +89,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             match get_origin(o) {
                 Ok(origin) => Some(origin),
                 Err(e) => {
-                    p.reject_error(e);
+                    p.reject_error(e, can_gc);
                     return p;
                 },
             }
@@ -100,7 +100,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         let views = match get_views(&init.views) {
             Ok(views) => views,
             Err(e) => {
-                p.reject_error(e);
+                p.reject_error(e, can_gc);
                 return p;
             },
         };
@@ -115,7 +115,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             let w = match get_world(w) {
                 Ok(w) => w,
                 Err(e) => {
-                    p.reject_error(e);
+                    p.reject_error(e, can_gc);
                     return p;
                 },
             };
@@ -148,13 +148,13 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         };
 
         let global = self.global();
-        let window = global.as_window();
         let this = Trusted::new(self);
         let mut trusted = Some(TrustedPromise::new(p.clone()));
 
-        let (task_source, canceller) = window
+        let task_source = global
             .task_manager()
-            .dom_manipulation_task_source_with_canceller();
+            .dom_manipulation_task_source()
+            .to_sendable();
         let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
 
         ROUTER.add_typed_route(
@@ -167,15 +167,12 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                 let message =
                     message.expect("SimulateDeviceConnection callback given incorrect payload");
 
-                let _ = task_source.queue_with_canceller(
-                    task!(request_session: move || {
-                        this.root().device_obtained(message, trusted);
-                    }),
-                    &canceller,
-                );
+                task_source.queue(task!(request_session: move || {
+                    this.root().device_obtained(message, trusted, CanGc::note());
+                }));
             }),
         );
-        if let Some(mut r) = window.webxr_registry() {
+        if let Some(mut r) = global.as_window().webxr_registry() {
             r.simulate_device_connection(init, sender);
         }
 
@@ -183,10 +180,15 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     }
 
     /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
-    fn SimulateUserActivation(&self, f: Rc<Function>) {
+    fn SimulateUserActivation(&self, f: Rc<Function>, can_gc: CanGc) {
         ScriptThread::set_user_interacting(true);
         rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
-        let _ = f.Call__(vec![], value.handle_mut(), ExceptionHandling::Rethrow);
+        let _ = f.Call__(
+            vec![],
+            value.handle_mut(),
+            ExceptionHandling::Rethrow,
+            can_gc,
+        );
         ScriptThread::set_user_interacting(false);
     }
 
@@ -197,7 +199,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
         let p = Promise::new(&global, can_gc);
         let mut devices = self.devices_connected.borrow_mut();
         if devices.is_empty() {
-            p.resolve_native(&());
+            p.resolve_native(&(), can_gc);
         } else {
             let mut len = devices.len();
 
@@ -207,10 +209,10 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             devices.clear();
 
             let mut trusted = Some(TrustedPromise::new(p.clone()));
-            let (task_source, canceller) = global
-                .as_window()
+            let task_source = global
                 .task_manager()
-                .dom_manipulation_task_source_with_canceller();
+                .dom_manipulation_task_source()
+                .to_sendable();
 
             ROUTER.add_typed_route(
                 receiver.to_ipc_receiver(),
@@ -220,8 +222,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
                         let trusted = trusted
                             .take()
                             .expect("DisconnectAllDevices disconnected more devices than expected");
-                        let _ =
-                            task_source.queue_with_canceller(trusted.resolve_task(()), &canceller);
+                        task_source.queue(trusted.resolve_task(()));
                     }
                 }),
             );

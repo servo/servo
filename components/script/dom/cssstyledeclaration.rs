@@ -11,8 +11,8 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::properties::{
-    parse_one_declaration_into, parse_style_attribute, Importance, LonghandId,
-    PropertyDeclarationBlock, PropertyId, ShorthandId, SourcePropertyDeclaration,
+    Importance, LonghandId, PropertyDeclarationBlock, PropertyId, ShorthandId,
+    SourcePropertyDeclaration, parse_one_declaration_into, parse_style_attribute,
 };
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
@@ -23,18 +23,18 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyl
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrule::CSSRule;
 use crate::dom::element::Element;
-use crate::dom::node::{document_from_node, stylesheets_owner_from_node, window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
-pub struct CSSStyleDeclaration {
+pub(crate) struct CSSStyleDeclaration {
     reflector_: Reflector,
     owner: CSSStyleOwner,
     readonly: bool,
@@ -43,8 +43,11 @@ pub struct CSSStyleDeclaration {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[crown::unrooted_must_root_lint::must_root]
-pub enum CSSStyleOwner {
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) enum CSSStyleOwner {
+    /// Used when calling `getComputedStyle()` with an invalid pseudo-element selector.
+    /// See <https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle>
+    Null,
     Element(Dom<Element>),
     CSSRule(
         Dom<CSSRule>,
@@ -66,8 +69,11 @@ impl CSSStyleOwner {
         // This is somewhat complex but the complexity is encapsulated.
         let mut changed = true;
         match *self {
+            CSSStyleOwner::Null => unreachable!(
+                "CSSStyleDeclaration should always be read-only when CSSStyleOwner is Null"
+            ),
             CSSStyleOwner::Element(ref el) => {
-                let document = document_from_node(&**el);
+                let document = el.owner_document();
                 let shared_lock = document.style_shared_lock();
                 let mut attr = el.style_attribute().borrow_mut().take();
                 let result = if attr.is_some() {
@@ -122,8 +128,7 @@ impl CSSStyleOwner {
                     // If this is changed, see also
                     // CSSStyleRule::SetSelectorText, which does the same thing.
                     if let Some(owner) = rule.parent_stylesheet().get_owner() {
-                        stylesheets_owner_from_node(owner.upcast::<Node>())
-                            .invalidate_stylesheets();
+                        owner.stylesheet_list_owner().invalidate_stylesheets();
                     }
                 }
                 result
@@ -136,9 +141,12 @@ impl CSSStyleOwner {
         F: FnOnce(&PropertyDeclarationBlock) -> R,
     {
         match *self {
+            CSSStyleOwner::Null => {
+                unreachable!("Should never call with_block for CSStyleOwner::Null")
+            },
             CSSStyleOwner::Element(ref el) => match *el.style_attribute().borrow() {
                 Some(ref pdb) => {
-                    let document = document_from_node(&**el);
+                    let document = el.owner_document();
                     let guard = document.style_shared_lock().read();
                     f(pdb.read_with(&guard))
                 },
@@ -156,14 +164,20 @@ impl CSSStyleOwner {
 
     fn window(&self) -> DomRoot<Window> {
         match *self {
-            CSSStyleOwner::Element(ref el) => window_from_node(&**el),
+            CSSStyleOwner::Null => {
+                unreachable!("Should never try to access window of CSStyleOwner::Null")
+            },
+            CSSStyleOwner::Element(ref el) => el.owner_window(),
             CSSStyleOwner::CSSRule(ref rule, _) => DomRoot::from_ref(rule.global().as_window()),
         }
     }
 
     fn base_url(&self) -> ServoUrl {
         match *self {
-            CSSStyleOwner::Element(ref el) => window_from_node(&**el).Document().base_url(),
+            CSSStyleOwner::Null => {
+                unreachable!("Should never try to access base URL of CSStyleOwner::Null")
+            },
+            CSSStyleOwner::Element(ref el) => el.owner_document().base_url(),
             CSSStyleOwner::CSSRule(ref rule, _) => ServoUrl::from(
                 rule.parent_stylesheet()
                     .style_stylesheet()
@@ -179,7 +193,7 @@ impl CSSStyleOwner {
 }
 
 #[derive(MallocSizeOf, PartialEq)]
-pub enum CSSModificationAccess {
+pub(crate) enum CSSModificationAccess {
     ReadWrite,
     Readonly,
 }
@@ -216,12 +230,19 @@ fn remove_property(decls: &mut PropertyDeclarationBlock, id: &PropertyId) -> boo
 }
 
 impl CSSStyleDeclaration {
-    #[allow(crown::unrooted_must_root)]
-    pub fn new_inherited(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new_inherited(
         owner: CSSStyleOwner,
         pseudo: Option<PseudoElement>,
         modification_access: CSSModificationAccess,
     ) -> CSSStyleDeclaration {
+        // If creating a CSSStyleDeclaration with CSSSStyleOwner::Null, this should always
+        // be in read-only mode.
+        assert!(
+            !matches!(owner, CSSStyleOwner::Null) ||
+                modification_access == CSSModificationAccess::Readonly
+        );
+
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
             owner,
@@ -230,12 +251,13 @@ impl CSSStyleDeclaration {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         global: &Window,
         owner: CSSStyleOwner,
         pseudo: Option<PseudoElement>,
         modification_access: CSSModificationAccess,
+        can_gc: CanGc,
     ) -> DomRoot<CSSStyleDeclaration> {
         reflect_dom_object(
             Box::new(CSSStyleDeclaration::new_inherited(
@@ -244,6 +266,7 @@ impl CSSStyleDeclaration {
                 modification_access,
             )),
             global,
+            can_gc,
         )
     }
 
@@ -258,12 +281,18 @@ impl CSSStyleDeclaration {
                     return DOMString::new();
                 }
                 let addr = node.to_trusted_node_address();
-                window_from_node(node).resolved_style_query(addr, self.pseudo, property, can_gc)
+                node.owner_window()
+                    .resolved_style_query(addr, self.pseudo, property, can_gc)
             },
+            CSSStyleOwner::Null => DOMString::new(),
         }
     }
 
     fn get_property_value(&self, id: PropertyId, can_gc: CanGc) -> DOMString {
+        if matches!(self.owner, CSSStyleOwner::Null) {
+            return DOMString::new();
+        }
+
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
             return self.get_computed_style(id, can_gc);
@@ -355,7 +384,7 @@ impl CSSStyleDeclaration {
     }
 }
 
-pub static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyLock::new(|| {
+pub(crate) static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyLock::new(|| {
     // The 'all' shorthand contains all the enabled longhands with 2 exceptions:
     // 'direction' and 'unicode-bidi', so these must be added afterward.
     let mut enabled_longhands: Vec<LonghandId> = ShorthandId::All.longhands().collect();
@@ -386,6 +415,10 @@ pub static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyLock::ne
 impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
+        if matches!(self.owner, CSSStyleOwner::Null) {
+            return 0;
+        }
+
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
             // TODO: include custom properties whose computed value is not the guaranteed-invalid value.
@@ -487,6 +520,9 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
+        if matches!(self.owner, CSSStyleOwner::Null) {
+            return None;
+        }
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
             // TODO: include custom properties whose computed value is not the guaranteed-invalid value.

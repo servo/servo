@@ -4,11 +4,11 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use xml5ever::serialize::{serialize, SerializeOpts, TraversalScope};
+use xml5ever::serialize::{SerializeOpts, TraversalScope, serialize};
 
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
@@ -16,7 +16,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XMLSerializer {
+pub(crate) struct XMLSerializer {
     reflector_: Reflector,
     window: Dom<Window>,
 }
@@ -29,7 +29,7 @@ impl XMLSerializer {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,

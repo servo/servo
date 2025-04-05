@@ -8,11 +8,10 @@
 // except according to those terms.
 
 use keyboard_types::{Key, Modifiers};
-use script::clipboard_provider::ClipboardProvider;
 use script::test::DOMString;
-use script::textinput::{
-    Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint, UTF16CodeUnits,
-    UTF8Bytes,
+use script::test::textinput::{
+    ClipboardProvider, Direction, Lines, Selection, SelectionDirection, TextInput, TextPoint,
+    UTF8Bytes, UTF16CodeUnits,
 };
 
 pub struct DummyClipboardContext {
@@ -28,10 +27,10 @@ impl DummyClipboardContext {
 }
 
 impl ClipboardProvider for DummyClipboardContext {
-    fn clipboard_contents(&mut self) -> String {
-        self.content.clone()
+    fn get_text(&mut self) -> Result<String, String> {
+        Ok(self.content.clone())
     }
-    fn set_clipboard_contents(&mut self, s: String) {
+    fn set_text(&mut self, s: String) {
         self.content = s;
     }
 }
@@ -105,8 +104,8 @@ fn test_textinput_when_inserting_multiple_lines_still_respects_max_length() {
 }
 
 #[test]
-fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_selection_dont_insert_anything(
-) {
+fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_selection_dont_insert_anything()
+ {
     let mut textinput = TextInput::new(
         Lines::Single,
         DOMString::from("abc"),
@@ -122,8 +121,8 @@ fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_s
 }
 
 #[test]
-fn test_multi_line_textinput_with_maxlength_doesnt_allow_appending_characters_when_input_spans_lines(
-) {
+fn test_multi_line_textinput_with_maxlength_doesnt_allow_appending_characters_when_input_spans_lines()
+ {
     let mut textinput = TextInput::new(
         Lines::Multiple,
         DOMString::from("abc\nd"),
@@ -139,8 +138,8 @@ fn test_multi_line_textinput_with_maxlength_doesnt_allow_appending_characters_wh
 }
 
 #[test]
-fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_when_replacing_a_selection(
-) {
+fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_when_replacing_a_selection()
+ {
     let mut textinput = TextInput::new(
         Lines::Single,
         DOMString::from("abcde"),
@@ -239,8 +238,8 @@ fn test_single_line_textinput_with_max_length_inside_char() {
 }
 
 #[test]
-fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_after_max_length_is_reached(
-) {
+fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_after_max_length_is_reached()
+ {
     let mut textinput = TextInput::new(
         Lines::Single,
         DOMString::from("a"),
@@ -856,4 +855,12 @@ fn test_select_all() {
         },
         textinput.selection_end()
     );
+}
+
+#[test]
+fn test_backspace_in_textarea_at_beginning_of_line() {
+    let mut textinput = text_input(Lines::Multiple, "first line\n");
+    textinput.handle_keydown_aux(Key::ArrowDown, Modifiers::empty(), false);
+    textinput.handle_keydown_aux(Key::Backspace, Modifiers::empty(), false);
+    assert_eq!(textinput.get_content(), DOMString::from("first line"));
 }

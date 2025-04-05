@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluat
 use crate::dom::bindings::codegen::Bindings::XPathExpressionBinding::XPathExpression_Binding::XPathExpressionMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
@@ -22,7 +22,7 @@ use crate::dom::xpathresult::XPathResult;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XPathEvaluator {
+pub(crate) struct XPathEvaluator {
     reflector_: Reflector,
     window: Dom<Window>,
 }
@@ -35,7 +35,7 @@ impl XPathEvaluator {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,

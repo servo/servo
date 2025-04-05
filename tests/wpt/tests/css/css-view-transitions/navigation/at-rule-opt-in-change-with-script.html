@@ -14,22 +14,33 @@ function optIn() {
   document.querySelector("#vt-style").innerHTML = `@view-transition { navigation: auto }`;
 }
 const params = new URLSearchParams(location.search);
-const is_new_page = params.has('new');
 
-if (!is_new_page) {
-  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
-      optIn();
-      location.replace(location.href + '?new');
-  }));
-} else {
-  promise_test(() => {
-    optIn();
-    return new Promise((resolve) => {
-        addEventListener('pagereveal', resolve);
-    }).then(event => {
-        assert_not_equals(event.viewTransition, null,
-            "ViewTransition must be triggered.");
+optIn();
+
+// This file includes 3 modes: test, old, new.
+// "test" is where testharness runs. "old" -> "new" is where the view transition takes place.
+switch (params.get("mode") || "test") {
+case "test":
+  promise_test(async t => {
+    const event = await new Promise(resolve => {
+      window.did_reveal = e => { resolve(e) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
     });
+
+    assert_not_equals(event.viewTransition, null, "ViewTransition must be triggered.");
   });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace('?mode=new');
+  }));
+  break;
+case "new":
+  onpagereveal =  e => window.opener.did_reveal(e);
 }
 </script>
+
+<body>
+  Lorem ipsum dolor sit amet consectetur adipisicing elit. Alias quis assumenda doloremque, repellat quidem quia blanditiis harum animi corrupti totam sunt provident sapiente at eius sequi labore repellendus velit fugit!
+</body>

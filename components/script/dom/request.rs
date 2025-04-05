@@ -2,17 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::str::FromStr;
 
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
+use http::Method as HttpMethod;
 use http::header::{HeaderName, HeaderValue};
 use http::method::InvalidMethod;
-use http::Method as HttpMethod;
-use js::jsapi::JSObject;
 use js::rust::HandleObject;
+use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::fetch::headers::is_forbidden_method;
 use net_traits::request::{
     CacheMode as NetTraitsRequestCache, CredentialsMode as NetTraitsRequestCredentials,
@@ -20,10 +19,9 @@ use net_traits::request::{
     Referrer as NetTraitsRequestReferrer, Request as NetTraitsRequest, RequestBuilder,
     RequestMode as NetTraitsRequestMode, Window,
 };
-use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use servo_url::ServoUrl;
 
-use crate::body::{consume_body, BodyMixin, BodyType, Extractable};
+use crate::body::{BodyMixin, BodyType, Extractable, consume_body};
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
@@ -32,7 +30,7 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::{
     RequestMethods, RequestMode, RequestRedirect,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -40,10 +38,10 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct Request {
+pub(crate) struct Request {
     reflector_: Reflector,
     #[no_trace]
     request: DomRefCell<NetTraitsRequest>,
@@ -104,16 +102,18 @@ impl Request {
         Ok(r_clone)
     }
 
-    pub fn get_request(&self) -> NetTraitsRequest {
+    pub(crate) fn get_request(&self) -> NetTraitsRequest {
         self.request.borrow().clone()
     }
 }
 
 fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
-    RequestBuilder::new(url, global.get_referrer())
+    RequestBuilder::new(global.webview_id(), url, global.get_referrer())
         .origin(global.get_url().origin())
         .pipeline_id(Some(global.pipeline_id()))
         .https_state(global.get_https_state())
+        .insecure_requests_policy(global.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
         .build()
 }
 
@@ -598,8 +598,8 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-body>
-    fn GetBody(&self, _cx: SafeJSContext) -> Option<NonNull<JSObject>> {
-        self.body().map(|stream| stream.get_js_stream())
+    fn GetBody(&self) -> Option<DomRoot<ReadableStream>> {
+        self.body()
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-bodyused
@@ -644,6 +644,11 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
     fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::ArrayBuffer, can_gc)
+    }
+
+    /// <https://fetch.spec.whatwg.org/#dom-body-bytes>
+    fn Bytes(&self, can_gc: CanGc) -> std::rc::Rc<Promise> {
+        consume_body(self, BodyType::Bytes, can_gc)
     }
 }
 

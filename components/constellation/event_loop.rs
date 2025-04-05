@@ -9,27 +9,25 @@
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use ipc_channel::ipc::IpcSender;
 use ipc_channel::Error;
-use script_traits::ConstellationControlMsg;
+use ipc_channel::ipc::IpcSender;
+use script_traits::ScriptThreadMessage;
 
 /// <https://html.spec.whatwg.org/multipage/#event-loop>
 pub struct EventLoop {
-    script_chan: IpcSender<ConstellationControlMsg>,
+    script_chan: IpcSender<ScriptThreadMessage>,
     dont_send_or_sync: PhantomData<Rc<()>>,
 }
 
 impl Drop for EventLoop {
     fn drop(&mut self) {
-        let _ = self
-            .script_chan
-            .send(ConstellationControlMsg::ExitScriptThread);
+        let _ = self.script_chan.send(ScriptThreadMessage::ExitScriptThread);
     }
 }
 
 impl EventLoop {
     /// Create a new event loop from the channel to its script thread.
-    pub fn new(script_chan: IpcSender<ConstellationControlMsg>) -> Rc<EventLoop> {
+    pub fn new(script_chan: IpcSender<ScriptThreadMessage>) -> Rc<EventLoop> {
         Rc::new(EventLoop {
             script_chan,
             dont_send_or_sync: PhantomData,
@@ -37,12 +35,7 @@ impl EventLoop {
     }
 
     /// Send a message to the event loop.
-    pub fn send(&self, msg: ConstellationControlMsg) -> Result<(), Error> {
+    pub fn send(&self, msg: ScriptThreadMessage) -> Result<(), Error> {
         self.script_chan.send(msg)
-    }
-
-    /// The underlying channel to the script thread.
-    pub fn sender(&self) -> IpcSender<ConstellationControlMsg> {
-        self.script_chan.clone()
     }
 }

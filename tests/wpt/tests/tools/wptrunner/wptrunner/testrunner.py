@@ -994,7 +994,9 @@ class TestRunnerManager(threading.Thread):
             self.logger.debug("Recreating command queue")
             self.command_queue.cancel_join_thread()
             self.command_queue.close()
-            self.command_queue = mp.Queue()
+            # Reset the command queue for BrowserManager also as that won't
+            # be set again during retry.
+            self.browser.command_queue = self.command_queue = mp.Queue()
             self.logger.debug("Recreating remote queue")
             self.remote_queue.cancel_join_thread()
             self.remote_queue.close()

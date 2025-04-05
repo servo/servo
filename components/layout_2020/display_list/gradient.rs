@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use euclid::Size2D;
+use style::Zero;
 use style::color::mix::ColorInterpolationMethod;
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, Gradient, LineDirection};
@@ -11,11 +12,10 @@ use style::values::computed::{Angle, AngleOrPercentage, Color, LengthPercentage,
 use style::values::generics::image::{
     Circle, ColorStop, Ellipse, GradientFlags, GradientItem, ShapeExtent,
 };
-use style::Zero;
 use webrender_api::units::LayoutPixel;
 use webrender_api::{
-    self as wr, units, ConicGradient as WebRenderConicGradient,
-    Gradient as WebRenderLinearGradient, RadialGradient as WebRenderRadialGradient,
+    self as wr, ConicGradient as WebRenderConicGradient, Gradient as WebRenderLinearGradient,
+    RadialGradient as WebRenderRadialGradient, units,
 };
 use wr::ColorF;
 
@@ -33,10 +33,10 @@ pub(super) fn build(
 ) -> WebRenderGradient {
     match gradient {
         Gradient::Linear {
-            ref items,
-            ref direction,
-            ref color_interpolation_method,
-            ref flags,
+            items,
+            direction,
+            color_interpolation_method,
+            flags,
             compat_mode: _,
         } => build_linear(
             style,
@@ -48,11 +48,11 @@ pub(super) fn build(
             builder,
         ),
         Gradient::Radial {
-            ref shape,
-            ref position,
-            ref color_interpolation_method,
-            ref items,
-            ref flags,
+            shape,
+            position,
+            color_interpolation_method,
+            items,
+            flags,
             compat_mode: _,
         } => build_radial(
             style,
@@ -346,11 +346,11 @@ fn conic_gradient_items_to_color_stops(
         .filter_map(|item| {
             match item {
                 GradientItem::SimpleColorStop(color) => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color.clone())),
+                    color: super::rgba(style.resolve_color(color)),
                     position: None,
                 }),
                 GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color.clone())),
+                    color: super::rgba(style.resolve_color(color)),
                     position: match position {
                         AngleOrPercentage::Percentage(percentage) => Some(percentage.0),
                         AngleOrPercentage::Angle(angle) => Some(angle.degrees() / 360.),
@@ -384,11 +384,11 @@ fn gradient_items_to_color_stops(
         .filter_map(|item| {
             match item {
                 GradientItem::SimpleColorStop(color) => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color.clone())),
+                    color: super::rgba(style.resolve_color(color)),
                     position: None,
                 }),
                 GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
-                    color: super::rgba(style.resolve_color(color.clone())),
+                    color: super::rgba(style.resolve_color(color)),
                     position: Some(if gradient_line_length.is_zero() {
                         0.
                     } else {
@@ -408,7 +408,7 @@ fn gradient_items_to_color_stops(
 
 /// <https://drafts.csswg.org/css-images-4/#color-stop-fixup>
 fn fixup_stops(stops: &mut [ColorStop<ColorF, f32>]) -> Vec<wr::GradientStop> {
-    assert!(stops.len() >= 2);
+    assert!(!stops.is_empty());
 
     // https://drafts.csswg.org/css-images-4/#color-stop-fixup
     if let first_position @ None = &mut stops.first_mut().unwrap().position {
@@ -438,6 +438,9 @@ fn fixup_stops(stops: &mut [ColorStop<ColorF, f32>]) -> Vec<wr::GradientStop> {
         offset: first_stop_position,
         color: first.color,
     });
+    if stops.len() == 1 {
+        wr_stops.push(wr_stops[0]);
+    }
 
     let mut last_positioned_stop_index = 0;
     let mut last_positioned_stop_position = first_stop_position;

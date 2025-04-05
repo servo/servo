@@ -65,26 +65,16 @@ jobs:
               return "";
             }
 
-            let username = context.payload.sender.login;
-            let result = await github.rest.repos.getCollaboratorPermissionLevel({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              username
-            });
-            if (!result.data.user.permissions.push) {
-              makeComment('🔒 User @' + username + ' does not have permission to trigger try jobs.');
-              return "";
-            }
-
             return try_string;
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
             python/servo/try_parser.py
+            .github/actions/setup-python
+            .python-version
           sparse-checkout-cone-mode: false
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Parse Labels
         if: ${{ steps.try_string.outputs.result }}
         id: configuration
@@ -133,9 +123,10 @@ jobs:
     secrets: inherit
     with:
       workflow: ${{ matrix.workflow }}
-      wpt-layout: ${{ matrix.wpt_layout }}
+      wpt: ${{ matrix.wpt }}
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
+      build-libservo: ${{ matrix.build_libservo }}
       wpt-args: ${{ matrix.wpt_args }}
       bencher: ${{ matrix.bencher }}
 

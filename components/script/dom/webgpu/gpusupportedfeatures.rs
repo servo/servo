@@ -7,7 +7,7 @@
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use js::rust::HandleObject;
-use webgpu::wgt::Features;
+use wgpu_types::Features;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -15,14 +15,14 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::like::Setlike;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUSupportedFeatures {
+pub(crate) struct GPUSupportedFeatures {
     reflector: Reflector,
     // internal storage for features
     #[custom_trace]
@@ -96,7 +96,7 @@ impl GPUSupportedFeatures {
     }
 
     #[allow(non_snake_case)]
-    pub fn Constructor(
+    pub(crate) fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         features: Features,
@@ -107,7 +107,7 @@ impl GPUSupportedFeatures {
 }
 
 impl GPUSupportedFeatures {
-    pub fn wgpu_features(&self) -> Features {
+    pub(crate) fn wgpu_features(&self) -> Features {
         self.features
     }
 }
@@ -118,7 +118,7 @@ impl GPUSupportedFeaturesMethods<crate::DomTypeHolder> for GPUSupportedFeatures 
     }
 }
 
-pub fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
+pub(crate) fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
     match feature {
         GPUFeatureName::Depth_clip_control => Some(Features::DEPTH_CLIP_CONTROL),
         GPUFeatureName::Depth32float_stencil8 => Some(Features::DEPTH32FLOAT_STENCIL8),
@@ -139,8 +139,6 @@ pub fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
     }
 }
 
-// this error is wrong because if we inline Self::Key and Self::Value all errors are gone
-#[allow(crown::unrooted_must_root)]
 impl Setlike for GPUSupportedFeatures {
     type Key = DOMString;
 

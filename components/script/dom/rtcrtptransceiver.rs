@@ -9,21 +9,26 @@ use dom_struct::dom_struct;
 use crate::dom::bindings::codegen::Bindings::RTCRtpTransceiverBinding::{
     RTCRtpTransceiverDirection, RTCRtpTransceiverMethods,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::rtcrtpsender::RTCRtpSender;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCRtpTransceiver {
+pub(crate) struct RTCRtpTransceiver {
     reflector_: Reflector,
     sender: Dom<RTCRtpSender>,
     direction: Cell<RTCRtpTransceiverDirection>,
 }
 
 impl RTCRtpTransceiver {
-    fn new_inherited(global: &GlobalScope, direction: RTCRtpTransceiverDirection) -> Self {
-        let sender = RTCRtpSender::new(global);
+    fn new_inherited(
+        global: &GlobalScope,
+        direction: RTCRtpTransceiverDirection,
+        can_gc: CanGc,
+    ) -> Self {
+        let sender = RTCRtpSender::new(global, can_gc);
         Self {
             reflector_: Reflector::new(),
             direction: Cell::new(direction),
@@ -34,8 +39,13 @@ impl RTCRtpTransceiver {
     pub(crate) fn new(
         global: &GlobalScope,
         direction: RTCRtpTransceiverDirection,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(global, direction)), global)
+        reflect_dom_object(
+            Box::new(Self::new_inherited(global, direction, can_gc)),
+            global,
+            can_gc,
+        )
     }
 }
 

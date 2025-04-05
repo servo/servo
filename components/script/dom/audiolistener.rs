@@ -16,12 +16,13 @@ use crate::dom::bindings::codegen::Bindings::AudioParamBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct AudioListener {
+pub(crate) struct AudioListener {
     reflector_: Reflector,
     position_x: Dom<AudioParam>,
     position_y: Dom<AudioParam>,
@@ -35,7 +36,7 @@ pub struct AudioListener {
 }
 
 impl AudioListener {
-    fn new_inherited(window: &Window, context: &BaseAudioContext) -> AudioListener {
+    fn new_inherited(window: &Window, context: &BaseAudioContext, can_gc: CanGc) -> AudioListener {
         let node = context.listener();
 
         let position_x = AudioParam::new(
@@ -48,6 +49,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            can_gc,
         );
         let position_y = AudioParam::new(
             window,
@@ -59,6 +61,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            can_gc,
         );
         let position_z = AudioParam::new(
             window,
@@ -70,6 +73,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            can_gc,
         );
         let forward_x = AudioParam::new(
             window,
@@ -81,6 +85,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            can_gc,
         );
         let forward_y = AudioParam::new(
             window,
@@ -92,6 +97,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            can_gc,
         );
         let forward_z = AudioParam::new(
             window,
@@ -103,6 +109,7 @@ impl AudioListener {
             -1.,      // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            can_gc,
         );
         let up_x = AudioParam::new(
             window,
@@ -114,6 +121,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            can_gc,
         );
         let up_y = AudioParam::new(
             window,
@@ -125,6 +133,7 @@ impl AudioListener {
             1.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            can_gc,
         );
         let up_z = AudioParam::new(
             window,
@@ -136,6 +145,7 @@ impl AudioListener {
             0.,       // default value
             f32::MIN, // min value
             f32::MAX, // max value
+            can_gc,
         );
 
         AudioListener {
@@ -152,10 +162,14 @@ impl AudioListener {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(window: &Window, context: &BaseAudioContext) -> DomRoot<AudioListener> {
-        let node = AudioListener::new_inherited(window, context);
-        reflect_dom_object(Box::new(node), window)
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
+        window: &Window,
+        context: &BaseAudioContext,
+        can_gc: CanGc,
+    ) -> DomRoot<AudioListener> {
+        let node = AudioListener::new_inherited(window, context, can_gc);
+        reflect_dom_object(Box::new(node), window, can_gc)
     }
 }
 

@@ -18,6 +18,7 @@ dictionary AuctionAd {
   sequence<USVString> selectableBuyerAndSellerReportingIds;
   sequence<USVString> allowedReportingOrigins;
   DOMString adRenderId;
+  USVString creativeScanningMetadata;
 };
 
 dictionary AuctionAdInterestGroupSize {
@@ -41,6 +42,7 @@ dictionary GenerateBidInterestGroup {
   sequence<USVString> trustedBiddingSignalsKeys;
   DOMString trustedBiddingSignalsSlotSizeMode = "none";
   long maxTrustedBiddingSignalsURLLength;
+  USVString trustedBiddingSignalsCoordinator;
   any userBiddingSignals;
   sequence<AuctionAd> ads;
   sequence<AuctionAd> adComponents;
@@ -104,6 +106,8 @@ dictionary AuctionAdConfig {
 
   USVString trustedScoringSignalsURL;
   long maxTrustedScoringSignalsURLLength;
+  USVString trustedScoringSignalsCoordinator;
+  boolean sendCreativeScanningMetadata;
   sequence<USVString> interestGroupBuyers;
   Promise<any> auctionSignals;
   Promise<any> sellerSignals;
@@ -149,17 +153,31 @@ partial interface Navigator {
 
 [SecureContext]
 partial interface Navigator {
-  Promise<AdAuctionData> getInterestGroupAdAuctionData(AdAuctionDataConfig config);
+  Promise<AdAuctionData> getInterestGroupAdAuctionData(optional AdAuctionDataConfig config = {});
+};
+
+dictionary AdAuctionPerSellerData {
+  required USVString seller;
+  Uint8Array request;
+  DOMString error;
 };
 
 dictionary AdAuctionData {
-  required Uint8Array request;
   required USVString requestId;
+  Uint8Array request;
+  sequence<AdAuctionPerSellerData> requests;
+};
+
+dictionary AdAuctionOneSeller {
+  required USVString seller;
+  USVString coordinatorOrigin;
 };
 
 dictionary AdAuctionDataConfig {
-  required USVString seller;
-  required USVString coordinatorOrigin;
+  USVString seller;
+  USVString coordinatorOrigin;
+  sequence<AdAuctionOneSeller> sellers;
+
   unsigned long requestSize;
   record<USVString, AdAuctionDataBuyerConfig> perBuyerConfig;
 };
@@ -200,12 +218,6 @@ dictionary PAExtendedHistogramContribution {
   required (PASignalValue or bigint) bucket;
   required (PASignalValue or long) value;
   bigint filteringId = 0;
-};
-
-[Exposed=InterestGroupScriptRunnerGlobalScope]
-partial interface PrivateAggregation {
-  undefined contributeToHistogramOnEvent(
-      DOMString event, PAExtendedHistogramContribution contribution);
 };
 
 [Exposed=InterestGroupBiddingAndScoringScriptRunnerGlobalScope]
@@ -335,6 +347,8 @@ dictionary ScoringBrowserSignals {
   unsigned long crossOriginDataVersion;
   sequence<USVString> adComponents;
   boolean forDebuggingOnlyInCooldownOrLockout = false;
+  USVString creativeScanningMetadata;
+  sequence<USVString?> adComponentsCreativeScanningMetadata;
 };
 
 dictionary ReportingBrowserSignals {

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>No DBSC if connection is HTTP</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helper.js" type="module"></script>
+
+<script type="module">
+  import { expireCookie, waitForCookie, addCookieAndSessionCleanup, setupShardedServerState } from "./helper.js";
+
+  promise_test(async t => {
+    await setupShardedServerState();
+    const expectedCookieAndValue = "auth_cookie=abcdef0123";
+    addCookieAndSessionCleanup(t);
+
+    // Prompt starting a session, and wait until registration completes.
+    const loginResponse = await fetch('login.py');
+    assert_equals(loginResponse.status, 200);
+    // For HTTP, this call will time out, because the cookie is never set.
+    await waitForCookie(expectedCookieAndValue, /*expectCookie=*/false);
+  }, "Try to establish a session over HTTP");
+</script>

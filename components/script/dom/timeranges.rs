@@ -9,9 +9,10 @@ use dom_struct::dom_struct;
 use crate::dom::bindings::codegen::Bindings::TimeRangesBinding::TimeRangesMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct TimeRange {
@@ -20,7 +21,7 @@ struct TimeRange {
 }
 
 impl TimeRange {
-    pub fn union(&mut self, other: &TimeRange) {
+    pub(crate) fn union(&mut self, other: &TimeRange) {
         self.start = f64::min(self.start, other.start);
         self.end = f64::max(self.end, other.end);
     }
@@ -39,7 +40,7 @@ impl TimeRange {
         other.start == self.end || other.end == self.start
     }
 
-    pub fn is_before(&self, other: &TimeRange) -> bool {
+    pub(crate) fn is_before(&self, other: &TimeRange) -> bool {
         other.start >= self.end
     }
 }
@@ -62,11 +63,12 @@ pub struct TimeRangesContainer {
 }
 
 impl TimeRangesContainer {
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> u32 {
         self.ranges.len() as u32
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.ranges.is_empty()
     }
 
@@ -125,7 +127,7 @@ impl TimeRangesContainer {
 }
 
 #[dom_struct]
-pub struct TimeRanges {
+pub(crate) struct TimeRanges {
     reflector_: Reflector,
     ranges: TimeRangesContainer,
 }
@@ -138,8 +140,12 @@ impl TimeRanges {
         }
     }
 
-    pub fn new(window: &Window, ranges: TimeRangesContainer) -> DomRoot<TimeRanges> {
-        reflect_dom_object(Box::new(TimeRanges::new_inherited(ranges)), window)
+    pub(crate) fn new(
+        window: &Window,
+        ranges: TimeRangesContainer,
+        can_gc: CanGc,
+    ) -> DomRoot<TimeRanges> {
+        reflect_dom_object(Box::new(TimeRanges::new_inherited(ranges)), window, can_gc)
     }
 }
 

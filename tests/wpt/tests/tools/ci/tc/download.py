@@ -20,17 +20,16 @@ TASKCLUSTER_ROOT_URL = 'https://taskcluster.net'
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ref", action="store", default="master",
+    parser.add_argument("--ref", default="master",
                         help="Branch (in the GitHub repository) or commit to fetch logs for")
-    parser.add_argument("--artifact-name", action="store", default="wpt_report.json.gz",
+    parser.add_argument("--artifact-name", default="wpt_report.json.gz",
                         help="Log type to fetch")
-    parser.add_argument("--repo-name", action="store", default="web-platform-tests/wpt",
+    parser.add_argument("--repo-name", default="web-platform-tests/wpt",
                         help="GitHub repo name in the format owner/repo. "
                         "This must be the repo from which the Taskcluster run was scheduled "
                         "(for PRs this is the repo into which the PR would merge)")
-    parser.add_argument("--token-file", action="store",
-                        help="File containing GitHub token")
-    parser.add_argument("--out-dir", action="store", default=".",
+    parser.add_argument("--token-file", help="File containing GitHub token")
+    parser.add_argument("--out-dir", default=".",
                         help="Path to save the logfiles")
     return parser
 

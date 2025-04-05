@@ -12,16 +12,15 @@ use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRayBinding::{XRRayDirectionInit, XRRayMethods};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct XRRay {
+pub(crate) struct XRRay {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
@@ -40,15 +39,15 @@ impl XRRay {
     }
 
     fn new(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         ray: Ray<ApiSpace>,
         can_gc: CanGc,
     ) -> DomRoot<XRRay> {
-        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), global, proto, can_gc)
+        reflect_dom_object_with_proto(Box::new(XRRay::new_inherited(ray)), window, proto, can_gc)
     }
 
-    pub fn ray(&self) -> Ray<ApiSpace> {
+    pub(crate) fn ray(&self) -> Ray<ApiSpace> {
         self.ray
     }
 }
@@ -82,12 +81,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
         )
         .normalize();
 
-        Ok(Self::new(
-            &window.global(),
-            proto,
-            Ray { origin, direction },
-            can_gc,
-        ))
+        Ok(Self::new(window, proto, Ray { origin, direction }, can_gc))
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-xrray-transform>
@@ -103,12 +97,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
             .rotation
             .transform_vector3d(Vector3D::new(0., 0., -1.));
 
-        Ok(Self::new(
-            &window.global(),
-            proto,
-            Ray { origin, direction },
-            can_gc,
-        ))
+        Ok(Self::new(window, proto, Ray { origin, direction }, can_gc))
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-origin>
@@ -136,7 +125,7 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
     }
 
     /// <https://immersive-web.github.io/hit-test/#dom-xrray-matrix>
-    fn Matrix(&self, _cx: JSContext) -> Float32Array {
+    fn Matrix(&self, _cx: JSContext, can_gc: CanGc) -> Float32Array {
         // https://immersive-web.github.io/hit-test/#xrray-obtain-the-matrix
         if !self.matrix.is_initialized() {
             // Step 1
@@ -163,12 +152,12 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
                 .to_transform()
                 .to_array();
             self.matrix
-                .set_data(_cx, &arr)
+                .set_data(_cx, &arr, can_gc)
                 .expect("Failed to set matrix data on XRRAy.")
         }
 
         self.matrix
-            .get_buffer()
+            .get_typed_array()
             .expect("Failed to get matrix from XRRay.")
     }
 }

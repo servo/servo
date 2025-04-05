@@ -6,14 +6,16 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
 
+use crate::dom::bindings::codegen::Bindings::HTMLParagraphElementBinding::HTMLParagraphElementMethods;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::Node;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLParagraphElement {
+pub(crate) struct HTMLParagraphElement {
     htmlelement: HTMLElement,
 }
 
@@ -28,8 +30,8 @@ impl HTMLParagraphElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -45,4 +47,12 @@ impl HTMLParagraphElement {
             can_gc,
         )
     }
+}
+
+impl HTMLParagraphElementMethods<crate::DomTypeHolder> for HTMLParagraphElement {
+    // https://html.spec.whatwg.org/multipage/#dom-p-align
+    make_getter!(Align, "align");
+
+    // https://html.spec.whatwg.org/multipage/#dom-p-align
+    make_setter!(SetAlign, "align");
 }

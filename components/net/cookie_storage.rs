@@ -6,13 +6,13 @@
 //! <http://tools.ietf.org/html/rfc6265>
 
 use std::cmp::Ordering;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::time::SystemTime;
 
 use log::{debug, info};
-use net_traits::pub_domains::reg_suffix;
 use net_traits::CookieSource;
+use net_traits::pub_domains::reg_suffix;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
@@ -94,11 +94,22 @@ impl CookieStorage {
             Ok(None)
         }
     }
+
     pub fn clear_storage(&mut self, url: &ServoUrl) {
         let domain = reg_host(url.host_str().unwrap_or(""));
         let cookies = self.cookies_map.entry(domain).or_default();
         for cookie in cookies.iter_mut() {
             cookie.set_expiry_time_in_past();
+        }
+    }
+
+    pub fn delete_cookie_with_name(&mut self, url: &ServoUrl, name: String) {
+        let domain = reg_host(url.host_str().unwrap_or(""));
+        let cookies = self.cookies_map.entry(domain).or_default();
+        for cookie in cookies.iter_mut() {
+            if cookie.cookie.name() == name {
+                cookie.set_expiry_time_in_past();
+            }
         }
     }
 
@@ -261,9 +272,7 @@ fn get_oldest_accessed(
         if (c.cookie.secure().unwrap_or(false) == is_secure_cookie) &&
             oldest_accessed
                 .as_ref()
-                .map_or(true, |(_, current_oldest_time)| {
-                    c.last_access < *current_oldest_time
-                })
+                .is_none_or(|(_, current_oldest_time)| c.last_access < *current_oldest_time)
         {
             oldest_accessed = Some((i, c.last_access));
         }

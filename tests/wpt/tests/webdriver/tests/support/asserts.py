@@ -1,4 +1,3 @@
-import imghdr
 from base64 import decodebytes
 
 from webdriver import NoSuchAlertException, WebDriverException, WebElement
@@ -39,7 +38,7 @@ errors = {
 }
 
 
-def assert_error(response, error_code):
+def assert_error(response, error_code, data=None):
     """
     Verify that the provided webdriver.Response instance described
     a valid error response as defined by `dfn-send-an-error` and
@@ -47,12 +46,18 @@ def assert_error(response, error_code):
 
     :param response: ``webdriver.Response`` instance.
     :param error_code: String value of the expected error code
+    :param data: Optional dictionary containing additional information about the error.
     """
     assert response.status == errors[error_code]
+
     assert "value" in response.body
     assert response.body["value"]["error"] == error_code
     assert isinstance(response.body["value"]["message"], str)
     assert isinstance(response.body["value"]["stacktrace"], str)
+
+    if data is not None:
+        assert response.body["value"]["data"] == data
+
     assert_response_headers(response.headers)
 
 
@@ -71,6 +76,7 @@ def assert_success(response, value=None):
         assert response.body["value"] == value
 
     assert_response_headers(response.headers)
+
     return response.body.get("value")
 
 
@@ -227,6 +233,5 @@ def assert_png(screenshot):
         image = decodebytes(screenshot.encode())
     else:
         image = screenshot
-    mime_type = imghdr.what("", image)
-    assert mime_type == "png", "Expected image to be PNG, but it was {}".format(mime_type)
+    assert image.startswith(b'\211PNG\r\n\032\n'), "Expected image to be PNG"
     return image

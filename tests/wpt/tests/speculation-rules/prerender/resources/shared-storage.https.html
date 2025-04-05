@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<body>
+
+
+<script>
+
+const params = new URLSearchParams(location.search);
+
+// The main test page (restriction-shared-storage.https.html) loads the initiator page,
+// then the initiator page will prerender itself with the `prerendering`
+// parameter.
+const isPrerendering = params.has('prerendering');
+
+if (!isPrerendering) {
+  loadInitiatorPage();
+} else {
+  const prerenderEventCollector = new PrerenderEventCollector();
+
+  if (params.get('type') === 'worklet') {
+    async function register() {
+      return window.sharedStorage.worklet.addModule(
+        "shared-storage-worklet.js");
+    }
+    prerenderEventCollector.start(
+      register(), 'window.sharedStorage.worklet.addModule');
+  } else {
+    prerenderEventCollector.start(
+      window.sharedStorage.set('prerender', 'yes'),
+      'window.sharedStorage.set');
+  }
+}
+
+</script>
+
+</body>

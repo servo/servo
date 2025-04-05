@@ -10,10 +10,12 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject, JS_NewPlainObject};
+use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
 use js::typedarray::{self, Uint8ClampedArray};
+use script_bindings::interfaces::TestBindingHelpers;
+use script_bindings::record::Record;
 use script_traits::serializable::BlobImpl;
 use servo_config::prefs;
 
@@ -35,9 +37,8 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::record::Record;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -53,7 +54,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::timers::OneshotTimerCallback;
 
 #[dom_struct]
-pub struct TestBinding {
+pub(crate) struct TestBinding {
     reflector_: Reflector,
     url: MutableWeakRef<URL>,
 }
@@ -226,7 +227,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         let data: [u8; 16] = [0; 16];
 
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, &data, array.handle_mut())
+        create_buffer_source(cx, &data, array.handle_mut(), CanGc::note())
             .expect("Creating ClampedU8 array should never fail")
     }
     fn AnyAttribute(&self, _: SafeJSContext, _: MutableHandleValue) {}
@@ -880,17 +881,18 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn PassVariadicAny(&self, _: SafeJSContext, _: Vec<HandleValue>) {}
     fn PassVariadicObject(&self, _: SafeJSContext, _: Vec<*mut JSObject>) {}
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
-        prefs::pref_map()
-            .get(pref_name.as_ref())
-            .as_bool()
+        prefs::get()
+            .get_value(pref_name.as_ref())
+            .try_into()
             .unwrap_or(false)
     }
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
-        prefs::pref_map()
-            .get(pref_name.as_ref())
-            .as_str()
-            .map(DOMString::from)
-            .unwrap_or_default()
+        DOMString::from_string(
+            prefs::get()
+                .get_value(pref_name.as_ref())
+                .try_into()
+                .unwrap_or_default(),
+        )
     }
     fn PrefControlledAttributeDisabled(&self) -> bool {
         false
@@ -909,6 +911,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
 
+    fn PassRecordPromise(&self, _: Record<DOMString, Rc<Promise>>) {}
     fn PassRecord(&self, _: Record<DOMString, i32>) {}
     fn PassRecordWithUSVStringKey(&self, _: Record<USVString, i32>) {}
     fn PassRecordWithByteStringKey(&self, _: Record<ByteString, i32>) {}
@@ -969,29 +972,29 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         Record::new()
     }
 
-    #[allow(crown::unrooted_must_root)]
-    fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        Promise::new_resolved(&self.global(), cx, v)
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
+        Promise::new_resolved(&self.global(), cx, v, CanGc::note())
     }
 
-    #[allow(crown::unrooted_must_root)]
-    fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
-        Promise::new_rejected(&self.global(), cx, v)
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Rc<Promise> {
+        Promise::new_rejected(&self.global(), cx, v, CanGc::note())
     }
 
-    fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue) {
-        p.resolve(cx, v);
+    fn PromiseResolveNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
+        p.resolve(cx, v, can_gc);
     }
 
-    fn PromiseRejectNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue) {
-        p.reject(cx, v);
+    fn PromiseRejectNative(&self, cx: SafeJSContext, p: &Promise, v: HandleValue, can_gc: CanGc) {
+        p.reject(cx, v, can_gc);
     }
 
-    fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString) {
-        p.reject_error(Error::Type(s.0));
+    fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString, can_gc: CanGc) {
+        p.reject_error(Error::Type(s.0), can_gc);
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
         let promise = p.duplicate();
         let cb = TestBindingCallback {
@@ -1016,6 +1019,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             &global,
             resolve.map(SimpleHandler::new_boxed),
             reject.map(SimpleHandler::new_boxed),
+            can_gc,
         );
         let p = Promise::new_in_current_realm(comp, can_gc);
         p.append_native_handler(&handler, comp, can_gc);
@@ -1032,9 +1036,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             }
         }
         impl Callback for SimpleHandler {
-            fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm, _can_gc: CanGc) {
+            fn callback(&self, cx: SafeJSContext, v: HandleValue, realm: InRealm, can_gc: CanGc) {
                 let global = GlobalScope::from_safe_context(cx, realm);
-                let _ = self.handler.Call_(&*global, v, ExceptionHandling::Report);
+                let _ = self
+                    .handler
+                    .Call_(&*global, v, ExceptionHandling::Report, can_gc);
             }
         }
     }
@@ -1143,24 +1149,35 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
 }
 
 impl TestBinding {
-    pub fn condition_satisfied(_: SafeJSContext, _: HandleObject) -> bool {
+    pub(crate) fn condition_satisfied(_: SafeJSContext, _: HandleObject) -> bool {
         true
     }
-    pub fn condition_unsatisfied(_: SafeJSContext, _: HandleObject) -> bool {
+    pub(crate) fn condition_unsatisfied(_: SafeJSContext, _: HandleObject) -> bool {
         false
     }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct TestBindingCallback {
+pub(crate) struct TestBindingCallback {
     #[ignore_malloc_size_of = "unclear ownership semantics"]
     promise: TrustedPromise,
     value: DOMString,
 }
 
 impl TestBindingCallback {
-    #[allow(crown::unrooted_must_root)]
-    pub fn invoke(self) {
-        self.promise.root().resolve_native(&self.value);
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn invoke(self) {
+        self.promise
+            .root()
+            .resolve_native(&self.value, CanGc::note());
+    }
+}
+
+impl TestBindingHelpers for TestBinding {
+    fn condition_satisfied(cx: SafeJSContext, global: HandleObject) -> bool {
+        Self::condition_satisfied(cx, global)
+    }
+    fn condition_unsatisfied(cx: SafeJSContext, global: HandleObject) -> bool {
+        Self::condition_unsatisfied(cx, global)
     }
 }

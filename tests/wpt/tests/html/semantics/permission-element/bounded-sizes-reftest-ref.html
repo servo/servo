@@ -29,14 +29,14 @@
     }
     #id3 {
       font-size: 10px;
-      height: 30px;
       color:black;
       background-color: black;
-      border: 0px;
+      border: 1000px solid darkmagenta;
 
       /* Used to compute width which will then have the padding
          artificially added in JS */
       width: fit-content;
+      height: fit-content;
     }
   </style>
 
@@ -53,7 +53,9 @@
 
   el = document.getElementById("id3");
   let w = getComputedStyle(el).width;
+  let h = getComputedStyle(el).height;
   el.style.width = `calc(${w} + 100px)`; // 100px is 2 * 5em;
+  el.style.height = `calc(${h} + 10px)`; // 10px is 2 * 5px; (the padding set in the test)
 </script>
 </body>
 </html>

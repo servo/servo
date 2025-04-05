@@ -3,14 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
+use std::cell::LazyCell;
 use std::mem;
 
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
-use html5ever::{namespace_url, ns, LocalName, Namespace, Prefix};
-use servo_atoms::Atom;
+use html5ever::{LocalName, Namespace, Prefix, namespace_url, ns};
 use style::attr::{AttrIdentifier, AttrValue};
 use style::values::GenericAtomIdent;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -28,7 +29,7 @@ use crate::script_thread::ScriptThread;
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
-pub struct Attr {
+pub(crate) struct Attr {
     node_: Node,
     #[no_trace]
     identifier: AttrIdentifier,
@@ -62,7 +63,7 @@ impl Attr {
         }
     }
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         document: &Document,
         local_name: LocalName,
         value: AttrValue,
@@ -82,17 +83,17 @@ impl Attr {
     }
 
     #[inline]
-    pub fn name(&self) -> &LocalName {
+    pub(crate) fn name(&self) -> &LocalName {
         &self.identifier.name.0
     }
 
     #[inline]
-    pub fn namespace(&self) -> &Namespace {
+    pub(crate) fn namespace(&self) -> &Namespace {
         &self.identifier.namespace.0
     }
 
     #[inline]
-    pub fn prefix(&self) -> Option<&Prefix> {
+    pub(crate) fn prefix(&self) -> Option<&Prefix> {
         Some(&self.identifier.prefix.as_ref()?.0)
     }
 }
@@ -114,7 +115,7 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
     fn SetValue(&self, value: DOMString) {
         if let Some(owner) = self.owner() {
             let value = owner.parse_attribute(self.namespace(), self.local_name(), value);
-            self.set_value(value, &owner);
+            self.set_value(value, &owner, CanGc::note());
         } else {
             *self.value.borrow_mut() = AttrValue::String(value.into());
         }
@@ -152,20 +153,20 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
 }
 
 impl Attr {
-    pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
+    pub(crate) fn set_value(&self, mut value: AttrValue, owner: &Element, can_gc: CanGc) {
         let name = self.local_name().clone();
         let namespace = self.namespace().clone();
         let old_value = DOMString::from(&**self.value());
         let new_value = DOMString::from(&*value);
-        let mutation = Mutation::Attribute {
+        let mutation = LazyCell::new(|| Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
             old_value: Some(old_value.clone()),
-        };
+        });
 
         MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), mutation);
 
-        if owner.get_custom_element_definition().is_some() {
+        if owner.is_custom() {
             let reaction = CallbackReaction::AttributeChanged(
                 name,
                 Some(old_value),
@@ -179,31 +180,34 @@ impl Attr {
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);
         if *self.namespace() == ns!() {
-            vtable_for(owner.upcast())
-                .attribute_mutated(self, AttributeMutation::Set(Some(&value)));
+            vtable_for(owner.upcast()).attribute_mutated(
+                self,
+                AttributeMutation::Set(Some(&value)),
+                can_gc,
+            );
         }
     }
 
     /// Used to swap the attribute's value without triggering mutation events
-    pub fn swap_value(&self, value: &mut AttrValue) {
+    pub(crate) fn swap_value(&self, value: &mut AttrValue) {
         mem::swap(&mut *self.value.borrow_mut(), value);
     }
 
-    pub fn identifier(&self) -> &AttrIdentifier {
+    pub(crate) fn identifier(&self) -> &AttrIdentifier {
         &self.identifier
     }
 
-    pub fn value(&self) -> Ref<AttrValue> {
+    pub(crate) fn value(&self) -> Ref<AttrValue> {
         self.value.borrow()
     }
 
-    pub fn local_name(&self) -> &LocalName {
+    pub(crate) fn local_name(&self) -> &LocalName {
         &self.identifier.local_name
     }
 
     /// Sets the owner element. Should be called after the attribute is added
     /// or removed from its older parent.
-    pub fn set_owner(&self, owner: Option<&Element>) {
+    pub(crate) fn set_owner(&self, owner: Option<&Element>) {
         let ns = self.namespace();
         match (self.owner(), owner) {
             (Some(old), None) => {
@@ -220,11 +224,11 @@ impl Attr {
         self.owner.set(owner);
     }
 
-    pub fn owner(&self) -> Option<DomRoot<Element>> {
+    pub(crate) fn owner(&self) -> Option<DomRoot<Element>> {
         self.owner.get()
     }
 
-    pub fn summarize(&self) -> AttrInfo {
+    pub(crate) fn summarize(&self) -> AttrInfo {
         AttrInfo {
             namespace: (**self.namespace()).to_owned(),
             name: String::from(self.Name()),
@@ -232,7 +236,7 @@ impl Attr {
         }
     }
 
-    pub fn qualified_name(&self) -> DOMString {
+    pub(crate) fn qualified_name(&self) -> DOMString {
         match self.prefix() {
             Some(ref prefix) => DOMString::from(format!("{}:{}", prefix, &**self.local_name())),
             None => DOMString::from(&**self.local_name()),
@@ -241,7 +245,7 @@ impl Attr {
 }
 
 #[allow(unsafe_code)]
-pub trait AttrHelpersForLayout<'dom> {
+pub(crate) trait AttrHelpersForLayout<'dom> {
     fn value(self) -> &'dom AttrValue;
     fn as_str(&self) -> &'dom str;
     fn to_tokens(self) -> Option<&'dom [Atom]>;

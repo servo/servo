@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -19,7 +19,7 @@ use crate::dom::webgpu::gpuerror::GPUError;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUUncapturedErrorEvent {
+pub(crate) struct GPUUncapturedErrorEvent {
     event: Event,
     #[ignore_malloc_size_of = "Because it is non-owning"]
     gpu_error: Dom<GPUError>,
@@ -33,7 +33,7 @@ impl GPUUncapturedErrorEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: DOMString,
         init: &GPUUncapturedErrorEventInit,
@@ -63,7 +63,7 @@ impl GPUUncapturedErrorEvent {
         ev
     }
 
-    pub fn event(&self) -> &Event {
+    pub(crate) fn event(&self) -> &Event {
         &self.event
     }
 }

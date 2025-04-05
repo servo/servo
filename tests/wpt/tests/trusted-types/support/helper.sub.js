@@ -158,10 +158,15 @@ function assert_throws_no_trusted_type_set_ns(tag, attribute, value) {
   });
 }
 
-function assert_element_accepts_non_trusted_type_set_ns(tag, attribute, value, expected,
+function assert_element_accepts_value_set_ns(tag, attribute, value, expected,
                                                         elementNamespace, attributeNamespace) {
   let elem = document.createElementNS(elementNamespace, tag);
   elem.setAttributeNS(attributeNamespace, attribute, value);
   let attr_node = elem.getAttributeNodeNS(attributeNamespace, attribute);
   assert_equals(attr_node.value + "", expected);
+}
+
+function getGlobalThisStr() {
+  // `globalThis.toString()` is of the form "[Object <someName>]".
+  return globalThis.toString().split(" ")[1].slice(0, -1);
 }

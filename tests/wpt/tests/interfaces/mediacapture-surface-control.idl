@@ -5,12 +5,14 @@
 
 partial interface CaptureController {
   sequence<long> getSupportedZoomLevels();
-  long getZoomLevel();
-  Promise<undefined> setZoomLevel(long zoomLevel);
-  attribute EventHandler oncapturedzoomlevelchange;
+  readonly attribute long? zoomLevel;
+  Promise<undefined> increaseZoomLevel();
+  Promise<undefined> decreaseZoomLevel();
+  Promise<undefined> resetZoomLevel();
+  attribute EventHandler onzoomlevelchange;
 };
 
 partial interface CaptureController {
   constructor();
-  Promise<undefined> forwardWheel(HTMLElement element);
+  Promise<undefined> forwardWheel(HTMLElement? element);
 };

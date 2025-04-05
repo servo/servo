@@ -20,14 +20,15 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
+use crate::script_runtime::CanGc;
 
-pub enum MediaQueryListMatchState {
+pub(crate) enum MediaQueryListMatchState {
     Same,
     Changed,
 }
 
 #[dom_struct]
-pub struct MediaQueryList {
+pub(crate) struct MediaQueryList {
     eventtarget: EventTarget,
     document: Dom<Document>,
     #[no_trace]
@@ -45,16 +46,21 @@ impl MediaQueryList {
         }
     }
 
-    pub fn new(document: &Document, media_query_list: MediaList) -> DomRoot<MediaQueryList> {
+    pub(crate) fn new(
+        document: &Document,
+        media_query_list: MediaList,
+        can_gc: CanGc,
+    ) -> DomRoot<MediaQueryList> {
         reflect_dom_object(
             Box::new(MediaQueryList::new_inherited(document, media_query_list)),
             document.window(),
+            can_gc,
         )
     }
 }
 
 impl MediaQueryList {
-    pub fn evaluate_changes(&self) -> MediaQueryListMatchState {
+    pub(crate) fn evaluate_changes(&self) -> MediaQueryListMatchState {
         let matches = self.evaluate();
 
         let result = if let Some(old_matches) = self.last_match_state.get() {
@@ -71,7 +77,7 @@ impl MediaQueryList {
         result
     }
 
-    pub fn evaluate(&self) -> bool {
+    pub(crate) fn evaluate(&self) -> bool {
         let quirks_mode = self.document.quirks_mode();
         self.media_query_list
             .evaluate(self.document.window().layout().device(), quirks_mode)
@@ -100,6 +106,7 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
             AddEventListenerOptions {
                 parent: EventListenerOptions { capture: false },
                 once: false,
+                passive: None,
             },
         );
     }

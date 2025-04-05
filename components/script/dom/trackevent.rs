@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::audiotrack::AudioTrack;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -13,17 +13,16 @@ use crate::dom::bindings::codegen::Bindings::TrackEventBinding::TrackEventMethod
 use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 enum MediaTrack {
     Video(Dom<VideoTrack>),
@@ -32,13 +31,14 @@ enum MediaTrack {
 }
 
 #[dom_struct]
-pub struct TrackEvent {
+pub(crate) struct TrackEvent {
     event: Event,
     track: Option<MediaTrack>,
 }
 
 impl TrackEvent {
-    #[allow(crown::unrooted_must_root, non_snake_case)]
+    #[allow(non_snake_case)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(track: &Option<VideoTrackOrAudioTrackOrTextTrack>) -> TrackEvent {
         let media_track = match track {
             Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(VideoTrack)) => {
@@ -59,19 +59,19 @@ impl TrackEvent {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
+    pub(crate) fn new(
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         track: &Option<VideoTrackOrAudioTrackOrTextTrack>,
         can_gc: CanGc,
     ) -> DomRoot<TrackEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, track, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, track, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -81,7 +81,7 @@ impl TrackEvent {
     ) -> DomRoot<TrackEvent> {
         let te = reflect_dom_object_with_proto(
             Box::new(TrackEvent::new_inherited(track)),
-            global,
+            window,
             proto,
             can_gc,
         );
@@ -103,7 +103,7 @@ impl TrackEventMethods<crate::DomTypeHolder> for TrackEvent {
         init: &TrackEventBinding::TrackEventInit,
     ) -> Fallible<DomRoot<TrackEvent>> {
         Ok(TrackEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

@@ -1,14 +1,15 @@
 import asyncio
 
 import pytest
+import random
 
 from webdriver.bidi.modules.script import ContextTarget
 
 from tests.support.sync import AsyncPoll
 
-from ... import number_interval
 from .. import (
     assert_response_event,
+    get_network_event_timerange,
     HTTP_STATUS_AND_STATUS_TEXT,
     PAGE_DATA_URL_HTML,
     PAGE_DATA_URL_IMAGE,
@@ -170,6 +171,7 @@ async def test_request_bodysize(
 
 @pytest.mark.asyncio
 async def test_request_timing_info(
+    bidi_session,
     url,
     wait_for_event,
     wait_for_future_safe,
@@ -188,7 +190,7 @@ async def test_request_timing_info(
     await wait_for_future_safe(on_response_started)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
 
@@ -215,7 +217,7 @@ async def test_response_status(
     wait_for_event, wait_for_future_safe, url, fetch, setup_network_test, status, status_text
 ):
     status_url = url(
-        f"/webdriver/tests/support/http_handlers/status.py?status={status}&nocache={RESPONSE_STARTED_EVENT}"
+        f"/webdriver/tests/support/http_handlers/status.py?status={status}&nocache={random.random()}"
     )
 
     network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])
@@ -422,7 +424,7 @@ async def test_serviceworker_request(
     await wait_for_future_safe(on_response_started)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
 
@@ -443,7 +445,13 @@ async def test_serviceworker_request(
 
 @pytest.mark.asyncio
 async def test_url_with_fragment(
-    url, wait_for_event, wait_for_future_safe, fetch, setup_network_test, current_time
+    bidi_session,
+    url,
+    wait_for_event,
+    wait_for_future_safe,
+    fetch,
+    setup_network_test,
+    current_time,
 ):
     fragment_url = url(f"{PAGE_EMPTY_HTML}#foo")
 
@@ -459,7 +467,7 @@ async def test_url_with_fragment(
     await wait_for_future_safe(on_response_started)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
 
@@ -507,7 +515,7 @@ async def test_navigate_data_url(
     await wait_for_future_safe(on_response_started)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
 
@@ -541,6 +549,7 @@ async def test_navigate_data_url(
 )
 @pytest.mark.asyncio
 async def test_fetch_data_url(
+    bidi_session,
     wait_for_event,
     wait_for_future_safe,
     fetch,
@@ -560,7 +569,7 @@ async def test_fetch_data_url(
     await wait_for_future_safe(on_response_started)
 
     time_end = await current_time()
-    time_range = number_interval(time_start - 1, time_end + 1)
+    time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
 

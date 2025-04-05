@@ -4,9 +4,10 @@
 
 use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
+use servo_config::pref;
 
 use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
@@ -16,11 +17,11 @@ use crate::dom::permissions::Permissions;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{CanGc, JSContext};
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]
-pub struct WorkerNavigator {
+pub(crate) struct WorkerNavigator {
     reflector_: Reflector,
     permissions: MutNullableDom<Permissions>,
     #[cfg(feature = "webgpu")]
@@ -37,8 +38,8 @@ impl WorkerNavigator {
         }
     }
 
-    pub fn new(global: &WorkerGlobalScope) -> DomRoot<WorkerNavigator> {
-        reflect_dom_object(Box::new(WorkerNavigator::new_inherited()), global)
+    pub(crate) fn new(global: &WorkerGlobalScope, can_gc: CanGc) -> DomRoot<WorkerNavigator> {
+        reflect_dom_object(Box::new(WorkerNavigator::new_inherited()), global, can_gc)
     }
 }
 
@@ -85,7 +86,7 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-useragent
     fn UserAgent(&self) -> DOMString {
-        navigatorinfo::UserAgent(self.global().get_user_agent())
+        navigatorinfo::UserAgent(&pref!(user_agent))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-appversion
@@ -100,20 +101,20 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
     #[allow(unsafe_code)]
-    fn Languages(&self, cx: JSContext, retval: MutableHandleValue) {
-        to_frozen_array(&[self.Language()], cx, retval)
+    fn Languages(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+        to_frozen_array(&[self.Language()], cx, retval, can_gc)
     }
 
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
-            .or_init(|| Permissions::new(&self.global()))
+            .or_init(|| Permissions::new(&self.global(), CanGc::note()))
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     #[cfg(feature = "webgpu")]
     fn Gpu(&self) -> DomRoot<GPU> {
-        self.gpu.or_init(|| GPU::new(&self.global()))
+        self.gpu.or_init(|| GPU::new(&self.global(), CanGc::note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>

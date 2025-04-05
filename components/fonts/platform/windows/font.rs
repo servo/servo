@@ -15,18 +15,18 @@ use app_units::Au;
 use dwrote::{FontCollection, FontFace, FontFile};
 use euclid::default::{Point2D, Rect, Size2D};
 use log::{debug, warn};
+use style::Zero;
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
 use style::values::computed::font::FontStyle as StyleFontStyle;
-use style::Zero;
 use truetype::tables::WindowsMetrics;
 use truetype::value::Read;
 use webrender_api::FontInstanceFlags;
 
 use super::font_list::LocalFontIdentifier;
 use crate::{
-    ot_tag, FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTableTag,
-    FontTemplateDescriptor, FractionalPixel, GlyphId, PlatformFontMethods,
+    FontData, FontIdentifier, FontMetrics, FontTableMethods, FontTableTag, FontTemplateDescriptor,
+    FractionalPixel, GlyphId, PlatformFontMethods, ot_tag,
 };
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch

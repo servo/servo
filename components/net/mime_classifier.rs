@@ -392,9 +392,9 @@ impl Mp4Matcher {
             return false;
         }
 
-        let box_size = ((data[0] as u32) << 24 |
-            (data[1] as u32) << 16 |
-            (data[2] as u32) << 8 |
+        let box_size = (((data[0] as u32) << 24) |
+            ((data[1] as u32) << 16) |
+            ((data[2] as u32) << 8) |
             (data[3] as u32)) as usize;
         if (data.len() < box_size) || (box_size % 4 != 0) {
             return false;

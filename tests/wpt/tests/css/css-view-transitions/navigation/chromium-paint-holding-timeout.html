@@ -6,6 +6,7 @@
 <link rel="match" href="chromium-paint-holding-timeout-ref.html">
 <link rel="assert" content="Ensures paint holding timeout cancels transition. Note that this is a Chromium only test">
 <script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
 <style>
 @view-transition {
   navigation: auto;
@@ -24,6 +25,9 @@ function runTest() {
   const url = "resources/chromium-paint-holding-timeout.html";
   window.location.replace(new URL(url, window.location));
 }
-onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+onload = async () => {
+  await waitForCompositorReady();
+  runTest();
+}
 </script>
 </html>

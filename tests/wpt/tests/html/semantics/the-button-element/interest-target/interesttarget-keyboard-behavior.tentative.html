@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<div id="examples">
+  <button id="<button>" interesttarget=target>Button</button>
+  <a id="<a>" href=foo interesttarget=target>Link</a>
+  <img src="/images/blue.png" usemap="#map">
+  <map id=map>
+    <area id="<area>" interesttarget=target href="/" shape=default id=interestarea>
+  </map>
+    <svg viewBox="0 0 100 100" style="width: 100px" xmlns="http://www.w3.org/2000/svg">
+    <a id="SVG <a>" href=foo interesttarget=target>
+      <text x=50 y=90>SVG A</text>
+    </a>
+  </svg>
+</div>
+
+<div id=target popover>Popover</div>
+<button id="otherbutton">Other button</button>
+<button id="another" interesttarget=anothertarget>Another Button</button>
+<div id=anothertarget popover>Another Popover</div>
+
+<style>
+  [interesttarget] {
+    interest-target-delay: 0s;
+  }
+</style>
+
+<script>
+const kShift = "\uE008";
+const kMeta = "\uE03d";
+const kControl = "\uE009";
+const kAlt = "\uE00A";
+const kArrowUp = '\uE013';
+const kEscape = '\uE00C';
+function sendLoseInterestHotkey() {
+  return new test_driver.Actions()
+    .keyDown(kEscape)
+    .keyUp(kEscape)
+    .send();
+}
+function sendShowInterestHotkey(extra_modifier) {
+  assert_not_equals(extra_modifier,kAlt);
+  let actions = new test_driver.Actions();
+  if (extra_modifier) {
+    actions.keyDown(extra_modifier);
+  }
+  actions.keyDown(kAlt)
+    .keyDown(kArrowUp)
+    .keyUp(kArrowUp)
+    .keyUp(kAlt);
+  if (extra_modifier) {
+    actions.keyUp(extra_modifier);
+  }
+  return actions.send();
+}
+const allInterestTargetElements = document.querySelectorAll('#examples [interesttarget]');
+function verifyInterest(onlyElement,description) {
+  [...allInterestTargetElements, another].forEach(el => {
+    const expectInterest = el == onlyElement;
+    assert_equals(el.matches(':has-interest'),expectInterest,`${description}, element ${el.id} should ${expectInterest ? "" : "NOT "}have interest`);
+  })
+}
+allInterestTargetElements.forEach(el => {
+  const description = `${el.id}`;
+  promise_test(async function (t) {
+    target.hidePopover(); // Just in case
+    el.focus();
+    assert_equals(document.activeElement,el,'Elements should all be focusable');
+    assert_false(target.matches(':popover-open'),'focusing does not trigger interest');
+    await sendShowInterestHotkey();
+    assert_true(target.matches(':popover-open'),'Pressing the hot key should trigger interest');
+    verifyInterest(el,`After show interest in ${el.id}`);
+    await sendLoseInterestHotkey();
+    assert_false(target.matches(':popover-open'),'Pressing lose interest hot key should trigger lose interest');
+    verifyInterest(undefined,`After lose interest in ${el.id}`);
+  },`Basic keyboard behavior, ${description}`);
+
+  for (const key of ['Shift','Control','Meta']) {
+    extra_key = eval('k' + key);
+    promise_test(async function (t) {
+      target.hidePopover(); // Just in case
+      el.focus();
+      await sendShowInterestHotkey(extra_key);
+      assert_false(target.matches(':popover-open'),'Pressing the hot key with extra modifiers should not trigger interest');
+    },`Extra ${key} modifier on the gain interest hot key, ${description}`);
+  }
+
+  promise_test(async function (t) {
+    target.hidePopover(); // Just in case
+    target.addEventListener('interest', (e) => e.preventDefault(), {once: true});
+    el.focus();
+    await sendShowInterestHotkey();
+    assert_false(target.matches(':popover-open'));
+  }, `canceling the interest event stops behavior, ${description}`);
+
+  let events = [];
+  function addListeners(t,element) {
+    const controller = new AbortController();
+    const signal = controller.signal;
+    t.add_cleanup(() => controller.abort());
+    element.addEventListener('interest',(e) => events.push(`${e.target.id} interest`),{signal});
+    element.addEventListener('loseinterest',(e) => events.push(`${e.target.id} loseinterest`),{signal});
+  }
+  promise_test(async function (t) {
+    target.hidePopover(); // Just in case
+    anothertarget.hidePopover(); // Just in case
+    events = [];
+    addListeners(t,target);
+    addListeners(t,anothertarget);
+    el.focus();
+    await sendShowInterestHotkey();
+    assert_array_equals(events,['target interest'],'first hotkey');
+    verifyInterest(el,`After show interest in ${el.id}`);
+    another.focus();
+    assert_array_equals(events,['target interest'],'focusing another element does not change interest');
+    verifyInterest(el,`After focus on ${another.id}`);
+    await sendShowInterestHotkey();
+    assert_array_equals(events,['target interest','target loseinterest','anothertarget interest'],
+        'showing interest in another trigger should lose interest in the first, then gain interest in second');
+    verifyInterest(another,`After show interest in ${another.id}`);
+    await sendLoseInterestHotkey();
+    assert_array_equals(events,['target interest','target loseinterest','anothertarget interest','anothertarget loseinterest']);
+    verifyInterest(undefined,`After lose interest in ${another.id}`);
+    assert_false(target.matches(':popover-open'));
+    assert_false(anothertarget.matches(':popover-open'));
+  }, `Showing interest in a second element loses interest in the first, ${description}`);
+
+  promise_test(async function (t) {
+    target.hidePopover(); // Just in case
+    anothertarget.hidePopover(); // Just in case
+    events = [];
+    addListeners(t,target);
+    addListeners(t,anothertarget);
+    el.focus();
+    await sendShowInterestHotkey();
+    another.focus();
+    assert_array_equals(events,['target interest'],'setup');
+    verifyInterest(el,`After show interest in ${el.id}`);
+    target.addEventListener('loseinterest',(e) => e.preventDefault(),{once: true});
+    await sendShowInterestHotkey();
+    assert_array_equals(events,['target interest','target loseinterest'],
+        'the loseinterest listener should fire, but anothertarget should not get interest');
+    verifyInterest(el,`After show interest in ${another.id}`);
+    el.focus();
+    await sendLoseInterestHotkey();
+    assert_array_equals(events,['target interest','target loseinterest','target loseinterest'],'Another event fired');
+    assert_false(target.matches(':popover-open'));
+    assert_false(anothertarget.matches(':popover-open'));
+    verifyInterest(undefined,`After lose interest in ${el.id}`);
+  }, `Cancelling loseinterest caused by keyboard-gained interest cancels interest, ${description}`);
+});
+</script>

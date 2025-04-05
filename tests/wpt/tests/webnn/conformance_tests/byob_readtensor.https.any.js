@@ -1,5 +1,5 @@
 // META: title=test WebNN API tensor operations
-// META: global=window,dedicatedworker
+// META: global=window,worker
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -94,22 +94,24 @@ promise_test(async () => {
   assert_array_equals(new Uint32Array(arrayBuffer), testContents);
 }, `readTensor() with an ArrayBuffer`);
 
-promise_test(async () => {
-  const sharedArrayBuffer = new SharedArrayBuffer(testContents.byteLength);
+if ('SharedArrayBuffer' in globalThis) {
+  promise_test(async () => {
+    const sharedArrayBuffer = new SharedArrayBuffer(testContents.byteLength);
 
-  await mlContext.readTensor(mlTensor, sharedArrayBuffer);
+    await mlContext.readTensor(mlTensor, sharedArrayBuffer);
 
-  assert_array_equals(new Uint32Array(sharedArrayBuffer), testContents);
-}, `readTensor() with a SharedArrayBuffer`);
+    assert_array_equals(new Uint32Array(sharedArrayBuffer), testContents);
+  }, `readTensor() with a SharedArrayBuffer`);
 
-promise_test(async () => {
-  const sharedArrayBuffer = new SharedArrayBuffer(testContents.byteLength);
-  const typedArray = new Uint32Array(sharedArrayBuffer);
+  promise_test(async () => {
+    const sharedArrayBuffer = new SharedArrayBuffer(testContents.byteLength);
+    const typedArray = new Uint32Array(sharedArrayBuffer);
 
-  await mlContext.readTensor(mlTensor, typedArray);
+    await mlContext.readTensor(mlTensor, typedArray);
 
-  assert_array_equals(typedArray, testContents);
-}, `readTensor() with a typeArray from a SharedArrayBuffer`);
+    assert_array_equals(typedArray, testContents);
+  }, `readTensor() with a typeArray from a SharedArrayBuffer`);
+}
 
 promise_test(async () => {
   // Create a slightly larger ArrayBuffer and set up the TypedArray at an

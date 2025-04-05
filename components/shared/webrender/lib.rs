@@ -11,14 +11,14 @@ use core::fmt;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use base::id::PipelineId;
-use display_list::{CompositorDisplayListInfo, ScrollTreeNodeId};
-use embedder_traits::Cursor;
+use base::id::WebViewId;
+use constellation_traits::CompositorHitTestResult;
+use display_list::CompositorDisplayListInfo;
+use embedder_traits::ScreenGeometry;
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
-use libc::c_void;
 use log::warn;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use webrender_api::units::{DevicePoint, LayoutPoint, TexelRect};
 use webrender_api::{
@@ -28,16 +28,21 @@ use webrender_api::{
     ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId,
 };
 
-pub use crate::rendering_context::RenderingContext;
-
 #[derive(Deserialize, Serialize)]
 pub enum CrossProcessCompositorMessage {
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebRenderPipelineId),
     /// Perform a scroll operation.
-    SendScrollNode(WebRenderPipelineId, LayoutPoint, ExternalScrollId),
+    SendScrollNode(
+        WebViewId,
+        WebRenderPipelineId,
+        LayoutPoint,
+        ExternalScrollId,
+    ),
     /// Inform WebRender of a new display list for the given pipeline.
     SendDisplayList {
+        /// The [`WebViewId`] that this display list belongs to.
+        webview_id: WebViewId,
         /// The [CompositorDisplayListInfo] that describes the display list being sent.
         display_list_info: Box<CompositorDisplayListInfo>,
         /// A descriptor of this display list used to construct this display list from raw data.
@@ -78,12 +83,12 @@ pub enum CrossProcessCompositorMessage {
     RemoveFonts(Vec<FontKey>, Vec<FontInstanceKey>),
 
     /// Get the client window size and position.
-    GetClientWindowRect(IpcSender<DeviceIndependentIntRect>),
+    GetClientWindowRect(WebViewId, IpcSender<DeviceIndependentIntRect>),
     /// Get the size of the screen that the client window inhabits.
-    GetScreenSize(IpcSender<DeviceIndependentIntSize>),
+    GetScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
     /// Get the available screen size (without toolbars and docks) for the screen
     /// the client window inhabits.
-    GetAvailableScreenSize(IpcSender<DeviceIndependentIntSize>),
+    GetAvailableScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
 }
 
 impl fmt::Debug for CrossProcessCompositorMessage {
@@ -140,11 +145,13 @@ impl CrossProcessCompositorApi {
     /// Perform a scroll operation.
     pub fn send_scroll_node(
         &self,
+        webview_id: WebViewId,
         pipeline_id: WebRenderPipelineId,
         point: LayoutPoint,
         scroll_id: ExternalScrollId,
     ) {
         if let Err(e) = self.0.send(CrossProcessCompositorMessage::SendScrollNode(
+            webview_id,
             pipeline_id,
             point,
             scroll_id,
@@ -156,12 +163,14 @@ impl CrossProcessCompositorApi {
     /// Inform WebRender of a new display list for the given pipeline.
     pub fn send_display_list(
         &self,
+        webview_id: WebViewId,
         display_list_info: CompositorDisplayListInfo,
         list: BuiltDisplayList,
     ) {
         let (display_list_data, display_list_descriptor) = list.into_data();
         let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
         if let Err(e) = self.0.send(CrossProcessCompositorMessage::SendDisplayList {
+            webview_id,
             display_list_info: Box::new(display_list_info),
             display_list_descriptor,
             display_list_receiver,
@@ -471,53 +480,10 @@ impl From<SerializableImageData> for ImageData {
     }
 }
 
-/// The address of a node. Layout sends these back. They must be validated via
-/// `from_untrusted_node_address` before they can be used, because we do not trust layout.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct UntrustedNodeAddress(pub *const c_void);
-
-#[allow(unsafe_code)]
-unsafe impl Send for UntrustedNodeAddress {}
-
-impl Serialize for UntrustedNodeAddress {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        (self.0 as usize).serialize(s)
-    }
-}
-
-impl<'de> Deserialize<'de> for UntrustedNodeAddress {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
-        let value: usize = Deserialize::deserialize(d)?;
-        Ok(UntrustedNodeAddress::from_id(value))
-    }
-}
-
-impl UntrustedNodeAddress {
-    /// Creates an `UntrustedNodeAddress` from the given pointer address value.
-    #[inline]
-    pub fn from_id(id: usize) -> UntrustedNodeAddress {
-        UntrustedNodeAddress(id as *const c_void)
-    }
-}
-
-/// The result of a hit test in the compositor.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct CompositorHitTestResult {
-    /// The pipeline id of the resulting item.
-    pub pipeline_id: PipelineId,
-
-    /// The hit test point in the item's viewport.
-    pub point_in_viewport: euclid::default::Point2D<f32>,
-
-    /// The hit test point relative to the item itself.
-    pub point_relative_to_item: euclid::default::Point2D<f32>,
-
-    /// The node address of the hit test result.
-    pub node: UntrustedNodeAddress,
-
-    /// The cursor that should be used when hovering the item hit by the hit test.
-    pub cursor: Option<Cursor>,
-
-    /// The scroll tree node associated with this hit test item.
-    pub scroll_tree_node: ScrollTreeNodeId,
+/// A trait that exposes the embedding layer's `WebView` to the Servo renderer.
+/// This is to prevent a dependency cycle between the renderer and the embedding
+/// layer.
+pub trait RendererWebView {
+    fn id(&self) -> WebViewId;
+    fn screen_geometry(&self) -> Option<ScreenGeometry>;
 }

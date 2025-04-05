@@ -9,10 +9,10 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
-use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::Worklet_Binding::WorkletMethods;
+use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::promise::Promise;
@@ -24,7 +24,7 @@ use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-pub struct TestWorklet {
+pub(crate) struct TestWorklet {
     reflector: Reflector,
     worklet: Dom<Worklet>,
 }
@@ -38,7 +38,7 @@ impl TestWorklet {
     }
 
     fn new(window: &Window, proto: Option<HandleObject>, can_gc: CanGc) -> DomRoot<TestWorklet> {
-        let worklet = Worklet::new(window, WorkletGlobalScopeType::Test);
+        let worklet = Worklet::new(window, WorkletGlobalScopeType::Test, can_gc);
         reflect_dom_object_with_proto(
             Box::new(TestWorklet::new_inherited(&worklet)),
             window,

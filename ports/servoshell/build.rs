@@ -7,18 +7,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
-use gl_generator::{Api, Fallbacks, Profile, Registry};
 use vergen_git2::{Emitter, Git2Builder};
-
-// We can make this configurable in the future if different platforms start to have
-// different needs.
-fn generate_egl_bindings(out_dir: &Path) {
-    let mut file = File::create(out_dir.join("egl_bindings.rs")).unwrap();
-    Registry::new(Api::Egl, (1, 5), Profile::Core, Fallbacks::All, [])
-        .write_bindings(gl_generator::StaticStructGenerator, &mut file)
-        .unwrap();
-    println!("cargo:rustc-link-lib=EGL");
-}
 
 fn emit_git_sha() -> Result<(), String> {
     let git_options = Git2Builder::default()
@@ -55,7 +44,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Note: We can't use `#[cfg(windows)]`, since that would check the host platform
     // and not the target platform
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
-    let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap();
 
     if target_os == "windows" {
         #[cfg(windows)]
@@ -68,12 +56,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         #[cfg(not(windows))]
         panic!("Cross-compiling to windows is currently not supported");
     } else if target_os == "macos" {
+        println!("cargo:rerun-if-changed=platform/macos/count_threads.c");
         cc::Build::new()
             .file("platform/macos/count_threads.c")
             .compile("count_threads");
     } else if target_os == "android" {
-        generate_egl_bindings(out);
-
         // FIXME: We need this workaround since jemalloc-sys still links
         // to libgcc instead of libunwind, but Android NDK 23c and above
         // don't have libgcc. We can't disable jemalloc for Android as
@@ -83,8 +70,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut libgcc = File::create(out.join("libgcc.a")).unwrap();
         libgcc.write_all(b"INPUT(-lunwind)").unwrap();
         println!("cargo:rustc-link-search=native={}", out.display());
-    } else if target_env == "ohos" {
-        generate_egl_bindings(out);
     }
 
     if let Err(error) = emit_git_sha() {

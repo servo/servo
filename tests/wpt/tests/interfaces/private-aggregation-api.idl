@@ -7,6 +7,8 @@
  SecureContext]
 interface PrivateAggregation {
   undefined contributeToHistogram(PAHistogramContribution contribution);
+  undefined contributeToHistogramOnEvent(DOMString event,
+                                         record<DOMString, any> contribution);
   undefined enableDebugMode(optional PADebugModeOptions options = {});
 };
 

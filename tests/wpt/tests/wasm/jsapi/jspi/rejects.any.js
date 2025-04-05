@@ -145,6 +145,6 @@ promise_test(async (t) => {
   });
   // export1 (promising)
   let wrapper = WebAssembly.promising(instance.exports.export1);
-  promise_rejects_js(t, WebAssembly.RuntimeError, wrapper(),
+  promise_rejects_js(t, WebAssembly.SuspendError, wrapper(),
       "trying to suspend JS frames");
 }, "Try to suspend JS");

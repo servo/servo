@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CloseEventBinding;
 use crate::dom::bindings::codegen::Bindings::CloseEventBinding::CloseEventMethods;
@@ -19,7 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct CloseEvent {
+pub(crate) struct CloseEvent {
     event: Event,
     was_clean: bool,
     code: u16,
@@ -28,7 +28,7 @@ pub struct CloseEvent {
 
 #[allow(non_snake_case)]
 impl CloseEvent {
-    pub fn new_inherited(was_clean: bool, code: u16, reason: DOMString) -> CloseEvent {
+    pub(crate) fn new_inherited(was_clean: bool, code: u16, reason: DOMString) -> CloseEvent {
         CloseEvent {
             event: Event::new_inherited(),
             was_clean,
@@ -38,7 +38,7 @@ impl CloseEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: EventBubbles,

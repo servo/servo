@@ -4,29 +4,28 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::RTCTrackEventBinding::{self, RTCTrackEventMethods};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCTrackEvent {
+pub(crate) struct RTCTrackEvent {
     event: Event,
     track: Dom<MediaStreamTrack>,
 }
 
 impl RTCTrackEvent {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(track: &MediaStreamTrack) -> RTCTrackEvent {
         RTCTrackEvent {
             event: Event::new_inherited(),
@@ -34,19 +33,19 @@ impl RTCTrackEvent {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
+    pub(crate) fn new(
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         track: &MediaStreamTrack,
         can_gc: CanGc,
     ) -> DomRoot<RTCTrackEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, track, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, track, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -56,7 +55,7 @@ impl RTCTrackEvent {
     ) -> DomRoot<RTCTrackEvent> {
         let trackevent = reflect_dom_object_with_proto(
             Box::new(RTCTrackEvent::new_inherited(track)),
-            global,
+            window,
             proto,
             can_gc,
         );
@@ -78,7 +77,7 @@ impl RTCTrackEventMethods<crate::DomTypeHolder> for RTCTrackEvent {
         init: &RTCTrackEventBinding::RTCTrackEventInit,
     ) -> Fallible<DomRoot<RTCTrackEvent>> {
         Ok(RTCTrackEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

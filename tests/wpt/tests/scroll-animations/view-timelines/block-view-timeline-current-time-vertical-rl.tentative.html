@@ -80,7 +80,7 @@
     assert_equals(getComputedStyle(target).opacity, '0.7',
                   'Opacity with fill forwards at effect end time');
     anim.effect.updateTiming({ fill: 'none' });
-    assert_equals(getComputedStyle(target).opacity, '1',
+    assert_equals(getComputedStyle(target).opacity, '0.7',
                   'Opacity with fill none at effect end time');
 
     // Advance to the scroll limit.

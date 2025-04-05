@@ -8,7 +8,7 @@ use base::id::ServiceWorkerId;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use script_traits::{DOMMessage, ScriptMsg};
+use script_traits::{DOMMessage, ScriptToConstellationMessage};
 use servo_url::ServoUrl;
 
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::{
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone;
@@ -30,10 +30,10 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task::TaskOnce;
 
-pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
+pub(crate) type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 
 #[dom_struct]
-pub struct ServiceWorker {
+pub(crate) struct ServiceWorker {
     eventtarget: EventTarget,
     script_url: DomRefCell<String>,
     #[no_trace]
@@ -58,11 +58,12 @@ impl ServiceWorker {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         script_url: ServoUrl,
         scope_url: ServoUrl,
         worker_id: ServiceWorkerId,
+        can_gc: CanGc,
     ) -> DomRoot<ServiceWorker> {
         reflect_dom_object(
             Box::new(ServiceWorker::new_inherited(
@@ -71,21 +72,22 @@ impl ServiceWorker {
                 worker_id,
             )),
             global,
+            can_gc,
         )
     }
 
-    pub fn dispatch_simple_error(address: TrustedServiceWorkerAddress, can_gc: CanGc) {
+    pub(crate) fn dispatch_simple_error(address: TrustedServiceWorkerAddress, can_gc: CanGc) {
         let service_worker = address.root();
         service_worker.upcast().fire_event(atom!("error"), can_gc);
     }
 
-    pub fn set_transition_state(&self, state: ServiceWorkerState, can_gc: CanGc) {
+    pub(crate) fn set_transition_state(&self, state: ServiceWorkerState, can_gc: CanGc) {
         self.state.set(state);
         self.upcast::<EventTarget>()
             .fire_event(atom!("statechange"), can_gc);
     }
 
-    pub fn get_script_url(&self) -> ServoUrl {
+    pub(crate) fn get_script_url(&self) -> ServoUrl {
         ServoUrl::parse(&self.script_url.borrow().clone()).unwrap()
     }
 
@@ -107,13 +109,9 @@ impl ServiceWorker {
             origin: incumbent.origin().immutable().clone(),
             data,
         };
-        let _ = self
-            .global()
-            .script_to_constellation_chan()
-            .send(ScriptMsg::ForwardDOMMessage(
-                msg_vec,
-                self.scope_url.clone(),
-            ));
+        let _ = self.global().script_to_constellation_chan().send(
+            ScriptToConstellationMessage::ForwardDOMMessage(msg_vec, self.scope_url.clone()),
+        );
         Ok(())
     }
 }
@@ -165,7 +163,7 @@ impl ServiceWorkerMethods<crate::DomTypeHolder> for ServiceWorker {
 }
 
 impl TaskOnce for SimpleWorkerErrorHandler<ServiceWorker> {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn run_once(self) {
         ServiceWorker::dispatch_simple_error(self.addr, CanGc::note());
     }

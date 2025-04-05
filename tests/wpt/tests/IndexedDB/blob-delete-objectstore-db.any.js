@@ -23,7 +23,7 @@ indexeddb_test(
 
         request.onsuccess = t.step_func(function() {
           const blobBContent = "Second blob content";
-          const trans = db.transaction('store1', 'readwrite', {durability: 'relaxed'});
+          const trans = db.transaction('store1', 'readwrite');
           const store1 = trans.objectStore('store1');
           const blobB = new Blob([blobBContent], {"type" : "text/plain"});
           store1.put(blobB, key);

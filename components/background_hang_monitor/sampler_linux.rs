@@ -8,17 +8,12 @@ use std::cell::UnsafeCell;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::{cmp, io, mem, process, ptr, thread};
 
-use nix::sys::signal::{sigaction, SaFlags, SigAction, SigHandler, SigSet, Signal};
+use nix::sys::signal::{SaFlags, SigAction, SigHandler, SigSet, Signal, sigaction};
 use unwind_sys::{
-    unw_cursor_t, unw_get_reg, unw_init_local, unw_step, UNW_ESUCCESS, UNW_REG_IP, UNW_REG_SP,
+    UNW_ESUCCESS, UNW_REG_IP, UNW_REG_SP, unw_cursor_t, unw_get_reg, unw_init_local, unw_step,
 };
 
 use crate::sampler::{NativeStack, Sampler};
-
-// Hack to workaround broken libunwind pkg-config contents for <1.1-3ubuntu.1.
-// https://bugs.launchpad.net/ubuntu/+source/libunwind/+bug/1336912
-#[link(name = "lzma")]
-extern "C" {}
 
 struct UncheckedSyncUnsafeCell<T>(std::cell::UnsafeCell<T>);
 

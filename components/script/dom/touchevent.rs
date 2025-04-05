@@ -16,9 +16,10 @@ use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::touchlist::TouchList;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct TouchEvent {
+pub(crate) struct TouchEvent {
     uievent: UIEvent,
     touches: MutDom<TouchList>,
     target_touches: MutDom<TouchList>,
@@ -47,11 +48,12 @@ impl TouchEvent {
         }
     }
 
-    pub fn new_uninitialized(
+    pub(crate) fn new_uninitialized(
         window: &Window,
         touches: &TouchList,
         changed_touches: &TouchList,
         target_touches: &TouchList,
+        can_gc: CanGc,
     ) -> DomRoot<TouchEvent> {
         reflect_dom_object(
             Box::new(TouchEvent::new_inherited(
@@ -60,11 +62,12 @@ impl TouchEvent {
                 target_touches,
             )),
             window,
+            can_gc,
         )
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: DOMString,
         can_bubble: EventBubbles,
@@ -78,8 +81,10 @@ impl TouchEvent {
         alt_key: bool,
         shift_key: bool,
         meta_key: bool,
+        can_gc: CanGc,
     ) -> DomRoot<TouchEvent> {
-        let ev = TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches);
+        let ev =
+            TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches, can_gc);
         ev.upcast::<UIEvent>().InitUIEvent(
             type_,
             bool::from(can_bubble),

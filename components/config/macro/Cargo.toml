@@ -1,0 +1,19 @@
+[package]
+name = "servo_config_macro"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "servo_config_macro"
+proc-macro = true
+path = "lib.rs"
+
+[dependencies]
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
+synstructure = { workspace = true }

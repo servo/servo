@@ -1,5 +1,5 @@
 // META: title=validation tests for WebNN API gather operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -7,6 +7,8 @@
 
 'use strict';
 
+const label = 'gather_'
+const regrexp = new RegExp('\\[' + label + '\\]');
 const tests = [
   {
     name: '[gather] Test gather with default options and 0-D indices',
@@ -58,7 +60,7 @@ const tests = [
         '[gather] TypeError is expected if the data type of indices is uint64 which is invalid',
     input: {dataType: 'float16', shape: [1, 2, 3, 4]},
     indices: {dataType: 'uint64', shape: [5, 6]},
-  }
+  },
 ];
 
 tests.forEach(
@@ -77,9 +79,7 @@ tests.forEach(
         assert_equals(output.dataType, test.output.dataType);
         assert_array_equals(output.shape, test.output.shape);
       } else {
-        const label = 'gather_'
         options.label = label;
-        const regrexp = new RegExp('\\[' + label + '\\]');
         assert_throws_with_label(
             () => builder.gather(input, indices, options), regrexp);
       }
@@ -102,3 +102,19 @@ multi_builder_test(async (t, builder, otherBuilder) => {
   assert_throws_js(
       TypeError, () => builder.gather(input, indicesFromOtherBuilder));
 }, '[gather] throw if indices is from another builder');
+
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+
+  const input = builder.input('input', {
+      dataType: 'float32', shape: [1, 3, 3, 4]});
+  const indices = builder.input('indices', {
+      dataType: 'int32',
+      shape: [context.opSupportLimits().maxTensorByteLength / 4] });
+
+  const options = {};
+  options.label = label;
+  options.axis = 2;
+  assert_throws_with_label(
+      () => builder.gather(input, indices, options), regrexp);
+}, '[gather] throw if the output tensor byte length exceeds limit');

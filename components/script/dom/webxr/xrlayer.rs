@@ -6,6 +6,7 @@ use canvas_traits::webgl::WebGLContextId;
 use dom_struct::dom_struct;
 use webxr_api::LayerId;
 
+use crate::canvas_context::CanvasContext as _;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::Dom;
 use crate::dom::eventtarget::EventTarget;
@@ -15,7 +16,7 @@ use crate::dom::xrsession::XRSession;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
 
 #[dom_struct]
-pub struct XRLayer {
+pub(crate) struct XRLayer {
     event_target: EventTarget,
     session: Dom<XRSession>,
     context: Dom<WebGLRenderingContext>,
@@ -28,7 +29,7 @@ pub struct XRLayer {
 
 impl XRLayer {
     #[allow(dead_code)]
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         session: &XRSession,
         context: &WebGLRenderingContext,
         layer_id: Option<LayerId>,
@@ -57,7 +58,7 @@ impl XRLayer {
         &self.session
     }
 
-    pub fn begin_frame(&self, frame: &XRFrame) -> Option<()> {
+    pub(crate) fn begin_frame(&self, frame: &XRFrame) -> Option<()> {
         // TODO: Implement this for other layer types
         if let Some(this) = self.downcast::<XRWebGLLayer>() {
             this.begin_frame(frame)
@@ -66,7 +67,7 @@ impl XRLayer {
         }
     }
 
-    pub fn end_frame(&self, frame: &XRFrame) -> Option<()> {
+    pub(crate) fn end_frame(&self, frame: &XRFrame) -> Option<()> {
         // TODO: Implement this for other layer types
         if let Some(this) = self.downcast::<XRWebGLLayer>() {
             this.end_frame(frame)

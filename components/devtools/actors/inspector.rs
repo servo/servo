@@ -14,6 +14,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
+use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::inspector::highlighter::{HighlighterActor, HighlighterMsg};
@@ -21,7 +22,6 @@ use crate::actors::inspector::node::NodeInfoToProtocol;
 use crate::actors::inspector::page_style::{PageStyleActor, PageStyleMsg};
 use crate::actors::inspector::walker::{WalkerActor, WalkerMsg};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
 
 pub mod accessibility;
 pub mod css_properties;
@@ -80,7 +80,7 @@ impl Actor for InspectorActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
-        let pipeline = browsing_context.active_pipeline.get();
+        let pipeline = browsing_context.active_pipeline_id.get();
         Ok(match msg_type {
             "getWalker" => {
                 let (tx, rx) = ipc::channel().unwrap();

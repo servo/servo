@@ -4,8 +4,11 @@
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
-use webgpu::wgc::pipeline::ComputePipelineDescriptor;
-use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPURequest, WebGPUResponse};
+use webgpu_traits::{
+    WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPUComputePipelineResponse,
+    WebGPURequest,
+};
+use wgpu_core::pipeline::ComputePipelineDescriptor;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
@@ -13,15 +16,16 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUComputePipelineDescriptor, GPUComputePipelineMethods,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::webgpu::gpudevice::GPUDevice;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUComputePipeline {
+pub(crate) struct GPUComputePipeline {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
@@ -47,11 +51,12 @@ impl GPUComputePipeline {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         compute_pipeline: WebGPUComputePipeline,
         label: USVString,
         device: &GPUDevice,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUComputePipeline::new_inherited(
@@ -60,20 +65,21 @@ impl GPUComputePipeline {
                 device,
             )),
             global,
+            can_gc,
         )
     }
 }
 
 impl GPUComputePipeline {
-    pub fn id(&self) -> &WebGPUComputePipeline {
+    pub(crate) fn id(&self) -> &WebGPUComputePipeline {
         &self.compute_pipeline
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUComputePipelineDescriptor,
-        async_sender: Option<IpcSender<WebGPUResponse>>,
+        async_sender: Option<IpcSender<WebGPUComputePipelineResponse>>,
     ) -> WebGPUComputePipeline {
         let compute_pipeline_id = device.global().wgpu_id_hub().create_compute_pipeline_id();
 
@@ -135,6 +141,7 @@ impl GPUComputePipelineMethods<crate::DomTypeHolder> for GPUComputePipeline {
             self.channel.clone(),
             WebGPUBindGroupLayout(id),
             USVString::default(),
+            CanGc::note(),
         ))
     }
 }

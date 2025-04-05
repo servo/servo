@@ -8,14 +8,16 @@ use std::sync::LazyLock;
 
 use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
+use servo_config::pref;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
+#[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepad::Gamepad;
 use crate::dom::gamepadevent::GamepadEventType;
@@ -26,6 +28,7 @@ use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
+use crate::dom::servointernals::ServoInternals;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::window::Window;
@@ -40,8 +43,9 @@ pub(super) fn hardware_concurrency() -> u64 {
 }
 
 #[dom_struct]
-pub struct Navigator {
+pub(crate) struct Navigator {
     reflector_: Reflector,
+    #[cfg(feature = "bluetooth")]
     bluetooth: MutNullableDom<Bluetooth>,
     plugins: MutNullableDom<PluginArray>,
     mime_types: MutNullableDom<MimeTypeArray>,
@@ -57,12 +61,14 @@ pub struct Navigator {
     gpu: MutNullableDom<GPU>,
     /// <https://www.w3.org/TR/gamepad/#dfn-hasgamepadgesture>
     has_gamepad_gesture: Cell<bool>,
+    servo_internals: MutNullableDom<ServoInternals>,
 }
 
 impl Navigator {
     fn new_inherited() -> Navigator {
         Navigator {
             reflector_: Reflector::new(),
+            #[cfg(feature = "bluetooth")]
             bluetooth: Default::default(),
             plugins: Default::default(),
             mime_types: Default::default(),
@@ -76,23 +82,24 @@ impl Navigator {
             #[cfg(feature = "webgpu")]
             gpu: Default::default(),
             has_gamepad_gesture: Cell::new(false),
+            servo_internals: Default::default(),
         }
     }
 
-    pub fn new(window: &Window) -> DomRoot<Navigator> {
-        reflect_dom_object(Box::new(Navigator::new_inherited()), window)
+    pub(crate) fn new(window: &Window, can_gc: CanGc) -> DomRoot<Navigator> {
+        reflect_dom_object(Box::new(Navigator::new_inherited()), window, can_gc)
     }
 
     #[cfg(feature = "webxr")]
-    pub fn xr(&self) -> Option<DomRoot<XRSystem>> {
+    pub(crate) fn xr(&self) -> Option<DomRoot<XRSystem>> {
         self.xr.get()
     }
 
-    pub fn get_gamepad(&self, index: usize) -> Option<DomRoot<Gamepad>> {
+    pub(crate) fn get_gamepad(&self, index: usize) -> Option<DomRoot<Gamepad>> {
         self.gamepads.borrow().get(index).and_then(|g| g.get())
     }
 
-    pub fn set_gamepad(&self, index: usize, gamepad: &Gamepad, can_gc: CanGc) {
+    pub(crate) fn set_gamepad(&self, index: usize, gamepad: &Gamepad, can_gc: CanGc) {
         if let Some(gamepad_to_set) = self.gamepads.borrow().get(index) {
             gamepad_to_set.set(Some(gamepad));
         }
@@ -104,7 +111,7 @@ impl Navigator {
         }
     }
 
-    pub fn remove_gamepad(&self, index: usize) {
+    pub(crate) fn remove_gamepad(&self, index: usize) {
         if let Some(gamepad_to_remove) = self.gamepads.borrow_mut().get(index) {
             gamepad_to_remove.set(None);
         }
@@ -112,7 +119,7 @@ impl Navigator {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-selecting-an-unused-gamepad-index>
-    pub fn select_gamepad_index(&self) -> u32 {
+    pub(crate) fn select_gamepad_index(&self) -> u32 {
         let mut gamepad_list = self.gamepads.borrow_mut();
         if let Some(index) = gamepad_list.iter().position(|g| g.get().is_none()) {
             index as u32
@@ -134,11 +141,11 @@ impl Navigator {
         }
     }
 
-    pub fn has_gamepad_gesture(&self) -> bool {
+    pub(crate) fn has_gamepad_gesture(&self) -> bool {
         self.has_gamepad_gesture.get()
     }
 
-    pub fn set_has_gamepad_gesture(&self, has_gamepad_gesture: bool) {
+    pub(crate) fn set_has_gamepad_gesture(&self, has_gamepad_gesture: bool) {
         self.has_gamepad_gesture.set(has_gamepad_gesture);
     }
 }
@@ -186,7 +193,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-useragent
     fn UserAgent(&self) -> DOMString {
-        navigatorinfo::UserAgent(self.global().get_user_agent())
+        navigatorinfo::UserAgent(&pref!(user_agent))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-appversion
@@ -195,8 +202,10 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
+    #[cfg(feature = "bluetooth")]
     fn Bluetooth(&self) -> DomRoot<Bluetooth> {
-        self.bluetooth.or_init(|| Bluetooth::new(&self.global()))
+        self.bluetooth
+            .or_init(|| Bluetooth::new(&self.global(), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#navigatorlanguage
@@ -206,19 +215,20 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
     #[allow(unsafe_code)]
-    fn Languages(&self, cx: JSContext, retval: MutableHandleValue) {
-        to_frozen_array(&[self.Language()], cx, retval)
+    fn Languages(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
+        to_frozen_array(&[self.Language()], cx, retval, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins
     fn Plugins(&self) -> DomRoot<PluginArray> {
-        self.plugins.or_init(|| PluginArray::new(&self.global()))
+        self.plugins
+            .or_init(|| PluginArray::new(&self.global(), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes
     fn MimeTypes(&self) -> DomRoot<MimeTypeArray> {
         self.mime_types
-            .or_init(|| MimeTypeArray::new(&self.global()))
+            .or_init(|| MimeTypeArray::new(&self.global(), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled
@@ -229,7 +239,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     // https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute
     fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
         self.service_worker
-            .or_init(|| ServiceWorkerContainer::new(&self.global()))
+            .or_init(|| ServiceWorkerContainer::new(&self.global(), CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled
@@ -253,19 +263,20 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
-            .or_init(|| Permissions::new(&self.global()))
+            .or_init(|| Permissions::new(&self.global(), CanGc::note()))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-navigator-xr>
     #[cfg(feature = "webxr")]
     fn Xr(&self) -> DomRoot<XRSystem> {
-        self.xr.or_init(|| XRSystem::new(self.global().as_window()))
+        self.xr
+            .or_init(|| XRSystem::new(self.global().as_window(), CanGc::note()))
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices>
     fn MediaDevices(&self) -> DomRoot<MediaDevices> {
         self.mediadevices
-            .or_init(|| MediaDevices::new(&self.global()))
+            .or_init(|| MediaDevices::new(&self.global(), CanGc::note()))
     }
 
     /// <https://w3c.github.io/mediasession/#dom-navigator-mediasession>
@@ -280,18 +291,24 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             // - If a media instance (HTMLMediaElement so far) starts playing media.
             let global = self.global();
             let window = global.as_window();
-            MediaSession::new(window)
+            MediaSession::new(window, CanGc::note())
         })
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     #[cfg(feature = "webgpu")]
     fn Gpu(&self) -> DomRoot<GPU> {
-        self.gpu.or_init(|| GPU::new(&self.global()))
+        self.gpu.or_init(|| GPU::new(&self.global(), CanGc::note()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>
     fn HardwareConcurrency(&self) -> u64 {
         hardware_concurrency()
+    }
+
+    /// <https://servo.org/internal-no-spec>
+    fn Servo(&self) -> DomRoot<ServoInternals> {
+        self.servo_internals
+            .or_init(|| ServoInternals::new(&self.global(), CanGc::note()))
     }
 }

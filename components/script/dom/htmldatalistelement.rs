@@ -10,15 +10,14 @@ use crate::dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDat
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
-use crate::dom::element::Element;
-use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::htmlcollection::HTMLCollection;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{Node, NodeTraits};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLDataListElement {
+pub(crate) struct HTMLDataListElement {
     htmlelement: HTMLElement,
 }
 
@@ -33,8 +32,8 @@ impl HTMLDataListElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -55,15 +54,11 @@ impl HTMLDataListElement {
 impl HTMLDataListElementMethods<crate::DomTypeHolder> for HTMLDataListElement {
     // https://html.spec.whatwg.org/multipage/#dom-datalist-options
     fn Options(&self) -> DomRoot<HTMLCollection> {
-        #[derive(JSTraceable, MallocSizeOf)]
-        struct HTMLDataListOptionsFilter;
-        impl CollectionFilter for HTMLDataListOptionsFilter {
-            fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                elem.is::<HTMLOptionElement>()
-            }
-        }
-        let filter = Box::new(HTMLDataListOptionsFilter);
-        let window = window_from_node(self);
-        HTMLCollection::create(&window, self.upcast(), filter)
+        HTMLCollection::new_with_filter_fn(
+            &self.owner_window(),
+            self.upcast(),
+            |element, _| element.is::<HTMLOptionElement>(),
+            CanGc::note(),
+        )
     }
 }

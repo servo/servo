@@ -7,6 +7,7 @@ keywords = ["bluetooth", "ble", "macOS", "CoreBluetooth"]
 repository = "https://github.com/akosthekiss/blurmac"
 authors = ["Akos Kiss <akiss@inf.u-szeged.hu>"]
 license = "BSD-3-Clause"
+edition = "2018"
 
 [lib]
 name = "blurmac"

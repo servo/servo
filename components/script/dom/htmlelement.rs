@@ -7,12 +7,13 @@ use std::default::Default;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use script_layout_interface::QueryMsg;
 use style::attr::AttrValue;
-use style_dom::ElementState;
+use stylo_dom::ElementState;
 
+use super::customelementregistry::CustomElementState;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
@@ -22,6 +23,7 @@ use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -46,23 +48,22 @@ use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::node::{
-    document_from_node, window_from_node, BindContext, Node, ShadowIncluding, UnbindContext,
-};
+use crate::dom::node::{BindContext, Node, NodeTraits, ShadowIncluding, UnbindContext};
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-pub struct HTMLElement {
+pub(crate) struct HTMLElement {
     element: Element,
     style_decl: MutNullableDom<CSSStyleDeclaration>,
     dataset: MutNullableDom<DOMStringMap>,
 }
 
 impl HTMLElement {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         tag_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -70,7 +71,7 @@ impl HTMLElement {
         HTMLElement::new_inherited_with_state(ElementState::empty(), tag_name, prefix, document)
     }
 
-    pub fn new_inherited_with_state(
+    pub(crate) fn new_inherited_with_state(
         state: ElementState,
         tag_name: LocalName,
         prefix: Option<Prefix>,
@@ -89,8 +90,8 @@ impl HTMLElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -117,7 +118,7 @@ impl HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
     fn get_inner_outer_text(&self, can_gc: CanGc) -> DOMString {
         let node = self.upcast::<Node>();
-        let window = window_from_node(node);
+        let window = node.owner_window();
         let element = self.as_element();
 
         // Step 1.
@@ -139,12 +140,13 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#the-style-attribute
     fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
-            let global = window_from_node(self);
+            let global = self.owner_window();
             CSSStyleDeclaration::new(
                 &global,
                 CSSStyleOwner::Element(Dom::from_ref(self.upcast())),
                 None,
                 CSSModificationAccess::ReadWrite,
+                CanGc::note(),
             )
         })
     }
@@ -184,13 +186,14 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-dataset
     fn Dataset(&self) -> DomRoot<DOMStringMap> {
-        self.dataset.or_init(|| DOMStringMap::new(self))
+        self.dataset
+            .or_init(|| DOMStringMap::new(self, CanGc::note()))
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onerror
     fn GetOnerror(&self, can_gc: CanGc) -> Option<Rc<OnErrorEventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnerror()
             } else {
@@ -205,7 +208,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onerror
     fn SetOnerror(&self, listener: Option<Rc<OnErrorEventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnerror(listener)
             }
@@ -219,7 +222,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn GetOnload(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnload()
             } else {
@@ -234,7 +237,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn SetOnload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnload(listener)
             }
@@ -247,7 +250,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onblur
     fn GetOnblur(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnblur()
             } else {
@@ -262,7 +265,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onblur
     fn SetOnblur(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnblur(listener)
             }
@@ -275,7 +278,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onfocus
     fn GetOnfocus(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnfocus()
             } else {
@@ -290,7 +293,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onfocus
     fn SetOnfocus(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnfocus(listener)
             }
@@ -303,7 +306,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onresize
     fn GetOnresize(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnresize()
             } else {
@@ -318,7 +321,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onresize
     fn SetOnresize(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnresize(listener)
             }
@@ -331,7 +334,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onscroll
     fn GetOnscroll(&self, can_gc: CanGc) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().GetOnscroll()
             } else {
@@ -346,7 +349,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onscroll
     fn SetOnscroll(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            let document = document_from_node(self);
+            let document = self.owner_document();
             if document.has_browsing_context() {
                 document.window().SetOnscroll(listener)
             }
@@ -392,7 +395,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         Some(item_attr_values.into_iter().collect())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-click
+    /// <https://html.spec.whatwg.org/multipage/#dom-click>
     fn Click(&self, can_gc: CanGc) {
         let element = self.as_element();
         if element.disabled_state() {
@@ -404,7 +407,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         element.set_click_in_progress(true);
 
         self.upcast::<Node>()
-            .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"), can_gc);
+            .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
         element.set_click_in_progress(false);
     }
 
@@ -412,7 +415,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     fn Focus(&self, can_gc: CanGc) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
-        let document = document_from_node(self);
+        let document = self.owner_document();
         document.request_focus(Some(self.upcast()), FocusType::Element, can_gc);
     }
 
@@ -423,7 +426,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
-        let document = document_from_node(self);
+        let document = self.owner_document();
         document.request_focus(None, FocusType::Element, can_gc);
     }
 
@@ -434,7 +437,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         let node = self.upcast::<Node>();
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let (element, _) = window.offset_parent_query(node, can_gc);
 
         element
@@ -447,7 +450,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         let node = self.upcast::<Node>();
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let (_, rect) = window.offset_parent_query(node, can_gc);
 
         rect.origin.y.to_nearest_px()
@@ -460,7 +463,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         let node = self.upcast::<Node>();
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let (_, rect) = window.offset_parent_query(node, can_gc);
 
         rect.origin.x.to_nearest_px()
@@ -469,7 +472,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetwidth
     fn OffsetWidth(&self, can_gc: CanGc) -> i32 {
         let node = self.upcast::<Node>();
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let (_, rect) = window.offset_parent_query(node, can_gc);
 
         rect.size.width.to_nearest_px()
@@ -478,7 +481,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetheight
     fn OffsetHeight(&self, can_gc: CanGc) -> i32 {
         let node = self.upcast::<Node>();
-        let window = window_from_node(self);
+        let window = self.owner_window();
         let (_, rect) = window.offset_parent_query(node, can_gc);
 
         rect.size.height.to_nearest_px()
@@ -496,7 +499,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         let fragment = self.rendered_text_fragment(input, can_gc);
 
         // Step 2: Replace all with fragment within element.
-        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>());
+        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>(), can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-outertext>
@@ -512,7 +515,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         };
 
         let node = self.upcast::<Node>();
-        let document = document_from_node(self);
+        let document = self.owner_document();
 
         // Step 2: Let next be this's next sibling.
         let next = node.GetNextSibling();
@@ -539,13 +542,13 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // the next text node given next's previous sibling.
         if let Some(next_sibling) = next {
             if let Some(node) = next_sibling.GetPreviousSibling() {
-                Self::merge_with_the_next_text_node(node);
+                Self::merge_with_the_next_text_node(node, can_gc);
             }
         }
 
         // Step 8: If previous is a Text node, then merge with the next text node given previous.
         if let Some(previous) = previous {
-            Self::merge_with_the_next_text_node(previous)
+            Self::merge_with_the_next_text_node(previous, can_gc)
         }
 
         Ok(())
@@ -600,7 +603,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Note: the element can pass this check without yet being a custom
         // element, as long as there is a registered definition
         // that could upgrade it to one later.
-        let registry = document_from_node(self).window().CustomElements();
+        let registry = self.owner_document().window().CustomElements();
         let definition = registry.lookup_definition(self.as_element().local_name(), None);
 
         // Step 3: If definition is null, then throw an "NotSupportedError" DOMException
@@ -620,6 +623,15 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return Err(Error::NotSupported);
         }
 
+        // Step 6: If this's custom element state is not "precustomized" or "custom",
+        // then throw a "NotSupportedError" DOMException.
+        if !matches!(
+            element.get_custom_element_state(),
+            CustomElementState::Precustomized | CustomElementState::Custom
+        ) {
+            return Err(Error::NotSupported);
+        }
+
         if self.is_form_associated_custom_element() {
             element.init_state_for_internals();
         }
@@ -628,6 +640,14 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         internals.set_attached();
         Ok(internals)
     }
+
+    // FIXME: The nonce should be stored in an internal slot instead of an
+    // attribute (https://html.spec.whatwg.org/multipage/#cryptographicnonce)
+    // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
+    make_getter!(Nonce, "nonce");
+
+    // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce
+    make_setter!(SetNonce, "nonce");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
     fn Autofocus(&self) -> bool {
@@ -710,7 +730,12 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
 }
 
 impl HTMLElement {
-    pub fn set_custom_attr(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn set_custom_attr(
+        &self,
+        name: DOMString,
+        value: DOMString,
+        can_gc: CanGc,
+    ) -> ErrorResult {
         if name
             .chars()
             .skip_while(|&ch| ch != '\u{2d}')
@@ -723,7 +748,7 @@ impl HTMLElement {
             .set_custom_attribute(to_snake_case(name), value, can_gc)
     }
 
-    pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
+    pub(crate) fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
         // FIXME(ajeffrey): Convert directly from DOMString to LocalName
         let local_name = LocalName::from(to_snake_case(local_name));
         self.as_element()
@@ -733,14 +758,15 @@ impl HTMLElement {
             })
     }
 
-    pub fn delete_custom_attr(&self, local_name: DOMString) {
+    pub(crate) fn delete_custom_attr(&self, local_name: DOMString, can_gc: CanGc) {
         // FIXME(ajeffrey): Convert directly from DOMString to LocalName
         let local_name = LocalName::from(to_snake_case(local_name));
-        self.as_element().remove_attribute(&ns!(), &local_name);
+        self.as_element()
+            .remove_attribute(&ns!(), &local_name, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#category-label>
-    pub fn is_labelable_element(&self) -> bool {
+    pub(crate) fn is_labelable_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
                 HTMLElementTypeId::HTMLInputElement => {
@@ -759,7 +785,7 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#form-associated-custom-element>
-    pub fn is_form_associated_custom_element(&self) -> bool {
+    pub(crate) fn is_form_associated_custom_element(&self) -> bool {
         if let Some(definition) = self.as_element().get_custom_element_definition() {
             definition.is_autonomous() && definition.form_associated
         } else {
@@ -768,7 +794,7 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#category-listed>
-    pub fn is_listed_element(&self) -> bool {
+    pub(crate) fn is_listed_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
                 HTMLElementTypeId::HTMLButtonElement |
@@ -785,7 +811,7 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#category-submit>
-    pub fn is_submittable_element(&self) -> bool {
+    pub(crate) fn is_submittable_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
                 HTMLElementTypeId::HTMLButtonElement |
@@ -798,7 +824,7 @@ impl HTMLElement {
         }
     }
 
-    pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
+    pub(crate) fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
         let element = self.as_element();
         element
             .attrs()
@@ -812,7 +838,7 @@ impl HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     // This gets the nth label in tree order.
-    pub fn label_at(&self, index: u32) -> Option<DomRoot<Node>> {
+    pub(crate) fn label_at(&self, index: u32) -> Option<DomRoot<Node>> {
         let element = self.as_element();
 
         // Traverse entire tree for <label> elements that have
@@ -840,7 +866,7 @@ impl HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     // This counts the labels of the element, to support NodeList::Length
-    pub fn labels_count(&self) -> u32 {
+    pub(crate) fn labels_count(&self) -> u32 {
         // see label_at comments about performance
         let element = self.as_element();
         let root_element = element.root_element();
@@ -858,7 +884,7 @@ impl HTMLElement {
     // https://html.spec.whatwg.org/multipage/#the-directionality.
     // returns Some if can infer direction by itself or from child nodes
     // returns None if requires to go up to parent
-    pub fn directionality(&self) -> Option<String> {
+    pub(crate) fn directionality(&self) -> Option<String> {
         let element_direction: &str = &self.Dir();
 
         if element_direction == "ltr" {
@@ -898,52 +924,71 @@ impl HTMLElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-summary-element:activation-behaviour
-    pub fn summary_activation_behavior(&self) {
-        // Step 1
-        if !self.is_summary_for_its_parent_details() {
+    pub(crate) fn summary_activation_behavior(&self) {
+        debug_assert!(self.as_element().local_name() == &local_name!("summary"));
+
+        // Step 1. If this summary element is not the summary for its parent details, then return.
+        if !self.is_a_summary_for_its_parent_details() {
             return;
         }
 
-        // Step 2
-        let parent_details = self.upcast::<Node>().GetParentNode().unwrap();
+        // Step 2. Let parent be this summary element's parent.
+        let parent = if self.is_implicit_summary_element() {
+            DomRoot::downcast::<HTMLDetailsElement>(self.containing_shadow_root().unwrap().Host())
+                .unwrap()
+        } else {
+            self.upcast::<Node>()
+                .GetParentNode()
+                .and_then(DomRoot::downcast::<HTMLDetailsElement>)
+                .unwrap()
+        };
 
-        // Step 3
-        parent_details
-            .downcast::<HTMLDetailsElement>()
-            .unwrap()
-            .toggle();
+        // Step 3. If the open attribute is present on parent, then remove it.
+        // Otherwise, set parent's open attribute to the empty string.
+        parent.toggle();
     }
 
-    // https://html.spec.whatwg.org/multipage/#summary-for-its-parent-details
-    fn is_summary_for_its_parent_details(&self) -> bool {
-        // Step 1
-        let summary_node = self.upcast::<Node>();
-        if !summary_node.has_parent() {
+    /// <https://html.spec.whatwg.org/multipage/#summary-for-its-parent-details>
+    fn is_a_summary_for_its_parent_details(&self) -> bool {
+        if self.is_implicit_summary_element() {
+            return true;
+        }
+
+        // Step 1. If this summary element has no parent, then return false.
+        // Step 2. Let parent be this summary element's parent.
+        let Some(parent) = self.upcast::<Node>().GetParentNode() else {
             return false;
-        }
+        };
 
-        // Step 2
-        let parent = &summary_node.GetParentNode().unwrap();
-
-        // Step 3
-        if !parent.is::<HTMLDetailsElement>() {
+        // Step 3. If parent is not a details element, then return false.
+        let Some(details) = parent.downcast::<HTMLDetailsElement>() else {
             return false;
-        }
+        };
 
-        // Step 4 & 5
-        let first_summary_element = parent
-            .child_elements()
-            .find(|el| el.local_name() == &local_name!("summary"));
-        match first_summary_element {
-            Some(first_summary) => &*first_summary == self.as_element(),
-            None => false,
-        }
+        // Step 4. If parent's first summary element child is not this summary
+        // element, then return false.
+        // Step 5. Return true.
+        details
+            .find_corresponding_summary_element()
+            .is_some_and(|summary| &*summary == self.upcast())
+    }
+
+    /// Whether or not this is an implicitly generated `<summary>`
+    /// element for a UA `<details>` shadow tree
+    fn is_implicit_summary_element(&self) -> bool {
+        // Note that non-implicit summary elements are not actually inside
+        // the UA shadow tree, they're only assigned to a slot inside it.
+        // Therefore they don't cause false positives here
+        self.containing_shadow_root()
+            .as_deref()
+            .map(ShadowRoot::Host)
+            .is_some_and(|host| host.is::<HTMLDetailsElement>())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#rendered-text-fragment>
     fn rendered_text_fragment(&self, input: DOMString, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         // Step 1: Let fragment be a new DocumentFragment whose node document is document.
-        let document = document_from_node(self);
+        let document = self.owner_document();
         let fragment = DocumentFragment::new(&document, can_gc);
 
         // Step 2: Let position be a position variable for input, initially pointing at the start
@@ -995,7 +1040,7 @@ impl HTMLElement {
     /// node.
     ///
     /// <https://html.spec.whatwg.org/multipage/#merge-with-the-next-text-node>
-    fn merge_with_the_next_text_node(node: DomRoot<Node>) {
+    fn merge_with_the_next_text_node(node: DomRoot<Node>, can_gc: CanGc) {
         // Make sure node is a Text node
         if !node.is::<Text>() {
             return;
@@ -1019,7 +1064,7 @@ impl HTMLElement {
             .expect("Got chars from Text");
 
         // Step 4:Remove next.
-        next.remove_self();
+        next.remove_self(can_gc);
     }
 }
 
@@ -1028,15 +1073,17 @@ impl VirtualMethods for HTMLElement {
         Some(self.as_element() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         let element = self.as_element();
         match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let evtarget = self.upcast::<EventTarget>();
                 let source_line = 1; //TODO(#9604) get current JS execution line
                 evtarget.set_event_handler_uncompiled(
-                    window_from_node(self).get_url(),
+                    self.owner_window().get_url(),
                     source_line,
                     &name[2..],
                     // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
@@ -1044,7 +1091,7 @@ impl VirtualMethods for HTMLElement {
                 );
             },
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
-                self.form_attribute_mutated(mutation);
+                self.form_attribute_mutated(mutation, can_gc);
             },
             // Adding a "disabled" attribute disables an enabled form element.
             (&local_name!("disabled"), AttributeMutation::Set(_))
@@ -1088,9 +1135,9 @@ impl VirtualMethods for HTMLElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(super_type) = self.super_type() {
-            super_type.bind_to_tree(context);
+            super_type.bind_to_tree(context, can_gc);
         }
         let element = self.as_element();
         element.update_sequentially_focusable_status(CanGc::note());
@@ -1109,9 +1156,9 @@ impl VirtualMethods for HTMLElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         if let Some(super_type) = self.super_type() {
-            super_type.unbind_from_tree(context);
+            super_type.unbind_from_tree(context, can_gc);
         }
 
         // Unbinding from a tree might enable a form control, if a
@@ -1158,6 +1205,7 @@ impl Activatable for HTMLElement {
         self.summary_activation_behavior();
     }
 }
+
 // Form-associated custom elements are the same interface type as
 // normal HTMLElements, so HTMLElement needs to have the FormControl trait
 // even though it's usually more specific trait implementations, like the

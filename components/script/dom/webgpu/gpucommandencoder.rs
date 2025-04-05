@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::wgc::command as wgpu_com;
-use webgpu::{
-    wgt, WebGPU, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice,
+use webgpu_traits::{
+    WebGPU, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice,
     WebGPURenderPass, WebGPURequest,
 };
+use wgpu_core::command as wgpu_com;
 
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::cell::DomRefCell;
@@ -17,19 +17,20 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPURenderPassDescriptor, GPUSize64,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::gpuconvert::convert_load_op;
 use crate::dom::webgpu::gpubuffer::GPUBuffer;
 use crate::dom::webgpu::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::webgpu::gpucomputepassencoder::GPUComputePassEncoder;
-use crate::dom::webgpu::gpuconvert::{convert_load_op, convert_store_op};
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::webgpu::gpurenderpassencoder::GPURenderPassEncoder;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUCommandEncoder {
+pub(crate) struct GPUCommandEncoder {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
@@ -41,7 +42,7 @@ pub struct GPUCommandEncoder {
 }
 
 impl GPUCommandEncoder {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         channel: WebGPU,
         device: &GPUDevice,
         encoder: WebGPUCommandEncoder,
@@ -56,35 +57,38 @@ impl GPUCommandEncoder {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         channel: WebGPU,
         device: &GPUDevice,
         encoder: WebGPUCommandEncoder,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUCommandEncoder::new_inherited(
                 channel, device, encoder, label,
             )),
             global,
+            can_gc,
         )
     }
 }
 
 impl GPUCommandEncoder {
-    pub fn id(&self) -> WebGPUCommandEncoder {
+    pub(crate) fn id(&self) -> WebGPUCommandEncoder {
         self.encoder
     }
 
-    pub fn device_id(&self) -> WebGPUDevice {
+    pub(crate) fn device_id(&self) -> WebGPUDevice {
         self.device.id()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUCommandEncoderDescriptor,
+        can_gc: CanGc,
     ) -> DomRoot<GPUCommandEncoder> {
         let command_encoder_id = device.global().wgpu_id_hub().create_command_encoder_id();
         device
@@ -93,7 +97,7 @@ impl GPUCommandEncoder {
             .send(WebGPURequest::CreateCommandEncoder {
                 device_id: device.id().0,
                 command_encoder_id,
-                desc: wgt::CommandEncoderDescriptor {
+                desc: wgpu_types::CommandEncoderDescriptor {
                     label: (&descriptor.parent).convert(),
                 },
             })
@@ -107,6 +111,7 @@ impl GPUCommandEncoder {
             device,
             encoder,
             descriptor.parent.label.clone(),
+            can_gc,
         )
     }
 }
@@ -144,6 +149,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             self,
             WebGPUComputePass(compute_pass_id),
             descriptor.parent.label.clone(),
+            CanGc::note(),
         )
     }
 
@@ -152,21 +158,25 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
         &self,
         descriptor: &GPURenderPassDescriptor,
     ) -> Fallible<DomRoot<GPURenderPassEncoder>> {
-        let depth_stencil_attachment = descriptor.depthStencilAttachment.as_ref().map(|depth| {
+        let depth_stencil_attachment = descriptor.depthStencilAttachment.as_ref().map(|ds| {
             wgpu_com::RenderPassDepthStencilAttachment {
                 depth: wgpu_com::PassChannel {
-                    load_op: convert_load_op(depth.depthLoadOp),
-                    store_op: convert_store_op(depth.depthStoreOp),
-                    clear_value: *depth.depthClearValue.unwrap_or_default(),
-                    read_only: depth.depthReadOnly,
+                    load_op: ds
+                        .depthLoadOp
+                        .as_ref()
+                        .map(|l| convert_load_op(l, ds.depthClearValue.map(|v| *v))),
+                    store_op: ds.depthStoreOp.as_ref().map(Convert::convert),
+                    read_only: ds.depthReadOnly,
                 },
                 stencil: wgpu_com::PassChannel {
-                    load_op: convert_load_op(depth.stencilLoadOp),
-                    store_op: convert_store_op(depth.stencilStoreOp),
-                    clear_value: depth.stencilClearValue,
-                    read_only: depth.stencilReadOnly,
+                    load_op: ds
+                        .stencilLoadOp
+                        .as_ref()
+                        .map(|l| convert_load_op(l, Some(ds.stencilClearValue))),
+                    store_op: ds.stencilStoreOp.as_ref().map(Convert::convert),
+                    read_only: ds.stencilReadOnly,
                 },
-                view: depth.view.id().0,
+                view: ds.view.id().0,
             }
         });
 
@@ -174,20 +184,18 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .colorAttachments
             .iter()
             .map(|color| -> Fallible<_> {
-                let channel = wgpu_com::PassChannel {
-                    load_op: convert_load_op(Some(color.loadOp)),
-                    store_op: convert_store_op(Some(color.storeOp)),
-                    clear_value: color
-                        .clearValue
-                        .as_ref()
-                        .map(|color| (color).try_convert())
-                        .transpose()?
-                        .unwrap_or_default(),
-                    read_only: false,
-                };
                 Ok(Some(wgpu_com::RenderPassColorAttachment {
                     resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
-                    channel,
+                    load_op: convert_load_op(
+                        &color.loadOp,
+                        color
+                            .clearValue
+                            .as_ref()
+                            .map(|color| (color).try_convert())
+                            .transpose()?
+                            .unwrap_or_default(),
+                    ),
+                    store_op: color.storeOp.convert(),
                     view: color.view.id().0,
                 }))
             })
@@ -211,6 +219,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             WebGPURenderPass(render_pass_id),
             self,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         ))
     }
 
@@ -303,7 +312,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .send(WebGPURequest::CommandEncoderFinish {
                 command_encoder_id: self.encoder.0,
                 device_id: self.device.id().0,
-                desc: wgt::CommandBufferDescriptor {
+                desc: wgpu_types::CommandBufferDescriptor {
                     label: (&descriptor.parent).convert(),
                 },
             })
@@ -315,6 +324,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             self.channel.clone(),
             buffer,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         )
     }
 }

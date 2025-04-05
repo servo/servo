@@ -13,7 +13,7 @@ use malloc_size_of::MallocSizeOf;
 type GLenum = u32;
 
 use super::wrapper::{TypedWebGLExtensionWrapper, WebGLExtensionWrapper};
-use super::{ext, WebGLExtension, WebGLExtensionSpec};
+use super::{WebGLExtension, WebGLExtensionSpec, ext};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
@@ -164,9 +164,9 @@ impl WebGLExtensionFeatures {
 }
 
 /// Handles the list of implemented, supported and enabled WebGL extensions.
-#[crown::unrooted_must_root_lint::must_root]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct WebGLExtensions {
+pub(crate) struct WebGLExtensions {
     extensions: DomRefCell<HashMap<String, Box<dyn WebGLExtensionWrapper>>>,
     features: DomRefCell<WebGLExtensionFeatures>,
     #[no_trace]
@@ -178,7 +178,7 @@ pub struct WebGLExtensions {
 }
 
 impl WebGLExtensions {
-    pub fn new(
+    pub(crate) fn new(
         webgl_version: WebGLVersion,
         api_type: GlType,
         glsl_version: WebGLSLVersion,
@@ -192,7 +192,7 @@ impl WebGLExtensions {
         }
     }
 
-    pub fn init_once<F>(&self, cb: F)
+    pub(crate) fn init_once<F>(&self, cb: F)
     where
         F: FnOnce() -> String,
     {
@@ -204,14 +204,14 @@ impl WebGLExtensions {
         }
     }
 
-    pub fn register<T: 'static + WebGLExtension + JSTraceable + MallocSizeOf>(&self) {
+    pub(crate) fn register<T: 'static + WebGLExtension + JSTraceable + MallocSizeOf>(&self) {
         let name = T::name().to_uppercase();
         self.extensions
             .borrow_mut()
             .insert(name, Box::new(TypedWebGLExtensionWrapper::<T>::new()));
     }
 
-    pub fn get_supported_extensions(&self) -> Vec<&'static str> {
+    pub(crate) fn get_supported_extensions(&self) -> Vec<&'static str> {
         self.extensions
             .borrow()
             .iter()
@@ -227,7 +227,7 @@ impl WebGLExtensions {
             .collect()
     }
 
-    pub fn get_or_init_extension(
+    pub(crate) fn get_or_init_extension(
         &self,
         name: &str,
         ctx: &WebGLRenderingContext,
@@ -242,7 +242,7 @@ impl WebGLExtensions {
         })
     }
 
-    pub fn is_enabled<T>(&self) -> bool
+    pub(crate) fn is_enabled<T>(&self) -> bool
     where
         T: 'static + WebGLExtension + JSTraceable + MallocSizeOf,
     {
@@ -253,32 +253,32 @@ impl WebGLExtensions {
             .is_some_and(|ext| ext.is_enabled())
     }
 
-    pub fn supports_gl_extension(&self, name: &str) -> bool {
+    pub(crate) fn supports_gl_extension(&self, name: &str) -> bool {
         self.features.borrow().gl_extensions.contains(name)
     }
 
-    pub fn supports_any_gl_extension(&self, names: &[&str]) -> bool {
+    pub(crate) fn supports_any_gl_extension(&self, names: &[&str]) -> bool {
         let features = self.features.borrow();
         names
             .iter()
             .any(|name| features.gl_extensions.contains(*name))
     }
 
-    pub fn supports_all_gl_extension(&self, names: &[&str]) -> bool {
+    pub(crate) fn supports_all_gl_extension(&self, names: &[&str]) -> bool {
         let features = self.features.borrow();
         names
             .iter()
             .all(|name| features.gl_extensions.contains(*name))
     }
 
-    pub fn enable_tex_type(&self, data_type: GLenum) {
+    pub(crate) fn enable_tex_type(&self, data_type: GLenum) {
         self.features
             .borrow_mut()
             .disabled_tex_types
             .remove(&data_type);
     }
 
-    pub fn is_tex_type_enabled(&self, data_type: GLenum) -> bool {
+    pub(crate) fn is_tex_type_enabled(&self, data_type: GLenum) -> bool {
         !self
             .features
             .borrow()
@@ -286,7 +286,7 @@ impl WebGLExtensions {
             .contains(&data_type)
     }
 
-    pub fn add_effective_tex_internal_format(
+    pub(crate) fn add_effective_tex_internal_format(
         &self,
         source_internal_format: TexFormat,
         source_data_type: u32,
@@ -299,7 +299,7 @@ impl WebGLExtensions {
             .insert(format, effective_internal_format);
     }
 
-    pub fn get_effective_tex_internal_format(
+    pub(crate) fn get_effective_tex_internal_format(
         &self,
         source_internal_format: TexFormat,
         source_data_type: u32,
@@ -313,14 +313,14 @@ impl WebGLExtensions {
             .unwrap_or(&source_internal_format))
     }
 
-    pub fn enable_filterable_tex_type(&self, text_data_type: GLenum) {
+    pub(crate) fn enable_filterable_tex_type(&self, text_data_type: GLenum) {
         self.features
             .borrow_mut()
             .not_filterable_tex_types
             .remove(&text_data_type);
     }
 
-    pub fn is_filterable(&self, text_data_type: u32) -> bool {
+    pub(crate) fn is_filterable(&self, text_data_type: u32) -> bool {
         !self
             .features
             .borrow()
@@ -328,22 +328,22 @@ impl WebGLExtensions {
             .contains(&text_data_type)
     }
 
-    pub fn enable_hint_target(&self, name: GLenum) {
+    pub(crate) fn enable_hint_target(&self, name: GLenum) {
         self.features.borrow_mut().hint_targets.insert(name);
     }
 
-    pub fn is_hint_target_enabled(&self, name: GLenum) -> bool {
+    pub(crate) fn is_hint_target_enabled(&self, name: GLenum) -> bool {
         self.features.borrow().hint_targets.contains(&name)
     }
 
-    pub fn enable_get_parameter_name(&self, name: GLenum) {
+    pub(crate) fn enable_get_parameter_name(&self, name: GLenum) {
         self.features
             .borrow_mut()
             .disabled_get_parameter_names
             .remove(&name);
     }
 
-    pub fn is_get_parameter_name_enabled(&self, name: GLenum) -> bool {
+    pub(crate) fn is_get_parameter_name_enabled(&self, name: GLenum) -> bool {
         !self
             .features
             .borrow()
@@ -351,14 +351,14 @@ impl WebGLExtensions {
             .contains(&name)
     }
 
-    pub fn enable_get_tex_parameter_name(&self, name: GLenum) {
+    pub(crate) fn enable_get_tex_parameter_name(&self, name: GLenum) {
         self.features
             .borrow_mut()
             .disabled_get_tex_parameter_names
             .remove(&name);
     }
 
-    pub fn is_get_tex_parameter_name_enabled(&self, name: GLenum) -> bool {
+    pub(crate) fn is_get_tex_parameter_name_enabled(&self, name: GLenum) -> bool {
         !self
             .features
             .borrow()
@@ -366,14 +366,14 @@ impl WebGLExtensions {
             .contains(&name)
     }
 
-    pub fn enable_get_vertex_attrib_name(&self, name: GLenum) {
+    pub(crate) fn enable_get_vertex_attrib_name(&self, name: GLenum) {
         self.features
             .borrow_mut()
             .disabled_get_vertex_attrib_names
             .remove(&name);
     }
 
-    pub fn is_get_vertex_attrib_name_enabled(&self, name: GLenum) -> bool {
+    pub(crate) fn is_get_vertex_attrib_name_enabled(&self, name: GLenum) -> bool {
         !self
             .features
             .borrow()
@@ -381,7 +381,7 @@ impl WebGLExtensions {
             .contains(&name)
     }
 
-    pub fn add_tex_compression_formats(&self, formats: &[TexCompression]) {
+    pub(crate) fn add_tex_compression_formats(&self, formats: &[TexCompression]) {
         let formats: FnvHashMap<GLenum, TexCompression> = formats
             .iter()
             .map(|&compression| (compression.format.as_gl_constant(), compression))
@@ -393,7 +393,7 @@ impl WebGLExtensions {
             .extend(formats.iter());
     }
 
-    pub fn get_tex_compression_format(&self, format_id: GLenum) -> Option<TexCompression> {
+    pub(crate) fn get_tex_compression_format(&self, format_id: GLenum) -> Option<TexCompression> {
         self.features
             .borrow()
             .tex_compression_formats
@@ -401,7 +401,7 @@ impl WebGLExtensions {
             .cloned()
     }
 
-    pub fn get_tex_compression_ids(&self) -> Vec<GLenum> {
+    pub(crate) fn get_tex_compression_ids(&self) -> Vec<GLenum> {
         self.features
             .borrow()
             .tex_compression_formats
@@ -429,35 +429,35 @@ impl WebGLExtensions {
         self.register::<ext::webglcompressedtextures3tc::WEBGLCompressedTextureS3TC>();
     }
 
-    pub fn enable_element_index_uint(&self) {
+    pub(crate) fn enable_element_index_uint(&self) {
         self.features.borrow_mut().element_index_uint_enabled = true;
     }
 
-    pub fn is_element_index_uint_enabled(&self) -> bool {
+    pub(crate) fn is_element_index_uint_enabled(&self) -> bool {
         self.features.borrow().element_index_uint_enabled
     }
 
-    pub fn enable_blend_minmax(&self) {
+    pub(crate) fn enable_blend_minmax(&self) {
         self.features.borrow_mut().blend_minmax_enabled = true;
     }
 
-    pub fn is_blend_minmax_enabled(&self) -> bool {
+    pub(crate) fn is_blend_minmax_enabled(&self) -> bool {
         self.features.borrow().blend_minmax_enabled
     }
 
-    pub fn is_float_buffer_renderable(&self) -> bool {
+    pub(crate) fn is_float_buffer_renderable(&self) -> bool {
         self.is_enabled::<WEBGLColorBufferFloat>() || self.is_enabled::<OESTextureFloat>()
     }
 
-    pub fn is_min_glsl_version_satisfied(&self, min_glsl_version: WebGLSLVersion) -> bool {
+    pub(crate) fn is_min_glsl_version_satisfied(&self, min_glsl_version: WebGLSLVersion) -> bool {
         self.glsl_version >= min_glsl_version
     }
 
-    pub fn is_half_float_buffer_renderable(&self) -> bool {
+    pub(crate) fn is_half_float_buffer_renderable(&self) -> bool {
         self.is_enabled::<EXTColorBufferHalfFloat>() || self.is_enabled::<OESTextureHalfFloat>()
     }
 
-    pub fn effective_type(&self, type_: u32) -> u32 {
+    pub(crate) fn effective_type(&self, type_: u32) -> u32 {
         if type_ == OESTextureHalfFloatConstants::HALF_FLOAT_OES &&
             !self.supports_gl_extension("GL_OES_texture_half_float")
         {
@@ -466,7 +466,7 @@ impl WebGLExtensions {
         type_
     }
 
-    pub fn is_gles(&self) -> bool {
+    pub(crate) fn is_gles(&self) -> bool {
         self.api_type == GlType::Gles
     }
 }

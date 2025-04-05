@@ -23,8 +23,15 @@ use crate::dom::mouseevent::MouseEvent;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
+/// <https://w3c.github.io/pointerevents/#dom-pointerevent-pointerid>
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+pub(crate) enum PointerId {
+    NonPointerDevice = -1,
+    Mouse,
+}
+
 #[dom_struct]
-pub struct PointerEvent {
+pub(crate) struct PointerEvent {
     mouseevent: MouseEvent,
     pointer_id: Cell<i32>,
     width: Cell<i32>,
@@ -43,7 +50,7 @@ pub struct PointerEvent {
 }
 
 impl PointerEvent {
-    pub fn new_inherited() -> PointerEvent {
+    pub(crate) fn new_inherited() -> PointerEvent {
         PointerEvent {
             mouseevent: MouseEvent::new_inherited(),
             pointer_id: Cell::new(0),
@@ -63,7 +70,7 @@ impl PointerEvent {
         }
     }
 
-    pub fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<PointerEvent> {
+    pub(crate) fn new_uninitialized(window: &Window, can_gc: CanGc) -> DomRoot<PointerEvent> {
         Self::new_uninitialized_with_proto(window, None, can_gc)
     }
 
@@ -81,9 +88,8 @@ impl PointerEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
-        proto: Option<HandleObject>,
         type_: DOMString,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
@@ -119,7 +125,7 @@ impl PointerEvent {
     ) -> DomRoot<PointerEvent> {
         Self::new_with_proto(
             window,
-            proto,
+            None,
             type_,
             can_bubble,
             cancelable,

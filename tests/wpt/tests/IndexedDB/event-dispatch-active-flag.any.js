@@ -11,7 +11,7 @@ function createObjectStore() {
 }
 
 function initializeTransaction(t, db, mode = 'readonly') {
-  const tx = db.transaction('store', mode, {durability: 'relaxed'});
+  const tx = db.transaction('store', mode);
   const release_tx = keep_alive(tx, 'store');
   assert_true(
       is_transaction_active(tx, 'store'),

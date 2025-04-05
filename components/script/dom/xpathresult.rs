@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
     XPathResultConstants, XPathResultMethods,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
@@ -21,7 +21,7 @@ use crate::xpath::{NodesetHelpers, Value};
 
 #[repr(u16)]
 #[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-pub enum XPathResultType {
+pub(crate) enum XPathResultType {
     Any = XPathResultConstants::ANY_TYPE,
     Number = XPathResultConstants::NUMBER_TYPE,
     String = XPathResultConstants::STRING_TYPE,
@@ -55,7 +55,7 @@ impl TryFrom<u16> for XPathResultType {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub enum XPathResultValue {
+pub(crate) enum XPathResultValue {
     Boolean(bool),
     /// A IEEE-754 double-precision floating point number
     Number(f64),
@@ -81,7 +81,7 @@ impl From<Value> for XPathResultValue {
 }
 
 #[dom_struct]
-pub struct XPathResult {
+pub(crate) struct XPathResult {
     reflector_: Reflector,
     window: Dom<Window>,
     result_type: XPathResultType,
@@ -122,7 +122,7 @@ impl XPathResult {
     /// NB: Blindly trusts `result_type` and constructs an object regardless of the contents
     /// of `value`. The exception is `XPathResultType::Any`, for which we look at the value
     /// to determine the type.
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,

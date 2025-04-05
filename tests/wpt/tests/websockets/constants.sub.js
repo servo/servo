@@ -15,6 +15,7 @@ if (url_has_flag('h2')) {
 }
 
 const SCHEME_DOMAIN_PORT = __SCHEME + '://' + __SERVER__NAME + ':' + __PORT;
+const SCHEME_CROSSDOMAIN_PORT = __SCHEME + '://' + '{{hosts[alt][www]}}' + ':' + __PORT;
 
 function url_has_variant(variant) {
   const params = new URLSearchParams(location.search);

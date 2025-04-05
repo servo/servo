@@ -4,20 +4,20 @@
 
 use std::cell::Cell;
 
-use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLSyncId};
+use canvas_traits::webgl::{WebGLCommand, WebGLSyncId, webgl_channel};
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
-use crate::task_source::TaskSource;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WebGLSync {
+pub(crate) struct WebGLSync {
     webgl_object: WebGLObject,
     #[no_trace]
     sync_id: WebGLSyncId,
@@ -37,7 +37,7 @@ impl WebGLSync {
         }
     }
 
-    pub fn new(context: &WebGLRenderingContext) -> DomRoot<Self> {
+    pub(crate) fn new(context: &WebGLRenderingContext, can_gc: CanGc) -> DomRoot<Self> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::FenceSync(sender));
         let sync_id = receiver.recv().unwrap();
@@ -45,12 +45,13 @@ impl WebGLSync {
         reflect_dom_object(
             Box::new(WebGLSync::new_inherited(context, sync_id)),
             &*context.global(),
+            can_gc,
         )
     }
 }
 
 impl WebGLSync {
-    pub fn client_wait_sync(
+    pub(crate) fn client_wait_sync(
         &self,
         context: &WebGLRenderingContext,
         flags: u32,
@@ -58,7 +59,6 @@ impl WebGLSync {
     ) -> Option<u32> {
         match self.client_wait_status.get() {
             Some(constants::TIMEOUT_EXPIRED) | Some(constants::WAIT_FAILED) | None => {
-                let global = self.global();
                 let this = Trusted::new(self);
                 let context = Trusted::new(context);
                 let task = task!(request_client_wait_status: move || {
@@ -73,19 +73,17 @@ impl WebGLSync {
                     ));
                     this.client_wait_status.set(Some(receiver.recv().unwrap()));
                 });
-                global
-                    .as_window()
+                self.global()
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task, global.upcast())
-                    .unwrap();
+                    .queue(task);
             },
             _ => {},
         }
         self.client_wait_status.get()
     }
 
-    pub fn delete(&self, operation_fallibility: Operation) {
+    pub(crate) fn delete(&self, operation_fallibility: Operation) {
         if self.is_valid() {
             self.marked_for_deletion.set(true);
             let context = self.upcast::<WebGLObject>().context();
@@ -97,10 +95,13 @@ impl WebGLSync {
         }
     }
 
-    pub fn get_sync_status(&self, pname: u32, context: &WebGLRenderingContext) -> Option<u32> {
+    pub(crate) fn get_sync_status(
+        &self,
+        pname: u32,
+        context: &WebGLRenderingContext,
+    ) -> Option<u32> {
         match self.sync_status.get() {
             Some(constants::UNSIGNALED) | None => {
-                let global = self.global();
                 let this = Trusted::new(self);
                 let context = Trusted::new(context);
                 let task = task!(request_sync_status: move || {
@@ -110,23 +111,21 @@ impl WebGLSync {
                     context.send_command(WebGLCommand::GetSyncParameter(this.sync_id, pname, sender));
                     this.sync_status.set(Some(receiver.recv().unwrap()));
                 });
-                global
-                    .as_window()
+                self.global()
                     .task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task, global.upcast())
-                    .unwrap();
+                    .queue(task);
             },
             _ => {},
         }
         self.sync_status.get()
     }
 
-    pub fn is_valid(&self) -> bool {
+    pub(crate) fn is_valid(&self) -> bool {
         !self.marked_for_deletion.get()
     }
 
-    pub fn id(&self) -> WebGLSyncId {
+    pub(crate) fn id(&self) -> WebGLSyncId {
         self.sync_id
     }
 }

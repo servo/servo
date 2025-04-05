@@ -14,17 +14,22 @@ use crate::dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::iterable::Iterable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
+use crate::dom::htmlbuttonelement::HTMLButtonElement;
+use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlformelement::{
+    FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement,
+};
+use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct FormData {
+pub(crate) struct FormData {
     reflector_: Reflector,
     data: DomRefCell<Vec<(NoTrace<LocalName>, FormDatum)>>,
 }
@@ -45,7 +50,7 @@ impl FormData {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         form_datums: Option<Vec<FormDatum>>,
         global: &GlobalScope,
         can_gc: CanGc,
@@ -70,20 +75,60 @@ impl FormData {
 
 impl FormDataMethods<crate::DomTypeHolder> for FormData {
     // https://xhr.spec.whatwg.org/#dom-formdata
-    fn Constructor(
+    fn Constructor<'a>(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        form: Option<&HTMLFormElement>,
+        form: Option<&'a HTMLFormElement>,
+        submitter: Option<&'a HTMLElement>,
     ) -> Fallible<DomRoot<FormData>> {
+        // Helper to validate the submitter
+        fn validate_submitter<'b>(
+            submitter: &'b HTMLElement,
+            form: &'b HTMLFormElement,
+        ) -> Result<FormSubmitterElement<'b>, Error> {
+            let submit_button = submitter
+                .downcast::<HTMLButtonElement>()
+                .map(FormSubmitterElement::Button)
+                .or_else(|| {
+                    submitter
+                        .downcast::<HTMLInputElement>()
+                        .map(FormSubmitterElement::Input)
+                })
+                .ok_or(Error::Type(
+                    "submitter is not a form submitter element".to_string(),
+                ))?;
+
+            // Step 1.1.1. If submitter is not a submit button, then throw a TypeError.
+            if !submit_button.is_submit_button() {
+                return Err(Error::Type("submitter is not a submit button".to_string()));
+            }
+
+            // Step 1.1.2. If submitter’s form owner is not form, then throw a "NotFoundError"
+            // DOMException.
+            if !matches!(submit_button.form_owner(), Some(owner) if *owner == *form) {
+                return Err(Error::NotFound);
+            }
+
+            Ok(submit_button)
+        }
+
+        // Step 1. If form is given, then:
         if let Some(opt_form) = form {
-            return match opt_form.get_form_dataset(None, None, can_gc) {
+            // Step 1.1. If submitter is non-null, then:
+            let submitter_element = submitter
+                .map(|s| validate_submitter(s, opt_form))
+                .transpose()?;
+
+            // Step 1.2. Let list be the result of constructing the entry list for form and submitter.
+            return match opt_form.get_form_dataset(submitter_element, None, can_gc) {
                 Some(form_datums) => Ok(FormData::new_with_proto(
                     Some(form_datums),
                     global,
                     proto,
                     can_gc,
                 )),
+                // Step 1.3. If list is null, then throw an "InvalidStateError" DOMException.
                 None => Err(Error::InvalidState),
             };
         }
@@ -104,7 +149,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             .push((NoTrace(LocalName::from(name.0)), datum));
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     // https://xhr.spec.whatwg.org/#dom-formdata-append
     fn Append_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
         let datum = FormDatum {
@@ -136,10 +181,8 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
             .iter()
             .find(|(datum_name, _)| datum_name.0 == name.0)
             .map(|(_, datum)| match &datum.value {
-                FormDatumValue::String(ref s) => {
-                    FileOrUSVString::USVString(USVString(s.to_string()))
-                },
-                FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
+                FormDatumValue::String(s) => FileOrUSVString::USVString(USVString(s.to_string())),
+                FormDatumValue::File(b) => FileOrUSVString::File(DomRoot::from_ref(b)),
             })
     }
 
@@ -154,10 +197,10 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
                 }
 
                 Some(match &datum.value {
-                    FormDatumValue::String(ref s) => {
+                    FormDatumValue::String(s) => {
                         FileOrUSVString::USVString(USVString(s.to_string()))
                     },
-                    FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
+                    FormDatumValue::File(b) => FileOrUSVString::File(DomRoot::from_ref(b)),
                 })
             })
             .collect()
@@ -188,7 +231,7 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
         ));
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     // https://xhr.spec.whatwg.org/#dom-formdata-set
     fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
         let file = self.create_an_entry(blob, filename, CanGc::note());
@@ -242,7 +285,7 @@ impl FormData {
         )
     }
 
-    pub fn datums(&self) -> Vec<FormDatum> {
+    pub(crate) fn datums(&self) -> Vec<FormDatum> {
         self.data
             .borrow()
             .iter()
@@ -263,8 +306,8 @@ impl Iterable for FormData {
         let data = self.data.borrow();
         let datum = &data.get(n as usize).unwrap().1;
         match &datum.value {
-            FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
-            FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
+            FormDatumValue::String(s) => FileOrUSVString::USVString(USVString(s.to_string())),
+            FormDatumValue::File(b) => FileOrUSVString::File(DomRoot::from_ref(b)),
         }
     }
 

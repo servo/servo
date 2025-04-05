@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::path::PathBuf;
 
-use servo::embedder_traits::resources::{Resource, ResourceReaderMethods};
+use servo::resources::{Resource, ResourceReaderMethods};
 
 pub(crate) struct ResourceReaderInstance;
 
@@ -16,7 +16,6 @@ impl ResourceReaderInstance {
 impl ResourceReaderMethods for ResourceReaderInstance {
     fn read(&self, res: Resource) -> Vec<u8> {
         Vec::from(match res {
-            Resource::Preferences => &include_bytes!("../../../../resources/prefs.json")[..],
             Resource::HstsPreloadList => {
                 &include_bytes!("../../../../resources/hsts_preload.json")[..]
             },
@@ -42,6 +41,9 @@ impl ResourceReaderMethods for ResourceReaderInstance {
             Resource::CrashHTML => &include_bytes!("../../../../resources/crash.html")[..],
             Resource::DirectoryListingHTML => {
                 &include_bytes!("../../../../resources/directory-listing.html")[..]
+            },
+            Resource::AboutMemoryHTML => {
+                &include_bytes!("../../../../resources/about-memory.html")[..]
             },
         })
     }

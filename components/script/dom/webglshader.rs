@@ -8,33 +8,34 @@ use std::os::raw::c_int;
 use std::sync::Once;
 
 use canvas_traits::webgl::{
-    webgl_channel, GLLimits, GlType, WebGLCommand, WebGLError, WebGLResult, WebGLSLVersion,
-    WebGLShaderId, WebGLVersion,
+    GLLimits, GlType, WebGLCommand, WebGLError, WebGLResult, WebGLSLVersion, WebGLShaderId,
+    WebGLVersion, webgl_channel,
 };
 use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, CompileOptions, Output, ShaderValidator};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webgl_extensions::ext::extfragdepth::EXTFragDepth;
 use crate::dom::webgl_extensions::ext::extshadertexturelod::EXTShaderTextureLod;
 use crate::dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
-use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
+use crate::script_runtime::CanGc;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum ShaderCompilationStatus {
+pub(crate) enum ShaderCompilationStatus {
     NotCompiled,
     Succeeded,
     Failed,
 }
 
 #[dom_struct]
-pub struct WebGLShader {
+pub(crate) struct WebGLShader {
     webgl_object: WebGLObject,
     #[no_trace]
     id: WebGLShaderId,
@@ -63,38 +64,43 @@ impl WebGLShader {
         }
     }
 
-    pub fn maybe_new(context: &WebGLRenderingContext, shader_type: u32) -> Option<DomRoot<Self>> {
+    pub(crate) fn maybe_new(
+        context: &WebGLRenderingContext,
+        shader_type: u32,
+    ) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateShader(shader_type, sender));
         receiver
             .recv()
             .unwrap()
-            .map(|id| WebGLShader::new(context, id, shader_type))
+            .map(|id| WebGLShader::new(context, id, shader_type, CanGc::note()))
     }
 
-    pub fn new(
+    pub(crate) fn new(
         context: &WebGLRenderingContext,
         id: WebGLShaderId,
         shader_type: u32,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLShader::new_inherited(context, id, shader_type)),
             &*context.global(),
+            can_gc,
         )
     }
 }
 
 impl WebGLShader {
-    pub fn id(&self) -> WebGLShaderId {
+    pub(crate) fn id(&self) -> WebGLShaderId {
         self.id
     }
 
-    pub fn gl_type(&self) -> u32 {
+    pub(crate) fn gl_type(&self) -> u32 {
         self.gl_type
     }
 
     /// glCompileShader
-    pub fn compile(
+    pub(crate) fn compile(
         &self,
         api_type: GlType,
         webgl_version: WebGLVersion,
@@ -227,7 +233,7 @@ impl WebGLShader {
     /// Mark this shader as deleted (if it wasn't previously)
     /// and delete it as if calling glDeleteShader.
     /// Currently does not check if shader is attached
-    pub fn mark_for_deletion(&self, operation_fallibility: Operation) {
+    pub(crate) fn mark_for_deletion(&self, operation_fallibility: Operation) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
             let context = self.upcast::<WebGLObject>().context();
@@ -239,43 +245,43 @@ impl WebGLShader {
         }
     }
 
-    pub fn is_marked_for_deletion(&self) -> bool {
+    pub(crate) fn is_marked_for_deletion(&self) -> bool {
         self.marked_for_deletion.get()
     }
 
-    pub fn is_deleted(&self) -> bool {
+    pub(crate) fn is_deleted(&self) -> bool {
         self.marked_for_deletion.get() && !self.is_attached()
     }
 
-    pub fn is_attached(&self) -> bool {
+    pub(crate) fn is_attached(&self) -> bool {
         self.attached_counter.get() > 0
     }
 
-    pub fn increment_attached_counter(&self) {
+    pub(crate) fn increment_attached_counter(&self) {
         self.attached_counter.set(self.attached_counter.get() + 1);
     }
 
-    pub fn decrement_attached_counter(&self) {
+    pub(crate) fn decrement_attached_counter(&self) {
         assert!(self.attached_counter.get() > 0);
         self.attached_counter.set(self.attached_counter.get() - 1);
     }
 
     /// glGetShaderInfoLog
-    pub fn info_log(&self) -> DOMString {
+    pub(crate) fn info_log(&self) -> DOMString {
         self.info_log.borrow().clone()
     }
 
     /// Get the shader source
-    pub fn source(&self) -> DOMString {
+    pub(crate) fn source(&self) -> DOMString {
         self.source.borrow().clone()
     }
 
     /// glShaderSource
-    pub fn set_source(&self, source: DOMString) {
+    pub(crate) fn set_source(&self, source: DOMString) {
         *self.source.borrow_mut() = source;
     }
 
-    pub fn successfully_compiled(&self) -> bool {
+    pub(crate) fn successfully_compiled(&self) -> bool {
         self.compilation_status.get() == ShaderCompilationStatus::Succeeded
     }
 }

@@ -16,7 +16,7 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       wpt-sync-from-upstream: true
-      wpt-layout: 'all'
+      wpt: true
       unit-tests: false
 
   sync:
@@ -31,15 +31,13 @@ jobs:
         uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: wpt-full-logs-linux-layout-2013
-      - uses: actions/download-artifact@v4
-        with:
-          name: wpt-full-logs-linux-layout-2020
+          name: wpt-full-logs-linux
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Prep environment
         run: |
-          python3 -m pip install --upgrade pip
           sudo apt update
-          python3 ./mach bootstrap
+          ./mach bootstrap
       - name: Add upstream remote
         run: |
           git config --local user.email "ghbot+wpt-sync@servo.org"
@@ -54,9 +52,8 @@ jobs:
           export CURRENT_DATE=$(date +"%d-%m-%Y")
           echo $CURRENT_DATE
           echo "CURRENT_DATE=$CURRENT_DATE" >> $GITHUB_ENV
-          ./mach update-wpt linux-layout-2013/raw/*.log --legacy-layout
-          ./mach update-wpt linux-layout-2020/raw/*.log
-          git add tests/wpt/meta tests/wpt/meta-legacy-layout
+          ./mach update-wpt linux/raw/*.log
+          git add tests/wpt/meta
           git commit -a --amend -s --no-edit
       - name: Push changes
         uses: ad-m/github-push-action@master

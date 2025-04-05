@@ -14,6 +14,11 @@
   } else if (window.localStorage.getItem("third-party") == id) {
     message += "ThirdParty-";
   }
+  await test_driver.set_permission({ name: 'storage-access' }, 'granted');
+  let handle = await document.requestStorageAccess({localStorage: true});
+  if (handle && handle.localStorage.getItem("first-party") == id) {
+    message += "FirstPartyRSA-";
+  }
   window.opener.postMessage({type: "popin-read", message: message}, "*");
   window.close();
 })();

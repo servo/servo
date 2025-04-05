@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis styling</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-005-ref.html">
+<meta name="assert" content="The block overflow ellipsis is styled according to the containing root inline box, even if it is contained within a span with different styling. If the span has box-decoration-break: clone, it will have a right margin.">
+<style>
+.clamp {
+  line-clamp: 3;
+  color: teal;
+}
+span {
+  color: purple;
+  font-weight: bold;
+  font-style: italic;
+  font-size: 1.5em;
+  border: 2px solid blue;
+  box-decoration-break: clone;
+}
+</style>
+<div class="clamp">
+  Line 1<br>
+  Line 2<br>
+  <span>Line 3</span><br>
+  Line 4
+</div>

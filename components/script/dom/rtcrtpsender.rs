@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use crate::dom::bindings::codegen::Bindings::RTCRtpSenderBinding::{
     RTCRtcpParameters, RTCRtpParameters, RTCRtpSendParameters, RTCRtpSenderMethods,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -17,7 +17,7 @@ use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCRtpSender {
+pub(crate) struct RTCRtpSender {
     reflector_: Reflector,
 }
 
@@ -28,8 +28,8 @@ impl RTCRtpSender {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited()), global)
+    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
+        reflect_dom_object(Box::new(Self::new_inherited()), global, can_gc)
     }
 }
 
@@ -53,7 +53,7 @@ impl RTCRtpSenderMethods<crate::DomTypeHolder> for RTCRtpSender {
     // https://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-setparameters
     fn SetParameters(&self, _parameters: &RTCRtpSendParameters, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new(&self.global(), can_gc);
-        promise.resolve_native(&());
+        promise.resolve_native(&(), can_gc);
         promise
     }
 }

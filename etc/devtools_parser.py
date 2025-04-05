@@ -38,8 +38,8 @@
 # ./devtools_parser.py --use cap.pcap --port 1234 --filter watcher --range 10:30
 
 import json
-import re
 import signal
+import sys
 from argparse import ArgumentParser
 from subprocess import Popen, PIPE
 try:
@@ -49,7 +49,6 @@ except ImportError:
         return text
 
 fields = ["frame.time", "tcp.srcport", "tcp.payload"]
-pattern = r"(\d+:){"
 
 
 # Use tshark to capture network traffic and save the result in a
@@ -98,59 +97,115 @@ def read_data(file):
 
 
 # Transform the raw output of wireshark into a more manageable one
-def process_data(out, port):
-    out = [line.split("\t") for line in out.split("\n")]
+def process_data(input, port):
+    # Split the input into lines.
+    # `input` = newline-terminated lines of tab-delimited tshark(1) output
+    lines = [line.split("\t") for line in input.split("\n")]
 
-    # Process fields
-    data = []
-    for line in out:
+    # Remove empty lines and empty sends, and decode hex to bytes.
+    # `lines` = [[date, port, hex-encoded data]], e.g.
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", "3133"]`
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", "393a"]`
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", "7b..."]`
+    sends = []
+    for line in lines:
         if len(line) != 3:
             continue
-
         curr_time, curr_port, curr_data = line
+        if len(curr_data) == 0:
+            continue
+        elif len(curr_data) % 2 == 1:
+            print(f"[WARNING] Extra byte in hex-encoded data: {curr_data[-1]}", file=sys.stderr)
+            curr_data = curr_data[:-1]
+        if len(sends) > 0 and sends[-1][1] == curr_port:
+            sends[-1][2] += bytearray.fromhex(curr_data)
+        else:
+            sends.append([curr_time, curr_port, bytearray.fromhex(curr_data)])
 
+    # Split and merge consecutive sends with the same port, to yield exactly one record per message.
+    # Message records are of the form `length:{...}`, where `length` is an integer in ASCII decimal.
+    # Incomplete messages are deferred until they are complete.
+    # `sends` = [[date, port, record data]], e.g.
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", b"13"]`
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", b"9:"]`
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", b"{..."]`
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", b"...}"]`
+    records = []
+    scunge = {}  # Map from port to incomplete message data
+    for curr_time, curr_port, rest in sends:
+        rest = scunge.pop(curr_port, b"") + rest
+        while rest != b"":
+            try:
+                length, new_rest = rest.split(b":", 1)  # Can raise ValueError
+                length = int(length)
+                if len(new_rest) < length:
+                    raise ValueError("Incomplete message (for now)")
+                # If we found a `length:` prefix and we have enough data to satisfy it,
+                # cut off the prefix so `rest` is just `{...}length:{...}length:{...}`.
+                rest = new_rest
+            except ValueError:
+                print(f"[WARNING] Incomplete message detected (will try to reassemble): {repr(rest)}", file=sys.stderr)
+                scunge[curr_port] = rest
+                # Wait for more data from later sends, potentially after sends with the other port.
+                break
+            # Cut off the message so `rest` is just `length:{...}length:{...}`.
+            message = rest[:length]
+            rest = rest[length:]
+            try:
+                records.append([curr_time, curr_port, message.decode()])
+            except UnicodeError as e:
+                print(f"[WARNING] Failed to decode message as UTF-8: {e}")
+                continue
+
+    # Process message records.
+    # `records` = [[date, port, message text]], e.g.
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "6080", "{...}"]`
+    result = []
+    for line in records:
+        if len(line) != 3:
+            continue
+        curr_time, curr_port, text = line
         # Time
         curr_time = curr_time.split(" ")[-2].split(".")[0]
         # Port
         curr_port = "Servo" if curr_port == port else "Firefox"
         # Data
-        if not curr_data:
-            continue
-        try:
-            dec = bytearray.fromhex(curr_data).decode()
-        except UnicodeError:
-            continue
+        result.append([curr_time, curr_port, len(result), text])
 
-        indices = [m.span() for m in re.finditer(pattern, dec)]
-        indices.append((len(dec), -1))
-        prev = 0
-
-        for min, max in indices:
-            if min > 0:
-                text = dec[prev - 1:min]
-                data.append([curr_time, curr_port, len(data), text])
-            prev = max
-
-    return data
+    # `result` = [[date, endpoint, index, message text]], e.g.
+    # `["Mar 18, 2025 21:09:51.879661797 AWST", "Servo", 0, "{...}"]`
+    return result
 
 
 # Pretty prints the json message
-def parse_message(msg):
+def parse_message(msg, *, json_output=False):
     time, sender, i, data = msg
     from_servo = sender == "Servo"
 
     colored_sender = colored(sender, 'black', 'on_yellow' if from_servo else 'on_magenta', attrs=['bold'])
-    print(f"\n{colored_sender} - {colored(i, 'blue')} - {colored(time, 'dark_grey')}")
+    if not json_output:
+        print(f"\n{colored_sender} - {colored(i, 'blue')} - {colored(time, 'dark_grey')}")
 
     try:
         content = json.loads(data)
-        if from_servo and "from" in content:
-            print(colored(f"Actor: {content['from']}", 'yellow'))
-        print(json.dumps(content, sort_keys=True, indent=4))
+        if json_output:
+            if "to" in content:
+                # This is a request
+                print(json.dumps({"_to": content["to"], "message": content}, sort_keys=True))
+            elif "from" in content:
+                # This is a response
+                print(json.dumps({"_from": content["from"], "message": content}, sort_keys=True))
+            else:
+                assert False, "Message is neither a request nor a response"
+        else:
+            if from_servo and "from" in content:
+                print(colored(f"Actor: {content['from']}", 'yellow'))
+            print(json.dumps(content, sort_keys=True, indent=4))
     except json.JSONDecodeError:
         print(f"Warning: Couldn't decode json\n{data}")
 
-    print()
+    if not json_output:
+        print()
 
 
 if __name__ == "__main__":
@@ -159,6 +214,7 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--port", default="1234", help="the port where the devtools client is running")
     parser.add_argument("-f", "--filter", help="search for the string on the messages")
     parser.add_argument("-r", "--range", help="only parse messages from n to m, with the form of n:m")
+    parser.add_argument("--json", action="store_true", help="output in newline-delimited JSON (NDJSON)")
 
     actions = parser.add_mutually_exclusive_group(required=True)
     actions.add_argument("-s", "--scan", help="scan and save the output to a file")
@@ -183,4 +239,4 @@ if __name__ == "__main__":
     for msg in data[int(min):int(max) + 1]:
         # Filter the messages if specified
         if not args.filter or args.filter.lower() in msg[3].lower():
-            parse_message(msg)
+            parse_message(msg, json_output=args.json)

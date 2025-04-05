@@ -2,25 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::mem::replace;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::thread::{self, JoinHandle};
 
-use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{Heap, JSContext, JSObject, JS_AddInterruptCallback};
+use js::jsapi::{Heap, JS_AddInterruptCallback, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use net_traits::IpcSend;
 use net_traits::image_cache::ImageCache;
 use net_traits::request::{
-    CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestMode,
+    CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
+    RequestMode,
 };
-use net_traits::IpcSend;
 use script_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -28,9 +28,7 @@ use style::thread_state::{self, ThreadState};
 
 use crate::devtools;
 use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
-use crate::dom::abstractworkerglobalscope::{
-    run_worker_event_loop, SendableWorkerScriptChan, WorkerEventLoopMethods, WorkerThreadWorkerChan,
-};
+use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
@@ -38,11 +36,11 @@ use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSeria
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomObject;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
@@ -53,21 +51,18 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
-use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
+use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{
-    CanGc, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan, ScriptPort,
-    ThreadSafeJSContext,
-};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use crate::task_source::networking::NetworkingTaskSource;
-use crate::task_source::TaskSourceName;
+use crate::task_source::{SendableTaskSource, TaskSourceName};
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
 /// object only lives as long as necessary (ie. while events are being executed), while
 /// providing a reference that can be cloned freely.
-pub struct AutoWorkerReset<'a> {
+pub(crate) struct AutoWorkerReset<'a> {
     workerscope: &'a DedicatedWorkerGlobalScope,
     old_worker: Option<TrustedWorkerAddress>,
 }
@@ -77,39 +72,39 @@ impl<'a> AutoWorkerReset<'a> {
         workerscope: &'a DedicatedWorkerGlobalScope,
         worker: TrustedWorkerAddress,
     ) -> AutoWorkerReset<'a> {
+        let old_worker = workerscope.replace_worker(Some(worker));
         AutoWorkerReset {
             workerscope,
-            old_worker: replace(&mut *workerscope.worker.borrow_mut(), Some(worker)),
+            old_worker,
         }
     }
 }
 
-impl<'a> Drop for AutoWorkerReset<'a> {
+impl Drop for AutoWorkerReset<'_> {
     fn drop(&mut self) {
         self.workerscope
-            .worker
-            .borrow_mut()
-            .clone_from(&self.old_worker)
+            .replace_worker(std::mem::take(&mut self.old_worker));
     }
 }
 
 /// Messages sent from the owning global.
-pub enum DedicatedWorkerControlMsg {
+pub(crate) enum DedicatedWorkerControlMsg {
     /// Shutdown the worker.
     Exit,
 }
 
-pub enum DedicatedWorkerScriptMsg {
+pub(crate) enum DedicatedWorkerScriptMsg {
     /// Standard message from a worker.
     CommonWorker(TrustedWorkerAddress, WorkerScriptMsg),
     /// Wake-up call from the task queue.
     WakeUp,
 }
 
-pub enum MixedMessage {
+pub(crate) enum MixedMessage {
     Worker(DedicatedWorkerScriptMsg),
     Devtools(DevtoolScriptControlMsg),
     Control(DedicatedWorkerControlMsg),
+    Timer,
 }
 
 impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
@@ -119,7 +114,7 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
             _ => return None,
         };
         let script_msg = match common_worker_msg {
-            WorkerScriptMsg::Common(ref script_msg) => script_msg,
+            WorkerScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
         };
         match script_msg {
@@ -180,18 +175,16 @@ unsafe_no_jsmanaged_fields!(TaskQueue<DedicatedWorkerScriptMsg>);
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
 #[dom_struct]
-pub struct DedicatedWorkerGlobalScope {
+pub(crate) struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     #[ignore_malloc_size_of = "Defined in std"]
     task_queue: TaskQueue<DedicatedWorkerScriptMsg>,
-    #[ignore_malloc_size_of = "Defined in std"]
-    #[no_trace]
     own_sender: Sender<DedicatedWorkerScriptMsg>,
     #[ignore_malloc_size_of = "Trusted<T> has unclear ownership like Dom<T>"]
     worker: DomRefCell<Option<TrustedWorkerAddress>>,
     #[ignore_malloc_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
-    parent_sender: Box<dyn ScriptChan + Send>,
+    parent_event_loop_sender: ScriptEventLoopSender,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
@@ -234,12 +227,20 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
         MixedMessage::Devtools(msg)
     }
 
+    fn from_timer_msg() -> MixedMessage {
+        MixedMessage::Timer
+    }
+
     fn control_receiver(&self) -> &Receiver<DedicatedWorkerControlMsg> {
         &self.control_receiver
     }
 }
 
 impl DedicatedWorkerGlobalScope {
+    pub(crate) fn webview_id(&self) -> Option<WebViewId> {
+        WebViewId::installed()
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn new_inherited(
         init: WorkerGlobalScopeInit,
@@ -248,7 +249,7 @@ impl DedicatedWorkerGlobalScope {
         worker_url: ServoUrl,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         runtime: Runtime,
-        parent_sender: Box<dyn ScriptChan + Send>,
+        parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
@@ -256,6 +257,7 @@ impl DedicatedWorkerGlobalScope {
         browsing_context: Option<BrowsingContextId>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
+        insecure_requests_policy: InsecureRequestsPolicy,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -268,10 +270,11 @@ impl DedicatedWorkerGlobalScope {
                 closing,
                 #[cfg(feature = "webgpu")]
                 gpu_id_hub,
+                insecure_requests_policy,
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,
-            parent_sender,
+            parent_event_loop_sender,
             worker: DomRefCell::new(None),
             image_cache,
             browsing_context,
@@ -280,14 +283,14 @@ impl DedicatedWorkerGlobalScope {
     }
 
     #[allow(unsafe_code, clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         init: WorkerGlobalScopeInit,
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         runtime: Runtime,
-        parent_sender: Box<dyn ScriptChan + Send>,
+        parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
@@ -295,6 +298,7 @@ impl DedicatedWorkerGlobalScope {
         browsing_context: Option<BrowsingContextId>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
+        insecure_requests_policy: InsecureRequestsPolicy,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
@@ -304,7 +308,7 @@ impl DedicatedWorkerGlobalScope {
             worker_url,
             from_devtools_receiver,
             runtime,
-            parent_sender,
+            parent_event_loop_sender,
             own_sender,
             receiver,
             closing,
@@ -313,18 +317,24 @@ impl DedicatedWorkerGlobalScope {
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
             control_receiver,
+            insecure_requests_policy,
         ));
-        unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
+        unsafe {
+            DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
+                SafeJSContext::from_ptr(cx),
+                scope,
+            )
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
     #[allow(unsafe_code, clippy::too_many_arguments)]
-    pub fn run_worker_scope(
+    pub(crate) fn run_worker_scope(
         mut init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
         from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
         worker: TrustedWorkerAddress,
-        parent_sender: Box<dyn ScriptChan + Send>,
+        parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         worker_load_origin: WorkerScriptLoadOrigin,
@@ -336,22 +346,25 @@ impl DedicatedWorkerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
+        insecure_requests_policy: InsecureRequestsPolicy,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
-        let top_level_browsing_context_id = TopLevelBrowsingContextId::installed();
+        let webview_id = WebViewId::installed();
         let current_global = GlobalScope::current().expect("No current global object");
         let origin = current_global.origin().immutable().clone();
         let referrer = current_global.get_referrer();
         let parent = current_global.runtime_handle();
         let current_global_https_state = current_global.get_https_state();
+        let current_global_ancestor_trustworthy = current_global.has_trustworthy_ancestor_origin();
+        let is_secure_context = current_global.is_secure_context();
 
         thread::Builder::new()
             .name(format!("WW:{}", worker_url.debug_compact()))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
 
-                if let Some(top_level_browsing_context_id) = top_level_browsing_context_id {
-                    TopLevelBrowsingContextId::install(top_level_browsing_context_id);
+                if let Some(webview_id) = webview_id {
+                    WebViewId::install(webview_id);
                 }
 
                 let roots = RootCollection::new();
@@ -365,7 +378,7 @@ impl DedicatedWorkerGlobalScope {
 
                 let referrer = referrer_url.map(Referrer::ReferrerUrl).unwrap_or(referrer);
 
-                let request = RequestBuilder::new(worker_url.clone(), referrer)
+                let request = RequestBuilder::new(webview_id, worker_url.clone(), referrer)
                     .destination(Destination::Worker)
                     .mode(RequestMode::SameOrigin)
                     .credentials_mode(CredentialsMode::CredentialsSameOrigin)
@@ -373,16 +386,20 @@ impl DedicatedWorkerGlobalScope {
                     .use_url_credentials(true)
                     .pipeline_id(Some(pipeline_id))
                     .referrer_policy(referrer_policy)
+                    .insecure_requests_policy(insecure_requests_policy)
+                    .has_trustworthy_ancestor_origin(current_global_ancestor_trustworthy)
                     .origin(origin);
 
                 let runtime = unsafe {
-                    let task_source = NetworkingTaskSource(
-                        Box::new(WorkerThreadWorkerChan {
+                    let task_source = SendableTaskSource {
+                        sender: ScriptEventLoopSender::DedicatedWorker {
                             sender: own_sender.clone(),
-                            worker: worker.clone(),
-                        }),
+                            main_thread_worker: worker.clone(),
+                        },
                         pipeline_id,
-                    );
+                        name: TaskSourceName::Networking,
+                        canceller: Default::default(),
+                    };
                     Runtime::new_with_parent(Some(parent), Some(task_source))
                 };
 
@@ -403,7 +420,12 @@ impl DedicatedWorkerGlobalScope {
                 // > scope`'s url's scheme is "data", and `inherited origin`
                 // > otherwise.
                 if worker_url.scheme() == "data" {
-                    init.origin = ImmutableOrigin::new_opaque();
+                    // Workers created from a data: url are secure if they were created from secure contexts
+                    if is_secure_context {
+                        init.origin = ImmutableOrigin::new_opaque_data_url_worker();
+                    } else {
+                        init.origin = ImmutableOrigin::new_opaque();
+                    }
                 }
 
                 let global = DedicatedWorkerGlobalScope::new(
@@ -413,7 +435,7 @@ impl DedicatedWorkerGlobalScope {
                     worker_url,
                     devtools_mpsc_port,
                     runtime,
-                    parent_sender.clone(),
+                    parent_event_loop_sender.clone(),
                     own_sender,
                     receiver,
                     closing,
@@ -422,6 +444,7 @@ impl DedicatedWorkerGlobalScope {
                     #[cfg(feature = "webgpu")]
                     gpu_id_hub,
                     control_receiver,
+                    insecure_requests_policy,
                 );
                 // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
                 // registration (#6631), so we instead use a random number and cross our fingers.
@@ -436,9 +459,9 @@ impl DedicatedWorkerGlobalScope {
                     global_scope,
                     CanGc::note(),
                 ) {
-                    Err(_) => {
-                        println!("error loading script {}", serialized_worker_url);
-                        parent_sender
+                    Err(e) => {
+                        error!("error loading script {} ({:?})", serialized_worker_url, e);
+                        parent_event_loop_sender
                             .send(CommonScriptMsg::Task(
                                 WorkerEvent,
                                 Box::new(SimpleWorkerErrorHandler::new(worker)),
@@ -487,7 +510,7 @@ impl DedicatedWorkerGlobalScope {
                             }
                         },
                         reporter_name,
-                        parent_sender,
+                        parent_event_loop_sender,
                         CommonScriptMsg::CollectReports,
                     );
 
@@ -496,24 +519,49 @@ impl DedicatedWorkerGlobalScope {
             .expect("Thread spawning failed")
     }
 
-    pub fn image_cache(&self) -> Arc<dyn ImageCache> {
+    /// The non-None value of the `worker` field can contain a rooted [`TrustedWorkerAddress`]
+    /// version of the main thread's worker object. This is set while handling messages and then
+    /// unset otherwise, ensuring that the main thread object can be garbage collected. See
+    /// [`AutoWorkerReset`].
+    fn replace_worker(
+        &self,
+        new_worker: Option<TrustedWorkerAddress>,
+    ) -> Option<TrustedWorkerAddress> {
+        let old_worker = std::mem::replace(&mut *self.worker.borrow_mut(), new_worker);
+
+        // The `TaskManager` maintains a handle to this `DedicatedWorkerGlobalScope`'s
+        // event_loop_sender, which might in turn have a `TrustedWorkerAddress` rooting of the main
+        // thread's worker, which prevents garbage collection. Resetting it here ensures that
+        // garbage collection of the main thread object can happen again (assuming the new `worker`
+        // is `None`).
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .set_sender(self.event_loop_sender());
+
+        old_worker
+    }
+
+    pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
         self.image_cache.clone()
     }
 
-    pub fn script_chan(&self) -> Box<dyn ScriptChan + Send> {
-        Box::new(WorkerThreadWorkerChan {
+    pub(crate) fn event_loop_sender(&self) -> Option<ScriptEventLoopSender> {
+        Some(ScriptEventLoopSender::DedicatedWorker {
             sender: self.own_sender.clone(),
-            worker: self.worker.borrow().as_ref().unwrap().clone(),
+            main_thread_worker: self.worker.borrow().clone()?,
         })
     }
 
-    pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
-        let (tx, rx) = unbounded();
-        let chan = Box::new(SendableWorkerScriptChan {
-            sender: tx,
-            worker: self.worker.borrow().as_ref().unwrap().clone(),
-        });
-        (chan, Box::new(rx))
+    pub(crate) fn new_script_pair(&self) -> (ScriptEventLoopSender, ScriptEventLoopReceiver) {
+        let (sender, receiver) = unbounded();
+        let main_thread_worker = self.worker.borrow().as_ref().unwrap().clone();
+        (
+            ScriptEventLoopSender::DedicatedWorker {
+                sender,
+                main_thread_worker,
+            },
+            ScriptEventLoopReceiver::DedicatedWorker(receiver),
+        )
     }
 
     fn handle_script_event(&self, msg: WorkerScriptMsg, can_gc: CanGc) {
@@ -523,7 +571,8 @@ impl DedicatedWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = enter_realm(self);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
-                if let Ok(ports) = structuredclone::read(scope.upcast(), data, message.handle_mut())
+                if let Ok(ports) =
+                    structuredclone::read(scope.upcast(), *data, message.handle_mut())
                 {
                     MessageEvent::dispatch_jsval(
                         target,
@@ -564,13 +613,14 @@ impl DedicatedWorkerGlobalScope {
             MixedMessage::Control(DedicatedWorkerControlMsg::Exit) => {
                 return false;
             },
+            MixedMessage::Timer => {},
         }
         true
     }
 
     // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
     #[allow(unsafe_code)]
-    pub fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
+    pub(crate) fn forward_error_to_worker_object(&self, error_info: ErrorInfo) {
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         let task = Box::new(task!(forward_error_to_worker_object: move || {
@@ -598,7 +648,7 @@ impl DedicatedWorkerGlobalScope {
                 global.report_an_error(error_info, HandleValue::null(), CanGc::note());
             }
         }));
-        self.parent_sender
+        self.parent_event_loop_sender
             .send(CommonScriptMsg::Task(
                 WorkerEvent,
                 task,
@@ -622,7 +672,7 @@ impl DedicatedWorkerGlobalScope {
         let task = Box::new(task!(post_worker_message: move || {
             Worker::handle_message(worker, data, CanGc::note());
         }));
-        self.parent_sender
+        self.parent_event_loop_sender
             .send(CommonScriptMsg::Task(
                 WorkerEvent,
                 task,

@@ -5,31 +5,33 @@
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
 
+use base::Epoch;
 use base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
-    MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId,
-    TopLevelBrowsingContextId,
+    MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
-use base::Epoch;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use constellation_traits::{LogEntry, TraversalDirection};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{EmbedderMsg, MediaSessionEvent};
+use embedder_traits::{
+    EmbedderMsg, MediaSessionEvent, TouchEventType, TouchSequenceId, ViewportDetails,
+};
 use euclid::default::Size2D as UntypedSize2D;
-use euclid::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use net_traits::request::RequestBuilder;
-use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
+use net_traits::storage_thread::StorageType;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use style_traits::CSSPixel;
+use strum_macros::IntoStaticStr;
 #[cfg(feature = "webgpu")]
-use webgpu::{wgc, WebGPU, WebGPUResponse};
+use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
+use webrender_api::ImageKey;
 
+use crate::mem::MemoryReportResult;
 use crate::{
-    AnimationState, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg, DocumentState,
-    IFrameLoadInfoWithData, LoadData, MessagePortMsg, PortMessageTask, StructuredSerializedData,
-    WindowSizeType, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
+    AnimationState, AuxiliaryWebViewCreationRequest, BroadcastMsg, DocumentState,
+    IFrameLoadInfoWithData, LoadData, MessagePortMsg, NavigationHistoryBehavior, PortMessageTask,
+    StructuredSerializedData, WindowSizeType, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
 
 /// An iframe sizing operation.
@@ -37,67 +39,24 @@ use crate::{
 pub struct IFrameSizeMsg {
     /// The child browsing context for this iframe.
     pub browsing_context_id: BrowsingContextId,
-    /// The size of the iframe.
-    pub size: Size2D<f32, CSSPixel>,
+    /// The size and scale factor of the iframe.
+    pub size: ViewportDetails,
     /// The kind of sizing operation.
     pub type_: WindowSizeType,
 }
 
-/// Messages from the layout to the constellation.
-#[derive(Deserialize, Serialize)]
-pub enum LayoutMsg {
-    /// Inform the constellation of the size of the iframe's viewport.
-    IFrameSizes(Vec<IFrameSizeMsg>),
-    /// Requests that the constellation inform the compositor that it needs to record
-    /// the time when the frame with the given ID (epoch) is painted.
-    PendingPaintMetric(PipelineId, Epoch),
-}
-
-impl fmt::Debug for LayoutMsg {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use self::LayoutMsg::*;
-        let variant = match *self {
-            IFrameSizes(..) => "IFrameSizes",
-            PendingPaintMetric(..) => "PendingPaintMetric",
-        };
-        write!(formatter, "LayoutMsg::{}", variant)
-    }
-}
-
-/// Whether a DOM event was prevented by web content
+/// Whether the default action for a touch event was prevented by web content
 #[derive(Debug, Deserialize, Serialize)]
-pub enum EventResult {
+pub enum TouchEventResult {
     /// Allowed by web content
-    DefaultAllowed,
+    DefaultAllowed(TouchSequenceId, TouchEventType),
     /// Prevented by web content
-    DefaultPrevented,
+    DefaultPrevented(TouchSequenceId, TouchEventType),
 }
 
-/// A log entry reported to the constellation
-/// We don't report all log entries, just serious ones.
-/// We need a separate type for this because `LogLevel` isn't serializable.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum LogEntry {
-    /// Panic, with a reason and backtrace
-    Panic(String, String),
-    /// Error, with a reason
-    Error(String),
-    /// warning, with a reason
-    Warn(String),
-}
-
-/// <https://html.spec.whatwg.org/multipage/#replacement-enabled>
-#[derive(Debug, Deserialize, Serialize)]
-pub enum HistoryEntryReplacement {
-    /// Traverse the history with replacement enabled.
-    Enabled,
-    /// Traverse the history with replacement disabled.
-    Disabled,
-}
-
-/// Messages from the script to the constellation.
-#[derive(Deserialize, Serialize)]
-pub enum ScriptMsg {
+/// Messages sent from the `ScriptThread` to the `Constellation`.
+#[derive(Deserialize, IntoStaticStr, Serialize)]
+pub enum ScriptToConstellationMessage {
     /// Request to complete the transfer of a set of ports to a router.
     CompleteMessagePortTransfer(MessagePortRouterId, Vec<MessagePortId>),
     /// The results of attempting to complete the transfer of a batch of ports.
@@ -140,9 +99,6 @@ pub enum ScriptMsg {
     ScheduleBroadcast(BroadcastChannelRouterId, BroadcastMsg),
     /// Forward a message to the embedder.
     ForwardToEmbedder(EmbedderMsg),
-    /// Requests are sent to constellation and fetches are checked manually
-    /// for cross-origin loads
-    InitiateNavigateRequest(RequestBuilder, /* cancellation_chan */ IpcReceiver<()>),
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(
@@ -158,15 +114,12 @@ pub enum ScriptMsg {
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintThread(
         UntypedSize2D<u64>,
-        IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
+        IpcSender<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>,
     ),
     /// Notifies the constellation that this frame has received focus.
     Focus,
     /// Get the top-level browsing context info for a given browsing context.
-    GetTopForBrowsingContext(
-        BrowsingContextId,
-        IpcSender<Option<TopLevelBrowsingContextId>>,
-    ),
+    GetTopForBrowsingContext(BrowsingContextId, IpcSender<Option<WebViewId>>),
     /// Get the browsing context id of the browsing context in which pipeline is
     /// embedded and the parent pipeline id of that browsing context.
     GetBrowsingContextInfo(
@@ -184,7 +137,7 @@ pub enum ScriptMsg {
     LoadComplete,
     /// A new load has been requested, with an option to replace the current entry once loaded
     /// instead of adding a new entry.
-    LoadUrl(LoadData, HistoryEntryReplacement),
+    LoadUrl(LoadData, NavigationHistoryBehavior),
     /// Abort loading after sending a LoadUrl message.
     AbortLoadUrl,
     /// Post a message to the currently active window of a given browsing context.
@@ -202,7 +155,7 @@ pub enum ScriptMsg {
         data: StructuredSerializedData,
     },
     /// Inform the constellation that a fragment was navigated to and whether or not it was a replacement navigation.
-    NavigatedToFragment(ServoUrl, HistoryEntryReplacement),
+    NavigatedToFragment(ServoUrl, NavigationHistoryBehavior),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(TraversalDirection),
     /// Inform the constellation of a pushed history state.
@@ -221,7 +174,7 @@ pub enum ScriptMsg {
     /// A load of the initial `about:blank` has been completed in an IFrame.
     ScriptNewIFrame(IFrameLoadInfoWithData),
     /// Script has opened a new auxiliary browsing context.
-    ScriptNewAuxiliary(AuxiliaryBrowsingContextLoadInfo),
+    CreateAuxiliaryWebView(AuxiliaryWebViewCreationRequest),
     /// Mark a new document as active
     ActivateDocument,
     /// Set the document state for a pipeline (used by screenshot / reftests)
@@ -231,7 +184,7 @@ pub enum ScriptMsg {
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(ServoUrl),
     /// Script has handled a touch event, and either prevented or allowed default actions.
-    TouchEventProcessed(EventResult),
+    TouchEventProcessed(TouchEventResult),
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<String>, LogEntry),
     /// Discard the document.
@@ -251,77 +204,25 @@ pub enum ScriptMsg {
     #[cfg(feature = "webgpu")]
     /// Create a WebGPU Adapter instance
     RequestAdapter(
-        IpcSender<WebGPUResponse>,
-        wgc::instance::RequestAdapterOptions,
-        wgc::id::AdapterId,
+        IpcSender<WebGPUAdapterResponse>,
+        wgpu_core::instance::RequestAdapterOptions,
+        wgpu_core::id::AdapterId,
     ),
     #[cfg(feature = "webgpu")]
     /// Get WebGPU channel
     GetWebGPUChan(IpcSender<Option<WebGPU>>),
     /// Notify the constellation of a pipeline's document's title.
     TitleChanged(PipelineId, String),
+    /// Notify the constellation that the size of some `<iframe>`s has changed.
+    IFrameSizes(Vec<IFrameSizeMsg>),
+    /// Request results from the memory reporter.
+    ReportMemory(IpcSender<MemoryReportResult>),
 }
 
-impl fmt::Debug for ScriptMsg {
+impl fmt::Debug for ScriptToConstellationMessage {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        use self::ScriptMsg::*;
-        let variant = match *self {
-            CompleteMessagePortTransfer(..) => "CompleteMessagePortTransfer",
-            MessagePortTransferResult(..) => "MessagePortTransferResult",
-            NewMessagePortRouter(..) => "NewMessagePortRouter",
-            RemoveMessagePortRouter(..) => "RemoveMessagePortRouter",
-            NewMessagePort(..) => "NewMessagePort",
-            RerouteMessagePort(..) => "RerouteMessagePort",
-            RemoveMessagePort(..) => "RemoveMessagePort",
-            MessagePortShipped(..) => "MessagePortShipped",
-            EntanglePorts(..) => "EntanglePorts",
-            NewBroadcastChannelRouter(..) => "NewBroadcastChannelRouter",
-            RemoveBroadcastChannelRouter(..) => "RemoveBroadcastChannelRouter",
-            RemoveBroadcastChannelNameInRouter(..) => "RemoveBroadcastChannelNameInRouter",
-            NewBroadcastChannelNameInRouter(..) => "NewBroadcastChannelNameInRouter",
-            ScheduleBroadcast(..) => "ScheduleBroadcast",
-            ForwardToEmbedder(..) => "ForwardToEmbedder",
-            InitiateNavigateRequest(..) => "InitiateNavigateRequest",
-            BroadcastStorageEvent(..) => "BroadcastStorageEvent",
-            ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
-            CreateCanvasPaintThread(..) => "CreateCanvasPaintThread",
-            Focus => "Focus",
-            GetBrowsingContextInfo(..) => "GetBrowsingContextInfo",
-            GetTopForBrowsingContext(..) => "GetParentBrowsingContext",
-            GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",
-            LoadComplete => "LoadComplete",
-            LoadUrl(..) => "LoadUrl",
-            AbortLoadUrl => "AbortLoadUrl",
-            PostMessage { .. } => "PostMessage",
-            NavigatedToFragment(..) => "NavigatedToFragment",
-            TraverseHistory(..) => "TraverseHistory",
-            PushHistoryState(..) => "PushHistoryState",
-            ReplaceHistoryState(..) => "ReplaceHistoryState",
-            JointSessionHistoryLength(..) => "JointSessionHistoryLength",
-            RemoveIFrame(..) => "RemoveIFrame",
-            SetThrottledComplete(..) => "SetThrottledComplete",
-            ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
-            ScriptNewIFrame(..) => "ScriptNewIFrame",
-            ScriptNewAuxiliary(..) => "ScriptNewAuxiliary",
-            ActivateDocument => "ActivateDocument",
-            SetDocumentState(..) => "SetDocumentState",
-            SetLayoutEpoch(..) => "SetLayoutEpoch",
-            SetFinalUrl(..) => "SetFinalUrl",
-            TouchEventProcessed(..) => "TouchEventProcessed",
-            LogEntry(..) => "LogEntry",
-            DiscardDocument => "DiscardDocument",
-            DiscardTopLevelBrowsingContext => "DiscardTopLevelBrowsingContext",
-            PipelineExited => "PipelineExited",
-            ForwardDOMMessage(..) => "ForwardDOMMessage",
-            ScheduleJob(..) => "ScheduleJob",
-            MediaSessionEvent(..) => "MediaSessionEvent",
-            #[cfg(feature = "webgpu")]
-            RequestAdapter(..) => "RequestAdapter",
-            #[cfg(feature = "webgpu")]
-            GetWebGPUChan(..) => "GetWebGPUChan",
-            TitleChanged(..) => "TitleChanged",
-        };
-        write!(formatter, "ScriptMsg::{}", variant)
+        let variant_string: &'static str = self.into();
+        write!(formatter, "ScriptMsg::{variant_string}")
     }
 }
 
@@ -485,13 +386,4 @@ pub enum SWManagerMsg {
     /// as it will be needed when implementing
     /// <https://github.com/servo/servo/issues/24660>
     PostMessageToClient,
-}
-
-/// The direction of a history traversal
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub enum TraversalDirection {
-    /// Travel forward the given number of documents.
-    Forward(usize),
-    /// Travel backward the given number of documents.
-    Back(usize),
 }

@@ -25,8 +25,16 @@ const select = document.querySelector('select');
 const option1 = document.getElementById('option1');
 const popoverButton = document.getElementById('popover');
 const otherContent = document.getElementById('other');
+
+function assertAppearance() {
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+}
+
 promise_test(async () => {
-  assert_false(select.matches(':open'));
+  assertAppearance();
+  assert_false(select.matches(':open'),
+    'Select should be closed at the start of the test.');
   await test_driver.click(select);
   assert_true(select.matches(':open'),
     'Select should open after clicking the invoker button.');
@@ -41,24 +49,29 @@ promise_test(async () => {
 
   popoverButton.focus();
   const ENTER_KEY = '\uE007';
-  await test_driver.send_keys(document.activeElement, ENTER_KEY);
+  await test_driver.send_keys(popoverButton, ENTER_KEY);
   assert_true(select.matches(':open'),
     'Keyboard-activating the button should also not have closed the popover.');
 
-  await test_driver.click(option1);
-  assert_false(select.matches(':open'),'Picking an option should close select');
+  await test_driver.click(select);
+  assert_false(select.matches(':open'),
+    'Clicking invoker button should close select.');
 }, 'Buttons in the popover should be rendered and should not close the popover when clicked.');
 
 promise_test(async () => {
-  assert_false(select.matches(':open'));
+  assertAppearance();
+  assert_false(select.matches(':open'),
+    'Select should be closed at the start of the test.');
   await test_driver.click(select);
-  assert_true(select.matches(':open'));
+  assert_true(select.matches(':open'),
+    'Select should open after clicking it.');
 
   await test_driver.click(other);
   assert_true(select.matches(':open'),
     'Clicking non-interactive, non-option content should not close the popover.');
 
-  await test_driver.click(option1);
-  assert_false(select.matches(':open'),'Picking an option should close select');
+  await test_driver.click(select);
+  assert_false(select.matches(':open'),
+    'Clicking invoker button should close select.');
 }, 'Non-interactive content in the popover should not close the popover when clicked.');
 </script>

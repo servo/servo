@@ -14,6 +14,8 @@ use euclid::default::Point2D;
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, HarfBuzz is a hard dependency.
 use harfbuzz_sys::{
+    HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY, HB_OT_LAYOUT_BASELINE_TAG_HANGING,
+    HB_OT_LAYOUT_BASELINE_TAG_IDEO_EMBOX_BOTTOM_OR_LEFT, HB_OT_LAYOUT_BASELINE_TAG_ROMAN,
     hb_blob_create, hb_blob_t, hb_bool_t, hb_buffer_add_utf8, hb_buffer_create, hb_buffer_destroy,
     hb_buffer_get_glyph_infos, hb_buffer_get_glyph_positions, hb_buffer_get_length,
     hb_buffer_set_direction, hb_buffer_set_script, hb_buffer_t, hb_codepoint_t,
@@ -21,17 +23,15 @@ use harfbuzz_sys::{
     hb_font_destroy, hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
     hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t, hb_font_set_funcs, hb_font_set_ppem,
     hb_font_set_scale, hb_font_t, hb_glyph_info_t, hb_glyph_position_t, hb_ot_layout_get_baseline,
-    hb_position_t, hb_shape, hb_tag_t, HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY,
-    HB_OT_LAYOUT_BASELINE_TAG_HANGING, HB_OT_LAYOUT_BASELINE_TAG_IDEO_EMBOX_BOTTOM_OR_LEFT,
-    HB_OT_LAYOUT_BASELINE_TAG_ROMAN,
+    hb_position_t, hb_shape, hb_tag_t,
 };
 use log::debug;
 use num_traits::Zero;
 
 use crate::platform::font::FontTable;
 use crate::{
-    fixed_to_float, float_to_fixed, ot_tag, ByteIndex, Font, FontBaseline, FontTableMethods,
-    FontTableTag, GlyphData, GlyphId, GlyphStore, ShapingFlags, ShapingOptions, BASE, KERN,
+    BASE, ByteIndex, Font, FontBaseline, FontTableMethods, FontTableTag, GlyphData, GlyphId,
+    GlyphStore, KERN, ShapingFlags, ShapingOptions, fixed_to_float, float_to_fixed, ot_tag,
 };
 
 const NO_GLYPH: i32 = -1;
@@ -59,10 +59,10 @@ impl ShapedGlyphData {
     /// Passing an invalid buffer pointer to this function results in undefined behavior.
     pub unsafe fn new(buffer: *mut hb_buffer_t) -> ShapedGlyphData {
         let mut glyph_count = 0;
-        let glyph_infos = hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
+        let glyph_infos = unsafe { hb_buffer_get_glyph_infos(buffer, &mut glyph_count) };
         assert!(!glyph_infos.is_null());
         let mut pos_count = 0;
-        let pos_infos = hb_buffer_get_glyph_positions(buffer, &mut pos_count);
+        let pos_infos = unsafe { hb_buffer_get_glyph_positions(buffer, &mut pos_count) };
         assert!(!pos_infos.is_null());
         assert_eq!(glyph_count, pos_count);
 

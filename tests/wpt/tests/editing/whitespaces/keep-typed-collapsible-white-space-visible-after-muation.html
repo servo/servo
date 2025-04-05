@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Even after a mutation after last inserted collapsible white-space shouldn't make it invisible</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  promise_test(async () => {
+    const editingHost = document.querySelector("div[contenteditable]");
+    const utils = new EditorTestUtils(editingHost);
+    utils.setupEditingHost("abc[]<span contenteditable=\"false\">?</span>");
+    await utils.sendKey(" ");
+    const nonEditableSpan = editingHost.querySelector("span[contenteditable=false]");
+    nonEditableSpan.remove();
+    assert_in_array(editingHost.innerHTML, ["abc&nbsp;", "abc <br>"]);
+    test(() => {
+      document.execCommand("undo");
+      assert_equals(editingHost.innerHTML, "abc");
+    }, "Undoing should remove the white-space");
+  }, "Even after mutation, the inserted white-space should be visible");
+}, {once: true});
+</script>
+<body>
+  <div contenteditable></div>
+</body>
+</html>

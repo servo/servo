@@ -11,10 +11,14 @@ on:
         default: ""
         required: false
         type: string
-      wpt-layout:
+      wpt:
         required: false
-        type: string
+        type: boolean
       unit-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
         required: false
         default: false
         type: boolean
@@ -25,6 +29,14 @@ on:
       github-release-id:
         required: false
         type: string
+      force-github-hosted-runner:
+          required: false
+          type: boolean
+          default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       profile:
@@ -36,11 +48,14 @@ on:
         default: ""
         required: false
         type: string
-      wpt-layout:
+      wpt:
         required: false
-        type: choice
-        options: ["none", "2013", "2020", "all"]
+        type: boolean
       unit-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
         required: false
         default: false
         type: boolean
@@ -48,19 +63,44 @@ on:
         required: false
         default: false
         type: boolean
+      force-github-hosted-runner:
+          required: false
+          type: boolean
+          default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
 
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
-  CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
 
 jobs:
+  # Runs the underlying job (“workload”) on a self-hosted runner if available,
+  # with the help of a `runner-select` job and a `runner-timeout` job.
+  runner-select:
+    uses: ./.github/workflows/self-hosted-runner-select.yml
+    secrets: inherit
+    with:
+      github-hosted-runner-label: macos-13
+      self-hosted-image-name: servo-macos13
+      force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
+  runner-timeout:
+    needs:
+      - runner-select
+    uses: ./.github/workflows/self-hosted-runner-timeout.yml
+    secrets: inherit
+    with:
+      unique-id: ${{ needs.runner-select.outputs.unique-id }}
+      is-self-hosted: ${{ fromJSON(needs.runner-select.outputs.is-self-hosted) }}
+
   build:
-    name: MacOS Build
-    runs-on: macos-13
+    needs:
+      - runner-select
+    name: MacOS Build [${{ needs.runner-select.outputs.unique-id }}]
+    runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
       # XProtect can cause random failures if it decides that the DMG we create
       # during the packaging phase is malware.
@@ -70,37 +110,50 @@ jobs:
         run: |
           echo Killing XProtect.; sudo pkill -9 XProtect >/dev/null || true;
       - uses: actions/checkout@v4
-        if: github.event_name != 'pull_request_target'
+        if: runner.environment != 'self-hosted' && github.event_name != 'pull_request_target'
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
       - uses: actions/checkout@v4
-        if: github.event_name == 'pull_request_target'
+        if: runner.environment != 'self-hosted' && github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      # Python 3.13 breaks wptrunner, so pin the version until
-      # web-platform-tests/wpt#48585 is fixed.
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.6
+      # Faster checkout for self-hosted runner that uses prebaked repo.
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name != 'pull_request_target' }}
+        run: git fetch --depth=1 origin $GITHUB_SHA
+      - if: ${{ runner.environment == 'self-hosted' && github.event_name == 'pull_request_target' }}
+        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+      - if: ${{ runner.environment == 'self-hosted' }}
+        # Same as `git switch --detach FETCH_HEAD`, but fixes up dirty working
+        # trees, in case the runner image was baked with a dirty working tree.
+        run: |
+          git switch --detach
+          git reset --hard FETCH_HEAD
+
+      - if: runner.environment != 'self-hosted'
+        name: Setup Python
+        uses: ./.github/actions/setup-python
+
+      # Always install crown, even on self-hosted runners, because it is tightly
+      # coupled to the rustc version, and we may have the wrong version if the
+      # commit we are building uses a different rustc version.
       - name: Install crown
         run: cargo install --path support/crown
-      - name: Bootstrap
+
+      - if: runner.environment != 'self-hosted'
+        name: Bootstrap
         run: |
-          python3 -m pip install --upgrade pip
-          python3 ./mach bootstrap --skip-lints
+          ./mach bootstrap --skip-lints
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})
         run: |
-          python3 ./mach build --use-crown --locked --${{ inputs.profile }}
+          ./mach build --use-crown --locked --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-macos
       - name: Smoketest
         uses: nick-fields/retry@v3
         with: # See https://github.com/servo/servo/issues/30757
           timeout_minutes: 5
           max_attempts: 2
-          command: python3 ./mach smoketest --${{ inputs.profile }}
+          command: ./mach smoketest --${{ inputs.profile }}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
@@ -109,9 +162,13 @@ jobs:
         with:
           timeout_minutes: 40 # https://github.com/servo/servo/issues/30275
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
-          command: python3 ./mach test-unit --${{ inputs.profile }}
+          command: ./mach test-unit --${{ inputs.profile }}
+      - name: Build libservo with examples
+        if: ${{ inputs.build-libservo }}
+        continue-on-error: true
+        run: cargo build -p libservo --all-targets
       - name: Build mach package
-        run: python3 ./mach package --${{ inputs.profile }}
+        run: ./mach package --${{ inputs.profile }}
       - name: Run DMG smoketest
         uses: nick-fields/retry@v3
         with: # See https://github.com/servo/servo/issues/30757
@@ -121,18 +178,18 @@ jobs:
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-macos
+          name: cargo-timings-macos-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
-          name: mac
+          name: ${{ inputs.profile }}-binary-mac
           path: target/${{ inputs.profile }}/servo-tech-demo.dmg
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
-          python3 ./mach upload-nightly mac --secret-from-environment \
+          ./mach upload-nightly mac --secret-from-environment \
             --github-release-id ${{ inputs.github-release-id }}
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
@@ -148,23 +205,25 @@ jobs:
           path: target.tar.gz
 
   wpt-2020:
-    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
+    if: ${{ inputs.wpt }}
     name: MacOS WPT
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
       profile: ${{ inputs.profile }}
-      wpt-layout: "layout-2020"
       wpt-args: ${{ inputs.wpt-args }}
     secrets: inherit
 
-  wpt-2013:
-    if: ${{ inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
-    name: MacOS WPT (Legacy)
+  bencher:
     needs: ["build"]
-    uses: ./.github/workflows/mac-wpt.yml
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    uses: ./.github/workflows/bencher.yml
     with:
+      target: 'macos'
       profile: ${{ inputs.profile }}
-      wpt-layout: "layout-2013"
-      wpt-args: ${{ inputs.wpt-args }}
+      compressed-file-path: ${{ inputs.profile }}-binary-macos/target.tar.gz
+      binary-path: target/${{ inputs.profile }}/servo
+      file-size: true
+      speedometer: false
+      dromaeo: false
     secrets: inherit

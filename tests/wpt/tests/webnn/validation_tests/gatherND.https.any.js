@@ -1,5 +1,5 @@
 // META: title=validation tests for WebNN API gatherND operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -7,6 +7,8 @@
 
 'use strict';
 
+const label = 'gatherND_';
+const regexp = new RegExp('\\[' + label + '\\]');
 const tests = [
   {
     name: '[gatherND] Test gatherND with 5D input 3D indices',
@@ -49,9 +51,7 @@ tests.forEach(test => promise_test(async t => {
                   assert_equals(output.dataType, test.output.dataType);
                   assert_array_equals(output.shape, test.output.shape);
                 } else {
-                  const label = 'gatherND_';
                   const options = {label: label};
-                  const regexp = new RegExp('\\[' + label + '\\]');
                   assert_throws_with_label(
                       () => builder.gatherND(input, indices, options), regexp);
                 }
@@ -74,3 +74,17 @@ multi_builder_test(async (t, builder, otherBuilder) => {
   assert_throws_js(
       TypeError, () => builder.gatherND(input, indicesFromOtherBuilder));
 }, '[gatherND] Throw if indices is from another builder');
+
+promise_test(async t => {
+  const builder = new MLGraphBuilder(context);
+
+  const input = builder.input('input', {
+      dataType: 'float32', shape: [2, 2, 3, 3, 4]});
+  const indices = builder.input('indices', {
+    dataType: 'int32',
+    shape: [context.opSupportLimits().maxTensorByteLength / 4, 1, 1]});
+
+  const options = {label};
+  assert_throws_with_label(
+      () => builder.gatherND(input, indices, options), regexp);
+}, '[gatherND] throw if the output tensor byte length exceeds limit');

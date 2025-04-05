@@ -5,20 +5,21 @@
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::window::Window;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMStringList {
+pub(crate) struct DOMStringList {
     reflector_: Reflector,
     strings: Vec<DOMString>,
 }
 
 impl DOMStringList {
     #[allow(unused)]
-    pub fn new_inherited(strings: Vec<DOMString>) -> DOMStringList {
+    pub(crate) fn new_inherited(strings: Vec<DOMString>) -> DOMStringList {
         DOMStringList {
             reflector_: Reflector::new(),
             strings,
@@ -26,8 +27,16 @@ impl DOMStringList {
     }
 
     #[allow(unused)]
-    pub fn new(window: &Window, strings: Vec<DOMString>) -> DomRoot<DOMStringList> {
-        reflect_dom_object(Box::new(DOMStringList::new_inherited(strings)), window)
+    pub(crate) fn new(
+        window: &Window,
+        strings: Vec<DOMString>,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMStringList> {
+        reflect_dom_object(
+            Box::new(DOMStringList::new_inherited(strings)),
+            window,
+            can_gc,
+        )
     }
 }
 

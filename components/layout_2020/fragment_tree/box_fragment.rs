@@ -3,23 +3,25 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use base::print_tree::PrintTree;
-use serde::Serialize;
 use servo_arc::Arc as ServoArc;
+use style::Zero;
+use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::Zero;
+use style::values::specified::box_::DisplayOutside;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
-use crate::cell::ArcRefCell;
 use crate::formatting_contexts::Baselines;
-use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, ToLogical,
 };
 use crate::style_ext::ComputedValuesExt;
+use crate::table::SpecificTableGridInfo;
+use crate::taffy::SpecificTaffyGridInfo;
 
 /// Describes how a [`BoxFragment`] paints its background.
 pub(crate) enum BackgroundMode {
@@ -39,13 +41,19 @@ pub(crate) struct ExtraBackground {
     pub rect: PhysicalRect<Au>,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Debug)]
+pub(crate) enum SpecificLayoutInfo {
+    Grid(Box<SpecificTaffyGridInfo>),
+    TableCellWithCollapsedBorders,
+    TableGridWithCollapsedBorders(Box<SpecificTableGridInfo>),
+    TableWrapper,
+}
+
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 
-    #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
-    pub children: Vec<ArcRefCell<Fragment>>,
+    pub children: Vec<Fragment>,
 
     /// The content rect of this fragment in the parent fragment's content rectangle. This
     /// does not include padding, border, or margin -- it only includes content.
@@ -76,10 +84,12 @@ pub(crate) struct BoxFragment {
     /// The resolved box insets if this box is `position: sticky`. These are calculated
     /// during stacking context tree construction because they rely on the size of the
     /// scroll container.
-    pub(crate) resolved_sticky_insets: Option<PhysicalSides<AuOrAuto>>,
+    pub(crate) resolved_sticky_insets: AtomicRefCell<Option<PhysicalSides<AuOrAuto>>>,
 
-    #[serde(skip_serializing)]
     pub background_mode: BackgroundMode,
+
+    /// Additional information of from layout that could be used by Javascripts and devtools.
+    pub specific_layout_info: Option<SpecificLayoutInfo>,
 }
 
 impl BoxFragment {
@@ -103,7 +113,7 @@ impl BoxFragment {
         BoxFragment {
             base: base_fragment_info.into(),
             style,
-            children: children.into_iter().map(ArcRefCell::new).collect(),
+            children,
             content_rect,
             padding,
             border,
@@ -112,8 +122,9 @@ impl BoxFragment {
             baselines: Baselines::default(),
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
-            resolved_sticky_insets: None,
+            resolved_sticky_insets: AtomicRefCell::default(),
             background_mode: BackgroundMode::Normal,
+            specific_layout_info: None,
         }
     }
 
@@ -143,7 +154,7 @@ impl BoxFragment {
         //
         // This applies even if there is no baseline set, so we unconditionally set the value here
         // and ignore anything that is set via [`Self::with_baselines`].
-        if self.style.establishes_scroll_container() {
+        if self.style.establishes_scroll_container(self.base.flags) {
             let content_rect_size = self.content_rect.size.to_logical(writing_mode);
             let padding = self.padding.to_logical(writing_mode);
             let border = self.border.to_logical(writing_mode);
@@ -164,6 +175,11 @@ impl BoxFragment {
 
     pub fn set_does_not_paint_background(&mut self) {
         self.background_mode = BackgroundMode::None;
+    }
+
+    pub fn with_specific_layout_info(mut self, info: Option<SpecificLayoutInfo>) -> Self {
+        self.specific_layout_info = info;
+        self
     }
 
     pub fn scrollable_overflow(&self) -> PhysicalRect<Au> {
@@ -212,18 +228,18 @@ impl BoxFragment {
             self.clearance,
             self.scrollable_overflow(),
             self.baselines,
-            self.style.effective_overflow(),
+            self.style.effective_overflow(self.base.flags),
         ));
 
         for child in &self.children {
-            child.borrow().print(tree);
+            child.print(tree);
         }
         tree.end_level();
     }
 
     pub fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
         let mut overflow = self.border_rect();
-        if self.style.establishes_scroll_container() {
+        if self.style.establishes_scroll_container(self.base.flags) {
             return overflow;
         }
 
@@ -235,7 +251,7 @@ impl BoxFragment {
             overflow.max_y().max(scrollable_overflow.max_y()),
         );
 
-        let overflow_style = self.style.effective_overflow();
+        let overflow_style = self.style.effective_overflow(self.base.flags);
         if overflow_style.y == ComputedOverflow::Visible {
             overflow.origin.y = overflow.origin.y.min(scrollable_overflow.origin.y);
             overflow.size.height = bottom_right.y - overflow.origin.y;
@@ -260,7 +276,7 @@ impl BoxFragment {
             "Should not call this method on statically positioned box."
         );
 
-        if let Some(resolved_sticky_insets) = self.resolved_sticky_insets {
+        if let Some(resolved_sticky_insets) = *self.resolved_sticky_insets.borrow() {
             return resolved_sticky_insets;
         }
 
@@ -330,7 +346,32 @@ impl BoxFragment {
     /// Whether this is a non-replaced inline-level box whose inner display type is `flow`.
     /// <https://drafts.csswg.org/css-display-3/#inline-box>
     pub(crate) fn is_inline_box(&self) -> bool {
-        self.style.get_box().display.is_inline_flow() &&
-            !self.base.flags.contains(FragmentFlags::IS_REPLACED)
+        self.style.is_inline_box(self.base.flags)
+    }
+
+    /// Whether this is an atomic inline-level box.
+    /// <https://drafts.csswg.org/css-display-3/#atomic-inline>
+    pub(crate) fn is_atomic_inline_level(&self) -> bool {
+        self.style.get_box().display.outside() == DisplayOutside::Inline && !self.is_inline_box()
+    }
+
+    /// Whether this is a table wrapper box.
+    /// <https://www.w3.org/TR/css-tables-3/#table-wrapper-box>
+    pub(crate) fn is_table_wrapper(&self) -> bool {
+        matches!(
+            self.specific_layout_info,
+            Some(SpecificLayoutInfo::TableWrapper)
+        )
+    }
+
+    pub(crate) fn has_collapsed_borders(&self) -> bool {
+        match &self.specific_layout_info {
+            Some(SpecificLayoutInfo::TableCellWithCollapsedBorders) => true,
+            Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_)) => true,
+            Some(SpecificLayoutInfo::TableWrapper) => {
+                self.style.get_inherited_table().border_collapse == BorderCollapse::Collapse
+            },
+            _ => false,
+        }
     }
 }

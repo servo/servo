@@ -11,7 +11,7 @@ use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::Filter as ComputedFilter;
 use style::values::specified::border::BorderImageRepeatKeyword;
 use webrender_api::{
-    units, FilterOp, ImageRendering, LineStyle, MixBlendMode, RepeatMode, Shadow, TransformStyle,
+    FilterOp, ImageRendering, LineStyle, MixBlendMode, RepeatMode, Shadow, TransformStyle, units,
 };
 
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};

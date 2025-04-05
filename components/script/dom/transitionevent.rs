@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::{
@@ -21,7 +21,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct TransitionEvent {
+pub(crate) struct TransitionEvent {
     event: Event,
     #[no_trace]
     property_name: Atom,
@@ -39,7 +39,7 @@ impl TransitionEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: Atom,
         init: &TransitionEventInit,

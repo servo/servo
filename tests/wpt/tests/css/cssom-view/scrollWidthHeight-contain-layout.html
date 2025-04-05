@@ -25,7 +25,7 @@ let target = document.getElementById("target");
 for (let overflow of ["hidden", "auto", "scroll", "clip"]) {
   for (let padding of ["0", "2px"]) {
     for (let border of ["0", "3px solid"]) {
-      for (let display of ["flex", "block", "inline-block", "inline-flex", "grid", "inline-grid", "inline"]) {
+      for (let display of ["flex", "block", "flow-root", "inline-block", "inline-flex", "grid", "inline-grid", "inline"]) {
         test(function() {
           target.style.display = display;
           target.style.border = border;

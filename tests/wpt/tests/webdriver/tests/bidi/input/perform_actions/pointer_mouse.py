@@ -2,6 +2,7 @@ import pytest
 
 from webdriver.bidi.error import MoveTargetOutOfBoundsException, NoSuchFrameException
 from webdriver.bidi.modules.input import Actions, get_element_origin
+from webdriver.bidi.modules.script import ContextTarget
 
 from tests.support.asserts import assert_move_to_coordinates
 from tests.support.helpers import filter_dict
@@ -16,18 +17,29 @@ from . import (
 
 pytestmark = pytest.mark.asyncio
 
+CONTEXT_LOAD_EVENT = "browsingContext.load"
+
 
 async def test_pointer_down_closes_browsing_context(
-    bidi_session, configuration, get_element, new_tab, inline
+    bidi_session, configuration, get_element, new_tab, inline, subscribe_events,
+    wait_for_event
 ):
     url = inline("""<input onpointerdown="window.close()">close</input>""")
-    await bidi_session.browsing_context.navigate(
-        context=new_tab["context"],
-        url=url,
-        wait="complete",
-    )
 
-    element = await get_element("input", context=new_tab)
+    # Opening a new context via `window.open` is required for script to be able
+    # to close it.
+    await subscribe_events(events=[CONTEXT_LOAD_EVENT])
+    on_load = wait_for_event(CONTEXT_LOAD_EVENT)
+
+    await bidi_session.script.evaluate(
+        expression=f"window.open('{url}')",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=True
+    )
+    # Wait for the new context to be created and get it.
+    new_context = await on_load
+
+    element = await get_element("input", context=new_context)
     origin = get_element_origin(element)
 
     actions = Actions()
@@ -41,7 +53,7 @@ async def test_pointer_down_closes_browsing_context(
 
     with pytest.raises(NoSuchFrameException):
         await bidi_session.input.perform_actions(
-            actions=actions, context=new_tab["context"]
+            actions=actions, context=new_context["context"]
         )
 
 
@@ -80,6 +92,49 @@ async def test_click_at_coordinates(bidi_session, top_context, load_static_test_
     ]
     filtered_events = [filter_dict(e, expected[0]) for e in events]
     assert expected == filtered_events[1:]
+
+
+async def test_click_at_fractional_coordinates(bidi_session, top_context, inline):
+    url = inline("""
+        <script>
+          var allEvents = { events: [] };
+          window.addEventListener("pointermove", ev => {
+            allEvents.events.push({
+                "type": event.type,
+                "pageX": event.pageX,
+                "pageY": event.pageY,
+            });
+          }, { once: true });
+        </script>
+        """)
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=url,
+        wait="complete",
+    )
+
+    target_point = {
+        "x": 5.75,
+        "y": 10.25,
+    }
+
+    actions = Actions()
+    actions.add_pointer().pointer_move(
+        x=target_point["x"], y=target_point["y"])
+
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+
+    events = await get_events(bidi_session, top_context["context"])
+    assert len(events) == 1
+
+    # For now we are allowing any of floor, ceil, or precise values, because
+    # it's unclear what the actual spec requirements really are
+    assert events[0]["type"] == "pointermove"
+    assert events[0]["pageX"] == pytest.approx(target_point["x"], abs=1.0)
+    assert events[0]["pageY"] == pytest.approx(target_point["y"], abs=1.0)
 
 
 @pytest.mark.parametrize("origin", ["element", "pointer", "viewport"])

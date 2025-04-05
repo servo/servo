@@ -8,17 +8,16 @@ use js::rust::HandleObject;
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{
     RTCErrorDetailType, RTCErrorInit, RTCErrorMethods,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::domexception::{DOMErrorName, DOMException};
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::domexception::DOMException;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCError {
-    exception: Dom<DOMException>,
+pub(crate) struct RTCError {
+    exception: DOMException,
     error_detail: RTCErrorDetailType,
     sdp_line_number: Option<i32>,
     http_request_status_code: Option<i32>,
@@ -28,12 +27,9 @@ pub struct RTCError {
 }
 
 impl RTCError {
-    fn new_inherited(global: &GlobalScope, init: &RTCErrorInit, message: DOMString) -> RTCError {
+    fn new_inherited(init: &RTCErrorInit, message: DOMString) -> RTCError {
         RTCError {
-            exception: Dom::from_ref(&*DOMException::new(
-                global,
-                DOMErrorName::from(&message).unwrap(),
-            )),
+            exception: DOMException::new_inherited(message, "OperationError".into()),
             error_detail: init.errorDetail,
             sdp_line_number: init.sdpLineNumber,
             http_request_status_code: init.httpRequestStatusCode,
@@ -43,25 +39,25 @@ impl RTCError {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
+    pub(crate) fn new(
+        window: &Window,
         init: &RTCErrorInit,
         message: DOMString,
         can_gc: CanGc,
     ) -> DomRoot<RTCError> {
-        Self::new_with_proto(global, None, init, message, can_gc)
+        Self::new_with_proto(window, None, init, message, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         init: &RTCErrorInit,
         message: DOMString,
         can_gc: CanGc,
     ) -> DomRoot<RTCError> {
         reflect_dom_object_with_proto(
-            Box::new(RTCError::new_inherited(global, init, message)),
-            global,
+            Box::new(RTCError::new_inherited(init, message)),
+            window,
             proto,
             can_gc,
         )
@@ -77,7 +73,7 @@ impl RTCErrorMethods<crate::DomTypeHolder> for RTCError {
         init: &RTCErrorInit,
         message: DOMString,
     ) -> DomRoot<RTCError> {
-        RTCError::new_with_proto(&window.global(), proto, init, message, can_gc)
+        RTCError::new_with_proto(window, proto, init, message, can_gc)
     }
 
     // https://www.w3.org/TR/webrtc/#dom-rtcerror-errordetail

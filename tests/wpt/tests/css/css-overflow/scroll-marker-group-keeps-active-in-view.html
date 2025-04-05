@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <title>CSS Test: scroll tracking for ::scroll-markers when scroll-marker-group is scrollable </title>
+    <link rel="help" href="https://drafts.csswg.org/css-overflow-5/#active-scroll-marker">
+    <link rel="match" href="scroll-marker-group-keeps-active-in-view-ref.html">
+    <script src="/css/css-transitions/support/helper.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/common/reftest-wait.js"></script>
+  </head>
+  <body>
+    <style>
+    .scroller {
+      height: 500px;
+      width: 80vw;
+      border: solid 1px;
+      overflow-x: scroll;
+      justify-self: center;
+      white-space: nowrap;
+      padding-top: 50px;
+      scroll-snap-type: x mandatory;
+      scroll-marker-group: after;
+      &::scroll-marker-group {
+        border: solid 1px black;
+        height: 40px;
+        width: 500px;
+        display: grid;
+        grid-auto-flow: column;
+        justify-self: center;
+        overflow-x: scroll;
+        white-space: nowrap;
+        scroll-behavior: smooth;
+      }
+      counter-set: markeridx -1;
+    }
+
+    .box {
+      height: 400px;
+      width: 40%;
+      border: 1px solid;
+      display: inline-block;
+      margin-left: 50px;
+      margin-right: 50px;
+      scroll-snap-align: center;
+      align-content: center;
+      text-align: center;
+      &::scroll-marker {
+        content: counter(markeridx);
+        counter-increment: markeridx;
+        width: 20px;
+        height: 20px;
+        background-color: red;
+        margin-left: 100px;
+      }
+      &::scroll-marker:target-current {
+        background-color: green;
+      }
+    }
+
+    </style>
+    <div class="scroller" id="carousel">
+      <div class="box" id="box0"><p>0</p></div>
+      <div class="box" id="box1"><p>1</p></div>
+      <div class="box" id="box2"><p>2</p></div>
+      <div class="box" id="box3"><p>3</p></div>
+      <div class="box" id="box4"><p>4</p></div>
+      <div class="box" id="box5"><p>5</p></div>
+      <div class="box" id="box6"><p>6</p></div>
+      <div class="box" id="box7"><p>7</p></div>
+      <div class="box" id="box8"><p>8</p></div>
+      <div class="box" id="box9"><p>9</p></div>
+      <div class="box" id="box10"><p>10</p></div>
+      <div class="box" id="box11"><p>11</p></div>
+      <div class="box" id="box12"><p>12</p></div>
+      <div class="box" id="box13"><p>13</p></div>
+      <div class="box" id="box14"><p>14</p></div>
+      <div class="box" id="box15"><p>15</p></div>
+    </div>
+    <script>
+      // carousel.scrollLeft = carousel.scrollWidth;
+      async function runTest() {
+        // Wait for the (instant) scroll of the carousel itself.
+        let scrollend_promise =
+          waitForScrollEndFallbackToDelayWithoutScrollEvent(carousel);
+        // Scroll to the max horizontal offset.
+        carousel.scrollLeft = carousel.scrollWidth;
+        await scrollend_promise;
+        // Wait for the (smooth) scroll of the scroll-marker-group pseudo.
+        scrollend_promise =
+          waitForScrollEndFallbackToDelayWithoutScrollEvent(carousel);
+        await scrollend_promise;
+        takeScreenshot();
+      }
+      waitForCompositorReady().then(runTest);
+    </script>
+  </body>
+</html>

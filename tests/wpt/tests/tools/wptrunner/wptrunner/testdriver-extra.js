@@ -58,8 +58,17 @@
         event.stopImmediatePropagation();
     });
 
+    const root_classes = document.documentElement.classList;
+    // For non-testharness tests, the presence of `(ref)test-wait` indicates
+    // it's the "main" browsing context through which testdriver actions are
+    // routed. Evaluate this eagerly before the test starts and removes these
+    // classes.
+    if (root_classes.contains("reftest-wait") || root_classes.contains("test-wait")) {
+      window.__wptrunner_is_test_context = true;
+    }
+
     function is_test_context() {
-      return window.__wptrunner_message_queue !== undefined;
+      return !!window.__wptrunner_is_test_context;
     }
 
     // Code copied from /common/utils.js
@@ -208,13 +217,49 @@
 
     window.test_driver_internal.in_automation = true;
 
-    window.test_driver_internal.bidi.bluetooth.simulate_adapter = function (params) {
+    window.test_driver_internal.bidi.bluetooth.handle_request_device_prompt =
+        function(params) {
+        return create_action('bidi.bluetooth.handle_request_device_prompt', {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
+    window.test_driver_internal.bidi.bluetooth.simulate_adapter =
+        function(params) {
         return create_action("bidi.bluetooth.simulate_adapter", {
             // Default to the current window.
             context: window,
             ...params
         });
     }
+
+    window.test_driver_internal.bidi.bluetooth.simulate_preconnected_peripheral =
+        function(params) {
+        return create_action('bidi.bluetooth.simulate_preconnected_peripheral', {
+            // Default to the current window.
+            context: window,
+            ...params
+        });
+    }
+
+    window.test_driver_internal.bidi.bluetooth.request_device_prompt_updated.subscribe =
+        function(params) {
+        return subscribe(
+            {params, events: ['bluetooth.requestDevicePromptUpdated']})
+    };
+
+    window.test_driver_internal.bidi.bluetooth.request_device_prompt_updated.on =
+        function(callback) {
+        const on_event = (event) => {
+            callback(event.payload);
+        };
+        event_target.addEventListener(
+            'bluetooth.requestDevicePromptUpdated', on_event);
+        return () => event_target.removeEventListener(
+                    'bluetooth.requestDevicePromptUpdated', on_event);
+    };
 
     window.test_driver_internal.bidi.log.entry_added.subscribe =
         function (params) {
@@ -242,7 +287,7 @@
     };
 
     window.test_driver_internal.set_test_context = function(context) {
-        if (window.__wptrunner_message_queue) {
+        if (is_test_context()) {
             throw new Error("Tried to set testharness context in a window containing testharness.js");
         }
         testharness_context = context;
@@ -423,11 +468,17 @@
         return create_context_action("create_virtual_pressure_source", context, {source_type, metadata});
     };
 
-    window.test_driver_internal.update_virtual_pressure_source = function(source_type, sample, context=null) {
-        return create_context_action("update_virtual_pressure_source", context, {source_type, sample});
+    window.test_driver_internal.update_virtual_pressure_source = function(source_type, sample, own_contribution_estimate, context=null) {
+        return create_context_action("update_virtual_pressure_source", context, {source_type, sample, own_contribution_estimate});
     };
 
     window.test_driver_internal.remove_virtual_pressure_source = function(source_type, context=null) {
         return create_context_action("remove_virtual_pressure_source", context, {source_type});
     };
+
+    window.test_driver_internal.set_protected_audience_k_anonymity = function(
+        owner, name, hashes, context=null) {
+      return create_context_action(
+          'set_protected_audience_k_anonymity', context, {owner, name, hashes});
+    }
 })();

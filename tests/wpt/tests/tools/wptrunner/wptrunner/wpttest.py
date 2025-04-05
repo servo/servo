@@ -216,7 +216,8 @@ class Test(ABC):
     long_timeout = 60  # seconds
 
     def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata,
-                 timeout=None, path=None, protocol="http", subdomain=False, pac=None):
+          timeout=None, path=None, protocol="http", subdomain=False, pac=None,
+          testdriver_features=None):
         self.url_base = url_base
         self.tests_root = tests_root
         self.url = url
@@ -224,6 +225,7 @@ class Test(ABC):
         self._test_metadata = test_metadata
         self.timeout = timeout if timeout is not None else self.default_timeout
         self.path = path
+        self.testdriver_features = testdriver_features
         self.subdomain = subdomain
         self.environment = {"url_base": url_base,
                             "protocol": protocol,
@@ -482,9 +484,10 @@ class TestharnessTest(Test):
 
     def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata,
                  timeout=None, path=None, protocol="http", testdriver=False,
-                 jsshell=False, scripts=None, subdomain=False, pac=None):
+                 jsshell=False, scripts=None, subdomain=False, pac=None,
+                 testdriver_features=None):
         Test.__init__(self, url_base, tests_root, url, inherit_metadata, test_metadata, timeout,
-                      path, protocol, subdomain, pac)
+                      path, protocol, subdomain, pac, testdriver_features)
 
         self.testdriver = testdriver
         self.jsshell = jsshell
@@ -494,6 +497,7 @@ class TestharnessTest(Test):
     def from_manifest(cls, manifest_file, manifest_item, inherit_metadata, test_metadata):
         timeout = cls.long_timeout if manifest_item.timeout == "long" else cls.default_timeout
         pac = manifest_item.pac
+        testdriver_features = manifest_item.testdriver_features
         testdriver = manifest_item.testdriver if hasattr(manifest_item, "testdriver") else False
         jsshell = manifest_item.jsshell if hasattr(manifest_item, "jsshell") else False
         script_metadata = manifest_item.script_metadata or []
@@ -506,6 +510,7 @@ class TestharnessTest(Test):
                    test_metadata,
                    timeout=timeout,
                    pac=pac,
+                   testdriver_features=testdriver_features,
                    path=os.path.join(manifest_file.tests_root, manifest_item.path),
                    protocol=server_protocol(manifest_item),
                    testdriver=testdriver,
@@ -535,7 +540,7 @@ class ReftestTest(Test):
 
     def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata, references,
                  timeout=None, path=None, viewport_size=None, dpi=None, fuzzy=None,
-                 protocol="http", subdomain=False):
+                 protocol="http", subdomain=False, testdriver=False):
         Test.__init__(self, url_base, tests_root, url, inherit_metadata, test_metadata, timeout,
                       path, protocol, subdomain)
 
@@ -546,6 +551,7 @@ class ReftestTest(Test):
         self.references = references
         self.viewport_size = self.get_viewport_size(viewport_size)
         self.dpi = dpi
+        self.testdriver = testdriver
         self._fuzzy = fuzzy or {}
 
     @classmethod
@@ -553,7 +559,8 @@ class ReftestTest(Test):
         return {"viewport_size": manifest_test.viewport_size,
                 "dpi": manifest_test.dpi,
                 "protocol": server_protocol(manifest_test),
-                "fuzzy": manifest_test.fuzzy}
+                "fuzzy": manifest_test.fuzzy,
+                "testdriver": bool(getattr(manifest_test, "testdriver", False))}
 
     @classmethod
     def from_manifest(cls,
@@ -692,10 +699,10 @@ class PrintReftestTest(ReftestTest):
 
     def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata, references,
                  timeout=None, path=None, viewport_size=None, dpi=None, fuzzy=None,
-                 page_ranges=None, protocol="http", subdomain=False):
+                 page_ranges=None, protocol="http", subdomain=False, testdriver=False):
         super().__init__(url_base, tests_root, url, inherit_metadata, test_metadata,
                          references, timeout, path, viewport_size, dpi,
-                         fuzzy, protocol, subdomain=subdomain)
+                         fuzzy, protocol, subdomain=subdomain, testdriver=testdriver)
         self._page_ranges = page_ranges
 
     @classmethod
@@ -725,6 +732,26 @@ class WdspecTest(Test):
 class CrashTest(Test):
     result_cls = CrashtestResult
     test_type = "crashtest"
+
+    def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata,
+                 timeout=None, path=None, protocol="http", subdomain=False, testdriver=False):
+        super().__init__(url_base, tests_root, url, inherit_metadata, test_metadata,
+                         timeout, path, protocol, subdomain=subdomain)
+        self.testdriver = testdriver
+
+    @classmethod
+    def from_manifest(cls, manifest_file, manifest_item, inherit_metadata, test_metadata):
+        timeout = cls.long_timeout if manifest_item.timeout == "long" else cls.default_timeout
+        return cls(manifest_file.url_base,
+                   manifest_file.tests_root,
+                   manifest_item.url,
+                   inherit_metadata,
+                   test_metadata,
+                   timeout=timeout,
+                   path=os.path.join(manifest_file.tests_root, manifest_item.path),
+                   protocol=server_protocol(manifest_item),
+                   subdomain=manifest_item.subdomain,
+                   testdriver=bool(getattr(manifest_item, "testdriver", False)))
 
 
 manifest_test_cls = {"reftest": ReftestTest,

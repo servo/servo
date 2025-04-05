@@ -53,7 +53,7 @@ function objectValue(cursorIndex, itemIndex) {
 // objects that will be read by a cursor.
 function writeCursorObjects(database, cursorIndex) {
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction('cache', 'readwrite', {durability: 'relaxed'});
+    const transaction = database.transaction('cache', 'readwrite');
     transaction.onabort = () => { reject(transaction.error); };
 
     const store = transaction.objectStore('cache');
@@ -175,7 +175,7 @@ function cursorTest(cursorCount) {
     }).then(() => {
       return openDatabase(testCase);
     }).then(database => {
-      const transaction = database.transaction('cache', 'readonly', {durability: 'relaxed'});
+      const transaction = database.transaction('cache', 'readonly');
       transaction.onabort = () => { reject(transaction.error); };
 
       const store = transaction.objectStore('cache');

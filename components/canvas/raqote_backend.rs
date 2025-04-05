@@ -7,8 +7,8 @@ use std::collections::HashMap;
 
 use canvas_traits::canvas::*;
 use cssparser::color::clamp_unit_f32;
-use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::Angle;
+use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use font_kit::font::Font;
 use fonts::{ByteIndex, FontIdentifier, FontTemplateRefMethods};
 use log::warn;
@@ -21,7 +21,6 @@ use crate::canvas_data::{
     self, Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, Filter, GenericDrawTarget,
     GenericPathBuilder, GradientStop, GradientStops, Path, SourceSurface, StrokeOptions, TextRun,
 };
-use crate::canvas_paint_thread::AntialiasMode;
 
 thread_local! {
     /// The shared font cache used by all canvases that render on a thread. It would be nicer
@@ -85,12 +84,12 @@ impl Backend for RaqoteBackend {
     }
 
     fn recreate_paint_state<'a>(&self, _state: &CanvasPaintState<'a>) -> CanvasPaintState<'a> {
-        CanvasPaintState::new(AntialiasMode::Default)
+        CanvasPaintState::default()
     }
 }
 
-impl<'a> CanvasPaintState<'a> {
-    pub fn new(_antialias: AntialiasMode) -> CanvasPaintState<'a> {
+impl Default for CanvasPaintState<'_> {
+    fn default() -> Self {
         let pattern = Pattern::Color(255, 0, 0, 0);
         CanvasPaintState {
             draw_options: DrawOptions::Raqote(raqote::DrawOptions::new()),
@@ -118,7 +117,7 @@ pub enum Pattern<'a> {
     Surface(SurfacePattern<'a>),
 }
 
-impl<'a> Pattern<'a> {
+impl Pattern<'_> {
     fn set_transform(&mut self, transform: Transform2D<f32>) {
         match self {
             Pattern::Surface(pattern) => pattern.set_transform(transform),
@@ -297,6 +296,16 @@ impl StrokeOptions {
     pub fn set_line_cap(&mut self, val: LineCapStyle) {
         match self {
             StrokeOptions::Raqote(options) => options.cap = val.to_raqote_style(),
+        }
+    }
+    pub fn set_line_dash(&mut self, items: Vec<f32>) {
+        match self {
+            StrokeOptions::Raqote(options) => options.dash_array = items,
+        }
+    }
+    pub fn set_line_dash_offset(&mut self, offset: f32) {
+        match self {
+            StrokeOptions::Raqote(options) => options.dash_offset = offset,
         }
     }
     pub fn as_raqote(&self) -> &raqote::StrokeStyle {
@@ -808,6 +817,32 @@ impl GenericPathBuilder for PathBuilder {
         };
 
         self.line_to(arc.from());
+
+        arc.for_each_quadratic_bezier(&mut |q| {
+            self.quadratic_curve_to(&q.ctrl, &q.to);
+        });
+    }
+
+    fn svg_arc(
+        &mut self,
+        radius_x: f32,
+        radius_y: f32,
+        rotation_angle: f32,
+        large_arc: bool,
+        sweep: bool,
+        end_point: Point2D<f32>,
+    ) {
+        let Some(start) = self.get_current_point() else {
+            return;
+        };
+
+        let arc = lyon_geom::SvgArc {
+            from: start,
+            to: end_point,
+            radii: lyon_geom::vector(radius_x, radius_y),
+            x_rotation: lyon_geom::Angle::degrees(rotation_angle),
+            flags: lyon_geom::ArcFlags { large_arc, sweep },
+        };
 
         arc.for_each_quadratic_bezier(&mut |q| {
             self.quadratic_curve_to(&q.ctrl, &q.to);

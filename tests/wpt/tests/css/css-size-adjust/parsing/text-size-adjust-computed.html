@@ -18,6 +18,7 @@ test_computed_value("text-size-adjust", 'none', '100%');
 test_computed_value("text-size-adjust", '200%');
 test_computed_value("text-size-adjust", '100%');
 test_computed_value("text-size-adjust", '0%');
+test_computed_value("text-size-adjust", 'calc(10% * sibling-index())', '10%');
 </script>
 </body>
 </html>

@@ -16,6 +16,19 @@
 
       let filePath = 'processors/port-processor.js';
 
+      // AudioWorket to global communication.
+      audit.define(
+          'Test postMessage from AudioWorklet to AudioWorkletGlobalScope',
+          (task, should) => {
+            context.audioWorklet.port.onmessage = (event) => {
+              should(event.data,
+                     'The response from AudioWorkletGlobalscope')
+                  .beEqualTo('hello world');
+              task.done();
+            };
+            context.audioWorklet.port.postMessage("hello world");
+          });
+
       // Creates an AudioWorkletNode and sets an EventHandler on MessagePort
       // object. The associated PortProcessor will post a message upon its
       // construction. Test if the message is received correctly.

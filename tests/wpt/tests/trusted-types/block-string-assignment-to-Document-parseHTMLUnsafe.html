@@ -7,6 +7,8 @@
   <script src="support/helper.sub.js"></script>
 
   <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+
+  <link rel="help" href="https://html.spec.whatwg.org/#dom-parsehtmlunsafe">
 </head>
 <body>
 <script>
@@ -33,7 +35,12 @@
 
   // After default policy creation string assignment implicitly calls createHTML.
   test(t => {
-    let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
+    let p = window.trustedTypes.createPolicy("default", { createHTML:
+      (value, _, sink) => {
+        assert_equals(sink, "Document parseHTMLUnsafe");
+        return createHTMLJS(value);
+      }
+    });
     let doc = Document.parseHTMLUnsafe(INPUTS.HTML);
     assert_equals(doc.body.innerText, RESULTS.HTML);
   }, "'Document.parseHTMLUnsafe(string)' assigned via default policy (successful HTML transformation).");

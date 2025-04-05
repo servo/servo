@@ -4,23 +4,23 @@
 
 use content_security_policy::{CspList, PolicyDisposition, PolicySource};
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::document::{determine_policy_for_token, Document};
+use crate::dom::document::{Document, determine_policy_for_token};
 use crate::dom::element::Element;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlmetaelement::HTMLMetaElement;
-use crate::dom::node::{document_from_node, BindContext, Node, ShadowIncluding};
+use crate::dom::node::{BindContext, Node, NodeTraits, ShadowIncluding};
 use crate::dom::userscripts::load_script;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLHeadElement {
+pub(crate) struct HTMLHeadElement {
     htmlelement: HTMLElement,
 }
 
@@ -35,8 +35,8 @@ impl HTMLHeadElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -55,8 +55,8 @@ impl HTMLHeadElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
-    pub fn set_document_referrer(&self) {
-        let doc = document_from_node(self);
+    pub(crate) fn set_document_referrer(&self) {
+        let doc = self.owner_document();
 
         if doc.GetHead().as_deref() != Some(self) {
             return;
@@ -86,8 +86,8 @@ impl HTMLHeadElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
-    pub fn set_content_security_policy(&self) {
-        let doc = document_from_node(self);
+    pub(crate) fn set_content_security_policy(&self) {
+        let doc = self.owner_document();
 
         if doc.GetHead().as_deref() != Some(self) {
             return;
@@ -132,9 +132,9 @@ impl VirtualMethods for HTMLHeadElement {
     fn super_type(&self) -> Option<&dyn VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
         load_script(self);
     }

@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::PerformanceObserverBinding::{
     PerformanceObserverCallback, PerformanceObserverInit, PerformanceObserverMethods,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::console::Console;
@@ -26,7 +26,7 @@ use crate::dom::performanceobserverentrylist::PerformanceObserverEntryList;
 use crate::script_runtime::{CanGc, JSContext};
 
 /// List of allowed performance entry types, in alphabetical order.
-pub const VALID_ENTRY_TYPES: &[&str] = &[
+pub(crate) const VALID_ENTRY_TYPES: &[&str] = &[
     // "frame", //TODO Frame Timing API
     "mark",       // User Timing API
     "measure",    // User Timing API
@@ -44,7 +44,7 @@ enum ObserverType {
 }
 
 #[dom_struct]
-pub struct PerformanceObserver {
+pub(crate) struct PerformanceObserver {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "can't measure Rc values"]
     callback: Rc<PerformanceObserverCallback>,
@@ -65,7 +65,7 @@ impl PerformanceObserver {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         callback: Rc<PerformanceObserverCallback>,
         entries: DOMPerformanceEntryList,
@@ -74,7 +74,7 @@ impl PerformanceObserver {
         Self::new_with_proto(global, None, callback, entries, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -87,33 +87,38 @@ impl PerformanceObserver {
     }
 
     /// Buffer a new performance entry.
-    pub fn queue_entry(&self, entry: &PerformanceEntry) {
+    pub(crate) fn queue_entry(&self, entry: &PerformanceEntry) {
         self.entries.borrow_mut().push(DomRoot::from_ref(entry));
     }
 
     /// Trigger performance observer callback with the list of performance entries
     /// buffered since the last callback call.
-    pub fn notify(&self) {
+    pub(crate) fn notify(&self, can_gc: CanGc) {
         if self.entries.borrow().is_empty() {
             return;
         }
         let entry_list = PerformanceEntryList::new(self.entries.borrow_mut().drain(..).collect());
-        let observer_entry_list = PerformanceObserverEntryList::new(&self.global(), entry_list);
+        let observer_entry_list =
+            PerformanceObserverEntryList::new(&self.global(), entry_list, can_gc);
         // using self both as thisArg and as the second formal argument
-        let _ = self
-            .callback
-            .Call_(self, &observer_entry_list, self, ExceptionHandling::Report);
+        let _ = self.callback.Call_(
+            self,
+            &observer_entry_list,
+            self,
+            ExceptionHandling::Report,
+            can_gc,
+        );
     }
 
-    pub fn callback(&self) -> Rc<PerformanceObserverCallback> {
+    pub(crate) fn callback(&self) -> Rc<PerformanceObserverCallback> {
         self.callback.clone()
     }
 
-    pub fn entries(&self) -> DOMPerformanceEntryList {
+    pub(crate) fn entries(&self) -> DOMPerformanceEntryList {
         self.entries.borrow().clone()
     }
 
-    pub fn set_entries(&self, entries: DOMPerformanceEntryList) {
+    pub(crate) fn set_entries(&self, entries: DOMPerformanceEntryList) {
         *self.entries.borrow_mut() = entries;
     }
 }
@@ -136,10 +141,15 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
     }
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
-    fn SupportedEntryTypes(cx: JSContext, global: &GlobalScope, retval: MutableHandleValue) {
+    fn SupportedEntryTypes(
+        cx: JSContext,
+        global: &GlobalScope,
+        can_gc: CanGc,
+        retval: MutableHandleValue,
+    ) {
         // While this is exposed through a method of PerformanceObserver,
         // it is specified as associated with the global scope.
-        global.supported_performance_entry_types(cx, retval)
+        global.supported_performance_entry_types(cx, retval, can_gc)
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceobserver-observe()

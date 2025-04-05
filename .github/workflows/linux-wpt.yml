@@ -13,9 +13,6 @@ on:
         default: false
         required: false
         type: boolean
-      wpt-layout:
-        required: true
-        type: string
 
 env:
   RUST_BACKTRACE: 1
@@ -24,12 +21,11 @@ env:
   INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET || '' }}
   INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD || '' }}
   INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING || '' }}
-  WPT_LAYOUT_ARG: "${{ inputs.wpt-layout == 'layout-2013' && '--legacy-layout' || '' }}"
   WPT_ALWAYS_SUCCEED_ARG: "${{ inputs.wpt-sync-from-upstream && '--always-succeed' || '' }}"
 
 jobs:
   linux-wpt:
-    name: WPT ${{ inputs.wpt-layout }}
+    name: WPT
     runs-on: ubuntu-22.04
     env:
       max_chunk_id: 20
@@ -52,29 +48,29 @@ jobs:
           path: ${{ inputs.profile }}-binary-linux
       - name: unPackage binary
         run: tar -xzf ${{ inputs.profile }}-binary-linux/target.tar.gz
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
         run: |
-          python3 -m pip install --upgrade pip
           sudo apt update
-          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
-          python3 ./mach bootstrap --skip-lints
+          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk
+          ./mach bootstrap --skip-lints
       - name: Sync from upstream WPT
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |
           ./mach update-wpt --sync --patch
       - name: Run tests
         run: |
-          mkdir -p wpt-filtered-logs/linux-${{ inputs.wpt-layout }}
-          mkdir -p wpt-full-logs/linux-${{ inputs.wpt-layout }}
-          python3 ./mach test-wpt \
-            $WPT_LAYOUT_ARG \
+          mkdir -p wpt-filtered-logs/linux
+          mkdir -p wpt-full-logs/linux
+          ./mach test-wpt \
             $WPT_ALWAYS_SUCCEED_ARG \
             --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
-            --log-raw wpt-full-logs/linux-${{ inputs.wpt-layout }}/raw/${{ matrix.chunk_id }}.log \
-            --log-wptreport wpt-full-logs/linux-${{ inputs.wpt-layout }}/wptreport/${{ matrix.chunk_id }}.json \
-            --log-raw-unexpected wpt-filtered-logs/linux-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.log \
-            --filter-intermittents wpt-filtered-logs/linux-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.json \
+            --log-raw wpt-full-logs/linux/raw/${{ matrix.chunk_id }}.log \
+            --log-wptreport wpt-full-logs/linux/wptreport/${{ matrix.chunk_id }}.json \
+            --log-raw-unexpected wpt-filtered-logs/linux/${{ matrix.chunk_id }}.log \
+            --filter-intermittents wpt-filtered-logs/linux/${{ matrix.chunk_id }}.json \
             ${{ inputs.wpt-args }}
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
@@ -82,13 +78,13 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}-${{ matrix.chunk_id }}
+          name: wpt-filtered-logs-linux-${{ matrix.chunk_id }}
           path: wpt-filtered-logs/*/
       - name: Archive results (full)
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: wpt-full-logs-linux-${{ inputs.wpt-layout }}-${{ matrix.chunk_id }}
+          name: wpt-full-logs-linux-${{ matrix.chunk_id }}
           path: wpt-full-logs/*/
 
   report-test-results:
@@ -100,29 +96,29 @@ jobs:
       - name: Merge logs (full)
         uses: actions/upload-artifact/merge@v4
         with:
-          name: wpt-full-logs-linux-${{ inputs.wpt-layout }}
-          pattern: wpt-full-logs-linux-${{ inputs.wpt-layout }}-*
+          name: wpt-full-logs-linux
+          pattern: wpt-full-logs-linux-*
           delete-merged: true
       # This job needs to be last. If no filtered results were uploaded, it will fail, but we want to merge other archives in that case.
       - name: Merge logs (filtered)
         uses: actions/upload-artifact/merge@v4
         with:
-          name: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}
-          pattern: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}-*
+          name: wpt-filtered-logs-linux
+          pattern: wpt-filtered-logs-linux-*
           delete-merged: true
       - uses: actions/checkout@v4
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
       - uses: actions/download-artifact@v4
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         with:
-          name: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}
+          name: wpt-filtered-logs-linux
           path: results
       - name: Report results
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         run: |
           etc/ci/report_aggregated_expected_results.py \
-            --tag="linux-wpt-${{ inputs.wpt-layout }}" \
-            results/linux-${{ inputs.wpt-layout }}/*.json
+            --tag="linux-wpt" \
+            results/linux/*.json
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

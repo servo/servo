@@ -4,15 +4,15 @@
 
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
-use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::color::AbsoluteColor;
-use style::str::{read_numbers, HTML_SPACE_CHARACTERS};
+use style::str::{HTML_SPACE_CHARACTERS, read_numbers};
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
+use stylo_atoms::Atom;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
@@ -27,7 +27,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLFontElement {
+pub(crate) struct HTMLFontElement {
     htmlelement: HTMLElement,
 }
 
@@ -42,8 +42,8 @@ impl HTMLFontElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -144,7 +144,7 @@ impl VirtualMethods for HTMLFontElement {
     }
 }
 
-pub trait HTMLFontElementLayoutHelpers {
+pub(crate) trait HTMLFontElementLayoutHelpers {
     fn get_color(self) -> Option<AbsoluteColor>;
     fn get_face(self) -> Option<Atom>;
     fn get_size(self) -> Option<u32>;

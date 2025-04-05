@@ -1,0 +1,119 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<meta name="timeout" content="long">
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<dialog id="invokee">
+  <button id="containedinvoker" commandfor="invokee" command="close"></button>
+</dialog>
+<button id="invokerbutton" commandfor="invokee" command="showmodal"></button>
+
+<script>
+  function resetState() {
+    invokee.close();
+    try { invokee.hidePopover(); } catch {}
+    invokee.removeAttribute("popover");
+    invokerbutton.removeAttribute("command");
+    containedinvoker.removeAttribute("command");
+  }
+
+  // invalid
+  [
+    "",
+    "foo",
+    "foo-bar",
+    "auto",
+    "showmodal",
+    "show-popover",
+    "hide-popover",
+    "toggle-popover",
+    "show-picker",
+  ].forEach((action) => {
+    test(function (t) {
+      t.add_cleanup(resetState);
+      invokerbutton.setAttribute("command", action);
+      assert_false(invokee.open, "invokee.open");
+      assert_false(invokee.matches(":modal"), "invokee :modal");
+      invokerbutton.click();
+      assert_false(invokee.open, "invokee.open");
+      assert_false(invokee.matches(":modal"), "invokee :modal");
+    }, `invoking (as ${action}) on dialog does nothing`);
+
+    test(function (t) {
+      t.add_cleanup(resetState);
+      containedinvoker.setAttribute("command", action);
+      invokee.show();
+      assert_true(invokee.open, "invokee.open");
+      assert_false(invokee.matches(":modal"), "invokee :modal");
+      containedinvoker.click();
+      assert_true(invokee.open, "invokee.open");
+      assert_false(invokee.matches(":modal"), "invokee :modal");
+    }, `invoking (as ${action}) on open dialog does nothing`);
+
+    test(function (t) {
+      t.add_cleanup(resetState);
+      containedinvoker.setAttribute("command", action);
+      invokee.showModal();
+      assert_true(invokee.open, "invokee.open");
+      assert_true(invokee.matches(":modal"), "invokee :modal");
+      containedinvoker.click();
+      assert_true(invokee.open, "invokee.open");
+      assert_true(invokee.matches(":modal"), "invokee :modal");
+    }, `invoking (as ${action}) on open modal dialog does nothing`);
+
+    test(function (t) {
+      t.add_cleanup(resetState);
+      containedinvoker.setAttribute("command", action);
+      invokee.showModal();
+      assert_true(invokee.open, "invokee.open");
+      assert_true(invokee.matches(":modal"), "invokee :modal");
+      invokee.addEventListener(
+        "command",
+        (e) => {
+          containedinvoker.setAttribute("command", "");
+        },
+        { once: true },
+      );
+      containedinvoker.click();
+      assert_true(invokee.open, "invokee.open");
+      assert_true(invokee.matches(":modal"), "invokee :modal");
+    }, `invoking (as ${action}) on open modal while changing the attributer does nothing`);
+  });
+
+  // Open Popovers using Dialog actions
+  ["show-modal", "close"].forEach((action) => {
+    ["manual", "auto"].forEach((popoverState) => {
+      test(
+        function (t) {
+          t.add_cleanup(resetState);
+          invokee.setAttribute("popover", popoverState);
+          invokee.showPopover();
+          containedinvoker.setAttribute("command", action);
+          assert_true(
+            invokee.matches(":popover-open"),
+            "invokee :popover-open",
+          );
+          assert_false(invokee.open, "invokee.open");
+          assert_false(invokee.matches(":modal"), "invokee :modal");
+          invokee.addEventListener("command", (e) => e.preventDefault(), {
+            once: true,
+          });
+          containedinvoker.click();
+          assert_true(
+            invokee.matches(":popover-open"),
+            "invokee :popover-open",
+          );
+          assert_false(invokee.open, "invokee.open");
+          assert_false(invokee.matches(":modal"), "invokee :modal");
+        },
+        `invoking (as ${
+          action || "explicit empty"
+        }) dialog as open popover=${popoverState} is noop`,
+      );
+    });
+  });
+</script>

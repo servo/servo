@@ -9,10 +9,12 @@ use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
 use euclid::default::Size2D;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{error, warn};
-use malloc_size_of::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use webgpu_traits::{
+    ContextConfiguration, Error, PRESENTATION_BUFFER_COUNT, WebGPUContextId, WebGPUMsg,
+};
 use webrender::{RenderApi, Transaction};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{
@@ -23,32 +25,11 @@ use webrender_traits::{WebrenderExternalImageApi, WebrenderImageSource};
 use wgpu_core::device::HostMap;
 use wgpu_core::global::Global;
 use wgpu_core::id;
-use wgpu_core::resource::{BufferAccessError, BufferMapCallback, BufferMapOperation};
+use wgpu_core::resource::{BufferAccessError, BufferMapOperation};
 
-use crate::{wgt, ContextConfiguration, Error, WebGPUMsg};
+use crate::wgt;
 
-pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 const DEFAULT_IMAGE_FORMAT: ImageFormat = ImageFormat::RGBA8;
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct WebGPUContextId(pub u64);
-
-impl MallocSizeOf for WebGPUContextId {
-    fn size_of(&self, _ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        0
-    }
-}
-
-impl ContextConfiguration {
-    fn format(&self) -> ImageFormat {
-        match self.format {
-            wgt::TextureFormat::Rgba8Unorm => ImageFormat::RGBA8,
-            wgt::TextureFormat::Bgra8Unorm => ImageFormat::BGRA8,
-            // TODO: wgt::TextureFormat::Rgba16Float
-            _ => unreachable!("Unsupported canvas context format in configuration"),
-        }
-    }
-}
 
 pub type WGPUImageMap = Arc<Mutex<HashMap<WebGPUContextId, ContextData>>>;
 
@@ -224,6 +205,7 @@ impl ContextData {
             id: ExternalImageId(context_id.0),
             channel_index: 0,
             image_type: ExternalImageType::Buffer,
+            normalized_uvs: false,
         });
 
         Self {
@@ -382,6 +364,22 @@ impl crate::WGPU {
         );
     }
 
+    pub(crate) fn get_image(&self, context_id: WebGPUContextId) -> IpcSharedMemory {
+        let webgpu_contexts = self.wgpu_image_map.lock().unwrap();
+        let context_data = webgpu_contexts.get(&context_id).unwrap();
+        let buffer_size = context_data.image_desc.buffer_size();
+        let data = if let Some(present_buffer) = context_data
+            .swap_chain
+            .as_ref()
+            .and_then(|swap_chain| swap_chain.data.as_ref())
+        {
+            IpcSharedMemory::from_bytes(present_buffer.slice())
+        } else {
+            IpcSharedMemory::from_byte(0, buffer_size as usize)
+        };
+        data
+    }
+
     pub(crate) fn update_context(
         &self,
         context_id: WebGPUContextId,
@@ -471,15 +469,15 @@ impl crate::WGPU {
         let (encoder_id, error) =
             global.device_create_command_encoder(device_id, &comm_desc, Some(encoder_id));
         err(error)?;
-        let buffer_cv = wgt::ImageCopyBuffer {
+        let buffer_cv = wgt::TexelCopyBufferInfo {
             buffer: buffer_id,
-            layout: wgt::ImageDataLayout {
+            layout: wgt::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(image_desc.buffer_stride() as u32),
                 rows_per_image: None,
             },
         };
-        let texture_cv = wgt::ImageCopyTexture {
+        let texture_cv = wgt::TexelCopyTextureInfo {
             texture: texture_id,
             mip_level: 0,
             origin: wgt::Origin3d::ZERO,
@@ -511,7 +509,7 @@ impl crate::WGPU {
             let webrender_api = Arc::clone(&self.webrender_api);
             let webrender_document = self.webrender_document;
             let token = self.poller.token();
-            BufferMapCallback::from_rust(Box::from(move |result| {
+            Box::new(move |result| {
                 drop(token);
                 update_wr_image(
                     result,
@@ -524,7 +522,7 @@ impl crate::WGPU {
                     image_desc,
                     presentation_id,
                 );
-            }))
+            })
         };
         let map_op = BufferMapOperation {
             host: HostMap::Read,

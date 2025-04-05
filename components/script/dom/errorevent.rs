@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ErrorEventBinding;
@@ -25,7 +25,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
-pub struct ErrorEvent {
+pub(crate) struct ErrorEvent {
     event: Event,
     message: DomRefCell<DOMString>,
     filename: DomRefCell<DOMString>,
@@ -56,7 +56,7 @@ impl ErrorEvent {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: EventBubbles,
@@ -142,6 +142,7 @@ impl ErrorEventMethods<crate::DomTypeHolder> for ErrorEvent {
             init.error.handle(),
             can_gc,
         );
+        event.upcast::<Event>().set_composed(init.parent.composed);
         Ok(event)
     }
 

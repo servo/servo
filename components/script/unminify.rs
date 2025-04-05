@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::env;
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::{Error, Read, Seek, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -23,7 +23,7 @@ pub(crate) trait ScriptSource {
     fn is_external(&self) -> bool;
 }
 
-pub fn create_temp_files() -> Option<(NamedTempFile, File)> {
+pub(crate) fn create_temp_files() -> Option<(NamedTempFile, File)> {
     // Write the minified code to a temporary file and pass its path as an argument
     // to js-beautify to read from. Meanwhile, redirect the process' stdout into
     // another temporary file and read that into a string. This avoids some hangs
@@ -39,12 +39,12 @@ pub fn create_temp_files() -> Option<(NamedTempFile, File)> {
 }
 
 #[derive(Debug)]
-pub enum BeautifyFileType {
+pub(crate) enum BeautifyFileType {
     Css,
     Js,
 }
 
-pub fn execute_js_beautify(input: &Path, output: File, file_type: BeautifyFileType) -> bool {
+pub(crate) fn execute_js_beautify(input: &Path, output: File, file_type: BeautifyFileType) -> bool {
     let mut cmd = Command::new("js-beautify");
     match file_type {
         BeautifyFileType::Js => (),
@@ -64,7 +64,7 @@ pub fn execute_js_beautify(input: &Path, output: File, file_type: BeautifyFileTy
     }
 }
 
-pub fn create_output_file(
+pub(crate) fn create_output_file(
     unminified_dir: String,
     url: &ServoUrl,
     external: Option<bool>,

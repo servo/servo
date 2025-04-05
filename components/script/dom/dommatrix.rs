@@ -16,20 +16,20 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dommatrixreadonly::{
-    dommatrixinit_to_matrix, entries_to_matrix, transform_to_matrix, DOMMatrixReadOnly,
+    DOMMatrixReadOnly, dommatrixinit_to_matrix, entries_to_matrix, transform_to_matrix,
 };
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct DOMMatrix {
+pub(crate) struct DOMMatrix {
     parent: DOMMatrixReadOnly,
 }
 
 #[allow(non_snake_case)]
 impl DOMMatrix {
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         is2D: bool,
         matrix: Transform3D<f64>,
@@ -38,7 +38,7 @@ impl DOMMatrix {
         Self::new_with_proto(global, None, is2D, matrix, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -50,13 +50,13 @@ impl DOMMatrix {
         reflect_dom_object_with_proto(Box::new(dommatrix), global, proto, can_gc)
     }
 
-    pub fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {
+    pub(crate) fn new_inherited(is2D: bool, matrix: Transform3D<f64>) -> Self {
         DOMMatrix {
             parent: DOMMatrixReadOnly::new_inherited(is2D, matrix),
         }
     }
 
-    pub fn from_readonly(
+    pub(crate) fn from_readonly(
         global: &GlobalScope,
         ro: &DOMMatrixReadOnly,
         can_gc: CanGc,

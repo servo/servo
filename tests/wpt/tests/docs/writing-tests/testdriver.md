@@ -13,8 +13,12 @@ written purely using web platform APIs. Outside of automation
 contexts, it allows human operators to provide expected input
 manually (for operations which may be described in simple terms).
 
-It is currently supported only for [testharness.js](testharness)
-tests.
+testdriver.js supports the following test types:
+* [testharness.js](testharness) tests
+* [reftests](reftests) and [print-reftests](print-reftests) that use the
+  `class=reftest-wait` attribute on the root element to control completion
+* [crashtests](crashtest) that use the `class=test-wait` attribute to control
+  completion
 
 ## Markup ##
 
@@ -31,6 +35,20 @@ document when using testdriver from a different context):
 
 The api in `test_driver.bidi` provides access to the
 [WebDriver BiDi](https://w3c.github.io/webdriver-bidi) protocol.
+
+### Markup ###
+
+To use WebDriver BiDi, enable the `bidi` feature in `testdriver.js` by adding the
+`feature=bidi` query string parameter. Details are in [RFC 214: Add testdriver features](https://github.com/web-platform-tests/rfcs/blob/master/rfcs/testdriver-features.md).
+```html
+<script src="/resources/testdriver.js?feature=bidi"></script>
+```
+
+```javascript
+// META: script=/resources/testdriver.js?feature=bidi
+```
+
+[Example](https://github.com/web-platform-tests/wpt/blob/aae46926b1fdccd460e1c6eaaf01ca20b941fbce/infrastructure/webdriver/bidi/subscription.html#L6).
 
 ### Context ###
 
@@ -284,5 +302,8 @@ const event = await log_entry_promise;
 The module provides access to [Web Bluetooth](https://webbluetoothcg.github.io/web-bluetooth).
 
 ```eval_rst
+.. js:autofunction:: test_driver.bidi.bluetooth.handle_request_device_prompt
 .. js:autofunction:: test_driver.bidi.bluetooth.simulate_adapter
+.. js:autofunction:: test_driver.bidi.bluetooth.simulate_preconnected_peripheral
+.. js:autofunction:: test_driver.bidi.bluetooth.request_device_prompt_updated
 ```

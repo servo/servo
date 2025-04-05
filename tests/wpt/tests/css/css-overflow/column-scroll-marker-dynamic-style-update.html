@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: ::scroll-marker dynamic style change</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+#scroller {
+  overflow: hidden;
+  scroll-marker-group: before;
+  columns: 1;
+  gap: 0;
+  height: 100px;
+  width: 100px;
+}
+  #scroller::scroll-marker-group {
+    display: flex;
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+  #scroller::column::scroll-marker {
+    width: 20px;
+    height: 100px;
+    content: "";
+  }
+  #scroller.extra::column::scroll-marker {
+    display: flex;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="scroller">
+  <div style="height:401px;"></div>
+</div>
+<script>
+  document.body.offsetTop;
+  scroller.className = "extra";
+</script>

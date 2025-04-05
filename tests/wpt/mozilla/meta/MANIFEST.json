@@ -9,6 +9,20 @@
       {}
      ]
     ],
+    "datatransferitem-crash.html": [
+     "d11355ab38c1e99e0ba3e10d7dfed18bf26af60b",
+     [
+      null,
+      {}
+     ]
+    ],
+    "iframe_focus-crash.html": [
+     "f991b1a563f3cc44870640ab194708fa239ad89d",
+     [
+      null,
+      {}
+     ]
+    ],
     "test-wait-crash.html": [
      "2419da6af0c278a17b9ff974d4418f9e386ef3e0",
      [
@@ -7581,19 +7595,6 @@
       {}
      ]
     ],
-    "duplicated_scroll_ids.html": [
-     "a0ac8e578ddb63efa9aa673285a38c67c4ba6c2b",
-     [
-      null,
-      [
-       [
-        "/_mozilla/mozilla/duplicated_scroll_ids_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
     "font-element-comma-separated.html": [
      "db7e13f2ca3db0ebd3c610c3c25b052749b85e30",
      [
@@ -10463,10 +10464,6 @@
      "3e68ff395f5475e2b618147f270117f576a5b7bd",
      []
     ],
-    "duplicated_scroll_ids_ref.html": [
-     "6783d72a6629f4938df8126dc5114d936eaaa48f",
-     []
-    ],
     "font-element-comma-separated-ref.html": [
      "97efe2b83d5f78bdac0d4aa951b63342fb1fa1cf",
      []
@@ -10518,7 +10515,11 @@
      []
     ],
     "interfaces.js": [
-     "e2c2de8556c7fa88f54a76a3c18e06be14722de9",
+     "fbfc396b62c55415c0493b7528bd5e2b959452e6",
+     []
+    ],
+    "max-session-history-frame.html": [
+     "192c7235d061b439ef2b57d4b01b170b7412dcdc",
      []
     ],
     "nested_asap_script.js": [
@@ -12754,6 +12755,13 @@
       {}
      ]
     ],
+    "cache-crossorigin.sub.html": [
+     "b186dff229d06886fb613629a6f37cb1f526985f",
+     [
+      null,
+      {}
+     ]
+    ],
     "cache_crossorigin_response.sub.html": [
      "266995f30afa3e9b3472e4cc43be6493c562aef6",
      [
@@ -13495,14 +13503,14 @@
      ]
     ],
     "interfaces.https.html": [
-     "a70a25f44ce0c5aff0eac067afba5ac2d79141d6",
+     "dce05a55fd33326768635c6b3cdb193d526fccdd",
      [
       null,
       {}
      ]
     ],
     "interfaces.worker.js": [
-     "c8e8ae9921eb01f71a63ebbce42ff589d0a12bf8",
+     "d028090d6a8e6637f5251d2a578e905751f88bf7",
      [
       "mozilla/interfaces.worker.html",
       {}
@@ -13529,6 +13537,13 @@
       {}
      ]
     ],
+    "layout_blocker_operations.html": [
+     "2df68bf1c13179688708c97eab19361608b0de82",
+     [
+      null,
+      {}
+     ]
+    ],
     "lenient_this.html": [
      "960c74613f3c2809bb1f2ee6121bf14f28267051",
      [
@@ -13537,7 +13552,7 @@
      ]
     ],
     "like.any.js": [
-     "11e4d86325ce6216754a0e0b760c59beb812db85",
+     "30d8007fb5cbef2847e36fe9b4cb9e6535aaf1e0",
      [
       "mozilla/like.any.html",
       {
@@ -13894,13 +13909,6 @@
       {}
      ]
     ],
-    "range_request_blob_url.html": [
-     "075397620e989dafc814c0ed2bca46bd476bccf6",
-     [
-      null,
-      {}
-     ]
-    ],
     "range_request_file_url.html": [
      "4fd4ddc8b1a9959e90b243795267c220d6a05f5e",
      [
@@ -13997,7 +14005,7 @@
      ]
     },
     "servo-max-session-history.html": [
-     "e49616b326009da98f35bd0384d1715c38a40998",
+     "79fe4073601d7cbe9620132b281065aa6903af47",
      [
       null,
       {}
@@ -14330,6 +14338,15 @@
     ],
     "zero_size_canvas_crash.html": [
      "45eb9b559e8d6105baca5ab4d336de520d33b36b",
+     [
+      null,
+      {}
+     ]
+    ]
+   },
+   "shadow-dom": {
+    "getrootnode-in-deeply-nested-shadow.html": [
+     "355cc270e6020f40176afac26c49a14a59b67169",
      [
       null,
       {}

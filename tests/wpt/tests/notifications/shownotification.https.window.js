@@ -10,7 +10,7 @@ let registration;
 
 promise_setup(async () => {
   await test_driver.set_permission({ name: "notifications" }, "granted");
-  registration = await getActiveServiceWorker("noop-sw.js");
+  registration = await prepareActiveServiceWorker("noop-sw.js");
 });
 
 promise_test(async () => {
@@ -42,6 +42,20 @@ promise_test(async t => {
   assert_equals(notifications[0].title, "supernova", "title should match");
   assert_equals(notifications[0].tag, "quantum", "tag should match");
 }, "fetching notification by tag filter");
+
+promise_test(async t => {
+  t.add_cleanup(closeAllNotifications);
+  await Promise.all([
+    registration.showNotification("thunder", { tag: "moz" }),
+    registration.showNotification("bird", { tag: "moz" }),
+  ]);
+  const notifications = await registration.getNotifications({ tag: "moz" });
+  assert_equals(
+    notifications.length,
+    1,
+    "Should return only the latest notification"
+  );
+}, "fetching same-tagged notification by tag filter");
 
 promise_test(async t => {
   t.add_cleanup(closeAllNotifications);

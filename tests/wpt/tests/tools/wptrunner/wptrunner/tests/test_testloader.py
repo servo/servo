@@ -15,7 +15,7 @@ from ..testloader import (
     TestFilter,
     TestLoader,
     TagFilter,
-    read_include_from_file,
+    read_test_prefixes_from_file,
 )
 from .test_wpttest import make_mock_manifest
 
@@ -113,7 +113,7 @@ def test_include_file():
         f.write(test_cases)
         f.flush()
 
-        include = read_include_from_file(f.name)
+        include = read_test_prefixes_from_file(f.name)
 
         assert len(include) == 4
         assert "/foo/bar-error.https.html" in include

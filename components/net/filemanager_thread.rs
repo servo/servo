@@ -10,8 +10,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
 
+use base::id::WebViewId;
 use embedder_traits::{EmbedderMsg, EmbedderProxy, FilterPattern};
-use headers::{ContentLength, ContentType, HeaderMap, HeaderMapExt};
+use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
 use http::header::{self, HeaderValue};
 use ipc_channel::ipc::{self, IpcSender};
 use log::warn;
@@ -30,6 +31,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::fetch::methods::{CancellationListener, Data, RangeRequestBounds};
+use crate::protocols::get_range_request_bounds;
 use crate::resource_thread::CoreResourceThreadPool;
 
 pub const FILE_CHUNK_SIZE: usize = 32768; //32 KB
@@ -127,12 +129,12 @@ impl FileManager {
     pub fn fetch_file(
         &self,
         done_sender: &mut TokioSender<Data>,
-        cancellation_listener: Arc<Mutex<CancellationListener>>,
+        cancellation_listener: Arc<CancellationListener>,
         id: Uuid,
         file_token: &FileTokenCheck,
         origin: FileOrigin,
         response: &mut Response,
-        range: RangeRequestBounds,
+        range: Option<Range>,
     ) -> Result<(), BlobURLStoreError> {
         self.fetch_blob_buf(
             done_sender,
@@ -140,7 +142,7 @@ impl FileManager {
             &id,
             file_token,
             &origin,
-            range,
+            BlobBounds::Unresolved(range),
             response,
         )
     }
@@ -152,14 +154,14 @@ impl FileManager {
     /// Message handler
     pub fn handle(&self, msg: FileManagerThreadMsg) {
         match msg {
-            FileManagerThreadMsg::SelectFile(filter, sender, origin, opt_test_path) => {
+            FileManagerThreadMsg::SelectFile(webview_id, filter, sender, origin, opt_test_path) => {
                 let store = self.store.clone();
                 let embedder = self.embedder_proxy.clone();
                 self.thread_pool
                     .upgrade()
                     .map(|pool| {
                         pool.spawn(move || {
-                            store.select_file(filter, sender, origin, opt_test_path, embedder);
+                            store.select_file(webview_id, filter, sender, origin, opt_test_path, embedder);
                         });
                     })
                     .unwrap_or_else(|| {
@@ -168,14 +170,20 @@ impl FileManager {
                         );
                     });
             },
-            FileManagerThreadMsg::SelectFiles(filter, sender, origin, opt_test_paths) => {
+            FileManagerThreadMsg::SelectFiles(
+                webview_id,
+                filter,
+                sender,
+                origin,
+                opt_test_paths,
+            ) => {
                 let store = self.store.clone();
                 let embedder = self.embedder_proxy.clone();
                 self.thread_pool
                     .upgrade()
                     .map(|pool| {
                         pool.spawn(move || {
-                            store.select_files(filter, sender, origin, opt_test_paths, embedder);
+                            store.select_files(webview_id, filter, sender, origin, opt_test_paths, embedder);
                         });
                     })
                     .unwrap_or_else(|| {
@@ -210,7 +218,7 @@ impl FileManager {
         done_sender: &mut TokioSender<Data>,
         mut reader: BufReader<File>,
         res_body: ServoArc<Mutex<ResponseBody>>,
-        cancellation_listener: Arc<Mutex<CancellationListener>>,
+        cancellation_listener: Arc<CancellationListener>,
         range: RelativePos,
     ) {
         let done_sender = done_sender.clone();
@@ -219,7 +227,7 @@ impl FileManager {
             .map(|pool| {
                 pool.spawn(move || {
                     loop {
-                        if cancellation_listener.lock().unwrap().cancelled() {
+                        if cancellation_listener.cancelled() {
                             *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
                             let _ = done_sender.send(Data::Cancelled);
                             return;
@@ -281,28 +289,47 @@ impl FileManager {
     fn fetch_blob_buf(
         &self,
         done_sender: &mut TokioSender<Data>,
-        cancellation_listener: Arc<Mutex<CancellationListener>>,
+        cancellation_listener: Arc<CancellationListener>,
         id: &Uuid,
         file_token: &FileTokenCheck,
         origin_in: &FileOrigin,
-        range: RangeRequestBounds,
+        bounds: BlobBounds,
         response: &mut Response,
     ) -> Result<(), BlobURLStoreError> {
         let file_impl = self.store.get_impl(id, file_token, origin_in)?;
+        /*
+           Only Fetch Blob Range Request would have unresolved range, and only in that case we care about range header.
+        */
+        let mut is_range_requested = false;
         match file_impl {
             FileImpl::Memory(buf) => {
-                let range = range
+                let bounds = match bounds {
+                    BlobBounds::Unresolved(range) => {
+                        if range.is_some() {
+                            is_range_requested = true;
+                        }
+                        get_range_request_bounds(range, buf.size)
+                    },
+                    BlobBounds::Resolved(bounds) => bounds,
+                };
+                let range = bounds
                     .get_final(Some(buf.size))
                     .map_err(|_| BlobURLStoreError::InvalidRange)?;
 
-                let range = range.to_abs_range(buf.size as usize);
+                let range = range.to_abs_blob_range(buf.size as usize);
                 let len = range.len() as u64;
+                let content_range = if is_range_requested {
+                    ContentRange::bytes(range.start as u64..range.end as u64, buf.size).ok()
+                } else {
+                    None
+                };
 
                 set_headers(
                     &mut response.headers,
                     len,
                     buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN),
                     /* filename */ None,
+                    content_range,
                 );
 
                 let mut bytes = vec![];
@@ -322,8 +349,17 @@ impl FileManager {
 
                 let file = File::open(&metadata.path)
                     .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
-
-                let range = range
+                let mut is_range_requested = false;
+                let bounds = match bounds {
+                    BlobBounds::Unresolved(range) => {
+                        if range.is_some() {
+                            is_range_requested = true;
+                        }
+                        get_range_request_bounds(range, metadata.size)
+                    },
+                    BlobBounds::Resolved(bounds) => bounds,
+                };
+                let range = bounds
                     .get_final(Some(metadata.size))
                     .map_err(|_| BlobURLStoreError::InvalidRange)?;
 
@@ -340,6 +376,13 @@ impl FileManager {
                     .and_then(|osstr| osstr.to_str())
                     .map(|s| s.to_string());
 
+                let content_range = if is_range_requested {
+                    let abs_range = range.to_abs_blob_range(metadata.size as usize);
+                    ContentRange::bytes(abs_range.start as u64..abs_range.end as u64, metadata.size)
+                        .ok()
+                } else {
+                    None
+                };
                 set_headers(
                     &mut response.headers,
                     metadata.size,
@@ -347,6 +390,7 @@ impl FileManager {
                         .first()
                         .unwrap_or(mime::TEXT_PLAIN),
                     filename,
+                    content_range,
                 );
 
                 self.fetch_file_in_chunks(
@@ -362,20 +406,26 @@ impl FileManager {
             FileImpl::Sliced(parent_id, inner_rel_pos) => {
                 // Next time we don't need to check validity since
                 // we have already done that for requesting URL if necessary.
+                let bounds = RangeRequestBounds::Final(
+                    RelativePos::full_range().slice_inner(&inner_rel_pos),
+                );
                 self.fetch_blob_buf(
                     done_sender,
                     cancellation_listener,
                     &parent_id,
                     file_token,
                     origin_in,
-                    RangeRequestBounds::Final(
-                        RelativePos::full_range().slice_inner(&inner_rel_pos),
-                    ),
+                    BlobBounds::Resolved(bounds),
                     response,
                 )
             },
         }
     }
+}
+
+enum BlobBounds {
+    Unresolved(Option<Range>),
+    Resolved(RangeRequestBounds),
 }
 
 /// File manager's data store. It maintains a thread-safe mapping
@@ -528,17 +578,18 @@ impl FileManagerStore {
 
     fn query_files_from_embedder(
         &self,
+        webview_id: WebViewId,
         patterns: Vec<FilterPattern>,
         multiple_files: bool,
         embedder_proxy: EmbedderProxy,
-    ) -> Option<Vec<String>> {
+    ) -> Option<Vec<PathBuf>> {
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = (
-            None,
-            EmbedderMsg::SelectFiles(patterns, multiple_files, ipc_sender),
-        );
-
-        embedder_proxy.send(msg);
+        embedder_proxy.send(EmbedderMsg::SelectFiles(
+            webview_id,
+            patterns,
+            multiple_files,
+            ipc_sender,
+        ));
         match ipc_receiver.recv() {
             Ok(result) => result,
             Err(e) => {
@@ -550,19 +601,20 @@ impl FileManagerStore {
 
     fn select_file(
         &self,
+        webview_id: WebViewId,
         patterns: Vec<FilterPattern>,
         sender: IpcSender<FileManagerResult<SelectedFile>>,
         origin: FileOrigin,
-        opt_test_path: Option<String>,
+        opt_test_path: Option<PathBuf>,
         embedder_proxy: EmbedderProxy,
     ) {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_path directly for testing convenience
-        let opt_s = if pref!(dom.testing.html_input_element.select_files.enabled) {
+        let opt_s = if pref!(dom_testing_html_input_element_select_files_enabled) {
             opt_test_path
         } else {
-            self.query_files_from_embedder(patterns, false, embedder_proxy)
+            self.query_files_from_embedder(webview_id, patterns, false, embedder_proxy)
                 .and_then(|mut x| x.pop())
         };
 
@@ -580,19 +632,20 @@ impl FileManagerStore {
 
     fn select_files(
         &self,
+        webview_id: WebViewId,
         patterns: Vec<FilterPattern>,
         sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
         origin: FileOrigin,
-        opt_test_paths: Option<Vec<String>>,
+        opt_test_paths: Option<Vec<PathBuf>>,
         embedder_proxy: EmbedderProxy,
     ) {
         // Check if the select_files preference is enabled
         // to ensure process-level security against compromised script;
         // Then try applying opt_test_paths directly for testing convenience
-        let opt_v = if pref!(dom.testing.html_input_element.select_files.enabled) {
+        let opt_v = if pref!(dom_testing_html_input_element_select_files_enabled) {
             opt_test_paths
         } else {
-            self.query_files_from_embedder(patterns, true, embedder_proxy)
+            self.query_files_from_embedder(webview_id, patterns, true, embedder_proxy)
         };
 
         match opt_v {
@@ -924,8 +977,17 @@ fn read_file_in_chunks(
     }
 }
 
-fn set_headers(headers: &mut HeaderMap, content_length: u64, mime: Mime, filename: Option<String>) {
+fn set_headers(
+    headers: &mut HeaderMap,
+    content_length: u64,
+    mime: Mime,
+    filename: Option<String>,
+    content_range: Option<ContentRange>,
+) {
     headers.typed_insert(ContentLength(content_length));
+    if let Some(content_range) = content_range {
+        headers.typed_insert(content_range);
+    }
     headers.typed_insert(ContentType::from(mime.clone()));
     let name = match filename {
         Some(name) => name,

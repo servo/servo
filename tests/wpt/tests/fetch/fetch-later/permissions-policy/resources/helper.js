@@ -1,8 +1,9 @@
 'use strict';
 
 /**
- * Returns an URL to a document that can be used to initialize an iframe to test
- * whether the "deferred-fetch"policy is enabled.
+ * Returns a URL to a document that can be used to initialize an iframe to test
+ * whether the Permissions Policy "deferred-fetch" or "deferred-fetch-minimal"
+ * is enabled.
  */
 function getDeferredFetchPolicyInIframeHelperUrl(iframeOrigin) {
   if (!iframeOrigin.endsWith('/')) {

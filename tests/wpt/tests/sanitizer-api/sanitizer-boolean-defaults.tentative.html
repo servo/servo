@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test boolean defaults in config per PR #254</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+// Test cases extracted from : https://github.com/WICG/sanitizer-api/pull/254
+//
+// These are somewhat redundant with tests in sanitizer-config.tentative.html,
+// so maybe we can long-term merge them together.
+
+// Comments.
+test(t => {
+  function try_unsafe(config) {
+    const div = document.createElement("div");
+    div.setHTMLUnsafe("<!--bla-->", config)
+    return div.innerHTML.includes("<!--");
+  }
+  function try_safe(config) {
+    const div = document.createElement("div");
+    div.setHTML("<!--bla-->", config)
+    return div.innerHTML.includes("<!--");
+  }
+
+  assert_false(new Sanitizer().get().comments, "1");
+  assert_true(new Sanitizer({}).get().comments, "2");
+  assert_true(new Sanitizer({comments: true}).get().comments, "3");
+  assert_false(new Sanitizer({comments: false}).get().comments, "4");
+
+  assert_true(try_unsafe(), "5");
+  assert_true(try_unsafe({sanitizer:{}}), "6");
+  assert_true(try_unsafe({sanitizer:{comments:true}}), "7");
+  assert_false(try_unsafe({sanitizer:{comments:false}}), "8");
+
+  assert_false(try_safe(), "9");
+  assert_false(try_safe({sanitizer:{}}), "10");
+  assert_true(try_safe({sanitizer:{comments:true}}), "11");
+  assert_false(try_safe({sanitizer:{comments:false}}), "12");
+}, "comments");
+
+// Data Attributes:
+test(t => {
+  function try_unsafe(config) {
+    const div = document.createElement("div");
+    div.setHTMLUnsafe("<div data-foo='bar'>", config)
+    return div.innerHTML.includes("data-foo");
+  }
+  function try_safe(config) {
+    const div = document.createElement("div");
+    div.setHTML("<div data-foo='bar'>", config)
+    return div.innerHTML.includes("data-foo");
+  }
+
+  assert_false(new Sanitizer().get().dataAttributes, "1");
+  assert_true(new Sanitizer({}).get().dataAttributes, "2");
+  assert_true(new Sanitizer({dataAttributes: true}).get().dataAttributes, "3");
+  assert_false(new Sanitizer({dataAttributes: false}).get().dataAttributes, "4");
+
+  assert_true(try_unsafe(), "5");
+  assert_true(try_unsafe({sanitizer:{}}), "6");
+  assert_true(try_unsafe({sanitizer:{dataAttributes:true}}), "7");
+  assert_false(try_unsafe({sanitizer:{dataAttributes:false}}), "8");
+
+  assert_false(try_safe(), "9");
+  assert_false(try_safe({sanitizer:{}}), "10");
+  assert_true(try_safe({sanitizer:{dataAttributes:true}}), "11");
+  assert_false(try_safe({sanitizer:{dataAttributes:false}}), "12");
+}, "data attributes");
+
+</script>
+</body>
+</html>

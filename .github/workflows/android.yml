@@ -13,6 +13,11 @@ on:
       github-release-id:
         required: false
         type: string
+      bencher:
+        required: false
+        default: false
+        type: boolean
+
   workflow_dispatch:
     inputs:
       profile:
@@ -20,14 +25,15 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
+      bencher:
+        required: false
+        default: false
+        type: boolean
+
 
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
-  # FIXME: Temporarily commented to see if it helps with #34571.
-  # SCCACHE_GHA_ENABLED: "true"
-  # RUSTC_WRAPPER: "sccache"
-  # CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
 
 jobs:
@@ -56,15 +62,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 2
-      # FIXME: Temporarily commented to see if it helps with #34571.
-      # - name: Run sccache-cache
-      #   uses: mozilla-actions/sccache-action@v0.0.6
       - name: Install crown
         run: cargo install --path support/crown
-      - name: Bootstrap Python
-        run: python3 -m pip install --upgrade pip virtualenv
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
-        run: sudo apt update && python3 ./mach bootstrap --skip-lints
+        run: sudo apt update && ./mach bootstrap --skip-lints
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -79,6 +82,14 @@ jobs:
         id: setup-ndk
         with:
           ndk-version: r26c
+      - name: Setup Gradle caches
+        uses: gradle/actions/setup-gradle@v4
+      - name: Trigger initial download of Gradle with retries
+        run: |
+          for i in {1..4}; do
+            ./gradlew --version && break || { echo "Downloading Gradle failed (attempt $i)." && sleep $((3 ** $i)); };
+          done
+        working-directory: ./support/android/apk/
       - name: Setup Key Store for APK Signing
         env:
           KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
@@ -94,7 +105,7 @@ jobs:
           APK_SIGNING_KEY_ALIAS: ${{ secrets.APK_SIGNING_KEY_ALIAS }}
           APK_SIGNING_KEY_PASS: ${{ secrets.APK_SIGNING_KEY_PASS }}
         run: |
-          python3 ./mach build --use-crown --locked --target ${{ matrix.target }} --${{ inputs.profile }}
+          ./mach build --use-crown --locked --target ${{ matrix.target }} --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-android-${{ matrix.target }}
       # TODO: This is disabled since APK crashes during startup.
       # See https://github.com/servo/servo/issues/31134
@@ -103,13 +114,13 @@ jobs:
       - name: Archive build timing
         uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings-android-${{ matrix.target }}
+          name: cargo-timings-android-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload nightly
         if: ${{ inputs.upload && contains(matrix.target, 'aarch64') }}
         run: |
-          python3 ./mach upload-nightly android \
+          ./mach upload-nightly android \
             --secret-from-environment \
             --github-release-id ${{ inputs.github-release-id }}
         env:
@@ -136,3 +147,21 @@ jobs:
         with:
           name: ${{ inputs.profile }}-library-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
+
+  bencher:
+    needs: ["build"]
+    strategy:
+      matrix:
+        target: ['aarch64-linux-android', 'armv7-linux-androideabi', 'i686-linux-android', 'x86_64-linux-android']
+    if: ${{ inputs.bencher && inputs.profile != 'debug' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
+    name: 'Bencher (${{ matrix.target }})'
+    uses: ./.github/workflows/bencher.yml
+    with:
+      target: android-${{ matrix.target }}
+      profile: ${{ inputs.profile }}
+      compressed-file-path: ${{ inputs.profile }}-binary-android-${{ matrix.target }}/servoapp.apk
+      binary-path: lib/${{ matrix.target == 'aarch64-linux-android' && 'arm64-v8a' || matrix.target == 'armv7-linux-androideabi' && 'armeabi-v7a' || matrix.target == 'i686-linux-android' && 'x86' || matrix.target == 'x86_64-linux-android' && 'x86_64'}}/libservoshell.so
+      file-size: true
+      speedometer: false
+      dromaeo: false
+    secrets: inherit

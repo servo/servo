@@ -512,6 +512,19 @@ class CommandBase(object):
 
         self.target.configure_build_environment(env, self.config, self.context.topdir)
 
+        if sys.platform == 'win32' and 'windows' not in self.target.triple():
+            # aws-lc-rs only supports the Ninja Generator when cross-compiling on windows hosts to non-windows.
+            env['TARGET_CMAKE_GENERATOR'] = "Ninja"
+            if shutil.which('ninja') is None:
+                print("Error: Cross-compiling servo on windows requires the Ninja tool to be installed and in PATH.")
+                print("Hint: Ninja-build is available on github at: https://github.com/ninja-build/ninja/releases")
+                exit(1)
+            # `tr` is also required by the CMake build rules of `aws-lc-rs`
+            if shutil.which('tr') is None:
+                print("Error: Cross-compiling servo on windows requires the `tr` tool, which was not found.")
+                print("Hint: Try running ./mach from `git bash` instead of powershell.")
+                exit(1)
+
         return env
 
     @staticmethod
@@ -797,6 +810,8 @@ class CommandBase(object):
                 if command == 'rustc':
                     args += ["--lib", "--crate-type=cdylib"]
 
+        features = []
+
         if use_crown:
             if 'CARGO_BUILD_RUSTC' in env:
                 current_rustc = env['CARGO_BUILD_RUSTC']
@@ -806,15 +821,14 @@ class CommandBase(object):
                           'These options conflict, please specify only one of them.')
                     sys.exit(1)
             env['CARGO_BUILD_RUSTC'] = 'crown'
-            # Changing `RUSTC` or `CARGO_BUILD_RUSTC` does not cause `cargo check` to
-            # recheck files with the new compiler. `cargo build` is not affected and
-            # triggers a rebuild as expected. To also make `check` work as expected,
-            # we add a dummy `cfg` to RUSTFLAGS when using crown, so as to have different
-            # RUSTFLAGS when using `crown`, to reliably trigger re-checking.
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " --cfg=crown"
+            # Modyfing `RUSTC` or `CARGO_BUILD_RUSTC` to use a linter does not cause
+            # `cargo check` to rebuild. To work around this bug use a `crown` feature
+            # to invalidate caches and force a rebuild / relint.
+            # See https://github.com/servo/servo/issues/35072#issuecomment-2600749483
+            features += ["crown"]
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
-            features = list(self.features)
+            features += list(self.features)
             if self.enable_media:
                 features.append("media-gstreamer")
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
@@ -831,6 +845,10 @@ class CommandBase(object):
 
         if with_debug_assertions or self.config["build"]["debug-assertions"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
+
+        # mozjs gets its Python from `env['PYTHON3']`, which defaults to `python3`,
+        # but uv venv on Windows only provides a `python`, not `python3`.
+        env['PYTHON3'] = "python"
 
         return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 

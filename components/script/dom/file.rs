@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use net_traits::filemanager_thread::SelectedFile;
 use script_traits::serializable::BlobImpl;
-use time_03::{Duration, OffsetDateTime};
+use time::{Duration, OffsetDateTime};
 
 use crate::dom::bindings::codegen::Bindings::FileBinding;
 use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
@@ -18,20 +18,20 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::blob::{blob_parts_to_bytes, normalize_type_string, Blob};
+use crate::dom::blob::{Blob, blob_parts_to_bytes, normalize_type_string};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct File {
+pub(crate) struct File {
     blob: Blob,
     name: DOMString,
     modified: SystemTime,
 }
 
 impl File {
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_inherited(blob_impl: &BlobImpl, name: DOMString, modified: Option<SystemTime>) -> File {
         File {
             blob: Blob::new_inherited(blob_impl),
@@ -41,7 +41,7 @@ impl File {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         blob_impl: BlobImpl,
         name: DOMString,
@@ -51,7 +51,7 @@ impl File {
         Self::new_with_proto(global, None, blob_impl, name, modified, can_gc)
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -71,7 +71,7 @@ impl File {
     }
 
     // Construct from selected file message from file manager thread
-    pub fn new_from_selected(
+    pub(crate) fn new_from_selected(
         window: &Window,
         selected: SelectedFile,
         can_gc: CanGc,
@@ -97,15 +97,15 @@ impl File {
         )
     }
 
-    pub fn file_bytes(&self) -> Result<Vec<u8>, ()> {
+    pub(crate) fn file_bytes(&self) -> Result<Vec<u8>, ()> {
         self.blob.get_bytes()
     }
 
-    pub fn name(&self) -> &DOMString {
+    pub(crate) fn name(&self) -> &DOMString {
         &self.name
     }
 
-    pub fn file_type(&self) -> String {
+    pub(crate) fn file_type(&self) -> String {
         self.blob.type_string()
     }
 }

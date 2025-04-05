@@ -22,23 +22,23 @@ function test_serialization(t,s,c) {
 }
 
 test_serialization(
-    'media-progress(width from 0px to 1000px)',
-    'media-progress(width from 0px to 1000px)',
+    'media-progress(width, 0px, 1000px)',
+    'media-progress(width, 0px, 1000px)',
     '0.8',
 );
 test_serialization(
-    'calc(0.1 * media-progress(height from 0px to 10em))',
-    'calc(0.1 * media-progress(height from 0px to 10em))',
+    'calc(0.1 * media-progress(height, 0px, 10em))',
+    'calc(0.1 * media-progress(height, 0px, 10em))',
     '0.6',
 );
 test_serialization(
-    'calc(media-progress(width from 0px to 100px) / 20)',
-    'calc(media-progress(width from 0px to 100px) / 20)',
+    'calc(media-progress(width, 0px, 100px) / 20)',
+    'calc(0.05 * media-progress(width, 0px, 100px))',
     '0.4'
 );
 test_computed_serialization(
     'width',
-    'calc(1px * media-progress(height from abs(11em - 10rem) to 110px / 10))',
+    'calc(1px * media-progress(height, abs(11em - 10rem), 110px / 10))',
     '590px',
 );
 </script>

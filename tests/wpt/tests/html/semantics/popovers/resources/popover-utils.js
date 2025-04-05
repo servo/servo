@@ -22,7 +22,7 @@ async function clickOn(element) {
 async function sendTab() {
   await waitForRender();
   const kTab = '\uE004';
-  await new test_driver.send_keys(document.activeElement || document.documentElement, kTab);
+  await test_driver.send_keys(document.activeElement || document.documentElement, kTab);
   await waitForRender();
 }
 async function sendShiftTab() {
@@ -39,12 +39,12 @@ async function sendShiftTab() {
 }
 async function sendEscape() {
   await waitForRender();
-  await new test_driver.send_keys(document.activeElement || document.documentElement,'\uE00C'); // Escape
+  await test_driver.send_keys(document.activeElement || document.documentElement,'\uE00C'); // Escape
   await waitForRender();
 }
 async function sendEnter() {
   await waitForRender();
-  await new test_driver.send_keys(document.activeElement || document.documentElement,'\uE007'); // Enter
+  await test_driver.send_keys(document.activeElement || document.documentElement,'\uE007'); // Enter
   await waitForRender();
 }
 function isElementVisible(el) {
@@ -53,34 +53,6 @@ function isElementVisible(el) {
 async function finishAnimations(popover) {
   popover.getAnimations({subtree: true}).forEach(animation => animation.finish());
   await waitForRender();
-}
-let mousemoveInfo;
-function mouseOver(element) {
-  mousemoveInfo?.controller?.abort();
-  const controller = new AbortController();
-  mousemoveInfo = {element, controller, moved: false, started: performance.now()};
-  return (new test_driver.Actions())
-    .pointerMove(0, 0, {origin: element})
-    .send()
-    .then(() => {
-      document.addEventListener("mousemove", (e) => {mousemoveInfo.moved = true;}, {signal: controller.signal});
-    })
-}
-function msSinceMouseOver() {
-  return performance.now() - mousemoveInfo.started;
-}
-function assertMouseStillOver(element) {
-  assert_equals(mousemoveInfo.element, element, 'Broken test harness');
-  assert_false(mousemoveInfo.moved,'Broken test harness');
-}
-async function waitForHoverTime(hoverWaitTimeMs) {
-  await new Promise(resolve => step_timeout(resolve,hoverWaitTimeMs));
-  await waitForRender();
-};
-async function mouseHover(element,hoverWaitTimeMs) {
-  await mouseOver(element);
-  await waitForHoverTime(hoverWaitTimeMs);
-  assertMouseStillOver(element);
 }
 
 // This is a "polyfill" of sorts for the `defaultopen` attribute.
@@ -116,13 +88,6 @@ function showDefaultopenPopoversOnLoad() {
   } else {
     window.addEventListener('load',show,{once:true});
   }
-}
-function popoverHintSupported() {
-  // TODO(crbug.com/1416284): This function should be removed, and
-  // any calls replaced with `true`, once popover=hint ships.
-  const testElement = document.createElement('div');
-  testElement.popover = 'hint';
-  return testElement.popover === 'hint';
 }
 
 function assertPopoverVisibility(popover, isPopover, expectedVisibility, message) {

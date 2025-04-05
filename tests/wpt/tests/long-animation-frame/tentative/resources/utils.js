@@ -52,8 +52,8 @@ async function expect_long_frame(cb, t) {
     t.step_timeout(() => resolve("timeout"), waiting_for_long_frame_timeout));
   let resolve_loaf;
   const received_loaf = new Promise(resolve => { resolve_loaf = resolve; });
-  const generate_loaf = () =>
-    generate_long_animation_frame(very_long_frame_duration).then(resolve_loaf);
+  const generate_loaf = (duration = very_long_frame_duration) =>
+    generate_long_animation_frame(duration).then(resolve_loaf);
   window.generate_loaf_now = generate_loaf;
   await cb(t, generate_loaf);
   const entry = await Promise.race([
@@ -62,6 +62,21 @@ async function expect_long_frame(cb, t) {
   ]);
   delete window.generate_loaf_now;
   return entry;
+}
+
+function generate_long_animation_frame(duration = 120) {
+  busy_wait(duration / 2);
+  const reference_time = performance.now();
+  busy_wait(duration / 2);
+  return new Promise(resolve => new PerformanceObserver((entries, observer) => {
+    const entry = entries.getEntries().find(e =>
+        (e.startTime < reference_time) &&
+        (reference_time < (e.startTime + e.duration)));
+    if (entry) {
+      observer.disconnect();
+      resolve(entry);
+    }
+  }).observe({type: "long-animation-frame"}));
 }
 
 async function expect_long_frame_with_script(cb, predicate, t) {
@@ -134,8 +149,8 @@ function test_self_user_callback(cb, invoker, label) {
     test_loaf_script(cb, invoker, "user-callback", label);
 }
 
-function test_self_event_listener(cb, invoker) {
-  test_loaf_script(cb, invoker, "event-listener");
+function test_self_event_listener(cb, invoker, label) {
+  test_loaf_script(cb, invoker, "event-listener", label);
 }
 
 function test_promise_script(cb, resolve_or_reject, invoker, label) {

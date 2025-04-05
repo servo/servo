@@ -45,7 +45,7 @@ async def test_new_context(bidi_session, wait_for_event, wait_for_future_safe, s
     assert_browsing_context(
         context_info,
         new_context["context"],
-        children=None,
+        children=0,
         url="about:blank",
         parent=None,
         user_context="default"
@@ -105,31 +105,29 @@ async def test_navigate_iframe(
     assert_browsing_context(
         context_info,
         frame["context"],
-        children=None,
+        children=0,
         url=frame_url,
         parent=new_tab["context"],
     )
 
 
 async def test_delete_iframe(
-    bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, new_tab, inline
+    bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, new_tab, inline, test_page_multiple_frames
 ):
     await subscribe_events([CONTEXT_DESTROYED_EVENT])
 
     on_entry = wait_for_event(CONTEXT_DESTROYED_EVENT)
 
-    frame_url = inline("<div>foo</div>")
-    url = inline(f"<iframe src='{frame_url}'></iframe>")
     await bidi_session.browsing_context.navigate(
-        url=url, context=new_tab["context"], wait="complete"
+        url=test_page_multiple_frames, context=new_tab["context"], wait="complete"
     )
 
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
     iframe = contexts[0]["children"][0]
 
-    # Delete the iframe
+    # Delete the first iframe
     await bidi_session.script.evaluate(
-        expression="""document.querySelector('iframe').remove()""",
+        expression="""document.querySelector('iframe:nth-of-type(1)').remove()""",
         target=ContextTarget(new_tab["context"]),
         await_promise=False,
     )
@@ -139,13 +137,13 @@ async def test_delete_iframe(
     assert_browsing_context(
         context_info,
         iframe["context"],
-        children=None,
-        url=frame_url,
+        children=0,
+        url=iframe["url"],
         parent=new_tab["context"],
     )
 
 
-async def test_delete_nested_iframes(
+async def test_nested_iframes_delete_top_iframe(
     bidi_session,
     subscribe_events,
     new_tab,
@@ -179,9 +177,53 @@ async def test_delete_nested_iframes(
     assert_browsing_context(
         events[0],
         top_iframe["context"],
-        children=None,
+        children=1,
         url=test_page_same_origin_frame,
         parent=new_tab["context"],
+    )
+
+    remove_listener()
+
+
+async def test_nested_iframes_delete_deepest_iframe(
+    bidi_session,
+    subscribe_events,
+    new_tab,
+    test_page_nested_frames,
+    test_page_same_origin_frame,
+):
+    await subscribe_events([CONTEXT_DESTROYED_EVENT])
+    # Track all received browsingContext.contextDestroyed events in the events array
+    events = []
+
+    async def on_event(_, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(CONTEXT_DESTROYED_EVENT, on_event)
+
+    await bidi_session.browsing_context.navigate(
+        url=test_page_nested_frames, context=new_tab["context"], wait="complete"
+    )
+
+    contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
+
+    top_iframe = contexts[0]["children"][0]
+    deepest_iframe = contexts[0]["children"][0]["children"][0]
+
+    # Delete deepest iframe
+    await bidi_session.script.evaluate(
+        expression="""document.querySelector('iframe').remove()""",
+        target=ContextTarget(top_iframe["context"]),
+        await_promise=False,
+    )
+
+    assert len(events) == 1
+    assert_browsing_context(
+        events[0],
+        deepest_iframe["context"],
+        children=0,
+        url=deepest_iframe["url"],
+        parent=top_iframe["context"],
     )
 
     remove_listener()
@@ -210,7 +252,7 @@ async def test_iframe_destroy_parent(
     assert_browsing_context(
         events[0],
         new_tab["context"],
-        children=None,
+        children=1,
         url=test_page_nested_frames,
         parent=None,
     )
@@ -283,10 +325,63 @@ async def test_new_user_context(
     assert_browsing_context(
         context_info,
         context["context"],
-        children=None,
+        children=0,
         url="about:blank",
         parent=None,
         user_context=user_context,
     )
 
     remove_listener()
+
+
+async def test_with_user_context_subscription(
+    bidi_session,
+    subscribe_events,
+    create_user_context,
+    wait_for_events
+):
+    user_context = await create_user_context()
+
+    await subscribe_events(
+        events=[CONTEXT_DESTROYED_EVENT], user_contexts=[user_context]
+    )
+
+    context = await bidi_session.browsing_context.create(
+        type_hint="tab", user_context=user_context
+    )
+
+    with wait_for_events([CONTEXT_DESTROYED_EVENT]) as waiter:
+        await bidi_session.browsing_context.close(context=context["context"])
+        events = await waiter.get_events(lambda events: len(events) >= 1)
+        assert len(events) == 1
+
+        assert_browsing_context(
+            events[0][1],
+            context["context"],
+            children=0,
+            url="about:blank",
+            parent=None,
+            user_context=user_context,
+        )
+
+
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+async def test_client_window(bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, type_hint):
+    await subscribe_events([CONTEXT_DESTROYED_EVENT])
+
+    on_entry = wait_for_event(CONTEXT_DESTROYED_EVENT)
+    top_level_context = await bidi_session.browsing_context.create(type_hint=type_hint)
+    contexts = await bidi_session.browsing_context.get_tree(root=top_level_context["context"])
+
+    await bidi_session.browsing_context.close(context=top_level_context["context"])
+    context_info = await wait_for_future_safe(on_entry)
+
+    assert_browsing_context(
+        context_info,
+        top_level_context["context"],
+        children=None,
+        url="about:blank",
+        parent=None,
+        user_context="default",
+        client_window=contexts[0]["clientWindow"]
+    )

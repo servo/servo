@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  // WebKit test runner assumes the tests always run in the same order, so make
+  // sure fetch_tests_from_worker tests run sequentially.
+  setup({explicit_done: true});
+  (async function() {
+    await fetch_tests_from_worker(new Worker(
+      "support/should-sink-type-mismatch-violation-be-blocked-by-csp-002-worker-multiple-violations.js"
+    ));
+    await fetch_tests_from_worker(new Worker(
+      "support/should-sink-type-mismatch-violation-be-blocked-by-csp-002-worker-location.js"
+    ));
+    done();
+  })();
+</script>

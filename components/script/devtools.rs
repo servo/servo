@@ -14,6 +14,7 @@ use devtools_traits::{
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
+use servo_config::pref;
 use uuid::Uuid;
 
 use crate::document_collection::DocumentCollection;
@@ -27,7 +28,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJSValConvertible};
+use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible, jsstring_to_str};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -37,14 +38,14 @@ use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::SourceCode;
-use crate::dom::node::{stylesheets_owner_from_node, window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::CanGc;
 
 #[allow(unsafe_code)]
-pub fn handle_evaluate_js(
+pub(crate) fn handle_evaluate_js(
     global: &GlobalScope,
     eval: String,
     reply: IpcSender<EvaluateJSReply>,
@@ -97,7 +98,7 @@ pub fn handle_evaluate_js(
     reply.send(result).unwrap();
 }
 
-pub fn handle_get_root_node(
+pub(crate) fn handle_get_root_node(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<NodeInfo>>,
@@ -108,7 +109,7 @@ pub fn handle_get_root_node(
     reply.send(info).unwrap();
 }
 
-pub fn handle_get_document_element(
+pub(crate) fn handle_get_document_element(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<NodeInfo>>,
@@ -133,7 +134,7 @@ fn find_node_by_unique_id(
     })
 }
 
-pub fn handle_get_children(
+pub(crate) fn handle_get_children(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -144,15 +145,13 @@ pub fn handle_get_children(
         Some(parent) => {
             let is_whitespace = |node: &NodeInfo| {
                 node.node_type == NodeConstants::TEXT_NODE &&
-                    node.node_value
-                        .as_ref()
-                        .map_or(true, |v| v.trim().is_empty())
+                    node.node_value.as_ref().is_none_or(|v| v.trim().is_empty())
             };
 
             let inline: Vec<_> = parent
                 .children()
                 .map(|child| {
-                    let window = window_from_node(&*child);
+                    let window = child.owner_window();
                     let Some(elem) = child.downcast::<Element>() else {
                         return false;
                     };
@@ -162,30 +161,35 @@ pub fn handle_get_children(
                 })
                 .collect();
 
-            let children: Vec<_> = parent
-                .children()
-                .enumerate()
-                .filter_map(|(i, child)| {
-                    // Filter whitespace only text nodes that are not inline level
-                    // https://firefox-source-docs.mozilla.org/devtools-user/page_inspector/how_to/examine_and_edit_html/index.html#whitespace-only-text-nodes
-                    let prev_inline = i > 0 && inline[i - 1];
-                    let next_inline = i < inline.len() - 1 && inline[i + 1];
+            let mut children = vec![];
+            if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) {
+                if !shadow_root.is_user_agent_widget() ||
+                    pref!(inspector_show_servo_internal_shadow_roots)
+                {
+                    children.push(shadow_root.upcast::<Node>().summarize());
+                }
+            }
+            let children_iter = parent.children().enumerate().filter_map(|(i, child)| {
+                // Filter whitespace only text nodes that are not inline level
+                // https://firefox-source-docs.mozilla.org/devtools-user/page_inspector/how_to/examine_and_edit_html/index.html#whitespace-only-text-nodes
+                let prev_inline = i > 0 && inline[i - 1];
+                let next_inline = i < inline.len() - 1 && inline[i + 1];
 
-                    let info = child.summarize();
-                    if !is_whitespace(&info) {
-                        return Some(info);
-                    }
+                let info = child.summarize();
+                if !is_whitespace(&info) {
+                    return Some(info);
+                }
 
-                    (prev_inline && next_inline).then_some(info)
-                })
-                .collect();
+                (prev_inline && next_inline).then_some(info)
+            });
+            children.extend(children_iter);
 
             reply.send(Some(children)).unwrap();
         },
     };
 }
 
-pub fn handle_get_attribute_style(
+pub(crate) fn handle_get_attribute_style(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -197,9 +201,11 @@ pub fn handle_get_attribute_style(
         Some(found_node) => found_node,
     };
 
-    let elem = node
-        .downcast::<HTMLElement>()
-        .expect("This should be an HTMLElement");
+    let Some(elem) = node.downcast::<HTMLElement>() else {
+        // the style attribute only works on html elements
+        reply.send(None).unwrap();
+        return;
+    };
     let style = elem.Style();
 
     let msg = (0..style.Length())
@@ -216,8 +222,8 @@ pub fn handle_get_attribute_style(
     reply.send(Some(msg)).unwrap();
 }
 
-#[allow(crown::unrooted_must_root)]
-pub fn handle_get_stylesheet_style(
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+pub(crate) fn handle_get_stylesheet_style(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -231,14 +237,14 @@ pub fn handle_get_stylesheet_style(
 
         let document = documents.find_document(pipeline)?;
         let _realm = enter_realm(document.window());
-        let owner = stylesheets_owner_from_node(&*node);
+        let owner = node.stylesheet_list_owner();
 
         let stylesheet = owner.stylesheet_at(stylesheet)?;
         let list = stylesheet.GetCssRules().ok()?;
 
         let styles = (0..list.Length())
             .filter_map(move |i| {
-                let rule = list.Item(i)?;
+                let rule = list.Item(i, can_gc)?;
                 let style = rule.downcast::<CSSStyleRule>()?;
                 if *selector != *style.SelectorText() {
                     return None;
@@ -263,19 +269,20 @@ pub fn handle_get_stylesheet_style(
     reply.send(msg).unwrap();
 }
 
-#[allow(crown::unrooted_must_root)]
-pub fn handle_get_selectors(
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+pub(crate) fn handle_get_selectors(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<(String, usize)>>>,
+    can_gc: CanGc,
 ) {
     let msg = (|| {
         let node = find_node_by_unique_id(documents, pipeline, &node_id)?;
 
         let document = documents.find_document(pipeline)?;
         let _realm = enter_realm(document.window());
-        let owner = stylesheets_owner_from_node(&*node);
+        let owner = node.stylesheet_list_owner();
 
         let rules = (0..owner.stylesheet_count())
             .filter_map(|i| {
@@ -284,7 +291,7 @@ pub fn handle_get_selectors(
                 let elem = node.downcast::<Element>()?;
 
                 Some((0..list.Length()).filter_map(move |j| {
-                    let rule = list.Item(j)?;
+                    let rule = list.Item(j, can_gc)?;
                     let style = rule.downcast::<CSSStyleRule>()?;
                     let selector = style.SelectorText();
                     elem.Matches(selector.clone()).ok()?.then_some(())?;
@@ -300,7 +307,7 @@ pub fn handle_get_selectors(
     reply.send(msg).unwrap();
 }
 
-pub fn handle_get_computed_style(
+pub(crate) fn handle_get_computed_style(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -312,7 +319,7 @@ pub fn handle_get_computed_style(
         Some(found_node) => found_node,
     };
 
-    let window = window_from_node(&*node);
+    let window = node.owner_window();
     let elem = node
         .downcast::<Element>()
         .expect("This should be an element");
@@ -334,7 +341,7 @@ pub fn handle_get_computed_style(
     reply.send(Some(msg)).unwrap();
 }
 
-pub fn handle_get_layout(
+pub(crate) fn handle_get_layout(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -353,7 +360,7 @@ pub fn handle_get_layout(
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 
-    let window = window_from_node(&*node);
+    let window = node.owner_window();
     let elem = node
         .downcast::<Element>()
         .expect("should be getting layout of element");
@@ -395,7 +402,7 @@ fn determine_auto_margins(node: &Node, can_gc: CanGc) -> AutoMargins {
     }
 }
 
-pub fn handle_modify_attribute(
+pub(crate) fn handle_modify_attribute(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -435,7 +442,7 @@ pub fn handle_modify_attribute(
     }
 }
 
-pub fn handle_modify_rule(
+pub(crate) fn handle_modify_rule(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -469,11 +476,11 @@ pub fn handle_modify_rule(
     }
 }
 
-pub fn handle_wants_live_notifications(global: &GlobalScope, send_notifications: bool) {
+pub(crate) fn handle_wants_live_notifications(global: &GlobalScope, send_notifications: bool) {
     global.set_devtools_wants_updates(send_notifications);
 }
 
-pub fn handle_set_timeline_markers(
+pub(crate) fn handle_set_timeline_markers(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     marker_types: Vec<TimelineMarkerType>,
@@ -485,7 +492,7 @@ pub fn handle_set_timeline_markers(
     }
 }
 
-pub fn handle_drop_timeline_markers(
+pub(crate) fn handle_drop_timeline_markers(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     marker_types: Vec<TimelineMarkerType>,
@@ -495,7 +502,7 @@ pub fn handle_drop_timeline_markers(
     }
 }
 
-pub fn handle_request_animation_frame(
+pub(crate) fn handle_request_animation_frame(
     documents: &DocumentCollection,
     id: PipelineId,
     actor_name: String,
@@ -505,13 +512,13 @@ pub fn handle_request_animation_frame(
     }
 }
 
-pub fn handle_reload(documents: &DocumentCollection, id: PipelineId, can_gc: CanGc) {
+pub(crate) fn handle_reload(documents: &DocumentCollection, id: PipelineId, can_gc: CanGc) {
     if let Some(win) = documents.find_window(id) {
         win.Location().reload_without_origin_check(can_gc);
     }
 }
 
-pub fn handle_get_css_database(reply: IpcSender<HashMap<String, CssDatabaseProperty>>) {
+pub(crate) fn handle_get_css_database(reply: IpcSender<HashMap<String, CssDatabaseProperty>>) {
     let database: HashMap<_, _> = ENABLED_LONGHAND_PROPERTIES
         .iter()
         .map(|l| {

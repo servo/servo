@@ -5,8 +5,8 @@
 use std::string::String;
 
 use dom_struct::dom_struct;
-use webgpu::wgc::resource;
-use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
+use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
+use wgpu_core::resource;
 
 use super::gpuconvert::convert_texture_descriptor;
 use crate::conversions::Convert;
@@ -16,15 +16,16 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUTextureMethods, GPUTextureViewDescriptor,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::dom::webgpu::gputextureview::GPUTextureView;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUTexture {
+pub(crate) struct GPUTexture {
     reflector_: Reflector,
     #[no_trace]
     texture: WebGPUTexture,
@@ -35,7 +36,7 @@ pub struct GPUTexture {
     channel: WebGPU,
     #[ignore_malloc_size_of = "defined in wgpu"]
     #[no_trace]
-    texture_size: wgt::Extent3d,
+    texture_size: wgpu_types::Extent3d,
     mip_level_count: u32,
     sample_count: u32,
     dimension: GPUTextureDimension,
@@ -49,7 +50,7 @@ impl GPUTexture {
         texture: WebGPUTexture,
         device: &GPUDevice,
         channel: WebGPU,
-        texture_size: wgt::Extent3d,
+        texture_size: wgpu_types::Extent3d,
         mip_level_count: u32,
         sample_count: u32,
         dimension: GPUTextureDimension,
@@ -73,18 +74,19 @@ impl GPUTexture {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         global: &GlobalScope,
         texture: WebGPUTexture,
         device: &GPUDevice,
         channel: WebGPU,
-        texture_size: wgt::Extent3d,
+        texture_size: wgpu_types::Extent3d,
         mip_level_count: u32,
         sample_count: u32,
         dimension: GPUTextureDimension,
         format: GPUTextureFormat,
         texture_usage: u32,
         label: USVString,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUTexture::new_inherited(
@@ -100,6 +102,7 @@ impl GPUTexture {
                 label,
             )),
             global,
+            can_gc,
         )
     }
 }
@@ -120,14 +123,15 @@ impl Drop for GPUTexture {
 }
 
 impl GPUTexture {
-    pub fn id(&self) -> WebGPUTexture {
+    pub(crate) fn id(&self) -> WebGPUTexture {
         self.texture
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
-    pub fn create(
+    pub(crate) fn create(
         device: &GPUDevice,
         descriptor: &GPUTextureDescriptor,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<GPUTexture>> {
         let (desc, size) = convert_texture_descriptor(descriptor, device)?;
 
@@ -157,6 +161,7 @@ impl GPUTexture {
             descriptor.format,
             descriptor.usage,
             descriptor.parent.label.clone(),
+            can_gc,
         ))
     }
 }
@@ -187,11 +192,14 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
                     .map(|f| self.device.validate_texture_format_required_features(&f))
                     .transpose()?,
                 dimension: descriptor.dimension.map(|dimension| dimension.convert()),
-                range: wgt::ImageSubresourceRange {
+                usage: Some(wgpu_types::TextureUsages::from_bits_retain(
+                    descriptor.usage,
+                )),
+                range: wgpu_types::ImageSubresourceRange {
                     aspect: match descriptor.aspect {
-                        GPUTextureAspect::All => wgt::TextureAspect::All,
-                        GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
-                        GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
+                        GPUTextureAspect::All => wgpu_types::TextureAspect::All,
+                        GPUTextureAspect::Stencil_only => wgpu_types::TextureAspect::StencilOnly,
+                        GPUTextureAspect::Depth_only => wgpu_types::TextureAspect::DepthOnly,
                     },
                     base_mip_level: descriptor.baseMipLevel,
                     mip_level_count: descriptor.mipLevelCount,
@@ -201,7 +209,7 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
             })
         } else {
             self.device
-                .dispatch_error(webgpu::Error::Validation(String::from(
+                .dispatch_error(webgpu_traits::Error::Validation(String::from(
                     "arrayLayerCount and mipLevelCount cannot be 0",
                 )));
             None
@@ -227,6 +235,7 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
             texture_view,
             self,
             descriptor.parent.label.clone(),
+            CanGc::note(),
         ))
     }
 

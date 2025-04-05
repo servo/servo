@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CustomEventBinding;
 use crate::dom::bindings::codegen::Bindings::CustomEventBinding::CustomEventMethods;
@@ -22,7 +22,7 @@ use crate::script_runtime::{CanGc, JSContext};
 
 // https://dom.spec.whatwg.org/#interface-customevent
 #[dom_struct]
-pub struct CustomEvent {
+pub(crate) struct CustomEvent {
     event: Event,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     detail: Heap<JSVal>,
@@ -36,7 +36,7 @@ impl CustomEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<CustomEvent> {
+    pub(crate) fn new_uninitialized(global: &GlobalScope, can_gc: CanGc) -> DomRoot<CustomEvent> {
         Self::new_uninitialized_with_proto(global, None, can_gc)
     }
 
@@ -93,7 +93,7 @@ impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
         type_: DOMString,
         init: RootedTraceableBox<CustomEventBinding::CustomEventInit>,
     ) -> DomRoot<CustomEvent> {
-        CustomEvent::new(
+        let event = CustomEvent::new(
             global,
             proto,
             Atom::from(type_),
@@ -101,7 +101,9 @@ impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
             init.parent.cancelable,
             init.detail.handle(),
             can_gc,
-        )
+        );
+        event.upcast::<Event>().set_composed(init.parent.composed);
+        event
     }
 
     // https://dom.spec.whatwg.org/#dom-customevent-detail

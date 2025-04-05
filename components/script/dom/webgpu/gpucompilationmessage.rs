@@ -5,18 +5,19 @@
 #![allow(dead_code)] // this file is stub as wgpu does not provide info
 
 use dom_struct::dom_struct;
-use webgpu::ShaderCompilationInfo;
+use webgpu_traits::ShaderCompilationInfo;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCompilationMessageMethods, GPUCompilationMessageType,
 };
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::DOMString;
 use crate::dom::types::GlobalScope;
-use crate::test::DOMString;
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct GPUCompilationMessage {
+pub(crate) struct GPUCompilationMessage {
     reflector_: Reflector,
     // #[ignore_malloc_size_of = "defined in wgpu-types"]
     message: DOMString,
@@ -47,7 +48,8 @@ impl GPUCompilationMessage {
         }
     }
 
-    pub fn new(
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
         global: &GlobalScope,
         message: DOMString,
         mtype: GPUCompilationMessageType,
@@ -55,16 +57,22 @@ impl GPUCompilationMessage {
         line_pos: u64,
         offset: u64,
         length: u64,
+        can_gc: CanGc,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(Self::new_inherited(
                 message, mtype, line_num, line_pos, offset, length,
             )),
             global,
+            can_gc,
         )
     }
 
-    pub fn from(global: &GlobalScope, info: ShaderCompilationInfo) -> DomRoot<Self> {
+    pub(crate) fn from(
+        global: &GlobalScope,
+        info: ShaderCompilationInfo,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         GPUCompilationMessage::new(
             global,
             info.message.into(),
@@ -73,6 +81,7 @@ impl GPUCompilationMessage {
             info.line_pos,
             info.offset,
             info.length,
+            can_gc,
         )
     }
 }

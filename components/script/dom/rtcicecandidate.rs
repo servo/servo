@@ -9,15 +9,14 @@ use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::{
     RTCIceCandidateInit, RTCIceCandidateMethods,
 };
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct RTCIceCandidate {
+pub(crate) struct RTCIceCandidate {
     reflector: Reflector,
     candidate: DOMString,
     sdp_m_id: Option<DOMString>,
@@ -26,7 +25,7 @@ pub struct RTCIceCandidate {
 }
 
 impl RTCIceCandidate {
-    pub fn new_inherited(
+    pub(crate) fn new_inherited(
         candidate: DOMString,
         sdp_m_id: Option<DOMString>,
         sdp_m_line_index: Option<u16>,
@@ -41,8 +40,8 @@ impl RTCIceCandidate {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
+    pub(crate) fn new(
+        window: &Window,
         candidate: DOMString,
         sdp_m_id: Option<DOMString>,
         sdp_m_line_index: Option<u16>,
@@ -50,7 +49,7 @@ impl RTCIceCandidate {
         can_gc: CanGc,
     ) -> DomRoot<RTCIceCandidate> {
         Self::new_with_proto(
-            global,
+            window,
             None,
             candidate,
             sdp_m_id,
@@ -61,7 +60,7 @@ impl RTCIceCandidate {
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         candidate: DOMString,
         sdp_m_id: Option<DOMString>,
@@ -76,7 +75,7 @@ impl RTCIceCandidate {
                 sdp_m_line_index,
                 username_fragment,
             )),
-            global,
+            window,
             proto,
             can_gc,
         )
@@ -97,7 +96,7 @@ impl RTCIceCandidateMethods<crate::DomTypeHolder> for RTCIceCandidate {
             ));
         }
         Ok(RTCIceCandidate::new_with_proto(
-            &window.global(),
+            window,
             proto,
             config.candidate.clone(),
             config.sdpMid.clone(),

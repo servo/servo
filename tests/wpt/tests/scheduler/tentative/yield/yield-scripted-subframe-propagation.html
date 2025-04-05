@@ -1,0 +1,49 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  async function getResultsInOrder(promises) {
+    const results = [];
+    const tasks = promises.map(p => p.then(r => results.push(r)));
+    await Promise.all(tasks);
+    return results;
+  }
+
+  promise_test(async t => {
+    await new Promise(resolve => window.onload = resolve);
+    const iframe = document.createElement('iframe');
+    iframe.srcdoc = `
+      <script>
+      window.task = async function() {
+        await scheduler.yield();
+        return "inner";
+      }
+      </scr`+`ipt>
+    `;
+    const p = new Promise(resolve => iframe.onload = resolve);
+    document.body.appendChild(iframe);
+    await p;
+
+    let task1 = scheduler.postTask(
+        iframe.contentWindow.task, {priority: 'user-blocking'});
+    let task2 = scheduler.postTask(() => "outer", {priority: 'user-blocking'});
+    let result = await getResultsInOrder([task1, task2]);
+    assert_equals(result.toString(), "inner,outer",
+        "Expected inner before outer for iframe task with main frame scheduler");
+
+    task1 = iframe.contentWindow.scheduler.postTask(
+        iframe.contentWindow.task, {priority: 'user-blocking'});
+    task2 = scheduler.postTask(() => "outer", {priority: 'user-blocking'});
+    result = await getResultsInOrder([task1, task2]);
+    assert_equals(result.toString(), "inner,outer",
+        "Expected inner before outer for iframe task with iframe scheduler");
+
+    task1 = scheduler.postTask(
+        async () => await iframe.contentWindow.task(), {priority: 'user-blocking'});
+    task2 = scheduler.postTask(() => "outer", {priority: 'user-blocking'});
+    result = await getResultsInOrder([task1, task2]);
+    assert_equals(result.toString(), "inner,outer",
+        "Expected inner before outer for iframe task called from main frame task");
+  }, 'Test scheduler.yield() uses propagated state in same origin frames');
+</script>

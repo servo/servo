@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_atoms::Atom;
+use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLContextEventBinding::{
@@ -20,7 +20,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct WebGLContextEvent {
+pub(crate) struct WebGLContextEvent {
     event: Event,
     status_message: DOMString,
 }
@@ -73,7 +73,7 @@ impl WebGLContextEvent {
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         window: &Window,
         type_: Atom,
         bubbles: EventBubbles,

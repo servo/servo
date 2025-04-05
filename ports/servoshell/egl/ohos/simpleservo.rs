@@ -2,34 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::RefCell;
-use std::convert::TryInto;
+use std::fs;
 use std::os::raw::c_void;
 use std::path::PathBuf;
+use std::ptr::NonNull;
 use std::rc::Rc;
 
-use log::{debug, error, info};
-use ohos_sys::xcomponent::{OH_NativeXComponent, OH_NativeXComponent_GetXComponentSize};
-use servo::compositing::windowing::EmbedderEvent;
-use servo::compositing::CompositeTarget;
-use servo::embedder_traits::resources;
+use dpi::PhysicalSize;
+use log::{debug, info, warn};
+use raw_window_handle::{
+    DisplayHandle, OhosDisplayHandle, OhosNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
+    WindowHandle,
+};
 /// The EventLoopWaker::wake function will be called from any thread.
 /// It will be called to notify embedder that some events are available,
 /// and that perform_updates need to be called
-pub use servo::embedder_traits::EventLoopWaker;
-use servo::euclid::Size2D;
-use servo::servo_config::opts;
-use servo::servo_config::opts::ArgumentParsingResult;
-use servo::servo_url::ServoUrl;
-use servo::webrender_traits::RenderingContext;
-use servo::{self, gl, Servo};
-use surfman::{Connection, SurfaceType};
+pub use servo::EventLoopWaker;
+use servo::{self, Servo, WindowRenderingContext, resources};
+use xcomponent_sys::OH_NativeXComponent;
 
-use crate::egl::host_trait::HostTrait;
-use crate::egl::ohos::resources::ResourceReaderInstance;
-use crate::egl::ohos::InitOpts;
-use crate::egl::servo_glue::{
-    Coordinates, ServoEmbedderCallbacks, ServoGlue, ServoWindowCallbacks,
+use crate::egl::app_state::{
+    Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
 };
+use crate::egl::host_trait::HostTrait;
+use crate::egl::ohos::InitOpts;
+use crate::egl::ohos::resources::ResourceReaderInstance;
+use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
@@ -37,132 +35,111 @@ pub fn init(
     options: InitOpts,
     native_window: *mut c_void,
     xcomponent: *mut OH_NativeXComponent,
-    gl: Rc<dyn gl::Gl>,
     waker: Box<dyn EventLoopWaker>,
     callbacks: Box<dyn HostTrait>,
-) -> Result<ServoGlue, &'static str> {
+) -> Result<Rc<RunningAppState>, &'static str> {
     info!("Entered simpleservo init function");
-    crate::init_tracing();
+    crate::init_crypto();
     let resource_dir = PathBuf::from(&options.resource_dir).join("servo");
-    resources::set(Box::new(ResourceReaderInstance::new(resource_dir)));
-    let mut args = vec!["servoshell".to_string()];
+    debug!("Resources are located at: {:?}", resource_dir);
+    resources::set(Box::new(ResourceReaderInstance::new(resource_dir.clone())));
+
     // It would be nice if `from_cmdline_args()` could accept str slices, to avoid allocations here.
     // Then again, this code could and maybe even should be disabled in production builds.
-    let split_args: Vec<String> = options
-        .commandline_args
-        .split("\u{1f}")
-        .map(|arg| arg.to_string())
-        .collect();
-    args.extend(split_args);
+    let mut args = vec!["servoshell".to_string()];
+    args.extend(
+        options
+            .commandline_args
+            .split("\u{1f}")
+            .map(|arg| arg.to_string()),
+    );
     debug!("Servo commandline args: {:?}", args);
 
-    let mut opts = getopts::Options::new();
-    opts.optopt(
-        "u",
-        "user-agent",
-        "Set custom user agent string (or ios / android / desktop for platform default)",
-        "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)",
-    );
-    opts.optmulti(
-        "",
-        "pref",
-        "A preference to set to enable",
-        "dom.bluetooth.enabled",
-    );
-    opts.optmulti(
-        "",
-        "pref",
-        "A preference to set to disable",
-        "dom.webgpu.enabled=false",
-    );
-    opts.optmulti(
-        "",
-        "prefs-file",
-        "Load in additional prefs from a file.",
-        "--prefs-file /path/to/prefs.json",
-    );
+    let config_dir = PathBuf::from(&options.cache_dir).join("servo");
+    debug!("Configs are located at: {:?}", config_dir);
+    let _ = crate::prefs::DEFAULT_CONFIG_DIR
+        .set(config_dir.clone())
+        .inspect_err(|e| {
+            warn!(
+                "Default Prefs Dir already previously filled. Got error {}",
+                e.display()
+            );
+        });
 
-    let opts_matches = match opts::from_cmdline_args(opts, &args) {
-        ArgumentParsingResult::ContentProcess(matches, _token) => {
-            error!("Content Process mode not supported / tested yet on OpenHarmony!");
-            matches
+    // Try copy `prefs.json` from {this.context.resource_prefsDir}/servo/
+    // to `config_dir` if none exist
+    let source_prefs = resource_dir.join("prefs.json");
+    let target_prefs = config_dir.join("prefs.json");
+    if !target_prefs.exists() && source_prefs.exists() {
+        debug!("Copy {:?} to {:?}", source_prefs, target_prefs);
+        fs::copy(&source_prefs, &target_prefs).unwrap_or_else(|e| {
+            debug!("Copy failed! {:?}", e);
+            0
+        });
+    }
+
+    let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(args) {
+        ArgumentParsingResult::ContentProcess(..) => {
+            unreachable!("OHOS does not have support for multiprocess yet.")
         },
-        ArgumentParsingResult::ChromeProcess(matches) => matches,
+        ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
+            (opts, preferences, servoshell_preferences)
+        },
     };
 
-    crate::prefs::register_user_prefs(&opts_matches);
+    crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
-    gl.clear_color(1.0, 1.0, 1.0, 1.0);
-    gl.clear(gl::COLOR_BUFFER_BIT);
-    gl.finish();
+    let Ok(window_size) = (unsafe { super::get_xcomponent_size(xcomponent, native_window) }) else {
+        return Err("Failed to get xcomponent size");
+    };
+    let coordinates = Coordinates::new(0, 0, window_size.width, window_size.height);
 
-    // Initialize surfman
-    let connection = Connection::new().or(Err("Failed to create connection"))?;
-    let adapter = connection
-        .create_adapter()
-        .or(Err("Failed to create adapter"))?;
+    let display_handle = RawDisplayHandle::Ohos(OhosDisplayHandle::new());
+    let display_handle = unsafe { DisplayHandle::borrow_raw(display_handle) };
 
-    let mut width: u64 = 0;
-    let mut height: u64 = 0;
-    let res = unsafe {
-        OH_NativeXComponent_GetXComponentSize(
-            xcomponent,
-            native_window,
-            &mut width as *mut _,
-            &mut height as *mut _,
+    let native_window = NonNull::new(native_window).expect("Could not get native window");
+    let window_handle = RawWindowHandle::OhosNdk(OhosNdkWindowHandle::new(native_window));
+    let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
+
+    let rendering_context = Rc::new(
+        WindowRenderingContext::new(
+            display_handle,
+            window_handle,
+            PhysicalSize::new(window_size.width as u32, window_size.height as u32),
         )
-    };
-    assert_eq!(res, 0, "OH_NativeXComponent_GetXComponentSize failed");
-    let width: i32 = width.try_into().expect("Width too large");
-    let height: i32 = height.try_into().expect("Height too large");
-
-    debug!("Creating surfman widget with width {width} and height {height}");
-    let native_widget = unsafe {
-        connection.create_native_widget_from_ptr(native_window, Size2D::new(width, height))
-    };
-    let surface_type = SurfaceType::Widget { native_widget };
-
-    info!("Creating rendering context");
-    let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
-        .or(Err("Failed to create surface manager"))?;
+        .expect("Could not create RenderingContext"),
+    );
 
     info!("before ServoWindowCallbacks...");
 
     let window_callbacks = Rc::new(ServoWindowCallbacks::new(
         callbacks,
-        RefCell::new(Coordinates::new(0, 0, width, height, width, height)),
+        RefCell::new(coordinates),
         options.display_density as f32,
-        rendering_context.clone(),
     ));
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(
         waker,
         #[cfg(feature = "webxr")]
         None,
-        gl.clone(),
     ));
 
     let servo = Servo::new(
+        opts,
+        preferences,
+        rendering_context.clone(),
         embedder_callbacks,
         window_callbacks.clone(),
-        // User agent: Mozilla/5.0 (<Phone|PC|Tablet>; HarmonyOS 5.0) bla bla
-        None,
-        CompositeTarget::Window,
+        Default::default(),
     );
 
-    let mut servo_glue = ServoGlue::new(
+    let app_state = RunningAppState::new(
+        Some(options.url),
         rendering_context,
-        servo.servo,
+        servo,
         window_callbacks,
-        Some(options.resource_dir),
+        servoshell_preferences,
     );
 
-    let initial_url = ServoUrl::parse(options.url.as_str())
-        .inspect_err(|e| error!("Invalid initial Servo URL `{}`. Error: {e:?}", options.url))
-        .ok()
-        .unwrap_or_else(|| ServoUrl::parse("about:blank").expect("Infallible"));
-
-    let _ = servo_glue.process_event(EmbedderEvent::NewWebView(initial_url, servo.browser_id));
-
-    Ok(servo_glue)
+    Ok(app_state)
 }

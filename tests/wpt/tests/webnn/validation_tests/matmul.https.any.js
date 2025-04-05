@@ -1,5 +1,5 @@
 // META: title=validation tests for WebNN API matmul operation
-// META: global=window,dedicatedworker
+// META: global=window
 // META: variant=?cpu
 // META: variant=?gpu
 // META: variant=?npu
@@ -7,7 +7,9 @@
 
 'use strict';
 
+const label = 'matmul_123';
 validateTwoInputsFromMultipleBuilders('matmul');
+validateTwoBroadcastableInputsTensorLimit('matmul', label);
 
 const tests = [
   {
@@ -112,7 +114,6 @@ tests.forEach(test => promise_test(async t => {
                   assert_equals(output.dataType, test.output.dataType);
                   assert_array_equals(output.shape, test.output.shape);
                 } else {
-                  const label = 'matmul_123';
                   const options = {label};
                   const regrexp = new RegExp('\\[' + label + '\\]');
                   assert_throws_with_label(

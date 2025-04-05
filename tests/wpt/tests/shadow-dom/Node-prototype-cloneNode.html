@@ -23,7 +23,7 @@ function testCloneNode(mode) {
         assert_throws_dom('NotSupportedError', function () {
             var element = document.createElement('div');
             var shadowRoot = element.attachShadow({mode: mode});
-            shadowRoot.cloneNode(false);
+            shadowRoot.cloneNode(true);
         }, 'cloneNode(true) on a closed shadow root must throw a NotSupportedError');
 
     }, 'cloneNode on a shadow root in ' + mode + ' mode must throw a NotSupportedError');

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 
@@ -28,7 +28,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct HTMLLabelElement {
+pub(crate) struct HTMLLabelElement {
     htmlelement: HTMLElement,
 }
 
@@ -43,8 +43,8 @@ impl HTMLLabelElement {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    pub fn new(
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
@@ -157,16 +157,18 @@ impl VirtualMethods for HTMLLabelElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         if *attr.local_name() == local_name!("form") {
-            self.form_attribute_mutated(mutation);
+            self.form_attribute_mutated(mutation, can_gc);
         }
     }
 }
 
 impl HTMLLabelElement {
-    pub fn first_labelable_descendant(&self) -> Option<DomRoot<HTMLElement>> {
+    pub(crate) fn first_labelable_descendant(&self) -> Option<DomRoot<HTMLElement>> {
         self.upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLElement>)

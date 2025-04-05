@@ -13,9 +13,9 @@ use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrhittestresult::XRHitTestResult;
 use crate::dom::xrhittestsource::XRHitTestSource;
 use crate::dom::xrjointpose::XRJointPose;
@@ -28,7 +28,7 @@ use crate::dom::xrviewerpose::XRViewerPose;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct XRFrame {
+pub(crate) struct XRFrame {
     reflector_: Reflector,
     session: Dom<XRSession>,
     #[ignore_malloc_size_of = "defined in webxr_api"]
@@ -49,25 +49,34 @@ impl XRFrame {
         }
     }
 
-    pub fn new(global: &GlobalScope, session: &XRSession, data: Frame) -> DomRoot<XRFrame> {
-        reflect_dom_object(Box::new(XRFrame::new_inherited(session, data)), global)
+    pub(crate) fn new(
+        window: &Window,
+        session: &XRSession,
+        data: Frame,
+        can_gc: CanGc,
+    ) -> DomRoot<XRFrame> {
+        reflect_dom_object(
+            Box::new(XRFrame::new_inherited(session, data)),
+            window,
+            can_gc,
+        )
     }
 
     /// <https://immersive-web.github.io/webxr/#xrframe-active>
-    pub fn set_active(&self, active: bool) {
+    pub(crate) fn set_active(&self, active: bool) {
         self.active.set(active);
     }
 
     /// <https://immersive-web.github.io/webxr/#xrframe-animationframe>
-    pub fn set_animation_frame(&self, animation_frame: bool) {
+    pub(crate) fn set_animation_frame(&self, animation_frame: bool) {
         self.animation_frame.set(animation_frame);
     }
 
-    pub fn get_pose(&self, space: &XRSpace) -> Option<ApiPose> {
+    pub(crate) fn get_pose(&self, space: &XRSpace) -> Option<ApiPose> {
         space.get_pose(&self.data)
     }
 
-    pub fn get_sub_images(&self, layer_id: LayerId) -> Option<&SubImages> {
+    pub(crate) fn get_sub_images(&self, layer_id: LayerId) -> Option<&SubImages> {
         self.data
             .sub_images
             .iter()
@@ -114,7 +123,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             return Ok(None);
         };
         Ok(Some(XRViewerPose::new(
-            &self.global(),
+            self.global().as_window(),
             &self.session,
             to_base,
             viewer_pose,
@@ -146,7 +155,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             return Ok(None);
         };
         let pose = space.then(&base_space.inverse());
-        Ok(Some(XRPose::new(&self.global(), pose, can_gc)))
+        Ok(Some(XRPose::new(self.global().as_window(), pose, can_gc)))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrframe-getpose>
@@ -176,7 +185,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
         };
         let pose = joint_frame.pose.then(&base_space.inverse());
         Ok(Some(XRJointPose::new(
-            &self.global(),
+            self.global().as_window(),
             pose.cast_unit(),
             Some(joint_frame.radius),
             can_gc,
@@ -189,7 +198,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             .hit_test_results
             .iter()
             .filter(|r| r.id == source.id())
-            .map(|r| XRHitTestResult::new(&self.global(), *r, self))
+            .map(|r| XRHitTestResult::new(self.global().as_window(), *r, self, CanGc::note()))
             .collect()
     }
 

@@ -43,10 +43,13 @@ for (let doc_type in doc_types) {
   doc_test(doc_type, doc => {
     const policy = trustedTypes.createPolicy("policy", {createHTML: x => x });
     const value = policy.createHTML("hello");
-    doc.body.innerHTML = value;
-    assert_equals(doc.body.textContent, "hello");
+    const div = doc.createElement("div");
+    doc.body.appendChild(div);
+    div.innerHTML = value;
+    assert_equals(div.textContent, "hello");
     assert_throws_js(TypeError,
-                     _ => { doc.body.innerHTML = "world"; });
+                     _ => { div.innerHTML = "world"; });
+    div.remove();
   }, "Trusted Type instances created in the main doc can be used.");
 }
 
@@ -67,8 +70,11 @@ promise_test(t => {
 
 for (let doc_type in doc_types) {
   doc_test(doc_type, doc => {
-    doc.body.innerHTML = "shouldpass";
-    assert_equals(doc.body.textContent, "shouldpass [default]");
+    const div = doc.createElement("div");
+    doc.body.appendChild(div);
+    div.innerHTML = "shouldpass";
+    assert_equals(div.textContent, "shouldpass [default]");
+    div.remove();
   },  "Default policy applies.");
 }
 </script>
