@@ -80,6 +80,7 @@ WEBIDL_STANDARDS = [
     b"//dev.w3.org/csswg",
     b"//dev.w3.org/fxtf",
     b"//dvcs.w3.org/hg",
+    b"//www.w3.org/TR/trusted-types/",
     b"//dom.spec.whatwg.org",
     b"//drafts.csswg.org",
     b"//drafts.css-houdini.org",
