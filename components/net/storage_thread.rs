@@ -8,12 +8,22 @@ use std::path::PathBuf;
 use std::thread;
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use log::warn;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
 use crate::resource_thread;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
+
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct LocalStorageWrite {
+    pub operation: String,
+    pub origin: String,
+    pub name: String,
+    pub value: String,
+}
 
 pub trait StorageThreadFactory {
     fn new(config_dir: Option<PathBuf>) -> Self;
@@ -41,10 +51,22 @@ struct StorageManager {
 }
 
 impl StorageManager {
+    /// When the local data is updated, we append the change as a single line in tracking file. At exit, we store the
+    /// data to a json file and delete the tracking file. The tracking file is checked at the start of the program in
+    /// case the changes from previous run is not properly stored in the json (e.g. caused by crash).
+    /// TODO: Implement proper storage mechanism based on <https://storage.spec.whatwg.org/> and use proper key-value
+    /// store mechanism.
+    const LOCAL_DATA_FILENAME: &str = "local_data.json";
+    const TRACK_CHANGES_FILENAME: &str = "track_changes.jsonl";
+
     fn new(port: IpcReceiver<StorageThreadMsg>, config_dir: Option<PathBuf>) -> StorageManager {
         let mut local_data = HashMap::new();
         if let Some(ref config_dir) = config_dir {
-            resource_thread::read_json_from_file(&mut local_data, config_dir, "local_data.json");
+            resource_thread::read_json_from_file(
+                &mut local_data,
+                config_dir,
+                Self::LOCAL_DATA_FILENAME,
+            );
         }
         StorageManager {
             port,
@@ -57,6 +79,7 @@ impl StorageManager {
 
 impl StorageManager {
     fn start(&mut self) {
+        self.handle_tracking_file();
         loop {
             match self.port.recv().unwrap() {
                 StorageThreadMsg::Length(sender, url, storage_type) => {
@@ -69,22 +92,40 @@ impl StorageManager {
                     self.keys(sender, url, storage_type)
                 },
                 StorageThreadMsg::SetItem(sender, url, storage_type, name, value) => {
-                    self.set_item(sender, url, storage_type, name, value);
-                    self.save_state()
+                    self.set_item(
+                        sender,
+                        url.clone(),
+                        storage_type,
+                        name.clone(),
+                        value.clone(),
+                    );
+                    if !matches!(storage_type, StorageType::Local) {
+                        self.append_change(url, String::from("SET"), name, value);
+                    }
                 },
                 StorageThreadMsg::GetItem(sender, url, storage_type, name) => {
                     self.request_item(sender, url, storage_type, name)
                 },
                 StorageThreadMsg::RemoveItem(sender, url, storage_type, name) => {
-                    self.remove_item(sender, url, storage_type, name);
-                    self.save_state()
+                    self.remove_item(sender, url.clone(), storage_type, name.clone());
+                    if !matches!(storage_type, StorageType::Local) {
+                        self.append_change(url, String::from("REMOVE"), name, String::new());
+                    }
                 },
                 StorageThreadMsg::Clear(sender, url, storage_type) => {
-                    self.clear(sender, url, storage_type);
-                    self.save_state()
+                    self.clear(sender, url.clone(), storage_type);
+                    if !matches!(storage_type, StorageType::Local) {
+                        self.append_change(
+                            url,
+                            String::from("CLEAR"),
+                            String::new(),
+                            String::new(),
+                        );
+                    }
                 },
                 StorageThreadMsg::Exit(sender) => {
-                    // Nothing to do since we save localstorage set eagerly.
+                    self.save_state();
+                    self.clear_tracking_file();
                     let _ = sender.send(());
                     break;
                 },
@@ -92,9 +133,102 @@ impl StorageManager {
         }
     }
 
+    fn update_data_from_track(&mut self, track_item: LocalStorageWrite) {
+        match track_item.operation.as_str() {
+            "SET" => {
+                let storage_size = self
+                    .local_data
+                    .get(&track_item.origin)
+                    .map_or(0, |&(total, _)| total);
+
+                if !self.local_data.contains_key(&track_item.origin) {
+                    self.local_data
+                        .insert(track_item.origin.clone(), (0, BTreeMap::new()));
+                }
+
+                self.local_data
+                    .get_mut(&track_item.origin)
+                    .map(|&mut (ref mut total, ref mut entry)| {
+                        let mut new_total_size = storage_size + track_item.value.len();
+                        if let Some(old_value) = entry.get(&track_item.name) {
+                            new_total_size -= old_value.len();
+                        } else {
+                            new_total_size += track_item.name.len();
+                        }
+
+                        entry.insert(track_item.name.clone(), track_item.value.clone());
+
+                        *total = new_total_size;
+                    })
+                    .unwrap();
+            },
+            "REMOVE" => {
+                self.local_data.get_mut(&track_item.origin).and_then(
+                    |&mut (ref mut total, ref mut entry)| {
+                        entry.remove(&track_item.name).inspect(|old| {
+                            *total -= track_item.name.len() + old.len();
+                        })
+                    },
+                );
+            },
+            "CLEAR" => {
+                let url_data = self.local_data.get_mut(&track_item.origin);
+                if let Some(url_data) = url_data {
+                    url_data.0 = 0;
+                    url_data.1 = BTreeMap::new();
+                }
+            },
+            _ => warn!("Invalid operation at tracking file"),
+        }
+    }
+
+    // Merge local data with the change in `track_changes.jsonl`,
+    // then clear the file (or create the file if it did not exist).
+    fn handle_tracking_file(&mut self) {
+        let track_list = if let Some(ref config_dir) = self.config_dir {
+            resource_thread::read_jsonl_file(config_dir, Self::TRACK_CHANGES_FILENAME)
+        } else {
+            Vec::new()
+        };
+        for track_elem in track_list {
+            self.update_data_from_track(track_elem);
+        }
+        if let Some(ref config_dir) = self.config_dir {
+            // Before clearing `track_changes.jsonl`, make sure we write the data to `local_data.json` first.
+            // This ensures the data from previous session is saved in the JSON file even if the current
+            // session crashes.
+            self.save_state();
+            resource_thread::create_or_clear_file(config_dir, Self::TRACK_CHANGES_FILENAME);
+        }
+    }
+
+    // Append every change to `track_changes.jsonl` instead of overwriting `local_data.json`.
+    fn append_change(&self, url: ServoUrl, operation: String, name: String, value: String) {
+        let origin = self.origin_as_string(url);
+        let change = LocalStorageWrite {
+            operation,
+            origin,
+            name,
+            value,
+        };
+        if let Some(ref config_dir) = self.config_dir {
+            resource_thread::append_to_jsonl_file(change, config_dir, Self::TRACK_CHANGES_FILENAME);
+        }
+    }
+
+    fn clear_tracking_file(&self) {
+        if let Some(ref config_dir) = self.config_dir {
+            resource_thread::create_or_clear_file(config_dir, Self::TRACK_CHANGES_FILENAME);
+        }
+    }
+
     fn save_state(&self) {
         if let Some(ref config_dir) = self.config_dir {
-            resource_thread::write_json_to_file(&self.local_data, config_dir, "local_data.json");
+            resource_thread::write_json_to_file(
+                &self.local_data,
+                config_dir,
+                Self::LOCAL_DATA_FILENAME,
+            );
         }
     }
 
