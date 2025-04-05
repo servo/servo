@@ -131,7 +131,7 @@ pub fn process_resolved_style_request<'dom>(
         None => layout_element,
     };
 
-    let style = &*layout_element.resolved_style();
+    let style = &*layout_element.style(context);
     let longhand_id = match *property {
         PropertyId::NonCustom(id) => match id.longhand_or_shorthand() {
             Ok(longhand_id) => longhand_id,
@@ -1122,7 +1122,7 @@ where
     let element = node.as_element().unwrap();
     let parent_style = if node.is_connected() {
         if element.has_data() {
-            node.to_threadsafe().as_element().unwrap().resolved_style()
+            node.to_threadsafe().as_element().unwrap().style(context)
         } else {
             let mut tlc = ThreadLocalStyleContext::new();
             let mut context = StyleContext {

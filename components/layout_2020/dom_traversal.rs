@@ -236,6 +236,10 @@ fn traverse_element<'dom, Node>(
 ) where
     Node: NodeExt<'dom>,
 {
+    // Clear any existing pseudo-element box slot, because markers are not handled like
+    // `::before`` and `::after`. They are processed during box tree creation.
+    element.unset_pseudo_element_box(PseudoElement::Marker);
+
     let replaced = ReplacedContents::for_element(element, context);
     let style = element.style(context);
     match Display::from(style.get_box().display) {
