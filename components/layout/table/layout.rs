@@ -1503,8 +1503,7 @@ impl<'a> TableLayout<'a> {
         layout_context: &LayoutContext,
         parent_positioning_context: &mut PositioningContext,
     ) -> BoxFragment {
-        let mut positioning_context =
-            PositioningContext::new_for_style(caption.context.style(), &context.base_fragment_info().flags);
+        let mut positioning_context = caption.context.new_positioning_context();
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize {
                 inline: self.table_width + self.pbm.padding_border_sums.inline,
@@ -2326,10 +2325,7 @@ impl<'a> RowFragmentLayout<'a> {
         Self {
             row: table_row,
             rect,
-            positioning_context: PositioningContext::new_for_style(
-                &table_row.base.style,
-                &table_row.base.base_fragment_info.flags,
-            ),
+            positioning_context: table_row.base.new_positioning_context(),
             containing_block,
             fragments: Vec::new(),
         }
@@ -2414,16 +2410,13 @@ impl RowGroupFragmentLayout {
             let row_group = row_group.borrow();
             (
                 dimensions.get_row_group_rect(&row_group),
-                PositioningContext::new_for_style(&row_group.base.style),
+                row_group.base.new_positioning_context(),
             )
         };
         Self {
             row_group,
             rect,
-            positioning_context: PositioningContext::new_for_style(
-                &row_group.base.style,
-                &row_group.base.base_fragment_info.flags,
-            ),
+            positioning_context,
             index,
             fragments: Vec::new(),
         }

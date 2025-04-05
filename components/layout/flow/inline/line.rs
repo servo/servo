@@ -326,13 +326,12 @@ impl LineItemLayout<'_, '_> {
         let inline_box = self.layout.ifc.inline_boxes.get(identifier);
         let inline_box = &*(inline_box.borrow());
 
-        let style = &inline_box.base.style;
         let space_above_baseline = inline_box_state.calculate_space_above_baseline();
         let block_start_offset =
             self.calculate_inline_box_block_start(inline_box_state, space_above_baseline);
 
         let positioning_context_or_start_offset_in_parent =
-            match PositioningContext::new_for_style(style, &inline_box.base_fragment_info.flags) {
+            match inline_box.base.new_positioning_context() {
                 Some(positioning_context) => Either::Left(positioning_context),
                 None => Either::Right(self.current_positioning_context_mut().len()),
             };

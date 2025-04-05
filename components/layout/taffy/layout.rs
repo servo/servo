@@ -136,7 +136,6 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 // TODO: re-evaluate sizing constraint conversions in light of recent layout changes
                 let containing_block = &self.content_box_size_override;
                 let style = independent_context.style();
-                let flags = &independent_context.base_fragment_info().flags;
 
                 // Adjust known_dimensions from border box to content box
                 let pbm = independent_context
@@ -252,15 +251,14 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             style,
                         };
                         let layout = {
-                            let mut child_positioning_context = PositioningContext::new_for_style(
-                                style, flags,
-                            )
-                            .unwrap_or_else(|| {
-                                PositioningContext::new_for_subtree(
-                                    self.positioning_context
-                                        .collects_for_nearest_positioned_ancestor(),
-                                )
-                            });
+                            let mut child_positioning_context = independent_context
+                                .new_positioning_context()
+                                .unwrap_or_else(|| {
+                                    PositioningContext::new_for_subtree(
+                                        self.positioning_context
+                                            .collects_for_nearest_positioned_ancestor(),
+                                    )
+                                });
 
                             let layout = non_replaced.layout_without_caching(
                                 self.layout_context,

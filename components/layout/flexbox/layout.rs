@@ -1774,19 +1774,17 @@ impl FlexItem<'_> {
         non_stretch_layout_result: Option<&mut FlexItemLayoutResult>,
     ) -> Option<FlexItemLayoutResult> {
         let containing_block = flex_context.containing_block;
-        let mut positioning_context = PositioningContext::new_for_style(
-            self.box_.style(),
-            &self.box_.base_fragment_info().flags,
-        )
-        .unwrap_or_else(|| {
-            PositioningContext::new_for_subtree(
-                flex_context
-                    .positioning_context
-                    .collects_for_nearest_positioned_ancestor(),
-            )
-        });
-
         let independent_formatting_context = &self.box_.independent_formatting_context;
+        let mut positioning_context = independent_formatting_context
+            .new_positioning_context()
+            .unwrap_or_else(|| {
+                PositioningContext::new_for_subtree(
+                    flex_context
+                        .positioning_context
+                        .collects_for_nearest_positioned_ancestor(),
+                )
+            });
+
         let item_writing_mode = independent_formatting_context.style().writing_mode;
         let item_is_horizontal = item_writing_mode.is_horizontal();
         let flex_axis = flex_context.config.flex_axis;
@@ -2619,15 +2617,16 @@ impl FlexItemBox {
         cross_size_stretches_to_container_size: bool,
         intrinsic_sizing_mode: IntrinsicSizingMode,
     ) -> Au {
-        let mut positioning_context =
-            PositioningContext::new_for_style(self.style(), &&self.base_fragment_info().flags)
-                .unwrap_or_else(|| {
-                    PositioningContext::new_for_subtree(
-                        flex_context
-                            .positioning_context
-                            .collects_for_nearest_positioned_ancestor(),
-                    )
-                });
+        let mut positioning_context = self
+            .independent_formatting_context
+            .new_positioning_context()
+            .unwrap_or_else(|| {
+                PositioningContext::new_for_subtree(
+                    flex_context
+                        .positioning_context
+                        .collects_for_nearest_positioned_ancestor(),
+                )
+            });
 
         let style = self.independent_formatting_context.style();
         match &self.independent_formatting_context.contents {
