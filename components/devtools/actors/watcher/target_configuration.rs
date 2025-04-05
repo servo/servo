@@ -78,7 +78,7 @@ impl Actor for TargetConfigurationActor {
                             registry.find::<BrowsingContextActor>(&browsing_context_name);
                         browsing_context_actor.simulate_color_scheme(theme)?;
                     } else {
-                        warn!("No active tab for updateConfiguration");
+                        warn!("No active tab for  updateConfiguration");
                     }
                 }
                 let msg = EmptyReplyMsg { from: self.name() };
