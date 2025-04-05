@@ -24,7 +24,6 @@ use log::debug;
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
-use unicode_script::Script;
 
 use super::LocalFontIdentifier;
 use crate::font::map_platform_values_to_style_values;
@@ -142,7 +141,7 @@ where
 }
 
 // Based on gfxPlatformGtk::GetCommonFallbackFonts() in Gecko
-pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+pub fn os_fallback_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = Vec::new();
     if options.presentation_preference == EmojiPresentationPreference::Emoji {
         families.push("Noto Color Emoji");
