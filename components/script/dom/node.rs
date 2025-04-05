@@ -48,7 +48,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
-use xml5ever::serialize as xml_serialize;
+use xml5ever::{local_name, serialize as xml_serialize};
 
 use super::globalscope::GlobalScope;
 use crate::conversions::Convert;
@@ -1415,7 +1415,6 @@ impl Node {
                 // TODO: Check HTTP Content-Language header
             })
             .next()
-            .unwrap_or(String::new())
     }
 
     /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>

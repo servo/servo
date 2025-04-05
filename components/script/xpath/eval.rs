@@ -442,8 +442,8 @@ impl Evaluatable for StepExpr {
 
                 if axis_step
                     .predicates
-                    .as_ref()
-                    .map_or(true, |plist| plist.predicates.is_empty())
+                    .predicates
+                    .is_empty()
                 {
                     trace!(
                         "[StepExpr] No predicates, returning nodes {:?}",
@@ -461,10 +461,10 @@ impl Evaluatable for StepExpr {
     }
 
     fn is_primitive(&self) -> bool {
-        match self {
-            StepExpr::Filter(filter_expr) => filter_expr.is_primitive(),
-            StepExpr::Axis(_) => false,
-        }
+        self.predicates
+            .predicates
+            .is_empty() &&
+            self.primary.is_primitive()
     }
 }
 
@@ -540,10 +540,7 @@ impl Evaluatable for PredicateExpr {
 impl Evaluatable for FilterExpr {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
         let primary_result = self.primary.evaluate(context)?;
-        let have_predicates = self
-            .predicates
-            .as_ref()
-            .map_or(false, |plist| !plist.predicates.is_empty());
+        let have_predicates = !self.predicates.predicates.is_empty();
 
         match (have_predicates, &primary_result) {
             (false, _) => {
@@ -571,8 +568,8 @@ impl Evaluatable for FilterExpr {
 
     fn is_primitive(&self) -> bool {
         self.predicates
-            .as_ref()
-            .map_or(true, |plist| plist.predicates.is_empty()) &&
+            .predicates
+            .is_empty() &&
             self.primary.is_primitive()
     }
 }
