@@ -1013,11 +1013,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         (pbm.padding.block_end == Au::zero() &&
             pbm.border.block_end == Au::zero() &&
             !containing_block_for_children.size.block.is_definite());
-    if end_margin_can_collapse_with_children {
-        block_margins_collapsed_with_children
-            .end
-            .adjoin_assign(&collapsible_margins_in_children.end);
-    } else {
+    if !end_margin_can_collapse_with_children {
         content_block_size += collapsible_margins_in_children.end.solve();
     }
 
@@ -1029,6 +1025,16 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         || content_block_size.into(),
         false, /* is_table */
     );
+
+    // If the min or max block sizes force the final block size to be different
+    // than the contents, then we can't collapse the end margins.
+    let end_margin_can_collapse_with_children =
+        end_margin_can_collapse_with_children && block_size == content_block_size;
+    if end_margin_can_collapse_with_children {
+        block_margins_collapsed_with_children
+            .end
+            .adjoin_assign(&collapsible_margins_in_children.end);
+    }
 
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
         // Now that we're done laying out our children, we can restore the
