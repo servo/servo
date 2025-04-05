@@ -536,6 +536,11 @@ impl FetchResponseListener for ClassicContext {
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
     }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
+    }
 }
 
 impl ResourceTimingListener for ClassicContext {

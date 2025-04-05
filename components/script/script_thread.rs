@@ -41,6 +41,7 @@ use constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
     ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
 };
+use content_security_policy::{self as csp};
 use crossbeam_channel::unbounded;
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
@@ -3413,8 +3414,11 @@ impl ScriptThread {
             FetchResponseMsg::ProcessResponseEOF(request_id, eof) => {
                 self.handle_fetch_eof(pipeline_id, request_id, eof)
             },
-            FetchResponseMsg::ProcessRequestBody(..) => {},
-            FetchResponseMsg::ProcessRequestEOF(..) => {},
+            FetchResponseMsg::ProcessCspViolations(request_id, violations) => {
+                self.handle_csp_violations(pipeline_id, request_id, violations)
+            },
+            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
+            },
         }
     }
 
@@ -3467,6 +3471,12 @@ impl ScriptThread {
         if let Some(idx) = idx {
             let (_, mut ctxt) = self.incomplete_parser_contexts.0.borrow_mut().remove(idx);
             ctxt.process_response_eof(request_id, eof);
+        }
+    }
+
+    fn handle_csp_violations(&self, id: PipelineId, _: RequestId, violations: Vec<csp::Violation>) {
+        if let Some(global) = self.documents.borrow().find_global(id) {
+            global.report_csp_violations(violations);
         }
     }
 
