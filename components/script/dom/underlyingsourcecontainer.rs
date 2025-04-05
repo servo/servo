@@ -40,6 +40,8 @@ pub(crate) enum UnderlyingSourceType {
     Js(JsUnderlyingSource, Heap<*mut JSObject>),
     /// Tee
     Tee(Dom<DefaultTeeUnderlyingSource>),
+    /// Transfer
+    Transfer,
 }
 
 impl UnderlyingSourceType {
@@ -49,7 +51,8 @@ impl UnderlyingSourceType {
             self,
             UnderlyingSourceType::Memory(_) |
                 UnderlyingSourceType::Blob(_) |
-                UnderlyingSourceType::FetchResponse
+                UnderlyingSourceType::FetchResponse |
+                UnderlyingSourceType::Transfer
         )
     }
 
