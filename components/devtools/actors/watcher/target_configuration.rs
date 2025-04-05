@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 
 use embedder_traits::Theme;
-use log::warn;
+use log::{debug, warn};
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -56,22 +56,32 @@ impl Actor for TargetConfigurationActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "updateConfiguration" => {
-                let config = msg["configuration"].as_object().ok_or(())?;
-                let scheme = config["colorSchemeSimulation"].as_str().ok_or(())?;
-                let theme = match scheme {
-                    "dark" => Theme::Dark,
-                    "light" => Theme::Light,
-                    _ => Theme::Light,
+                let config = match msg.get("configuration").and_then(|v| v.as_object()) {
+                    Some(config) => config,
+                    None => {
+                        let msg = EmptyReplyMsg { from: self.name() };
+                        let _ = stream.write_json_packet(&msg);
+                        return Ok(ActorMessageStatus::Processed);
+                    },
                 };
-                let root_actor = registry.find::<RootActor>("root");
-                if let Some(tab_name) = root_actor.active_tab() {
-                    let tab_actor = registry.find::<TabDescriptorActor>(&tab_name);
-                    let browsing_context_name = tab_actor.browsing_context();
-                    let browsing_context_actor =
-                        registry.find::<BrowsingContextActor>(&browsing_context_name);
-                    browsing_context_actor.simulate_color_scheme(theme)?;
+                if let Some(scheme) = config.get("colorSchemeSimulation").and_then(|v| v.as_str()) {
+                    let theme = match scheme {
+                        "dark" => Theme::Dark,
+                        "light" => Theme::Light,
+                        _ => Theme::Light,
+                    };
+                    let root_actor = registry.find::<RootActor>("root");
+                    if let Some(tab_name) = root_actor.active_tab() {
+                        let tab_actor = registry.find::<TabDescriptorActor>(&tab_name);
+                        let browsing_context_name = tab_actor.browsing_context();
+                        let browsing_context_actor =
+                            registry.find::<BrowsingContextActor>(&browsing_context_name);
+                        browsing_context_actor.simulate_color_scheme(theme)?;
+                    } else {
+                        warn!("No active tab for updateConfiguration");
+                    }
                 } else {
-                    warn!("No active tab for updateConfiguration");
+                    log::debug!("Skipping updateConfiguration - colorSchemeSimulation not present");
                 }
                 let msg = EmptyReplyMsg { from: self.name() };
                 let _ = stream.write_json_packet(&msg);
