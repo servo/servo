@@ -819,7 +819,7 @@ impl ComputedValuesExt for ComputedValues {
         // > containing block for fixed positioned elements, specifying that property in will-change
         // > must cause the element to generate a containing block for fixed positioned elements.
         let will_change_bits = self.clone_will_change().bits;
-        if will_change_bits.intersects(WillChangeBits::FIXPOS_CB_NON_SVG) ||
+        if (will_change_bits.intersects(WillChangeBits::FIXPOS_CB_NON_SVG) && !fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT)) ||
             (will_change_bits
                 .intersects(WillChangeBits::TRANSFORM | WillChangeBits::PERSPECTIVE) &&
                 self.is_transformable(fragment_flags))
