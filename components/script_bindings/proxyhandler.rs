@@ -509,7 +509,7 @@ fn ensure_cross_origin_property_holder(
 /// What this function does corresponds to the operations in
 /// <https://html.spec.whatwg.org/multipage/#the-location-interface> denoted as
 /// "Throw a `SecurityError` DOMException".
-pub(crate) unsafe fn report_cross_origin_denial<D: DomTypes>(
+pub(crate) fn report_cross_origin_denial<D: DomTypes>(
     cx: SafeJSContext,
     id: RawHandleId,
     access: &str,
@@ -520,10 +520,12 @@ pub(crate) unsafe fn report_cross_origin_denial<D: DomTypes>(
         id_to_source(cx, id).as_deref().unwrap_or("< error >"),
     );
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-    if !JS_IsExceptionPending(*cx) {
-        let global = D::GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
-        // TODO: include `id` and `access` in the exception message
-        <D as DomHelpers<D>>::throw_dom_exception(cx, &global, Error::Security, CanGc::note());
+    unsafe {
+        if !JS_IsExceptionPending(*cx) {
+            let global = D::GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
+            // TODO: include `id` and `access` in the exception message
+            <D as DomHelpers<D>>::throw_dom_exception(cx, &global, Error::Security, CanGc::note());
+        }
     }
     false
 }
