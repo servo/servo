@@ -29,6 +29,7 @@ use crate::geom::{
     PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec, Size, Sizes, ToLogical,
     ToLogicalWithContainingBlock,
 };
+use crate::layout_box_base::LayoutBoxBase;
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
 use crate::{
@@ -100,6 +101,20 @@ impl AbsolutelyPositionedBox {
             )),
             absolutely_positioned_box,
         }
+    }
+}
+
+impl IndependentFormattingContext {
+    #[inline]
+    pub(crate) fn new_positioning_context(&self) -> Option<PositioningContext> {
+        self.base.new_positioning_context()
+    }
+}
+
+impl LayoutBoxBase {
+    #[inline]
+    pub(crate) fn new_positioning_context(&self) -> Option<PositioningContext> {
+        PositioningContext::new_for_style(&self.style, &self.base_fragment_info.flags)
     }
 }
 
@@ -209,13 +224,12 @@ impl PositioningContext {
         &mut self,
         layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
-        style: &ComputedValues,
-        flags: &FragmentFlags,
+        base: &LayoutBoxBase,
         fragment_layout_fn: impl FnOnce(&mut Self) -> BoxFragment,
     ) -> BoxFragment {
         // Try to create a context, but if one isn't necessary, simply create the fragment
         // using the given closure and the current `PositioningContext`.
-        let mut new_context = match Self::new_for_style(style, flags) {
+        let mut new_context = match base.new_positioning_context() {
             Some(new_context) => new_context,
             None => return fragment_layout_fn(self),
         };
@@ -226,9 +240,8 @@ impl PositioningContext {
         // If the new context has any hoisted boxes for the nearest containing block for
         // pass them up the tree.
         self.append(new_context);
-
-        if style.clone_position() == Position::Relative {
-            new_fragment.content_rect.origin += relative_adjustement(style, containing_block)
+        if base.style.clone_position() == Position::Relative {
+            new_fragment.content_rect.origin += relative_adjustement(&base.style, containing_block)
                 .to_physical_vector(containing_block.style.writing_mode)
         }
 
@@ -471,7 +484,6 @@ impl HoistedAbsolutelyPositionedBox {
         let absolutely_positioned_box = self.absolutely_positioned_box.borrow();
         let context = &absolutely_positioned_box.context;
         let style = context.style().clone();
-        let flags = context.base_fragment_info().flags;
         let layout_style = context.layout_style();
         let ContentBoxSizesAndPBM {
             content_box_sizes,
@@ -585,7 +597,7 @@ impl HoistedAbsolutelyPositionedBox {
                 .sizes
         }));
 
-        let mut positioning_context = PositioningContext::new_for_style(&style, &flags).unwrap();
+        let mut positioning_context = context.new_positioning_context().unwrap();
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;

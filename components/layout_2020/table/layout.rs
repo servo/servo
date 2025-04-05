@@ -1492,8 +1492,7 @@ impl<'a> TableLayout<'a> {
         parent_positioning_context: &mut PositioningContext,
     ) -> BoxFragment {
         let context = caption.context.borrow();
-        let mut positioning_context =
-            PositioningContext::new_for_style(context.style(), &context.base_fragment_info().flags);
+        let mut positioning_context = context.new_positioning_context();
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize {
                 inline: self.table_width + self.pbm.padding_border_sums.inline,
