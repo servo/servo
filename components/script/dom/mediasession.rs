@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{
     MediaMetadata as EmbedderMediaMetadata, MediaSessionActionType, MediaSessionEvent,
 };
-use script_traits::ScriptMsg;
+use script_traits::ScriptToConstellationMessage;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::conversions::Convert;
@@ -106,7 +106,10 @@ impl MediaSession {
         let global = self.global();
         let window = global.as_window();
         let pipeline_id = window.pipeline_id();
-        window.send_to_constellation(ScriptMsg::MediaSessionEvent(pipeline_id, event));
+        window.send_to_constellation(ScriptToConstellationMessage::MediaSessionEvent(
+            pipeline_id,
+            event,
+        ));
     }
 
     pub(crate) fn update_title(&self, title: String) {

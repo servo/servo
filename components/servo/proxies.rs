@@ -5,18 +5,18 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use constellation_traits::ConstellationMsg;
+use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::{SendError, Sender};
 use log::warn;
 
 #[derive(Clone)]
 pub(crate) struct ConstellationProxy {
-    sender: Sender<ConstellationMsg>,
+    sender: Sender<EmbedderToConstellationMessage>,
     disconnected: Arc<AtomicBool>,
 }
 
 impl ConstellationProxy {
-    pub fn new(sender: Sender<ConstellationMsg>) -> Self {
+    pub fn new(sender: Sender<EmbedderToConstellationMessage>) -> Self {
         Self {
             sender,
             disconnected: Arc::default(),
@@ -27,13 +27,16 @@ impl ConstellationProxy {
         self.disconnected.load(Ordering::SeqCst)
     }
 
-    pub fn send(&self, msg: ConstellationMsg) {
+    pub fn send(&self, msg: EmbedderToConstellationMessage) {
         if self.try_send(msg).is_err() {
             warn!("Lost connection to Constellation. Will report to embedder.")
         }
     }
 
-    fn try_send(&self, msg: ConstellationMsg) -> Result<(), SendError<ConstellationMsg>> {
+    fn try_send(
+        &self,
+        msg: EmbedderToConstellationMessage,
+    ) -> Result<(), SendError<EmbedderToConstellationMessage>> {
         if self.disconnected() {
             return Err(SendError(msg));
         }
@@ -45,7 +48,7 @@ impl ConstellationProxy {
         Ok(())
     }
 
-    pub fn sender(&self) -> Sender<ConstellationMsg> {
+    pub fn sender(&self) -> Sender<EmbedderToConstellationMessage> {
         self.sender.clone()
     }
 }

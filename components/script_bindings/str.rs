@@ -78,7 +78,7 @@ impl ops::Deref for ByteString {
 
 /// A string that is constructed from a UCS-2 buffer by replacing invalid code
 /// points with the replacement character.
-#[derive(Clone, Default, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Default, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct USVString(pub String);
 
 impl Borrow<str> for USVString {

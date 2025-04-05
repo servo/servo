@@ -32,7 +32,9 @@ use net_traits::{
     FetchChannels, FetchTaskTarget, ResourceFetchTiming, ResourceThreads, ResourceTimingType,
     WebSocketDomAction, WebSocketNetworkEvent,
 };
-use profile_traits::mem::{ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan};
+use profile_traits::mem::{
+    ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
+};
 use profile_traits::path;
 use profile_traits::time::ProfilerChan;
 use rustls::RootCertStore;
@@ -297,7 +299,7 @@ impl ResourceChannelManager {
             size: private_cache.size_of(&mut ops),
         };
 
-        msg.send(vec![public_report, private_report]);
+        msg.send(ProcessReports::new(vec![public_report, private_report]));
     }
 
     fn cancellation_listener(&self, request_id: RequestId) -> Option<Arc<CancellationListener>> {

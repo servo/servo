@@ -13,8 +13,9 @@ use base::id::{
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use constellation_traits::{LogEntry, TraversalDirection};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::{EmbedderMsg, MediaSessionEvent, TouchEventType, TouchSequenceId};
-use euclid::Size2D;
+use embedder_traits::{
+    EmbedderMsg, MediaSessionEvent, TouchEventType, TouchSequenceId, ViewportDetails,
+};
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use net_traits::CoreResourceMsg;
@@ -22,7 +23,6 @@ use net_traits::storage_thread::StorageType;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use strum_macros::IntoStaticStr;
-use style_traits::CSSPixel;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
 use webrender_api::ImageKey;
@@ -39,8 +39,8 @@ use crate::{
 pub struct IFrameSizeMsg {
     /// The child browsing context for this iframe.
     pub browsing_context_id: BrowsingContextId,
-    /// The size of the iframe.
-    pub size: Size2D<f32, CSSPixel>,
+    /// The size and scale factor of the iframe.
+    pub size: ViewportDetails,
     /// The kind of sizing operation.
     pub type_: WindowSizeType,
 }
@@ -54,9 +54,9 @@ pub enum TouchEventResult {
     DefaultPrevented(TouchSequenceId, TouchEventType),
 }
 
-/// Messages from the script to the constellation.
+/// Messages sent from the `ScriptThread` to the `Constellation`.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
-pub enum ScriptMsg {
+pub enum ScriptToConstellationMessage {
     /// Request to complete the transfer of a set of ports to a router.
     CompleteMessagePortTransfer(MessagePortRouterId, Vec<MessagePortId>),
     /// The results of attempting to complete the transfer of a batch of ports.
@@ -219,7 +219,7 @@ pub enum ScriptMsg {
     ReportMemory(IpcSender<MemoryReportResult>),
 }
 
-impl fmt::Debug for ScriptMsg {
+impl fmt::Debug for ScriptToConstellationMessage {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let variant_string: &'static str = self.into();
         write!(formatter, "ScriptMsg::{variant_string}")

@@ -17,7 +17,8 @@ use std::sync::{Arc, LazyLock};
 use app_units::Au;
 use base::Epoch;
 use base::id::{PipelineId, WebViewId};
-use constellation_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
+use constellation_traits::{ScrollState, UntrustedNodeAddress};
+use embedder_traits::ViewportDetails;
 use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -473,8 +474,8 @@ impl LayoutThread {
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,
-            config.window_size.initial_viewport,
-            Scale::new(config.window_size.device_pixel_ratio.get()),
+            config.viewport_details.size,
+            Scale::new(config.viewport_details.hidpi_scale_factor.get()),
             Box::new(LayoutFontMetricsProvider(config.font_context.clone())),
             ComputedValues::initial_values_with_font_override(font),
             // TODO: obtain preferred color scheme from embedder
@@ -497,8 +498,8 @@ impl LayoutThread {
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
             viewport_size: Size2D::new(
-                Au::from_f32_px(config.window_size.initial_viewport.width),
-                Au::from_f32_px(config.window_size.initial_viewport.height),
+                Au::from_f32_px(config.viewport_details.size.width),
+                Au::from_f32_px(config.viewport_details.size.height),
             ),
             compositor_api: config.compositor_api,
             scroll_offsets: Default::default(),
@@ -618,11 +619,15 @@ impl LayoutThread {
         };
 
         let had_used_viewport_units = self.stylist.device().used_viewport_units();
-        let viewport_size_changed = self.viewport_did_change(reflow_request.window_size);
+        let viewport_size_changed = self.viewport_did_change(reflow_request.viewport_details);
         let theme_changed = self.theme_did_change(reflow_request.theme);
 
         if viewport_size_changed || theme_changed {
-            self.update_device(reflow_request.window_size, reflow_request.theme, &guards);
+            self.update_device(
+                reflow_request.viewport_details,
+                reflow_request.theme,
+                &guards,
+            );
         }
 
         if viewport_size_changed && had_used_viewport_units {
@@ -951,11 +956,11 @@ impl LayoutThread {
         }
     }
 
-    fn viewport_did_change(&mut self, window_size_data: WindowSizeData) -> bool {
-        let new_pixel_ratio = window_size_data.device_pixel_ratio.get();
+    fn viewport_did_change(&mut self, viewport_details: ViewportDetails) -> bool {
+        let new_pixel_ratio = viewport_details.hidpi_scale_factor.get();
         let new_viewport_size = Size2D::new(
-            Au::from_f32_px(window_size_data.initial_viewport.width),
-            Au::from_f32_px(window_size_data.initial_viewport.height),
+            Au::from_f32_px(viewport_details.size.width),
+            Au::from_f32_px(viewport_details.size.height),
         );
 
         // TODO: eliminate self.viewport_size in favour of using self.device.au_viewport_size()
@@ -975,15 +980,15 @@ impl LayoutThread {
     /// Update layout given a new viewport. Returns true if the viewport changed or false if it didn't.
     fn update_device(
         &mut self,
-        window_size_data: WindowSizeData,
+        viewport_details: ViewportDetails,
         theme: PrefersColorScheme,
         guards: &StylesheetGuards,
     ) {
         let device = Device::new(
             MediaType::screen(),
             self.stylist.quirks_mode(),
-            window_size_data.initial_viewport,
-            Scale::new(window_size_data.device_pixel_ratio.get()),
+            viewport_details.size,
+            Scale::new(viewport_details.hidpi_scale_factor.get()),
             Box::new(LayoutFontMetricsProvider(self.font_context.clone())),
             self.stylist.device().default_computed_values().to_arc(),
             theme,

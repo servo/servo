@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
-use script_traits::ScriptMsg;
+use script_traits::ScriptToConstellationMessage;
 use webgpu_traits::WebGPUAdapterResponse;
 use wgpu_types::PowerPreference;
 
@@ -66,7 +66,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
 
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan
-            .send(ScriptMsg::RequestAdapter(
+            .send(ScriptToConstellationMessage::RequestAdapter(
                 sender,
                 wgpu_core::instance::RequestAdapterOptions {
                     power_preference,

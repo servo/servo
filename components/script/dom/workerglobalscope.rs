@@ -24,6 +24,7 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder as NetRequestInit,
 };
+use profile_traits::mem::ProcessReports;
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
@@ -296,6 +297,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             .use_url_credentials(true)
             .origin(global_scope.origin().immutable().clone())
             .insecure_requests_policy(self.insecure_requests_policy())
+            .has_trustworthy_ancestor_origin(
+                global_scope.has_trustworthy_ancestor_or_current_origin(),
+            )
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
             let (url, source) = match fetch::load_whole_resource(
@@ -532,7 +536,7 @@ impl WorkerGlobalScope {
             CommonScriptMsg::CollectReports(reports_chan) => {
                 let cx = self.get_cx();
                 let reports = cx.get_reports(format!("url({})", self.get_url()));
-                reports_chan.send(reports);
+                reports_chan.send(ProcessReports::new(reports));
             },
         }
         true

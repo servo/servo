@@ -355,6 +355,8 @@ impl DedicatedWorkerGlobalScope {
         let referrer = current_global.get_referrer();
         let parent = current_global.runtime_handle();
         let current_global_https_state = current_global.get_https_state();
+        let current_global_ancestor_trustworthy = current_global.has_trustworthy_ancestor_origin();
+        let is_secure_context = current_global.is_secure_context();
 
         thread::Builder::new()
             .name(format!("WW:{}", worker_url.debug_compact()))
@@ -384,8 +386,8 @@ impl DedicatedWorkerGlobalScope {
                     .use_url_credentials(true)
                     .pipeline_id(Some(pipeline_id))
                     .referrer_policy(referrer_policy)
-                    .referrer_policy(referrer_policy)
                     .insecure_requests_policy(insecure_requests_policy)
+                    .has_trustworthy_ancestor_origin(current_global_ancestor_trustworthy)
                     .origin(origin);
 
                 let runtime = unsafe {
@@ -418,7 +420,12 @@ impl DedicatedWorkerGlobalScope {
                 // > scope`'s url's scheme is "data", and `inherited origin`
                 // > otherwise.
                 if worker_url.scheme() == "data" {
-                    init.origin = ImmutableOrigin::new_opaque();
+                    // Workers created from a data: url are secure if they were created from secure contexts
+                    if is_secure_context {
+                        init.origin = ImmutableOrigin::new_opaque_data_url_worker();
+                    } else {
+                        init.origin = ImmutableOrigin::new_opaque();
+                    }
                 }
 
                 let global = DedicatedWorkerGlobalScope::new(

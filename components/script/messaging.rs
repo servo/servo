@@ -18,7 +18,7 @@ use net_traits::FetchResponseMsg;
 use net_traits::image_cache::PendingImageResponse;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
-use script_traits::{Painter, ScriptMsg, ScriptThreadMessage};
+use script_traits::{Painter, ScriptThreadMessage, ScriptToConstellationMessage};
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
@@ -315,7 +315,8 @@ pub(crate) struct ScriptThreadSenders {
     /// A [`Sender`] that sends messages to the `Constellation` associated with
     /// particular pipelines.
     #[no_trace]
-    pub(crate) pipeline_to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
+    pub(crate) pipeline_to_constellation_sender:
+        IpcSender<(PipelineId, ScriptToConstellationMessage)>,
 
     /// The shared [`IpcSender`] which is sent to the `ImageCache` when requesting an image. The
     /// messages on this channel are routed to crossbeam [`Sender`] on the router thread, which

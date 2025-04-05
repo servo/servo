@@ -14,7 +14,7 @@ use js::rust::Runtime;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
-use script_traits::{Painter, ScriptMsg, ScriptToConstellationChan};
+use script_traits::{Painter, ScriptToConstellationChan, ScriptToConstellationMessage};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use stylo_atoms::Atom;
 
@@ -180,7 +180,7 @@ pub(crate) struct WorkletGlobalScopeInit {
     /// Channel to devtools
     pub(crate) devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
-    pub(crate) to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
+    pub(crate) to_constellation_sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
     /// The image cache
     pub(crate) image_cache: Arc<dyn ImageCache>,
     /// Identity manager for WebGPU resources

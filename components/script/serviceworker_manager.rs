@@ -321,7 +321,7 @@ impl ServiceWorkerManager {
 
     /// <https://w3c.github.io/ServiceWorker/#register-algorithm>
     fn handle_register_job(&mut self, mut job: Job) {
-        if !job.script_url.is_origin_trustworthy() {
+        if !job.script_url.origin().is_potentially_trustworthy() {
             // Step 1.1
             let _ = job
                 .client

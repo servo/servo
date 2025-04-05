@@ -424,6 +424,7 @@ impl HTMLImageElement {
             None,
             document.global().get_referrer(),
             document.insecure_requests_policy(),
+            document.has_trustworthy_ancestor_or_current_origin(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(document.global().pipeline_id()))
@@ -808,8 +809,8 @@ impl HTMLImageElement {
         let device_pixel_ratio = self
             .owner_document()
             .window()
-            .window_size()
-            .device_pixel_ratio
+            .viewport_details()
+            .hidpi_scale_factor
             .get() as f64;
         for (index, image_source) in img_sources.iter().enumerate() {
             let current_den = image_source.descriptor.density.unwrap();

@@ -8,7 +8,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use compositing_traits::{CompositorProxy, CompositorReceiver};
-use constellation_traits::ConstellationMsg;
+use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
 use embedder_traits::ShutdownState;
 use profile_traits::{mem, time};
@@ -34,7 +34,7 @@ pub struct InitialCompositorState {
     /// A port on which messages inbound to the compositor can be received.
     pub receiver: CompositorReceiver,
     /// A channel to the constellation.
-    pub constellation_chan: Sender<ConstellationMsg>,
+    pub constellation_chan: Sender<EmbedderToConstellationMessage>,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
     /// A channel to the memory profiler thread.

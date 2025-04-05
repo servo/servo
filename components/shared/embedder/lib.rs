@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
+use euclid::{Scale, Size2D};
 use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::IpcSender;
 pub use keyboard_types::{KeyboardEvent, Modifiers};
@@ -29,8 +30,9 @@ use pixels::Image;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
+use style_traits::CSSPixel;
 use url::Url;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 
 pub use crate::input_events::*;
 pub use crate::webdriver::*;
@@ -224,7 +226,6 @@ pub enum AllowOrDeny {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-
 pub struct SelectElementOption {
     /// A unique identifier for the option that can be used to select it.
     pub id: usize,
@@ -242,6 +243,18 @@ pub enum SelectElementOptionOrOptgroup {
         label: String,
         options: Vec<SelectElementOption>,
     },
+}
+
+/// Data about a `WebView` or `<iframe>` viewport: its size and also the
+/// HiDPI scale factor to use when rendering the contents.
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub struct ViewportDetails {
+    /// The size of the layout viewport.
+    pub size: Size2D<f32, CSSPixel>,
+
+    /// The scale factor to use to account for HiDPI scaling. This does not take into account
+    /// any page or pinch zoom applied by the compositor to the contents.
+    pub hidpi_scale_factor: Scale<f32, CSSPixel, DevicePixel>,
 }
 
 #[derive(Deserialize, IntoStaticStr, Serialize)]
@@ -275,7 +288,7 @@ pub enum EmbedderMsg {
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebView(WebViewId, IpcSender<Option<WebViewId>>),
+    AllowOpeningWebView(WebViewId, IpcSender<Option<(WebViewId, ViewportDetails)>>),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
     /// A webview gained focus for keyboard events.

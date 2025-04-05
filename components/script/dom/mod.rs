@@ -555,6 +555,7 @@ pub(crate) mod testbindingproxy;
 pub(crate) mod testbindingsetlikewithinterface;
 pub(crate) mod testbindingsetlikewithprimitive;
 pub(crate) mod testns;
+pub(crate) mod testutils;
 pub(crate) mod testworklet;
 pub(crate) mod testworkletglobalscope;
 pub(crate) mod text;

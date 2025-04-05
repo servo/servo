@@ -25,6 +25,7 @@ use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 
 use crate::pipeline::UnprivilegedPipelineContent;
+use crate::process_manager::Process;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 
 #[derive(Deserialize, Serialize)]
@@ -146,7 +147,7 @@ pub fn content_process_sandbox_profile() {
     target_arch = "arm",
     all(target_arch = "aarch64", not(target_os = "windows"))
 ))]
-pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
+pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, Error> {
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
     // Note that this function can panic, due to process creation,
     // avoiding this panic would require a mechanism for dealing
@@ -158,15 +159,14 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
     let mut child_process = process::Command::new(path_to_self);
     setup_common(&mut child_process, token);
 
-    #[allow(clippy::zombie_processes)]
-    let _ = child_process
+    let child = child_process
         .spawn()
         .expect("Failed to start unsandboxed child process!");
 
     let (_receiver, sender) = server.accept().expect("Server failed to accept.");
     sender.send(content)?;
 
-    Ok(())
+    Ok(Process::Unsandboxed(child))
 }
 
 #[cfg(all(
@@ -177,7 +177,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
     not(target_arch = "arm"),
     not(target_arch = "aarch64")
 ))]
-pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
+pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, Error> {
     use gaol::sandbox::{self, Sandbox, SandboxMethods};
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 
@@ -208,33 +208,37 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<(), Error> {
         .expect("Failed to create IPC one-shot server.");
 
     // If there is a sandbox, use the `gaol` API to create the child process.
-    if content.opts().sandbox {
+    let process = if content.opts().sandbox {
         let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
         setup_common(&mut command, token);
 
         let profile = content_process_sandbox_profile();
-        let _ = Sandbox::new(profile)
-            .start(&mut command)
-            .expect("Failed to start sandboxed child process!");
+        Process::Sandboxed(
+            Sandbox::new(profile)
+                .start(&mut command)
+                .expect("Failed to start sandboxed child process!")
+                .pid as u32,
+        )
     } else {
         let path_to_self = env::current_exe().expect("Failed to get current executor.");
         let mut child_process = process::Command::new(path_to_self);
         setup_common(&mut child_process, token);
 
-        #[allow(clippy::zombie_processes)]
-        let _ = child_process
-            .spawn()
-            .expect("Failed to start unsandboxed child process!");
-    }
+        Process::Unsandboxed(
+            child_process
+                .spawn()
+                .expect("Failed to start unsandboxed child process!"),
+        )
+    };
 
     let (_receiver, sender) = server.accept().expect("Server failed to accept.");
     sender.send(content)?;
 
-    Ok(())
+    Ok(process)
 }
 
 #[cfg(any(target_os = "windows", target_os = "ios"))]
-pub fn spawn_multiprocess(_content: UnprivilegedContent) -> Result<(), Error> {
+pub fn spawn_multiprocess(_content: UnprivilegedContent) -> Result<Process, Error> {
     log::error!("Multiprocess is not supported on Windows or iOS.");
     process::exit(1);
 }
