@@ -507,7 +507,7 @@ impl Event {
                 // corresponding pre-activation behavior.
                 pre_activation_result = activation_target
                     .as_maybe_activatable()
-                    .and_then(|activatable| activatable.legacy_pre_activation_behavior());
+                    .and_then(|activatable| activatable.legacy_pre_activation_behavior(can_gc));
             }
 
             let timeline_window = DomRoot::downcast::<Window>(target.global())
@@ -623,7 +623,7 @@ impl Event {
                 // Step 11.2 Otherwise, if activationTarget has legacy-canceled-activation behavior, then run
                 // activationTarget’s legacy-canceled-activation behavior.
                 else {
-                    activatable.legacy_canceled_activation_behavior(pre_activation_result);
+                    activatable.legacy_canceled_activation_behavior(pre_activation_result, can_gc);
                 }
             }
         }
