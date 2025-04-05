@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 
 use embedder_traits::Theme;
-use log::{debug, warn};
+use log::warn;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -80,8 +80,6 @@ impl Actor for TargetConfigurationActor {
                     } else {
                         warn!("No active tab for updateConfiguration");
                     }
-                } else {
-                    log::debug!("Skipping updateConfiguration - colorSchemeSimulation not present");
                 }
                 let msg = EmptyReplyMsg { from: self.name() };
                 let _ = stream.write_json_packet(&msg);
