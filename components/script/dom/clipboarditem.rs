@@ -10,7 +10,7 @@ use js::rust::{HandleObject, MutableHandleValue};
 use script_bindings::record::Record;
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::ClipboardItemBinding::{
+use crate::dom::bindings::codegen::Bindings::ClipboardBinding::{
     ClipboardItemMethods, ClipboardItemOptions, PresentationStyle,
 };
 use crate::dom::bindings::error::{Error, Fallible};
@@ -30,7 +30,7 @@ const CUSTOM_FORMAT_PREFIX: &str = "web ";
 struct Representation {
     mime_type: DOMString,
     is_custom: bool,
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[ignore_malloc_size_of = "Rc is hard"]
     data: Rc<Promise>,
 }
 
@@ -72,34 +72,37 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         items: Record<DOMString, Rc<Promise>>,
         options: &ClipboardItemOptions,
     ) -> Fallible<DomRoot<ClipboardItem>> {
-        // If items is empty, then throw a TypeError.
+        // Step 1 If items is empty, then throw a TypeError.
         if items.is_empty() {
             return Err(Error::Type(String::from("No item provided")));
         }
 
-        // If options is empty, then set options["presentationStyle"] = "unspecified".
+        // Step 2 If options is empty, then set options["presentationStyle"] = "unspecified".
         // NOTE: This is done inside bindings
 
-        // Set this's clipboard item to a new clipboard item.
+        // Step 3 Set this's clipboard item to a new clipboard item.
         let clipboard_item = ClipboardItem::new(global, proto, can_gc);
 
-        // Set this's clipboard item's presentation style to options["presentationStyle"].
+        // Step 4 Set this's clipboard item's presentation style to options["presentationStyle"].
         *clipboard_item.presentation_style.borrow_mut() = options.presentationStyle;
 
-        // For each (key, value) in items:
+        // Step 6 For each (key, value) in items:
         for (key, value) in items.deref() {
-            // If key starts with `"web "` prefix, then
-            // Remove `"web "` prefix and assign the remaining string to key.
+            // Step 6.2 Let isCustom be false.
+
+            // Step 6.3 If key starts with `"web "` prefix, then
+            // Step 6.3.1 Remove `"web "` prefix and assign the remaining string to key.
             let (key, is_custom) = match key.strip_prefix(CUSTOM_FORMAT_PREFIX) {
                 None => (key.str(), false),
+                // Step 6.3.2 Set isCustom true
                 Some(stripped) => (stripped, true),
             };
 
-            // TODO Let mimeType be the result of parsing a MIME type given key.
-            // If mimeType is failure, then throw a TypeError.
+            // Step 6.5 TODO Let mimeType be the result of parsing a MIME type given key.
+            // Step 6.6 If mimeType is failure, then throw a TypeError.
             let mime_type = key;
 
-            // If this's clipboard item's list of representations contains a representation
+            // Step 6.7 If this's clipboard item's list of representations contains a representation
             // whose MIME type is mimeType and whose [representation/isCustom] is isCustom, then throw a TypeError.
             if clipboard_item
                 .representations
@@ -112,17 +115,17 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                 return Err(Error::Type(String::from("Tried to add a duplicate mime")));
             }
 
-            // Let representation be a new representation.
-            // Set representation’s MIME type to mimeType.
-            // Set representation’s isCustom flag to isCustom.
-            // Set representation’s data to value.
+            // Step 6.1 Let representation be a new representation.
+            // Step 6.4 Set representation’s isCustom flag to isCustom.
+            // Step 6.8 Set representation’s MIME type to mimeType.
+            // Step 6.9 Set representation’s data to value.
             let representation = Representation {
                 mime_type: mime_type.into(),
                 is_custom,
                 data: value.clone(),
             };
 
-            // Append representation to this's clipboard item's list of representations.
+            // Step 6.10 Append representation to this's clipboard item's list of representations.
             clipboard_item
                 .representations
                 .borrow_mut()
@@ -143,24 +146,24 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
     fn Types(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         self.frozen_types.get_or_init(
             || {
-                // Let types be a list of DOMString.
+                // Step 5 Let types be a list of DOMString.
                 let mut types = Vec::new();
 
                 self.representations
                     .borrow()
                     .iter()
                     .for_each(|representation| {
-                        // TODO Let mimeTypeString be the result of serializing a MIME type with mimeType.
+                        // Step 6.11 TODO Let mimeTypeString be the result of serializing a MIME type with mimeType.
                         let mime_type_string = representation.mime_type.str();
 
-                        // If isCustom is true, prefix mimeTypeString with `"web "`.
+                        // Step 6.12 If isCustom is true, prefix mimeTypeString with `"web "`.
                         let mime_string = if representation.is_custom {
                             format!("{}{}", CUSTOM_FORMAT_PREFIX, mime_type_string)
                         } else {
                             mime_type_string.to_string()
                         };
 
-                        // Add mimeTypeString to types.
+                        // Step 6.13 Add mimeTypeString to types.
                         types.push(DOMString::from(mime_string));
                     });
                 types
