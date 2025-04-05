@@ -559,7 +559,7 @@ fn check_floats_rule_3(placement: &FloatPlacement) {
             // Where the top of `b` should probably be 32px per Rule 3, but unless this distinction
             // is made the top of `b` could legally be 0px.
             if this_float.origin.block >= other_float.rect().max_block_position() ||
-                (this_float.info.size.block == Au::zero() &&
+                (this_float.info.size.block.is_zero() &&
                     this_float.rect().max_block_position() < other_float.origin.block) ||
                 (this_float.info.size.block > Au::zero() &&
                     this_float.rect().max_block_position() <= other_float.origin.block)
@@ -729,7 +729,7 @@ fn check_floats_rule_10(placement: &FloatPlacement) {
             // Where the top of `b` should probably be 32px per Rule 3, but unless this distinction
             // is made the top of `b` could legally be 0px.
             if this_float.origin.block >= other_float.rect().max_block_position() ||
-                (this_float.info.size.block == Au::zero() &&
+                (this_float.info.size.block.is_zero() &&
                     this_float.rect().max_block_position() < other_float.origin.block) ||
                 (this_float.info.size.block > Au::zero() &&
                     this_float.rect().max_block_position() <= other_float.origin.block)
