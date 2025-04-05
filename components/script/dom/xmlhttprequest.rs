@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use constellation_traits::BlobImpl;
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentLength, ContentType, HeaderMapExt};
@@ -141,6 +142,11 @@ impl FetchResponseListener for XHRContext {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
     }
 }
 

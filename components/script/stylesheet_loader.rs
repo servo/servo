@@ -5,6 +5,7 @@
 use std::io::{Read, Seek, Write};
 use std::sync::atomic::AtomicBool;
 
+use content_security_policy as csp;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
 use mime::{self, Mime};
@@ -281,6 +282,11 @@ impl FetchResponseListener for StylesheetContext {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
     }
 }
 

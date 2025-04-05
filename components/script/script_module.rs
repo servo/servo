@@ -11,6 +11,7 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::{mem, ptr};
 
+use content_security_policy as csp;
 use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::local_name;
@@ -1272,6 +1273,11 @@ impl FetchResponseListener for ModuleContext {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
     }
 }
 

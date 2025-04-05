@@ -95,6 +95,7 @@ impl CSPViolationReporter {
             status_code: global.status_code().unwrap_or(200),
             document_url: self.strip_url_for_reports(global.get_url()),
             source_file: self.filename.clone(),
+            // TODO(36258): set correct directive based on violation
             violated_directive: "script-src".to_owned(),
             effective_directive: "script-src".to_owned(),
             line_number: self.line_number,

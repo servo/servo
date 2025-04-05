@@ -11,6 +11,7 @@ use std::thread;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::HistoryStateId;
+use content_security_policy::{self as csp};
 use cookie::Cookie;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
@@ -198,6 +199,7 @@ pub enum FetchResponseMsg {
     ProcessResponse(RequestId, Result<FetchMetadata, NetworkError>),
     ProcessResponseChunk(RequestId, Vec<u8>),
     ProcessResponseEOF(RequestId, Result<ResourceFetchTiming, NetworkError>),
+    ProcessCspViolations(RequestId, Vec<csp::Violation>),
 }
 
 impl FetchResponseMsg {
@@ -207,7 +209,8 @@ impl FetchResponseMsg {
             FetchResponseMsg::ProcessRequestEOF(id) |
             FetchResponseMsg::ProcessResponse(id, ..) |
             FetchResponseMsg::ProcessResponseChunk(id, ..) |
-            FetchResponseMsg::ProcessResponseEOF(id, ..) => *id,
+            FetchResponseMsg::ProcessResponseEOF(id, ..) |
+            FetchResponseMsg::ProcessCspViolations(id, ..) => *id,
         }
     }
 }
@@ -235,6 +238,8 @@ pub trait FetchTaskTarget {
     ///
     /// Fired when the response is fully fetched
     fn process_response_eof(&mut self, request: &Request, response: &Response);
+
+    fn process_csp_violations(&mut self, request: &Request, violations: Vec<csp::Violation>);
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -282,6 +287,7 @@ pub trait FetchResponseListener {
     fn resource_timing(&self) -> &ResourceFetchTiming;
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming;
     fn submit_resource_timing(&mut self);
+    fn process_csp_violations(&mut self, request_id: RequestId, violations: Vec<csp::Violation>);
 }
 
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
@@ -313,6 +319,12 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
 
         let _ = self.send(FetchResponseMsg::ProcessResponseEOF(request.id, payload));
     }
+
+    fn process_csp_violations(&mut self, request: &Request, violations: Vec<csp::Violation>) {
+        let _ = self.send(FetchResponseMsg::ProcessCspViolations(
+            request.id, violations,
+        ));
+    }
 }
 
 /// A fetch task that discards all data it's sent,
@@ -326,6 +338,7 @@ impl FetchTaskTarget for DiscardFetch {
     fn process_response(&mut self, _: &Request, _: &Response) {}
     fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
     fn process_response_eof(&mut self, _: &Request, _: &Response) {}
+    fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
 }
 
 pub trait Action<Listener> {
@@ -365,6 +378,9 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
                     // values for processed substeps of the processing model.
                     Err(e) => listener.process_response_eof(request_id, Err(e)),
                 }
+            },
+            FetchResponseMsg::ProcessCspViolations(request_id, violations) => {
+                listener.process_csp_violations(request_id, violations)
             },
         }
     }
