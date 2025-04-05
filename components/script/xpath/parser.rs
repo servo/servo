@@ -700,10 +700,7 @@ fn filter_expr(input: &str) -> IResult<&str, FilterExpr> {
 fn predicate_list(input: &str) -> IResult<&str, PredicateListExpr> {
     let (input, predicates) = many0(predicate)(input)?;
 
-    Ok((
-        input,
-        PredicateListExpr { predicates },
-    ))
+    Ok((input, PredicateListExpr { predicates }))
 }
 
 fn predicate(input: &str) -> IResult<&str, PredicateExpr> {
@@ -1106,7 +1103,7 @@ mod tests {
                                                         local_part: "class".to_string(),
                                                     }),
                                                     predicates: PredicateListExpr {
-                                                        predicates: vec![]
+                                                        predicates: vec![],
                                                     },
                                                 })],
                                             })),
@@ -1117,7 +1114,9 @@ mod tests {
                                                     primary: PrimaryExpr::Literal(Literal::String(
                                                         "test".to_string(),
                                                     )),
-                                                    predicates: PredicateListExpr { predicates: vec![] },
+                                                    predicates: PredicateListExpr {
+                                                        predicates: vec![],
+                                                    },
                                                 })],
                                             })),
                                         )),
@@ -1151,7 +1150,9 @@ mod tests {
                                                 primary: PrimaryExpr::Function(
                                                     CoreFunction::Position,
                                                 ),
-                                                predicates: PredicateListExpr { predicates: vec![] },
+                                                predicates: PredicateListExpr {
+                                                    predicates: vec![],
+                                                },
                                             })],
                                         })),
                                         RelationalOp::Gt,
@@ -1162,7 +1163,9 @@ mod tests {
                                                 primary: PrimaryExpr::Literal(Literal::Numeric(
                                                     NumericLiteral::Integer(1),
                                                 )),
-                                                predicates: PredicateListExpr { predicates: vec![] },
+                                                predicates: PredicateListExpr {
+                                                    predicates: vec![],
+                                                },
                                             })],
                                         })),
                                     ),
@@ -1212,7 +1215,9 @@ mod tests {
                                                     prefix: Some("xml".to_string()),
                                                     local_part: "id".to_string(),
                                                 }),
-                                                predicates: PredicateListExpr { predicates: vec![] },
+                                                predicates: PredicateListExpr {
+                                                    predicates: vec![],
+                                                },
                                             })],
                                         })),
                                         EqualityOp::Eq,
@@ -1223,7 +1228,9 @@ mod tests {
                                                 primary: PrimaryExpr::Literal(Literal::String(
                                                     "id1".to_string(),
                                                 )),
-                                                predicates: PredicateListExpr { predicates: vec![] },
+                                                predicates: PredicateListExpr {
+                                                    predicates: vec![],
+                                                },
                                             })],
                                         })),
                                     ),
@@ -1253,7 +1260,9 @@ mod tests {
                                                     prefix: None,
                                                     local_part: "title".to_string(),
                                                 }),
-                                                predicates: PredicateListExpr { predicates: vec![] },
+                                                predicates: PredicateListExpr {
+                                                    predicates: vec![],
+                                                },
                                             })],
                                         }),
                                     },
@@ -1268,7 +1277,9 @@ mod tests {
                                                         prefix: Some("xml".to_string()),
                                                         local_part: "lang".to_string(),
                                                     }),
-                                                    predicates: PredicateListExpr { predicates: vec![] },
+                                                    predicates: PredicateListExpr {
+                                                        predicates: vec![],
+                                                    },
                                                 })],
                                             })),
                                             EqualityOp::Eq,
@@ -1279,7 +1290,9 @@ mod tests {
                                                     primary: PrimaryExpr::Literal(Literal::String(
                                                         "en-GB".to_string(),
                                                     )),
-                                                    predicates: PredicateListExpr { predicates: vec![] },
+                                                    predicates: PredicateListExpr {
+                                                        predicates: vec![],
+                                                    },
                                                 })],
                                             })),
                                         ),

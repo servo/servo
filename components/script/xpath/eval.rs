@@ -440,11 +440,7 @@ impl Evaluatable for StepExpr {
 
                 trace!("[StepExpr] Filtering got nodes {:?}", filtered_nodes);
 
-                if axis_step
-                    .predicates
-                    .predicates
-                    .is_empty()
-                {
+                if axis_step.predicates.predicates.is_empty() {
                     trace!(
                         "[StepExpr] No predicates, returning nodes {:?}",
                         filtered_nodes
@@ -567,10 +563,7 @@ impl Evaluatable for FilterExpr {
     }
 
     fn is_primitive(&self) -> bool {
-        self.predicates
-            .predicates
-            .is_empty() &&
-            self.primary.is_primitive()
+        self.predicates.predicates.is_empty() && self.primary.is_primitive()
     }
 }
 
