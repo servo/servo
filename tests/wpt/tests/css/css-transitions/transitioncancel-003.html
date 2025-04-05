@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>CSS Transitions Test: Changing transition properties mid-transition</title>
+<meta name="assert" content="When transition properties are changed mid-transition, the original transition completes and new transition parameters apply to subsequent changes">
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#starting">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+promise_test(async t => {
+  const div = addDiv(t, {
+    style: 'transition: width 100ms; width: 0px;'
+  });
+
+  // Flush initial state
+  getComputedStyle(div).width;
+  // Start first transition to 100px
+  div.style.width = '100px';
+  // Wait until transition starts running
+  await new Promise(resolve => {
+    div.addEventListener('transitionrun', resolve, { once: true });
+  });
+
+  // MID-TRANSITION CHANGE: Switch to 0s duration + 100ms delay
+  div.style.transition = 'width 0s 100ms';
+
+  // Trigger new width change mid-transition
+  const interruptTime = performance.now();
+  div.style.width = '0px';
+
+  await waitForTransitionEnd(div);
+
+  // Second transition (100ms delay + 0s duration)
+  assert_greater_than(
+    performance.now() - interruptTime, 100, 'Second transition should complete after 100ms'
+  );
+
+  // Final computed style
+  assert_equals(
+    getComputedStyle(div).width ,
+    '0px',
+    'Final width should be 0px'
+  );
+}, 'Mid-transition transition changes affect subsequent transitions');
+</script>
+
+</body>
+</html>
