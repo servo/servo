@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use canvas_traits::canvas::*;
+use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::point2;
 use fonts::{
@@ -23,7 +24,6 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
 use webrender_api::units::RectExt as RectExt_;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
-use webrender_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 
 use crate::raqote_backend::Repetition;
 

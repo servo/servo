@@ -9,6 +9,7 @@ use std::thread;
 
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
+use compositing_traits::CrossProcessCompositorApi;
 use crossbeam_channel::{Sender, select, unbounded};
 use euclid::default::Size2D;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -17,7 +18,6 @@ use ipc_channel::router::ROUTER;
 use log::warn;
 use net_traits::ResourceThreads;
 use webrender_api::ImageKey;
-use webrender_traits::CrossProcessCompositorApi;
 
 use crate::canvas_data::*;
 

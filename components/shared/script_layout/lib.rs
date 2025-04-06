@@ -18,6 +18,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{LoadData, ScrollState};
 use embedder_traits::{UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D, Rect};
@@ -48,7 +49,6 @@ use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
 use webrender_api::ImageKey;
-use webrender_traits::CrossProcessCompositorApi;
 
 pub type GenericLayoutData = dyn Any + Send + Sync;
 

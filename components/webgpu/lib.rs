@@ -16,10 +16,10 @@ mod wgpu_thread;
 use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
 
+use compositing_traits::WebrenderExternalImageRegistry;
 use ipc_channel::ipc::{self, IpcReceiver};
 use servo_config::pref;
 use webrender_api::DocumentId;
-use webrender_traits::WebrenderExternalImageRegistry;
 
 pub mod swapchain;
 

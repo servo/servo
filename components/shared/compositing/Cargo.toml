@@ -11,16 +11,27 @@ rust-version.workspace = true
 name = "compositing_traits"
 path = "lib.rs"
 
+[features]
+no-wgl = ["surfman/sm-angle-default"]
+
 [dependencies]
 base = { workspace = true }
 crossbeam-channel = { workspace = true }
+dpi = { version = "0.1" }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
+gleam = { workspace = true }
+glow = { workspace = true }
+image = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 pixels = { path = '../../pixels' }
-script_traits = { workspace = true }
+raw-window-handle = { version = "0.6" }
+serde = { workspace = true }
+servo_geometry = { path = "../../geometry" }
 strum_macros = { workspace = true }
+stylo = { workspace = true }
 stylo_traits = { workspace = true }
+surfman = { workspace = true, features = ["sm-x11"] }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
+

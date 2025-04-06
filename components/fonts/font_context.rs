@@ -10,6 +10,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
 use base::id::WebViewId;
+use compositing_traits::CrossProcessCompositorApi;
 use fnv::FnvHasher;
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use log::{debug, trace};
@@ -32,7 +33,6 @@ use style::stylesheets::{CssRule, DocumentStyleSheet, FontFaceRule, StylesheetIn
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
 use url::Url;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
-use webrender_traits::CrossProcessCompositorApi;
 
 use crate::font::{
     Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope,

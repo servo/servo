@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use compositing_traits::CrossProcessCompositorMessage;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use profile_traits::ipc;
 use servo_geometry::DeviceIndependentIntSize;
 use style_traits::CSSPixel;
-use webrender_traits::CrossProcessCompositorMessage;
 
 use crate::dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
 use crate::dom::bindings::num::Finite;

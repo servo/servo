@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use atomic_refcell::AtomicRef;
+use compositing_traits::display_list::AxesScrollSensitivity;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
@@ -13,7 +14,6 @@ use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::Overflow;
 use style_traits::CSSPixel;
-use webrender_traits::display_list::AxesScrollSensitivity;
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;

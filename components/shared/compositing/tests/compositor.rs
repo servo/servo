@@ -3,12 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::ScrollTreeNodeId;
+use compositing_traits::display_list::{
+    AxesScrollSensitivity, ScrollSensitivity, ScrollTree, ScrollableNodeInfo,
+};
 use euclid::Size2D;
 use webrender_api::units::LayoutVector2D;
 use webrender_api::{ExternalScrollId, PipelineId, ScrollLocation, SpatialId};
-use webrender_traits::display_list::{
-    AxesScrollSensitivity, ScrollSensitivity, ScrollTree, ScrollableNodeInfo,
-};
 
 fn add_mock_scroll_node(tree: &mut ScrollTree) -> ScrollTreeNodeId {
     let pipeline_id = PipelineId(0, 0);

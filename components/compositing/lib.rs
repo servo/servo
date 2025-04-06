@@ -7,6 +7,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{CompositorProxy, CompositorReceiver};
 use constellation_traits::EmbedderToConstellationMessage;
 use crossbeam_channel::Sender;
@@ -14,7 +15,6 @@ use embedder_traits::ShutdownState;
 use profile_traits::{mem, time};
 use webrender::RenderApi;
 use webrender_api::DocumentId;
-use webrender_traits::rendering_context::RenderingContext;
 
 pub use crate::compositor::IOCompositor;
 

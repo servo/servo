@@ -166,7 +166,6 @@ webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "0.26"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.66", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.66" }
-webrender_traits = { path = "components/shared/webrender" }
 webxr-api = { path = "components/shared/webxr" }
 wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "2f255edc60e9669c8c737464c59af10d59a31126" }
 wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "2f255edc60e9669c8c737464c59af10d59a31126" }

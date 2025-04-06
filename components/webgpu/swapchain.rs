@@ -8,6 +8,7 @@ use std::slice;
 use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
+use compositing_traits::{WebrenderExternalImageApi, WebrenderImageSource};
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{error, warn};
@@ -21,7 +22,6 @@ use webrender_api::{
     DirtyRect, DocumentId, ExternalImageData, ExternalImageId, ExternalImageType, ImageData,
     ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
 };
-use webrender_traits::{WebrenderExternalImageApi, WebrenderImageSource};
 use wgpu_core::device::HostMap;
 use wgpu_core::global::Global;
 use wgpu_core::id;

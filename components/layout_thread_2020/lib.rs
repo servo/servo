@@ -17,6 +17,7 @@ use std::sync::{Arc, LazyLock};
 use app_units::Au;
 use base::Epoch;
 use base::id::{PipelineId, WebViewId};
+use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::ScrollState;
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{UntrustedNodeAddress, ViewportDetails};
@@ -87,7 +88,6 @@ use stylo_atoms::Atom;
 use url::Url;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{ExternalScrollId, HitTestFlags, units};
-use webrender_traits::CrossProcessCompositorApi;
 
 // This mutex is necessary due to syncronisation issues between two different types of thread-local storage
 // which manifest themselves when the layout thread tries to layout iframes in parallel with the main page

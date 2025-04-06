@@ -781,6 +781,7 @@ dependencies = [
  "bitflags 2.9.0",
  "byteorder",
  "canvas_traits",
+ "compositing_traits",
  "crossbeam-channel",
  "cssparser",
  "euclid",
@@ -803,7 +804,6 @@ dependencies = [
  "unicode-script",
  "webrender",
  "webrender_api",
- "webrender_traits",
  "webxr",
  "webxr-api",
 ]
@@ -1106,7 +1106,6 @@ dependencies = [
  "tracing",
  "webrender",
  "webrender_api",
- "webrender_traits",
  "webxr",
 ]
 
@@ -1116,16 +1115,23 @@ version = "0.0.1"
 dependencies = [
  "base",
  "crossbeam-channel",
+ "dpi",
  "embedder_traits",
  "euclid",
+ "gleam",
+ "glow",
+ "image",
  "ipc-channel",
  "log",
  "pixels",
- "script_traits",
+ "raw-window-handle",
+ "serde",
+ "servo_geometry",
  "strum_macros",
+ "stylo",
  "stylo_traits",
+ "surfman",
  "webrender_api",
- "webrender_traits",
 ]
 
 [[package]]
@@ -1176,7 +1182,6 @@ dependencies = [
  "webgpu_traits",
  "webrender",
  "webrender_api",
- "webrender_traits",
  "webxr-api",
 ]
 
@@ -2196,6 +2201,7 @@ dependencies = [
  "base",
  "bitflags 2.9.0",
  "byteorder",
+ "compositing_traits",
  "core-foundation 0.9.4",
  "core-graphics",
  "core-text",
@@ -2231,7 +2237,6 @@ dependencies = [
  "unicode-script",
  "url",
  "webrender_api",
- "webrender_traits",
  "xml-rs",
  "yeslogic-fontconfig-sys",
 ]
@@ -4185,6 +4190,7 @@ dependencies = [
  "base",
  "bitflags 2.9.0",
  "canvas_traits",
+ "compositing_traits",
  "data-url",
  "embedder_traits",
  "euclid",
@@ -4218,7 +4224,6 @@ dependencies = [
  "unicode-script",
  "url",
  "webrender_api",
- "webrender_traits",
  "xi-unicode",
 ]
 
@@ -4228,6 +4233,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "base",
+ "compositing_traits",
  "constellation_traits",
  "embedder_traits",
  "euclid",
@@ -4256,7 +4262,6 @@ dependencies = [
  "tracing",
  "url",
  "webrender_api",
- "webrender_traits",
 ]
 
 [[package]]
@@ -4408,7 +4413,6 @@ dependencies = [
  "webgpu",
  "webrender",
  "webrender_api",
- "webrender_traits",
  "webxr",
  "webxr-api",
  "winit",
@@ -4568,6 +4572,7 @@ checksum = "2532096657941c2fea9c289d370a250971c689d4f143798ff67113ec042024a5"
 name = "media"
 version = "0.0.1"
 dependencies = [
+ "compositing_traits",
  "euclid",
  "fnv",
  "ipc-channel",
@@ -4576,7 +4581,6 @@ dependencies = [
  "servo-media",
  "servo_config",
  "webrender_api",
- "webrender_traits",
 ]
 
 [[package]]
@@ -4869,6 +4873,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "chrono",
+ "compositing_traits",
  "content-security-policy",
  "cookie 0.18.1",
  "crossbeam-channel",
@@ -4919,7 +4924,6 @@ dependencies = [
  "uuid",
  "webpki-roots",
  "webrender_api",
- "webrender_traits",
 ]
 
 [[package]]
@@ -4927,6 +4931,7 @@ name = "net_traits"
 version = "0.0.1"
 dependencies = [
  "base",
+ "compositing_traits",
  "content-security-policy",
  "cookie 0.18.1",
  "crossbeam-channel",
@@ -4950,7 +4955,6 @@ dependencies = [
  "servo_url",
  "url",
  "uuid",
- "webrender_traits",
 ]
 
 [[package]]
@@ -6307,6 +6311,7 @@ dependencies = [
  "cbc",
  "chrono",
  "cipher",
+ "compositing_traits",
  "constellation_traits",
  "content-security-policy",
  "cookie 0.18.1",
@@ -6393,7 +6398,6 @@ dependencies = [
  "webdriver",
  "webgpu_traits",
  "webrender_api",
- "webrender_traits",
  "webxr-api",
  "wgpu-core",
  "wgpu-types",
@@ -6445,6 +6449,7 @@ dependencies = [
  "atomic_refcell",
  "base",
  "canvas_traits",
+ "compositing_traits",
  "constellation_traits",
  "embedder_traits",
  "euclid",
@@ -6470,7 +6475,6 @@ dependencies = [
  "stylo",
  "stylo_traits",
  "webrender_api",
- "webrender_traits",
 ]
 
 [[package]]
@@ -6491,6 +6495,7 @@ dependencies = [
  "base",
  "bluetooth_traits",
  "canvas_traits",
+ "compositing_traits",
  "constellation_traits",
  "crossbeam-channel",
  "devtools_traits",
@@ -6513,7 +6518,6 @@ dependencies = [
  "stylo_traits",
  "webgpu_traits",
  "webrender_api",
- "webrender_traits",
  "webxr-api",
 ]
 
@@ -8571,6 +8575,7 @@ version = "0.0.1"
 dependencies = [
  "arrayvec",
  "base",
+ "compositing_traits",
  "euclid",
  "ipc-channel",
  "log",
@@ -8580,7 +8585,6 @@ dependencies = [
  "webgpu_traits",
  "webrender",
  "webrender_api",
- "webrender_traits",
  "wgpu-core",
  "wgpu-types",
 ]
@@ -8671,29 +8675,6 @@ source = "git+https://github.com/servo/webrender?branch=0.66#88462530746749163bc
 dependencies = [
  "bitflags 2.9.0",
  "lazy_static",
-]
-
-[[package]]
-name = "webrender_traits"
-version = "0.0.1"
-dependencies = [
- "base",
- "dpi",
- "embedder_traits",
- "euclid",
- "gleam",
- "glow",
- "image",
- "ipc-channel",
- "libc",
- "log",
- "raw-window-handle",
- "serde",
- "servo-media",
- "servo_geometry",
- "stylo",
- "surfman",
- "webrender_api",
 ]
 
 [[package]]
