@@ -548,6 +548,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
 
     if opt_match.opt_present("enable-experimental-web-platform-features") {
         vec![
+            "dom_async_clipboard_enabled",
             "dom_fontface_enabled",
             "dom_imagebitmap_enabled",
             "dom_intersection_observer_enabled",
