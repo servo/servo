@@ -119,6 +119,7 @@ use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
+use crate::dom::servoparser::ServoParser;
 
 //
 // The basic Node structure
@@ -314,6 +315,29 @@ impl Node {
                 can_gc,
             );
         }
+    }
+
+    /// Implements the "unsafely set HTML" algorithm as specified in:
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#concept-unsafely-set-html>
+    pub fn unsafely_set_html(target: &Node, context_element: &Element, html: DOMString, can_gc: CanGc) {
+         // Step 1. Let newChildren be the result of the HTML fragment parsing algorithm.
+        let new_children = ServoParser::parse_html_fragment(context_element, html, true, can_gc);
+
+         // Step 2. Let fragment be a new DocumentFragment whose node document is contextElement's node document.
+
+        let context_document = context_element.owner_document();
+        let fragment = DocumentFragment::new(&context_document, can_gc);
+
+        // Step 3. For each node in newChildren, append node to fragment.
+        for child in new_children {
+            fragment
+                .upcast::<Node>()
+                .AppendChild(&child, can_gc)
+                .unwrap();
+        }
+
+        // Step 4. Replace all with fragment within target.
+        Node::replace_all(Some(fragment.upcast()), &target, can_gc);
     }
 
     pub(crate) fn clean_up_style_and_layout_data(&self) {
