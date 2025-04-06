@@ -2006,13 +2006,13 @@ impl ScriptThread {
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
             DevtoolScriptControlMsg::GetRootNode(id, reply) => {
-                devtools::handle_get_root_node(&documents, id, reply)
+                devtools::handle_get_root_node(&documents, id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetDocumentElement(id, reply) => {
-                devtools::handle_get_document_element(&documents, id, reply)
+                devtools::handle_get_document_element(&documents, id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
-                devtools::handle_get_children(&documents, id, node_id, reply)
+                devtools::handle_get_children(&documents, id, node_id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
                 devtools::handle_get_attribute_style(&documents, id, node_id, reply, can_gc)
