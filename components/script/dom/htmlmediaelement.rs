@@ -1928,7 +1928,7 @@ impl HTMLMediaElement {
             .SetTextContent(Some(DOMString::from(media_controls_script)), can_gc);
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(script.upcast::<Node>())
+            .AppendChild(script.upcast::<Node>(), can_gc)
         {
             warn!("Could not render media controls {:?}", e);
             return;
@@ -1949,7 +1949,7 @@ impl HTMLMediaElement {
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(style.upcast::<Node>())
+            .AppendChild(style.upcast::<Node>(), can_gc)
         {
             warn!("Could not render media controls {:?}", e);
         }

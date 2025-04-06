@@ -1023,7 +1023,7 @@ impl Node {
             .node_from_nodes_and_strings(nodes, can_gc)?;
         if self.parent_node == Some(&*parent) {
             // Step 5.
-            parent.ReplaceChild(&node, self)?;
+            parent.ReplaceChild(&node, self, can_gc)?;
         } else {
             // Step 6.
             Node::pre_insert(&node, &parent, viable_next_sibling.as_deref(), can_gc)?;
@@ -1047,7 +1047,7 @@ impl Node {
         let doc = self.owner_doc();
         let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
         // Step 2.
-        self.AppendChild(&node).map(|_| ())
+        self.AppendChild(&node, can_gc).map(|_| ())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
@@ -1226,7 +1226,7 @@ impl Node {
             .to_string()
     }
 
-    pub(crate) fn summarize(&self) -> NodeInfo {
+    pub(crate) fn summarize(&self, can_gc: CanGc) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
         let node_type = self.NodeType();
 
@@ -1246,9 +1246,9 @@ impl Node {
 
         let num_children = if is_shadow_host {
             // Shadow roots count as children
-            self.ChildNodes().Length() as usize + 1
+            self.ChildNodes(can_gc).Length() as usize + 1
         } else {
-            self.ChildNodes().Length() as usize
+            self.ChildNodes(can_gc).Length() as usize
         };
 
         let window = self.owner_window();
@@ -1282,7 +1282,7 @@ impl Node {
         index: i32,
         get_items: F,
         new_child: G,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<HTMLElement>>
     where
         F: Fn() -> DomRoot<HTMLCollection>,
@@ -1298,7 +1298,7 @@ impl Node {
         {
             let tr_node = tr.upcast::<Node>();
             if index == -1 {
-                self.InsertBefore(tr_node, None)?;
+                self.InsertBefore(tr_node, None, can_gc)?;
             } else {
                 let items = get_items();
                 let node = match items
@@ -1311,7 +1311,7 @@ impl Node {
                     None => return Err(Error::IndexSize),
                     Some(node) => node,
                 };
-                self.InsertBefore(tr_node, node.as_deref())?;
+                self.InsertBefore(tr_node, node.as_deref(), can_gc)?;
             }
         }
 
@@ -2255,7 +2255,7 @@ impl Node {
             parent,
             reference_child,
             SuppressObserver::Unsuppressed,
-            CanGc::note(),
+            can_gc,
         );
 
         // Step 6.
@@ -3028,11 +3028,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-childnodes>
-    fn ChildNodes(&self) -> DomRoot<NodeList> {
+    fn ChildNodes(&self, can_gc: CanGc) -> DomRoot<NodeList> {
         self.ensure_rare_data().child_list.or_init(|| {
             let doc = self.owner_doc();
             let window = doc.window();
-            NodeList::new_child_list(window, self, CanGc::note())
+            NodeList::new_child_list(window, self, can_gc)
         })
     }
 
@@ -3068,11 +3068,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-nodevalue>
-    fn SetNodeValue(&self, val: Option<DOMString>) {
+    fn SetNodeValue(&self, val: Option<DOMString>, can_gc: CanGc) {
         match self.type_id() {
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(val.unwrap_or_default());
+                attr.SetValue(val.unwrap_or_default(), can_gc);
             },
             NodeTypeId::CharacterData(_) => {
                 let character_data = self.downcast::<CharacterData>().unwrap();
@@ -3118,7 +3118,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             },
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(value);
+                attr.SetValue(value, can_gc);
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();
@@ -3129,17 +3129,22 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-insertbefore>
-    fn InsertBefore(&self, node: &Node, child: Option<&Node>) -> Fallible<DomRoot<Node>> {
-        Node::pre_insert(node, self, child, CanGc::note())
+    fn InsertBefore(
+        &self,
+        node: &Node,
+        child: Option<&Node>,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Node>> {
+        Node::pre_insert(node, self, child, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-appendchild>
-    fn AppendChild(&self, node: &Node) -> Fallible<DomRoot<Node>> {
-        Node::pre_insert(node, self, None, CanGc::note())
+    fn AppendChild(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+        Node::pre_insert(node, self, None, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace>
-    fn ReplaceChild(&self, node: &Node, child: &Node) -> Fallible<DomRoot<Node>> {
+    fn ReplaceChild(&self, node: &Node, child: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
         // Step 1.
         match self.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
@@ -3237,11 +3242,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         // Step 10.
         let document = self.owner_document();
-        Node::adopt(node, &document, CanGc::note());
+        Node::adopt(node, &document, can_gc);
 
         let removed_child = if node != child {
             // Step 11.
-            Node::remove(child, self, SuppressObserver::Suppressed, CanGc::note());
+            Node::remove(child, self, SuppressObserver::Suppressed, can_gc);
             Some(child)
         } else {
             None
@@ -3265,7 +3270,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             self,
             reference_child,
             SuppressObserver::Suppressed,
-            CanGc::note(),
+            can_gc,
         );
 
         // Step 14.
@@ -3290,19 +3295,19 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-removechild>
-    fn RemoveChild(&self, node: &Node) -> Fallible<DomRoot<Node>> {
-        Node::pre_remove(node, self, CanGc::note())
+    fn RemoveChild(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+        Node::pre_remove(node, self, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
-    fn Normalize(&self) {
+    fn Normalize(&self, can_gc: CanGc) {
         let mut children = self.children().enumerate().peekable();
         while let Some((_, node)) = children.next() {
             if let Some(text) = node.downcast::<Text>() {
                 let cdata = text.upcast::<CharacterData>();
                 let mut length = cdata.Length();
                 if length == 0 {
-                    Node::remove(&node, self, SuppressObserver::Unsuppressed, CanGc::note());
+                    Node::remove(&node, self, SuppressObserver::Unsuppressed, can_gc);
                     continue;
                 }
                 while children
@@ -3318,15 +3323,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
                     cdata.append_data(&sibling_cdata.data());
-                    Node::remove(
-                        &sibling,
-                        self,
-                        SuppressObserver::Unsuppressed,
-                        CanGc::note(),
-                    );
+                    Node::remove(&sibling, self, SuppressObserver::Unsuppressed, can_gc);
                 }
             } else {
-                node.Normalize();
+                node.Normalize(can_gc);
             }
         }
     }

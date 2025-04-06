@@ -2249,13 +2249,13 @@ impl Document {
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
-                        fragment.AppendChild(&node)?;
+                        fragment.AppendChild(&node, can_gc)?;
                     },
                     NodeOrString::String(string) => {
                         let node = DomRoot::upcast::<Node>(self.CreateTextNode(string, can_gc));
                         // No try!() here because appending a text node
                         // should not fail.
-                        fragment.AppendChild(&node).unwrap();
+                        fragment.AppendChild(&node, can_gc).unwrap();
                     },
                 }
             }
@@ -5404,7 +5404,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().as_deref())
+                        .InsertBefore(child, parent.GetFirstChild().as_deref(), can_gc)
                         .unwrap()
                 },
             }
@@ -5427,7 +5427,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                             None,
                             can_gc,
                         );
-                        head.upcast::<Node>().AppendChild(elem.upcast()).unwrap()
+                        head.upcast::<Node>()
+                            .AppendChild(elem.upcast(), can_gc)
+                            .unwrap()
                     },
                     None => return,
                 },
@@ -5500,7 +5502,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Step 3.
             (Some(ref root), Some(child)) => {
                 let root = root.upcast::<Node>();
-                root.ReplaceChild(new_body.upcast(), child.upcast())
+                root.ReplaceChild(new_body.upcast(), child.upcast(), CanGc::note())
                     .unwrap();
             },
 
@@ -5510,7 +5512,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Step 5.
             (Some(ref root), &None) => {
                 let root = root.upcast::<Node>();
-                root.AppendChild(new_body.upcast()).unwrap();
+                root.AppendChild(new_body.upcast(), CanGc::note()).unwrap();
             },
         }
         Ok(())
