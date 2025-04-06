@@ -16,12 +16,17 @@ pub(crate) trait Activatable {
     fn is_instance_activatable(&self) -> bool;
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior
-    fn legacy_pre_activation_behavior(&self) -> Option<InputActivationState> {
+    fn legacy_pre_activation_behavior(&self, _can_gc: CanGc) -> Option<InputActivationState> {
         None
     }
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior
-    fn legacy_canceled_activation_behavior(&self, _state_before: Option<InputActivationState>) {}
+    fn legacy_canceled_activation_behavior(
+        &self,
+        _state_before: Option<InputActivationState>,
+        _can_gc: CanGc,
+    ) {
+    }
 
     // https://dom.spec.whatwg.org/#eventtarget-activation-behavior
     // event and target are used only by HTMLAnchorElement, in the case
