@@ -19,7 +19,17 @@ impl ResourceReaderInstance {
 
 impl ResourceReaderMethods for ResourceReaderInstance {
     fn read(&self, res: Resource) -> Vec<u8> {
-        let file_path = self.resource_dir.join(res.filename());
+        let file_path = match res {
+            Resource::LastResortFont | Resource::LastResortFontHE => {
+                let path = self
+                    .resource_dir
+                    .join("last-resort-font")
+                    .join(res.filename());
+                log::warn!("Try to read path: {:?}", path);
+                path
+            },
+            _ => self.resource_dir.join(res.filename()),
+        };
         fs::read(&file_path).expect("failed to read resource file")
     }
 
