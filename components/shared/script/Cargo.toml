@@ -20,6 +20,7 @@ background_hang_monitor_api = { workspace = true }
 base = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
+compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
@@ -42,5 +43,4 @@ stylo_atoms = { workspace = true }
 stylo_traits = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"] }

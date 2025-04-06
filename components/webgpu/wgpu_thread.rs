@@ -10,6 +10,7 @@ use std::slice;
 use std::sync::{Arc, Mutex};
 
 use base::id::PipelineId;
+use compositing_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{info, warn};
 use servo_config::pref;
@@ -20,7 +21,6 @@ use webgpu_traits::{
 };
 use webrender::{RenderApi, RenderApiSender};
 use webrender_api::{DocumentId, ExternalImageId};
-use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use wgc::command::{ComputePass, ComputePassDescriptor, RenderPass};
 use wgc::device::{DeviceDescriptor, ImplicitPipelineIds};
 use wgc::id;

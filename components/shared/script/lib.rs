@@ -18,6 +18,7 @@ use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceI
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
     AnimationTickType, LoadData, NavigationHistoryBehavior, ScriptToConstellationChan, ScrollState,
     StructuredSerializedData, WindowSizeType,
@@ -48,7 +49,6 @@ use stylo_atoms::Atom;
 use webgpu_traits::WebGPUMsg;
 use webrender_api::units::DevicePixel;
 use webrender_api::{DocumentId, ImageKey};
-use webrender_traits::CrossProcessCompositorApi;
 
 /// The initial data required to create a new layout attached to an existing script thread.
 #[derive(Debug, Deserialize, Serialize)]

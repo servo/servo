@@ -21,6 +21,7 @@ app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
+compositing_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 fonts_traits = { workspace = true }
@@ -50,7 +51,6 @@ unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }

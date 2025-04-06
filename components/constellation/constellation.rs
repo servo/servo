@@ -108,7 +108,9 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
-use compositing_traits::{CompositorMsg, CompositorProxy, SendableFrameTree};
+use compositing_traits::{
+    CompositorMsg, CompositorProxy, SendableFrameTree, WebrenderExternalImageRegistry,
+};
 use constellation_traits::{
     AnimationTickType, AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse,
     BroadcastMsg, DocumentState, EmbedderToConstellationMessage, IFrameLoadInfo,
@@ -164,7 +166,6 @@ use webgpu_traits::{WebGPU, WebGPURequest};
 use webrender::RenderApi;
 use webrender::RenderApiSender;
 use webrender_api::{DocumentId, ImageKey};
-use webrender_traits::WebrenderExternalImageRegistry;
 
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,

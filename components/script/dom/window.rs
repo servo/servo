@@ -21,6 +21,7 @@ use base64::Engine;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
+use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
     DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
     ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
@@ -86,7 +87,6 @@ use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
-use webrender_traits::CrossProcessCompositorApi;
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
@@ -1895,7 +1895,7 @@ impl Window {
         let (sender, receiver) =
             ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
         let _ = self.compositor_api.sender().send(
-            webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(
+            compositing_traits::CrossProcessCompositorMessage::GetClientWindowRect(
                 self.webview_id(),
                 sender,
             ),

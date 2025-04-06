@@ -14,6 +14,7 @@ mod font_context {
     use std::thread;
 
     use app_units::Au;
+    use compositing_traits::CrossProcessCompositorApi;
     use fonts::platform::font::PlatformFont;
     use fonts::{
         FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,
@@ -34,7 +35,6 @@ mod font_context {
     };
     use stylo_atoms::Atom;
     use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
-    use webrender_traits::CrossProcessCompositorApi;
 
     struct TestContext {
         context: FontContext,
