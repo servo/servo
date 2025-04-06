@@ -251,6 +251,7 @@ pub(crate) mod channelsplitternode;
 pub(crate) mod characterdata;
 pub(crate) mod client;
 pub(crate) mod clipboardevent;
+pub(crate) mod clipboarditem;
 pub(crate) mod closeevent;
 pub(crate) mod comment;
 pub(crate) mod compositionevent;
