@@ -20,6 +20,7 @@ app_units = { workspace = true }
 bitflags = { workspace = true }
 byteorder = { workspace = true }
 canvas_traits = { workspace = true }
+compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }
@@ -42,6 +43,5 @@ surfman = { workspace = true }
 unicode-script = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 webxr = { path = "../webxr", features = ["ipc"], optional = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }

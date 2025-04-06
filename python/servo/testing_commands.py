@@ -163,6 +163,7 @@ class MachCommands(CommandBase):
             "background_hang_monitor",
             "base",
             "compositing",
+            "compositing_traits",
             "constellation",
             "devtools",
             "fonts",
@@ -178,7 +179,6 @@ class MachCommands(CommandBase):
             "servo_config",
             "servoshell",
             "stylo_config",
-            "webrender_traits",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])

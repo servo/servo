@@ -5,13 +5,13 @@
 use std::sync::Arc;
 
 use base::id::PipelineId;
+use compositing_traits::CrossProcessCompositorApi;
 use ipc_channel::ipc::IpcSender;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::{Image, ImageMetadata};
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use webrender_traits::CrossProcessCompositorApi;
 
 use crate::FetchResponseMsg;
 use crate::request::CorsSettings;

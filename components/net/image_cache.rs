@@ -7,6 +7,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::sync::{Arc, Mutex};
 use std::{mem, thread};
 
+use compositing_traits::{CrossProcessCompositorApi, SerializableImageData};
 use imsz::imsz_from_reader;
 use ipc_channel::ipc::IpcSharedMemory;
 use log::{debug, warn};
@@ -21,7 +22,6 @@ use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
-use webrender_traits::{CrossProcessCompositorApi, SerializableImageData};
 
 use crate::resource_thread::CoreResourceThreadPool;
 

@@ -16,8 +16,11 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use bitflags::bitflags;
+use compositing_traits::display_list::{HitTestInfo, ScrollTree};
+use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
-    CompositionPipeline, CompositorMsg, CompositorReceiver, SendableFrameTree,
+    CompositionPipeline, CompositorMsg, CompositorReceiver, CrossProcessCompositorMessage,
+    ImageUpdate, RendererWebView, SendableFrameTree,
 };
 use constellation_traits::{
     AnimationTickType, EmbedderToConstellationMessage, PaintMetricEvent, WindowSizeType,
@@ -51,9 +54,6 @@ use webrender_api::{
     RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
     SpatialTreeItemKey, TransformStyle,
 };
-use webrender_traits::display_list::{HitTestInfo, ScrollTree};
-use webrender_traits::rendering_context::RenderingContext;
-use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate, RendererWebView};
 
 use crate::InitialCompositorState;
 use crate::webview::{UnknownWebView, WebView};

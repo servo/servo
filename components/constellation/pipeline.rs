@@ -18,7 +18,9 @@ use base::id::{
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
-use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
+use compositing_traits::{
+    CompositionPipeline, CompositorMsg, CompositorProxy, CrossProcessCompositorApi,
+};
 use constellation_traits::{LoadData, SWManagerMsg, ScriptToConstellationChan};
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
@@ -46,7 +48,6 @@ use servo_config::opts::{self, Opts};
 use servo_config::prefs::{self, Preferences};
 use servo_url::ServoUrl;
 use webrender_api::DocumentId;
-use webrender_traits::CrossProcessCompositorApi;
 
 use crate::event_loop::EventLoop;
 use crate::process_manager::Process;
