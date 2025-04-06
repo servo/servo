@@ -11,8 +11,11 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, WantsLiveNotifications};
+use devtools_traits::DevtoolScriptControlMsg::{
+    self, GetCssDatabase, SimulateColorScheme, WantsLiveNotifications,
+};
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
+use embedder_traits::Theme;
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -351,5 +354,11 @@ impl BrowsingContextActor {
         for stream in self.streams.borrow_mut().values_mut() {
             let _ = stream.write_json_packet(&msg);
         }
+    }
+
+    pub fn simulate_color_scheme(&self, theme: Theme) -> Result<(), ()> {
+        self.script_chan
+            .send(SimulateColorScheme(self.active_pipeline_id.get(), theme))
+            .map_err(|_| ())
     }
 }
