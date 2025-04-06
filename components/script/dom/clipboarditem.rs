@@ -4,7 +4,9 @@
 
 use std::ops::Deref;
 use std::rc::Rc;
+use std::str::FromStr;
 
+use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use js::rust::{HandleObject, MutableHandleValue};
 use script_bindings::record::Record;
@@ -28,7 +30,9 @@ const CUSTOM_FORMAT_PREFIX: &str = "web ";
 /// <https://w3c.github.io/clipboard-apis/#representation>
 #[derive(JSTraceable, MallocSizeOf)]
 struct Representation {
-    mime_type: DOMString,
+    #[no_trace]
+    #[ignore_malloc_size_of = "Extern type"]
+    mime_type: Mime,
     is_custom: bool,
     #[ignore_malloc_size_of = "Rc is hard"]
     data: Rc<Promise>,
@@ -98,9 +102,10 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                 Some(stripped) => (stripped, true),
             };
 
-            // Step 6.5 TODO Let mimeType be the result of parsing a MIME type given key.
+            // Step 6.5 Let mimeType be the result of parsing a MIME type given key.
             // Step 6.6 If mimeType is failure, then throw a TypeError.
-            let mime_type = key;
+            let mime_type =
+                Mime::from_str(key).map_err(|_| Error::Type(String::from("Invalid mime type")))?;
 
             // Step 6.7 If this's clipboard item's list of representations contains a representation
             // whose MIME type is mimeType and whose [representation/isCustom] is isCustom, then throw a TypeError.
@@ -120,7 +125,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
             // Step 6.8 Set representation’s MIME type to mimeType.
             // Step 6.9 Set representation’s data to value.
             let representation = Representation {
-                mime_type: mime_type.into(),
+                mime_type,
                 is_custom,
                 data: value.clone(),
             };
@@ -153,18 +158,18 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                     .borrow()
                     .iter()
                     .for_each(|representation| {
-                        // Step 6.11 TODO Let mimeTypeString be the result of serializing a MIME type with mimeType.
-                        let mime_type_string = representation.mime_type.str();
+                        // Step 6.11 Let mimeTypeString be the result of serializing a MIME type with mimeType.
+                        let mime_type_string = representation.mime_type.to_string();
 
                         // Step 6.12 If isCustom is true, prefix mimeTypeString with `"web "`.
-                        let mime_string = if representation.is_custom {
+                        let mime_type_string = if representation.is_custom {
                             format!("{}{}", CUSTOM_FORMAT_PREFIX, mime_type_string)
                         } else {
-                            mime_type_string.to_string()
+                            mime_type_string
                         };
 
                         // Step 6.13 Add mimeTypeString to types.
-                        types.push(DOMString::from(mime_string));
+                        types.push(DOMString::from(mime_type_string));
                     });
                 types
             },
