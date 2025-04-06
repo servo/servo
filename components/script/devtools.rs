@@ -102,10 +102,11 @@ pub(crate) fn handle_get_root_node(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<NodeInfo>>,
+    can_gc: CanGc,
 ) {
     let info = documents
         .find_document(pipeline)
-        .map(|document| document.upcast::<Node>().summarize(CanGc::note()));
+        .map(|document| document.upcast::<Node>().summarize(can_gc));
     reply.send(info).unwrap();
 }
 
@@ -113,11 +114,12 @@ pub(crate) fn handle_get_document_element(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<NodeInfo>>,
+    can_gc: CanGc,
 ) {
     let info = documents
         .find_document(pipeline)
         .and_then(|document| document.GetDocumentElement())
-        .map(|element| element.upcast::<Node>().summarize(CanGc::note()));
+        .map(|element| element.upcast::<Node>().summarize(can_gc));
     reply.send(info).unwrap();
 }
 
@@ -139,6 +141,7 @@ pub(crate) fn handle_get_children(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<NodeInfo>>>,
+    can_gc: CanGc,
 ) {
     match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => reply.send(None).unwrap(),
@@ -166,7 +169,7 @@ pub(crate) fn handle_get_children(
                 if !shadow_root.is_user_agent_widget() ||
                     pref!(inspector_show_servo_internal_shadow_roots)
                 {
-                    children.push(shadow_root.upcast::<Node>().summarize(CanGc::note()));
+                    children.push(shadow_root.upcast::<Node>().summarize(can_gc));
                 }
             }
             let children_iter = parent.children().enumerate().filter_map(|(i, child)| {
@@ -175,7 +178,7 @@ pub(crate) fn handle_get_children(
                 let prev_inline = i > 0 && inline[i - 1];
                 let next_inline = i < inline.len() - 1 && inline[i + 1];
 
-                let info = child.summarize(CanGc::note());
+                let info = child.summarize(can_gc);
                 if !is_whitespace(&info) {
                     return Some(info);
                 }
