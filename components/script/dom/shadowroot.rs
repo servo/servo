@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::result::Result;
 
 use dom_struct::dom_struct;
 use html5ever::serialize::TraversalScope;
@@ -15,6 +16,7 @@ use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
 use stylo_atoms::Atom;
+use script_bindings::error::Error;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
@@ -45,6 +47,8 @@ use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
+
+
 
 /// Whether a shadow root hosts an User Agent widget.
 #[derive(JSTraceable, MallocSizeOf, PartialEq)]
@@ -451,6 +455,15 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-slotassignment>
     fn SlotAssignment(&self) -> SlotAssignmentMode {
         self.slot_assignment_mode
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-shadowroot-sethtmlunsafe>
+    fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+        // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
+        let target = self.upcast::<Node>();
+        let context_element = self.Host();
+
+        Node::unsafely_set_html(target, &context_element, html, can_gc);
     }
 
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange
