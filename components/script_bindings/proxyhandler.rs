@@ -742,7 +742,7 @@ pub(crate) unsafe fn cross_origin_set<D: DomTypes>(
 /// for a maybe-cross-origin object.
 ///
 /// [`CrossOriginPropertyFallback`]: https://html.spec.whatwg.org/multipage/#crossoriginpropertyfallback-(-p-)
-pub(crate) unsafe fn cross_origin_property_fallback<D: DomTypes>(
+pub(crate) fn cross_origin_property_fallback<D: DomTypes>(
     cx: SafeJSContext,
     _proxy: RawHandleObject,
     id: RawHandleId,
@@ -757,7 +757,7 @@ pub(crate) unsafe fn cross_origin_property_fallback<D: DomTypes>(
     // >    [[Configurable]]: true }`.
     if is_cross_origin_allowlisted_prop(cx, id) {
         set_property_descriptor(
-            MutableHandle::from_raw(desc),
+            unsafe { MutableHandle::from_raw(desc) },
             HandleValue::undefined(),
             jsapi::JSPROP_READONLY as u32,
             is_none,
