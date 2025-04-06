@@ -243,7 +243,7 @@ pub(crate) fn handle_get_stylesheet_style(
         let owner = node.stylesheet_list_owner();
 
         let stylesheet = owner.stylesheet_at(stylesheet)?;
-        let list = stylesheet.GetCssRules().ok()?;
+        let list = stylesheet.GetCssRules(can_gc).ok()?;
 
         let styles = (0..list.Length())
             .filter_map(move |i| {
@@ -252,7 +252,7 @@ pub(crate) fn handle_get_stylesheet_style(
                 if *selector != *style.SelectorText() {
                     return None;
                 };
-                Some(style.Style())
+                Some(style.Style(can_gc))
             })
             .flat_map(|style| {
                 (0..style.Length()).map(move |i| {
@@ -290,7 +290,7 @@ pub(crate) fn handle_get_selectors(
         let rules = (0..owner.stylesheet_count())
             .filter_map(|i| {
                 let stylesheet = owner.stylesheet_at(i)?;
-                let list = stylesheet.GetCssRules().ok()?;
+                let list = stylesheet.GetCssRules(can_gc).ok()?;
                 let elem = node.downcast::<Element>()?;
 
                 Some((0..list.Length()).filter_map(move |j| {

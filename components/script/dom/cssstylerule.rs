@@ -87,7 +87,7 @@ impl SpecificCSSRule for CSSStyleRule {
 
 impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     // https://drafts.csswg.org/cssom/#dom-cssstylerule-style
-    fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
+    fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let guard = self.cssgroupingrule.shared_lock().read();
             CSSStyleDeclaration::new(
@@ -98,7 +98,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
-                CanGc::note(),
+                can_gc,
             )
         })
     }
