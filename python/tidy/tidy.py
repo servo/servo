@@ -80,6 +80,7 @@ WEBIDL_STANDARDS = [
     b"//dev.w3.org/csswg",
     b"//dev.w3.org/fxtf",
     b"//dvcs.w3.org/hg",
+    b"//www.w3.org/TR/trusted-types/",
     b"//dom.spec.whatwg.org",
     b"//drafts.csswg.org",
     b"//drafts.css-houdini.org",
@@ -103,6 +104,7 @@ WEBIDL_STANDARDS = [
     b"//github.com/immersive-web/webxr-hands-input/",
     b"//gpuweb.github.io",
     b"//notifications.spec.whatwg.org",
+    b"//testutils.spec.whatwg.org/",
     # Not a URL
     b"// This interface is entirely internal to Servo, and should not be"
     + b" accessible to\n// web pages."

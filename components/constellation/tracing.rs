@@ -46,7 +46,7 @@ mod from_compositor {
         };
     }
 
-    impl LogTarget for constellation_traits::ConstellationMsg {
+    impl LogTarget for constellation_traits::EmbedderToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::Exit => target!("Exit"),
@@ -58,7 +58,7 @@ mod from_compositor {
                 Self::LoadUrl(..) => target!("LoadUrl"),
                 Self::ClearCache => target!("ClearCache"),
                 Self::TraverseHistory(..) => target!("TraverseHistory"),
-                Self::WindowSize(..) => target!("WindowSize"),
+                Self::ChangeViewportDetails(..) => target!("ChangeViewportDetails"),
                 Self::ThemeChange(..) => target!("ThemeChange"),
                 Self::TickAnimation(..) => target!("TickAnimation"),
                 Self::WebDriverCommand(..) => target!("WebDriverCommand"),
@@ -113,7 +113,7 @@ mod from_script {
         };
     }
 
-    impl LogTarget for script_traits::ScriptMsg {
+    impl LogTarget for constellation_traits::ScriptToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
                 Self::CompleteMessagePortTransfer(..) => target!("CompleteMessagePortTransfer"),
@@ -236,6 +236,7 @@ mod from_script {
                 Self::StopGamepadHapticEffect(..) => target_variant!("StopGamepadHapticEffect"),
                 Self::ShutdownComplete => target_variant!("ShutdownComplete"),
                 Self::ShowNotification(..) => target_variant!("ShowNotification"),
+                Self::ShowSelectElementMenu(..) => target_variant!("ShowSelectElementMenu"),
             }
         }
     }

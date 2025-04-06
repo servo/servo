@@ -11,7 +11,7 @@ use euclid::{Length, Scale};
 use servo::compositing::windowing::WindowMethods;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
-use servo::{Cursor, RenderingContext, WebView};
+use servo::{Cursor, RenderingContext, ScreenGeometry, WebView};
 
 use super::app_state::RunningAppState;
 
@@ -20,10 +20,7 @@ pub const LINE_HEIGHT: f32 = 38.0;
 
 pub trait WindowPortsMethods: WindowMethods {
     fn id(&self) -> winit::window::WindowId;
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.device_pixel_ratio_override()
-            .unwrap_or_else(|| self.device_hidpi_factor())
-    }
+    fn screen_geometry(&self) -> ScreenGeometry;
     fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
     fn device_pixel_ratio_override(
         &self,

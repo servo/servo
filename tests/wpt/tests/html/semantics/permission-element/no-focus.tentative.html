@@ -9,12 +9,12 @@
 <body>
 <!-- The permission element should not be focusable by script.
 -->
-<permission tabindex="0" id="valid_permission_element" type="geolocation">
+<permission tabindex="0" id="valid_permission_element" type="geolocation"></permission>
 
 <span tabindex="0" id="focusable_span">This is some text</span>
 
 <!-- style needed to allow the invalid element to have a width -->
-<permission style="width: auto; padding-left: 10px" tabindex="0" id="invalid_permission_element" type="invalid">
+<permission style="width: auto; padding-left: 10px" tabindex="0" id="invalid_permission_element" type="invalid"></permission>
 
 <script>
   promise_test(async() => {
@@ -45,9 +45,8 @@
        .addTick();
     await actions.send();
 
-    assert_equals(document.activeElement, document.body,
-      "Invalid permission element should not be focusable even by user.\
-      Instead the parent elements gets focus.");
+    assert_equals(document.activeElement, invalid_permission_element,
+      "Permission elements with an invalid-type can be focused like any other HTML element");
 }, "Permission element is not focusable by script");
 </script>
 </body>

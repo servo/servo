@@ -130,6 +130,7 @@ pub(crate) fn outer_inline(
         content_box_sizes,
         pbm,
         mut depends_on_block_constraints,
+        preferred_size_computes_to_auto,
     } = layout_style.content_box_sizes_and_padding_border_margin(containing_block);
     let margin = pbm.margin.map(|v| v.auto_is(Au::zero));
     let pbm_sums = LogicalVec2 {
@@ -143,7 +144,7 @@ pub(crate) fn outer_inline(
                 .size
                 .block
                 .map(|v| Au::zero().max(v - pbm_sums.block));
-            let automatic_size = if content_box_sizes.block.preferred.is_initial() &&
+            let automatic_size = if preferred_size_computes_to_auto.block &&
                 auto_block_size_stretches_to_containing_block
             {
                 depends_on_block_constraints = true;

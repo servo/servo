@@ -17,6 +17,8 @@ test_invalid_value("corner-shape", "round round round round round");
 test_invalid_value("corner-shape", "superellipse(8 8)");
 test_invalid_value("corner-shape", "superellipse(,)");
 test_invalid_value("corner-shape", "superellipse(4,0.1)");
+test_invalid_value("corner-shape", "straight");
+test_invalid_value("corner-shape", "nonsense");
 test_invalid_value("corner-shape", "superellipse(foo)");
 test_invalid_value("corner-shape", "superellipse(1 abc)");
 test_invalid_value("corner-shape", "superellipse(1) / bevel");

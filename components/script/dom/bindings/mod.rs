@@ -135,7 +135,6 @@
 #![deny(non_snake_case)]
 
 pub(crate) mod buffer_source;
-pub(crate) mod callback;
 #[allow(dead_code)]
 pub(crate) mod cell;
 pub(crate) mod constructor;
@@ -143,13 +142,9 @@ pub(crate) mod conversions;
 pub(crate) mod error;
 pub(crate) mod frozenarray;
 pub(crate) mod function;
-pub(crate) mod guard;
 pub(crate) mod import;
 pub(crate) mod inheritance;
-pub(crate) mod interface;
-pub(crate) mod iterable;
 pub(crate) mod like;
-pub(crate) mod namespace;
 pub(crate) mod principals;
 pub(crate) mod proxyhandler;
 pub(crate) mod refcounted;
@@ -165,7 +160,7 @@ pub(crate) mod utils;
 pub(crate) mod weakref;
 pub(crate) mod xmlname;
 
-pub(crate) use script_bindings::num;
+pub(crate) use script_bindings::{callback, iterable, num};
 
 /// Generated JS-Rust bindings.
 #[allow(missing_docs, non_snake_case)]
@@ -173,13 +168,7 @@ pub(crate) mod codegen {
     pub(crate) mod DomTypeHolder {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/DomTypeHolder.rs"));
     }
-    pub(crate) mod DomTypes {
-        include!(concat!(env!("BINDINGS_OUT_DIR"), "/DomTypes.rs"));
-    }
-    #[allow(dead_code)]
-    pub(crate) mod GenericBindings {
-        include!(concat!(env!("BINDINGS_OUT_DIR"), "/Bindings/mod.rs"));
-    }
+    pub(crate) use script_bindings::codegen::GenericBindings;
     #[allow(dead_code)]
     pub(crate) mod Bindings {
         include!(concat!(
@@ -189,30 +178,14 @@ pub(crate) mod codegen {
     }
     pub(crate) mod InterfaceObjectMap {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceObjectMap.rs"));
-        pub(crate) use script_bindings::codegen::Globals::Globals;
     }
-    #[allow(dead_code)]
     pub(crate) mod ConcreteInheritTypes {
         include!(concat!(
             env!("BINDINGS_OUT_DIR"),
             "/ConcreteInheritTypes.rs"
         ));
     }
-    pub(crate) use script_bindings::codegen::PrototypeList;
-    pub(crate) mod RegisterBindings {
-        include!(concat!(env!("BINDINGS_OUT_DIR"), "/RegisterBindings.rs"));
-    }
-    #[allow(
-        non_camel_case_types,
-        unused_imports,
-        unused_variables,
-        clippy::large_enum_variant,
-        clippy::upper_case_acronyms,
-        clippy::enum_variant_names
-    )]
-    pub(crate) mod GenericUnionTypes {
-        include!(concat!(env!("BINDINGS_OUT_DIR"), "/GenericUnionTypes.rs"));
-    }
+    pub(crate) use script_bindings::codegen::{PrototypeList, RegisterBindings};
     #[allow(dead_code)]
     pub(crate) mod UnionTypes {
         include!(concat!(env!("BINDINGS_OUT_DIR"), "/UnionTypes.rs"));

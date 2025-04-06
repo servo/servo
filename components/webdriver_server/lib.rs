@@ -19,7 +19,7 @@ use std::{env, fmt, mem, process, thread};
 use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
-use constellation_traits::{ConstellationMsg, TraversalDirection};
+use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
@@ -100,7 +100,7 @@ fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
     }
 }
 
-pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
+pub fn start_server(port: u16, constellation_chan: Sender<EmbedderToConstellationMessage>) {
     let handler = Handler::new(constellation_chan);
     thread::Builder::new()
         .name("WebDriverHttpServer".to_owned())
@@ -188,7 +188,7 @@ struct Handler {
     /// will be forwarded to the load_status_receiver.
     load_status_sender: IpcSender<WebDriverLoadStatus>,
     session: Option<WebDriverSession>,
-    constellation_chan: Sender<ConstellationMsg>,
+    constellation_chan: Sender<EmbedderToConstellationMessage>,
     resize_timeout: u32,
 }
 
@@ -400,7 +400,7 @@ impl<'de> Visitor<'de> for TupleVecMapVisitor {
 }
 
 impl Handler {
-    pub fn new(constellation_chan: Sender<ConstellationMsg>) -> Handler {
+    pub fn new(constellation_chan: Sender<EmbedderToConstellationMessage>) -> Handler {
         // Create a pair of both an IPC and a threaded channel,
         // keep the IPC sender to clone and pass to the constellation for each load,
         // and keep a threaded receiver to block on an incoming load-status.
@@ -425,7 +425,8 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
 
         for _ in 0..iterations {
-            let msg = ConstellationMsg::GetFocusTopLevelBrowsingContext(sender.clone());
+            let msg =
+                EmbedderToConstellationMessage::GetFocusTopLevelBrowsingContext(sender.clone());
             self.constellation_chan.send(msg).unwrap();
             // Wait until the document is ready before returning the top-level browsing context id.
             if let Some(x) = receiver.recv().unwrap() {
@@ -622,20 +623,18 @@ impl Handler {
         cmd_msg: WebDriverScriptCommand,
     ) -> WebDriverResult<()> {
         let browsing_context_id = self.session()?.browsing_context_id;
-        let msg = ConstellationMsg::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(
-            browsing_context_id,
-            cmd_msg,
-        ));
+        let msg = EmbedderToConstellationMessage::WebDriverCommand(
+            WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg),
+        );
         self.constellation_chan.send(msg).unwrap();
         Ok(())
     }
 
     fn top_level_script_command(&self, cmd_msg: WebDriverScriptCommand) -> WebDriverResult<()> {
         let browsing_context_id = BrowsingContextId::from(self.session()?.webview_id);
-        let msg = ConstellationMsg::WebDriverCommand(WebDriverCommandMsg::ScriptCommand(
-            browsing_context_id,
-            cmd_msg,
-        ));
+        let msg = EmbedderToConstellationMessage::WebDriverCommand(
+            WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg),
+        );
         self.constellation_chan.send(msg).unwrap();
         Ok(())
     }
@@ -656,7 +655,7 @@ impl Handler {
         let cmd_msg =
             WebDriverCommandMsg::LoadUrl(webview_id, url, self.load_status_sender.clone());
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
         self.wait_for_load()
@@ -692,7 +691,7 @@ impl Handler {
         let cmd_msg = WebDriverCommandMsg::GetWindowSize(webview_id, sender);
 
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
         let window_size = receiver.recv().unwrap();
@@ -724,7 +723,7 @@ impl Handler {
         let cmd_msg = WebDriverCommandMsg::SetWindowSize(webview_id, size.to_i32(), sender.clone());
 
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
         let timeout = self.resize_timeout;
@@ -735,7 +734,7 @@ impl Handler {
             thread::sleep(Duration::from_millis(timeout as u64));
             let cmd_msg = WebDriverCommandMsg::GetWindowSize(webview_id, sender);
             constellation_chan
-                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                 .unwrap();
         });
 
@@ -784,7 +783,7 @@ impl Handler {
     fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
         let webview_id = self.session()?.webview_id;
         let direction = TraversalDirection::Back(1);
-        let msg = ConstellationMsg::TraverseHistory(webview_id, direction);
+        let msg = EmbedderToConstellationMessage::TraverseHistory(webview_id, direction);
         self.constellation_chan.send(msg).unwrap();
         Ok(WebDriverResponse::Void)
     }
@@ -792,7 +791,7 @@ impl Handler {
     fn handle_go_forward(&self) -> WebDriverResult<WebDriverResponse> {
         let webview_id = self.session()?.webview_id;
         let direction = TraversalDirection::Forward(1);
-        let msg = ConstellationMsg::TraverseHistory(webview_id, direction);
+        let msg = EmbedderToConstellationMessage::TraverseHistory(webview_id, direction);
         self.constellation_chan.send(msg).unwrap();
         Ok(WebDriverResponse::Void)
     }
@@ -802,7 +801,7 @@ impl Handler {
 
         let cmd_msg = WebDriverCommandMsg::Refresh(webview_id, self.load_status_sender.clone());
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
         self.wait_for_load()
@@ -892,7 +891,7 @@ impl Handler {
             session.window_handles.remove(&session.webview_id);
             let cmd_msg = WebDriverCommandMsg::CloseWebView(session.webview_id);
             self.constellation_chan
-                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                 .unwrap();
         }
 
@@ -919,7 +918,7 @@ impl Handler {
             self.load_status_sender.clone(),
         );
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
         let mut handle = self.session.as_ref().unwrap().id.to_string();
@@ -980,7 +979,7 @@ impl Handler {
             session.webview_id = webview_id;
             session.browsing_context_id = BrowsingContextId::from(webview_id);
 
-            let msg = ConstellationMsg::FocusWebView(webview_id);
+            let msg = EmbedderToConstellationMessage::FocusWebView(webview_id);
             self.constellation_chan.send(msg).unwrap();
             Ok(WebDriverResponse::Void)
         } else {
@@ -1298,9 +1297,9 @@ impl Handler {
         Ok(WebDriverResponse::Cookies(CookiesResponse(response)))
     }
 
-    fn handle_get_cookie(&self, name: &str) -> WebDriverResult<WebDriverResponse> {
+    fn handle_get_cookie(&self, name: String) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let cmd = WebDriverScriptCommand::GetCookie(name.to_owned(), sender);
+        let cmd = WebDriverScriptCommand::GetCookie(name, sender);
         self.browsing_context_script_command(cmd)?;
         let cookies = receiver.recv().unwrap();
         let response = cookies
@@ -1343,6 +1342,16 @@ impl Handler {
                     "Unable to set cookie",
                 )),
             },
+        }
+    }
+
+    fn handle_delete_cookie(&self, name: String) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::DeleteCookie(name, sender);
+        self.browsing_context_script_command(cmd)?;
+        match receiver.recv().unwrap() {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(error) => Err(WebDriverError::new(error, "")),
         }
     }
 
@@ -1548,7 +1557,7 @@ impl Handler {
         let cmd = WebDriverScriptCommand::FocusElement(element.to_string(), sender);
         let cmd_msg = WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd);
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
         // TODO: distinguish the not found and not focusable cases
@@ -1564,7 +1573,7 @@ impl Handler {
         // so the constellation may have changed state between them.
         let cmd_msg = WebDriverCommandMsg::SendKeys(browsing_context_id, input_events);
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
         Ok(WebDriverResponse::Void)
@@ -1648,7 +1657,7 @@ impl Handler {
             let cmd_msg =
                 WebDriverCommandMsg::TakeScreenshot(self.session()?.webview_id, rect, sender);
             self.constellation_chan
-                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                 .unwrap();
 
             if let Some(x) = receiver.recv().unwrap() {
@@ -1832,7 +1841,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::FindElementElements(ref element, ref parameters) => {
                 self.handle_find_elements_from_element(element, parameters)
             },
-            WebDriverCommand::GetNamedCookie(ref name) => self.handle_get_cookie(name),
+            WebDriverCommand::GetNamedCookie(name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),
             WebDriverCommand::GetElementRect(ref element) => self.handle_element_rect(element),
@@ -1860,6 +1869,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::ElementClick(ref element) => self.handle_element_click(element),
             WebDriverCommand::DismissAlert => self.handle_dismiss_alert(),
             WebDriverCommand::DeleteCookies => self.handle_delete_cookies(),
+            WebDriverCommand::DeleteCookie(name) => self.handle_delete_cookie(name),
             WebDriverCommand::GetTimeouts => self.handle_get_timeouts(),
             WebDriverCommand::SetTimeouts(ref x) => self.handle_set_timeouts(x),
             WebDriverCommand::TakeScreenshot => self.handle_take_screenshot(),

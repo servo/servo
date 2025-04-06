@@ -10,6 +10,7 @@ from urllib.parse import urlunsplit
 
 from tests.support import defaults
 from tests.support.helpers import cleanup_session, deep_update
+from tests.support.web_extension import EXTENSION_DATA
 from tests.support.inline import build_inline
 from tests.support.http_request import HTTPRequest
 from tests.support.keys import Keys
@@ -294,6 +295,13 @@ def inline(url):
         return build_inline(url, src, **kwargs)
 
     return inline
+
+
+@pytest.fixture
+def extension_data(current_session):
+    browser_name = current_session.capabilities["browserName"]
+
+    return EXTENSION_DATA[browser_name]
 
 
 @pytest.fixture

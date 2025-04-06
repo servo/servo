@@ -12,6 +12,7 @@ use canvas_traits::canvas::{
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, PathSegment, RadialGradientStyle,
     RepetitionStyle, TextAlign, TextBaseline, TextMetrics as CanvasTextMetrics,
 };
+use constellation_traits::ScriptToConstellationMessage;
 use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
@@ -21,7 +22,6 @@ use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
-use script_traits::ScriptMsg;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::context::QuirksMode;
@@ -94,6 +94,8 @@ pub(crate) struct CanvasContextState {
     #[no_trace]
     line_join: LineJoinStyle,
     miter_limit: f64,
+    line_dash: Vec<f64>,
+    line_dash_offset: f64,
     #[no_trace]
     transform: Transform2D<f32>,
     shadow_offset_x: f64,
@@ -134,6 +136,8 @@ impl CanvasContextState {
             text_align: Default::default(),
             text_baseline: Default::default(),
             direction: Default::default(),
+            line_dash: Vec::new(),
+            line_dash_offset: 0.0,
         }
     }
 }
@@ -173,7 +177,9 @@ impl CanvasState {
         let script_to_constellation_chan = global.script_to_constellation_chan();
         debug!("Asking constellation to create new canvas thread.");
         script_to_constellation_chan
-            .send(ScriptMsg::CreateCanvasPaintThread(size, sender))
+            .send(ScriptToConstellationMessage::CreateCanvasPaintThread(
+                size, sender,
+            ))
             .unwrap();
         let (ipc_renderer, canvas_id, image_key) = receiver.recv().unwrap();
         debug!("Done.");
@@ -1284,6 +1290,59 @@ impl CanvasState {
 
         self.state.borrow_mut().miter_limit = limit;
         self.send_canvas_2d_msg(Canvas2dMsg::SetMiterLimit(limit as f32))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getlinedash>
+    pub(crate) fn line_dash(&self) -> Vec<f64> {
+        // > return a sequence whose values are the values of
+        // > the object's dash list, in the same order.
+        self.state.borrow().line_dash.clone()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-setlinedash>
+    pub(crate) fn set_line_dash(&self, segments: Vec<f64>) {
+        // > If any value in segments is not finite (e.g. an Infinity or a NaN value),
+        // > or if any value is negative (less than zero), then return (without throwing
+        // > an exception; user agents could show a message on a developer console,
+        // > though, as that would be helpful for debugging).
+        if segments
+            .iter()
+            .any(|segment| !segment.is_finite() || *segment < 0.0)
+        {
+            return;
+        }
+
+        // > If the number of elements in segments is odd, then let segments
+        // > be the concatenation of two copies of segments.
+        let mut line_dash: Vec<_> = segments.clone();
+        if segments.len() & 1 == 1 {
+            line_dash.extend(line_dash.clone());
+        }
+
+        // > Let the object's dash list be segments.
+        self.state.borrow_mut().line_dash = line_dash.clone();
+        self.send_canvas_2d_msg(Canvas2dMsg::SetLineDash(
+            line_dash.into_iter().map(|dash| dash as f32).collect(),
+        ))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset>
+    pub(crate) fn line_dash_offset(&self) -> f64 {
+        // > On getting, it must return the current value.
+        self.state.borrow().line_dash_offset
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset?
+    pub(crate) fn set_line_dash_offset(&self, offset: f64) {
+        // > On setting, infinite and NaN values must be ignored,
+        // > leaving the value unchanged;
+        if !offset.is_finite() {
+            return;
+        }
+
+        // > other values must change the current value to the new value.
+        self.state.borrow_mut().line_dash_offset = offset;
+        self.send_canvas_2d_msg(Canvas2dMsg::SetLineDashOffset(offset as f32));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata

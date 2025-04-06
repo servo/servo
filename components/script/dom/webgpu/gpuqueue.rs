@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use webgpu::{WebGPU, WebGPUQueue, WebGPURequest, wgt};
+use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::cell::DomRefCell;
@@ -130,7 +130,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
 
         // Step 4
         let valid = data_offset + content_size <= data_size as u64 &&
-            content_size * sizeof_element as u64 % wgt::COPY_BUFFER_ALIGNMENT == 0;
+            content_size * sizeof_element as u64 % wgpu_types::COPY_BUFFER_ALIGNMENT == 0;
         if !valid {
             return Err(Error::Operation);
         }

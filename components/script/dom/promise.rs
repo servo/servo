@@ -29,6 +29,7 @@ use js::rust::wrappers::{
     ResolvePromise, SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
+use script_bindings::interfaces::PromiseHelpers;
 
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
@@ -385,15 +386,6 @@ fn create_native_handler_function(
         SetFunctionNativeReserved(obj.get(), SLOT_NATIVEHANDLER_TASK, &Int32Value(task as i32));
         obj.get()
     }
-}
-
-/// Operations that must be invoked from the generated bindings.
-pub(crate) trait PromiseHelpers<D: crate::DomTypes> {
-    fn new_resolved(
-        global: &D::GlobalScope,
-        cx: SafeJSContext,
-        value: impl ToJSValConvertible,
-    ) -> Rc<D::Promise>;
 }
 
 impl PromiseHelpers<crate::DomTypeHolder> for Promise {

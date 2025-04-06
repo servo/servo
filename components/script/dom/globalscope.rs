@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
@@ -17,6 +16,10 @@ use std::{mem, ptr};
 use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
+};
+use constellation_traits::{
+    BlobData, BlobImpl, BroadcastMsg, FileBlob, MessagePortImpl, MessagePortMsg, PortMessageTask,
+    ScriptToConstellationChan, ScriptToConstellationMessage,
 };
 use content_security_policy::{CheckResult, CspList, PolicyDisposition};
 use crossbeam_channel::Sender;
@@ -55,16 +58,12 @@ use net_traits::{
     ResourceThreads, fetch_async,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
-use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
-use script_traits::transferable::MessagePortImpl;
-use script_traits::{
-    BroadcastMsg, MessagePortMsg, PortMessageTask, ScriptMsg, ScriptToConstellationChan,
-};
+use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use timers::{TimerEventId, TimerEventRequest, TimerSource};
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
-use webgpu::{DeviceLostReason, WebGPUDevice};
+use webgpu_traits::{DeviceLostReason, WebGPUDevice};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 #[cfg(feature = "webgpu")]
@@ -124,6 +123,7 @@ use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -318,9 +318,6 @@ pub(crate) struct GlobalScope {
     // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
     consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
-
-    /// An optional string allowing the user agent to be set for testing.
-    user_agent: Cow<'static, str>,
 
     /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
@@ -529,7 +526,7 @@ impl MessageListener {
                                 // If not managing any ports, no transfer can succeed,
                                 // so just send back everything.
                                 let _ = global.script_to_constellation_chan().send(
-                                    ScriptMsg::MessagePortTransferResult(None, vec![], ports),
+                                    ScriptToConstellationMessage::MessagePortTransferResult(None, vec![], ports),
                                 );
                                 return;
                             }
@@ -547,7 +544,7 @@ impl MessageListener {
                             }
                         }
                         let _ = global.script_to_constellation_chan().send(
-                            ScriptMsg::MessagePortTransferResult(Some(router_id), succeeded, failed),
+                            ScriptToConstellationMessage::MessagePortTransferResult(Some(router_id), succeeded, failed),
                         );
                     })
                 );
@@ -720,7 +717,6 @@ impl GlobalScope {
         origin: MutableOrigin,
         creation_url: Option<ServoUrl>,
         microtask_queue: Rc<MicrotaskQueue>,
-        user_agent: Cow<'static, str>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
@@ -754,7 +750,6 @@ impl GlobalScope {
             event_source_tracker: DOMTracker::new(),
             uncaught_rejections: Default::default(),
             consumed_rejections: Default::default(),
-            user_agent,
             #[cfg(feature = "webgpu")]
             gpu_id_hub,
             #[cfg(feature = "webgpu")]
@@ -921,9 +916,9 @@ impl GlobalScope {
         if let MessagePortState::Managed(router_id, _message_ports) =
             &*self.message_port_state.borrow()
         {
-            let _ = self
-                .script_to_constellation_chan()
-                .send(ScriptMsg::RemoveMessagePortRouter(*router_id));
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::RemoveMessagePortRouter(*router_id),
+            );
         }
         *self.message_port_state.borrow_mut() = MessagePortState::UnManaged;
     }
@@ -934,12 +929,12 @@ impl GlobalScope {
         if let BroadcastChannelState::Managed(router_id, _channels) =
             &*self.broadcast_channel_state.borrow()
         {
-            let _ =
-                self.script_to_constellation_chan()
-                    .send(ScriptMsg::RemoveBroadcastChannelRouter(
-                        *router_id,
-                        self.origin().immutable().clone(),
-                    ));
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::RemoveBroadcastChannelRouter(
+                    *router_id,
+                    self.origin().immutable().clone(),
+                ),
+            );
         }
         *self.broadcast_channel_state.borrow_mut() = BroadcastChannelState::UnManaged;
     }
@@ -970,7 +965,7 @@ impl GlobalScope {
 
         let _ = self
             .script_to_constellation_chan()
-            .send(ScriptMsg::EntanglePorts(port1, port2));
+            .send(ScriptToConstellationMessage::EntanglePorts(port1, port2));
     }
 
     /// Note that the entangled port of `port_id` has been removed in another global.
@@ -1002,7 +997,7 @@ impl GlobalScope {
             port_impl.set_has_been_shipped();
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::MessagePortShipped(*port_id));
+                .send(ScriptToConstellationMessage::MessagePortShipped(*port_id));
             port_impl
         } else {
             panic!("mark_port_as_transferred called on a global not managing any ports.");
@@ -1098,9 +1093,9 @@ impl GlobalScope {
     /// If we don't know about the port,
     /// send the message to the constellation for routing.
     fn re_route_port_task(&self, port_id: MessagePortId, task: PortMessageTask) {
-        let _ = self
-            .script_to_constellation_chan()
-            .send(ScriptMsg::RerouteMessagePort(port_id, task));
+        let _ = self.script_to_constellation_chan().send(
+            ScriptToConstellationMessage::RerouteMessagePort(port_id, task),
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-postmessage>
@@ -1116,9 +1111,9 @@ impl GlobalScope {
             //
             // Note: for globals in the same script-thread,
             // we could skip the hop to the constellation.
-            let _ = self
-                .script_to_constellation_chan()
-                .send(ScriptMsg::ScheduleBroadcast(*router_id, msg));
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::ScheduleBroadcast(*router_id, msg),
+            );
         } else {
             panic!("Attemps to broadcast a message via global not managing any channels.");
         }
@@ -1291,12 +1286,9 @@ impl GlobalScope {
                 }
                 managed_port.pending = false;
             }
-            let _ =
-                self.script_to_constellation_chan()
-                    .send(ScriptMsg::CompleteMessagePortTransfer(
-                        *router_id,
-                        to_be_added,
-                    ));
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::CompleteMessagePortTransfer(*router_id, to_be_added),
+            );
         } else {
             warn!("maybe_add_pending_ports called on a global not managing any ports.");
         }
@@ -1315,7 +1307,7 @@ impl GlobalScope {
                         // and to forward this message to the script-process where the entangled is found.
                         let _ = self
                             .script_to_constellation_chan()
-                            .send(ScriptMsg::RemoveMessagePort(*id));
+                            .send(ScriptToConstellationMessage::RemoveMessagePort(*id));
                         Some(*id)
                     } else {
                         None
@@ -1345,7 +1337,7 @@ impl GlobalScope {
                 channels.retain(|chan| !chan.closed());
                 if channels.is_empty() {
                     let _ = self.script_to_constellation_chan().send(
-                        ScriptMsg::RemoveBroadcastChannelNameInRouter(
+                        ScriptToConstellationMessage::RemoveBroadcastChannelNameInRouter(
                             *router_id,
                             name.to_string(),
                             self.origin().immutable().clone(),
@@ -1387,19 +1379,19 @@ impl GlobalScope {
             );
             let router_id = BroadcastChannelRouterId::new();
             *current_state = BroadcastChannelState::Managed(router_id, HashMap::new());
-            let _ = self
-                .script_to_constellation_chan()
-                .send(ScriptMsg::NewBroadcastChannelRouter(
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::NewBroadcastChannelRouter(
                     router_id,
                     broadcast_control_sender,
                     self.origin().immutable().clone(),
-                ));
+                ),
+            );
         }
 
         if let BroadcastChannelState::Managed(router_id, channels) = &mut *current_state {
             let entry = channels.entry(dom_channel.Name()).or_insert_with(|| {
                 let _ = self.script_to_constellation_chan().send(
-                    ScriptMsg::NewBroadcastChannelNameInRouter(
+                    ScriptToConstellationMessage::NewBroadcastChannelNameInRouter(
                         *router_id,
                         dom_channel.Name().to_string(),
                         self.origin().immutable().clone(),
@@ -1439,12 +1431,9 @@ impl GlobalScope {
             );
             let router_id = MessagePortRouterId::new();
             *current_state = MessagePortState::Managed(router_id, HashMapTracedValues::new());
-            let _ = self
-                .script_to_constellation_chan()
-                .send(ScriptMsg::NewMessagePortRouter(
-                    router_id,
-                    port_control_sender,
-                ));
+            let _ = self.script_to_constellation_chan().send(
+                ScriptToConstellationMessage::NewMessagePortRouter(router_id, port_control_sender),
+            );
         }
 
         if let MessagePortState::Managed(router_id, message_ports) = &mut *current_state {
@@ -1483,12 +1472,12 @@ impl GlobalScope {
                         closed: false,
                     },
                 );
-                let _ = self
-                    .script_to_constellation_chan()
-                    .send(ScriptMsg::NewMessagePort(
+                let _ = self.script_to_constellation_chan().send(
+                    ScriptToConstellationMessage::NewMessagePort(
                         *router_id,
                         *dom_port.message_port_id(),
-                    ));
+                    ),
+                );
             };
         } else {
             panic!("track_message_port should have first switched the state to managed.");
@@ -2234,10 +2223,10 @@ impl GlobalScope {
     }
 
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
-        self.send_to_constellation(ScriptMsg::ForwardToEmbedder(msg));
+        self.send_to_constellation(ScriptToConstellationMessage::ForwardToEmbedder(msg));
     }
 
-    pub(crate) fn send_to_constellation(&self, msg: ScriptMsg) {
+    pub(crate) fn send_to_constellation(&self, msg: ScriptToConstellationMessage) {
         self.script_to_constellation_chan().send(msg).unwrap();
     }
 
@@ -2394,6 +2383,21 @@ impl GlobalScope {
         }
         debug!("unsupported global, defaulting insecure requests policy to DoNotUpgrade");
         InsecureRequestsPolicy::DoNotUpgrade
+    }
+
+    /// Whether this document has ancestor navigables that are trustworthy
+    pub(crate) fn has_trustworthy_ancestor_origin(&self) -> bool {
+        self.downcast::<Window>()
+            .is_some_and(|window| window.Document().has_trustworthy_ancestor_origin())
+    }
+
+    // Whether this document has a trustworthy origin or has trustowrthy ancestor navigables
+    pub(crate) fn has_trustworthy_ancestor_or_current_origin(&self) -> bool {
+        self.downcast::<Window>().is_some_and(|window| {
+            window
+                .Document()
+                .has_trustworthy_ancestor_or_current_origin()
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-the-error>
@@ -2920,10 +2924,6 @@ impl GlobalScope {
         );
     }
 
-    pub(crate) fn get_user_agent(&self) -> Cow<'static, str> {
-        self.user_agent.clone()
-    }
-
     pub(crate) fn get_https_state(&self) -> HttpsState {
         self.https_state.get()
     }
@@ -3015,7 +3015,7 @@ impl GlobalScope {
     pub(crate) fn handle_uncaptured_gpu_error(
         &self,
         device: WebGPUDevice,
-        error: webgpu::Error,
+        error: webgpu_traits::Error,
         can_gc: CanGc,
     ) {
         if let Some(gpu_device) = self
@@ -3299,6 +3299,16 @@ impl GlobalScope {
             .borrow_mut()
             .remove(&callback_id)
     }
+
+    pub(crate) fn trusted_types(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.TrustedTypes(can_gc);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.TrustedTypes(can_gc);
+        }
+        unreachable!();
+    }
 }
 
 /// Returns the Rust global scope from a JS global object.
@@ -3326,30 +3336,6 @@ unsafe fn global_scope_from_global_static(global: *mut JSObject) -> DomRoot<Glob
         0
     );
     root_from_object_static(global).unwrap()
-}
-
-/// Operations that must be invoked from the generated bindings.
-#[allow(unsafe_code)]
-pub(crate) trait GlobalScopeHelpers<D: crate::DomTypes> {
-    unsafe fn from_context(cx: *mut JSContext, realm: InRealm) -> DomRoot<D::GlobalScope>;
-    fn get_cx() -> SafeJSContext;
-    unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
-    fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<D::GlobalScope>;
-
-    unsafe fn from_object_maybe_wrapped(
-        obj: *mut JSObject,
-        cx: *mut JSContext,
-    ) -> DomRoot<D::GlobalScope>;
-
-    fn origin(&self) -> &MutableOrigin;
-
-    fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
-
-    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc);
-
-    fn get_url(&self) -> ServoUrl;
-
-    fn is_secure_context(&self) -> bool;
 }
 
 #[allow(unsafe_code)]

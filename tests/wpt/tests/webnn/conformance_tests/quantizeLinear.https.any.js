@@ -574,6 +574,44 @@ const quantizeLinearTests = [
         }
       }
     }
+  },
+
+  {
+    'name': 'quantizeLinear int32 1D tensor with float32 scalar scale',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [-22405.495643615723, 7391418.921366602],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': false
+        },
+        'quantizeLinearScale': {
+          'data': [1.1202747821807861, 0.2800687253475189],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [32345, -2445234],
+          'descriptor': {shape: [2], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'quantizeLinear',
+        'arguments': [
+          {'input': 'quantizeLinearInput'},
+          {'scale': 'quantizeLinearScale'},
+          {'zeroPoint': 'quantizeLinearZeroPoint'}
+        ],
+        'outputs': 'quantizeLinearOutput'
+      }],
+      'expectedOutputs': {
+        'quantizeLinearOutput': {
+          'data': [12345, 23946213],
+          'descriptor': {shape: [2], dataType: 'int32'}
+        }
+      }
+    }
   }
 ];
 

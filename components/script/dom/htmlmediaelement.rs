@@ -894,6 +894,7 @@ impl HTMLMediaElement {
             None,
             self.global().get_referrer(),
             document.insecure_requests_policy(),
+            document.has_trustworthy_ancestor_or_current_origin(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())
@@ -1631,7 +1632,7 @@ impl HTMLMediaElement {
 
                         // Steps 7.
                         let event = TrackEvent::new(
-                            &self.global(),
+                            self.global().as_window(),
                             atom!("addtrack"),
                             false,
                             false,
@@ -1689,7 +1690,7 @@ impl HTMLMediaElement {
 
                         // Steps 7.
                         let event = TrackEvent::new(
-                            &self.global(),
+                            self.global().as_window(),
                             atom!("addtrack"),
                             false,
                             false,
@@ -1927,7 +1928,7 @@ impl HTMLMediaElement {
             .SetTextContent(Some(DOMString::from(media_controls_script)), can_gc);
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(script.upcast::<Node>())
+            .AppendChild(script.upcast::<Node>(), can_gc)
         {
             warn!("Could not render media controls {:?}", e);
             return;
@@ -1948,7 +1949,7 @@ impl HTMLMediaElement {
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(style.upcast::<Node>())
+            .AppendChild(style.upcast::<Node>(), can_gc)
         {
             warn!("Could not render media controls {:?}", e);
         }

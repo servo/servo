@@ -11,6 +11,10 @@
 <script>
   test_valid_value('font-variation-settings', '"wght" sign(1em - 1px)');
   test_valid_value('font-variation-settings', '"wght" sibling-index()');
+  test_valid_value('font-variation-settings', '"wght" calc(10)');
+  test_valid_value('font-variation-settings', '"wght" sign(2px)', '"wght" calc(1)');
   test_computed_value('font-variation-settings', '"wght" sign(1em - 1px)', '"wght" 1');
   test_computed_value('font-variation-settings', '"wght" sibling-index()', '"wght" 1');
+  test_computed_value('font-variation-settings', '"wght" calc(10)', '"wght" 10');
+  test_computed_value('font-variation-settings', '"wght" sign(2px)', '"wght" 1');
 </script>

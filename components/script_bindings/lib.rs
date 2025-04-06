@@ -11,6 +11,8 @@
 #![deny(crown_is_not_used)]
 
 #[macro_use]
+extern crate js;
+#[macro_use]
 extern crate jstraceable_derive;
 #[macro_use]
 extern crate log;
@@ -18,21 +20,30 @@ extern crate log;
 extern crate malloc_size_of_derive;
 
 pub mod callback;
-pub mod constant;
+mod constant;
+mod constructor;
 pub mod conversions;
 pub mod error;
-pub mod finalize;
+mod finalize;
+mod guard;
+mod import;
 pub mod inheritance;
+pub mod interface;
 pub mod interfaces;
 pub mod iterable;
 pub mod like;
-pub mod lock;
+mod lock;
+mod mem;
+mod namespace;
 pub mod num;
+pub mod principals;
 pub mod proxyhandler;
+pub mod realms;
 pub mod record;
 pub mod reflector;
 pub mod root;
 pub mod script_runtime;
+pub mod settings_stack;
 pub mod str;
 pub mod trace;
 pub mod utils;
@@ -51,6 +62,32 @@ pub mod codegen {
     pub mod PrototypeList {
         include!(concat!(env!("OUT_DIR"), "/PrototypeList.rs"));
     }
+    pub(crate) mod DomTypes {
+        include!(concat!(env!("OUT_DIR"), "/DomTypes.rs"));
+    }
+    #[allow(
+        dead_code,
+        clippy::extra_unused_type_parameters,
+        clippy::missing_safety_doc,
+        clippy::result_unit_err
+    )]
+    pub mod GenericBindings {
+        include!(concat!(env!("OUT_DIR"), "/Bindings/mod.rs"));
+    }
+    #[allow(
+        non_camel_case_types,
+        unused_imports,
+        unused_variables,
+        clippy::large_enum_variant,
+        clippy::upper_case_acronyms,
+        clippy::enum_variant_names
+    )]
+    pub mod GenericUnionTypes {
+        include!(concat!(env!("OUT_DIR"), "/GenericUnionTypes.rs"));
+    }
+    pub mod RegisterBindings {
+        include!(concat!(env!("OUT_DIR"), "/RegisterBindings.rs"));
+    }
 }
 
 // These trait exports are public, because they are used in the DOM bindings.
@@ -58,4 +95,6 @@ pub mod codegen {
 // it is useful that they are accessible at the root of the crate.
 pub(crate) use js::gc::Traceable as JSTraceable;
 
+pub use crate::codegen::DomTypes::DomTypes;
+pub(crate) use crate::reflector::{DomObject, MutDomObject, Reflector};
 pub(crate) use crate::trace::CustomTraceable;

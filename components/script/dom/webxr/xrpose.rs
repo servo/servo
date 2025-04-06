@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::Bindings::XRPoseBinding::XRPoseMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::dompointreadonly::DOMPointReadOnly;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::ApiRigidTransform;
 use crate::script_runtime::CanGc;
@@ -29,12 +29,12 @@ impl XRPose {
 
     #[allow(unused)]
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         transform: ApiRigidTransform,
         can_gc: CanGc,
     ) -> DomRoot<XRPose> {
-        let transform = XRRigidTransform::new(global, transform, can_gc);
-        reflect_dom_object(Box::new(XRPose::new_inherited(&transform)), global, can_gc)
+        let transform = XRRigidTransform::new(window, transform, can_gc);
+        reflect_dom_object(Box::new(XRPose::new_inherited(&transform)), window, can_gc)
     }
 }
 

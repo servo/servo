@@ -33,15 +33,12 @@ use std::collections::HashMap;
 use std::collections::hash_map::RandomState;
 use std::fmt::Display;
 use std::hash::{BuildHasher, Hash};
-use std::mem;
-use std::ops::{Deref, DerefMut};
 
 /// A trait to allow tracing (only) DOM objects.
 pub(crate) use js::gc::Traceable as JSTraceable;
 use js::glue::{CallScriptTracer, CallStringTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSScript, JSString, JSTracer, TraceKind};
 use js::jsval::JSVal;
-use js::rust::{GCMethods, Handle};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 pub(crate) use script_bindings::trace::*;
 
@@ -265,72 +262,5 @@ unsafe impl<T: DomObject> JSTraceable for Trusted<T> {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
-    }
-}
-
-/// Roots any JSTraceable thing
-///
-/// If you have a valid DomObject, use DomRoot.
-/// If you have GC things like *mut JSObject or JSVal, use rooted!.
-/// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
-/// If you know what you're doing, use this.
-#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
-pub(crate) struct RootedTraceableBox<T: JSTraceable + 'static>(js::gc::RootedTraceableBox<T>);
-
-unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {
-    unsafe fn trace(&self, tracer: *mut JSTracer) {
-        self.0.trace(tracer);
-    }
-}
-
-impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
-    /// DomRoot a JSTraceable thing for the life of this RootedTraceableBox
-    pub(crate) fn new(traceable: T) -> RootedTraceableBox<T> {
-        Self(js::gc::RootedTraceableBox::new(traceable))
-    }
-
-    /// Consumes a boxed JSTraceable and roots it for the life of this RootedTraceableBox.
-    pub(crate) fn from_box(boxed_traceable: Box<T>) -> RootedTraceableBox<T> {
-        Self(js::gc::RootedTraceableBox::from_box(boxed_traceable))
-    }
-}
-
-impl<T> RootedTraceableBox<Heap<T>>
-where
-    Heap<T>: JSTraceable + 'static,
-    T: GCMethods + Copy,
-{
-    pub(crate) fn handle(&self) -> Handle<T> {
-        self.0.handle()
-    }
-}
-
-impl<T: JSTraceable + MallocSizeOf> MallocSizeOf for RootedTraceableBox<T> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        // Briefly resurrect the real Box value so we can rely on the existing calculations.
-        // Then immediately forget about it again to avoid dropping the box.
-        let inner = unsafe { Box::from_raw(self.0.ptr()) };
-        let size = inner.size_of(ops);
-        mem::forget(inner);
-        size
-    }
-}
-
-impl<T: JSTraceable + Default> Default for RootedTraceableBox<T> {
-    fn default() -> RootedTraceableBox<T> {
-        RootedTraceableBox::new(T::default())
-    }
-}
-
-impl<T: JSTraceable> Deref for RootedTraceableBox<T> {
-    type Target = T;
-    fn deref(&self) -> &T {
-        self.0.deref()
-    }
-}
-
-impl<T: JSTraceable> DerefMut for RootedTraceableBox<T> {
-    fn deref_mut(&mut self) -> &mut T {
-        self.0.deref_mut()
     }
 }

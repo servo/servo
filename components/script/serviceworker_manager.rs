@@ -13,14 +13,14 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
 use base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
+use constellation_traits::{
+    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
+    ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+};
 use crossbeam_channel::{Receiver, RecvError, Sender, select, unbounded};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
-use script_traits::{
-    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
-    ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-};
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -321,7 +321,7 @@ impl ServiceWorkerManager {
 
     /// <https://w3c.github.io/ServiceWorker/#register-algorithm>
     fn handle_register_job(&mut self, mut job: Job) {
-        if !job.script_url.is_origin_trustworthy() {
+        if !job.script_url.origin().is_potentially_trustworthy() {
             // Step 1.1
             let _ = job
                 .client

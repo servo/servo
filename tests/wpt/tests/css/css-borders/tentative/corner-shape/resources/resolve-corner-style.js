@@ -3,28 +3,33 @@
 // found in the LICENSE file.
 
 const keywords = {
-  notch: 0,
-  scoop: 0.5,
-  bevel: 1,
-  round: 2,
-  squircle: 4,
-  straight: 1000,
+  notch: -16,
+  scoop: -1,
+  bevel: 0,
+  round: 1,
+  squircle: 2,
+  square: 16,
 };
 
 function resolve_corner_style(style, w, h) {
   ['top', 'bottom'].forEach((vSide) => ['left', 'right'].forEach((hSide) => {
-    let shape = style[`corner-${vSide}-${hSide}-shape`] ||
+    let shape_param = style[`corner-${vSide}-${hSide}-shape`] ||
         style['corner-shape'] || 'round';
-    const match = shape.match(/superellipse\((\.?[0-9]+(.[0-9]+)?)\)/);
-    shape = match ? +match[1] : keywords[shape];
+    const match = shape_param.match(/superellipse\((-?(infinity|[0-9]*(\.[0-9]+)?))\)/i);
+    shape_param = match ? match[1] : keywords[shape_param];
     const hWidth = parseFloat(style[`border-${hSide}-width`] || style['border-width'] || 0);
     const vWidth = parseFloat(style[`border-${vSide}-width`] || style['border-width'] || 0);
     let radius =
         style[`border-${vSide}-${hSide}-radius`] || style['border-radius'] || 0;
     if (!Array.isArray(radius))
       radius = [radius, radius];
-    if (shape > 1000)
+    let shape = 0;
+    if (shape_param >= keywords["square"] || shape_param == "infinity")
       shape = 1000;
+    else if (shape_param <= keywords["notch"] || shape_param == "-infinity")
+      shape = 0;
+    else
+     shape = Math.pow(2, shape_param);
     if (String(radius[0]).endsWith('%'))
       radius[0] = (parseFloat(radius[0]) * w) / 100;
     if (String(radius[1]).endsWith('%'))

@@ -1012,7 +1012,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     let end_margin_can_collapse_with_children = collapsed_through ||
         (pbm.padding.block_end == Au::zero() &&
             pbm.border.block_end == Au::zero() &&
-            computed_block_size.is_auto());
+            !containing_block_for_children.size.block.is_definite());
     if end_margin_can_collapse_with_children {
         block_margins_collapsed_with_children
             .end
@@ -1215,6 +1215,7 @@ impl IndependentNonReplacedContents {
             content_box_sizes,
             pbm,
             depends_on_block_constraints,
+            ..
         } = self
             .layout_style(base)
             .content_box_sizes_and_padding_border_margin(&containing_block.into());
@@ -1696,6 +1697,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         content_box_sizes,
         pbm,
         depends_on_block_constraints,
+        ..
     } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
 
     let pbm_sums = pbm.sums_auto_is_zero(ignore_block_margins_for_stretch);

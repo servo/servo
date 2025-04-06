@@ -35,28 +35,34 @@ impl Screen {
     }
 
     fn screen_size(&self) -> Size2D<u32, CSSPixel> {
-        let (send, recv) =
+        let (sender, receiver) =
             ipc::channel::<DeviceIndependentIntSize>(self.global().time_profiler_chan().clone())
                 .unwrap();
         self.window
             .compositor_api()
             .sender()
-            .send(CrossProcessCompositorMessage::GetScreenSize(send))
+            .send(CrossProcessCompositorMessage::GetScreenSize(
+                self.window.webview_id(),
+                sender,
+            ))
             .unwrap();
-        let size = recv.recv().unwrap_or(Size2D::zero()).to_u32();
+        let size = receiver.recv().unwrap_or(Size2D::zero()).to_u32();
         Size2D::new(size.width, size.height)
     }
 
     fn screen_avail_size(&self) -> Size2D<u32, CSSPixel> {
-        let (send, recv) =
+        let (sender, receiver) =
             ipc::channel::<DeviceIndependentIntSize>(self.global().time_profiler_chan().clone())
                 .unwrap();
         self.window
             .compositor_api()
             .sender()
-            .send(CrossProcessCompositorMessage::GetAvailableScreenSize(send))
+            .send(CrossProcessCompositorMessage::GetAvailableScreenSize(
+                self.window.webview_id(),
+                sender,
+            ))
             .unwrap();
-        let size = recv.recv().unwrap_or(Size2D::zero()).to_u32();
+        let size = receiver.recv().unwrap_or(Size2D::zero()).to_u32();
         Size2D::new(size.width, size.height)
     }
 }

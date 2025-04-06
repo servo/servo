@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1485969">
-<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-print-ref.html">
+<style>
+  :root {
+    print-color-adjust: exact;
+  }
+</style>
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 <div id="scroller" style="position:relative; width:200px; height:100px; overflow:hidden;">
   <div style="position:absolute; width:1000px;">

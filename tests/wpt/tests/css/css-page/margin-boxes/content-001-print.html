@@ -4,6 +4,9 @@
 <meta name="assert" content="Basic content property test, with just text, and various ways of expressing nothingness.">
 <link rel="match" href="content-001-print-ref.html">
 <style>
+  :root {
+    print-color-adjust: exact;
+  }
   @page {
     size: 400px;
     margin: 100px;

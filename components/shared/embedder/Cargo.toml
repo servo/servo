@@ -25,9 +25,9 @@ hyper_serde = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
-num-derive = "0.4"
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+num-derive = "0.4"
 num-traits = { workspace = true }
 pixels = { path = "../../pixels" }
 serde = { workspace = true }

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::wgt::AdapterInfo;
+use wgpu_types::AdapterInfo;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUAdapterInfoMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};

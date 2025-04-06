@@ -6,17 +6,15 @@
 
 use std::cell::RefCell;
 use std::thread::LocalKey;
-use std::{ptr, slice};
 
 use js::conversions::ToJSValConvertible;
 use js::glue::{IsWrapper, JSPrincipalsCallbacks, UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{
-    CallArgs, DOMCallbacks, HandleId as RawHandleId, HandleObject as RawHandleObject,
-    JS_DeprecatedStringHasLatin1Chars, JS_EnumerateStandardClasses, JS_FreezeObject,
-    JS_GetLatin1StringCharsAndLength, JS_IsGlobalObject, JS_ResolveStandardClass, JSContext,
-    JSObject, MutableHandleIdVector as RawMutableHandleIdVector,
+    CallArgs, DOMCallbacks, HandleObject as RawHandleObject, JS_FreezeObject, JSContext, JSObject,
 };
-use js::rust::{Handle, HandleObject, MutableHandleValue, get_object_class, is_dom_class};
+use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
+use script_bindings::interfaces::DomHelpers;
+use script_bindings::settings_stack::StackEntry;
 
 use crate::DomTypes;
 use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList};
@@ -29,7 +27,7 @@ use crate::dom::bindings::principals::PRINCIPALS_CALLBACKS;
 use crate::dom::bindings::proxyhandler::is_platform_object_same_origin;
 use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::settings_stack::{self, StackEntry};
+use crate::dom::bindings::settings_stack;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxyHandler;
 use crate::realms::InRealm;
@@ -105,61 +103,6 @@ fn is_platform_object(
     }
 }
 
-/// Enumerate lazy properties of a global object.
-pub(crate) unsafe extern "C" fn enumerate_global<D: DomTypes>(
-    cx: *mut JSContext,
-    obj: RawHandleObject,
-    _props: RawMutableHandleIdVector,
-    _enumerable_only: bool,
-) -> bool {
-    assert!(JS_IsGlobalObject(obj.get()));
-    if !JS_EnumerateStandardClasses(cx, obj) {
-        return false;
-    }
-    for init_fun in <D as DomHelpers<D>>::interface_map().values() {
-        init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
-    }
-    true
-}
-
-/// Resolve a lazy global property, for interface objects and named constructors.
-pub(crate) unsafe extern "C" fn resolve_global<D: DomTypes>(
-    cx: *mut JSContext,
-    obj: RawHandleObject,
-    id: RawHandleId,
-    rval: *mut bool,
-) -> bool {
-    assert!(JS_IsGlobalObject(obj.get()));
-    if !JS_ResolveStandardClass(cx, obj, id, rval) {
-        return false;
-    }
-    if *rval {
-        return true;
-    }
-    if !id.is_string() {
-        *rval = false;
-        return true;
-    }
-
-    let string = id.to_string();
-    if !JS_DeprecatedStringHasLatin1Chars(string) {
-        *rval = false;
-        return true;
-    }
-    let mut length = 0;
-    let ptr = JS_GetLatin1StringCharsAndLength(cx, ptr::null(), string, &mut length);
-    assert!(!ptr.is_null());
-    let bytes = slice::from_raw_parts(ptr, length);
-
-    if let Some(init_fun) = <D as DomHelpers<D>>::interface_map().get(bytes) {
-        init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
-        *rval = true;
-    } else {
-        *rval = false;
-    }
-    true
-}
-
 unsafe extern "C" fn instance_class_has_proto_at_depth(
     clasp: *const js::jsapi::JSClass,
     proto_id: u32,
@@ -175,48 +118,6 @@ pub(crate) const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
 
-/// Operations that must be invoked from the generated bindings.
-pub(crate) trait DomHelpers<D: DomTypes> {
-    fn throw_dom_exception(
-        cx: SafeJSContext,
-        global: &D::GlobalScope,
-        result: Error,
-        can_gc: CanGc,
-    );
-
-    unsafe fn call_html_constructor<T: DerivedFrom<D::Element> + DomObject>(
-        cx: SafeJSContext,
-        args: &CallArgs,
-        global: &D::GlobalScope,
-        proto_id: crate::dom::bindings::codegen::PrototypeList::ID,
-        creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
-        can_gc: CanGc,
-    ) -> bool;
-
-    fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<D>>>>;
-
-    fn principals_callbacks() -> &'static JSPrincipalsCallbacks;
-
-    fn is_platform_object_same_origin(cx: SafeJSContext, obj: RawHandleObject) -> bool;
-
-    fn interface_map() -> &'static phf::Map<&'static [u8], for<'a> fn(SafeJSContext, HandleObject)>;
-
-    fn push_new_element_queue();
-    fn pop_current_element_queue(can_gc: CanGc);
-
-    fn reflect_dom_object<T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
-    where
-        T: DomObject + DomObjectWrap<D>,
-        U: DerivedFrom<D::GlobalScope>;
-
-    fn report_pending_exception(
-        cx: SafeJSContext,
-        dispatch_event: bool,
-        realm: InRealm,
-        can_gc: CanGc,
-    );
-}
-
 impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
     fn throw_dom_exception(
         cx: SafeJSContext,
@@ -227,7 +128,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         throw_dom_exception(cx, global, result, can_gc)
     }
 
-    unsafe fn call_html_constructor<
+    fn call_html_constructor<
         T: DerivedFrom<<crate::DomTypeHolder as DomTypes>::Element> + DomObject,
     >(
         cx: SafeJSContext,

@@ -191,9 +191,9 @@ interface mixin CanvasPathDrawingStyles {
   attribute unrestricted double miterLimit; // (default 10)
 
   // dashed lines
-  //void setLineDash(sequence<unrestricted double> segments); // default empty
-  //sequence<unrestricted double> getLineDash();
-  //attribute unrestricted double lineDashOffset;
+  undefined setLineDash(sequence<unrestricted double> segments); // default empty
+  sequence<unrestricted double> getLineDash();
+  attribute unrestricted double lineDashOffset;
 };
 
 interface mixin CanvasTextDrawingStyles {

@@ -93,7 +93,7 @@ impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
         type_: DOMString,
         init: RootedTraceableBox<CustomEventBinding::CustomEventInit>,
     ) -> DomRoot<CustomEvent> {
-        CustomEvent::new(
+        let event = CustomEvent::new(
             global,
             proto,
             Atom::from(type_),
@@ -101,7 +101,9 @@ impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
             init.parent.cancelable,
             init.detail.handle(),
             can_gc,
-        )
+        );
+        event.upcast::<Event>().set_composed(init.parent.composed);
+        event
     }
 
     // https://dom.spec.whatwg.org/#dom-customevent-detail

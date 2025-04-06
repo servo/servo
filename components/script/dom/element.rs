@@ -514,7 +514,6 @@ impl Element {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn attach_shadow(
         &self,
-        // TODO: remove is_ua_widget argument
         is_ua_widget: IsUserAgentWidget,
         mode: ShadowRootMode,
         clonable: bool,
@@ -2171,7 +2170,10 @@ impl Element {
         let fragment = DocumentFragment::new(&context_document, can_gc);
         // Step 4.
         for child in new_children {
-            fragment.upcast::<Node>().AppendChild(&child).unwrap();
+            fragment
+                .upcast::<Node>()
+                .AppendChild(&child, can_gc)
+                .unwrap();
         }
         // Step 5.
         Ok(fragment)
@@ -2960,6 +2962,28 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 3. Unsafely set HTML given target, this, and compliantHTML
         Node::unsafely_set_html(&target, self, html, can_gc);
+
+        // Step 3. Unsafely set HTML given target, this, and compliantHTML.
+        // Let newChildren be the result of the HTML fragment parsing algorithm.
+        let new_children = ServoParser::parse_html_fragment(self, html, true, can_gc);
+
+        let context_document = {
+            if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+                template.Content(can_gc).upcast::<Node>().owner_doc()
+            } else {
+                self.owner_document()
+            }
+        };
+
+        // Let fragment be a new DocumentFragment whose node document is contextElement's node document.
+        let frag = DocumentFragment::new(&context_document, can_gc);
+
+        // For each node in newChildren, append node to fragment.
+        for child in new_children {
+            frag.upcast::<Node>().AppendChild(&child, can_gc).unwrap();
+        }
+
+       
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
@@ -3075,7 +3099,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 5.
         let frag = parent.parse_fragment(value, can_gc)?;
         // Step 6.
-        context_parent.ReplaceChild(frag.upcast(), context_node)?;
+        context_parent.ReplaceChild(frag.upcast(), context_node, can_gc)?;
         Ok(())
     }
 
@@ -4326,7 +4350,7 @@ impl Element {
         if (in_quirks_mode && doc.GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
             (!in_quirks_mode && *self.root_element() == *self)
         {
-            let viewport_dimensions = doc.window().window_size().initial_viewport.round().to_i32();
+            let viewport_dimensions = doc.window().viewport_details().size.round().to_i32();
             rect.size = Size2D::<i32>::new(viewport_dimensions.width, viewport_dimensions.height);
         }
 
@@ -4358,6 +4382,12 @@ impl Element {
                 HTMLElementTypeId::HTMLLabelElement,
             )) => {
                 let element = self.downcast::<HTMLLabelElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLSelectElement,
+            )) => {
+                let element = self.downcast::<HTMLSelectElement>().unwrap();
                 Some(element as &dyn Activatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {

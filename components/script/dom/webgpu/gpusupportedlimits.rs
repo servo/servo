@@ -5,7 +5,7 @@
 use GPUSupportedLimits_Binding::GPUSupportedLimitsMethods;
 use dom_struct::dom_struct;
 use num_traits::bounds::UpperBounded;
-use webgpu::wgt::Limits;
+use wgpu_types::Limits;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUSupportedLimits_Binding;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};

@@ -7,6 +7,7 @@
 use std::borrow::Cow;
 use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
+use std::f64::consts::PI;
 use std::ops::Range;
 use std::slice::from_ref;
 use std::sync::Arc as StdArc;
@@ -15,11 +16,9 @@ use std::{cmp, fmt, iter};
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
 use bitflags::bitflags;
-use constellation_traits::{
-    UntrustedNodeAddress, UntrustedNodeAddress as CompositorUntrustedNodeAddress,
-};
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
+use embedder_traits::UntrustedNodeAddress;
 use euclid::default::{Rect, Size2D, Vector2D};
 use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, namespace_url, ns, serialize as html_serialize};
@@ -105,9 +104,9 @@ use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use crate::dom::htmlvideoelement::{HTMLVideoElement, LayoutHTMLVideoElementHelpers};
-use crate::dom::mouseevent::MouseEvent;
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
 use crate::dom::nodelist::NodeList;
+use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
@@ -458,43 +457,59 @@ impl Node {
         })
     }
 
-    /// <https://html.spec.whatg.org/#fire_a_synthetic_mouse_event>
-    pub(crate) fn fire_synthetic_mouse_event_not_trusted(&self, name: DOMString, can_gc: CanGc) {
-        // Spec says the choice of which global to create
-        // the mouse event on is not well-defined,
+    /// <https://html.spec.whatwg.org/multipage/#fire-a-synthetic-pointer-event>
+    pub(crate) fn fire_synthetic_pointer_event_not_trusted(&self, name: DOMString, can_gc: CanGc) {
+        // Spec says the choice of which global to create the pointer event
+        // on is not well-defined,
         // and refers to heycam/webidl#135
-        let win = self.owner_window();
+        let window = self.owner_window();
 
-        let mouse_event = MouseEvent::new(
-            &win, // ambiguous in spec
+        // <https://w3c.github.io/pointerevents/#the-click-auxclick-and-contextmenu-events>
+        let pointer_event = PointerEvent::new(
+            &window, // ambiguous in spec
             name,
-            EventBubbles::Bubbles,       // Step 3: bubbles
-            EventCancelable::Cancelable, // Step 3: cancelable,
-            Some(&win),                  // Step 7: view (this is unambiguous in spec)
-            0,                           // detail uninitialized
-            0,                           // coordinates uninitialized
-            0,                           // coordinates uninitialized
-            0,                           // coordinates uninitialized
-            0,                           // coordinates uninitialized
-            false,
-            false,
-            false,
-            false, // Step 6 modifier keys TODO compositor hook needed
-            0,     // button uninitialized (and therefore left)
-            0,     // buttons uninitialized (and therefore none)
-            None,  // related_target uninitialized,
-            None,  // point_in_target uninitialized,
+            EventBubbles::Bubbles,              // Step 3: bubbles
+            EventCancelable::Cancelable,        // Step 3: cancelable
+            Some(&window),                      // Step 7: view
+            0,                                  // detail uninitialized
+            0,                                  // coordinates uninitialized
+            0,                                  // coordinates uninitialized
+            0,                                  // coordinates uninitialized
+            0,                                  // coordinates uninitialized
+            false,                              // ctrl_key
+            false,                              // alt_key
+            false,                              // shift_key
+            false,                              // meta_key
+            0,                                  // button, left mouse button
+            0,                                  // buttons
+            None,                               // related_target
+            None,                               // point_in_target
+            PointerId::NonPointerDevice as i32, // pointer_id
+            1,                                  // width
+            1,                                  // height
+            0.5,                                // pressure
+            0.0,                                // tangential_pressure
+            0,                                  // tilt_x
+            0,                                  // tilt_y
+            0,                                  // twist
+            PI / 2.0,                           // altitude_angle
+            0.0,                                // azimuth_angle
+            DOMString::from(""),                // pointer_type
+            false,                              // is_primary
+            vec![],                             // coalesced_events
+            vec![],                             // predicted_events
             can_gc,
         );
 
-        // Step 4: TODO composed flag for shadow root
+        // Step 4. Set event's composed flag.
+        pointer_event.upcast::<Event>().set_composed(true);
 
-        // Step 5
-        mouse_event.upcast::<Event>().set_trusted(false);
+        // Step 5. If the not trusted flag is set, initialize event's isTrusted attribute to false.
+        pointer_event.upcast::<Event>().set_trusted(false);
 
-        // Step 8: TODO keyboard modifiers
+        // Step 6,8. TODO keyboard modifiers
 
-        mouse_event
+        pointer_event
             .upcast::<Event>()
             .dispatch(self.upcast::<EventTarget>(), false, can_gc);
     }
@@ -1028,7 +1043,7 @@ impl Node {
             .node_from_nodes_and_strings(nodes, can_gc)?;
         if self.parent_node == Some(&*parent) {
             // Step 5.
-            parent.ReplaceChild(&node, self)?;
+            parent.ReplaceChild(&node, self, can_gc)?;
         } else {
             // Step 6.
             Node::pre_insert(&node, &parent, viable_next_sibling.as_deref(), can_gc)?;
@@ -1052,7 +1067,7 @@ impl Node {
         let doc = self.owner_doc();
         let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
         // Step 2.
-        self.AppendChild(&node).map(|_| ())
+        self.AppendChild(&node, can_gc).map(|_| ())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
@@ -1231,7 +1246,7 @@ impl Node {
             .to_string()
     }
 
-    pub(crate) fn summarize(&self) -> NodeInfo {
+    pub(crate) fn summarize(&self, can_gc: CanGc) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
         let node_type = self.NodeType();
 
@@ -1251,9 +1266,9 @@ impl Node {
 
         let num_children = if is_shadow_host {
             // Shadow roots count as children
-            self.ChildNodes().Length() as usize + 1
+            self.ChildNodes(can_gc).Length() as usize + 1
         } else {
-            self.ChildNodes().Length() as usize
+            self.ChildNodes(can_gc).Length() as usize
         };
 
         let window = self.owner_window();
@@ -1287,7 +1302,7 @@ impl Node {
         index: i32,
         get_items: F,
         new_child: G,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<HTMLElement>>
     where
         F: Fn() -> DomRoot<HTMLCollection>,
@@ -1303,7 +1318,7 @@ impl Node {
         {
             let tr_node = tr.upcast::<Node>();
             if index == -1 {
-                self.InsertBefore(tr_node, None)?;
+                self.InsertBefore(tr_node, None, can_gc)?;
             } else {
                 let items = get_items();
                 let node = match items
@@ -1316,7 +1331,7 @@ impl Node {
                     None => return Err(Error::IndexSize),
                     Some(node) => node,
                 };
-                self.InsertBefore(tr_node, node.as_deref())?;
+                self.InsertBefore(tr_node, node.as_deref(), can_gc)?;
             }
         }
 
@@ -1514,15 +1529,6 @@ where
 #[allow(unsafe_code)]
 pub(crate) unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
     DomRoot::from_ref(Node::from_untrusted_node_address(candidate))
-}
-
-/// If the given untrusted node address represents a valid DOM node in the given runtime,
-/// returns it.
-#[allow(unsafe_code)]
-pub(crate) unsafe fn from_untrusted_compositor_node_address(
-    candidate: CompositorUntrustedNodeAddress,
-) -> DomRoot<Node> {
-    DomRoot::from_ref(Node::from_untrusted_compositor_node_address(candidate))
 }
 
 #[allow(unsafe_code)]
@@ -2269,7 +2275,7 @@ impl Node {
             parent,
             reference_child,
             SuppressObserver::Unsuppressed,
-            CanGc::note(),
+            can_gc,
         );
 
         // Step 6.
@@ -2675,6 +2681,7 @@ impl Node {
                     false,
                     document.allow_declarative_shadow_roots(),
                     Some(document.insecure_requests_policy()),
+                    document.has_trustworthy_ancestor_or_current_origin(),
                     can_gc,
                 );
                 DomRoot::upcast::<Node>(document)
@@ -2873,26 +2880,6 @@ impl Node {
         &*(conversions::private_from_object(object) as *const Self)
     }
 
-    /// If the given untrusted node address represents a valid DOM node in the given runtime,
-    /// returns it.
-    ///
-    /// # Safety
-    ///
-    /// Callers should ensure they pass a [`CompositorUntrustedNodeAddress`] that points
-    /// to a valid [`JSObject`] in memory that represents a [`Node`].
-    #[allow(unsafe_code)]
-    pub(crate) unsafe fn from_untrusted_compositor_node_address(
-        candidate: CompositorUntrustedNodeAddress,
-    ) -> &'static Self {
-        // https://github.com/servo/servo/issues/6383
-        let candidate = candidate.0 as usize;
-        let object = candidate as *mut JSObject;
-        if object.is_null() {
-            panic!("Attempted to create a `Node` from an invalid pointer!")
-        }
-        &*(conversions::private_from_object(object) as *const Self)
-    }
-
     pub(crate) fn html_serialize(
         &self,
         traversal_scope: html_serialize::TraversalScope,
@@ -3061,11 +3048,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-childnodes>
-    fn ChildNodes(&self) -> DomRoot<NodeList> {
+    fn ChildNodes(&self, can_gc: CanGc) -> DomRoot<NodeList> {
         self.ensure_rare_data().child_list.or_init(|| {
             let doc = self.owner_doc();
             let window = doc.window();
-            NodeList::new_child_list(window, self, CanGc::note())
+            NodeList::new_child_list(window, self, can_gc)
         })
     }
 
@@ -3101,11 +3088,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-nodevalue>
-    fn SetNodeValue(&self, val: Option<DOMString>) {
+    fn SetNodeValue(&self, val: Option<DOMString>, can_gc: CanGc) {
         match self.type_id() {
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(val.unwrap_or_default());
+                attr.SetValue(val.unwrap_or_default(), can_gc);
             },
             NodeTypeId::CharacterData(_) => {
                 let character_data = self.downcast::<CharacterData>().unwrap();
@@ -3151,7 +3138,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             },
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(value);
+                attr.SetValue(value, can_gc);
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();
@@ -3162,17 +3149,22 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-insertbefore>
-    fn InsertBefore(&self, node: &Node, child: Option<&Node>) -> Fallible<DomRoot<Node>> {
-        Node::pre_insert(node, self, child, CanGc::note())
+    fn InsertBefore(
+        &self,
+        node: &Node,
+        child: Option<&Node>,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Node>> {
+        Node::pre_insert(node, self, child, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-appendchild>
-    fn AppendChild(&self, node: &Node) -> Fallible<DomRoot<Node>> {
-        Node::pre_insert(node, self, None, CanGc::note())
+    fn AppendChild(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+        Node::pre_insert(node, self, None, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace>
-    fn ReplaceChild(&self, node: &Node, child: &Node) -> Fallible<DomRoot<Node>> {
+    fn ReplaceChild(&self, node: &Node, child: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
         // Step 1.
         match self.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
@@ -3270,11 +3262,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         // Step 10.
         let document = self.owner_document();
-        Node::adopt(node, &document, CanGc::note());
+        Node::adopt(node, &document, can_gc);
 
         let removed_child = if node != child {
             // Step 11.
-            Node::remove(child, self, SuppressObserver::Suppressed, CanGc::note());
+            Node::remove(child, self, SuppressObserver::Suppressed, can_gc);
             Some(child)
         } else {
             None
@@ -3298,7 +3290,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             self,
             reference_child,
             SuppressObserver::Suppressed,
-            CanGc::note(),
+            can_gc,
         );
 
         // Step 14.
@@ -3323,19 +3315,19 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-removechild>
-    fn RemoveChild(&self, node: &Node) -> Fallible<DomRoot<Node>> {
-        Node::pre_remove(node, self, CanGc::note())
+    fn RemoveChild(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+        Node::pre_remove(node, self, can_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
-    fn Normalize(&self) {
+    fn Normalize(&self, can_gc: CanGc) {
         let mut children = self.children().enumerate().peekable();
         while let Some((_, node)) = children.next() {
             if let Some(text) = node.downcast::<Text>() {
                 let cdata = text.upcast::<CharacterData>();
                 let mut length = cdata.Length();
                 if length == 0 {
-                    Node::remove(&node, self, SuppressObserver::Unsuppressed, CanGc::note());
+                    Node::remove(&node, self, SuppressObserver::Unsuppressed, can_gc);
                     continue;
                 }
                 while children
@@ -3351,15 +3343,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
                     cdata.append_data(&sibling_cdata.data());
-                    Node::remove(
-                        &sibling,
-                        self,
-                        SuppressObserver::Unsuppressed,
-                        CanGc::note(),
-                    );
+                    Node::remove(&sibling, self, SuppressObserver::Unsuppressed, can_gc);
                 }
             } else {
-                node.Normalize();
+                node.Normalize(can_gc);
             }
         }
     }

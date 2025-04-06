@@ -21,6 +21,7 @@ use crate::dom::csslayerblockrule::CSSLayerBlockRule;
 use crate::dom::csslayerstatementrule::CSSLayerStatementRule;
 use crate::dom::cssmediarule::CSSMediaRule;
 use crate::dom::cssnamespacerule::CSSNamespaceRule;
+use crate::dom::cssnesteddeclarations::CSSNestedDeclarations;
 use crate::dom::cssstylerule::CSSStyleRule;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::csssupportsrule::CSSSupportsRule;
@@ -68,6 +69,8 @@ impl CSSRule {
         } else if let Some(rule) = self.downcast::<CSSLayerBlockRule>() {
             rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSLayerStatementRule>() {
+            rule as &dyn SpecificCSSRule
+        } else if let Some(rule) = self.downcast::<CSSNestedDeclarations>() {
             rule as &dyn SpecificCSSRule
         } else {
             unreachable!()
@@ -125,7 +128,12 @@ impl CSSRule {
             StyleCssRule::Scope(_) => unimplemented!(),             // TODO
             StyleCssRule::StartingStyle(_) => unimplemented!(),     // TODO
             StyleCssRule::PositionTry(_) => unimplemented!(),       // TODO
-            StyleCssRule::NestedDeclarations(_) => unimplemented!(), // TODO
+            StyleCssRule::NestedDeclarations(s) => DomRoot::upcast(CSSNestedDeclarations::new(
+                window,
+                parent_stylesheet,
+                s,
+                can_gc,
+            )),
         }
     }
 

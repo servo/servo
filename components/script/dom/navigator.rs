@@ -8,6 +8,7 @@ use std::sync::LazyLock;
 
 use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
+use servo_config::pref;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
@@ -192,7 +193,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-useragent
     fn UserAgent(&self) -> DOMString {
-        navigatorinfo::UserAgent(self.global().get_user_agent())
+        navigatorinfo::UserAgent(&pref!(user_agent))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-appversion

@@ -5,8 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::env;
-use std::fs::{File, create_dir_all};
-use std::io::Write;
+use std::fs::create_dir_all;
 use std::iter::once;
 use std::mem::take;
 use std::rc::Rc;
@@ -21,13 +20,13 @@ use compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorReceiver, SendableFrameTree,
 };
 use constellation_traits::{
-    AnimationTickType, CompositorHitTestResult, ConstellationMsg, PaintMetricEvent,
-    UntrustedNodeAddress, WindowSizeData, WindowSizeType,
+    AnimationTickType, EmbedderToConstellationMessage, PaintMetricEvent, WindowSizeType,
 };
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ShutdownState, TouchEventType,
+    AnimationState, CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent,
+    ScreenGeometry, ShutdownState, TouchEventType, UntrustedNodeAddress, ViewportDetails,
 };
 use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Transform3D};
 use fnv::FnvHashMap;
@@ -37,7 +36,6 @@ use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
-use script_traits::AnimationState;
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
@@ -55,11 +53,12 @@ use webrender_api::{
 };
 use webrender_traits::display_list::{HitTestInfo, ScrollTree};
 use webrender_traits::rendering_context::RenderingContext;
-use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate};
+use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate, RendererWebView};
 
 use crate::InitialCompositorState;
-use crate::webview::{UnknownWebView, WebView, WebViewManager};
-use crate::windowing::{self, EmbedderCoordinates, WebRenderDebugOption, WindowMethods};
+use crate::webview::{UnknownWebView, WebView};
+use crate::webview_manager::WebViewManager;
+use crate::windowing::{self, WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -100,7 +99,7 @@ pub struct ServoRenderer {
     compositor_receiver: CompositorReceiver,
 
     /// The channel on which messages can be sent to the constellation.
-    pub(crate) constellation_sender: Sender<ConstellationMsg>,
+    pub(crate) constellation_sender: Sender<EmbedderToConstellationMessage>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
@@ -113,10 +112,6 @@ pub struct ServoRenderer {
 
     /// The GL bindings for webrender
     webrender_gl: Rc<dyn gleam::gl::Gl>,
-
-    /// The string representing the version of Servo that is running. This is used to tag
-    /// WebRender capture output.
-    version_string: String,
 
     #[cfg(feature = "webxr")]
     /// Some XR devices want to run on the main thread.
@@ -172,8 +167,9 @@ pub struct IOCompositor {
     /// The surfman instance that webrender targets
     rendering_context: Rc<dyn RenderingContext>,
 
-    /// The coordinates of the native window, its view and the screen.
-    embedder_coordinates: EmbedderCoordinates,
+    /// The HighDPI factor of the native window, its view and the screen.
+    /// TODO: Eventually this should be a property of the `WebView`.
+    hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 
     /// The number of frames pending to receive from WebRender.
     pending_frames: usize,
@@ -281,7 +277,7 @@ impl PipelineDetails {
             tick_type.insert(AnimationTickType::REQUEST_ANIMATION_FRAME);
         }
 
-        let msg = ConstellationMsg::TickAnimation(self.id, tick_type);
+        let msg = EmbedderToConstellationMessage::TickAnimation(self.id, tick_type);
         if let Err(e) = compositor.global.borrow().constellation_sender.send(msg) {
             warn!("Sending tick to constellation failed ({:?}).", e);
         }
@@ -417,7 +413,9 @@ impl ServoRenderer {
         self.cursor = cursor;
         if let Err(e) = self
             .constellation_sender
-            .send(ConstellationMsg::SetCursor(webview_id, cursor))
+            .send(EmbedderToConstellationMessage::SetCursor(
+                webview_id, cursor,
+            ))
         {
             warn!("Sending event to constellation failed ({:?}).", e);
         }
@@ -429,7 +427,6 @@ impl IOCompositor {
         window: Rc<dyn WindowMethods>,
         state: InitialCompositorState,
         convert_mouse_to_touch: bool,
-        version_string: String,
     ) -> Self {
         let compositor = IOCompositor {
             global: Rc::new(RefCell::new(ServoRenderer {
@@ -441,7 +438,6 @@ impl IOCompositor {
                 webrender_api: state.webrender_api,
                 webrender_document: state.webrender_document,
                 webrender_gl: state.webrender_gl,
-                version_string,
                 #[cfg(feature = "webxr")]
                 webxr_main_thread: state.webxr_main_thread,
                 convert_mouse_to_touch,
@@ -449,7 +445,7 @@ impl IOCompositor {
                 cursor_pos: DevicePoint::new(0.0, 0.0),
             })),
             webviews: WebViewManager::default(),
-            embedder_coordinates: window.get_coordinates(),
+            hidpi_factor: window.hidpi_factor(),
             window,
             needs_repaint: Cell::default(),
             page_zoom: Scale::new(1.0),
@@ -480,6 +476,17 @@ impl IOCompositor {
         }
         if let Some(webrender) = self.webrender.take() {
             webrender.deinit();
+        }
+    }
+
+    pub fn default_webview_viewport_details(&self) -> ViewportDetails {
+        // The division by 1 represents the page's default zoom of 100%,
+        // and gives us the appropriate CSSPixel type for the viewport.
+        let hidpi_scale_factor = self.window.hidpi_factor();
+        let scaled_viewport_size = self.rendering_context.size2d().to_f32() / hidpi_scale_factor;
+        ViewportDetails {
+            size: scaled_viewport_size / Scale::new(1.0),
+            hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
         }
     }
 
@@ -902,25 +909,44 @@ impl IOCompositor {
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
             },
-            CrossProcessCompositorMessage::GetClientWindowRect(req) => {
-                if let Err(e) = req.send(self.embedder_coordinates.window_rect) {
-                    warn!("Sending response to get client window failed ({:?}).", e);
+            CrossProcessCompositorMessage::GetClientWindowRect(webview_id, response_sender) => {
+                let screen_geometry = self.webview_screen_geometry(webview_id);
+                let rect = DeviceIntRect::from_origin_and_size(
+                    screen_geometry.offset,
+                    self.rendering_context.size2d().to_i32(),
+                )
+                .to_f32() /
+                    self.hidpi_factor;
+
+                if let Err(error) = response_sender.send(rect.to_i32()) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
-            CrossProcessCompositorMessage::GetScreenSize(req) => {
-                if let Err(e) = req.send(self.embedder_coordinates.screen_size) {
-                    warn!("Sending response to get screen size failed ({:?}).", e);
+            CrossProcessCompositorMessage::GetScreenSize(webview_id, response_sender) => {
+                let screen_geometry = self.webview_screen_geometry(webview_id);
+                let screen_size = screen_geometry.size.to_f32() / self.hidpi_factor;
+
+                if let Err(error) = response_sender.send(screen_size.to_i32()) {
+                    warn!("Sending response to get screen size failed ({error:?}).");
                 }
             },
-            CrossProcessCompositorMessage::GetAvailableScreenSize(req) => {
-                if let Err(e) = req.send(self.embedder_coordinates.available_screen_size) {
-                    warn!(
-                        "Sending response to get screen avail size failed ({:?}).",
-                        e
-                    );
+            CrossProcessCompositorMessage::GetAvailableScreenSize(webview_id, response_sender) => {
+                let screen_geometry = self.webview_screen_geometry(webview_id);
+                let available_screen_size =
+                    screen_geometry.available_size.to_f32() / self.hidpi_factor;
+
+                if let Err(error) = response_sender.send(available_screen_size.to_i32()) {
+                    warn!("Sending response to get screen size failed ({error:?}).");
                 }
             },
         }
+    }
+
+    fn webview_screen_geometry(&self, webview_id: WebViewId) -> ScreenGeometry {
+        self.webviews
+            .get(webview_id)
+            .and_then(|webview| webview.renderer_webview.screen_geometry())
+            .unwrap_or_default()
     }
 
     /// Handle messages sent to the compositor during the shutdown process. In general,
@@ -968,25 +994,27 @@ impl IOCompositor {
                 let _ = result_sender.send((font_keys, font_instance_keys));
             },
             CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetClientWindowRect(
-                req,
+                _,
+                response_sender,
             )) => {
-                if let Err(e) = req.send(self.embedder_coordinates.window_rect) {
-                    warn!("Sending response to get client window failed ({:?}).", e);
+                if let Err(error) = response_sender.send(Default::default()) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetScreenSize(req)) => {
-                if let Err(e) = req.send(self.embedder_coordinates.screen_size) {
-                    warn!("Sending response to get screen size failed ({:?}).", e);
+            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetScreenSize(
+                _,
+                response_sender,
+            )) => {
+                if let Err(error) = response_sender.send(Default::default()) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
             CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetAvailableScreenSize(
-                req,
+                _,
+                response_sender,
             )) => {
-                if let Err(e) = req.send(self.embedder_coordinates.available_screen_size) {
-                    warn!(
-                        "Sending response to get screen avail size failed ({:?}).",
-                        e
-                    );
+                if let Err(error) = response_sender.send(Default::default()) {
+                    warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
             CompositorMsg::NewWebRenderFrameReady(..) => {
@@ -1109,10 +1137,10 @@ impl IOCompositor {
         }
     }
 
-    pub fn add_webview(&mut self, webview_id: WebViewId) {
+    pub fn add_webview(&mut self, webview: Box<dyn RendererWebView>) {
         let size = self.rendering_context.size2d().to_f32();
-        self.webviews.entry(webview_id).or_insert(WebView::new(
-            webview_id,
+        self.webviews.entry(webview.id()).or_insert(WebView::new(
+            webview,
             Box2D::from_origin_and_size(Point2D::origin(), size),
             self.global.clone(),
         ));
@@ -1231,13 +1259,13 @@ impl IOCompositor {
     ) {
         // The device pixel ratio used by the style system should include the scale from page pixels
         // to device pixels, but not including any pinch zoom.
-        let device_pixel_ratio = self.device_pixels_per_page_pixel_not_including_page_zoom();
-        let initial_viewport = rect.size().to_f32() / device_pixel_ratio;
-        let msg = ConstellationMsg::WindowSize(
+        let hidpi_scale_factor = self.device_pixels_per_page_pixel_not_including_page_zoom();
+        let size = rect.size().to_f32() / hidpi_scale_factor;
+        let msg = EmbedderToConstellationMessage::ChangeViewportDetails(
             webview_id,
-            WindowSizeData {
-                device_pixel_ratio,
-                initial_viewport,
+            ViewportDetails {
+                size,
+                hidpi_scale_factor,
             },
             WindowSizeType::Resize,
         );
@@ -1246,20 +1274,14 @@ impl IOCompositor {
         }
     }
 
-    pub fn on_embedder_window_moved(&mut self) {
-        self.embedder_coordinates = self.window.get_coordinates();
-    }
-
     pub fn resize_rendering_context(&mut self, new_size: PhysicalSize<u32>) -> bool {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return false;
         }
 
-        let old_hidpi_factor = self.embedder_coordinates.hidpi_factor;
-        self.embedder_coordinates = self.window.get_coordinates();
-        if self.embedder_coordinates.hidpi_factor == old_hidpi_factor &&
-            self.rendering_context.size() == new_size
-        {
+        let old_hidpi_factor = self.hidpi_factor;
+        self.hidpi_factor = self.window.hidpi_factor();
+        if self.hidpi_factor == old_hidpi_factor && self.rendering_context.size() == new_size {
             return false;
         }
 
@@ -1310,10 +1332,6 @@ impl IOCompositor {
         self.window.set_animation_state(animation_state);
     }
 
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.embedder_coordinates.hidpi_factor
-    }
-
     pub(crate) fn device_pixels_per_page_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         self.device_pixels_per_page_pixel_not_including_page_zoom() * self.pinch_zoom_level()
     }
@@ -1321,7 +1339,7 @@ impl IOCompositor {
     fn device_pixels_per_page_pixel_not_including_page_zoom(
         &self,
     ) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.page_zoom * self.hidpi_factor()
+        self.page_zoom * self.hidpi_factor
     }
 
     pub fn on_zoom_reset_window_event(&mut self) {
@@ -1402,7 +1420,7 @@ impl IOCompositor {
 
                 // Pass the pipeline/epoch states to the constellation and check
                 // if it's safe to output the image.
-                let msg = ConstellationMsg::IsReadyToSaveImage(pipeline_epochs);
+                let msg = EmbedderToConstellationMessage::IsReadyToSaveImage(pipeline_epochs);
                 if let Err(e) = self.global.borrow().constellation_sender.send(msg) {
                     warn!("Sending ready to save to constellation failed ({:?}).", e);
                 }
@@ -1567,7 +1585,7 @@ impl IOCompositor {
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
                         assert!(epoch <= current_epoch);
                         if let Err(error) = self.global.borrow().constellation_sender.send(
-                            ConstellationMsg::PaintMetric(
+                            EmbedderToConstellationMessage::PaintMetric(
                                 *pipeline_id,
                                 PaintMetricEvent::FirstPaint(paint_time, first_reflow),
                             ),
@@ -1584,7 +1602,7 @@ impl IOCompositor {
                 match pipeline.first_contentful_paint_metric {
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
                         if let Err(error) = self.global.borrow().constellation_sender.send(
-                            ConstellationMsg::PaintMetric(
+                            EmbedderToConstellationMessage::PaintMetric(
                                 *pipeline_id,
                                 PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
                             ),
@@ -1773,13 +1791,6 @@ impl IOCompositor {
             .borrow()
             .webrender_api
             .save_capture(capture_path.clone(), CaptureBits::all());
-
-        let version_file_path = capture_path.join("servo-version.txt");
-        if let Err(error) = File::create(version_file_path)
-            .and_then(|mut file| write!(file, "{}", self.global.borrow().version_string))
-        {
-            eprintln!("Unable to write servo version for WebRender Capture: {error:?}");
-        }
     }
 
     fn add_font_instance(

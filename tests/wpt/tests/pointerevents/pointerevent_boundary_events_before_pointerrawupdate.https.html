@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale:1">
+<title>Pointer boundary events should be fired before `pointerrawupdate`</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+/**
+ * "fire a pointer event" defines as:
+ * > Before firing this event, the user agent SHOULD treat the target as if the
+ * > pointing device has moved over it from the previousTarget for the purpose
+ * > of ensuring event ordering [UIEVENTS]. If the needsOverEvent flag is set,
+ * > a pointerover event is needed even if the target element is the same.
+ *
+ * Thus, pointer boundary events should be fired before `pointerrawupdate`
+ * event if they are required.  This test checks that.
+ */
+
+addEventListener("DOMContentLoaded", () => {
+  promise_test(async () => {
+    let events = [];
+    function logEvent(event) {
+      events.push(event.type);
+    }
+    const initialDiv = document.getElementById("init");
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: initialDiv})
+      .send();
+    const target = document.getElementById("target");
+    for (const type of ["pointerrawupdate", "pointermove",
+                        "pointerenter", "pointerover",
+                        "pointerleave", "pointerout",
+                        "mouseover", "mouseenter"]) {
+      target.addEventListener(type, logEvent);
+    }
+    // Neither "mouseover" nor "mouseenter" should be fired before
+    // "pointerrawupdate", they should be fired after "pointerrawupdate"
+    // at least.
+    target.addEventListener("pointerrawupdate", () => {
+      for (const type of ["mouseover", "mouseenter"]) {
+        target.removeEventListener(type, logEvent);
+      }
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: target})
+      .send();
+    assert_equals(
+      events.join(", "),
+      [
+        "pointerover",
+        "pointerenter",
+        "pointerrawupdate",
+        "pointermove",
+      ].join(", ")
+    );
+  });
+}, {once: true});
+</script>
+<style>
+div {
+  width: 64px;
+  height: 64px;
+}
+</style>
+<body>
+  <div id="init"></div>
+  <div id="target"></div>
+</body>
+</html>

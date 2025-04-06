@@ -4,7 +4,7 @@
 
 //! A thread that takes a URL and streams back the binary data.
 
-use std::borrow::{Cow, ToOwned};
+use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
@@ -32,7 +32,9 @@ use net_traits::{
     FetchChannels, FetchTaskTarget, ResourceFetchTiming, ResourceThreads, ResourceTimingType,
     WebSocketDomAction, WebSocketNetworkEvent,
 };
-use profile_traits::mem::{ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan};
+use profile_traits::mem::{
+    ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
+};
 use profile_traits::path;
 use profile_traits::time::ProfilerChan;
 use rustls::RootCertStore;
@@ -71,7 +73,6 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore
 /// Returns a tuple of (public, private) senders to the new threads.
 #[allow(clippy::too_many_arguments)]
 pub fn new_resource_threads(
-    user_agent: Cow<'static, str>,
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
@@ -93,7 +94,6 @@ pub fn new_resource_threads(
     };
 
     let (public_core, private_core) = new_core_resource_thread(
-        user_agent,
         devtools_sender,
         time_profiler_chan,
         mem_profiler_chan,
@@ -113,7 +113,6 @@ pub fn new_resource_threads(
 /// Create a CoreResourceThread
 #[allow(clippy::too_many_arguments)]
 pub fn new_core_resource_thread(
-    user_agent: Cow<'static, str>,
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
@@ -131,7 +130,6 @@ pub fn new_core_resource_thread(
         .name("ResourceManager".to_owned())
         .spawn(move || {
             let resource_manager = CoreResourceManager::new(
-                user_agent,
                 devtools_sender,
                 time_profiler_chan,
                 embedder_proxy.clone(),
@@ -301,7 +299,7 @@ impl ResourceChannelManager {
             size: private_cache.size_of(&mut ops),
         };
 
-        msg.send(vec![public_report, private_report]);
+        msg.send(ProcessReports::new(vec![public_report, private_report]));
     }
 
     fn cancellation_listener(&self, request_id: RequestId) -> Option<Arc<CancellationListener>> {
@@ -381,6 +379,14 @@ impl ResourceChannelManager {
                     .write()
                     .unwrap()
                     .clear_storage(&request);
+                return true;
+            },
+            CoreResourceMsg::DeleteCookie(request, name) => {
+                http_state
+                    .cookie_jar
+                    .write()
+                    .unwrap()
+                    .delete_cookie_with_name(&request, name);
                 return true;
             },
             CoreResourceMsg::FetchRedirect(request_builder, res_init, sender) => {
@@ -549,7 +555,6 @@ pub struct AuthCache {
 }
 
 pub struct CoreResourceManager {
-    user_agent: Cow<'static, str>,
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     sw_managers: HashMap<ImmutableOrigin, IpcSender<CustomResponseMediator>>,
     filemanager: FileManager,
@@ -691,7 +696,6 @@ impl CoreResourceThreadPool {
 
 impl CoreResourceManager {
     pub fn new(
-        user_agent: Cow<'static, str>,
         devtools_sender: Option<Sender<DevtoolsControlMsg>>,
         _profiler_chan: ProfilerChan,
         embedder_proxy: EmbedderProxy,
@@ -705,7 +709,6 @@ impl CoreResourceManager {
         let pool = CoreResourceThreadPool::new(num_threads, "CoreResourceThreadPool".to_string());
         let pool_handle = Arc::new(pool);
         CoreResourceManager {
-            user_agent,
             devtools_sender,
             sw_managers: Default::default(),
             filemanager: FileManager::new(embedder_proxy.clone(), Arc::downgrade(&pool_handle)),
@@ -749,7 +752,6 @@ impl CoreResourceManager {
         protocols: Arc<ProtocolRegistry>,
     ) {
         let http_state = http_state.clone();
-        let ua = self.user_agent.clone();
         let dc = self.devtools_sender.clone();
         let filemanager = self.filemanager.clone();
         let request_interceptor = self.request_interceptor.clone();
@@ -790,7 +792,7 @@ impl CoreResourceManager {
             // todo service worker stuff
             let context = FetchContext {
                 state: http_state,
-                user_agent: ua,
+                user_agent: servo_config::pref!(user_agent),
                 devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
                 filemanager: Arc::new(Mutex::new(filemanager)),
                 file_token,

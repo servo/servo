@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API: too many IDPs requested.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        manifest_origin,
+        default_manifest_path} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let providers = [];
+  for (let i = 0; i < 11; i++) {
+    providers.push({
+      configURL: `${manifest_origin}${default_manifest_path}?i=${i}`,
+      clientId: '1',
+      nonce: '2'
+    });
+  }
+  assert_throws_js(TypeError, navigator.credentials.get({
+    identity: {
+      providers: providers,
+    }
+  }));
+}, "Multi IDP FedCM call fails when too many IDPs are requested.");
+
+</script>

@@ -45,6 +45,9 @@ pub(crate) struct CSSStyleDeclaration {
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum CSSStyleOwner {
+    /// Used when calling `getComputedStyle()` with an invalid pseudo-element selector.
+    /// See <https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle>
+    Null,
     Element(Dom<Element>),
     CSSRule(
         Dom<CSSRule>,
@@ -66,6 +69,9 @@ impl CSSStyleOwner {
         // This is somewhat complex but the complexity is encapsulated.
         let mut changed = true;
         match *self {
+            CSSStyleOwner::Null => unreachable!(
+                "CSSStyleDeclaration should always be read-only when CSSStyleOwner is Null"
+            ),
             CSSStyleOwner::Element(ref el) => {
                 let document = el.owner_document();
                 let shared_lock = document.style_shared_lock();
@@ -135,6 +141,9 @@ impl CSSStyleOwner {
         F: FnOnce(&PropertyDeclarationBlock) -> R,
     {
         match *self {
+            CSSStyleOwner::Null => {
+                unreachable!("Should never call with_block for CSStyleOwner::Null")
+            },
             CSSStyleOwner::Element(ref el) => match *el.style_attribute().borrow() {
                 Some(ref pdb) => {
                     let document = el.owner_document();
@@ -155,6 +164,9 @@ impl CSSStyleOwner {
 
     fn window(&self) -> DomRoot<Window> {
         match *self {
+            CSSStyleOwner::Null => {
+                unreachable!("Should never try to access window of CSStyleOwner::Null")
+            },
             CSSStyleOwner::Element(ref el) => el.owner_window(),
             CSSStyleOwner::CSSRule(ref rule, _) => DomRoot::from_ref(rule.global().as_window()),
         }
@@ -162,6 +174,9 @@ impl CSSStyleOwner {
 
     fn base_url(&self) -> ServoUrl {
         match *self {
+            CSSStyleOwner::Null => {
+                unreachable!("Should never try to access base URL of CSStyleOwner::Null")
+            },
             CSSStyleOwner::Element(ref el) => el.owner_document().base_url(),
             CSSStyleOwner::CSSRule(ref rule, _) => ServoUrl::from(
                 rule.parent_stylesheet()
@@ -221,6 +236,13 @@ impl CSSStyleDeclaration {
         pseudo: Option<PseudoElement>,
         modification_access: CSSModificationAccess,
     ) -> CSSStyleDeclaration {
+        // If creating a CSSStyleDeclaration with CSSSStyleOwner::Null, this should always
+        // be in read-only mode.
+        assert!(
+            !matches!(owner, CSSStyleOwner::Null) ||
+                modification_access == CSSModificationAccess::Readonly
+        );
+
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
             owner,
@@ -262,10 +284,15 @@ impl CSSStyleDeclaration {
                 node.owner_window()
                     .resolved_style_query(addr, self.pseudo, property, can_gc)
             },
+            CSSStyleOwner::Null => DOMString::new(),
         }
     }
 
     fn get_property_value(&self, id: PropertyId, can_gc: CanGc) -> DOMString {
+        if matches!(self.owner, CSSStyleOwner::Null) {
+            return DOMString::new();
+        }
+
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
             return self.get_computed_style(id, can_gc);
@@ -388,6 +415,10 @@ pub(crate) static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyL
 impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
+        if matches!(self.owner, CSSStyleOwner::Null) {
+            return 0;
+        }
+
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
             // TODO: include custom properties whose computed value is not the guaranteed-invalid value.
@@ -489,6 +520,9 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
+        if matches!(self.owner, CSSStyleOwner::Null) {
+            return None;
+        }
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
             // TODO: include custom properties whose computed value is not the guaranteed-invalid value.

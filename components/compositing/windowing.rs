@@ -9,7 +9,7 @@ use std::fmt::Debug;
 use embedder_traits::{EventLoopWaker, MouseButton};
 use euclid::Scale;
 use net::protocols::ProtocolRegistry;
-use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize, DeviceIndependentPixel};
+use servo_geometry::DeviceIndependentPixel;
 use webrender_api::units::{DevicePixel, DevicePoint};
 
 #[derive(Clone)]
@@ -37,12 +37,14 @@ pub enum AnimationState {
 // for creating the GL context, making it current, buffer
 // swapping, etc. Really that should all be done by surfman.
 pub trait WindowMethods {
-    /// Get the coordinates of the native window, the screen and the framebuffer.
-    fn get_coordinates(&self) -> EmbedderCoordinates;
+    /// Get the HighDPI factor of the native window, the screen and the framebuffer.
+    /// TODO(martin): Move this to `RendererWebView` when possible.
+    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
     /// Set whether the application is currently animating.
     /// Typically, when animations are active, the window
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
+    /// TODO(martin): Move this to `RendererWebView` when possible.
     fn set_animation_state(&self, _state: AnimationState);
 }
 
@@ -59,31 +61,9 @@ pub trait EmbedderMethods {
     ) {
     }
 
-    /// Returns the user agent string to report in network requests.
-    fn get_user_agent_string(&self) -> Option<String> {
-        None
-    }
-
-    /// Returns the version string of this embedder.
-    fn get_version_string(&self) -> Option<String> {
-        None
-    }
-
     /// Returns the protocol handlers implemented by that embedder.
     /// They will be merged with the default internal ones.
     fn get_protocol_handlers(&self) -> ProtocolRegistry {
         ProtocolRegistry::default()
     }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct EmbedderCoordinates {
-    /// The pixel density of the display.
-    pub hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-    /// Size of the screen.
-    pub screen_size: DeviceIndependentIntSize,
-    /// Size of the available screen space (screen without toolbars and docks).
-    pub available_screen_size: DeviceIndependentIntSize,
-    /// Position and size of the native window.
-    pub window_rect: DeviceIndependentIntRect,
 }

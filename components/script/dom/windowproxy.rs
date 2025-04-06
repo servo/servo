@@ -6,6 +6,10 @@ use std::cell::Cell;
 use std::ptr;
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use constellation_traits::{
+    AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
+    ScriptToConstellationMessage,
+};
 use dom_struct::dom_struct;
 use html5ever::local_name;
 use indexmap::map::IndexMap;
@@ -29,10 +33,7 @@ use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
-use script_traits::{
-    AuxiliaryWebViewCreationRequest, LoadData, LoadOrigin, NavigationHistoryBehavior,
-    NewLayoutInfo, ScriptMsg,
-};
+use script_traits::NewLayoutInfo;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::attr::parse_integer;
@@ -184,6 +185,7 @@ impl WindowProxy {
             assert!(!js_proxy.is_null());
 
             // Create a new browsing context.
+
             let current = Some(window.upcast::<GlobalScope>().pipeline_id());
             let window_proxy = Box::new(WindowProxy::new_inherited(
                 browsing_context_id,
@@ -306,6 +308,7 @@ impl WindowProxy {
             document.get_referrer_policy(),
             None, // Doesn't inherit secure context
             None,
+            false,
         );
         let load_info = AuxiliaryWebViewCreationRequest {
             load_data: load_data.clone(),
@@ -313,7 +316,7 @@ impl WindowProxy {
             opener_pipeline_id: self.currently_active.get().unwrap(),
             response_sender,
         };
-        let constellation_msg = ScriptMsg::CreateAuxiliaryWebView(load_info);
+        let constellation_msg = ScriptToConstellationMessage::CreateAuxiliaryWebView(load_info);
         window.send_to_constellation(constellation_msg);
 
         let response = response_receiver.recv().unwrap()?;
@@ -325,7 +328,7 @@ impl WindowProxy {
             webview_id: response.new_webview_id,
             opener: Some(self.browsing_context_id),
             load_data,
-            window_size: window.window_size(),
+            viewport_details: window.viewport_details(),
         };
         ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
         // TODO: if noopener is false, copy the sessionStorage storage area of the creator origin.
@@ -484,6 +487,11 @@ impl WindowProxy {
             Some(target_document) => target_document,
             None => return Ok(None),
         };
+        let has_trustworthy_ancestor_origin = if new {
+            target_document.has_trustworthy_ancestor_or_current_origin()
+        } else {
+            false
+        };
         let target_window = target_document.window();
         // Step 13, and 14.4, will have happened elsewhere,
         // since we've created a new browsing context and loaded it with about:blank.
@@ -516,6 +524,7 @@ impl WindowProxy {
                 referrer_policy,
                 Some(secure),
                 Some(target_document.insecure_requests_policy()),
+                has_trustworthy_ancestor_origin,
             );
             let history_handling = if new {
                 NavigationHistoryBehavior::Replace
@@ -862,7 +871,7 @@ unsafe fn GetSubframeWindowProxy(
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 
             let _ = win.as_global_scope().script_to_constellation_chan().send(
-                ScriptMsg::GetChildBrowsingContextId(
+                ScriptToConstellationMessage::GetChildBrowsingContextId(
                     browsing_context_id,
                     index as usize,
                     result_sender,
@@ -881,7 +890,7 @@ unsafe fn GetSubframeWindowProxy(
             let (result_sender, result_receiver) = ipc::channel().unwrap();
 
             let _ = win.global().script_to_constellation_chan().send(
-                ScriptMsg::GetChildBrowsingContextId(
+                ScriptToConstellationMessage::GetChildBrowsingContextId(
                     browsing_context_id,
                     index as usize,
                     result_sender,

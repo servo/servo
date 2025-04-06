@@ -6,17 +6,18 @@ use std::cell::Cell;
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use bitflags::bitflags;
-use constellation_traits::WindowSizeData;
+use constellation_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
+use constellation_traits::{
+    IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
+    NavigationHistoryBehavior, ScriptToConstellationMessage,
+};
 use dom_struct::dom_struct;
+use embedder_traits::ViewportDetails;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use profile_traits::ipc as ProfiledIpc;
-use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
-use script_traits::{
-    IFrameLoadInfo, IFrameLoadInfoWithData, JsEvalResult, LoadData, LoadOrigin,
-    NavigationHistoryBehavior, NewLayoutInfo, ScriptMsg, UpdatePipelineIdReason,
-};
+use script_traits::{NewLayoutInfo, UpdatePipelineIdReason};
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use stylo_atoms::Atom;
@@ -196,12 +197,12 @@ impl HTMLIFrameElement {
             history_handling,
         };
 
-        let window_size = WindowSizeData {
-            initial_viewport: window
-                .get_iframe_size_if_known(browsing_context_id, can_gc)
-                .unwrap_or_default(),
-            device_pixel_ratio: window.device_pixel_ratio(),
-        };
+        let viewport_details = window
+            .get_iframe_viewport_details_if_known(browsing_context_id, can_gc)
+            .unwrap_or_else(|| ViewportDetails {
+                hidpi_scale_factor: window.device_pixel_ratio(),
+                ..Default::default()
+            });
 
         match pipeline_type {
             PipelineType::InitialAboutBlank => {
@@ -212,12 +213,12 @@ impl HTMLIFrameElement {
                     load_data: load_data.clone(),
                     old_pipeline_id,
                     sandbox: sandboxed,
-                    window_size,
+                    viewport_details,
                 };
                 window
                     .as_global_scope()
                     .script_to_constellation_chan()
-                    .send(ScriptMsg::ScriptNewIFrame(load_info))
+                    .send(ScriptToConstellationMessage::ScriptNewIFrame(load_info))
                     .unwrap();
 
                 let new_layout_info = NewLayoutInfo {
@@ -227,7 +228,7 @@ impl HTMLIFrameElement {
                     webview_id,
                     opener: None,
                     load_data,
-                    window_size,
+                    viewport_details,
                 };
 
                 self.pipeline_id.set(Some(new_pipeline_id));
@@ -239,12 +240,14 @@ impl HTMLIFrameElement {
                     load_data,
                     old_pipeline_id,
                     sandbox: sandboxed,
-                    window_size,
+                    viewport_details,
                 };
                 window
                     .as_global_scope()
                     .script_to_constellation_chan()
-                    .send(ScriptMsg::ScriptLoadedURLInIFrame(load_info))
+                    .send(ScriptToConstellationMessage::ScriptLoadedURLInIFrame(
+                        load_info,
+                    ))
                     .unwrap();
             },
         }
@@ -269,6 +272,7 @@ impl HTMLIFrameElement {
                 document.get_referrer_policy(),
                 Some(window.as_global_scope().is_secure_context()),
                 Some(document.insecure_requests_policy()),
+                document.has_trustworthy_ancestor_or_current_origin(),
             );
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
@@ -360,6 +364,7 @@ impl HTMLIFrameElement {
             referrer_policy,
             Some(window.as_global_scope().is_secure_context()),
             Some(document.insecure_requests_policy()),
+            document.has_trustworthy_ancestor_or_current_origin(),
         );
 
         let pipeline_id = self.pipeline_id();
@@ -405,6 +410,7 @@ impl HTMLIFrameElement {
             document.get_referrer_policy(),
             Some(window.as_global_scope().is_secure_context()),
             Some(document.insecure_requests_policy()),
+            document.has_trustworthy_ancestor_or_current_origin(),
         );
         let browsing_context_id = BrowsingContextId::new();
         let webview_id = window.window_proxy().webview_id();
@@ -782,7 +788,7 @@ impl VirtualMethods for HTMLIFrameElement {
         };
         debug!("Unbinding frame {}.", browsing_context_id);
 
-        let msg = ScriptMsg::RemoveIFrame(browsing_context_id, sender);
+        let msg = ScriptToConstellationMessage::RemoveIFrame(browsing_context_id, sender);
         window
             .as_global_scope()
             .script_to_constellation_chan()

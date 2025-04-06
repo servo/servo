@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::wgc::command as wgpu_com;
-use webgpu::{
+use webgpu_traits::{
     WebGPU, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePass, WebGPUDevice,
-    WebGPURenderPass, WebGPURequest, wgt,
+    WebGPURenderPass, WebGPURequest,
 };
+use wgpu_core::command as wgpu_com;
 
 use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::cell::DomRefCell;
@@ -97,7 +97,7 @@ impl GPUCommandEncoder {
             .send(WebGPURequest::CreateCommandEncoder {
                 device_id: device.id().0,
                 command_encoder_id,
-                desc: wgt::CommandEncoderDescriptor {
+                desc: wgpu_types::CommandEncoderDescriptor {
                     label: (&descriptor.parent).convert(),
                 },
             })
@@ -312,7 +312,7 @@ impl GPUCommandEncoderMethods<crate::DomTypeHolder> for GPUCommandEncoder {
             .send(WebGPURequest::CommandEncoderFinish {
                 command_encoder_id: self.encoder.0,
                 device_id: self.device.id().0,
-                desc: wgt::CommandBufferDescriptor {
+                desc: wgpu_types::CommandBufferDescriptor {
                     label: (&descriptor.parent).convert(),
                 },
             })

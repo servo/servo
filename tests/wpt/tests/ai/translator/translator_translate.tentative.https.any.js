@@ -108,39 +108,9 @@ promise_test(async t => {
 }, 'Aborting Translator.translate().');
 
 promise_test(async t => {
-  let monitorCalled = false;
-  let createdTranslator = false;
-  const progressEvents = [];
-  function monitor(m) {
-    monitorCalled = true;
-
-    m.addEventListener('downloadprogress', e => {
-      // No progress events should have been fired after we've created the
-      // translator.
-      assert_false(createdTranslator);
-
-      progressEvents.push(e);
-    });
-  }
-
-  await createTranslator({sourceLanguage: 'en', targetLanguage: 'ja', monitor});
-  createdTranslator = true;
-
-  // Monitor callback must be called.
-  assert_true(monitorCalled);
-
-  // Must have at least 2 progress events, one for 0 and one for 1.
-  assert_greater_than_equal(progressEvents.length, 2);
-
-  // 0 should be the first event and 1 should be the last event.
-  assert_equals(progressEvents.at(0).loaded, 0);
-  assert_equals(progressEvents.at(-1).loaded, 1);
-
-  // All progress events must have a total of 1.
-  for (const progressEvent of progressEvents) {
-    assert_equals(progressEvent.total, 1);
-  }
-}, 'Translator.create() monitor option is called correctly.');
+  await testMonitor(
+      createTranslator, {sourceLanguage: 'en', targetLanguage: 'ja'});
+}, 'Translator.create() notifies its monitor on downloadprogress');
 
 promise_test(async t => {
   const translator =

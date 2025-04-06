@@ -5,6 +5,7 @@
 use std::rc::Rc;
 use std::{ptr, slice, str};
 
+use constellation_traits::BlobImpl;
 use encoding_rs::{Encoding, UTF_8};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -17,7 +18,6 @@ use mime::{self, Mime};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource as NetBodySource, RequestBody,
 };
-use script_traits::serializable::BlobImpl;
 use url::form_urlencoded;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;

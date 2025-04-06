@@ -13,6 +13,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{ApiPose, BaseTransform, XRSession, cast_transform};
 use crate::dom::xrspace::XRSpace;
@@ -40,13 +41,13 @@ impl XRReferenceSpace {
 
     #[allow(unused)]
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         session: &XRSession,
         ty: XRReferenceSpaceType,
         can_gc: CanGc,
     ) -> DomRoot<XRReferenceSpace> {
-        let offset = XRRigidTransform::identity(global, can_gc);
-        Self::new_offset(global, session, ty, &offset, can_gc)
+        let offset = XRRigidTransform::identity(window, can_gc);
+        Self::new_offset(&window.global(), session, ty, &offset, can_gc)
     }
 
     #[allow(unused)]
@@ -85,7 +86,7 @@ impl XRReferenceSpaceMethods<crate::DomTypeHolder> for XRReferenceSpace {
     /// <https://immersive-web.github.io/webxr/#dom-xrreferencespace-getoffsetreferencespace>
     fn GetOffsetReferenceSpace(&self, new: &XRRigidTransform, can_gc: CanGc) -> DomRoot<Self> {
         let offset = new.transform().then(&self.offset.transform());
-        let offset = XRRigidTransform::new(&self.global(), offset, can_gc);
+        let offset = XRRigidTransform::new(self.global().as_window(), offset, can_gc);
         Self::new_offset(
             &self.global(),
             self.upcast::<XRSpace>().session(),

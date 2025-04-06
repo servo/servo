@@ -340,6 +340,26 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         self.context.SetMiterLimit(limit)
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-setlinedash>
+    fn SetLineDash(&self, segments: Vec<f64>) {
+        self.context.SetLineDash(segments)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getlinedash>
+    fn GetLineDash(&self) -> Vec<f64> {
+        self.context.GetLineDash()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset>
+    fn LineDashOffset(&self) -> f64 {
+        self.context.LineDashOffset()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset>
+    fn SetLineDashOffset(&self, offset: f64) {
+        self.context.SetLineDashOffset(offset)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     fn CreateImageData(&self, sw: i32, sh: i32, can_gc: CanGc) -> Fallible<DomRoot<ImageData>> {
         self.context.CreateImageData(sw, sh, can_gc)

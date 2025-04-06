@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest, wgt};
+use webgpu_traits::{RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
 
 use crate::conversions::TryConvert;
 use crate::dom::bindings::cell::DomRefCell;
@@ -170,11 +170,11 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
         self.send_render_command(RenderCommand::SetIndexBuffer {
             buffer_id: buffer.id().0,
             index_format: match index_format {
-                GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
-                GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
+                GPUIndexFormat::Uint16 => wgpu_types::IndexFormat::Uint16,
+                GPUIndexFormat::Uint32 => wgpu_types::IndexFormat::Uint32,
             },
             offset,
-            size: wgt::BufferSize::new(size),
+            size: wgpu_types::BufferSize::new(size),
         })
     }
 
@@ -184,7 +184,7 @@ impl GPURenderPassEncoderMethods<crate::DomTypeHolder> for GPURenderPassEncoder 
             slot,
             buffer_id: buffer.id().0,
             offset,
-            size: wgt::BufferSize::new(size),
+            size: wgpu_types::BufferSize::new(size),
         })
     }
 

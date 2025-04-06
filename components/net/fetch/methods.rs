@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::{io, mem, str};
@@ -14,7 +13,7 @@ use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
-use http::header::{self, HeaderMap, HeaderName};
+use http::header::{self, HeaderMap, HeaderName, RANGE};
 use http::{HeaderValue, Method, StatusCode};
 use ipc_channel::ipc;
 use log::{debug, trace, warn};
@@ -35,7 +34,7 @@ use net_traits::{
 use rustls_pki_types::CertificateDer;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
-use servo_url::{Host, ServoUrl};
+use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use super::fetch_params::FetchParams;
@@ -46,6 +45,9 @@ use crate::http_loader::{HttpState, determine_requests_referrer, http_fetch, set
 use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;
+
+const PARTIAL_RESPONSE_TO_NON_RANGE_REQUEST_ERROR: &str = "Refusing to provide partial response\
+from earlier ranged request to API that did not make a range request";
 
 pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
 
@@ -58,7 +60,7 @@ pub enum Data {
 
 pub struct FetchContext {
     pub state: Arc<HttpState>,
-    pub user_agent: Cow<'static, str>,
+    pub user_agent: String,
     pub devtools_chan: Option<Arc<Mutex<Sender<DevtoolsControlMsg>>>>,
     pub filemanager: Arc<Mutex<FileManager>>,
     pub file_token: FileTokenCheck,
@@ -276,7 +278,6 @@ pub async fn main_fetch(
     // Step 7. If should request be blocked due to a bad port, should fetching request be blocked
     // as mixed content, or should request be blocked by Content Security Policy returns blocked,
     // then set response to a network error.
-    // TODO: check "should fetching request be blocked as mixed content"
     if should_request_be_blocked_by_csp(request, &policy_container) == csp::CheckResult::Blocked {
         warn!("Request blocked by CSP");
         response = Some(Response::network_error(NetworkError::Internal(
@@ -286,6 +287,11 @@ pub async fn main_fetch(
     if should_request_be_blocked_due_to_a_bad_port(&request.current_url()) {
         response = Some(Response::network_error(NetworkError::Internal(
             "Request attempted on bad port".into(),
+        )));
+    }
+    if should_request_be_blocked_as_mixed_content(request) {
+        response = Some(Response::network_error(NetworkError::Internal(
+            "Blocked as mixed content".into(),
         )));
     }
 
@@ -478,27 +484,36 @@ pub async fn main_fetch(
             should_be_blocked_due_to_nosniff(request.destination, &response.headers);
         let should_replace_with_mime_type_error = !response_is_network_error &&
             should_be_blocked_due_to_mime_type(request.destination, &response.headers);
+        let should_replace_with_mixed_content = !response_is_network_error &&
+            should_response_be_blocked_as_mixed_content(request, &response);
 
         // Step 15.
         let mut network_error_response = response
             .get_network_error()
             .cloned()
             .map(Response::network_error);
+
+        // Step 15. Let internalResponse be response, if response is a network error;
+        // otherwise response’s internal response.
+        let response_type = response.response_type.clone(); // Needed later after the mutable borrow
         let internal_response = if let Some(error_response) = network_error_response.as_mut() {
             error_response
         } else {
             response.actual_response_mut()
         };
 
-        // Step 16.
+        // Step 16. If internalResponse’s URL list is empty, then set it to a clone of request’s URL list.
         if internal_response.url_list.is_empty() {
             internal_response.url_list.clone_from(&request.url_list)
         }
 
-        // Step 17.
-        // TODO: handle blocking as mixed content.
-        // TODO: handle blocking by content security policy.
-        let blocked_error_response;
+        // Step 19. If response is not a network error and any of the following returns blocked
+        // * should internalResponse to request be blocked as mixed content
+        // TODO: * should internalResponse to request be blocked by Content Security Policy
+        // * should internalResponse to request be blocked due to its MIME type
+        // * should internalResponse to request be blocked due to nosniff
+        let mut blocked_error_response;
+
         let internal_response = if should_replace_with_nosniff_error {
             // Defer rebinding result
             blocked_error_response =
@@ -509,13 +524,38 @@ pub async fn main_fetch(
             blocked_error_response =
                 Response::network_error(NetworkError::Internal("Blocked by mime type".into()));
             &blocked_error_response
+        } else if should_replace_with_mixed_content {
+            blocked_error_response =
+                Response::network_error(NetworkError::Internal("Blocked as mixed content".into()));
+            &blocked_error_response
         } else {
             internal_response
         };
 
-        // Step 18.
-        // We check `internal_response` since we did not mutate `response`
-        // in the previous step.
+        // Step 20. If response’s type is "opaque", internalResponse’s status is 206, internalResponse’s
+        // range-requested flag is set, and request’s header list does not contain `Range`, then set
+        // response and internalResponse to a network error.
+        // Also checking if internal response is a network error to prevent crash from attemtping to
+        // read status of a network error if we blocked the request above.
+        let internal_response = if !internal_response.is_network_error() &&
+            response_type == ResponseType::Opaque &&
+            internal_response.status.code() == StatusCode::PARTIAL_CONTENT &&
+            internal_response.range_requested &&
+            !request.headers.contains_key(RANGE)
+        {
+            // Defer rebinding result
+            blocked_error_response = Response::network_error(NetworkError::Internal(
+                PARTIAL_RESPONSE_TO_NON_RANGE_REQUEST_ERROR.into(),
+            ));
+            &blocked_error_response
+        } else {
+            internal_response
+        };
+
+        // Step 21. If response is not a network error and either request’s method is `HEAD` or `CONNECT`,
+        // or internalResponse’s status is a null body status, set internalResponse’s body to null and
+        // disregard any enqueuing toward it (if any).
+        // NOTE: We check `internal_response` since we did not mutate `response` in the previous steps.
         let not_network_error = !response_is_network_error && !internal_response.is_network_error();
         if not_network_error &&
             (is_null_body_status(&internal_response.status) ||
@@ -887,6 +927,66 @@ pub fn should_request_be_blocked_due_to_a_bad_port(url: &ServoUrl) -> bool {
     false
 }
 
+/// <https://w3c.github.io/webappsec-mixed-content/#should-block-fetch>
+pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
+    // Step 1. Return allowed if one or more of the following conditions are met:
+    // 1.1. Does settings prohibit mixed security contexts?
+    // returns "Does Not Restrict Mixed Security Contexts" when applied to request’s client.
+    if do_settings_prohibit_mixed_security_contexts(request) ==
+        MixedSecurityProhibited::NotProhibited
+    {
+        return false;
+    }
+
+    // 1.2. request’s URL is a potentially trustworthy URL.
+    if request.url().is_potentially_trustworthy() {
+        return false;
+    }
+
+    // 1.3. The user agent has been instructed to allow mixed content.
+
+    // 1.4. request’s destination is "document", and request’s target browsing context has
+    // no parent browsing context.
+    if request.destination == Destination::Document {
+        // TODO: request's target browsing context has no parent browsing context
+        return false;
+    }
+
+    true
+}
+
+/// <https://w3c.github.io/webappsec-mixed-content/#should-block-response>
+pub fn should_response_be_blocked_as_mixed_content(request: &Request, response: &Response) -> bool {
+    // Step 1. Return allowed if one or more of the following conditions are met:
+    // 1.1. Does settings prohibit mixed security contexts? returns Does Not Restrict Mixed Content
+    // when applied to request’s client.
+    if do_settings_prohibit_mixed_security_contexts(request) ==
+        MixedSecurityProhibited::NotProhibited
+    {
+        return false;
+    }
+
+    // 1.2. response’s url is a potentially trustworthy URL.
+    if response
+        .actual_response()
+        .url()
+        .is_some_and(|response_url| response_url.is_potentially_trustworthy())
+    {
+        return false;
+    }
+
+    // 1.3. TODO: The user agent has been instructed to allow mixed content.
+
+    // 1.4. request’s destination is "document", and request’s target browsing context
+    // has no parent browsing context.
+    if request.destination == Destination::Document {
+        // TODO: if requests target browsing context has no parent browsing context
+        return false;
+    }
+
+    true
+}
+
 /// <https://fetch.spec.whatwg.org/#bad-port>
 fn is_bad_port(port: u16) -> bool {
     static BAD_PORTS: [u16; 78] = [
@@ -956,14 +1056,36 @@ fn should_upgrade_request_to_potentially_trustworty(
     request.insecure_requests_policy == InsecureRequestsPolicy::Upgrade
 }
 
-// TODO : Needs to revisit
+#[derive(Debug, PartialEq)]
+pub enum MixedSecurityProhibited {
+    Prohibited,
+    NotProhibited,
+}
+
 /// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
-fn does_settings_prohibit_mixed_security_contexts(url: &ServoUrl) -> bool {
-    if url.is_origin_trustworthy() {
-        return true;
+fn do_settings_prohibit_mixed_security_contexts(request: &Request) -> MixedSecurityProhibited {
+    if let Origin::Origin(ref origin) = request.origin {
+        // Workers created from a data: url are secure if they were created from secure contexts
+        let is_origin_data_url_worker = matches!(
+            *origin,
+            ImmutableOrigin::Opaque(servo_url::OpaqueOrigin::SecureWorkerFromDataUrl(_))
+        );
+
+        // Step 1. If settings’ origin is a potentially trustworthy origin,
+        // then return "Prohibits Mixed Security Contexts".
+        if origin.is_potentially_trustworthy() || is_origin_data_url_worker {
+            return MixedSecurityProhibited::Prohibited;
+        }
     }
 
-    false
+    // Step 2.2. For each navigable navigable in document’s ancestor navigables:
+    // Step 2.2.1. If navigable’s active document's origin is a potentially trustworthy origin,
+    // then return "Prohibits Mixed Security Contexts".
+    if request.has_trustworthy_ancestor_origin {
+        return MixedSecurityProhibited::Prohibited;
+    }
+
+    MixedSecurityProhibited::NotProhibited
 }
 
 /// <https://w3c.github.io/webappsec-mixed-content/#upgrade-algorithm>
@@ -981,12 +1103,14 @@ fn should_upgrade_mixed_content_request(request: &Request) -> bool {
     }
 
     // Step 1.3
-    if !does_settings_prohibit_mixed_security_contexts(&url) {
+    if do_settings_prohibit_mixed_security_contexts(request) ==
+        MixedSecurityProhibited::NotProhibited
+    {
         return false;
     }
 
     // Step 1.4 : request’s destination is not "image", "audio", or "video".
-    if matches!(
+    if !matches!(
         request.destination,
         Destination::Audio | Destination::Image | Destination::Video
     ) {

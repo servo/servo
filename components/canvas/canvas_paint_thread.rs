@@ -230,6 +230,10 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::SetLineCap(cap) => self.canvas(canvas_id).set_line_cap(cap),
             Canvas2dMsg::SetLineJoin(join) => self.canvas(canvas_id).set_line_join(join),
             Canvas2dMsg::SetMiterLimit(limit) => self.canvas(canvas_id).set_miter_limit(limit),
+            Canvas2dMsg::SetLineDash(items) => self.canvas(canvas_id).set_line_dash(items),
+            Canvas2dMsg::SetLineDashOffset(offset) => {
+                self.canvas(canvas_id).set_line_dash_offset(offset)
+            },
             Canvas2dMsg::GetTransform(sender) => {
                 let transform = self.canvas(canvas_id).get_transform();
                 sender.send(transform).unwrap();

@@ -31,6 +31,8 @@ test_valid_value("shape-outside", "circle(at right 40%)", "circle(at 100% 40%)")
 test_valid_value("shape-outside", "circle(at right 30% top 60px)", "circle(at calc(70%) 60px)");
 test_valid_value("shape-outside", "circle(at top)", "circle(at 50% 0%)");
 test_valid_value("shape-outside", "circle(at top center)","circle(at 50% 0%)");
+test_valid_value("shape-outside", "circle(at top 0% right calc(10% * sign(1em - 1px)))", "circle(at calc(100% - (10% * sign(1em - 1px))) 0%)");
+test_valid_value("shape-outside", "circle(at top 0% right calc(10% * sibling-index()))", "circle(at calc(100% - (10% * sibling-index())) 0%)");
 </script>
 </body>
 </html>

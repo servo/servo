@@ -390,4 +390,10 @@ pub trait ThreadSafeLayoutElement<'dom>:
     /// of the parent data is fine, since the bottom-up traversal will not process
     /// the parent until all the children have been processed.
     fn is_body_element_of_html_element_root(&self) -> bool;
+
+    /// Returns whether this node is the root element in an HTML document element.
+    ///
+    /// Note that, like `Self::is_body_element_of_html_element_root`, this accesses the parent.
+    /// As in that case, since this is an immutable borrow, we do not violate thread safety.
+    fn is_root(&self) -> bool;
 }

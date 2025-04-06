@@ -11,11 +11,10 @@ use crate::dom::bindings::codegen::Bindings::RTCErrorEventBinding::{
     RTCErrorEventInit, RTCErrorEventMethods,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::rtcerror::RTCError;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -35,18 +34,18 @@ impl RTCErrorEvent {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         error: &RTCError,
         can_gc: CanGc,
     ) -> DomRoot<RTCErrorEvent> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, error, can_gc)
+        Self::new_with_proto(window, None, type_, bubbles, cancelable, error, can_gc)
     }
 
     fn new_with_proto(
-        global: &GlobalScope,
+        window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
@@ -56,7 +55,7 @@ impl RTCErrorEvent {
     ) -> DomRoot<RTCErrorEvent> {
         let event = reflect_dom_object_with_proto(
             Box::new(RTCErrorEvent::new_inherited(error)),
-            global,
+            window,
             proto,
             can_gc,
         );
@@ -78,7 +77,7 @@ impl RTCErrorEventMethods<crate::DomTypeHolder> for RTCErrorEvent {
         init: &RTCErrorEventInit,
     ) -> DomRoot<RTCErrorEvent> {
         RTCErrorEvent::new_with_proto(
-            &window.global(),
+            window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,

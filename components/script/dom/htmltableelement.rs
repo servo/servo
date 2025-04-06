@@ -133,7 +133,7 @@ impl HTMLTableElement {
             let reference_element = node.child_elements().find(reference_predicate);
             let reference_node = reference_element.as_ref().map(|e| e.upcast());
 
-            node.InsertBefore(section.upcast(), reference_node)?;
+            node.InsertBefore(section.upcast(), reference_node, can_gc)?;
         }
 
         Ok(())
@@ -212,7 +212,11 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
         if let Some(caption) = new_caption {
             let node = self.upcast::<Node>();
-            node.InsertBefore(caption.upcast(), node.GetFirstChild().as_deref())?;
+            node.InsertBefore(
+                caption.upcast(),
+                node.GetFirstChild().as_deref(),
+                CanGc::note(),
+            )?;
         }
 
         Ok(())
@@ -339,7 +343,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody"));
         let reference_element = last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
-        node.InsertBefore(tbody.upcast(), reference_element.as_deref())
+        node.InsertBefore(tbody.upcast(), reference_element.as_deref(), can_gc)
             .expect("Insertion failed");
         tbody
     }
@@ -373,16 +377,16 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             {
                 last_tbody
                     .upcast::<Node>()
-                    .AppendChild(new_row.upcast::<Node>())
+                    .AppendChild(new_row.upcast::<Node>(), can_gc)
                     .expect("InsertRow failed to append first row.");
             } else {
                 let tbody = self.CreateTBody(can_gc);
-                node.AppendChild(tbody.upcast())
+                node.AppendChild(tbody.upcast(), can_gc)
                     .expect("InsertRow failed to append new tbody.");
 
                 tbody
                     .upcast::<Node>()
-                    .AppendChild(new_row.upcast::<Node>())
+                    .AppendChild(new_row.upcast::<Node>(), can_gc)
                     .expect("InsertRow failed to append first row.");
             }
         } else if index == number_of_row_elements as i32 || index == -1 {
@@ -398,7 +402,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
             last_row_parent
                 .upcast::<Node>()
-                .AppendChild(new_row.upcast::<Node>())
+                .AppendChild(new_row.upcast::<Node>(), can_gc)
                 .expect("InsertRow failed to append last row.");
         } else {
             // insert new row before the index-th row in rows using the same parent
@@ -413,7 +417,11 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
             ith_row_parent
                 .upcast::<Node>()
-                .InsertBefore(new_row.upcast::<Node>(), Some(ith_row.upcast::<Node>()))
+                .InsertBefore(
+                    new_row.upcast::<Node>(),
+                    Some(ith_row.upcast::<Node>()),
+                    can_gc,
+                )
                 .expect("InsertRow failed to append row");
         }
 

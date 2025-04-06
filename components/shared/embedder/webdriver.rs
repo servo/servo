@@ -78,6 +78,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<(), WebDriverCookieError>>,
     ),
     DeleteCookies(IpcSender<Result<(), ErrorStatus>>),
+    DeleteCookie(String, IpcSender<Result<(), ErrorStatus>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
     FindElementCSS(String, IpcSender<Result<Option<String>, ErrorStatus>>),

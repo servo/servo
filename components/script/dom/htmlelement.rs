@@ -395,7 +395,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         Some(item_attr_values.into_iter().collect())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-click
+    /// <https://html.spec.whatwg.org/multipage/#dom-click>
     fn Click(&self, can_gc: CanGc) {
         let element = self.as_element();
         if element.disabled_state() {
@@ -407,7 +407,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         element.set_click_in_progress(true);
 
         self.upcast::<Node>()
-            .fire_synthetic_mouse_event_not_trusted(DOMString::from("click"), can_gc);
+            .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
         element.set_click_in_progress(false);
     }
 
@@ -532,11 +532,13 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         if fragment.upcast::<Node>().children_count() == 0 {
             let text_node = Text::new(DOMString::from("".to_owned()), &document, can_gc);
 
-            fragment.upcast::<Node>().AppendChild(text_node.upcast())?;
+            fragment
+                .upcast::<Node>()
+                .AppendChild(text_node.upcast(), can_gc)?;
         }
 
         // Step 6: Replace this with fragment within this's parent.
-        parent.ReplaceChild(fragment.upcast(), node)?;
+        parent.ReplaceChild(fragment.upcast(), node, can_gc)?;
 
         // Step 7: If next is non-null and next's previous sibling is a Text node, then merge with
         // the next text node given next's previous sibling.
@@ -670,7 +672,7 @@ fn append_text_node_to_fragment(
     let text = Text::new(DOMString::from(text), document, can_gc);
     fragment
         .upcast::<Node>()
-        .AppendChild(text.upcast())
+        .AppendChild(text.upcast(), can_gc)
         .unwrap();
 }
 
@@ -1016,7 +1018,10 @@ impl HTMLElement {
                     }
 
                     let br = HTMLBRElement::new(local_name!("br"), None, &document, None, can_gc);
-                    fragment.upcast::<Node>().AppendChild(br.upcast()).unwrap();
+                    fragment
+                        .upcast::<Node>()
+                        .AppendChild(br.upcast(), can_gc)
+                        .unwrap();
                 },
                 _ => {
                     // Collect a sequence of code points that are not U+000A LF or U+000D CR from

@@ -37,48 +37,15 @@ use std::ffi;
 pub(crate) use js::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, ToJSValConvertible,
 };
-use js::glue::GetProxyReservedSlot;
-use js::jsapi::{Heap, IsWindowProxy, JS_IsExceptionPending, JSContext, JSObject};
+use js::jsapi::{JS_IsExceptionPending, JSContext, JSObject};
 use js::jsval::UndefinedValue;
-use js::rust::wrappers::{IsArrayObject, JS_GetProperty, JS_HasProperty};
-use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-pub(crate) use script_bindings::conversions::*;
+use js::rust::wrappers::{JS_GetProperty, JS_HasProperty};
+use js::rust::{HandleObject, MutableHandleValue};
+pub(crate) use script_bindings::conversions::{is_dom_proxy, *};
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
-
-impl<T: ToJSValConvertible + JSTraceable> ToJSValConvertible for RootedTraceableBox<T> {
-    #[inline]
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        let value = &**self;
-        value.to_jsval(cx, rval);
-    }
-}
-
-impl<T> FromJSValConvertible for RootedTraceableBox<Heap<T>>
-where
-    T: FromJSValConvertible + js::rust::GCMethods + Copy,
-    Heap<T>: JSTraceable + Default,
-{
-    type Config = T::Config;
-
-    unsafe fn from_jsval(
-        cx: *mut JSContext,
-        value: HandleValue,
-        config: Self::Config,
-    ) -> Result<ConversionResult<Self>, ()> {
-        T::from_jsval(cx, value, config).map(|result| match result {
-            ConversionResult::Success(inner) => {
-                ConversionResult::Success(RootedTraceableBox::from_box(Heap::boxed(inner)))
-            },
-            ConversionResult::Failure(msg) => ConversionResult::Failure(msg),
-        })
-    }
-}
-
-pub(crate) use script_bindings::conversions::is_dom_proxy;
 
 /// Get a `DomRoot<T>` for the given DOM object, unwrapping any wrapper
 /// around it first, and checking if the object is of the correct type.
@@ -102,43 +69,6 @@ where
     T: DomObject + IDLInterface,
 {
     unsafe { root_from_object(obj.get(), cx) }
-}
-
-/// Returns whether `value` is an array-like object (Array, FileList,
-/// HTMLCollection, HTMLFormControlsCollection, HTMLOptionsCollection,
-/// NodeList).
-pub(crate) unsafe fn is_array_like<D: crate::DomTypes>(
-    cx: *mut JSContext,
-    value: HandleValue,
-) -> bool {
-    let mut is_array = false;
-    assert!(IsArrayObject(cx, value, &mut is_array));
-    if is_array {
-        return true;
-    }
-
-    let object: *mut JSObject = match FromJSValConvertible::from_jsval(cx, value, ()).unwrap() {
-        ConversionResult::Success(object) => object,
-        _ => return false,
-    };
-
-    if root_from_object::<D::FileList>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::HTMLCollection>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::HTMLFormControlsCollection>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::HTMLOptionsCollection>(object, cx).is_ok() {
-        return true;
-    }
-    if root_from_object::<D::NodeList>(object, cx).is_ok() {
-        return true;
-    }
-
-    false
 }
 
 /// Get a property from a JS object.
@@ -190,23 +120,4 @@ where
         Ok(ConversionResult::Failure(_)) => Ok(None),
         Err(()) => Err(Error::JSFailed),
     }
-}
-
-/// Get a `DomRoot<T>` for a WindowProxy accessible from a `HandleValue`.
-/// Caller is responsible for throwing a JS exception if needed in case of error.
-pub(crate) unsafe fn windowproxy_from_handlevalue<D: crate::DomTypes>(
-    v: HandleValue,
-    _cx: *mut JSContext,
-) -> Result<DomRoot<D::WindowProxy>, ()> {
-    if !v.get().is_object() {
-        return Err(());
-    }
-    let object = v.get().to_object();
-    if !IsWindowProxy(object) {
-        return Err(());
-    }
-    let mut value = UndefinedValue();
-    GetProxyReservedSlot(object, 0, &mut value);
-    let ptr = value.to_private() as *const D::WindowProxy;
-    Ok(DomRoot::from_ref(&*ptr))
 }

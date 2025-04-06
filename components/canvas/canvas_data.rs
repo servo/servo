@@ -1366,6 +1366,14 @@ impl<'a> CanvasData<'a> {
         self.state.stroke_opts.set_miter_limit(limit);
     }
 
+    pub fn set_line_dash(&mut self, items: Vec<f32>) {
+        self.state.stroke_opts.set_line_dash(items);
+    }
+
+    pub fn set_line_dash_offset(&mut self, offset: f32) {
+        self.state.stroke_opts.set_line_dash_offset(offset);
+    }
+
     pub fn get_transform(&self) -> Transform2D<f32> {
         self.drawtarget.get_transform()
     }

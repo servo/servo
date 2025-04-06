@@ -65,6 +65,7 @@ test_interfaces([
   "Request",
   "Response",
   "SecurityPolicyViolationEvent",
+  "ServiceWorkerContainer",
   "TextDecoder",
   "TextEncoder",
   "URL",

@@ -68,7 +68,7 @@ function test_resource_timing(options) {
         assert_less_than_equal(entry.workerCacheLookupStart, entry.fetchStart, description);
       }
       break;
-    case 'race-network-and-fetch':
+    case 'race-network-and-fetch-handler':
       assert_equals(entry.workerCacheLookupStart, 0, description);
       if (entry.workerFinalSourceType === 'network') {
         assert_equals(entry.workerStart, 0, description);
@@ -261,7 +261,7 @@ promise_test(async t => {
   test_resource_timing({
     performance: iframe.contentWindow.performance,
     url: url,
-    matched_source_type: 'race-network-and-fetch',
+    matched_source_type: 'race-network-and-fetch-handler',
     final_source_type: 'fetch-event',
     description: "race as source on main resource, and fetch-event wins"
   });
@@ -280,7 +280,7 @@ promise_test(async t => {
   test_resource_timing({
     performance: iframe.contentWindow.performance,
     url: url,
-    matched_source_type: 'race-network-and-fetch',
+    matched_source_type: 'race-network-and-fetch-handler',
     final_source_type: 'network',
     description: "race as source on main resource, and network wins"
   });
@@ -301,7 +301,7 @@ promise_test(async t => {
   test_resource_timing({
     performance: iframe.contentWindow.performance,
     url: `${RACE_ROUTE}${subresource}`,
-    matched_source_type: 'race-network-and-fetch',
+    matched_source_type: 'race-network-and-fetch-handler',
     final_source_type: 'fetch-event',
     description: "race as source on subresource and fetch wins"
   });
@@ -323,7 +323,7 @@ promise_test(async t => {
   test_resource_timing({
     performance: iframe.contentWindow.performance,
     url: `${RACE_ROUTE}${subresource}`,
-    matched_source_type: 'race-network-and-fetch',
+    matched_source_type: 'race-network-and-fetch-handler',
     final_source_type: 'network',
     description: "race as source on subresource and network wins"
   });

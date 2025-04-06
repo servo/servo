@@ -7,7 +7,7 @@ use std::sync::atomic::Ordering;
 use std::{fmt, slice};
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use constellation_traits::UntrustedNodeAddress;
+use embedder_traits::UntrustedNodeAddress;
 use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
 use js::jsapi::JSObject;
 use script_layout_interface::wrapper_traits::{
@@ -867,6 +867,10 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
 
     fn is_body_element_of_html_element_root(&self) -> bool {
         self.element.is_html_document_body_element()
+    }
+
+    fn is_root(&self) -> bool {
+        self.element.is_root()
     }
 }
 

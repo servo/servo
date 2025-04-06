@@ -82,6 +82,12 @@ for (key of ["elements", "removeElements", "replaceWithChildrenElements"]) {
     {name: "b"},
     {name: "b", namespace: "http://www.w3.org/1999/xhtml"});
   test_normalization(key,
+    {name: "b", namespace: null},
+    {name: "b", namespace: null});
+  test_normalization(key,
+    {name: "b", namespace: ""},
+    {name: "b", namespace: null});
+  test_normalization(key,
     {name: "p", namespace: "http://www.w3.org/1999/xhtml"},
     {name: "p", namespace: "http://www.w3.org/1999/xhtml"});
   test_normalization(key,

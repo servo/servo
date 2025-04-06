@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::PipelineId;
+use constellation_traits::{ScriptToConstellationMessage, StructuredSerializedData};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue};
-use script_traits::{ScriptMsg, StructuredSerializedData};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
@@ -64,7 +64,6 @@ impl DissimilarOriginWindow {
                 // FIXME(nox): The microtask queue is probably not important
                 // here, but this whole DOM interface is a hack anyway.
                 global_to_clone_from.microtask_queue().clone(),
-                global_to_clone_from.get_user_agent(),
                 #[cfg(feature = "webgpu")]
                 global_to_clone_from.wgpu_id_hub(),
                 Some(global_to_clone_from.is_secure_context()),
@@ -237,7 +236,7 @@ impl DissimilarOriginWindow {
                 Err(_) => return Err(Error::Syntax),
             },
         };
-        let msg = ScriptMsg::PostMessage {
+        let msg = ScriptToConstellationMessage::PostMessage {
             target,
             source: incumbent.pipeline_id(),
             source_origin,

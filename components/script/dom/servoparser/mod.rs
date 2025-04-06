@@ -228,6 +228,7 @@ impl ServoParser {
             false,
             allow_declarative_shadow_roots,
             Some(context_document.insecure_requests_policy()),
+            context_document.has_trustworthy_ancestor_or_current_origin(),
             can_gc,
         );
 
@@ -558,14 +559,6 @@ impl ServoParser {
     }
 
     fn parse_sync(&self, can_gc: CanGc) {
-        match self.tokenizer {
-            Tokenizer::Html(_) => self.do_parse_sync(can_gc),
-            Tokenizer::AsyncHtml(_) => self.do_parse_sync(can_gc),
-            Tokenizer::Xml(_) => self.do_parse_sync(can_gc),
-        }
-    }
-
-    fn do_parse_sync(&self, can_gc: CanGc) {
         assert!(self.script_input.is_empty());
 
         // This parser will continue to parse while there is either pending input or
@@ -920,7 +913,7 @@ impl FetchResponseListener for ParserContext {
                 let img = HTMLImageElement::new(local_name!("img"), None, doc, None, CanGc::note());
                 img.SetSrc(USVString(self.url.to_string()));
                 doc_body
-                    .AppendChild(&DomRoot::upcast::<Node>(img))
+                    .AppendChild(&DomRoot::upcast::<Node>(img), CanGc::note())
                     .expect("Appending failed");
             },
             (mime::TEXT, mime::PLAIN, _) => {
@@ -1102,7 +1095,7 @@ fn insert(
             if element_in_non_fragment {
                 ScriptThread::push_new_element_queue();
             }
-            parent.InsertBefore(&n, reference_child).unwrap();
+            parent.InsertBefore(&n, reference_child, can_gc).unwrap();
             if element_in_non_fragment {
                 ScriptThread::pop_current_element_queue(can_gc);
             }
@@ -1118,7 +1111,9 @@ fn insert(
                 text.upcast::<CharacterData>().append_data(&t);
             } else {
                 let text = Text::new(String::from(t).into(), &parent.owner_doc(), can_gc);
-                parent.InsertBefore(text.upcast(), reference_child).unwrap();
+                parent
+                    .InsertBefore(text.upcast(), reference_child, can_gc)
+                    .unwrap();
             }
         },
     }
@@ -1330,7 +1325,7 @@ impl TreeSink for Sink {
             CanGc::note(),
         );
         doc.upcast::<Node>()
-            .AppendChild(doctype.upcast())
+            .AppendChild(doctype.upcast(), CanGc::note())
             .expect("Appending failed");
     }
 
@@ -1350,7 +1345,7 @@ impl TreeSink for Sink {
 
     fn remove_from_parent(&self, target: &Dom<Node>) {
         if let Some(ref parent) = target.GetParentNode() {
-            parent.RemoveChild(target).unwrap();
+            parent.RemoveChild(target, CanGc::note()).unwrap();
         }
     }
 
@@ -1372,7 +1367,7 @@ impl TreeSink for Sink {
 
     fn reparent_children(&self, node: &Dom<Node>, new_parent: &Dom<Node>) {
         while let Some(ref child) = node.GetFirstChild() {
-            new_parent.AppendChild(child).unwrap();
+            new_parent.AppendChild(child, CanGc::note()).unwrap();
         }
     }
 

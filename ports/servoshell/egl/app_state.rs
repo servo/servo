@@ -11,10 +11,8 @@ use keyboard_types::{CompositionEvent, CompositionState};
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::id::WebViewId;
-use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, EmbedderMethods, WindowMethods,
-};
-use servo::euclid::{Box2D, Point2D, Rect, Scale, Size2D, Vector2D};
+use servo::compositing::windowing::{AnimationState, EmbedderMethods, WindowMethods};
+use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
@@ -683,15 +681,8 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
 }
 
 impl WindowMethods for ServoWindowCallbacks {
-    fn get_coordinates(&self) -> EmbedderCoordinates {
-        let coords = self.coordinates.borrow();
-        let screen_size = (coords.viewport.size.to_f32() / self.hidpi_factor).to_i32();
-        EmbedderCoordinates {
-            window_rect: Box2D::from_origin_and_size(Point2D::zero(), screen_size),
-            screen_size,
-            available_screen_size: screen_size,
-            hidpi_factor: self.hidpi_factor,
-        }
+    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        self.hidpi_factor
     }
 
     fn set_animation_state(&self, state: AnimationState) {
