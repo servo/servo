@@ -16,7 +16,7 @@ to run it manually you can find it on any of this paths:
 * Debian or Ubuntu: `/usr/lib/${TRIPLET}/webkitgtk-${APIVERSION}/MiniBrowser`
   * Note: `${TRIPLET}` is the output of the command `gcc -dumpmachine`
 
-# Nightly universal bundle
+## Nightly universal bundle
 
 Alternatively you can pass to `wpt` the flags `--install-browser --channel=nightly`
 and then `wpt` will automatically download the last bundle and unpack it on the
@@ -32,7 +32,7 @@ issues with this bundle then a possible workaround is to try to run the tests he
 inside a virtualized display like `Xvfb` (see command `xvfb-run -a` on Debian/Ubuntu).
 You can do this also from inside a virtual machine or Docker container.
 
-# Headless mode
+## Headless mode
 
 WebKitGTK does not have a native headless mode, but you can workaround that
 by running the tests inside a virtualized display. For example you can use
@@ -44,7 +44,7 @@ Example:
     xvfb-run -a ./wpt run [more-options] webkitgtk_minibrowser [tests-to-run]
 
 
-# Using a custom WebKitGTK build
+## Using a custom WebKitGTK build
 
 If you want to test with a custom WebKitGTK build the easiest way is that you
 install this build in a temporary directory (`/tmp/wkgtktest` in this example),
@@ -68,7 +68,7 @@ Note: It is important that you build WebKitGTK against the libraries of your sys
 Do not build WebKitGTK inside Flatpak or other container unless you run `wpt` also
 from inside this container.
 
-# Running tests locally
+## Running tests locally
 
 Is a good idea that you increase the verbosity of `wpt` by passing to it the flag `--log-mach=-`
 Also, please check the documentation about [Running Tests from the Local System](from-local-system).

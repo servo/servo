@@ -25,24 +25,16 @@
   :root:has(:has-interest) #b5 {
     background-color: green;
   }
+  [interesttarget] {
+    interest-target-delay: 0s;
+  }
 </style>
 
 <script>
-const kAlt = "\uE00A";
-const kArrowUp = '\uE013';
-function keyboardActivate() {
-  return new test_driver.Actions()
-    .keyDown(kAlt)
-    .keyDown(kArrowUp)
-    .keyUp(kArrowUp)
-    .keyUp(kAlt)
-    .send();
-}
 buttons = Array.from(document.querySelectorAll('[interesttarget]'));
 async function runTest() {
   for (const b of buttons) {
     b.focus();
-    await keyboardActivate();
   }
   document.documentElement.classList.remove("reftest-wait");
 }

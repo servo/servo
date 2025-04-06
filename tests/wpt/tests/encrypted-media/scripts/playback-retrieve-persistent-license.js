@@ -110,6 +110,15 @@ function runTest(config,qualifier) {
             return source.done;
         }).then(function(){
             _video.play();
-        }).catch(onFailure);
+        }).catch(function (error) {
+            if (error && error.name === 'NotSupportedError') {
+                // If persistent license is not supported, skip test as
+                // key systems are not required to support this session
+                // type.
+                test.done();
+            } else {
+                onFailure(error);
+            }
+        });
     }, testname);
 }

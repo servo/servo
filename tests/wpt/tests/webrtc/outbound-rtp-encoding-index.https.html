@@ -1,0 +1,97 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="third_party/sdp/sdp.js"></script>
+<script src="simulcast/simulcast.js"></script>
+<script>
+'use strict';
+
+async function pollUntilMultipleOutboundRtps(pc, kTimeoutMs = 10000) {
+  const t0 = performance.now();
+  while (performance.now() - t0 < kTimeoutMs) {
+    const report = await pc.getStats();
+    const outboundRtps = Array.from(
+        report.values().filter(s => s.type == 'outbound-rtp'));
+    if (outboundRtps.length > 1) {
+      return;
+    }
+  }
+  throw 'Timed out waiting for multple outbound-rtp stats objects';
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver('video');
+
+  // O/A is needed to ensure outbound-rtp exists.
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  const report = await pc1.getStats();
+  const outboundRtp = report.values().find(s => s.type == 'outbound-rtp');
+  assert_not_equals(outboundRtp, undefined, 'outbound-rtp exists');
+
+  assert_equals(outboundRtp.encodingIndex, 0, 'encodingIndex is 0');
+}, `In singlecast, encodingIndex is 0`);
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTransceiver('video', {sendEncodings: [{rid: 'foo'}, {rid: 'bar'}]});
+  // O/A with tweaks to accept simulcast.
+  await doOfferToSendSimulcastAndAnswer(pc1, pc2, ['foo', 'bar']);
+
+  // Workaround to RTP stats lifetime bug: In some browsers it takes a little
+  // while before multiple outbound RTP stats objects appear in the report.
+  // TODO(https://crbug.com/406585888): Test coverage for this should be added
+  // to rtp-stats-lifetime.https.html. When that test passes, delete this
+  // workaround.
+  await pollUntilMultipleOutboundRtps(pc1);
+
+  const report = await pc1.getStats();
+  // The RTP stream for sendEncodings[0].
+  const outboundRtpFoo = report.values().find(
+      s => s.type == 'outbound-rtp' && s.rid == 'foo');
+  assert_not_equals(outboundRtpFoo, undefined,
+                    `outbound-rtp with rid:'foo' exists`);
+  assert_equals(outboundRtpFoo.encodingIndex, 0,
+                `outbound-rtp with rid:'foo' has encodingIndex 0`);
+  // The RTP stream for sendEncodings[1].
+  const outboundRtpBar = report.values().find(
+      s => s.type == 'outbound-rtp' && s.rid == 'bar');
+  assert_not_equals(outboundRtpBar, undefined,
+                    `outbound-rtp with rid:'bar' exists`);
+  assert_equals(outboundRtpBar.encodingIndex, 1,
+                `outbound-rtp with rid:'bar' has encodingIndex 1`);
+}, `In simulcast, encodingIndex reflects index of sendEncodings`);
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTransceiver('audio');
+  // O/A is needed to ensure outbound-rtp exists.
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  const report = await pc1.getStats();
+  const outboundRtp = report.values().find(s => s.type == 'outbound-rtp');
+  assert_not_equals(outboundRtp, undefined, 'outbound-rtp exists');
+
+  assert_equals(outboundRtp.encodingIndex, undefined,
+                'encodingIndex is undefined');
+}, `encodingIndex is undefined for audio streams`);
+</script>
