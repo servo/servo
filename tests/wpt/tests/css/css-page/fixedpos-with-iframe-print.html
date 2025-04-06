@@ -2,6 +2,11 @@
 <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
 <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1414873">
 <link rel="match" href="fixedpos-with-iframe-print-ref.html">
+<style>
+  :root {
+    print-color-adjust: exact;
+  }
+</style>
 <p>The word "PASS" should be seen below.</p>
 <div style="position:fixed; background:blue;">
   <iframe src="data:text/html,PASS" style="width:8em; height:3em; background:yellow;"></iframe>

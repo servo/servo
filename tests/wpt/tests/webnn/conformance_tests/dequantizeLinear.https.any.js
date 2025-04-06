@@ -656,6 +656,55 @@ const dequantizeLinearTests = [
       }
     }
   },
+  {
+    'name': 'dequantizeLinear as an intermediate node',
+    'graph': {
+      'inputs': {
+        'dequantizeLinearInput': {
+          'data': [34, 23],
+          'descriptor': {shape: [2, 1], dataType: 'int32'},
+          'constant': false
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1202747821807861, 0.2800687253475189],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [35, -24],
+          'descriptor': {shape: [2], dataType: 'int32'},
+          'constant': true
+        }
+      },
+      'operators': [
+        {
+          'name': 'transpose',
+          'arguments': [
+            {'input': 'dequantizeLinearInput'}, {
+              'options': {
+                'permutation': [1, 0],
+              }
+            }
+          ],
+          'outputs': 'transposeOutput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'transposeOutput'}, {'scale': 'dequantizeLinearScale'},
+            {'zeroPoint': 'dequantizeLinearZeroPoint'}
+          ],
+          'outputs': 'dequantizeLinearOutput'
+        }
+      ],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-1.1202747821807861, 13.163229942321777],
+          'descriptor': {shape: [1, 2], dataType: 'float32'}
+        }
+      }
+    }
+  },
 ];
 
 if (navigator.ml) {

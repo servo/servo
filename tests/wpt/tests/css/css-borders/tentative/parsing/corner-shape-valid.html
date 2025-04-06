@@ -15,7 +15,7 @@
         test_valid_value(prop, "notch");
         test_valid_value(prop, "bevel");
         test_valid_value(prop, "squircle");
-        test_valid_value(prop, "straight");
+        test_valid_value(prop, "square");
         test_valid_value(prop, "superellipse(2)");
         test_valid_value(prop, "superellipse(.5)", "superellipse(0.5)");
         test_valid_value(prop, "superellipse(7)");
@@ -23,6 +23,9 @@
         test_valid_value(prop, "superellipse(  0)", "superellipse(0)");
         test_valid_value(prop, "superellipse(2 )", "superellipse(2)");
         test_valid_value(prop, "superellipse(infinity)");
+        test_valid_value(prop, "superellipse(-infinity)");
+        test_valid_value(prop, "superellipse(-0.5)");
+        test_valid_value(prop, "superellipse(-4)");
         test_valid_value(prop, "superellipse(calc(0.5 * 4))", "superellipse(calc(2))");
     }
 
@@ -40,7 +43,8 @@
     test_valid_value("corner-shape", "round scoop");
     test_valid_value("corner-shape", "round scoop round scoop", "round scoop");
     test_valid_value("corner-shape", "bevel superellipse(2)");
-    test_valid_value("corner-shape", "superellipse(0.5) superellipse(3) straight");
+    test_valid_value("corner-shape", "superellipse(0.5) superellipse(3) square");
+    test_valid_value("corner-shape", "superellipse(-0.5) superellipse(3) square superellipse(-30)");
     test_valid_value("corner-shape", "superellipse(0.5) superellipse(3) superellipse(1)");
     test_valid_value("corner-shape", "bevel superellipse(2) squircle     round", "bevel superellipse(2) squircle round");
     test_valid_value("corner-shape", "superellipse(0.5) superellipse(3) superellipse(1) superellipse(infinity)");

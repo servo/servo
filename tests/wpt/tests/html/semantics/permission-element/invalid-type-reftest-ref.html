@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<body>
+  <div>
+    The permission element behaves the same as an unknown element.
+  </div>
+
+<style>
+  #id1 {
+    background-color: hsla(210, 70%, 60%, 0.3); /* Semi-transparent blue */
+    border-radius: 5px;
+    padding: 2px 5px;
+    border: solid 1px #767676;
+
+    box-sizing: content-box;
+    display: inline-block;
+  }
+  #id2 {
+    background-color: azure;
+    border: 1px dashed #ccc;
+    padding: 3px;
+    border-radius: 3px;
+
+    box-sizing: content-box;
+    display: inline-block;
+  }
+  button {
+    font-family: "Comic Sans MS", cursive, sans-serif; /* Just for fun! */
+    font-style: italic;
+    font-weight: bold;
+    color: #800080; /* Purple */
+    text-decoration: underline dotted hotpink;
+  }
+</style>
+
+<div>
+  <foobar id="id1">This is some contents</foobar>
+</div>
+<div>
+  <foobar id="id2">
+    <button>A button</button>
+    <span>
+      <li>
+        <ul>1</ul>
+        <ul>2</ul>
+      </li>
+      Some text
+    </span>
+  </foobar>
+</div>
+</body>

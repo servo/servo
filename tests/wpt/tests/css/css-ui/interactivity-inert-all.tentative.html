@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS UI Test: The 'all' shorthand does not include 'interactivity'</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#inertness">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12049">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #inert {
+    interactivity: inert;
+  }
+  #child {
+    all: initial;
+  }
+</style>
+<div id="inert">
+  <span id="child"></span>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).interactivity, "inert");
+  }, "The 'all' shorthand should not set 'interactivity'");
+</script>

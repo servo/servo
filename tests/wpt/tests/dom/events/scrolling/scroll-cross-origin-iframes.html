@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Verify that two sibling cross-origin iframes both correctly scroll on MouseWheel events, as per https://crbug.com/675695.</title>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="scroll_support.js"></script>
+<body>
+  <iframe id="target-iframe1"
+      style="height: 100px; width: 100px; overflow-y: scroll; position: absolute; left: 50px; top: 50px">
+  </iframe>
+  <iframe id="target-iframe2"
+      style="height: 100px; width: 100px; overflow-y: scroll; position: absolute; left: 50px; top: 200px">
+  </iframe>
+  <script>
+    "use strict";
+
+    function waitForFrameLoadAsync(frame) {
+      return new Promise(async (resolve) => {
+        frame.addEventListener('load', resolve, { once: true });
+      });
+    }
+
+    function waitForMessageAsync(expected_frame_id, expected_command) {
+      return new Promise((resolve) => {
+        window.addEventListener('message', (event) => {
+          assert_equals(event.data.command, expected_command);
+          assert_equals(event.data.frame_id, expected_frame_id);
+          resolve(event.data.scrollTop);
+        }, { once: true });
+      });
+    }
+
+    function waitForCrossOriginFrameSetupAsync(frame) {
+      return new Promise(async (resolve) => {
+        const setup_ack_waiter = waitForMessageAsync(frame.id, 'setup');
+        const load_ack_waiter = waitForFrameLoadAsync(frame);
+
+        const host = get_host_info();
+        frame.src = host.HTTP_NOTSAMESITE_ORIGIN +
+            "/dom/events/scrolling/scroll-cross-origin-iframes.sub.html";
+        await load_ack_waiter;
+        await frame.contentWindow.postMessage({
+          command: 'setup',
+          frame_id: frame.id
+        }, "*");
+        const scroll_top = await setup_ack_waiter;
+        resolve(scroll_top);
+      });
+    }
+
+    promise_test(async () => {
+      var frame_map = new Map();
+      for (const frame of document.querySelectorAll('iframe')) {
+        const scroll_top_before = await waitForCrossOriginFrameSetupAsync(frame);
+        frame_map.set(frame.id, scroll_top_before);
+      }
+      assert_equals(frame_map.size, 2);
+
+      for (const [frame_id, scroll_top_before] of frame_map) {
+        const frame = document.getElementById(frame_id);
+        const scrollend_ack_waiter = waitForMessageAsync(frame_id, 'onscrollend');
+        await new test_driver.Actions()
+            .scroll(/*cursor_x=*/0, /*cursor_y=*/0,
+                    /*delta_x=*/0, /*delta_y=*/50,
+                    {origin: frame})
+            .send();
+        const scroll_top_after = await scrollend_ack_waiter;
+        assert_greater_than(scroll_top_after, scroll_top_before,
+                            'Failed to advance scrollTop target');
+      }
+    }, "Verify sibling cross-origin iframes can wheel-scroll.");
+  </script>
+</body>

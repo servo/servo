@@ -21,7 +21,7 @@
 
 <script>
 async_test((t) => {
-  const tab = "\t";
+  const tab = "\ue004";
   async function step1() {
     await test_driver.send_keys(document.body, tab);
     t.step(() => {
