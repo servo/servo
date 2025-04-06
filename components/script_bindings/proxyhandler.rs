@@ -579,21 +579,19 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
 /// Implementation of `[[GetPrototypeOf]]` for [`Location`].
 ///
 /// [`Location`]: https://html.spec.whatwg.org/multipage/#location-getprototypeof
-pub(crate) unsafe fn maybe_cross_origin_get_prototype<D: DomTypes>(
+pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
     cx: SafeJSContext,
     proxy: RawHandleObject,
-    get_proto_object: unsafe fn(cx: SafeJSContext, global: HandleObject, rval: MutableHandleObject),
+    get_proto_object: fn(cx: SafeJSContext, global: HandleObject, rval: MutableHandleObject),
     proto: RawMutableHandleObject,
 ) -> bool {
     // > 1. If ! IsPlatformObjectSameOrigin(this) is true, then return ! OrdinaryGetPrototypeOf(this).
     if <D as DomHelpers<D>>::is_platform_object_same_origin(cx, proxy) {
         let ac = JSAutoRealm::new(*cx, proxy.get());
-        let global = D::GlobalScope::from_context(*cx, InRealm::Entered(&ac));
-        get_proto_object(
-            cx,
-            global.reflector().get_jsobject(),
-            MutableHandleObject::from_raw(proto),
-        );
+        let global = unsafe { D::GlobalScope::from_context(*cx, InRealm::Entered(&ac)) };
+        get_proto_object(cx, global.reflector().get_jsobject(), unsafe {
+            MutableHandleObject::from_raw(proto)
+        });
         return !proto.is_null();
     }
 
