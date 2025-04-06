@@ -29,6 +29,32 @@ promise_test(async (t) => {
     "installOnDevice should resolve with `true` when called with a supported language code."
   );
 
+  // Verify that the newly installed language pack is available.
+  const availableOnDeviceResultPromise = SpeechRecognition.availableOnDevice(validLang);
+  assert_true(
+    availableOnDeviceResultPromise instanceof Promise,
+    "availableOnDevice should return a Promise."
+  );
+
+  const availableOnDeviceResult = await availableOnDeviceResultPromise;
+  assert_true(
+    typeof availableOnDeviceResult === "string",
+    "The resolved value of the availableOnDevice promise should be a string."
+  );
+
+  assert_true(availableOnDeviceResult === "available",
+    "The resolved value of the availableOnDevice promise should be available."
+  );
+
+  // Verify that installing an already installed language pack resolves to true.
+  const secondResultPromise = SpeechRecognition.installOnDevice(validLang);
+  const secondResult = await secondResultPromise;
+  assert_equals(
+    secondResult,
+    true,
+    "installOnDevice should resolve with `true` if the language is already installed."
+  );
+
   // Test that it returns a promise.
   const invalidResultPromise = SpeechRecognition.installOnDevice(invalidLang);
   const invalidResult = await invalidResultPromise;

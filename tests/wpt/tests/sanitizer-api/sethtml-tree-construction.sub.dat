@@ -596,6 +596,16 @@ test<div>p</div>tt<p>div</p><test>test</test>
 |   <b>
 
 #data
+<table><div><td>
+#config
+{ "replaceWithChildrenElements": ["table"] }
+#document
+| <div>
+| <tbody>
+|   <tr>
+|     <td>
+
+#data
 <template><div>Hello</div></template>
 #config
 {}

@@ -24,6 +24,22 @@
   visibility: hidden;
   animation-duration: 500s;
 }
+
+::view-transtion-group(*),
+::view-transtion-image-pair(*) {
+  animation-play-state: paused;
+}
+
+::view-transition-old(*) {
+  animation: unset;
+  opacity: 1;
+}
+
+::view-transition-new(*) {
+  animation: unset;
+  opacity: 0;
+}
+
 ::view-transition {
   background: pink;
 }

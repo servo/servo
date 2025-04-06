@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Permission Element: Feature detection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  test(() => {
+    assert_not_equals(typeof HTMLPermissionElement, undefined,
+        `HTMLPermissionElement should not be "undefined"`);
+    assert_equals(typeof HTMLPermissionElement.isTypeSupported, "function",
+        `The type of the isTypeSupported should be "function"`);
+  }, "Test HTMLPermissionElement and isTypeSupported existence");
+
+  [
+    "geolocation",
+    "camera",
+    "microphone",
+    " camera  microphone ",
+    " microphone  camera   ",
+    " camera camera microphone",
+    "microphone microphone camera "
+  ].forEach((type) => {
+    test(() => {
+      assert_true(HTMLPermissionElement.isTypeSupported(type));
+    }, `Test HTMLPermissionElement should support type ${type}`);
+  });
+
+  [
+    "invalid",
+    "cameraa",
+    "microphone geolocation",
+    "camera geolocation",
+    "camera geolocation microphone",
+  ].forEach((type) => {
+    test(() => {
+      assert_false(HTMLPermissionElement.isTypeSupported(type));
+    }, `Test HTMLPermissionElement should not support type ${type}`);
+  });
+</script>
+</body>

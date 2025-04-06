@@ -143,3 +143,17 @@ function assertNotAPopover(nonPopover) {
   assert_throws_dom("NotSupportedError",() => nonPopover.togglePopover(),'Calling togglePopover on a non-popover should throw NotSupported');
   assertPopoverVisibility(nonPopover, /*isPopover*/false, expectVisible, 'Calling togglePopover on a non-popover should leave it visible');
 }
+
+async function verifyFocusOrder(order,description) {
+  order[0].focus();
+  for(let i=0;i<order.length;++i) {
+    const control = order[i];
+    assert_equals(document.activeElement,control,`${description}: Step ${i+1}`);
+    await sendTab();
+  }
+  for(let i=order.length-1;i>=0;--i) {
+    const control = order[i];
+    await sendShiftTab();
+    assert_equals(document.activeElement,control,`${description}: Step ${i+1} (backwards)`);
+  }
+}

@@ -19,7 +19,7 @@ interface SpeechRecognition : EventTarget {
     undefined start(MediaStreamTrack audioTrack);
     undefined stop();
     undefined abort();
-    static Promise<boolean> availableOnDevice(DOMString lang);
+    static Promise<AvailabilityStatus> availableOnDevice(DOMString lang);
     static Promise<boolean> installOnDevice(DOMString lang);
 
     // event methods
@@ -50,6 +50,13 @@ enum SpeechRecognitionMode {
     "ondevice-preferred", // On-device speech recognition if available, otherwise use Cloud speech recognition as a fallback.
     "ondevice-only", // On-device speech recognition only. Returns an error if on-device speech recognition is not available.
     "cloud-only", // Cloud speech recognition only.
+};
+
+enum AvailabilityStatus {
+    "unavailable",
+    "downloadable",
+    "downloading",
+    "available"
 };
 
 [Exposed=Window]
