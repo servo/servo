@@ -5,8 +5,8 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::result::Result;
 
-//use std::result::Result;
 use dom_struct::dom_struct;
 use html5ever::serialize::TraversalScope;
 use servo_arc::Arc;
@@ -16,8 +16,8 @@ use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
 use stylo_atoms::Atom;
+use script_bindings::error::Error;
 
-//use script_bindings::error::Error;
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::GetHTMLOptions;
@@ -47,6 +47,8 @@ use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
+
+
 
 /// Whether a shadow root hosts an User Agent widget.
 #[derive(JSTraceable, MallocSizeOf, PartialEq)]
@@ -455,14 +457,30 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         self.slot_assignment_mode
     }
 
+<<<<<<< HEAD
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-sethtmlunsafe>
     fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+=======
+    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-shadowroot-sethtmlunsafe>
+    fn SetHTMLUnsafe(&self, html: DOMString) -> Result<(), Error> {
+
+>>>>>>> 136c9f92e (script: implement shadowroot setHTMLUnsafe)
         // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
         let target = self.upcast::<Node>();
         let context_element = self.Host();
 
+<<<<<<< HEAD
         // Call the shared implementation of the unsafely set HTML
         Node::unsafely_set_html(target, &context_element, html, can_gc);
+=======
+        // Create a CanGc marker since it's not provided as a parameter
+        let can_gc = CanGc::note();
+
+        // Call the shared implementation of the unsafely set HTML
+        Node::unsafely_set_html(target, &context_element, html, can_gc);
+
+        Ok(())
+>>>>>>> 136c9f92e (script: implement shadowroot setHTMLUnsafe)
     }
 
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange
