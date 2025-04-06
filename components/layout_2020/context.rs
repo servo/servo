@@ -188,10 +188,28 @@ impl LayoutContext<'_> {
                 )?;
                 Some(ResolvedImage::Image(webrender_info))
             },
-            Image::ImageSet(image_set) => image_set
-                .items
-                .get(image_set.selected_index)
-                .and_then(|image| self.resolve_image(node, &image.image)),
+            Image::ImageSet(image_set) => {
+                image_set
+                    .items
+                    .get(image_set.selected_index)
+                    .and_then(|image| {
+                        self.resolve_image(node, &image.image)
+                            .map(|info| match info {
+                                ResolvedImage::Image(mut image_info) => {
+                                    let scaled_height =
+                                        image_info.height as f32 / image.resolution.dppx();
+                                    let scaled_width =
+                                        image_info.width as f32 / image.resolution.dppx();
+
+                                    image_info.height = scaled_height.round() as u32;
+                                    image_info.width = scaled_width.round() as u32;
+
+                                    ResolvedImage::Image(image_info)
+                                },
+                                _ => info,
+                            })
+                    })
+            },
         }
     }
 }
