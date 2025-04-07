@@ -127,7 +127,7 @@ servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
 smallbitvec = "2.6.0"
-smallvec = "1.14"
+smallvec = "1.15"
 static_assertions = "1.1"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
