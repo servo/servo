@@ -5,8 +5,8 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-//use std::result::Result;
 
+//use std::result::Result;
 use dom_struct::dom_struct;
 use html5ever::serialize::TraversalScope;
 use servo_arc::Arc;
@@ -16,8 +16,8 @@ use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
 use stylo_atoms::Atom;
-//use script_bindings::error::Error;
 
+//use script_bindings::error::Error;
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::GetHTMLOptions;
@@ -26,7 +26,6 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Bindi
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
 };
-
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -42,15 +41,12 @@ use crate::dom::node::{
     BindContext, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
     VecPreOrderInsertionHelper,
 };
-
 use crate::dom::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::types::EventTarget;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::stylesheet_set::StylesheetSetRef;
-
-
 
 /// Whether a shadow root hosts an User Agent widget.
 #[derive(JSTraceable, MallocSizeOf, PartialEq)]
@@ -459,9 +455,8 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         self.slot_assignment_mode
     }
 
-    /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-shadowroot-sethtmlunsafe>
+    /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-sethtmlunsafe>
     fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
-
         // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
         let target = self.upcast::<Node>();
         let context_element = self.Host();
