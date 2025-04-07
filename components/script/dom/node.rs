@@ -334,7 +334,7 @@ impl Node {
         }
 
         // Step 4. Replace all with fragment within target.
-        Node::replace_all(Some(fragment.upcast()), &target, can_gc);
+        Node::replace_all(Some(fragment.upcast()), target, can_gc);
     }
 
     pub(crate) fn clean_up_style_and_layout_data(&self) {
