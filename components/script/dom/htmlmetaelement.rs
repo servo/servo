@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use constellation_traits::NavigationHistoryBehavior;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
 use regex::bytes::Regex;
 use servo_url::ServoUrl;
@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::document::{DeclarativeRefresh, Document};
+use crate::dom::document::{DeclarativeRefresh, Document, determine_policy_for_token};
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
@@ -115,9 +115,31 @@ impl HTMLMetaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
     fn apply_referrer(&self) {
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if let Some(head) = parent.downcast::<HTMLHeadElement>() {
-                head.set_document_referrer(self);
+        let doc = self.owner_document();
+        // From spec: For historical reasons, unlike other standard metadata names, the processing model for referrer
+        // is not responsive to element removals, and does not use tree order. Only the most-recently-inserted or
+        // most-recently-modified meta element in this state has an effect.
+        // 1. If element is not in a document tree, then return.
+        let meta_node = self.upcast::<Node>();
+        if !meta_node.is_in_a_document_tree() {
+            return;
+        }
+
+        // 2. If element does not have a name attribute whose value is an ASCII case-insensitive match for "referrer",
+        // then return.
+        if self.upcast::<Element>().get_name() != Some(atom!("referrer")) {
+            return;
+        }
+
+        // 3. If element does not have a content attribute, or that attribute's value is the empty string, then return.
+        let content = self
+            .upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("content"));
+        if let Some(attr) = content {
+            let attr = attr.value();
+            let attr_val = attr.trim();
+            if !attr_val.is_empty() {
+                doc.set_referrer_policy(determine_policy_for_token(attr_val));
             }
         }
     }
