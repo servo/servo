@@ -5,7 +5,7 @@
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::result::Result;
+//use std::result::Result;
 
 use dom_struct::dom_struct;
 use html5ever::serialize::TraversalScope;
@@ -16,7 +16,7 @@ use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
 use stylo_atoms::Atom;
-use script_bindings::error::Error;
+//use script_bindings::error::Error;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
@@ -460,19 +460,14 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     /// <https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-shadowroot-sethtmlunsafe>
-    fn SetHTMLUnsafe(&self, html: DOMString) -> Result<(), Error> {
+    fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
 
         // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
         let target = self.upcast::<Node>();
         let context_element = self.Host();
 
-        // Create a CanGc marker since it's not provided as a parameter
-        let can_gc = CanGc::note();
-
         // Call the shared implementation of the unsafely set HTML
         Node::unsafely_set_html(target, &context_element, html, can_gc);
-
-        Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange

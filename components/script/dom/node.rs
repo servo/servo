@@ -324,13 +324,13 @@ impl Node {
          // Step 1. Let newChildren be the result of the HTML fragment parsing algorithm.
         let new_children = ServoParser::parse_html_fragment(context_element, html, true, can_gc);
 
-         // Step 1. Let newChildren be the result of the HTML fragment parsing algorithm.
+         // Step 2. 
         let context_document = context_element.owner_document();
         let fragment = DocumentFragment::new(&context_document, can_gc);
 
         // Step 3. For each node in newChildren, append node to fragment.
         for child in new_children {
-            fragment.upcast::<Node>().AppendChild(&child).unwrap();
+            fragment.upcast::<Node>().AppendChild(&child, can_gc).unwrap();
         }
 
         // Step 4. Replace all with fragment within target.
