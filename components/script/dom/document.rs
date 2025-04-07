@@ -12,6 +12,7 @@ use std::f64::consts::PI;
 use std::mem;
 use std::rc::Rc;
 use std::slice::from_ref;
+use std::str::FromStr;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
@@ -51,6 +52,7 @@ use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
+use regex::bytes::Regex;
 use script_bindings::interfaces::DocumentHelpers;
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType};
@@ -4741,6 +4743,88 @@ impl Document {
     }
     pub(crate) fn image_animation_manager_mut(&self) -> RefMut<ImageAnimationManager> {
         self.image_animation_manager.borrow_mut()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
+    pub(crate) fn shared_declarative_refresh_steps(&self, content: DOMString) {
+        debug!("Setting declarative refresh");
+        // 1. If document's will declaratively refresh is true, then return.
+        if self.will_declaratively_refresh() {
+            return;
+        }
+
+        // 2-11 Parsing
+        static REFRESH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(
+                r#"(?x)
+                ^
+                \s* # 3
+                ((?<time>\d+)\.?|\.) # 5-6
+                [0-9.]* # 8
+                (
+                    (;|,| ) # 10.1
+                    \s* # 10.2
+                    (;|,)? # 10.3
+                    \s* # 10.4
+                    (
+                        (U|u)(R|r)(L|l) # 11.2-11.4
+                        \s*=\s* # 11.5-11.7
+                        ('(?<url1>.*?)'?|"(?<url2>.*?)"?|(?<url3>[^'"].*)) # 11.8 - 11.10
+                        |
+                        (?<url4>.*)
+                    )?
+                )?
+                $
+            "#,
+            )
+            .unwrap()
+        });
+
+        // 9. Let urlRecord be document's URL.
+        let mut url_record = self.url();
+        let captures = if let Some(captures) = REFRESH_REGEX.captures(content.as_bytes()) {
+            captures
+        } else {
+            return;
+        };
+        let time = if let Some(time_string) = captures.name("time") {
+            u64::from_str(&String::from_utf8_lossy(time_string.as_bytes())).unwrap_or(0)
+        } else {
+            0
+        };
+        let captured_url = captures.name("url1").or(captures
+            .name("url2")
+            .or(captures.name("url3").or(captures.name("url4"))));
+
+        // 11.11 Parse: Set urlRecord to the result of encoding-parsing a URL given urlString, relative to document.
+        if let Some(url_match) = captured_url {
+            url_record = if let Ok(url) = ServoUrl::parse_with_base(
+                Some(&url_record),
+                &String::from_utf8_lossy(url_match.as_bytes()),
+            ) {
+                url
+            } else {
+                // 11.12 If urlRecord is failure, then return.
+                return;
+            }
+        }
+        // 12. Set document's will declaratively refresh to true.
+        if self.completely_loaded() {
+            // TODO: handle active sandboxing flag
+            self.window.as_global_scope().schedule_callback(
+                OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
+                    window: DomRoot::from_ref(self.window()),
+                    url: url_record,
+                }),
+                Duration::from_secs(time),
+            );
+            self.set_declarative_refresh(DeclarativeRefresh::CreatedAfterLoad);
+        } else {
+            self.set_declarative_refresh(DeclarativeRefresh::PendingLoad {
+                url: url_record,
+                time,
+            });
+        }
     }
 
     pub(crate) fn will_declaratively_refresh(&self) -> bool {
