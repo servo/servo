@@ -360,7 +360,7 @@ fn finish_fetching_a_classic_script(
         },
         ExternalScriptKind::Deferred => {
             document = elem.parser_document.as_rooted();
-            document.deferred_script_loaded(elem, load);
+            document.deferred_script_loaded(elem, load, can_gc);
         },
         ExternalScriptKind::ParsingBlocking => {
             document = elem.parser_document.as_rooted();
