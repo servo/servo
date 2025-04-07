@@ -35,6 +35,18 @@ function quirksTest(rootDisplay, bodyDisplay) {
       assert_equals(quirksDoc.scrollingElement, quirksDoc.body,
         "scrollingElement in quirks mode should default to body element.");
 
+      quirksDoc.documentElement.style.overflow = "clip";
+      quirksDoc.body.style.overflow = "auto";
+      assert_equals(quirksDoc.scrollingElement, null);
+      quirksDoc.body.style.overflow = "hidden";
+      assert_equals(quirksDoc.scrollingElement, null);
+      quirksDoc.body.style.overflow = "scroll";
+      assert_equals(quirksDoc.scrollingElement, null);
+      quirksDoc.body.style.overflow = "visible";
+      assert_equals(quirksDoc.scrollingElement, quirksDoc.body);
+      quirksDoc.body.style.overflow = "clip";
+      assert_equals(quirksDoc.scrollingElement, quirksDoc.body);
+
       quirksDoc.documentElement.style.overflow = "scroll";
       quirksDoc.body.style.overflow = "scroll";
       assert_equals(quirksDoc.scrollingElement, null,

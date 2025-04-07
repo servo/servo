@@ -52,6 +52,7 @@ use style::selector_parser::{
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{CssRuleType, UrlExtraData};
+use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
@@ -444,7 +445,11 @@ impl Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#potentially-scrollable
-    fn is_potentially_scrollable_body(&self, can_gc: CanGc) -> bool {
+    pub(crate) fn is_potentially_scrollable_body(
+        &self,
+        treat_overflow_clip_on_parent_as_hidden: bool,
+        can_gc: CanGc,
+    ) -> bool {
         let node = self.upcast::<Node>();
         debug_assert!(
             node.owner_doc().GetBody().as_deref() == self.downcast::<HTMLElement>(),
@@ -462,9 +467,21 @@ impl Element {
         //     overflow-y properties is neither visible nor clip."
         if let Some(parent) = node.GetParentElement() {
             if let Some(style) = parent.style(can_gc) {
-                if !style.get_box().clone_overflow_x().is_scrollable() &&
-                    !style.get_box().clone_overflow_y().is_scrollable()
-                {
+                let mut overflow_x = style.get_box().clone_overflow_x();
+                let mut overflow_y = style.get_box().clone_overflow_y();
+
+                // This fulfills the 'treat parent element overflow:clip as overflow:hidden' stipulation
+                // from the document.scrollingElement specification.
+                if treat_overflow_clip_on_parent_as_hidden {
+                    if overflow_x == Overflow::Clip {
+                        overflow_x = Overflow::Hidden;
+                    }
+                    if overflow_y == Overflow::Clip {
+                        overflow_y = Overflow::Hidden;
+                    }
+                }
+
+                if !overflow_x.is_scrollable() && !overflow_y.is_scrollable() {
                     return false;
                 }
             };
@@ -2131,7 +2148,7 @@ impl Element {
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(can_gc)
+            !self.is_potentially_scrollable_body(false, can_gc)
         {
             win.scroll(x, y, behavior, can_gc);
             return;
@@ -2752,7 +2769,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 7
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(can_gc)
+            !self.is_potentially_scrollable_body(false, can_gc)
         {
             return win.ScrollY() as f64;
         }
@@ -2802,7 +2819,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(can_gc)
+            !self.is_potentially_scrollable_body(false, can_gc)
         {
             win.scroll(win.ScrollX() as f64, y, behavior, can_gc);
             return;
@@ -2851,7 +2868,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 7
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(can_gc)
+            !self.is_potentially_scrollable_body(false, can_gc)
         {
             return win.ScrollX() as f64;
         }
@@ -2902,7 +2919,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(can_gc)
+            !self.is_potentially_scrollable_body(false, can_gc)
         {
             win.scroll(x, win.ScrollY() as f64, behavior, can_gc);
             return;
