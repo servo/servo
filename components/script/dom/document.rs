@@ -6276,10 +6276,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 1. If the Document is in quirks mode, follow these steps:
         if self.quirks_mode() == QuirksMode::Quirks {
             // Step 1.1. If the body element exists,
-            if let Some(ref body) = self
-                .GetBody()
-                .and_then(DomRoot::downcast::<HTMLBodyElement>)
-            {
+            if let Some(ref body) = self.GetBody() {
                 let e = body.upcast::<Element>();
                 // and it is not potentially scrollable, return the body element and abort these steps.
                 // For this purpose, a value of overflow:clip on the the body element’s parent element
