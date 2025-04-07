@@ -553,7 +553,7 @@ pub(crate) fn handle_find_element_tag_name(
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -562,7 +562,7 @@ pub(crate) fn handle_find_element_tag_name(
                 .ok_or(ErrorStatus::UnknownError)
                 .map(|document| {
                     document
-                        .GetElementsByTagName(DOMString::from(selector))
+                        .GetElementsByTagName(DOMString::from(selector), can_gc)
                         .elements_iter()
                         .next()
                 })
@@ -621,14 +621,14 @@ pub(crate) fn handle_find_elements_tag_name(
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) {
     reply
         .send(
             documents
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
-                .map(|document| document.GetElementsByTagName(DOMString::from(selector)))
+                .map(|document| document.GetElementsByTagName(DOMString::from(selector), can_gc))
                 .map(|nodes| {
                     nodes
                         .elements_iter()
