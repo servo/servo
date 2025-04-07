@@ -90,10 +90,10 @@ jobs:
     uses: ./.github/workflows/self-hosted-runner-select.yml
     secrets: inherit
     with:
-      # Ubuntu 22.04 has glibc 2.34 so the binaries produced
-      # won't run on systems with older glibc e.g wpt.fyi
-      # runners which still use 20.04.
-      github-hosted-runner-label: ubuntu-${{ inputs.upload && '20.04' || '22.04' }}
+      # Before updating the GH action runner image for the nightly job, ensure
+      # that the system has a glibc version that is compatible with the one
+      # used by the wpt.fyi runners.
+      github-hosted-runner-label: ubuntu-22.04
       self-hosted-image-name: servo-ubuntu2204
       force-github-hosted-runner: ${{ inputs.upload || inputs.force-github-hosted-runner }}
   runner-timeout:
@@ -138,16 +138,8 @@ jobs:
           tool-cache: false
           large-packages: false
           swap-storage: false
-      - name: Install LLVM and Clang
-        # Expliclity install Clang 14 on Ubuntu 20.04 used by the nightly job (#34713).
-        if: ${{ runner.environment != 'self-hosted' && inputs.upload }}
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: 14
-        # FIXME: It would be better to use the above step for regular Linux jobs
-        # and remove the following step, but currenty that is failing and needs investigation.
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        if: ${{ runner.environment != 'self-hosted' && !inputs.upload }} # not needed on ubuntu 20.04 used for nightly
+        if: ${{ runner.environment != 'self-hosted' }}
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Setup Python
         if: ${{ runner.environment != 'self-hosted' }}
