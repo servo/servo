@@ -363,22 +363,6 @@ pub trait ThreadSafeLayoutElement<'dom>:
             .clone()
     }
 
-    /// Returns the already resolved style of the node.
-    ///
-    /// This differs from `style(ctx)` in that if the pseudo-element has not yet
-    /// been computed it would panic.
-    ///
-    /// This should be used just for querying layout, or when we know the
-    /// element style is precomputed, not from general layout itself.
-    #[inline]
-    fn resolved_style(&self) -> Arc<ComputedValues> {
-        let data = self.style_data();
-        match self.pseudo_element() {
-            None => data.styles.primary().clone(),
-            Some(pseudo_element) => data.styles.pseudos.get(&pseudo_element).unwrap().clone(),
-        }
-    }
-
     fn is_shadow_host(&self) -> bool;
 
     /// Returns whether this node is a body element of an html element root

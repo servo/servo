@@ -34,6 +34,7 @@ pub struct InnerDOMLayoutData {
     pub(super) self_box: ArcRefCell<Option<LayoutBox>>,
     pub(super) pseudo_before_box: ArcRefCell<Option<LayoutBox>>,
     pub(super) pseudo_after_box: ArcRefCell<Option<LayoutBox>>,
+    pub(super) pseudo_marker_box: ArcRefCell<Option<LayoutBox>>,
 }
 
 /// A box that is stored in one of the `DOMLayoutData` slots.
@@ -222,6 +223,7 @@ where
         let cell = match pseudo_element_type {
             PseudoElement::Before => &data.pseudo_before_box,
             PseudoElement::After => &data.pseudo_after_box,
+            PseudoElement::Marker => &data.pseudo_marker_box,
             _ => unreachable!(
                 "Asked for box slot for unsupported pseudo-element: {:?}",
                 pseudo_element_type
@@ -235,6 +237,7 @@ where
         let cell = match pseudo_element_type {
             PseudoElement::Before => &data.pseudo_before_box,
             PseudoElement::After => &data.pseudo_after_box,
+            PseudoElement::Marker => &data.pseudo_marker_box,
             _ => unreachable!(
                 "Asked for box slot for unsupported pseudo-element: {:?}",
                 pseudo_element_type
@@ -248,6 +251,7 @@ where
         *data.self_box.borrow_mut() = None;
         *data.pseudo_before_box.borrow_mut() = None;
         *data.pseudo_after_box.borrow_mut() = None;
+        *data.pseudo_marker_box.borrow_mut() = None;
         // Stylo already takes care of removing all layout data
         // for DOM descendants of elements with `display: none`.
     }
