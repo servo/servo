@@ -18,6 +18,7 @@ use layout_2020::flow::float::{
 };
 use layout_2020::geom::{LogicalRect, LogicalVec2};
 use quickcheck::{Arbitrary, Gen};
+use num_traits::Zero as _;
 
 static PANIC_HOOK_MUTEX: Mutex<()> = Mutex::new(());
 
