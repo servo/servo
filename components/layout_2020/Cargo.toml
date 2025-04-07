@@ -56,6 +56,7 @@ url = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }
+num-traits = { workspace = true }
 
 [dev-dependencies]
 quickcheck = "1"
