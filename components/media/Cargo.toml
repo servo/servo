@@ -12,6 +12,7 @@ name = "media"
 path = "lib.rs"
 
 [dependencies]
+compositing_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 ipc-channel = { workspace = true }
@@ -20,4 +21,3 @@ serde = { workspace = true }
 servo-media = { workspace = true }
 servo_config = { path = "../config" }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }

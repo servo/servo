@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS View Transitions: Verify to keyframe values</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+:root { view-transition-name: none }
+#item {
+  view-transition-name: item;
+  width: 10px;
+  height: 10px;
+  position: relative;
+}
+.shifted {
+  left: 20px;
+}
+::view-transition-group(*) {
+  animation-play-state: paused;
+}
+</style>
+<div id=item></div>
+
+<script>
+async_test((t) => {
+  document.startViewTransition(() => item.classList.add("shifted")).ready.then(() => {
+    let anims = document.getAnimations().filter(a => {
+      return a.effect.pseudoElement == '::view-transition-group(item)';
+    });
+
+    t.step(() => {
+      assert_equals(anims.length, 1);
+      assert_equals(anims[0].effect.getKeyframes().length, 2);
+      assert_true(anims[0].effect.getKeyframes()[0].transform.startsWith("matrix"),
+        `keyframe[0] should be matrix, not ${anims[0].effect.getKeyframes()[0].transform}`);
+      assert_true(anims[0].effect.getKeyframes()[1].transform.startsWith("matrix"),
+        `keyframe[1] should be matrix, not ${anims[0].effect.getKeyframes()[1].transform}`);
+    });
+    t.done();
+  });
+});
+</script>

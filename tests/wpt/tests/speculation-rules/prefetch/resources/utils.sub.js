@@ -42,9 +42,16 @@ class PrefetchAgent extends RemoteContext {
   // occur despite heuristic matching, etc., and await the completion of the
   // prefetch.
   async forceSinglePrefetch(url, extra = {}, wait_for_completion = true) {
-    await this.execute_script((url, extra) => {
-      insertSpeculationRules({ prefetch: [{source: 'list', urls: [url], ...extra}] });
-    }, [url, extra]);
+    return this.forceSpeculationRules(
+      {
+        prefetch: [{source: 'list', urls: [url], ...extra}]
+      }, wait_for_completion);
+  }
+
+  async forceSpeculationRules(rules, wait_for_completion = true) {
+    await this.execute_script((rules) => {
+      insertSpeculationRules(rules);
+    }, [rules]);
     if (!wait_for_completion) {
       return Promise.resolve();
     }

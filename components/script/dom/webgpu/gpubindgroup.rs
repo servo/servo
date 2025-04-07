@@ -5,8 +5,8 @@
 use std::borrow::Cow;
 
 use dom_struct::dom_struct;
-use webgpu::wgc::binding_model::BindGroupDescriptor;
-use webgpu::{WebGPU, WebGPUBindGroup, WebGPUDevice, WebGPURequest};
+use webgpu_traits::{WebGPU, WebGPUBindGroup, WebGPUDevice, WebGPURequest};
+use wgpu_core::binding_model::BindGroupDescriptor;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;

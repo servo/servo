@@ -17,6 +17,7 @@ bluetooth = [
     "bluetooth_traits",
     "dep:bluetooth",
     "constellation/bluetooth",
+    "constellation_traits/bluetooth",
     "script/bluetooth",
     "script_traits/bluetooth",
 ]
@@ -30,7 +31,7 @@ js_backtrace = ["script/js_backtrace"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 multiview = ["compositing/multiview", "constellation/multiview"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
-no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "webrender_traits/no-wgl"]
+no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "compositing_traits/no-wgl"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 profilemozjs = ["script/profilemozjs"]
 refcell_backtrace = ["script/refcell_backtrace"]
@@ -52,6 +53,7 @@ webxr = [
 webgpu = [
     "script/webgpu",
     "constellation/webgpu",
+    "constellation_traits/webgpu",
 ]
 
 [dependencies]
@@ -108,7 +110,6 @@ webdriver_server = { path = "../webdriver_server", optional = true }
 webgpu = { path = "../webgpu" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 webxr-api = { workspace = true, optional = true }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]

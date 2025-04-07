@@ -140,16 +140,36 @@ pub struct Report {
     pub size: usize,
 }
 
+/// A set of reports belonging to a process.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ProcessReports {
+    /// The set of reports.
+    pub reports: Vec<Report>,
+
+    /// The process id.
+    pub pid: u32,
+}
+
+impl ProcessReports {
+    /// Adopt these reports and configure the process pid.
+    pub fn new(reports: Vec<Report>) -> Self {
+        Self {
+            reports,
+            pid: std::process::id(),
+        }
+    }
+}
+
 /// A channel through which memory reports can be sent.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ReportsChan(pub IpcSender<Vec<Report>>);
+pub struct ReportsChan(pub IpcSender<ProcessReports>);
 
 impl ReportsChan {
     /// Send `report` on this `IpcSender`.
     ///
     /// Panics if the send fails.
-    pub fn send(&self, report: Vec<Report>) {
-        self.0.send(report).unwrap();
+    pub fn send(&self, reports: ProcessReports) {
+        self.0.send(reports).unwrap();
     }
 }
 
@@ -172,12 +192,8 @@ pub struct Reporter(pub IpcSender<ReporterRequest>);
 
 impl Reporter {
     /// Collect one or more memory reports. Returns true on success, and false on failure.
-    pub fn collect_reports(&self, reports_chan: ReportsChan) {
-        self.0
-            .send(ReporterRequest {
-                reports_channel: reports_chan,
-            })
-            .unwrap()
+    pub fn collect_reports(&self, reports_channel: ReportsChan) {
+        self.0.send(ReporterRequest { reports_channel }).unwrap()
     }
 }
 

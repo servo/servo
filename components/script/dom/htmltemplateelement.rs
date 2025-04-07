@@ -149,7 +149,7 @@ impl VirtualMethods for HTMLTemplateElement {
                 CloneChildrenFlag::CloneChildren,
                 CanGc::note(),
             );
-            copy_contents.AppendChild(&copy_child).unwrap();
+            copy_contents.AppendChild(&copy_child, can_gc).unwrap();
         }
     }
 }

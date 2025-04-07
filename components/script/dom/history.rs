@@ -6,7 +6,9 @@ use std::cell::Cell;
 use std::cmp::Ordering;
 
 use base::id::HistoryStateId;
-use constellation_traits::TraversalDirection;
+use constellation_traits::{
+    ScriptToConstellationMessage, StructuredSerializedData, TraversalDirection,
+};
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
@@ -14,7 +16,6 @@ use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
 use profile_traits::ipc::channel;
-use script_traits::{ScriptMsg, StructuredSerializedData};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
@@ -72,7 +73,7 @@ impl History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
         }
-        let msg = ScriptMsg::TraverseHistory(direction);
+        let msg = ScriptToConstellationMessage::TraverseHistory(direction);
         let _ = self
             .window
             .as_global_scope()
@@ -227,7 +228,7 @@ impl History {
             PushOrReplace::Push => {
                 let state_id = HistoryStateId::new();
                 self.state_id.set(Some(state_id));
-                let msg = ScriptMsg::PushHistoryState(state_id, new_url.clone());
+                let msg = ScriptToConstellationMessage::PushHistoryState(state_id, new_url.clone());
                 let _ = self
                     .window
                     .as_global_scope()
@@ -244,7 +245,8 @@ impl History {
                         state_id
                     },
                 };
-                let msg = ScriptMsg::ReplaceHistoryState(state_id, new_url.clone());
+                let msg =
+                    ScriptToConstellationMessage::ReplaceHistoryState(state_id, new_url.clone());
                 let _ = self
                     .window
                     .as_global_scope()
@@ -339,7 +341,7 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
         }
         let (sender, recv) = channel(self.global().time_profiler_chan().clone())
             .expect("Failed to create channel to send jsh length.");
-        let msg = ScriptMsg::JointSessionHistoryLength(sender);
+        let msg = ScriptToConstellationMessage::JointSessionHistoryLength(sender);
         let _ = self
             .window
             .as_global_scope()

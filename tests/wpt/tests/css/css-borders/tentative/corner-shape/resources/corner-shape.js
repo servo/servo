@@ -127,7 +127,7 @@ function render_rect_with_corner_shapes(style, ctx, width, height) {
       ctx.save();
       ctx.translate(...offset);
       ctx.beginPath();
-      ctx.lineTo(params['top-right'].inner_rect[0], -spread);
+      ctx.lineTo(params['top-right'].inner_rect[0], params['top-right'].inner_rect[1]);
       draw_inner_corner_from_params(params['top-right']);
       ctx.lineTo(params['top-right'].inner_rect[2], params['top-right'].inner_rect[3])
       ctx.lineTo(params['bottom-right'].inner_rect[0], params['bottom-right'].inner_rect[1])

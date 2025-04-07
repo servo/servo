@@ -12,6 +12,7 @@ use canvas_traits::canvas::{
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, PathSegment, RadialGradientStyle,
     RepetitionStyle, TextAlign, TextBaseline, TextMetrics as CanvasTextMetrics,
 };
+use constellation_traits::ScriptToConstellationMessage;
 use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
@@ -21,7 +22,6 @@ use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
-use script_traits::ScriptMsg;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::context::QuirksMode;
@@ -177,7 +177,9 @@ impl CanvasState {
         let script_to_constellation_chan = global.script_to_constellation_chan();
         debug!("Asking constellation to create new canvas thread.");
         script_to_constellation_chan
-            .send(ScriptMsg::CreateCanvasPaintThread(size, sender))
+            .send(ScriptToConstellationMessage::CreateCanvasPaintThread(
+                size, sender,
+            ))
             .unwrap();
         let (ipc_renderer, canvas_id, image_key) = receiver.recv().unwrap();
         debug!("Done.");

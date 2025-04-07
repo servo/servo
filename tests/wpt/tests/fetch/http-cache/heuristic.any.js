@@ -32,10 +32,33 @@ var tests = [
         ],
       },
       {
-        expected_type: "not_cached"
+        expected_type: "not_cached",
       }
     ]
-  }
+  },
+  {
+    name: "HTTP cache does not reuse a redirected response with no max-age and no Last-Modified header",
+    requests: [
+      {
+        response_status: [301, "Moved Permanently"],
+        response_headers: [
+          ["Cache-Control", "private"],
+          ["Location", "redirect_target"]
+        ],
+      },
+      { skip: true}, // Response to first redirect
+      {
+        response_status: [301, "Moved Permanently"],
+        response_headers: [
+          ["Cache-Control", "private"],
+          ["Location", "redirect_target"]
+        ],
+        expected_type: "not_cached",
+      },
+      { skip: true}, // response to second redirect
+    ],
+    check_count: true,
+  },
 ];
 
 function check_status(status) {

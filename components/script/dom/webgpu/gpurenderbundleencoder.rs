@@ -5,10 +5,10 @@
 use std::borrow::Cow;
 
 use dom_struct::dom_struct;
-use webgpu::wgc::command::{
+use webgpu_traits::{WebGPU, WebGPURenderBundle, WebGPURequest};
+use wgpu_core::command::{
     RenderBundleEncoder, RenderBundleEncoderDescriptor, bundle_ffi as wgpu_bundle,
 };
-use webgpu::{WebGPU, WebGPURenderBundle, WebGPURequest, wgt};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
@@ -105,7 +105,7 @@ impl GPURenderBundleEncoder {
                 .map(|dsf| {
                     device
                         .validate_texture_format_required_features(&dsf)
-                        .map(|format| wgt::RenderBundleDepthStencil {
+                        .map(|format| wgpu_types::RenderBundleDepthStencil {
                             format,
                             depth_read_only: descriptor.depthReadOnly,
                             stencil_read_only: descriptor.stencilReadOnly,
@@ -177,11 +177,11 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
                 encoder,
                 buffer.id().0,
                 match index_format {
-                    GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
-                    GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
+                    GPUIndexFormat::Uint16 => wgpu_types::IndexFormat::Uint16,
+                    GPUIndexFormat::Uint32 => wgpu_types::IndexFormat::Uint32,
                 },
                 offset,
-                wgt::BufferSize::new(size),
+                wgpu_types::BufferSize::new(size),
             );
         }
     }
@@ -194,7 +194,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
                 slot,
                 buffer.id().0,
                 offset,
-                wgt::BufferSize::new(size),
+                wgpu_types::BufferSize::new(size),
             );
         }
     }
@@ -257,7 +257,7 @@ impl GPURenderBundleEncoderMethods<crate::DomTypeHolder> for GPURenderBundleEnco
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish>
     fn Finish(&self, descriptor: &GPURenderBundleDescriptor) -> DomRoot<GPURenderBundle> {
-        let desc = wgt::RenderBundleDescriptor {
+        let desc = wgpu_types::RenderBundleDescriptor {
             label: (&descriptor.parent).convert(),
         };
         let encoder = self.render_bundle_encoder.borrow_mut().take().unwrap();

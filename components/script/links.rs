@@ -4,10 +4,10 @@
 
 //! Defines shared hyperlink behaviour for `<link>`, `<a>`, `<area>` and `<form>` elements.
 
+use constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use html5ever::{local_name, namespace_url, ns};
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::request::Referrer;
-use script_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
 use style::str::HTML_SPACE_CHARACTERS;
 
 use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
@@ -440,6 +440,7 @@ pub(crate) fn follow_hyperlink(
             referrer_policy,
             Some(secure),
             Some(document.insecure_requests_policy()),
+            document.has_trustworthy_ancestor_origin(),
         );
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {

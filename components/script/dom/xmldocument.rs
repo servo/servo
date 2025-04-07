@@ -43,6 +43,7 @@ impl XMLDocument {
         source: DocumentSource,
         doc_loader: DocumentLoader,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        has_trustworthy_ancestor_origin: bool,
     ) -> XMLDocument {
         XMLDocument {
             document: Document::new_inherited(
@@ -62,6 +63,7 @@ impl XMLDocument {
                 false,
                 false,
                 inherited_insecure_requests_policy,
+                has_trustworthy_ancestor_origin,
             ),
         }
     }
@@ -79,6 +81,7 @@ impl XMLDocument {
         source: DocumentSource,
         doc_loader: DocumentLoader,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        has_trustworthy_ancestor_origin: bool,
         can_gc: CanGc,
     ) -> DomRoot<XMLDocument> {
         let doc = reflect_dom_object(
@@ -94,6 +97,7 @@ impl XMLDocument {
                 source,
                 doc_loader,
                 inherited_insecure_requests_policy,
+                has_trustworthy_ancestor_origin,
             )),
             window,
             can_gc,

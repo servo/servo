@@ -8,47 +8,28 @@ use std::slice;
 use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
+use compositing_traits::{WebrenderExternalImageApi, WebrenderImageSource};
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{error, warn};
-use malloc_size_of::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use webgpu_traits::{
+    ContextConfiguration, Error, PRESENTATION_BUFFER_COUNT, WebGPUContextId, WebGPUMsg,
+};
 use webrender::{RenderApi, Transaction};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{
     DirtyRect, DocumentId, ExternalImageData, ExternalImageId, ExternalImageType, ImageData,
     ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
 };
-use webrender_traits::{WebrenderExternalImageApi, WebrenderImageSource};
 use wgpu_core::device::HostMap;
 use wgpu_core::global::Global;
 use wgpu_core::id;
 use wgpu_core::resource::{BufferAccessError, BufferMapOperation};
 
-use crate::{ContextConfiguration, Error, WebGPUMsg, wgt};
+use crate::wgt;
 
-pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 const DEFAULT_IMAGE_FORMAT: ImageFormat = ImageFormat::RGBA8;
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct WebGPUContextId(pub u64);
-
-impl MallocSizeOf for WebGPUContextId {
-    fn size_of(&self, _ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        0
-    }
-}
-
-impl ContextConfiguration {
-    fn format(&self) -> ImageFormat {
-        match self.format {
-            wgt::TextureFormat::Rgba8Unorm => ImageFormat::RGBA8,
-            wgt::TextureFormat::Bgra8Unorm => ImageFormat::BGRA8,
-            // TODO: wgt::TextureFormat::Rgba16Float
-            _ => unreachable!("Unsupported canvas context format in configuration"),
-        }
-    }
-}
 
 pub type WGPUImageMap = Arc<Mutex<HashMap<WebGPUContextId, ContextData>>>;
 

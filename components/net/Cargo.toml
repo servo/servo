@@ -22,6 +22,7 @@ base = { workspace = true }
 base64 = { workspace = true }
 bytes = "1"
 chrono = { workspace = true }
+compositing_traits = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -71,7 +72,6 @@ url = { workspace = true }
 uuid = { workspace = true }
 webpki-roots = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 
 [dev-dependencies]
 flate2 = "1"

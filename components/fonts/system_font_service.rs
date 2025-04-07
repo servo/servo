@@ -11,6 +11,7 @@ use std::{fmt, thread};
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
+use compositing_traits::CrossProcessCompositorApi;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -25,7 +26,6 @@ use style::values::computed::font::{
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
-use webrender_traits::CrossProcessCompositorApi;
 
 use crate::font::FontDescriptor;
 use crate::font_store::FontStore;

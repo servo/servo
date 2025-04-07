@@ -7,6 +7,10 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use canvas_traits::webgl::{GlType, WebGLContextId, WebGLMsg, WebGLThreads, webgl_channel};
+use compositing_traits::rendering_context::RenderingContext;
+use compositing_traits::{
+    WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
+};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use log::debug;
@@ -14,10 +18,6 @@ use surfman::chains::{SwapChainAPI, SwapChains, SwapChainsAPI};
 use surfman::{Device, SurfaceTexture};
 use webrender::RenderApiSender;
 use webrender_api::DocumentId;
-use webrender_traits::rendering_context::RenderingContext;
-use webrender_traits::{
-    WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
-};
 #[cfg(feature = "webxr")]
 use webxr::SurfmanGL as WebXRSurfman;
 #[cfg(feature = "webxr")]

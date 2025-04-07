@@ -1,0 +1,77 @@
+<!doctype html>
+<html class=test-wait>
+<meta charset="utf-8">
+<title>CSS Test: ::scroll-marker crash regression test</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-activation">
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #marker-scroller {
+    height: 300px;
+    overflow: auto;
+    scroll-snap-type: x mandatory;
+    position: relative;
+    scroll-marker-group: before;
+    white-space: nowrap;
+  }
+
+  #marker-scroller div {
+    scroll-snap-align: start;
+    box-sizing: border-box;
+    border-radius: 5px;
+    background: lightgray;
+    border: 1px solid black;
+    display: inline-block;
+    width: 500px;
+    height: 100%;
+  }
+
+  #marker-scroller::scroll-marker-group {
+    display: flex;
+    height: 100px;
+  }
+
+  #marker-scroller div::scroll-marker {
+    content: "";
+    width: 100px;
+    height: 100px;
+    box-sizing: border-box;
+    border-radius: 5px;
+    border: 1px solid black;
+    display: inline-block;
+  }
+  #marker-scroller div::scroll-marker:target-current {
+    background: blue;
+  }
+</style>
+<fakeelement>
+  <div id="marker-scroller">
+    <div>1</div>
+    <div id="target">2</div>
+    <div>3</div>
+  </div>
+</fakeelement>
+<script>
+  async function crash() {
+    const target = document.querySelector('#target');
+    const scroller = document.querySelector('#marker-scroller');
+    const scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+    /* Crash regression test for https://issues.chromium.org/407958134 */
+    actions_promise = new test_driver.Actions()
+      .pointerMove(150, 50)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await actions_promise;
+    await scrollEndPromise;
+    document.documentElement.classList.remove('test-wait');
+  };
+  crash();
+</script>
+</html>

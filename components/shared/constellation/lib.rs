@@ -8,30 +8,36 @@
 //! embedding/rendering layer all the way to script, thus it should have very minimal dependencies
 //! on other parts of Servo.
 
+mod from_script_message;
+mod message_port;
+
 use std::collections::HashMap;
-use std::ffi::c_void;
 use std::fmt;
 use std::time::Duration;
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
+use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
-use embedder_traits::{Cursor, InputEvent, MediaSessionActionType, Theme, WebDriverCommandMsg};
-use euclid::{Scale, Size2D, Vector2D};
+use embedder_traits::{
+    CompositorHitTestResult, Cursor, InputEvent, MediaSessionActionType, Theme, ViewportDetails,
+    WebDriverCommandMsg,
+};
+use euclid::Vector2D;
+pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
-use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+pub use message_port::*;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
-use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
-use webrender_api::units::{DevicePixel, LayoutPixel};
+use webrender_api::units::LayoutPixel;
 
-/// Messages to the constellation.
+/// Messages to the Constellation from the embedding layer, whether from `ServoRenderer` or
+/// from `libservo` itself.
 #[derive(IntoStaticStr)]
-pub enum ConstellationMsg {
+pub enum EmbedderToConstellationMessage {
     /// Exit the constellation.
     Exit,
     /// Request that the constellation send the current focused top-level browsing context id,
@@ -47,8 +53,8 @@ pub enum ConstellationMsg {
     ClearCache,
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(WebViewId, TraversalDirection),
-    /// Inform the constellation of a window being resized.
-    WindowSize(WebViewId, WindowSizeData, WindowSizeType),
+    /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.
+    ChangeViewportDetails(WebViewId, ViewportDetails, WindowSizeType),
     /// Inform the constellation of a theme change.
     ThemeChange(Theme),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
@@ -60,7 +66,7 @@ pub enum ConstellationMsg {
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<WebViewId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
-    NewWebView(ServoUrl, WebViewId),
+    NewWebView(ServoUrl, WebViewId, ViewportDetails),
     /// Close a top level browsing context.
     CloseWebView(WebViewId),
     /// Panic a top level browsing context.
@@ -95,7 +101,7 @@ pub enum PaintMetricEvent {
     FirstContentfulPaint(CrossProcessInstant, bool /* first_reflow */),
 }
 
-impl fmt::Debug for ConstellationMsg {
+impl fmt::Debug for EmbedderToConstellationMessage {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let variant_string: &'static str = self.into();
         write!(formatter, "ConstellationMsg::{variant_string}")
@@ -113,17 +119,6 @@ pub enum LogEntry {
     Error(String),
     /// warning, with a reason
     Warn(String),
-}
-
-/// Data about the window size.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub struct WindowSizeData {
-    /// The size of the initial layout viewport, before parsing an
-    /// <http://www.w3.org/TR/css-device-adapt/#initial-viewport>
-    pub initial_viewport: Size2D<f32, CSSPixel>,
-
-    /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
 }
 
 /// The type of window size change.
@@ -146,28 +141,6 @@ bitflags! {
     }
 }
 
-/// The result of a hit test in the compositor.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct CompositorHitTestResult {
-    /// The pipeline id of the resulting item.
-    pub pipeline_id: PipelineId,
-
-    /// The hit test point in the item's viewport.
-    pub point_in_viewport: euclid::default::Point2D<f32>,
-
-    /// The hit test point relative to the item itself.
-    pub point_relative_to_item: euclid::default::Point2D<f32>,
-
-    /// The node address of the hit test result.
-    pub node: UntrustedNodeAddress,
-
-    /// The cursor that should be used when hovering the item hit by the hit test.
-    pub cursor: Option<Cursor>,
-
-    /// The scroll tree node associated with this hit test item.
-    pub scroll_tree_node: ScrollTreeNodeId,
-}
-
 /// The scroll state of a stacking context.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ScrollState {
@@ -175,43 +148,6 @@ pub struct ScrollState {
     pub scroll_id: ExternalScrollId,
     /// The scrolling offset of this stacking context.
     pub scroll_offset: Vector2D<f32, LayoutPixel>,
-}
-
-/// The address of a node. Layout sends these back. They must be validated via
-/// `from_untrusted_node_address` before they can be used, because we do not trust layout.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct UntrustedNodeAddress(pub *const c_void);
-
-malloc_size_of_is_0!(UntrustedNodeAddress);
-
-#[allow(unsafe_code)]
-unsafe impl Send for UntrustedNodeAddress {}
-
-impl From<style_traits::dom::OpaqueNode> for UntrustedNodeAddress {
-    fn from(o: style_traits::dom::OpaqueNode) -> Self {
-        UntrustedNodeAddress(o.0 as *const c_void)
-    }
-}
-
-impl Serialize for UntrustedNodeAddress {
-    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
-        (self.0 as usize).serialize(s)
-    }
-}
-
-impl<'de> Deserialize<'de> for UntrustedNodeAddress {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
-        let value: usize = Deserialize::deserialize(d)?;
-        Ok(UntrustedNodeAddress::from_id(value))
-    }
-}
-
-impl UntrustedNodeAddress {
-    /// Creates an `UntrustedNodeAddress` from the given pointer address value.
-    #[inline]
-    pub fn from_id(id: usize) -> UntrustedNodeAddress {
-        UntrustedNodeAddress(id as *const c_void)
-    }
 }
 
 /// The direction of a history traversal

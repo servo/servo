@@ -20,7 +20,10 @@ div {
   view-transition-name: target;
 }
 
-::view-transition-group(*) {
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
   animation-play-state: paused;
 }
 

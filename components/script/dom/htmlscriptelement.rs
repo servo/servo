@@ -558,6 +558,7 @@ impl PreInvoke for ClassicContext {}
 
 /// Steps 1-2 of <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
 // This function is also used to prefetch a script in `script::dom::servoparser::prefetch`.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn script_fetch_request(
     webview_id: WebViewId,
     url: ServoUrl,
@@ -566,6 +567,7 @@ pub(crate) fn script_fetch_request(
     pipeline_id: PipelineId,
     options: ScriptFetchOptions,
     insecure_requests_policy: InsecureRequestsPolicy,
+    has_trustworthy_ancestor_origin: bool,
 ) -> RequestBuilder {
     // We intentionally ignore options' credentials_mode member for classic scripts.
     // The mode is initialized by create_a_potential_cors_request.
@@ -577,6 +579,7 @@ pub(crate) fn script_fetch_request(
         None,
         options.referrer,
         insecure_requests_policy,
+        has_trustworthy_ancestor_origin,
     )
     .origin(origin)
     .pipeline_id(Some(pipeline_id))
@@ -605,6 +608,7 @@ fn fetch_a_classic_script(
         script.global().pipeline_id(),
         options.clone(),
         doc.insecure_requests_policy(),
+        doc.has_trustworthy_ancestor_origin(),
     );
     let request = doc.prepare_request(request);
 

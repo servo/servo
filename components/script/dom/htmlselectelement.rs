@@ -286,7 +286,7 @@ impl HTMLSelectElement {
         );
         select_box
             .upcast::<Node>()
-            .AppendChild(text_container.upcast::<Node>())
+            .AppendChild(text_container.upcast::<Node>(), can_gc)
             .unwrap();
 
         let text = Text::new(DOMString::new(), &document, can_gc);
@@ -295,7 +295,7 @@ impl HTMLSelectElement {
         });
         text_container
             .upcast::<Node>()
-            .AppendChild(text.upcast::<Node>())
+            .AppendChild(text.upcast::<Node>(), can_gc)
             .unwrap();
 
         let chevron_container =
@@ -310,11 +310,11 @@ impl HTMLSelectElement {
             .SetTextContent(Some("▾".into()), can_gc);
         select_box
             .upcast::<Node>()
-            .AppendChild(chevron_container.upcast::<Node>())
+            .AppendChild(chevron_container.upcast::<Node>(), can_gc)
             .unwrap();
 
         root.upcast::<Node>()
-            .AppendChild(select_box.upcast::<Node>())
+            .AppendChild(select_box.upcast::<Node>(), can_gc)
             .unwrap();
     }
 

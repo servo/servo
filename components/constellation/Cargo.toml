@@ -39,6 +39,7 @@ media = { path = "../media" }
 net = { path = "../net" }
 net_traits = { workspace = true }
 parking_lot = { workspace = true }
+profile = { path = "../profile" }
 profile_traits = { workspace = true }
 script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
@@ -49,9 +50,9 @@ servo_url = { path = "../url" }
 stylo_traits = { workspace = true }
 tracing = { workspace = true, optional = true }
 webgpu = { path = "../webgpu" }
+webgpu_traits = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"] }
 
 [target.'cfg(any(target_os="macos", all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_env="ohos"), not(target_arch="arm"), not(target_arch="aarch64"))))'.dependencies]

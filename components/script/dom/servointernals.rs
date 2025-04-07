@@ -4,12 +4,12 @@
 
 use std::rc::Rc;
 
+use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use profile_traits::mem::MemoryReportResult;
 use script_bindings::interfaces::ServoInternalsHelpers;
 use script_bindings::script_runtime::JSContext;
-use script_traits::ScriptMsg;
 
 use crate::dom::bindings::codegen::Bindings::ServoInternalsBinding::ServoInternalsMethods;
 use crate::dom::bindings::error::Error;
@@ -46,7 +46,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
         let sender = route_promise(&promise, self);
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan
-            .send(ScriptMsg::ReportMemory(sender))
+            .send(ScriptToConstellationMessage::ReportMemory(sender))
             .is_err()
         {
             promise.reject_error(Error::Operation, can_gc);

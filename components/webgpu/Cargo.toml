@@ -14,15 +14,16 @@ path = "lib.rs"
 [dependencies]
 arrayvec = { workspace = true, features = ["serde"] }
 base = { workspace = true }
+compositing_traits = { workspace = true }
 euclid = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 serde = { workspace = true, features = ["serde_derive"] }
 servo_config = { path = "../config" }
+webgpu_traits = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
 wgpu-types = { workspace = true }
 

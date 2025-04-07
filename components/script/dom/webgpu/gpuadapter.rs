@@ -6,9 +6,9 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
-use webgpu::wgc::instance::RequestDeviceError;
-use webgpu::wgt::MemoryHints;
-use webgpu::{WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest, wgt};
+use webgpu_traits::{WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest};
+use wgpu_core::instance::RequestDeviceError;
+use wgpu_types::{self, MemoryHints};
 
 use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::gpusupportedlimits::set_limit;
@@ -72,9 +72,9 @@ impl GPUAdapter {
         channel: WebGPU,
         name: DOMString,
         extensions: Heap<*mut JSObject>,
-        features: wgt::Features,
-        limits: wgt::Limits,
-        info: wgt::AdapterInfo,
+        features: wgpu_types::Features,
+        limits: wgpu_types::Limits,
+        info: wgpu_types::AdapterInfo,
         adapter: WebGPUAdapter,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
@@ -117,7 +117,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
         // Step 2
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let sender = route_promise(&promise, self);
-        let mut required_features = wgt::Features::empty();
+        let mut required_features = wgpu_types::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
                 required_features.insert(feature);
@@ -130,7 +130,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             }
         }
 
-        let mut required_limits = wgt::Limits::default();
+        let mut required_limits = wgpu_types::Limits::default();
         if let Some(limits) = &descriptor.requiredLimits {
             for (limit, value) in (*limits).iter() {
                 if !set_limit(&mut required_limits, limit.as_ref(), *value) {
@@ -141,7 +141,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             }
         }
 
-        let desc = wgt::DeviceDescriptor {
+        let desc = wgpu_types::DeviceDescriptor {
             required_features,
             required_limits,
             label: Some(descriptor.parent.label.to_string()),
@@ -242,8 +242,8 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                     self.channel.clone(),
                     self,
                     Heap::default(),
-                    wgt::Features::default(),
-                    wgt::Limits::default(),
+                    wgpu_types::Features::default(),
+                    wgpu_types::Limits::default(),
                     device_id,
                     queue_id,
                     String::new(),

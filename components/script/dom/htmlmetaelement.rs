@@ -6,11 +6,11 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use constellation_traits::NavigationHistoryBehavior;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
 use regex::bytes::Regex;
-use script_traits::NavigationHistoryBehavior;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 

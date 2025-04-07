@@ -512,6 +512,19 @@ class CommandBase(object):
 
         self.target.configure_build_environment(env, self.config, self.context.topdir)
 
+        if sys.platform == 'win32' and 'windows' not in self.target.triple():
+            # aws-lc-rs only supports the Ninja Generator when cross-compiling on windows hosts to non-windows.
+            env['TARGET_CMAKE_GENERATOR'] = "Ninja"
+            if shutil.which('ninja') is None:
+                print("Error: Cross-compiling servo on windows requires the Ninja tool to be installed and in PATH.")
+                print("Hint: Ninja-build is available on github at: https://github.com/ninja-build/ninja/releases")
+                exit(1)
+            # `tr` is also required by the CMake build rules of `aws-lc-rs`
+            if shutil.which('tr') is None:
+                print("Error: Cross-compiling servo on windows requires the `tr` tool, which was not found.")
+                print("Hint: Try running ./mach from `git bash` instead of powershell.")
+                exit(1)
+
         return env
 
     @staticmethod

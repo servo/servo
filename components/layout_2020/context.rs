@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use base::id::PipelineId;
+use euclid::Size2D;
 use fnv::FnvHashMap;
 use fonts::FontContext;
 use fxhash::FxHashMap;
@@ -148,8 +149,7 @@ impl LayoutContext<'_> {
             Some(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {
                 self.handle_animated_image(node, image.clone());
                 let image_info = WebRenderImageInfo {
-                    width: image.width,
-                    height: image.height,
+                    size: Size2D::new(image.width, image.height),
                     key: image.id,
                 };
                 if image_info.key.is_none() {
@@ -188,10 +188,29 @@ impl LayoutContext<'_> {
                 )?;
                 Some(ResolvedImage::Image(webrender_info))
             },
-            Image::ImageSet(image_set) => image_set
-                .items
-                .get(image_set.selected_index)
-                .and_then(|image| self.resolve_image(node, &image.image)),
+            Image::ImageSet(image_set) => {
+                image_set
+                    .items
+                    .get(image_set.selected_index)
+                    .and_then(|image| {
+                        self.resolve_image(node, &image.image)
+                            .map(|info| match info {
+                                ResolvedImage::Image(mut image_info) => {
+                                    // From <https://drafts.csswg.org/css-images-4/#image-set-notation>:
+                                    // > A <resolution> (optional). This is used to help the UA decide
+                                    // > which <image-set-option> to choose. If the image reference is
+                                    // > for a raster image, it also specifies the image’s natural
+                                    // > resolution, overriding any other source of data that might
+                                    // > supply a natural resolution.
+                                    image_info.size = (image_info.size.to_f32() /
+                                        image.resolution.dppx())
+                                    .to_u32();
+                                    ResolvedImage::Image(image_info)
+                                },
+                                _ => info,
+                            })
+                    })
+            },
         }
     }
 }

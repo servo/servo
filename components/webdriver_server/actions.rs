@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::time::{Duration, Instant};
 use std::{cmp, thread};
 
-use constellation_traits::ConstellationMsg;
+use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
@@ -206,7 +206,7 @@ impl Handler {
         let cmd_msg =
             WebDriverCommandMsg::KeyboardAction(session.browsing_context_id, keyboard_event);
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
     }
 
@@ -234,7 +234,7 @@ impl Handler {
             let cmd_msg =
                 WebDriverCommandMsg::KeyboardAction(session.browsing_context_id, keyboard_event);
             self.constellation_chan
-                .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+                .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                 .unwrap();
         }
     }
@@ -286,7 +286,7 @@ impl Handler {
             pointer_input_state.y as f32,
         );
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
     }
 
@@ -333,7 +333,7 @@ impl Handler {
             pointer_input_state.y as f32,
         );
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
     }
 
@@ -388,7 +388,7 @@ impl Handler {
         let cmd_msg =
             WebDriverCommandMsg::GetWindowSize(self.session.as_ref().unwrap().webview_id, sender);
         self.constellation_chan
-            .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
         // Steps 7 - 8
@@ -468,7 +468,7 @@ impl Handler {
                 let cmd_msg =
                     WebDriverCommandMsg::MouseMoveAction(session.webview_id, x as f32, y as f32);
                 self.constellation_chan
-                    .send(ConstellationMsg::WebDriverCommand(cmd_msg))
+                    .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                     .unwrap();
                 // Step 7.3
                 pointer_input_state.x = x;

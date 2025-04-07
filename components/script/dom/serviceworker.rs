@@ -5,10 +5,10 @@
 use std::cell::Cell;
 
 use base::id::ServiceWorkerId;
+use constellation_traits::{DOMMessage, ScriptToConstellationMessage};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use script_traits::{DOMMessage, ScriptMsg};
 use servo_url::ServoUrl;
 
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
@@ -109,13 +109,9 @@ impl ServiceWorker {
             origin: incumbent.origin().immutable().clone(),
             data,
         };
-        let _ = self
-            .global()
-            .script_to_constellation_chan()
-            .send(ScriptMsg::ForwardDOMMessage(
-                msg_vec,
-                self.scope_url.clone(),
-            ));
+        let _ = self.global().script_to_constellation_chan().send(
+            ScriptToConstellationMessage::ForwardDOMMessage(msg_vec, self.scope_url.clone()),
+        );
         Ok(())
     }
 }

@@ -13,26 +13,22 @@ path = "lib.rs"
 
 [features]
 bluetooth = ["bluetooth_traits"]
-webgpu = []
+webgpu = ["webgpu_traits"]
 
 [dependencies]
 background_hang_monitor_api = { workspace = true }
 base = { workspace = true }
-bitflags = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
+compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
-cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 http = { workspace = true }
-hyper_serde = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
-libc = { workspace = true }
-log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 media = { path = "../../media" }
@@ -45,9 +41,6 @@ strum = { workspace = true, features = ["derive"] }
 strum_macros = { workspace = true }
 stylo_atoms = { workspace = true }
 stylo_traits = { workspace = true }
-uuid = { workspace = true }
-webdriver = { workspace = true }
-webgpu = { path = "../../webgpu" }
+webgpu_traits = { workspace = true, optional = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"] }

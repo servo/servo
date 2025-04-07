@@ -9,6 +9,7 @@ use std::ptr::{self, NonNull};
 use std::rc::Rc;
 use std::time::Duration;
 
+use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewPlainObject, JSObject};
 use js::jsval::JSVal;
@@ -16,7 +17,6 @@ use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleVa
 use js::typedarray::{self, Uint8ClampedArray};
 use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
-use script_traits::serializable::BlobImpl;
 use servo_config::prefs;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;

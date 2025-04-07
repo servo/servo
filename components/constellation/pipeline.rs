@@ -18,11 +18,14 @@ use base::id::{
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
-use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
-use constellation_traits::WindowSizeData;
+use compositing_traits::{
+    CompositionPipeline, CompositorMsg, CompositorProxy, CrossProcessCompositorApi,
+};
+use constellation_traits::{LoadData, SWManagerMsg, ScriptToConstellationChan};
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::user_content_manager::UserContentManager;
+use embedder_traits::{AnimationState, ViewportDetails};
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
 use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -32,20 +35,22 @@ use media::WindowGLContext;
 use net::image_cache::ImageCacheImpl;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
+use profile::system_reporter;
+use profile_traits::mem::{ProfilerMsg, Reporter};
 use profile_traits::{mem as profile_mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
-    AnimationState, DiscardBrowsingContext, DocumentActivity, InitialScriptState, LoadData,
-    NewLayoutInfo, SWManagerMsg, ScriptThreadMessage, ScriptToConstellationChan,
+    DiscardBrowsingContext, DocumentActivity, InitialScriptState, NewLayoutInfo,
+    ScriptThreadMessage,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{self, Preferences};
 use servo_url::ServoUrl;
 use webrender_api::DocumentId;
-use webrender_traits::CrossProcessCompositorApi;
 
 use crate::event_loop::EventLoop;
+use crate::process_manager::Process;
 use crate::sandboxing::{UnprivilegedContent, spawn_multiprocess};
 
 /// A `Pipeline` is the constellation's view of a `Window`. Each pipeline has an event loop
@@ -161,8 +166,8 @@ pub struct InitialPipelineState {
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: profile_mem::ProfilerChan,
 
-    /// Information about the initial window size.
-    pub window_size: WindowSizeData,
+    /// The initial [`ViewportDetails`] to use when starting this new [`Pipeline`].
+    pub viewport_details: ViewportDetails,
 
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
@@ -201,6 +206,7 @@ pub struct InitialPipelineState {
 pub struct NewPipeline {
     pub pipeline: Pipeline,
     pub bhm_control_chan: Option<IpcSender<BackgroundHangMonitorControlMsg>>,
+    pub lifeline: Option<(IpcReceiver<()>, Process)>,
 }
 
 impl Pipeline {
@@ -210,7 +216,7 @@ impl Pipeline {
     ) -> Result<NewPipeline, Error> {
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
-        let (script_chan, bhm_control_chan) = match state.event_loop {
+        let (script_chan, (bhm_control_chan, lifeline)) = match state.event_loop {
             Some(script_chan) => {
                 let new_layout_info = NewLayoutInfo {
                     parent_info: state.parent_pipeline_id,
@@ -219,14 +225,14 @@ impl Pipeline {
                     webview_id: state.webview_id,
                     opener: state.opener,
                     load_data: state.load_data.clone(),
-                    window_size: state.window_size,
+                    viewport_details: state.viewport_details,
                 };
 
                 if let Err(e) = script_chan.send(ScriptThreadMessage::AttachLayout(new_layout_info))
                 {
                     warn!("Sending to script during pipeline creation failed ({})", e);
                 }
-                (script_chan, None)
+                (script_chan, (None, None))
             },
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
@@ -275,7 +281,7 @@ impl Pipeline {
                     resource_threads: state.resource_threads,
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
-                    window_size: state.window_size,
+                    viewport_details: state.viewport_details,
                     script_chan: script_chan.clone(),
                     load_data: state.load_data.clone(),
                     script_port,
@@ -292,17 +298,21 @@ impl Pipeline {
                     player_context: state.player_context,
                     rippy_data: state.rippy_data,
                     user_content_manager: state.user_content_manager,
+                    lifeline_sender: None,
                 };
 
                 // Spawn the child process.
                 //
                 // Yes, that's all there is to it!
-                let bhm_control_chan = if opts::get().multiprocess {
+                let multiprocess_data = if opts::get().multiprocess {
                     let (bhm_control_chan, bhm_control_port) =
                         ipc::channel().expect("Sampler chan");
                     unprivileged_pipeline_content.bhm_control_port = Some(bhm_control_port);
-                    unprivileged_pipeline_content.spawn_multiprocess()?;
-                    Some(bhm_control_chan)
+                    let (sender, receiver) =
+                        ipc::channel().expect("Failed to create lifeline channel");
+                    unprivileged_pipeline_content.lifeline_sender = Some(sender);
+                    let process = unprivileged_pipeline_content.spawn_multiprocess()?;
+                    (Some(bhm_control_chan), Some((receiver, process)))
                 } else {
                     // Should not be None in single-process mode.
                     let register = state
@@ -313,10 +323,10 @@ impl Pipeline {
                         state.layout_factory,
                         register,
                     );
-                    None
+                    (None, None)
                 };
 
-                (EventLoop::new(script_chan), bhm_control_chan)
+                (EventLoop::new(script_chan), multiprocess_data)
             },
         };
 
@@ -333,6 +343,7 @@ impl Pipeline {
         Ok(NewPipeline {
             pipeline,
             bhm_control_chan,
+            lifeline,
         })
     }
 
@@ -484,7 +495,7 @@ pub struct UnprivilegedPipelineContent {
     resource_threads: ResourceThreads,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
-    window_size: WindowSizeData,
+    viewport_details: ViewportDetails,
     script_chan: IpcSender<ScriptThreadMessage>,
     load_data: LoadData,
     script_port: IpcReceiver<ScriptThreadMessage>,
@@ -498,6 +509,7 @@ pub struct UnprivilegedPipelineContent {
     player_context: WindowGLContext,
     rippy_data: Vec<u8>,
     user_content_manager: UserContentManager,
+    lifeline_sender: Option<IpcSender<()>>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -534,7 +546,7 @@ impl UnprivilegedPipelineContent {
                 time_profiler_sender: self.time_profiler_chan.clone(),
                 memory_profiler_sender: self.mem_profiler_chan.clone(),
                 devtools_server_sender: self.devtools_ipc_sender,
-                window_size: self.window_size,
+                viewport_details: self.viewport_details,
                 pipeline_namespace_id: self.pipeline_namespace_id,
                 content_process_shutdown_sender: content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
@@ -558,7 +570,7 @@ impl UnprivilegedPipelineContent {
         }
     }
 
-    pub fn spawn_multiprocess(self) -> Result<(), Error> {
+    pub fn spawn_multiprocess(self) -> Result<Process, Error> {
         spawn_multiprocess(UnprivilegedContent::Pipeline(self))
     }
 
@@ -582,5 +594,25 @@ impl UnprivilegedPipelineContent {
 
     pub fn prefs(&self) -> &Preferences {
         &self.prefs
+    }
+
+    pub fn register_system_memory_reporter(&self) {
+        // Register the system memory reporter, which will run on its own thread. It never needs to
+        // be unregistered, because as long as the memory profiler is running the system memory
+        // reporter can make measurements.
+        let (system_reporter_sender, system_reporter_receiver) =
+            ipc::channel().expect("failed to create ipc channel");
+        ROUTER.add_typed_route(
+            system_reporter_receiver,
+            Box::new(|message| {
+                if let Ok(request) = message {
+                    system_reporter::collect_reports(request);
+                }
+            }),
+        );
+        self.mem_profiler_chan.send(ProfilerMsg::RegisterReporter(
+            format!("system-content-{}", std::process::id()),
+            Reporter(system_reporter_sender),
+        ));
     }
 }

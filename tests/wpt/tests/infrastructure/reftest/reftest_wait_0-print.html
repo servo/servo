@@ -2,7 +2,10 @@
 <title>Test with reftest-wait</title>
 <link rel=match href=green.html>
 <style>
-:root {background-color:red}
+  :root {
+    print-color-adjust: exact;
+    background-color:red
+  }
 </style>
 <script>
 setTimeout(function() {

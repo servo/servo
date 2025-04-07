@@ -79,38 +79,16 @@
         this._mediaKeys = mediaKeys;
         this._sessions = [ ];
         this._videoelement = undefined;
-        this._onTimeUpdateListener = MediaKeysProxy.prototype._onTimeUpdate.bind( this );
     }
 
     MediaKeysProxy.prototype._setVideoElement = function _setVideoElement( videoElement )
     {
         if ( videoElement !== this._videoelement )
         {
-            if ( this._videoelement )
-            {
-                this._videoelement.removeEventListener( 'timeupdate', this._onTimeUpdateListener );
-            }
-
             this._videoelement = videoElement;
-
-            if ( this._videoelement )
-            {
-                this._videoelement.addEventListener( 'timeupdate', this._onTimeUpdateListener );
-            }
         }
     };
 
-    MediaKeysProxy.prototype._onTimeUpdate = function( event )
-    {
-        this._sessions.forEach( function( session  ) {
-
-            if ( session._sessionType === 'persistent-usage-record' )
-            {
-                session._onTimeUpdate( event );
-            }
-
-        } );
-    };
 
     MediaKeysProxy.prototype._removeSession = function _removeSession( session )
     {
@@ -209,13 +187,6 @@
         }
     };
 
-    MediaKeySessionProxy.prototype._onTimeUpdate = function _onTimeUpdate( event )
-    {
-        if ( !this._firstTime ) this._firstTime = Date.now();
-        this._latestTime = Date.now();
-        this._store();
-    };
-
     MediaKeySessionProxy.prototype._queueMessage = function _queueMessage( messageType, message )
     {
         setTimeout( function() {
@@ -234,18 +205,7 @@
 
     MediaKeySessionProxy.prototype._store = function _store()
     {
-        var data;
-
-        if ( this._sessionType === 'persistent-usage-record' )
-        {
-            data = { kids: this._kids };
-            if ( this._firstTime ) data.firstTime = this._firstTime;
-            if ( this._latestTime ) data.latestTime = this._latestTime;
-        }
-        else
-        {
-            data = { keys: this._keys };
-        }
+        var data = { keys: this._keys };
 
         window.localStorage.setItem( _storageKey( this._sessionId ), JSON.stringify( data ) );
     };
@@ -260,18 +220,8 @@
             return false;
         }
 
-        if ( data.kids )
-        {
-            this._sessionType = 'persistent-usage-record';
-            this._keys = data.kids.map( function( kid ) { return { kid: kid }; } );
-            if ( data.firstTime ) this._firstTime = data.firstTime;
-            if ( data.latestTime ) this._latestTime = data.latestTime;
-        }
-        else
-        {
-            this._sessionType = 'persistent-license';
-            this._keys = data.keys;
-        }
+        this._sessionType = 'persistent-license';
+        this._keys = data.keys;
 
         return true;
     };
@@ -312,30 +262,16 @@
 
                 this._sessionId = sessionId;
 
-                if ( this._sessionType === 'persistent-usage-record' )
-                {
-                    var msg = { kids: this._kids };
-                    if ( this._firstTime ) msg.firstTime = this._firstTime;
-                    if ( this._latestTime ) msg.latestTime = this._latestTime;
 
-                    this._queueMessage( 'license-release', msg );
+                this._createSession();
 
-                    this._state = 'removing';
+                this._state = 'loading';
+                this._loaded = resolve;
+                this._loadfailed = reject;
 
-                    resolve( true );
-                }
-                else
-                {
-                    this._createSession();
+                var initData = { kids: this._kids };
 
-                    this._state = 'loading';
-                    this._loaded = resolve;
-                    this._loadfailed = reject;
-
-                    var initData = { kids: this._kids };
-
-                    this._session.generateRequest( 'keyids', toUtf8( initData ) );
-                }
+                this._session.generateRequest( 'keyids', toUtf8( initData ) );
             }
             catch( error )
             {
@@ -417,12 +353,6 @@
 
             var msg = { kids: this._kids };
 
-            if ( this._sessionType === 'persistent-usage-record' )
-            {
-                if ( this._firstTime ) msg.firstTime = this._firstTime;
-                if ( this._latestTime ) msg.latestTime = this._latestTime;
-            }
-
             this._queueMessage( 'license-release', msg );
 
         }.bind( this ) )
@@ -496,8 +426,7 @@
     function is_persistent_configuration( configuration )
     {
         return configuration.sessionTypes &&
-                ( configuration.sessionTypes.indexOf( 'persistent-usage-record' ) !== -1
-                || configuration.sessionTypes.indexOf( 'persistent-license' ) !== -1 );
+                ( configuration.sessionTypes.indexOf( 'persistent-license' ) !== -1 );
     }
 
     function copy_configuration( src )

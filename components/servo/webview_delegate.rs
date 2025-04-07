@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 
 use base::id::PipelineId;
-use constellation_traits::ConstellationMsg;
+use constellation_traits::EmbedderToConstellationMessage;
 use embedder_traits::{
     AllowOrDeny, AuthenticationResponse, ContextMenuResult, Cursor, FilterPattern,
     GamepadHapticEffectType, InputMethodType, LoadStatus, MediaSessionEvent, Notification,
@@ -33,7 +33,7 @@ pub struct NavigationRequest {
 impl NavigationRequest {
     pub fn allow(mut self) {
         self.constellation_proxy
-            .send(ConstellationMsg::AllowNavigationResponse(
+            .send(EmbedderToConstellationMessage::AllowNavigationResponse(
                 self.pipeline_id,
                 true,
             ));
@@ -42,7 +42,7 @@ impl NavigationRequest {
 
     pub fn deny(mut self) {
         self.constellation_proxy
-            .send(ConstellationMsg::AllowNavigationResponse(
+            .send(EmbedderToConstellationMessage::AllowNavigationResponse(
                 self.pipeline_id,
                 false,
             ));
@@ -54,7 +54,7 @@ impl Drop for NavigationRequest {
     fn drop(&mut self) {
         if !self.response_sent {
             self.constellation_proxy
-                .send(ConstellationMsg::AllowNavigationResponse(
+                .send(EmbedderToConstellationMessage::AllowNavigationResponse(
                     self.pipeline_id,
                     true,
                 ));

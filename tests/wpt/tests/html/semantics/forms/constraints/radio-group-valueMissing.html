@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>
+  The constraint validation API Test: element.validity.valueMissing for radio
+  group
+</title>
+<link rel="author" title="Emmanuel Elom" href="mailto:elomemmanuel007@gmail.com">
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/#dom-validitystate-valuemissing"
+/>
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/#the-constraint-validation-api"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/validator.js"></script>
+<div id="log"></div>
+
+<input type="radio" id="first" required name="group" />
+<input type="radio" id="second" checked name="group" />
+<input type="radio" id="third" required name="group1" />
+<input type="radio" id="fourth" name="group1" />
+
+<script>
+  const first = document.getElementById("first");
+  const second = document.getElementById("second");
+  const third = document.getElementById("third");
+  const fourth = document.getElementById("fourth");
+
+  test(() => {
+    assert_equals(first.validity.valueMissing, false);
+    assert_equals(second.validity.valueMissing, false);
+    second.remove();
+    assert_equals(first.validity.valueMissing, true);
+  }, "valueMissing is true for all group members when checked group member is removed");
+
+  test(() => {
+    assert_equals(third.validity.valueMissing, true);
+    assert_equals(fourth.validity.valueMissing, true);
+    fourth.click();
+    assert_equals(third.validity.valueMissing, false);
+    assert_equals(fourth.validity.valueMissing, false);
+  }, "valueMissing is false for all group members when any group member is checked");
+</script>

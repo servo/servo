@@ -6,13 +6,10 @@ use std::cell::Cell;
 use std::default::Default;
 
 use base::id::BrowsingContextId;
-use constellation_traits::{WindowSizeData, WindowSizeType};
-use euclid::{Scale, Size2D};
+use constellation_traits::{IFrameSizeMsg, WindowSizeType};
+use embedder_traits::ViewportDetails;
 use fnv::FnvHashMap;
 use script_layout_interface::IFrameSizes;
-use script_traits::IFrameSizeMsg;
-use style_traits::CSSPixel;
-use webrender_api::units::DevicePixel;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -26,7 +23,7 @@ use crate::script_thread::with_script_thread;
 pub(crate) struct IFrame {
     pub(crate) element: Dom<HTMLIFrameElement>,
     #[no_trace]
-    pub(crate) size: Option<Size2D<f32, CSSPixel>>,
+    pub(crate) size: Option<ViewportDetails>,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -98,11 +95,11 @@ impl IFrameCollection {
 
     /// Set the size of an `<iframe>` in the collection given its `BrowsingContextId` and
     /// the new size. Returns the old size.
-    pub(crate) fn set_size(
+    pub(crate) fn set_viewport_details(
         &mut self,
         browsing_context_id: BrowsingContextId,
-        new_size: Size2D<f32, CSSPixel>,
-    ) -> Option<Size2D<f32, CSSPixel>> {
+        new_size: ViewportDetails,
+    ) -> Option<ViewportDetails> {
         self.get_mut(browsing_context_id)
             .expect("Tried to set a size for an unknown <iframe>")
             .size
@@ -115,7 +112,6 @@ impl IFrameCollection {
     pub(crate) fn handle_new_iframe_sizes_after_layout(
         &mut self,
         new_iframe_sizes: IFrameSizes,
-        device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
     ) -> Vec<IFrameSizeMsg> {
         if new_iframe_sizes.is_empty() {
             return vec![];
@@ -123,37 +119,35 @@ impl IFrameCollection {
 
         new_iframe_sizes
             .into_iter()
-            .filter_map(|(browsing_context_id, size)| {
+            .filter_map(|(browsing_context_id, iframe_size)| {
                 // Batch resize message to any local `Pipeline`s now, rather than waiting for them
                 // to filter asynchronously through the `Constellation`. This allows the new value
                 // to be reflected immediately in layout.
-                let new_size = size.size;
+                let viewport_details = iframe_size.viewport_details;
                 with_script_thread(|script_thread| {
                     script_thread.handle_resize_message(
-                        size.pipeline_id,
-                        WindowSizeData {
-                            initial_viewport: new_size,
-                            device_pixel_ratio,
-                        },
+                        iframe_size.pipeline_id,
+                        viewport_details,
                         WindowSizeType::Resize,
                     );
                 });
 
-                let old_size = self.set_size(browsing_context_id, new_size);
+                let old_viewport_details =
+                    self.set_viewport_details(browsing_context_id, viewport_details);
                 // The `Constellation` should be up-to-date even when the in-ScriptThread pipelines
                 // might not be.
-                if old_size == Some(size.size) {
+                if old_viewport_details == Some(viewport_details) {
                     return None;
                 }
 
-                let size_type = match old_size {
+                let size_type = match old_viewport_details {
                     Some(_) => WindowSizeType::Resize,
                     None => WindowSizeType::Initial,
                 };
 
                 Some(IFrameSizeMsg {
                     browsing_context_id,
-                    size: new_size,
+                    size: viewport_details,
                     type_: size_type,
                 })
             })
