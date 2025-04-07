@@ -174,14 +174,6 @@ svg > * {
   writing-mode: inherit;
 }
 
-/* style for text node. */
-*|*::-servo-legacy-text {
-    text-overflow: inherit;
-    overflow: inherit;
-    padding: unset;
-    margin: unset;
-}
-
 *|*::-servo-legacy-table-wrapper {
     display: table;
     border: none;
