@@ -15,6 +15,7 @@ doctest = false
 
 [dependencies]
 base = { workspace = true }
+compositing_traits = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -38,4 +39,3 @@ servo_rand = { path = "../../rand" }
 servo_url = { path = "../../url" }
 url = { workspace = true }
 uuid = { workspace = true }
-webrender_traits = { workspace = true }

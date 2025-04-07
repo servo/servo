@@ -4,12 +4,12 @@
 
 use app_units::Au;
 use base::print_tree::PrintTree;
+use compositing_traits::display_list::AxesScrollSensitivity;
 use euclid::default::{Point2D, Rect, Size2D};
 use fxhash::FxHashSet;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use webrender_api::units;
-use webrender_traits::display_list::AxesScrollSensitivity;
 
 use super::{ContainingBlockManager, Fragment, Tag};
 use crate::display_list::StackingContext;

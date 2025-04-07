@@ -44,7 +44,13 @@ use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
 use compositing::windowing::{EmbedderMethods, WindowMethods};
 use compositing::{IOCompositor, InitialCompositorState};
-use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver};
+pub use compositing_traits::rendering_context::{
+    OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
+};
+use compositing_traits::{
+    CompositorMsg, CompositorProxy, CompositorReceiver, CrossProcessCompositorApi,
+    WebrenderExternalImageHandlers, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
+};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -58,7 +64,7 @@ use constellation::{
     Constellation, FromEmbedderLogger, FromScriptLogger, InitialConstellationState,
     UnprivilegedContent,
 };
-use constellation_traits::EmbedderToConstellationMessage;
+use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationChan};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::*;
@@ -85,7 +91,6 @@ use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::{mem, time};
 use script::{JSEngineSetup, ServiceWorkerManager};
-use script_traits::ScriptToConstellationChan;
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
@@ -99,13 +104,6 @@ pub use webgpu;
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{ONE_TIME_USAGE_HINT, RenderApiSender, ShaderPrecacheFlags, UploadMethod};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
-pub use webrender_traits::rendering_context::{
-    OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
-};
-use webrender_traits::{
-    CrossProcessCompositorApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
-    WebrenderImageHandlerType,
-};
 use webview::WebViewInner;
 #[cfg(feature = "webxr")]
 pub use webxr;

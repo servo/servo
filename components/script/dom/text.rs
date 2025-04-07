@@ -89,7 +89,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         if let Some(ref parent) = parent {
             // Step 7.1.
             parent
-                .InsertBefore(new_node.upcast(), node.GetNextSibling().as_deref())
+                .InsertBefore(new_node.upcast(), node.GetNextSibling().as_deref(), can_gc)
                 .unwrap();
             // Steps 7.2-3.
             node.ranges()

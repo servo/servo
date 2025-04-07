@@ -10,6 +10,7 @@ use std::time::Duration;
 use base::id::WebViewId;
 use compositing::IOCompositor;
 use compositing::windowing::WebRenderDebugOption;
+use compositing_traits::RendererWebView;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -18,7 +19,6 @@ use embedder_traits::{
 use url::Url;
 use webrender_api::ScrollLocation;
 use webrender_api::units::{DeviceIntPoint, DeviceRect};
-use webrender_traits::RendererWebView;
 
 use crate::ConstellationProxy;
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};

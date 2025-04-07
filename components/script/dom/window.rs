@@ -21,7 +21,11 @@ use base64::Engine;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
-use constellation_traits::{ScrollState, WindowSizeType};
+use compositing_traits::CrossProcessCompositorApi;
+use constellation_traits::{
+    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
+    ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
+};
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
@@ -62,10 +66,7 @@ use script_layout_interface::{
     FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
     TrustedNodeAddress, combine_id_with_fragment_type,
 };
-use script_traits::{
-    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptThreadMessage,
-    ScriptToConstellationChan, ScriptToConstellationMessage, StructuredSerializedData,
-};
+use script_traits::ScriptThreadMessage;
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
@@ -86,7 +87,6 @@ use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
-use webrender_traits::CrossProcessCompositorApi;
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
@@ -145,6 +145,7 @@ use crate::dom::selection::Selection;
 use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::UIEvent;
 use crate::dom::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
@@ -247,6 +248,7 @@ pub(crate) struct Window {
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
     status: DomRefCell<DOMString>,
+    trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
@@ -1696,6 +1698,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         self.as_global_scope()
             .structured_clone(cx, value, options, retval)
     }
+
+    fn TrustedTypes(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+        self.trusted_types
+            .or_init(|| TrustedTypePolicyFactory::new(self.as_global_scope(), can_gc))
+    }
 }
 
 impl Window {
@@ -1888,7 +1895,7 @@ impl Window {
         let (sender, receiver) =
             ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
         let _ = self.compositor_api.sender().send(
-            webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(
+            compositing_traits::CrossProcessCompositorMessage::GetClientWindowRect(
                 self.webview_id(),
                 sender,
             ),
@@ -2922,6 +2929,7 @@ impl Window {
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
             theme: Cell::new(PrefersColorScheme::Light),
+            trusted_types: Default::default(),
         });
 
         unsafe {

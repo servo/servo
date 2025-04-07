@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="content-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+
+body { margin: 20px }
+#scope {
+  position: relative; z-index: 0; background: pink;
+  border: 5px dashed purple; padding: 5px;
+  width: 180px; height: 120px;
+}
+#part {
+  position: relative; z-index: 0; background: lightgrey;
+  border: 5px solid blue; padding: 5px;
+  width: 120px; height: 60px;
+  left: 20px; top: 20px;
+  view-transition-name: foo;
+}
+
+/* TODO(crbug.com/405117185): This shouldn't be necessary. */
+:root { view-transition-name: none; }
+
+#scope::view-transition { background: yellow; }
+#scope::view-transition-group(foo) { animation-play-state: paused; }
+#scope::view-transition-new(foo) { animation: unset; opacity: 0; }
+#scope::view-transition-old(foo) { animation: unset; opacity: 1; }
+
+</style>
+</head>
+<body>
+<div id=scope>
+  <div id=part>
+    PARTICIPANT
+  </div>
+</div>
+<script>
+
+const scope = document.querySelector("#scope");
+failIfNot(scope.startViewTransition, "Missing element.startViewTransition");
+
+async function runTest() {
+  await waitForCompositorReady();
+  scope.startViewTransition(() => requestAnimationFrame(takeScreenshot));
+}
+onload = () => runTest();
+
+</script>
+</body>
+</html>

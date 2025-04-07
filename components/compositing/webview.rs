@@ -8,22 +8,21 @@ use std::collections::hash_map::Keys;
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
-use compositing_traits::SendableFrameTree;
-use constellation_traits::{CompositorHitTestResult, EmbedderToConstellationMessage, ScrollState};
+use compositing_traits::{RendererWebView, SendableFrameTree};
+use constellation_traits::{EmbedderToConstellationMessage, ScrollState};
 use embedder_traits::{
-    InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, ShutdownState,
-    TouchEvent, TouchEventType, TouchId,
+    AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseMoveEvent, ShutdownState, TouchEvent, TouchEventResult, TouchEventType,
+    TouchId,
 };
 use euclid::{Point2D, Scale, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
-use script_traits::{AnimationState, TouchEventResult};
 use webrender::Transaction;
 use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{
     ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
-use webrender_traits::RendererWebView;
 
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};

@@ -11,6 +11,7 @@ use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, PipelineNamespace};
+use constellation_traits::WorkerGlobalScopeInit;
 use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
@@ -25,7 +26,6 @@ use net_traits::request::{
     RequestBuilder as NetRequestInit,
 };
 use profile_traits::mem::ProcessReports;
-use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
 use uuid::Uuid;
@@ -52,6 +52,7 @@ use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{base64_atob, base64_btoa};
@@ -122,6 +123,7 @@ pub(crate) struct WorkerGlobalScope {
     #[no_trace]
     navigation_start: CrossProcessInstant,
     performance: MutNullableDom<Performance>,
+    trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
     /// A [`TimerScheduler`] used to schedule timers for this [`WorkerGlobalScope`].
     /// Timers are handled in the service worker event loop.
@@ -184,6 +186,7 @@ impl WorkerGlobalScope {
             performance: Default::default(),
             timer_scheduler: RefCell::default(),
             insecure_requests_policy,
+            trusted_types: Default::default(),
         }
     }
 
@@ -476,6 +479,14 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     ) -> Fallible<()> {
         self.upcast::<GlobalScope>()
             .structured_clone(cx, value, options, retval)
+    }
+
+    /// <https://www.w3.org/TR/trusted-types/#dom-windoworworkerglobalscope-trustedtypes>
+    fn TrustedTypes(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+        self.trusted_types.or_init(|| {
+            let global_scope = self.upcast::<GlobalScope>();
+            TrustedTypePolicyFactory::new(global_scope, can_gc)
+        })
     }
 }
 

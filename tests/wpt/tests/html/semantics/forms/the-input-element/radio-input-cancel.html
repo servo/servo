@@ -38,4 +38,42 @@ test(() => {
   assert_array_equals(events, ["click"]);
 
 }, "radio input cancel behavior reverts state");
+
+test(() => {
+  const form = document.createElement("form");
+  form.innerHTML = `
+    <input id="radio1" type="radio" name="radiogroup" checked>
+    <input id="radio2" type="radio" name="radiogroup">
+  `;
+  document.body.appendChild(form);
+
+  const inputs = form.querySelectorAll("input[type=radio]");
+  const events = [];
+
+  inputs.forEach(input => {
+    input.addEventListener("change", () => {
+      events.push(`${input.id} change`);
+    });
+    input.addEventListener("click", e => {
+      // cancel click event
+      e.preventDefault();
+      events.push(`${input.id} click`);
+    });
+    input.addEventListener("input", () => {
+      events.push(`${input.id} input`);
+    });
+  });
+
+  assert_true(inputs[0].checked);
+  assert_false(inputs[1].checked);
+
+  inputs[1].click();
+
+  assert_true(inputs[0].checked);
+  assert_false(inputs[1].checked);
+
+  // only click event called
+  assert_array_equals(events, ["radio2 click"]);
+
+}, "radio input cancel behavior reverts previous selected radio input state");
 </script>

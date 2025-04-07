@@ -113,7 +113,7 @@ header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',Tr
   promise_test(async t => {
     let results = await trySendingPlainStringToTrustedTypeSink(
       ["script"],
-      "header(Content-Security-Policy,require-trusted-types-for 'script''script' 'script',True)",
+      "header(Content-Security-Policy,require-trusted-types-for 'script''script',True)",
     );
     assert_equals(results.length, 1);
     assert_equals(results[0].exception, null);
@@ -150,4 +150,15 @@ header(Content-Security-Policy-Report-Only,require-trusted-types-for 'script',Tr
     assert_true(results[0].exception instanceof TypeError);
     assert_equals(results[0].violatedPolicies.length, 1);
   }, `directive "require-trusted-types-for 'invalid' 'script' 'also-invalid" (unknown sink group)`);
+
+  promise_test(async t => {
+    let results = await trySendingPlainStringToTrustedTypeSink(
+      ["script"],
+      "header(Content-Security-Policy,require-trusted-types-for unquoted-invalid 'script' also-unquoted-invalid,True)",
+    );
+    assert_equals(results.length, 1);
+    assert_true(results[0].exception instanceof TypeError);
+    assert_equals(results[0].violatedPolicies.length, 1);
+  }, `directive "require-trusted-types-for unquoted-invalid 'script' also-unquoted-invalid (unknown sink group)`);
+
 </script>

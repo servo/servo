@@ -45,5 +45,10 @@ partial interface mixin WindowOrWorkerGlobalScope {
   readonly attribute boolean isSecureContext;
 };
 
+// https://www.w3.org/TR/trusted-types/#extensions-to-the-windoworworkerglobalscope-interface
+partial interface mixin WindowOrWorkerGlobalScope {
+  readonly attribute TrustedTypePolicyFactory trustedTypes;
+};
+
 Window includes WindowOrWorkerGlobalScope;
 WorkerGlobalScope includes WindowOrWorkerGlobalScope;

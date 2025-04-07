@@ -18,11 +18,14 @@ use base::id::{
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
-use compositing_traits::{CompositionPipeline, CompositorMsg, CompositorProxy};
+use compositing_traits::{
+    CompositionPipeline, CompositorMsg, CompositorProxy, CrossProcessCompositorApi,
+};
+use constellation_traits::{LoadData, SWManagerMsg, ScriptToConstellationChan};
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
-use embedder_traits::ViewportDetails;
 use embedder_traits::user_content_manager::UserContentManager;
+use embedder_traits::{AnimationState, ViewportDetails};
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
 use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -37,15 +40,14 @@ use profile_traits::mem::{ProfilerMsg, Reporter};
 use profile_traits::{mem as profile_mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
-    AnimationState, DiscardBrowsingContext, DocumentActivity, InitialScriptState, LoadData,
-    NewLayoutInfo, SWManagerMsg, ScriptThreadMessage, ScriptToConstellationChan,
+    DiscardBrowsingContext, DocumentActivity, InitialScriptState, NewLayoutInfo,
+    ScriptThreadMessage,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{self, Preferences};
 use servo_url::ServoUrl;
 use webrender_api::DocumentId;
-use webrender_traits::CrossProcessCompositorApi;
 
 use crate::event_loop::EventLoop;
 use crate::process_manager::Process;

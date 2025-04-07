@@ -51,6 +51,10 @@ dictionary PrivateAttributionConversionOptions {
   unsigned long maxValue = 1;
 };
 
+enum PrivateAttributionLogic {
+  "last-touch",
+};
+
 dictionary PrivateAttributionConversionResult {
   required Uint8Array report;
 };
@@ -58,8 +62,4 @@ dictionary PrivateAttributionConversionResult {
 [SecureContext, Exposed=Window]
 partial interface PrivateAttribution {
   Promise<PrivateAttributionConversionResult> measureConversion(PrivateAttributionConversionOptions options);
-};
-
-enum PrivateAttributionLogic {
-  "last-touch",
 };

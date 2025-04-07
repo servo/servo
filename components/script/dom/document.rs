@@ -20,16 +20,16 @@ use base::id::WebViewId;
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
-use constellation_traits::{AnimationTickType, CompositorHitTestResult};
+use constellation_traits::{AnimationTickType, ScriptToConstellationMessage};
 use content_security_policy::{self as csp, CspList, PolicyDisposition};
 use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
-    AllowOrDeny, ContextMenuResult, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent,
-    LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, TouchEvent, TouchEventType,
-    TouchId, WheelEvent,
+    AllowOrDeny, AnimationState, CompositorHitTestResult, ContextMenuResult, EditingActionEvent,
+    EmbedderMsg, ImeEvent, InputEvent, LoadStatus, MouseButton, MouseButtonAction,
+    MouseButtonEvent, TouchEvent, TouchEventType, TouchId, WheelEvent,
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
@@ -53,10 +53,7 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use script_bindings::interfaces::DocumentHelpers;
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
-use script_traits::{
-    AnimationState, ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType,
-    ScriptToConstellationMessage,
-};
+use script_traits::{ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_media::{ClientContextId, ServoMedia};
@@ -2252,13 +2249,13 @@ impl Document {
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
-                        fragment.AppendChild(&node)?;
+                        fragment.AppendChild(&node, can_gc)?;
                     },
                     NodeOrString::String(string) => {
                         let node = DomRoot::upcast::<Node>(self.CreateTextNode(string, can_gc));
                         // No try!() here because appending a text node
                         // should not fail.
-                        fragment.AppendChild(&node).unwrap();
+                        fragment.AppendChild(&node, can_gc).unwrap();
                     },
                 }
             }
@@ -5407,7 +5404,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().as_deref())
+                        .InsertBefore(child, parent.GetFirstChild().as_deref(), can_gc)
                         .unwrap()
                 },
             }
@@ -5430,7 +5427,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                             None,
                             can_gc,
                         );
-                        head.upcast::<Node>().AppendChild(elem.upcast()).unwrap()
+                        head.upcast::<Node>()
+                            .AppendChild(elem.upcast(), can_gc)
+                            .unwrap()
                     },
                     None => return,
                 },
@@ -5503,7 +5502,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Step 3.
             (Some(ref root), Some(child)) => {
                 let root = root.upcast::<Node>();
-                root.ReplaceChild(new_body.upcast(), child.upcast())
+                root.ReplaceChild(new_body.upcast(), child.upcast(), CanGc::note())
                     .unwrap();
             },
 
@@ -5513,7 +5512,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Step 5.
             (Some(ref root), &None) => {
                 let root = root.upcast::<Node>();
-                root.AppendChild(new_body.upcast()).unwrap();
+                root.AppendChild(new_body.upcast(), CanGc::note()).unwrap();
             },
         }
         Ok(())

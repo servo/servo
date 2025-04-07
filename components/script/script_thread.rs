@@ -36,7 +36,11 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, WebViewId};
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
-use constellation_traits::{CompositorHitTestResult, ScrollState, WindowSizeType};
+use compositing_traits::CrossProcessCompositorApi;
+use constellation_traits::{
+    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
+    ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
+};
 use crossbeam_channel::unbounded;
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
@@ -44,7 +48,8 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    EmbedderMsg, InputEvent, MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand,
+    CompositorHitTestResult, EmbedderMsg, InputEvent, MediaSessionActionType, Theme,
+    ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -79,9 +84,7 @@ use script_layout_interface::{
 };
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
-    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, NewLayoutInfo, Painter,
-    ProgressiveWebMetricType, ScriptThreadMessage, ScriptToConstellationChan,
-    ScriptToConstellationMessage, StructuredSerializedData, UpdatePipelineIdReason,
+    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -93,7 +96,6 @@ use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
-use webrender_traits::CrossProcessCompositorApi;
 
 use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;
@@ -1092,12 +1094,12 @@ impl ScriptThread {
                     {
                         let sequence_id = touch_event.expect_sequence_id();
                         let result = if handled {
-                            script_traits::TouchEventResult::DefaultAllowed(
+                            embedder_traits::TouchEventResult::DefaultAllowed(
                                 sequence_id,
                                 touch_event.event_type,
                             )
                         } else {
-                            script_traits::TouchEventResult::DefaultPrevented(
+                            embedder_traits::TouchEventResult::DefaultPrevented(
                                 sequence_id,
                                 touch_event.event_type,
                             )
@@ -2004,13 +2006,13 @@ impl ScriptThread {
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
             DevtoolScriptControlMsg::GetRootNode(id, reply) => {
-                devtools::handle_get_root_node(&documents, id, reply)
+                devtools::handle_get_root_node(&documents, id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetDocumentElement(id, reply) => {
-                devtools::handle_get_document_element(&documents, id, reply)
+                devtools::handle_get_document_element(&documents, id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
-                devtools::handle_get_children(&documents, id, node_id, reply)
+                devtools::handle_get_children(&documents, id, node_id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
                 devtools::handle_get_attribute_style(&documents, id, node_id, reply, can_gc)

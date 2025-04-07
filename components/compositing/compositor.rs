@@ -16,18 +16,20 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use bitflags::bitflags;
+use compositing_traits::display_list::{HitTestInfo, ScrollTree};
+use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
-    CompositionPipeline, CompositorMsg, CompositorReceiver, SendableFrameTree,
+    CompositionPipeline, CompositorMsg, CompositorReceiver, CrossProcessCompositorMessage,
+    ImageUpdate, RendererWebView, SendableFrameTree,
 };
 use constellation_traits::{
-    AnimationTickType, CompositorHitTestResult, EmbedderToConstellationMessage, PaintMetricEvent,
-    UntrustedNodeAddress, WindowSizeType,
+    AnimationTickType, EmbedderToConstellationMessage, PaintMetricEvent, WindowSizeType,
 };
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ScreenGeometry, ShutdownState,
-    TouchEventType, ViewportDetails,
+    AnimationState, CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent,
+    ScreenGeometry, ShutdownState, TouchEventType, UntrustedNodeAddress, ViewportDetails,
 };
 use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Transform3D};
 use fnv::FnvHashMap;
@@ -37,7 +39,6 @@ use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
-use script_traits::AnimationState;
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
@@ -53,9 +54,6 @@ use webrender_api::{
     RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
     SpatialTreeItemKey, TransformStyle,
 };
-use webrender_traits::display_list::{HitTestInfo, ScrollTree};
-use webrender_traits::rendering_context::RenderingContext;
-use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate, RendererWebView};
 
 use crate::InitialCompositorState;
 use crate::webview::{UnknownWebView, WebView};

@@ -17,6 +17,10 @@ use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
+use constellation_traits::{
+    BlobData, BlobImpl, BroadcastMsg, FileBlob, MessagePortImpl, MessagePortMsg, PortMessageTask,
+    ScriptToConstellationChan, ScriptToConstellationMessage,
+};
 use content_security_policy::{CheckResult, CspList, PolicyDisposition};
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
@@ -55,12 +59,6 @@ use net_traits::{
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_bindings::interfaces::GlobalScopeHelpers;
-use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
-use script_traits::transferable::MessagePortImpl;
-use script_traits::{
-    BroadcastMsg, MessagePortMsg, PortMessageTask, ScriptToConstellationChan,
-    ScriptToConstellationMessage,
-};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use timers::{TimerEventId, TimerEventRequest, TimerSource};
 use uuid::Uuid;
@@ -125,6 +123,7 @@ use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -3299,6 +3298,16 @@ impl GlobalScope {
         self.notification_permission_request_callback_map
             .borrow_mut()
             .remove(&callback_id)
+    }
+
+    pub(crate) fn trusted_types(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.TrustedTypes(can_gc);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.TrustedTypes(can_gc);
+        }
+        unreachable!();
     }
 }
 

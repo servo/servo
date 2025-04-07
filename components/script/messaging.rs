@@ -11,6 +11,7 @@ use std::result::Result;
 use base::id::PipelineId;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
+use constellation_traits::ScriptToConstellationMessage;
 use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::IpcSender;
@@ -18,7 +19,7 @@ use net_traits::FetchResponseMsg;
 use net_traits::image_cache::PendingImageResponse;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
-use script_traits::{Painter, ScriptThreadMessage, ScriptToConstellationMessage};
+use script_traits::{Painter, ScriptThreadMessage};
 use stylo_atoms::Atom;
 use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]

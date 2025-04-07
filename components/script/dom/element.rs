@@ -2170,7 +2170,10 @@ impl Element {
         let fragment = DocumentFragment::new(&context_document, can_gc);
         // Step 4.
         for child in new_children {
-            fragment.upcast::<Node>().AppendChild(&child).unwrap();
+            fragment
+                .upcast::<Node>()
+                .AppendChild(&child, can_gc)
+                .unwrap();
         }
         // Step 5.
         Ok(fragment)
@@ -2973,7 +2976,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // For each node in newChildren, append node to fragment.
         for child in new_children {
-            frag.upcast::<Node>().AppendChild(&child).unwrap();
+            frag.upcast::<Node>().AppendChild(&child, can_gc).unwrap();
         }
 
         // Replace all with fragment within target.
@@ -3093,7 +3096,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 5.
         let frag = parent.parse_fragment(value, can_gc)?;
         // Step 6.
-        context_parent.ReplaceChild(frag.upcast(), context_node)?;
+        context_parent.ReplaceChild(frag.upcast(), context_node, can_gc)?;
         Ok(())
     }
 

@@ -63,6 +63,8 @@
       // https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy
       assert_true(results[0].exception instanceof TypeError, "createPolicy() should throw a TypeError.");
       assert_equals(results[0].violatedPolicies.length, 1, "createPolicy() should trigger a violation report.");
+      assert_equals(results[0].violatedPolicies[0].disposition, "enforce");
+      assert_equals(results[0].violatedPolicies[0].policy, `trusted-types ${trustedTypePolicyName}`);
     }, `invalid tt-policy-name name "${trustedTypePolicyName}"`);
   });
 
@@ -90,5 +92,7 @@
     assert_equals(results.length, 1);
     assert_true(results[0].exception instanceof TypeError);
     assert_equals(results[0].violatedPolicies.length, 1);
+    assert_equals(results[0].violatedPolicies[0].disposition, "enforce");
+    assert_equals(results[0].violatedPolicies[0].policy, `trusted-types _TTP_*`);
   }, `invalid directive "trusted-type _TTP" (no ascii whitespace)`);
 </script>
