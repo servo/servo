@@ -55,32 +55,37 @@ impl HTMLHeadElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
-    pub(crate) fn set_document_referrer(&self) {
+    pub(crate) fn set_document_referrer(&self, most_recent: &HTMLMetaElement) {
         let doc = self.owner_document();
 
         if doc.GetHead().as_deref() != Some(self) {
             return;
         }
 
-        let node = self.upcast::<Node>();
-        let candidates = node
-            .traverse_preorder(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<Element>)
-            .filter(|elem| elem.is::<HTMLMetaElement>())
-            .filter(|elem| elem.get_name() == Some(atom!("referrer")))
-            .filter(|elem| {
-                elem.get_attribute(&ns!(), &local_name!("content"))
-                    .is_some()
-            });
+        // From spec: For historical reasons, unlike other standard metadata names, the processing model for referrer
+        // is not responsive to element removals, and does not use tree order. Only the most-recently-inserted or
+        // most-recently-modified meta element in this state has an effect.
+        // 1. If element is not in a document tree, then return.
+        let meta_node = most_recent.upcast::<Node>();
+        if !meta_node.is_in_a_document_tree() {
+            return;
+        }
 
-        for meta in candidates {
-            if let Some(ref content) = meta.get_attribute(&ns!(), &local_name!("content")) {
-                let content = content.value();
-                let content_val = content.trim();
-                if !content_val.is_empty() {
-                    doc.set_referrer_policy(determine_policy_for_token(content_val));
-                    return;
-                }
+        // 2. If element does not have a name attribute whose value is an ASCII case-insensitive match for "referrer",
+        // then return.
+        if most_recent.upcast::<Element>().get_name() != Some(atom!("referrer")) {
+            return;
+        }
+
+        // 3. If element does not have a content attribute, or that attribute's value is the empty string, then return.
+        let content = most_recent
+            .upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("content"));
+        if let Some(attr) = content {
+            let attr = attr.value();
+            let attr_val = attr.trim();
+            if !attr_val.is_empty() {
+                doc.set_referrer_policy(determine_policy_for_token(attr_val));
             }
         }
     }

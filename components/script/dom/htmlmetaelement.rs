@@ -117,7 +117,7 @@ impl HTMLMetaElement {
     fn apply_referrer(&self) {
         if let Some(parent) = self.upcast::<Node>().GetParentElement() {
             if let Some(head) = parent.downcast::<HTMLHeadElement>() {
-                head.set_document_referrer();
+                head.set_document_referrer(self);
             }
         }
     }
