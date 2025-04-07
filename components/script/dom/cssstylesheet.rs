@@ -181,7 +181,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         } else {
             rule.push_str(" { ");
             rule.push_str(block.str());
-            rule.push_str(" } ");
+            rule.push_str(" }");
         };
 
         // > 6. Let *index* be *optionalIndex* if provided, or the number of CSS rules in the stylesheet otherwise.
