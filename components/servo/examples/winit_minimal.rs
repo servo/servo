@@ -5,16 +5,15 @@ use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
 
-use compositing::windowing::{EmbedderMethods, WindowMethods};
-use euclid::{Point2D, Scale, Size2D};
+use compositing::windowing::EmbedderMethods;
+use euclid::{Scale, Size2D};
 use servo::{RenderingContext, Servo, TouchEventType, WebView, WindowRenderingContext};
-use servo_geometry::DeviceIndependentPixel;
 use tracing::warn;
 use url::Url;
 use webrender_api::ScrollLocation;
 use webrender_api::units::{DeviceIntPoint, DevicePixel, LayoutVector2D};
 use winit::application::ApplicationHandler;
-use winit::dpi::{PhysicalPosition, PhysicalSize};
+use winit::dpi::PhysicalSize;
 use winit::event::{MouseScrollDelta, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
@@ -41,7 +40,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 struct AppState {
-    window_delegate: Rc<WindowDelegate>,
+    window: Window,
     servo: Servo,
     rendering_context: Rc<WindowRenderingContext>,
     webviews: RefCell<Vec<WebView>>,
@@ -49,14 +48,20 @@ struct AppState {
 
 impl ::servo::WebViewDelegate for AppState {
     fn notify_new_frame_ready(&self, _: WebView) {
-        self.window_delegate.window.request_redraw();
+        self.window.request_redraw();
     }
 
     fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
-        let webview = self.servo.new_auxiliary_webview();
-        webview.set_delegate(parent_webview.delegate());
+        let webview = self
+            .servo
+            .new_auxiliary_webview()
+            .delegate(parent_webview.delegate())
+            .hidpi_scale_factor(Scale::new(self.window.scale_factor() as f32))
+            .build();
+
         webview.focus();
         webview.raise_to_top(true);
+
         self.webviews.borrow_mut().push(webview.clone());
         Some(webview)
     }
@@ -88,7 +93,6 @@ impl ApplicationHandler<WakerEvent> for App {
                 WindowRenderingContext::new(display_handle, window_handle, window.inner_size())
                     .expect("Could not create RenderingContext for window."),
             );
-            let window_delegate = Rc::new(WindowDelegate::new(window));
 
             let _ = rendering_context.make_current();
 
@@ -99,13 +103,12 @@ impl ApplicationHandler<WakerEvent> for App {
                 Box::new(EmbedderDelegate {
                     waker: waker.clone(),
                 }),
-                window_delegate.clone(),
                 Default::default(),
             );
             servo.setup_logging();
 
             let app_state = Rc::new(AppState {
-                window_delegate,
+                window,
                 servo,
                 rendering_context,
                 webviews: Default::default(),
@@ -115,8 +118,14 @@ impl ApplicationHandler<WakerEvent> for App {
             let url = Url::parse("https://demo.servo.org/experiments/twgl-tunnel/")
                 .expect("Guaranteed by argument");
 
-            let webview = app_state.servo.new_webview(url);
-            webview.set_delegate(app_state.clone());
+            let webview = app_state
+                .servo
+                .new_webview()
+                .url(url)
+                .delegate(app_state.clone())
+                .hidpi_scale_factor(Scale::new(app_state.window.scale_factor() as f32))
+                .build();
+
             webview.focus();
             webview.raise_to_top(true);
 
@@ -234,26 +243,6 @@ impl embedder_traits::EventLoopWaker for Waker {
     }
 }
 
-struct WindowDelegate {
-    window: Window,
-}
-
-impl WindowDelegate {
-    fn new(window: Window) -> Self {
-        Self { window }
-    }
-}
-
-impl WindowMethods for WindowDelegate {
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        Scale::new(self.window.scale_factor() as f32)
-    }
-}
-
 pub fn winit_size_to_euclid_size<T>(size: PhysicalSize<T>) -> Size2D<T, DevicePixel> {
     Size2D::new(size.width, size.height)
-}
-
-pub fn winit_position_to_euclid_point<T>(position: PhysicalPosition<T>) -> Point2D<T, DevicePixel> {
-    Point2D::new(position.x, position.y)
 }

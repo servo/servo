@@ -21,9 +21,7 @@ pub use servo::EventLoopWaker;
 use servo::{self, Servo, WindowRenderingContext, resources};
 use xcomponent_sys::OH_NativeXComponent;
 
-use crate::egl::app_state::{
-    Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
-};
+use crate::egl::app_state::{Coordinates, RunningAppState, ServoEmbedderCallbacks};
 use crate::egl::host_trait::HostTrait;
 use crate::egl::ohos::InitOpts;
 use crate::egl::ohos::resources::ResourceReaderInstance;
@@ -112,12 +110,6 @@ pub fn init(
 
     info!("before ServoWindowCallbacks...");
 
-    let window_callbacks = Rc::new(ServoWindowCallbacks::new(
-        callbacks,
-        RefCell::new(coordinates),
-        options.display_density as f32,
-    ));
-
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(
         waker,
         #[cfg(feature = "webxr")]
@@ -129,12 +121,12 @@ pub fn init(
         preferences,
         rendering_context.clone(),
         embedder_callbacks,
-        window_callbacks.clone(),
         Default::default(),
     );
 
     let app_state = RunningAppState::new(
         Some(options.url),
+        options.display_density as f32,
         rendering_context,
         servo,
         window_callbacks,

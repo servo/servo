@@ -17,9 +17,7 @@ use servo::{self, Servo, resources};
 pub use servo::{InputMethodType, MediaSessionPlaybackState, WindowRenderingContext};
 
 use crate::egl::android::resources::ResourceReaderInstance;
-use crate::egl::app_state::{
-    Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
-};
+use crate::egl::app_state::{Coordinates, RunningAppState, ServoEmbedderCallbacks};
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
@@ -80,12 +78,6 @@ pub fn init(
         .expect("Could not create RenderingContext"),
     );
 
-    let window_callbacks = Rc::new(ServoWindowCallbacks::new(
-        callbacks,
-        RefCell::new(init_opts.coordinates),
-        init_opts.density,
-    ));
-
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(
         waker,
         #[cfg(feature = "webxr")]
@@ -97,16 +89,15 @@ pub fn init(
         preferences,
         rendering_context.clone(),
         embedder_callbacks,
-        window_callbacks.clone(),
         Default::default(),
     );
 
     APP.with(|app| {
         let app_state = RunningAppState::new(
             init_opts.url,
+            init_opts.density,
             rendering_context,
             servo,
-            window_callbacks,
             servoshell_preferences,
         );
         *app.borrow_mut() = Some(app_state);
