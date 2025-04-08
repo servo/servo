@@ -190,9 +190,9 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
-    fn Location(&self) -> DomRoot<DissimilarOriginLocation> {
+    fn Location(&self, can_gc: CanGc) -> DomRoot<DissimilarOriginLocation> {
         self.location
-            .or_init(|| DissimilarOriginLocation::new(self, CanGc::note()))
+            .or_init(|| DissimilarOriginLocation::new(self, can_gc))
     }
 }
 
