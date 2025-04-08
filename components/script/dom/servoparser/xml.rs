@@ -6,13 +6,14 @@
 
 use std::cell::Cell;
 
-use html5ever::tokenizer::TokenizerResult;
+use markup5ever::TokenizerResult;
 use script_bindings::trace::CustomTraceable;
 use servo_url::ServoUrl;
 use xml5ever::buffer_queue::BufferQueue;
 use xml5ever::tokenizer::XmlTokenizer;
 use xml5ever::tree_builder::XmlTreeBuilder;
 
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::Document;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
@@ -43,10 +44,17 @@ impl Tokenizer {
     }
 
     pub(crate) fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
-        self.inner.run(input);
-        match self.inner.sink.sink.script.take() {
-            Some(script) => TokenizerResult::Script(script),
-            None => TokenizerResult::Done,
+        loop {
+            match self.inner.run(input) {
+                TokenizerResult::Done => return TokenizerResult::Done,
+                TokenizerResult::Script(handle) => {
+                    // Apparently the parser can sometimes create <script> elements without a namespace, resulting
+                    // in them not being HTMLScriptElements.
+                    if let Some(script) = handle.downcast::<HTMLScriptElement>() {
+                        return TokenizerResult::Script(DomRoot::from_ref(script));
+                    }
+                },
+            }
         }
     }
 

@@ -16,10 +16,10 @@ use encoding_rs::Encoding;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
-use html5ever::tokenizer::TokenizerResult;
-use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksMode, TreeSink};
+use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
 use html5ever::{Attribute, ExpandedName, LocalName, QualName, local_name, namespace_url, ns};
 use hyper_serde::Serde;
+use markup5ever::TokenizerResult;
 use mime::{self, Mime};
 use net_traits::request::RequestId;
 use net_traits::{
@@ -1353,15 +1353,6 @@ impl TreeSink for Sink {
         let script = node.downcast::<HTMLScriptElement>();
         if let Some(script) = script {
             script.set_already_started(true)
-        }
-    }
-
-    fn complete_script(&self, node: &Dom<Node>) -> NextParserState {
-        if let Some(script) = node.downcast() {
-            self.script.set(Some(script));
-            NextParserState::Suspend
-        } else {
-            NextParserState::Continue
         }
     }
 
