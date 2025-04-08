@@ -617,14 +617,15 @@ pub(crate) fn cross_origin_get<D: DomTypes>(
     rooted!(in(*cx) let mut descriptor = PropertyDescriptor::default());
     let mut is_none = false;
     if !unsafe {
-            InvokeGetOwnPropertyDescriptor(
+        InvokeGetOwnPropertyDescriptor(
             GetProxyHandler(*proxy),
             *cx,
             proxy,
             id,
             descriptor.handle_mut().into(),
             &mut is_none,
-    )} {
+        )
+    } {
         return false;
     }
 
@@ -647,13 +648,13 @@ pub(crate) fn cross_origin_get<D: DomTypes>(
     // > 5. Let `getter` be `desc.[[Get]]`.
     // >
     // > 6. If `getter` is `undefined`, then throw a `SecurityError`
-    // >    `DOMException`.   
+    // >    `DOMException`.
     rooted!(in(*cx) let mut getter = ptr::null_mut::<JSObject>());
     get_getter_object(&descriptor, getter.handle_mut().into());
     if getter.get().is_null() {
         return report_cross_origin_denial::<D>(cx, id, "get");
     }
-    
+
     rooted!(in(*cx) let mut getter_jsval = UndefinedValue());
     unsafe {
         getter.get().to_jsval(*cx, getter_jsval.handle_mut());
