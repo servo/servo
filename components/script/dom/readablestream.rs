@@ -1942,7 +1942,7 @@ impl CrossRealmTransformReadable {
         unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
 
         // Perform ! CrossRealmTransformSendError(port, error).
-        port.cross_relam_transform_send_error(rooted_error.handle());
+        port.cross_realm_transform_send_error(rooted_error.handle());
 
         // Perform ! ReadableStreamDefaultControllerError(controller, error).
         self.controller.error(rooted_error.handle(), can_gc);
