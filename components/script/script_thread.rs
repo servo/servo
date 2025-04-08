@@ -50,8 +50,8 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, EmbedderMsg, InputEvent, MediaSessionActionType, Theme,
-    ViewportDetails, WebDriverScriptCommand,
+    CompositorHitTestResult, EmbedderMsg, InputEvent, MediaSessionActionType, MouseButtonAction,
+    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -3322,7 +3322,30 @@ impl ScriptThread {
             warn!("Compositor event sent to closed pipeline {pipeline_id}.");
             return;
         };
-        document.note_pending_input_event(event);
+        document.note_pending_input_event(event.clone());
+
+        // Also send a 'click' event with same hit-test result if this is release
+
+        // MAYBE? TODO: https://developer.mozilla.org/en-US/docs/Web/API/Element/click_event
+        // If the button is pressed on one element and the pointer is moved outside the element
+        // before the button is released, the event is fired on the most specific ancestor element
+        // that contained both elements.
+
+        // But spec doesn't specify this https://w3c.github.io/uievents/#event-type-click
+        if let InputEvent::MouseButton(mouse_button_event) = event.event {
+            if mouse_button_event.action == MouseButtonAction::Up {
+                document.note_pending_input_event(ConstellationInputEvent {
+                    hit_test_result: event.hit_test_result,
+                    pressed_mouse_buttons: event.pressed_mouse_buttons,
+                    active_keyboard_modifiers: event.active_keyboard_modifiers,
+                    event: InputEvent::MouseButton(MouseButtonEvent {
+                        action: MouseButtonAction::Click,
+                        button: mouse_button_event.button,
+                        point: mouse_button_event.point,
+                    }),
+                });
+            }
+        }
     }
 
     /// Handle a "navigate an iframe" message from the constellation.

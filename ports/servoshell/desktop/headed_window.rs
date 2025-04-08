@@ -277,26 +277,6 @@ impl Window {
             button: mouse_button,
             point,
         }));
-
-        // Also send a 'click' event if this is release and the press was recorded
-        // to be within a 10 pixels.
-        //
-        // TODO: This should be happening within the ScriptThread.
-        if action != MouseButtonAction::Up {
-            return;
-        }
-
-        if let Some(mouse_down_button) = self.mouse_down_button.get() {
-            let pixel_dist = self.webview_relative_mouse_down_point.get() - point;
-            let pixel_dist = (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
-            if mouse_down_button == button && pixel_dist < max_pixel_dist {
-                webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                    action: MouseButtonAction::Click,
-                    button: mouse_button,
-                    point,
-                }));
-            }
-        }
     }
 
     /// Handle key events before sending them to Servo.
