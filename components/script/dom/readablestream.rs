@@ -2263,6 +2263,6 @@ impl Transferable for ReadableStream {
     }
 
     fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>> {
-        &mut reader.streams
+        &mut reader.readable_streams
     }
 }
