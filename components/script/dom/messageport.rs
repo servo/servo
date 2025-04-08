@@ -163,8 +163,9 @@ impl MessagePort {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-crossrealmtransformsenderror>
-    pub(crate) fn cross_relam_transform_send_error(&self, error: HandleValue) {
-        // TODO
+    pub(crate) fn cross_realm_transform_send_error(&self, error: HandleValue) {
+        // Perform PackAndPostMessage(port, "error", error), discarding the result.
+        let _ = self.pack_and_post_message("error", error);
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessagehandlingerror>

@@ -964,7 +964,7 @@ impl CrossRealmTransformWritable {
         unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
 
         // Perform ! CrossRealmTransformSendError(port, error).
-        port.cross_relam_transform_send_error(rooted_error.handle());
+        port.cross_realm_transform_send_error(rooted_error.handle());
 
         // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, error).
         self.controller
