@@ -21,6 +21,7 @@ import subprocess
 import sys
 import time
 from threading import Thread
+from typing import Optional
 
 
 def run_tests(script_path):
@@ -100,10 +101,14 @@ def sources_test(client, base_url):
 
     def on_source_resource(data):
         for [resource_type, sources] in data["array"]:
-            # FIXME: If these assertions fail, we just see TimeoutError with no further information
-            assert resource_type == "source"
-            assert [source["url"] for source in sources] == [f"{base_url}/classic.js", f"{base_url}/test.html", "https://servo.org/js/load-table.js"]
-            done.set_result(True)
+            try:
+                assert resource_type == "source"
+                assert [source["url"] for source in sources] == [f"{base_url}/classic.js", f"{base_url}/test.html", "https://servo.org/js/load-table.js"]
+                done.set_result(None)
+            except Exception as e:
+                # Raising here does nothing, for some reason.
+                # Send the exception back so it can be raised.
+                done.set_result(e)
 
     client.add_event_listener(
         target["actor"],
@@ -112,5 +117,7 @@ def sources_test(client, base_url):
     )
     watcher.watch_resources([Resources.SOURCE])
 
-    assert done.result(1)
+    result: Optional[Exception] = done.result(1)
+    if result:
+        raise result
     client.disconnect()
