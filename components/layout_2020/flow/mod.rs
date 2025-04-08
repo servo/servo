@@ -14,7 +14,6 @@ use style::computed_values::clear::T as StyleClear;
 use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
-use style::values::computed::Size as StyleSize;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::{Display, TextAlignKeyword};
 
@@ -193,9 +192,8 @@ impl BlockLevelBox {
             return false;
         }
 
-        if !block_size_is_zero_or_intrinsic(style.content_block_size(), containing_block) ||
-            !block_size_is_zero_or_intrinsic(style.min_block_size(), containing_block) ||
-            pbm.padding_border_sums.block != Au::zero()
+        if !tentative_block_size.definite_or_min().is_zero() ||
+            !pbm.padding_border_sums.block.is_zero()
         {
             return false;
         }
@@ -885,7 +883,6 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         containing_block_for_children.size.inline,
     );
 
-    let computed_block_size = style.content_block_size();
     let start_margin_can_collapse_with_children =
         pbm.padding.block_start == Au::zero() && pbm.border.block_start == Au::zero();
 
@@ -1003,16 +1000,16 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         }
     }
 
+    let tentative_block_size = &containing_block_for_children.size.block;
     let collapsed_through = collapsible_margins_in_children.collapsed_through &&
-        pbm.padding_border_sums.block == Au::zero() &&
-        block_size_is_zero_or_intrinsic(computed_block_size, containing_block) &&
-        block_size_is_zero_or_intrinsic(style.min_block_size(), containing_block);
+        pbm.padding_border_sums.block.is_zero() &&
+        tentative_block_size.definite_or_min().is_zero();
     block_margins_collapsed_with_children.collapsed_through = collapsed_through;
 
     let end_margin_can_collapse_with_children = collapsed_through ||
         (pbm.padding.block_end == Au::zero() &&
             pbm.border.block_end == Au::zero() &&
-            !containing_block_for_children.size.block.is_definite());
+            !tentative_block_size.is_definite());
     if end_margin_can_collapse_with_children {
         block_margins_collapsed_with_children
             .end
@@ -2134,26 +2131,6 @@ impl<'container> PlacementState<'container> {
             },
             self.inflow_baselines,
         )
-    }
-}
-
-fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &ContainingBlock) -> bool {
-    match size {
-        StyleSize::Auto |
-        StyleSize::MinContent |
-        StyleSize::MaxContent |
-        StyleSize::FitContent |
-        StyleSize::FitContentFunction(_) => true,
-        StyleSize::Stretch => {
-            // TODO: Should this return true when the containing block has a definite size of 0px?
-            !containing_block.size.block.is_definite()
-        },
-        StyleSize::LengthPercentage(lp) => {
-            // TODO: Should this resolve definite percentages? Blink does it, Gecko and WebKit don't.
-            lp.is_definitely_zero() ||
-                (lp.0.has_percentage() && !containing_block.size.block.is_definite())
-        },
-        StyleSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
     }
 }
 
