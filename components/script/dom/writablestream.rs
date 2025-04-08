@@ -893,88 +893,6 @@ impl WritableStream {
     }
 }
 
-impl js::gc::Rootable for CrossRealmTransformWritable {}
-
-/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
-/// A wrapper to handle `message` and `messageerror` events
-/// for the port used by the transfered stream.
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct CrossRealmTransformWritable {
-    /// The controller used in the algorithm.
-    controller: Dom<WritableStreamDefaultController>,
-
-    /// The `backpressurePromise` used in the algorithm.
-    #[ignore_malloc_size_of = "Rc is hard"]
-    backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
-}
-
-impl CrossRealmTransformWritable {
-    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
-    /// Add a handler for port’s message event with the following steps:
-    #[allow(unsafe_code)]
-    pub(crate) fn handle_message(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        message: SafeHandleValue,
-        can_gc: CanGc,
-    ) {
-        rooted!(in(*cx) let mut value = UndefinedValue());
-        let type_string =
-            unsafe { get_type_and_value_from_message(cx, message, value.handle_mut(), can_gc) };
-
-        // If type is "pull",
-        // Done below as the steps are the same for both types.
-
-        // Otherwise, if type is "error",
-        if type_string == "error" {
-            // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, value).
-            self.controller
-                .error_if_needed(cx, value.handle(), global, can_gc);
-        }
-
-        let backpressure_promise = self.backpressure_promise.borrow_mut().take();
-
-        // Note: the below steps are for both "pull" and "error" types.
-        // If backpressurePromise is not undefined,
-        if let Some(promise) = backpressure_promise {
-            // Resolve backpressurePromise with undefined.
-            promise.resolve_native(&(), can_gc);
-
-            // Set backpressurePromise to undefined.
-            // Done above with `take`.
-        }
-    }
-
-    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
-    /// Add a handler for port’s messageerror event with the following steps:
-    #[allow(unsafe_code)]
-    pub(crate) fn handle_error(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        port: &MessagePort,
-        error: SafeHandleValue,
-        can_gc: CanGc,
-    ) {
-        // Let error be a new "DataCloneError" DOMException.
-        let error = DOMException::new(global, DOMErrorName::DataCloneError, can_gc);
-        rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-        unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
-
-        // Perform ! CrossRealmTransformSendError(port, error).
-        port.cross_realm_transform_send_error(rooted_error.handle());
-
-        // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, error).
-        self.controller
-            .error_if_needed(cx, rooted_error.handle(), global, can_gc);
-
-        // Disentangle port.
-        global.disentangle_port(port);
-    }
-}
-
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
     /// <https://streams.spec.whatwg.org/#ws-constructor>
     fn Constructor(
@@ -1104,5 +1022,87 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
 
         // Return ? AcquireWritableStreamDefaultWriter(this).
         self.aquire_default_writer(cx, &global, can_gc)
+    }
+}
+
+impl js::gc::Rootable for CrossRealmTransformWritable {}
+
+/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+/// A wrapper to handle `message` and `messageerror` events
+/// for the port used by the transfered stream.
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct CrossRealmTransformWritable {
+    /// The controller used in the algorithm.
+    controller: Dom<WritableStreamDefaultController>,
+
+    /// The `backpressurePromise` used in the algorithm.
+    #[ignore_malloc_size_of = "Rc is hard"]
+    backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
+}
+
+impl CrossRealmTransformWritable {
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    /// Add a handler for port’s message event with the following steps:
+    #[allow(unsafe_code)]
+    pub(crate) fn handle_message(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        message: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        rooted!(in(*cx) let mut value = UndefinedValue());
+        let type_string =
+            unsafe { get_type_and_value_from_message(cx, message, value.handle_mut(), can_gc) };
+
+        // If type is "pull",
+        // Done below as the steps are the same for both types.
+
+        // Otherwise, if type is "error",
+        if type_string == "error" {
+            // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, value).
+            self.controller
+                .error_if_needed(cx, value.handle(), global, can_gc);
+        }
+
+        let backpressure_promise = self.backpressure_promise.borrow_mut().take();
+
+        // Note: the below steps are for both "pull" and "error" types.
+        // If backpressurePromise is not undefined,
+        if let Some(promise) = backpressure_promise {
+            // Resolve backpressurePromise with undefined.
+            promise.resolve_native(&(), can_gc);
+
+            // Set backpressurePromise to undefined.
+            // Done above with `take`.
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    /// Add a handler for port’s messageerror event with the following steps:
+    #[allow(unsafe_code)]
+    pub(crate) fn handle_error(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        port: &MessagePort,
+        error: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        // Let error be a new "DataCloneError" DOMException.
+        let error = DOMException::new(global, DOMErrorName::DataCloneError, can_gc);
+        rooted!(in(*cx) let mut rooted_error = UndefinedValue());
+        unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
+
+        // Perform ! CrossRealmTransformSendError(port, error).
+        port.cross_realm_transform_send_error(rooted_error.handle());
+
+        // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, error).
+        self.controller
+            .error_if_needed(cx, rooted_error.handle(), global, can_gc);
+
+        // Disentangle port.
+        global.disentangle_port(port);
     }
 }

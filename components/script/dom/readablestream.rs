@@ -1821,137 +1821,6 @@ impl ReadableStream {
     }
 }
 
-#[allow(unsafe_code)]
-/// The initial steps for the message handler for both readable and writable cross realm transforms.
-/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
-/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
-pub(crate) unsafe fn get_type_and_value_from_message(
-    cx: SafeJSContext,
-    message: SafeHandleValue,
-    value: SafeMutableHandleValue,
-    can_gc: CanGc,
-) -> DOMString {
-    // Let data be the data of the message.
-    rooted!(in(*cx) let object = message.to_object());
-    rooted!(in(*cx) let mut data = UndefinedValue());
-    get_dictionary_property(*cx, object.handle(), "done", data.handle_mut(), can_gc)
-        .expect("Getting data should not fail.");
-
-    // Assert: data is an Object.
-    assert!(data.is_object());
-    rooted!(in(*cx) let data_object = data.to_object());
-
-    // Let type be ! Get(data, "type").
-    rooted!(in(*cx) let mut type_ = UndefinedValue());
-    get_dictionary_property(
-        *cx,
-        data_object.handle(),
-        "type",
-        type_.handle_mut(),
-        can_gc,
-    )
-    .expect("Getting the type should not fail.");
-
-    // Let value be ! Get(data, "value").
-    get_dictionary_property(*cx, data_object.handle(), "value", value, can_gc)
-        .expect("Getting the value should not fail.");
-
-    // Assert: type is a String.
-    let result = unsafe {
-        DOMString::from_jsval(
-            *GlobalScope::get_cx(),
-            type_.handle(),
-            StringificationBehavior::Empty,
-        )
-        .expect("The type of the message should be a string")
-    };
-    let ConversionResult::Success(type_string) = result else {
-        unreachable!("The type of the message should be a string");
-    };
-
-    type_string
-}
-
-impl js::gc::Rootable for CrossRealmTransformReadable {}
-
-/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
-/// A wrapper to handle `message` and `messageerror` events
-/// for the port used by the transfered stream.
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct CrossRealmTransformReadable {
-    /// The controller used in the algorithm.
-    controller: Dom<ReadableStreamDefaultController>,
-}
-
-impl CrossRealmTransformReadable {
-    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
-    /// Add a handler for port’s message event with the following steps:
-    #[allow(unsafe_code)]
-    pub(crate) fn handle_message(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        port: &MessagePort,
-        message: SafeHandleValue,
-        can_gc: CanGc,
-    ) {
-        rooted!(in(*cx) let mut value = UndefinedValue());
-        let type_string =
-            unsafe { get_type_and_value_from_message(cx, message, value.handle_mut(), can_gc) };
-
-        // If type is "chunk",
-        if type_string == "chunk" {
-            // Perform ! ReadableStreamDefaultControllerEnqueue(controller, value).
-            self.controller.enqueue(cx, value.handle(), can_gc);
-        }
-
-        // Otherwise, if type is "close",
-        if type_string == "close" {
-            // Perform ! ReadableStreamDefaultControllerClose(controller).
-            self.controller.close(can_gc);
-
-            // Disentangle port.
-            global.disentangle_port(port);
-        }
-
-        // Otherwise, if type is "error",
-        if type_string == "error" {
-            // Perform ! ReadableStreamDefaultControllerError(controller, value).
-            self.controller.error(value.handle(), can_gc);
-
-            // Disentangle port.
-            global.disentangle_port(port);
-        }
-    }
-
-    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
-    /// Add a handler for port’s messageerror event with the following steps:
-    #[allow(unsafe_code)]
-    pub(crate) fn handle_error(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        port: &MessagePort,
-        error: SafeHandleValue,
-        can_gc: CanGc,
-    ) {
-        // Let error be a new "DataCloneError" DOMException.
-        let error = DOMException::new(global, DOMErrorName::DataCloneError, can_gc);
-        rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-        unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
-
-        // Perform ! CrossRealmTransformSendError(port, error).
-        port.cross_realm_transform_send_error(rooted_error.handle());
-
-        // Perform ! ReadableStreamDefaultControllerError(controller, error).
-        self.controller.error(rooted_error.handle(), can_gc);
-
-        // Disentangle port.
-        global.disentangle_port(port);
-    }
-}
-
 impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     /// <https://streams.spec.whatwg.org/#rs-constructor>
     fn Constructor(
@@ -2119,6 +1988,137 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             realm,
             can_gc,
         )
+    }
+}
+
+#[allow(unsafe_code)]
+/// The initial steps for the message handler for both readable and writable cross realm transforms.
+/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+pub(crate) unsafe fn get_type_and_value_from_message(
+    cx: SafeJSContext,
+    message: SafeHandleValue,
+    value: SafeMutableHandleValue,
+    can_gc: CanGc,
+) -> DOMString {
+    // Let data be the data of the message.
+    rooted!(in(*cx) let object = message.to_object());
+    rooted!(in(*cx) let mut data = UndefinedValue());
+    get_dictionary_property(*cx, object.handle(), "done", data.handle_mut(), can_gc)
+        .expect("Getting data should not fail.");
+
+    // Assert: data is an Object.
+    assert!(data.is_object());
+    rooted!(in(*cx) let data_object = data.to_object());
+
+    // Let type be ! Get(data, "type").
+    rooted!(in(*cx) let mut type_ = UndefinedValue());
+    get_dictionary_property(
+        *cx,
+        data_object.handle(),
+        "type",
+        type_.handle_mut(),
+        can_gc,
+    )
+    .expect("Getting the type should not fail.");
+
+    // Let value be ! Get(data, "value").
+    get_dictionary_property(*cx, data_object.handle(), "value", value, can_gc)
+        .expect("Getting the value should not fail.");
+
+    // Assert: type is a String.
+    let result = unsafe {
+        DOMString::from_jsval(
+            *GlobalScope::get_cx(),
+            type_.handle(),
+            StringificationBehavior::Empty,
+        )
+        .expect("The type of the message should be a string")
+    };
+    let ConversionResult::Success(type_string) = result else {
+        unreachable!("The type of the message should be a string");
+    };
+
+    type_string
+}
+
+impl js::gc::Rootable for CrossRealmTransformReadable {}
+
+/// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+/// A wrapper to handle `message` and `messageerror` events
+/// for the port used by the transfered stream.
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct CrossRealmTransformReadable {
+    /// The controller used in the algorithm.
+    controller: Dom<ReadableStreamDefaultController>,
+}
+
+impl CrossRealmTransformReadable {
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+    /// Add a handler for port’s message event with the following steps:
+    #[allow(unsafe_code)]
+    pub(crate) fn handle_message(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        port: &MessagePort,
+        message: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        rooted!(in(*cx) let mut value = UndefinedValue());
+        let type_string =
+            unsafe { get_type_and_value_from_message(cx, message, value.handle_mut(), can_gc) };
+
+        // If type is "chunk",
+        if type_string == "chunk" {
+            // Perform ! ReadableStreamDefaultControllerEnqueue(controller, value).
+            self.controller.enqueue(cx, value.handle(), can_gc);
+        }
+
+        // Otherwise, if type is "close",
+        if type_string == "close" {
+            // Perform ! ReadableStreamDefaultControllerClose(controller).
+            self.controller.close(can_gc);
+
+            // Disentangle port.
+            global.disentangle_port(port);
+        }
+
+        // Otherwise, if type is "error",
+        if type_string == "error" {
+            // Perform ! ReadableStreamDefaultControllerError(controller, value).
+            self.controller.error(value.handle(), can_gc);
+
+            // Disentangle port.
+            global.disentangle_port(port);
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    /// Add a handler for port’s messageerror event with the following steps:
+    #[allow(unsafe_code)]
+    pub(crate) fn handle_error(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        port: &MessagePort,
+        error: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        // Let error be a new "DataCloneError" DOMException.
+        let error = DOMException::new(global, DOMErrorName::DataCloneError, can_gc);
+        rooted!(in(*cx) let mut rooted_error = UndefinedValue());
+        unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
+
+        // Perform ! CrossRealmTransformSendError(port, error).
+        port.cross_realm_transform_send_error(rooted_error.handle());
+
+        // Perform ! ReadableStreamDefaultControllerError(controller, error).
+        self.controller.error(rooted_error.handle(), can_gc);
+
+        // Disentangle port.
+        global.disentangle_port(port);
     }
 }
 
