@@ -1801,7 +1801,7 @@ impl ReadableStream {
         // Let controller be a new ReadableStreamDefaultController.
         let controller = ReadableStreamDefaultController::new(
             &self.global(),
-            UnderlyingSourceType::Transfer,
+            UnderlyingSourceType::Transfer(Dom::from_ref(port)),
             1.0,
             size_algorithm,
             can_gc,
