@@ -21,7 +21,9 @@ use base::id::WebViewId;
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
-use constellation_traits::{AnimationTickType, ScriptToConstellationMessage};
+use constellation_traits::{
+    AnimationTickType, NavigationHistoryBehavior, ScriptToConstellationMessage,
+};
 use content_security_policy::{self as csp, CspList, PolicyDisposition};
 use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
@@ -153,13 +155,12 @@ use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
-use crate::dom::htmlmetaelement::RefreshRedirectDue;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmltitleelement::HTMLTitleElement;
 use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::location::Location;
+use crate::dom::location::{Location, NavigationType};
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{
@@ -241,6 +242,24 @@ impl FireMouseEventType {
             FireMouseEventType::Enter => "mouseenter",
             FireMouseEventType::Leave => "mouseleave",
         }
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct RefreshRedirectDue {
+    #[no_trace]
+    pub(crate) url: ServoUrl,
+    #[ignore_malloc_size_of = "non-owning"]
+    pub(crate) window: DomRoot<Window>,
+}
+impl RefreshRedirectDue {
+    pub(crate) fn invoke(self, can_gc: CanGc) {
+        self.window.Location().navigate(
+            self.url.clone(),
+            NavigationHistoryBehavior::Replace,
+            NavigationType::DeclarativeRefresh,
+            can_gc,
+        );
     }
 }
 
@@ -4747,7 +4766,6 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
     pub(crate) fn shared_declarative_refresh_steps(&self, content: DOMString) {
-        debug!("Setting declarative refresh");
         // 1. If document's will declaratively refresh is true, then return.
         if self.will_declaratively_refresh() {
             return;

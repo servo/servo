@@ -2,51 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use constellation_traits::NavigationHistoryBehavior;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::rust::HandleObject;
-use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::document::{DeclarativeRefresh, Document, determine_policy_for_token};
+use crate::dom::document::{Document, determine_policy_for_token};
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlheadelement::HTMLHeadElement;
-use crate::dom::location::NavigationType;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
-use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct HTMLMetaElement {
     htmlelement: HTMLElement,
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct RefreshRedirectDue {
-    #[no_trace]
-    pub(crate) url: ServoUrl,
-    #[ignore_malloc_size_of = "non-owning"]
-    pub(crate) window: DomRoot<Window>,
-}
-impl RefreshRedirectDue {
-    pub(crate) fn invoke(self, can_gc: CanGc) {
-        self.window.Location().navigate(
-            self.url.clone(),
-            NavigationHistoryBehavior::Replace,
-            NavigationType::DeclarativeRefresh,
-            can_gc,
-        );
-    }
 }
 
 impl HTMLMetaElement {
