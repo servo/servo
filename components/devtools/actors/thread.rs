@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Ref, RefCell};
+use std::collections::BTreeSet;
 use std::net::TcpStream;
 
 use serde::Serialize;
 use serde_json::{Map, Value};
+use servo_url::ServoUrl;
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
@@ -55,16 +58,38 @@ struct SourcesReply {
     sources: Vec<Source>,
 }
 
-#[derive(Serialize)]
-enum Source {}
+#[derive(Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Source {
+    pub actor: String,
+    /// URL of the script, or URL of the page for inline scripts.
+    pub url: String,
+    pub is_black_boxed: bool,
+}
 
 pub struct ThreadActor {
     name: String,
+    source_urls: RefCell<BTreeSet<Source>>,
 }
 
 impl ThreadActor {
     pub fn new(name: String) -> ThreadActor {
-        ThreadActor { name }
+        ThreadActor {
+            name,
+            source_urls: RefCell::new(BTreeSet::default()),
+        }
+    }
+
+    pub fn add_source(&self, url: ServoUrl) {
+        self.source_urls.borrow_mut().insert(Source {
+            actor: self.name.clone(),
+            url: url.to_string(),
+            is_black_boxed: false,
+        });
+    }
+
+    pub fn sources(&self) -> Ref<BTreeSet<Source>> {
+        self.source_urls.borrow()
     }
 }
 
@@ -125,6 +150,8 @@ impl Actor for ThreadActor {
                 ActorMessageStatus::Processed
             },
 
+            // Client has attached to the thread and wants to load script sources.
+            // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#loading-script-sources>
             "sources" => {
                 let msg = SourcesReply {
                     from: self.name(),
