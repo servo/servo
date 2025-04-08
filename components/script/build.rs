@@ -23,6 +23,10 @@ fn main() {
     .iter()
     .map(Path::new)
     .for_each(|file| {
+        println!(
+            "cargo::rerun-if-changed={}",
+            script_bindings_out_dir.join(file).display()
+        );
         std::fs::copy(
             script_bindings_out_dir.join(file),
             out_dir.join(file.file_name().unwrap()),
@@ -31,7 +35,12 @@ fn main() {
     });
     // copy ConcreteBindings folder
     let _ = std::fs::create_dir(out_dir.join("ConcreteBindings"));
-    std::fs::read_dir(script_bindings_out_dir.join("ConcreteBindings"))
+    let script_concrete_bindings_out_dir = script_bindings_out_dir.join("ConcreteBindings");
+    println!(
+        "cargo::rerun-if-changed={}",
+        script_concrete_bindings_out_dir.display()
+    );
+    std::fs::read_dir(script_concrete_bindings_out_dir)
         .unwrap()
         .filter_map(|res| res.map(|e| e.path()).ok())
         .filter(|path| path.is_file())
