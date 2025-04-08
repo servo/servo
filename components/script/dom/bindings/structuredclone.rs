@@ -495,7 +495,7 @@ pub(crate) struct StructuredDataReader {
     pub(crate) blob_impls: Option<HashMap<BlobId, BlobImpl>>,
     /// A map of serialized points.
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
-    pub(crate) streams: Option<Vec<DomRoot<ReadableStream>>>,
+    pub(crate) readable_streams: Option<Vec<DomRoot<ReadableStream>>>,
 }
 
 /// A data holder for transferred and serialized objects.
@@ -582,7 +582,7 @@ pub(crate) fn read(
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),
         points: data.points.take(),
-        streams: None,
+        readable_streams: None,
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {
