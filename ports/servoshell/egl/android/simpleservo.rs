@@ -83,7 +83,6 @@ pub fn init(
     let window_callbacks = Rc::new(ServoWindowCallbacks::new(
         callbacks,
         RefCell::new(init_opts.coordinates),
-        init_opts.density,
     ));
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(
@@ -97,13 +96,13 @@ pub fn init(
         preferences,
         rendering_context.clone(),
         embedder_callbacks,
-        window_callbacks.clone(),
         Default::default(),
     );
 
     APP.with(|app| {
         let app_state = RunningAppState::new(
             init_opts.url,
+            init_opts.density,
             rendering_context,
             servo,
             window_callbacks,

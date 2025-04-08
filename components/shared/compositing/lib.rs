@@ -70,7 +70,11 @@ pub enum CompositorMsg {
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(WebViewId, TouchEventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
-    CreatePng(Option<Rect<f32, CSSPixel>>, IpcSender<Option<Image>>),
+    CreatePng(
+        WebViewId,
+        Option<Rect<f32, CSSPixel>>,
+        IpcSender<Option<Image>>,
+    ),
     /// A reply to the compositor asking if the output image is stable.
     IsReadyToSaveImageReply(bool),
     /// Set whether to use less resources by stopping animations.

@@ -9,7 +9,6 @@ use std::rc::Rc;
 
 use euclid::num::Zero;
 use euclid::{Length, Scale, Size2D};
-use servo::compositing::windowing::WindowMethods;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
 use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext};
@@ -94,19 +93,18 @@ impl WindowPortsMethods for Window {
         Some(new_size)
     }
 
-    fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+    fn device_hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         Scale::new(1.0)
     }
 
-    fn device_pixel_ratio_override(
-        &self,
-    ) -> Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> {
+    fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         self.device_pixel_ratio_override
+            .unwrap_or_else(|| self.device_hidpi_scale_factor())
     }
 
     fn page_height(&self) -> f32 {
         let height = self.inner_size.get().height;
-        let dpr = self.hidpi_factor();
+        let dpr = self.hidpi_scale_factor();
         height as f32 * dpr.get()
     }
 
@@ -143,12 +141,5 @@ impl WindowPortsMethods for Window {
 
     fn rendering_context(&self) -> Rc<dyn RenderingContext> {
         self.rendering_context.clone()
-    }
-}
-
-impl WindowMethods for Window {
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.device_pixel_ratio_override()
-            .unwrap_or_else(|| self.device_hidpi_factor())
     }
 }

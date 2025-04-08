@@ -11,16 +11,12 @@ use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
-use euclid::Scale;
 use log::{info, trace, warn};
-use servo::compositing::windowing::WindowMethods;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_config::pref;
-use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
-use servo::webrender_api::units::DevicePixel;
 use servo::webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use servo::webxr::openxr::{AppInfo, OpenXrDiscovery};
@@ -139,15 +135,6 @@ impl App {
         // Implements embedder methods, used by libservo and constellation.
         let embedder = Box::new(EmbedderCallbacks::new(self.waker.clone(), xr_discovery));
 
-        // TODO: Remove this once dyn upcasting coercion stabilises
-        // <https://github.com/rust-lang/rust/issues/65991>
-        struct UpcastedWindow(Rc<dyn WindowPortsMethods>);
-        impl WindowMethods for UpcastedWindow {
-            fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-                self.0.hidpi_factor()
-            }
-        }
-
         let mut user_content_manager = UserContentManager::new();
         for script in load_userscripts(self.servoshell_preferences.userscripts_directory.as_deref())
             .expect("Loading userscripts failed")
@@ -160,7 +147,6 @@ impl App {
             self.preferences.clone(),
             window.rendering_context(),
             embedder,
-            Rc::new(UpcastedWindow(window.clone())),
             user_content_manager,
         );
         servo.setup_logging();
@@ -358,7 +344,7 @@ impl ApplicationHandler<WakerEvent> for App {
                     // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
                     // we can use our own logic for calculating the scale factor and set egui’s
                     // scale factor to that value manually.
-                    let desired_scale_factor = window.hidpi_factor().get();
+                    let desired_scale_factor = window.hidpi_scale_factor().get();
                     let effective_egui_zoom_factor = desired_scale_factor / scale_factor as f32;
 
                     info!(
@@ -370,6 +356,8 @@ impl ApplicationHandler<WakerEvent> for App {
                         .context
                         .egui_ctx
                         .set_zoom_factor(effective_egui_zoom_factor);
+
+                    state.hidpi_scale_factor_changed();
 
                     // Request a winit redraw event, so we can recomposite, update and paint
                     // the minibrowser, and present the new frame.

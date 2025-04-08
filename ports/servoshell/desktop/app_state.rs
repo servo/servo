@@ -109,6 +109,7 @@ impl RunningAppState {
     pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
         let webview = WebViewBuilder::new(self.servo())
             .url(url)
+            .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
             .delegate(self.clone())
             .build();
 
@@ -128,6 +129,14 @@ impl RunningAppState {
 
     pub(crate) fn servo(&self) -> &Servo {
         &self.servo
+    }
+
+    pub(crate) fn hidpi_scale_factor_changed(&self) {
+        let inner = self.inner();
+        let new_scale_factor = inner.window.hidpi_scale_factor();
+        for webview in inner.webviews.values() {
+            webview.set_hidpi_scale_factor(new_scale_factor);
+        }
     }
 
     pub(crate) fn save_output_image_if_necessary(&self) {
@@ -462,6 +471,7 @@ impl WebViewDelegate for RunningAppState {
         parent_webview: servo::WebView,
     ) -> Option<servo::WebView> {
         let webview = WebViewBuilder::new_auxiliary(&self.servo)
+            .hidpi_scale_factor(self.inner().window.hidpi_scale_factor())
             .delegate(parent_webview.delegate())
             .build();
 
