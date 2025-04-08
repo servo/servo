@@ -30,7 +30,8 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::{Arc, Weak};
 
-use js::jsapi::JSTracer;
+use js::jsapi::{Heap, JSFunction, JSTracer};
+use js::rust::Trace;
 use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::conversions::ToJSValConvertible;
@@ -232,6 +233,9 @@ pub(crate) struct LiveDOMReferences {
     // keyed on pointer to Rust DOM object
     reflectable_table: RefCell<HashMap<*const libc::c_void, Weak<TrustedReference>>>,
     promise_table: RefCell<HashMap<*const Promise, Vec<Rc<Promise>>>>,
+    // We need to Box the values to prevent them from being moved
+    #[allow(clippy::vec_box)]
+    finalization_callback_table: RefCell<Vec<Box<Heap<*mut JSFunction>>>>,
 }
 
 impl LiveDOMReferences {
@@ -241,6 +245,7 @@ impl LiveDOMReferences {
             *r.borrow_mut() = Some(LiveDOMReferences {
                 reflectable_table: RefCell::new(HashMap::new()),
                 promise_table: RefCell::new(HashMap::new()),
+                finalization_callback_table: RefCell::new(Vec::new()),
             })
         });
     }
@@ -286,6 +291,25 @@ impl LiveDOMReferences {
             },
         }
     }
+
+    pub(crate) fn enqueue_finalization_callback(callback: Box<Heap<*mut JSFunction>>) {
+        LIVE_REFERENCES.with(|r| {
+            let r = r.borrow();
+            let live_refs = r.as_ref().unwrap();
+            let mut callback_table = live_refs.finalization_callback_table.borrow_mut();
+            callback_table.push(callback);
+        })
+    }
+
+    // We Box the values because the values cannot be moved around under the GC
+    #[allow(clippy::vec_box)]
+    pub(crate) fn get_finalization_callbacks() -> Vec<Box<Heap<*mut JSFunction>>> {
+        LIVE_REFERENCES.with(|r| {
+            let r = r.borrow();
+            let live_refs = r.as_ref().unwrap();
+            live_refs.finalization_callback_table.replace(Vec::new())
+        })
+    }
 }
 
 /// Remove null entries from the live references table
@@ -321,6 +345,13 @@ pub(crate) unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
             let table = live_references.promise_table.borrow_mut();
             for promise in table.keys() {
                 trace_reflector(tracer, "refcounted", (**promise).reflector());
+            }
+        }
+
+        {
+            let callbacks = live_references.finalization_callback_table.borrow_mut();
+            for callback in callbacks.iter() {
+                callback.trace(tracer);
             }
         }
     });
