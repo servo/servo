@@ -207,7 +207,7 @@ pub(crate) mod macros;
 
 #[allow(unused_imports)]
 pub(crate) mod types {
-    include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceTypes.rs"));
+    include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
 }
 
 pub(crate) mod abortcontroller;

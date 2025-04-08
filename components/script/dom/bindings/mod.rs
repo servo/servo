@@ -166,28 +166,22 @@ pub(crate) use script_bindings::{callback, iterable, num};
 #[allow(missing_docs, non_snake_case)]
 pub(crate) mod codegen {
     pub(crate) mod DomTypeHolder {
-        include!(concat!(env!("BINDINGS_OUT_DIR"), "/DomTypeHolder.rs"));
+        include!(concat!(env!("OUT_DIR"), "/DomTypeHolder.rs"));
     }
     pub(crate) use script_bindings::codegen::GenericBindings;
     #[allow(dead_code)]
     pub(crate) mod Bindings {
-        include!(concat!(
-            env!("BINDINGS_OUT_DIR"),
-            "/ConcreteBindings/mod.rs"
-        ));
+        include!(concat!(env!("OUT_DIR"), "/ConcreteBindings/mod.rs"));
     }
     pub(crate) mod InterfaceObjectMap {
-        include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceObjectMap.rs"));
+        include!(concat!(env!("OUT_DIR"), "/InterfaceObjectMap.rs"));
     }
     pub(crate) mod ConcreteInheritTypes {
-        include!(concat!(
-            env!("BINDINGS_OUT_DIR"),
-            "/ConcreteInheritTypes.rs"
-        ));
+        include!(concat!(env!("OUT_DIR"), "/ConcreteInheritTypes.rs"));
     }
     pub(crate) use script_bindings::codegen::{PrototypeList, RegisterBindings};
     #[allow(dead_code)]
     pub(crate) mod UnionTypes {
-        include!(concat!(env!("BINDINGS_OUT_DIR"), "/UnionTypes.rs"));
+        include!(concat!(env!("OUT_DIR"), "/UnionTypes.rs"));
     }
 }
