@@ -293,7 +293,7 @@ pub unsafe fn get_dictionary_property(
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 #[allow(clippy::result_unit_err)]
-pub(crate) unsafe fn set_dictionary_property(
+pub unsafe fn set_dictionary_property(
     cx: *mut JSContext,
     object: HandleObject,
     property: &str,

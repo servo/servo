@@ -170,10 +170,9 @@ impl Callback for TransferBackPressurePromiseReaction {
         // Let result be PackAndPostMessageHandlingError(port, "chunk", chunk).
         rooted!(in(*cx) let mut chunk = UndefinedValue());
         chunk.set(self.chunk.get());
-        let result = self.port.pack_and_post_message_handling_error(
-            DOMString::from_string("chunk".to_string()),
-            chunk.handle(),
-        );
+        let result = self
+            .port
+            .pack_and_post_message_handling_error("chunk", chunk.handle());
 
         // Disentangle port.
         global.disentangle_port(&self.port);
@@ -542,10 +541,7 @@ impl WritableStreamDefaultController {
             },
             UnderlyingSinkType::Transfer { ref port, .. } => {
                 // Let result be PackAndPostMessageHandlingError(port, "error", reason).
-                let result = port.pack_and_post_message_handling_error(
-                    DOMString::from_string("error".to_string()),
-                    reason,
-                );
+                let result = port.pack_and_post_message_handling_error("error", reason);
 
                 // Disentangle port.
                 global.disentangle_port(&port);
@@ -664,10 +660,7 @@ impl WritableStreamDefaultController {
             UnderlyingSinkType::Transfer { ref port, .. } => {
                 // Perform ! PackAndPostMessage(port, "close", undefined).
                 rooted!(in(*cx) let mut value = UndefinedValue());
-                port.pack_and_post_message(
-                    DOMString::from_string("closed".to_string()),
-                    value.handle(),
-                );
+                port.pack_and_post_message("closed", value.handle());
 
                 // Disentangle port.
                 global.disentangle_port(&port);
