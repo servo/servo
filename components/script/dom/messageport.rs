@@ -5,12 +5,14 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::num::NonZeroU32;
+use std::ptr;
 use std::rc::Rc;
 
 use base::id::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
 use constellation_traits::{MessagePortImpl, PortMessageTask};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
+use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use script_bindings::str::DOMString;
 
@@ -26,8 +28,10 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::{self, StructuredData, StructuredDataReader};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::transferable::{ExtractComponents, IdFromComponents, Transferable};
+use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
@@ -166,7 +170,7 @@ impl MessagePort {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessagehandlingerror>
     pub(crate) fn pack_and_post_message_handling_error(
         &self,
-        type_: DOMString,
+        type_: &str,
         reason: HandleValue,
     ) -> Result<(), ()> {
         // TODO
@@ -174,13 +178,42 @@ impl MessagePort {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessage>
-    pub(crate) fn pack_and_post_message(
-        &self,
-        type_: DOMString,
-        value: HandleValue,
-    ) -> Result<(), ()> {
-        // TODO
-        todo!()
+    #[allow(unsafe_code)]
+    pub(crate) fn pack_and_post_message(&self, type_: &str, value: HandleValue) -> ErrorResult {
+        let cx = GlobalScope::get_cx();
+
+        // Let message be OrdinaryObjectCreate(null).
+        rooted!(in(*cx) let mut message_obj = ptr::null_mut::<JSObject>());
+        rooted!(in(*cx) let mut type_string = UndefinedValue());
+        unsafe {
+            type_.to_jsval(*cx, type_string.handle_mut());
+        }
+
+        // Perform ! CreateDataProperty(message, "type", type).
+        unsafe {
+            set_dictionary_property(*cx, message_obj.handle(), "type", type_string.handle())
+                .expect("Setting the message type should not fail.");
+        }
+
+        // Perform ! CreateDataProperty(message, "value", value).
+        unsafe {
+            set_dictionary_property(*cx, message_obj.handle(), "value", value)
+                .expect("Setting the message value should not fail.");
+        }
+
+        // Let targetPort be the port with which port is entangled, if any; otherwise let it be null.
+        // Done in `global.post_messageport_msg`.
+
+        // Let options be «[ "transfer" → « » ]».
+        let mut rooted = CustomAutoRooter::new(vec![]);
+        let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
+
+        // Run the message port post message steps providing targetPort, message, and options.
+        rooted!(in(*cx) let mut message = UndefinedValue());
+        unsafe {
+            message_obj.to_jsval(*cx, message.handle_mut());
+        }
+        self.post_message_impl(cx, message.handle(), transfer)
     }
 }
 

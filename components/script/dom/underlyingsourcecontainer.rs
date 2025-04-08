@@ -138,16 +138,13 @@ impl UnderlyingSourceContainer {
                 // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
 
                 // Let result be PackAndPostMessageHandlingError(port, "error", reason).
-                let result = port.pack_and_post_message_handling_error(
-                    DOMString::from_string("error".to_string()),
-                    reason,
-                );
+                let result = port.pack_and_post_message_handling_error("error", reason);
 
                 // Disentangle port.
                 self.global().disentangle_port(&port);
 
                 let promise = Promise::new(&self.global(), can_gc);
-                
+
                 // If result is an abrupt completion,
                 if let Err(error) = result {
                     // Return a promise rejected with result.[[Value]].
@@ -196,10 +193,7 @@ impl UnderlyingSourceContainer {
 
                 // Perform ! PackAndPostMessage(port, "pull", undefined).
                 rooted!(in(*cx) let mut value = UndefinedValue());
-                port.pack_and_post_message(
-                    DOMString::from_string("pull".to_string()),
-                    value.handle(),
-                );
+                port.pack_and_post_message("pull", value.handle());
 
                 // Return a promise resolved with undefined.
                 let promise = Promise::new(&self.global(), can_gc);
