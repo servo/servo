@@ -411,10 +411,14 @@ impl FromJSValConvertibleRc for Promise {
             return Ok(ConversionResult::Failure("not an object".into()));
         }
         rooted!(in(cx) let obj = value.get().to_object());
-        if !IsPromiseObject(obj.handle()) {
-            return Ok(ConversionResult::Failure("not a promise".into()));
-        }
-        let promise = Promise::new_with_js_promise(obj.handle(), SafeJSContext::from_ptr(cx));
+
+        let promise_global = GlobalScope::from_object_maybe_wrapped(obj.handle().get(), cx);
+        let promise = Promise::new_resolved(
+            &promise_global,
+            SafeJSContext::from_ptr(cx),
+            *obj,
+            CanGc::note(),
+        );
         Ok(ConversionResult::Success(promise))
     }
 }
