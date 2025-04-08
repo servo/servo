@@ -28,7 +28,6 @@ pub trait WindowPortsMethods: WindowMethods {
     fn page_height(&self) -> f32;
     fn get_fullscreen(&self) -> bool;
     fn handle_winit_event(&self, state: Rc<RunningAppState>, event: winit::event::WindowEvent);
-    fn is_animating(&self) -> bool;
     fn set_title(&self, _title: &str) {}
     /// Request a new inner size for the window, not including external decorations.
     fn request_resize(&self, webview: &WebView, inner_size: DeviceIntSize)
