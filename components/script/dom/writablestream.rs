@@ -1087,7 +1087,6 @@ impl CrossRealmTransformWritable {
         cx: SafeJSContext,
         global: &GlobalScope,
         port: &MessagePort,
-        error: SafeHandleValue,
         can_gc: CanGc,
     ) {
         // Let error be a new "DataCloneError" DOMException.
