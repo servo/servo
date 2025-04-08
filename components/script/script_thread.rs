@@ -3210,7 +3210,8 @@ impl ScriptThread {
 
         let refresh_header = metadata.headers.as_deref().and_then(|h| h.get(REFRESH));
         if let Some(refresh_val) = refresh_header {
-            document.shared_declarative_refresh_steps(refresh_val.to_str().unwrap_or("").into());
+            // There are tests that this header handles Unicode code points
+            document.shared_declarative_refresh_steps(refresh_val.as_bytes());
         }
 
         document.set_ready_state(DocumentReadyState::Loading, can_gc);

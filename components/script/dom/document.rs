@@ -4765,7 +4765,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
-    pub(crate) fn shared_declarative_refresh_steps(&self, content: DOMString) {
+    pub(crate) fn shared_declarative_refresh_steps(&self, content: &[u8]) {
         // 1. If document's will declaratively refresh is true, then return.
         if self.will_declaratively_refresh() {
             return;
@@ -4773,24 +4773,29 @@ impl Document {
 
         // 2-11 Parsing
         static REFRESH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+            // s flag is used to match . on newlines since the only places we use . in the
+            // regex is to go "to end of the string"
+            // (?s-u:.) is used to consume invalid unicode bytes
             Regex::new(
-                r#"(?x)
-                ^
-                \s* # 3
-                ((?<time>\d+)\.?|\.) # 5-6
-                [0-9.]* # 8
-                (
-                    (;|,| ) # 10.1
-                    \s* # 10.2
-                    (;|,)? # 10.3
-                    \s* # 10.4
+                r#"(?xs)
+                    ^
+                    \s* # 3
+                    ((?<time>[0-9]+)|\.) # 5-6
+                    [0-9.]* # 8
                     (
-                        (U|u)(R|r)(L|l) # 11.2-11.4
-                        \s*=\s* # 11.5-11.7
-                        ('(?<url1>.*?)'?|"(?<url2>.*?)"?|(?<url3>[^'"].*)) # 11.8 - 11.10
+                        (
+                            (\s*;|\s*,|\s) # 10.3
+                            \s* # 10.4
+                        )
+                        (
+                            (
+                                (U|u)(R|r)(L|l) # 11.2-11.4
+                                \s*=\s* # 11.5-11.7
+                            )?
+                        ('(?<url1>[^']*)'(?s-u:.)*|"(?<url2>[^"]*)"(?s-u:.)*|['"]?(?<url3>(?s-u:.)*)) # 11.8 - 11.10
                         |
-                        (?<url4>.*)
-                    )?
+                        (?<url4>(?s-u:.)*)
+                    )
                 )?
                 $
             "#,
@@ -4800,7 +4805,7 @@ impl Document {
 
         // 9. Let urlRecord be document's URL.
         let mut url_record = self.url();
-        let captures = if let Some(captures) = REFRESH_REGEX.captures(content.as_bytes()) {
+        let captures = if let Some(captures) = REFRESH_REGEX.captures(content) {
             captures
         } else {
             return;
@@ -4820,6 +4825,7 @@ impl Document {
                 Some(&url_record),
                 &String::from_utf8_lossy(url_match.as_bytes()),
             ) {
+                info!("Refresh to {}", url.debug_compact());
                 url
             } else {
                 // 11.12 If urlRecord is failure, then return.

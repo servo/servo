@@ -126,13 +126,17 @@ impl HTMLMetaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
     fn declarative_refresh(&self) {
+        if !self.upcast::<Node>().is_in_a_document_tree() {
+            return;
+        }
+
         // 2
         let content = self.Content();
         // 1
         if !content.is_empty() {
             // 3
             self.owner_document()
-                .shared_declarative_refresh_steps(content);
+                .shared_declarative_refresh_steps(content.as_bytes());
         }
     }
 }
