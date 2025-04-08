@@ -256,7 +256,7 @@ pub enum DocumentState {
 }
 
 /// Input events from the embedder that are sent via the `Constellation`` to the `ScriptThread`.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConstellationInputEvent {
     /// The hit test result of this input event, if any.
     pub hit_test_result: Option<CompositorHitTestResult>,
