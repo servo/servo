@@ -7,12 +7,14 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::str;
 
+use freetype_sys::{FT_Byte, FT_Error, FT_Face, FT_Long, FT_ULong};
 use malloc_size_of_derive::MallocSizeOf;
 use memmap2::Mmap;
 use serde::{Deserialize, Serialize};
 use style::Atom;
 use webrender_api::NativeFontHandle;
 
+pub mod face;
 pub mod font;
 
 #[cfg(all(target_os = "linux", not(target_env = "ohos"), not(ohos_mock)))]
@@ -36,8 +38,20 @@ mod ohos {
 pub use self::ohos::font_list;
 
 mod freetype_errors;
+mod freetype_face_helpers;
 mod freetype_truetype_unicode_ranges;
+mod freetype_variations_helpers;
 mod library_handle;
+
+unsafe extern "C" {
+    pub fn FT_Load_Sfnt_Table(
+        face: FT_Face,
+        tag: FT_ULong,
+        offset: FT_Long,
+        buffer: *mut FT_Byte,
+        length: *mut FT_ULong,
+    ) -> FT_Error;
+}
 
 /// An identifier for a local font on systems using Freetype.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]

@@ -179,9 +179,13 @@ mod font_context {
                 path: path.to_str().expect("Could not load test font").into(),
                 variation_index: 0,
             };
-            let handle =
-                PlatformFont::new_from_local_font_identifier(local_font_identifier.clone(), None)
-                    .expect("Could not load test font");
+            let handle = PlatformFont::new_from_local_font_identifier(
+                local_font_identifier.clone(),
+                None,
+                None,
+                None,
+            )
+            .expect("Could not load test font");
 
             family.add_template(FontTemplate::new(
                 FontIdentifier::Local(local_font_identifier),

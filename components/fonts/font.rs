@@ -14,7 +14,6 @@ use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D};
 use euclid::num::Zero;
 use icu_locid::LanguageIdentifier;
-use icu_locid::subtags::language;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
@@ -43,6 +42,19 @@ macro_rules! ot_tag {
     ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => {
         (($t1 as u32) << 24) | (($t2 as u32) << 16) | (($t3 as u32) << 8) | ($t4 as u32)
     };
+}
+
+pub fn ot_tag_to_string(ot_tag: u32) -> String {
+    let mut buffer: Vec<u8> = vec![0_u8; 4];
+    buffer[0] = (ot_tag >> 24) as u8;
+    buffer[1] = ((ot_tag << 8) >> 24) as u8;
+    buffer[2] = ((ot_tag << 16) >> 24) as u8;
+    buffer[3] = ((ot_tag << 24) >> 24) as u8;
+    let result: String = match String::from_utf8(buffer) {
+        Err(_e) => String::from_str("err ").unwrap(),
+        Ok(data) => data,
+    };
+    result
 }
 
 pub const GPOS: u32 = ot_tag!('G', 'P', 'O', 'S');
@@ -76,6 +88,8 @@ pub trait PlatformFontMethods: Sized {
     fn new_from_template(
         template: FontTemplateRef,
         pt_size: Option<Au>,
+        weight: Option<FontWeight>,
+        stretch: Option<FontStretch>,
         data: &Option<FontData>,
     ) -> Result<PlatformFont, &'static str> {
         let template = template.borrow();
@@ -83,19 +97,23 @@ pub trait PlatformFontMethods: Sized {
 
         match font_identifier {
             FontIdentifier::Local(font_identifier) => {
-                Self::new_from_local_font_identifier(font_identifier, pt_size)
+                Self::new_from_local_font_identifier(font_identifier, pt_size, weight, stretch)
             },
             FontIdentifier::Web(_) => Self::new_from_data(
                 font_identifier,
                 data.as_ref()
                     .expect("Should never create a web font without data."),
                 pt_size,
+                weight,
+                stretch,
             ),
             FontIdentifier::LastResortFont => Self::new_from_data(
                 font_identifier,
                 data.as_ref()
                     .expect("Should never create last resort font without data."),
                 pt_size,
+                weight,
+                stretch,
             ),
         }
     }
@@ -103,12 +121,16 @@ pub trait PlatformFontMethods: Sized {
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
+        weight: Option<FontWeight>,
+        stretch: Option<FontStretch>,
     ) -> Result<PlatformFont, &'static str>;
 
     fn new_from_data(
         font_identifier: FontIdentifier,
         data: &FontData,
         pt_size: Option<Au>,
+        weight: Option<FontWeight>,
+        stretch: Option<FontStretch>,
     ) -> Result<PlatformFont, &'static str>;
 
     /// Get a [`FontTemplateDescriptor`] from a [`PlatformFont`]. This is used to get
@@ -299,6 +321,8 @@ impl Font {
         let handle = match PlatformFont::new_from_template(
             template.clone(),
             Some(descriptor.pt_size),
+            Some(descriptor.weight),
+            Some(descriptor.stretch),
             &data,
         ) {
             Err(e) => {

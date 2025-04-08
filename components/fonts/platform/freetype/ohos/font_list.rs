@@ -558,10 +558,10 @@ pub fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
     F: FnMut(FontTemplate),
 {
-    let mut produce_font = |font: &OpenHarmonyFontDescriptor, variation_index: &i32| {
+    let mut produce_font = |font: &OpenHarmonyFontDescriptor| {
         let local_font_identifier = LocalFontIdentifier {
             path: Atom::from(font.filepath.clone()),
-            variation_index: *variation_index,
+            variation_index: 0,
         };
         let stretch = font.width.into();
         let weight = font
@@ -617,9 +617,8 @@ where
     };
 
     if let Some(family) = FONT_LIST.find_family(family_name) {
-        let variation_index = 0;
         for font in &family.fonts {
-            produce_font(font, &variation_index);
+            produce_font(font);
         }
         return;
     }
@@ -634,17 +633,14 @@ where
         // TODO(ddesyatkin): Too many levels. Separate to different functions
         for alias in aliases {
             if let Some(family) = FONT_LIST.find_family(&alias.to) {
-                let mut variation_index = 0;
                 for font in &family.fonts {
                     match (alias.weight, font.weight) {
                         (None, _) => {
-                            produce_font(font, &variation_index);
-                            variation_index += 1;
+                            produce_font(font);
                         },
                         (Some(w1), Some(w2)) => {
                             if w1 == w2 {
-                                produce_font(font, &variation_index);
-                                variation_index += 1;
+                                produce_font(font);
                             }
                         },
                         _ => {},

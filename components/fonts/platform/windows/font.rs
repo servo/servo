@@ -116,6 +116,8 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         data: &FontData,
         pt_size: Option<Au>,
+        requested_weight: Option<StyleFontWeight>,
+        stretch: Option<FontStretch>,
     ) -> Result<Self, &'static str> {
         let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
             .ok_or("Could not create FontFile")?

@@ -25,6 +25,10 @@ pub type FontTemplateRef = Arc<AtomicRefCell<FontTemplate>>;
 
 /// Describes how to select a font from a given family. This is very basic at the moment and needs
 /// to be expanded or refactored when we support more of the font styling parameters.
+/// If we have a range i.e weight: (1, 999), than we are working with variable font.
+/// If we have fixed value: i.e. weight: (400, 400) we are working with particular face within
+/// Font that doesn't s support variable axis, or with face in variable font
+/// that we created with particular variations values
 ///
 /// NB: If you change this, you will need to update `style::properties::compute_font_hash()`.
 #[derive(Clone, Debug, Deserialize, Hash, MallocSizeOf, PartialEq, Serialize)]

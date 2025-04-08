@@ -193,6 +193,8 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: FontIdentifier,
         data: &FontData,
         requested_size: Option<Au>,
+        requested_weight: Option<StyleFontWeight>,
+        stretch: Option<FontStretch>,
     ) -> Result<PlatformFont, &'static str> {
         Self::new(font_identifier, Some(data), requested_size)
     }
