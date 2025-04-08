@@ -138,7 +138,7 @@ impl UnderlyingSourceContainer {
                 // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
 
                 // Let result be PackAndPostMessageHandlingError(port, "error", reason).
-                let result = port.pack_and_post_message_handling_error("error", reason);
+                let result = port.pack_and_post_message_handling_error("error", reason, can_gc);
 
                 // Disentangle port.
                 self.global().disentangle_port(&port);
@@ -148,7 +148,7 @@ impl UnderlyingSourceContainer {
                 // If result is an abrupt completion,
                 if let Err(error) = result {
                     // Return a promise rejected with result.[[Value]].
-                    promise.reject_native(&error, can_gc);
+                    promise.reject_error(error, can_gc);
                 } else {
                     // Otherwise, return a promise resolved with undefined.
                     promise.reject_native(&(), can_gc);

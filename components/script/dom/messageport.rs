@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
     MessagePortMethods, StructuredSerializeOptions,
 };
 use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::error::{Error, ErrorResult, ErrorToJsval};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
@@ -169,13 +169,26 @@ impl MessagePort {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessagehandlingerror>
+    #[allow(unsafe_code)]
     pub(crate) fn pack_and_post_message_handling_error(
         &self,
         type_: &str,
-        reason: HandleValue,
-    ) -> Result<(), ()> {
-        // TODO
-        todo!()
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        // Let result be PackAndPostMessage(port, type, value).
+        let result = self.pack_and_post_message(type_, value);
+
+        // If result is an abrupt completion,
+        if let Err(error) = result.clone() {
+            // Perform ! CrossRealmTransformSendError(port, result.[[Value]]).
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rooted_error = UndefinedValue());
+            error.to_jsval(cx, &self.global(), rooted_error.handle_mut(), can_gc);
+            self.cross_realm_transform_send_error(rooted_error.handle());
+        }
+
+        result
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessage>
