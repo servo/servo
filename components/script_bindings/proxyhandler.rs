@@ -606,7 +606,7 @@ pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
 /// for a maybe-cross-origin object.
 ///
 /// [`CrossOriginGet`]: https://html.spec.whatwg.org/multipage/#crossoriginget-(-o,-p,-receiver-)
-pub(crate) unsafe fn cross_origin_get<D: DomTypes>(
+pub(crate) fn cross_origin_get<D: DomTypes>(
     cx: SafeJSContext,
     proxy: RawHandleObject,
     receiver: RawHandleValue,
@@ -616,14 +616,16 @@ pub(crate) unsafe fn cross_origin_get<D: DomTypes>(
     // > 1. Let `desc` be `? O.[[GetOwnProperty]](P)`.
     rooted!(in(*cx) let mut descriptor = PropertyDescriptor::default());
     let mut is_none = false;
-    if !InvokeGetOwnPropertyDescriptor(
-        GetProxyHandler(*proxy),
-        *cx,
-        proxy,
-        id,
-        descriptor.handle_mut().into(),
-        &mut is_none,
-    ) {
+    if !unsafe {
+        InvokeGetOwnPropertyDescriptor(
+            GetProxyHandler(*proxy),
+            *cx,
+            proxy,
+            id,
+            descriptor.handle_mut().into(),
+            &mut is_none,
+        )
+    } {
         return false;
     }
 
@@ -654,16 +656,20 @@ pub(crate) unsafe fn cross_origin_get<D: DomTypes>(
     }
 
     rooted!(in(*cx) let mut getter_jsval = UndefinedValue());
-    getter.get().to_jsval(*cx, getter_jsval.handle_mut());
+    unsafe {
+        getter.get().to_jsval(*cx, getter_jsval.handle_mut());
+    }
 
     // > 7. Return `? Call(getter, Receiver)`.
-    jsapi::Call(
-        *cx,
-        receiver,
-        getter_jsval.handle().into(),
-        &jsapi::HandleValueArray::empty(),
-        vp,
-    )
+    unsafe {
+        jsapi::Call(
+            *cx,
+            receiver,
+            getter_jsval.handle().into(),
+            &jsapi::HandleValueArray::empty(),
+            vp,
+        )
+    }
 }
 
 /// Implementation of [`CrossOriginSet`].
