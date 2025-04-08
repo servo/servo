@@ -1801,7 +1801,7 @@ impl ReadableStream {
         // Let controller be a new ReadableStreamDefaultController.
         let controller = ReadableStreamDefaultController::new(
             &self.global(),
-            UnderlyingSourceType::Transfer,
+            UnderlyingSourceType::Transfer(Dom::from_ref(port)),
             1.0,
             size_algorithm,
             can_gc,
@@ -1822,7 +1822,7 @@ impl ReadableStream {
 }
 
 #[allow(unsafe_code)]
-/// The initial steps for the message handler for both readable and writable cross realm transforms. 
+/// The initial steps for the message handler for both readable and writable cross realm transforms.
 /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
 /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
 pub(crate) unsafe fn get_type_and_value_from_message(

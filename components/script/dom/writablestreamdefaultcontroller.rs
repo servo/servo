@@ -175,11 +175,11 @@ impl Callback for TransferBackPressurePromiseReaction {
             chunk.handle(),
         );
 
+        // Disentangle port.
+        global.disentangle_port(&self.port);
+
         // If result is an abrupt completion,
         if let Err(error) = result {
-            // Disentangle port.
-            global.disentangle_port(&self.port);
-
             // Return a promise rejected with result.[[Value]].
             self.result_promise.reject_native(&error, can_gc);
         } else {
@@ -665,7 +665,7 @@ impl WritableStreamDefaultController {
                 // Perform ! PackAndPostMessage(port, "close", undefined).
                 rooted!(in(*cx) let mut value = UndefinedValue());
                 port.pack_and_post_message(
-                    DOMString::from_string("closed ".to_string()),
+                    DOMString::from_string("closed".to_string()),
                     value.handle(),
                 );
 

@@ -7,8 +7,9 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
-use js::jsval::JSVal;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValue, IntoHandle};
+use script_bindings::str::DOMString;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -18,6 +19,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_w
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
 
@@ -40,8 +42,8 @@ pub(crate) enum UnderlyingSourceType {
     Js(JsUnderlyingSource, Heap<*mut JSObject>),
     /// Tee
     Tee(Dom<DefaultTeeUnderlyingSource>),
-    /// Transfer
-    Transfer,
+    /// Transfer, with the port used in some of the algorithms.
+    Transfer(Dom<MessagePort>),
 }
 
 impl UnderlyingSourceType {
@@ -52,7 +54,7 @@ impl UnderlyingSourceType {
             UnderlyingSourceType::Memory(_) |
                 UnderlyingSourceType::Blob(_) |
                 UnderlyingSourceType::FetchResponse |
-                UnderlyingSourceType::Transfer
+                UnderlyingSourceType::Transfer(_)
         )
     }
 
@@ -131,6 +133,31 @@ impl UnderlyingSourceContainer {
                 // Call the cancel algorithm for the appropriate branch.
                 tee_underlyin_source.cancel_algorithm(reason, can_gc)
             },
+            UnderlyingSourceType::Transfer(port) => {
+                // Let cancelAlgorithm be the following steps, taking a reason argument:
+                // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
+
+                // Let result be PackAndPostMessageHandlingError(port, "error", reason).
+                let result = port.pack_and_post_message_handling_error(
+                    DOMString::from_string("error".to_string()),
+                    reason,
+                );
+
+                // Disentangle port.
+                self.global().disentangle_port(&port);
+
+                let promise = Promise::new(&self.global(), can_gc);
+                
+                // If result is an abrupt completion,
+                if let Err(error) = result {
+                    // Return a promise rejected with result.[[Value]].
+                    promise.reject_native(&error, can_gc);
+                } else {
+                    // Otherwise, return a promise resolved with undefined.
+                    promise.reject_native(&(), can_gc);
+                }
+                Some(Ok(promise))
+            },
             _ => None,
         }
     }
@@ -160,6 +187,24 @@ impl UnderlyingSourceContainer {
             UnderlyingSourceType::Tee(tee_underlyin_source) => {
                 // Call the pull algorithm for the appropriate branch.
                 Some(Ok(tee_underlyin_source.pull_algorithm(can_gc)))
+            },
+            UnderlyingSourceType::Transfer(port) => {
+                // Let pullAlgorithm be the following steps:
+                // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
+
+                let cx = GlobalScope::get_cx();
+
+                // Perform ! PackAndPostMessage(port, "pull", undefined).
+                rooted!(in(*cx) let mut value = UndefinedValue());
+                port.pack_and_post_message(
+                    DOMString::from_string("pull".to_string()),
+                    value.handle(),
+                );
+
+                // Return a promise resolved with undefined.
+                let promise = Promise::new(&self.global(), can_gc);
+                promise.resolve_native(&(), can_gc);
+                Some(Ok(promise))
             },
             // Note: other source type have no pull steps for now.
             _ => None,
@@ -218,6 +263,11 @@ impl UnderlyingSourceContainer {
             },
             UnderlyingSourceType::Tee(_) => {
                 // Let startAlgorithm be an algorithm that returns undefined.
+                None
+            },
+            UnderlyingSourceType::Transfer(_) => {
+                // Let startAlgorithm be an algorithm that returns undefined.
+                // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
                 None
             },
             _ => None,
