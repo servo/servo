@@ -170,9 +170,9 @@ impl Callback for TransferBackPressurePromiseReaction {
         // Let result be PackAndPostMessageHandlingError(port, "chunk", chunk).
         rooted!(in(*cx) let mut chunk = UndefinedValue());
         chunk.set(self.chunk.get());
-        let result = self
-            .port
-            .pack_and_post_message_handling_error("chunk", chunk.handle());
+        let result =
+            self.port
+                .pack_and_post_message_handling_error("chunk", chunk.handle(), can_gc);
 
         // Disentangle port.
         global.disentangle_port(&self.port);
@@ -180,7 +180,7 @@ impl Callback for TransferBackPressurePromiseReaction {
         // If result is an abrupt completion,
         if let Err(error) = result {
             // Return a promise rejected with result.[[Value]].
-            self.result_promise.reject_native(&error, can_gc);
+            self.result_promise.reject_error(error, can_gc);
         } else {
             // Otherwise, return a promise resolved with undefined.
             self.result_promise.reject_native(&(), can_gc);
@@ -541,7 +541,7 @@ impl WritableStreamDefaultController {
             },
             UnderlyingSinkType::Transfer { ref port, .. } => {
                 // Let result be PackAndPostMessageHandlingError(port, "error", reason).
-                let result = port.pack_and_post_message_handling_error("error", reason);
+                let result = port.pack_and_post_message_handling_error("error", reason, can_gc);
 
                 // Disentangle port.
                 global.disentangle_port(&port);
@@ -550,7 +550,7 @@ impl WritableStreamDefaultController {
 
                 // If result is an abrupt completion, return a promise rejected with result.[[Value]]
                 if let Err(error) = result {
-                    promise.reject_native(&error, can_gc);
+                    promise.reject_error(error, can_gc);
                 } else {
                     // Otherwise, return a promise resolved with undefined.
                     promise.reject_native(&(), can_gc);
