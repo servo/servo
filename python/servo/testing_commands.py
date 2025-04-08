@@ -19,6 +19,7 @@ import subprocess
 import textwrap
 import json
 
+import servo.devtools_tests
 from servo.post_build_commands import PostBuildCommands
 import wpt
 import wpt.manifestupdate
@@ -325,6 +326,12 @@ class MachCommands(CommandBase):
             passed = run_globals["run_tests"](tests, verbose or very_verbose) and passed
 
         return 0 if passed else 1
+
+    @Command('test-devtools',
+             description='Run tests for devtools.',
+             category='testing')
+    def test_devtools(self):
+        servo.devtools_tests.run_tests(SCRIPT_PATH)
 
     @Command('test-wpt-failure',
              description='Run the tests harness that verifies that the test failures are reported correctly',
