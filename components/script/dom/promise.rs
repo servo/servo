@@ -412,13 +412,11 @@ impl FromJSValConvertibleRc for Promise {
         }
         rooted!(in(cx) let obj = value.get().to_object());
 
-        let promise_global = GlobalScope::from_object_maybe_wrapped(obj.handle().get(), cx);
-        let promise = Promise::new_resolved(
-            &promise_global,
-            SafeJSContext::from_ptr(cx),
-            *obj,
-            CanGc::note(),
-        );
+        let cx = SafeJSContext::from_ptr(cx);
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+        let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
+
+        let promise = Promise::new_resolved(&global_scope, cx, *obj, CanGc::note());
         Ok(ConversionResult::Success(promise))
     }
 }
