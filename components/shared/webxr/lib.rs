@@ -50,7 +50,7 @@ pub use mock::{
     MockButton, MockButtonType, MockDeviceInit, MockDeviceMsg, MockDiscoveryAPI, MockInputInit,
     MockInputMsg, MockRegion, MockViewInit, MockViewsInit, MockWorld,
 };
-pub use registry::{MainThreadRegistry, MainThreadWaker, Registry};
+pub use registry::{MainThreadRegistry, Registry};
 pub use session::{
     EnvironmentBlendMode, MainThreadSession, Quitter, Session, SessionBuilder, SessionId,
     SessionInit, SessionMode, SessionThread,
