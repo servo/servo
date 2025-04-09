@@ -46,7 +46,6 @@ webxr = [
     "dep:webxr",
     "dep:webxr-api",
     "compositing/webxr",
-    "embedder_traits/webxr",
     "canvas/webxr",
     "script/webxr",
 ]

@@ -1949,7 +1949,6 @@ dependencies = [
  "url",
  "webdriver",
  "webrender_api",
- "webxr-api",
 ]
 
 [[package]]
@@ -8699,6 +8698,7 @@ dependencies = [
 name = "webxr-api"
 version = "0.0.1"
 dependencies = [
+ "embedder_traits",
  "euclid",
  "ipc-channel",
  "log",

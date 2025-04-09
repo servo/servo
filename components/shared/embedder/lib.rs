@@ -90,21 +90,16 @@ pub enum Cursor {
     ZoomOut,
 }
 
-#[cfg(feature = "webxr")]
-pub use webxr_api::MainThreadWaker as EventLoopWaker;
-#[cfg(not(feature = "webxr"))]
 pub trait EventLoopWaker: 'static + Send {
     fn clone_box(&self) -> Box<dyn EventLoopWaker>;
     fn wake(&self);
 }
 
-#[cfg(not(feature = "webxr"))]
 impl Clone for Box<dyn EventLoopWaker> {
     fn clone(&self) -> Self {
-        EventLoopWaker::clone_box(self.as_ref())
+        self.clone_box()
     }
 }
-
 /// Sends messages to the embedder.
 pub struct EmbedderProxy {
     pub sender: Sender<EmbedderMsg>,
