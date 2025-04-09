@@ -4187,6 +4187,7 @@ dependencies = [
  "itertools 0.13.0",
  "log",
  "net_traits",
+ "num-traits",
  "parking_lot",
  "pixels",
  "quickcheck",
