@@ -58,7 +58,7 @@ use webrender_api::{
 use crate::InitialCompositorState;
 use crate::webview::{UnknownWebView, WebView};
 use crate::webview_manager::WebViewManager;
-use crate::windowing::{self, WebRenderDebugOption, WindowMethods};
+use crate::windowing::{WebRenderDebugOption, WindowMethods};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -258,22 +258,20 @@ impl PipelineDetails {
         self.animation_callbacks_running
     }
 
-    pub(crate) fn tick_animations(&self, compositor: &IOCompositor) -> bool {
-        let animation_callbacks_running = self.animation_callbacks_running;
-        let animations_running = self.animations_running;
-        if !animation_callbacks_running && !animations_running {
-            return false;
-        }
+    pub(crate) fn animating(&self) -> bool {
+        !self.throttled && (self.animation_callbacks_running || self.animations_running)
+    }
 
-        if self.throttled {
-            return false;
+    pub(crate) fn tick_animations(&self, compositor: &IOCompositor) {
+        if !self.animating() {
+            return;
         }
 
         let mut tick_type = AnimationTickType::empty();
-        if animations_running {
+        if self.animations_running {
             tick_type.insert(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
         }
-        if animation_callbacks_running {
+        if self.animation_callbacks_running {
             tick_type.insert(AnimationTickType::REQUEST_ANIMATION_FRAME);
         }
 
@@ -281,7 +279,6 @@ impl PipelineDetails {
         if let Err(e) = compositor.global.borrow().constellation_sender.send(msg) {
             warn!("Sending tick to constellation failed ({:?}).", e);
         }
-        true
     }
 }
 
@@ -487,6 +484,17 @@ impl IOCompositor {
         ViewportDetails {
             size: scaled_viewport_size / Scale::new(1.0),
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
+        }
+    }
+
+    pub fn webxr_running(&self) -> bool {
+        #[cfg(feature = "webxr")]
+        {
+            self.global.borrow().webxr_main_thread.running()
+        }
+        #[cfg(not(feature = "webxr"))]
+        {
+            false
         }
     }
 
@@ -1313,23 +1321,9 @@ impl IOCompositor {
         }
         self.last_animation_tick = Instant::now();
 
-        #[cfg(feature = "webxr")]
-        let webxr_running = self.global.borrow().webxr_main_thread.running();
-        #[cfg(not(feature = "webxr"))]
-        let webxr_running = false;
-
-        let any_webviews_animating = !self
-            .webviews
-            .iter()
-            .all(|webview| !webview.tick_all_animations(self));
-
-        let animation_state = if !any_webviews_animating && !webxr_running {
-            windowing::AnimationState::Idle
-        } else {
-            windowing::AnimationState::Animating
-        };
-
-        self.window.set_animation_state(animation_state);
+        for webview in self.webviews.iter() {
+            webview.tick_all_animations(self);
+        }
     }
 
     pub(crate) fn device_pixels_per_page_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {

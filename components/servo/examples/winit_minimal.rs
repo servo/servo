@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
 
-use compositing::windowing::{AnimationState, EmbedderMethods, WindowMethods};
+use compositing::windowing::{EmbedderMethods, WindowMethods};
 use euclid::{Point2D, Scale, Size2D};
 use servo::{RenderingContext, Servo, TouchEventType, WebView, WindowRenderingContext};
 use servo_geometry::DeviceIndependentPixel;
@@ -236,25 +236,17 @@ impl embedder_traits::EventLoopWaker for Waker {
 
 struct WindowDelegate {
     window: Window,
-    animation_state: Cell<AnimationState>,
 }
 
 impl WindowDelegate {
     fn new(window: Window) -> Self {
-        Self {
-            window,
-            animation_state: Cell::new(AnimationState::Idle),
-        }
+        Self { window }
     }
 }
 
 impl WindowMethods for WindowDelegate {
     fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         Scale::new(self.window.scale_factor() as f32)
-    }
-
-    fn set_animation_state(&self, state: compositing::windowing::AnimationState) {
-        self.animation_state.set(state);
     }
 }
 

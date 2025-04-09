@@ -375,6 +375,11 @@ pub trait WebViewDelegate {
     /// This [`WebView`] has either become focused or lost focus. Whether or not the
     /// [`WebView`] is focused can be accessed via [`WebView::focused`].
     fn notify_focus_changed(&self, _webview: WebView, _focused: bool) {}
+    /// This [`WebView`] has either started to animate or stopped animating. When a
+    /// [`WebView`] is animating, it is up to the embedding application ensure that
+    /// `Servo::spin_event_loop` is called at regular intervals in order to update the
+    /// painted contents of the [`WebView`].
+    fn notify_animating_changed(&self, _webview: WebView, _animating: bool) {}
     /// The `LoadStatus` of the currently loading or loaded page in this [`WebView`] has changed. The new
     /// status can accessed via [`WebView::load_status`].
     fn notify_load_status_changed(&self, _webview: WebView, _status: LoadStatus) {}
