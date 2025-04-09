@@ -629,6 +629,7 @@ impl HoistedAbsolutelyPositionedBox {
                         &mut positioning_context,
                         &containing_block_for_children,
                         containing_block,
+                        &context.base,
                         false, /* depends_on_block_constraints */
                     );
 

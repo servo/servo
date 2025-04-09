@@ -1934,7 +1934,7 @@ impl FlexItem<'_> {
                     }
                 }
 
-                let layout = non_replaced.layout_with_caching(
+                let layout = non_replaced.layout(
                     flex_context.layout_context,
                     &mut positioning_context,
                     &item_as_containing_block,
@@ -2686,7 +2686,7 @@ impl FlexItemBox {
                 };
                 let mut content_block_size = || {
                     non_replaced
-                        .layout_with_caching(
+                        .layout(
                             flex_context.layout_context,
                             &mut positioning_context,
                             &item_as_containing_block,

@@ -90,6 +90,26 @@ pub(crate) enum BlockLevelBox {
 }
 
 impl BlockLevelBox {
+    pub(crate) fn invalidate_cached_fragment(&self) {
+        match self {
+            BlockLevelBox::Independent(independent_formatting_context) => {
+                &independent_formatting_context.base
+            },
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                positioned_box
+                    .borrow()
+                    .context
+                    .base
+                    .invalidate_cached_fragment();
+                return;
+            },
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => &float_box.contents.base,
+            BlockLevelBox::OutsideMarker(outside_marker) => &outside_marker.base,
+            BlockLevelBox::SameFormattingContextBlock { base, .. } => base,
+        }
+        .invalidate_cached_fragment();
+    }
+
     fn contains_floats(&self) -> bool {
         match self {
             BlockLevelBox::SameFormattingContextBlock {
@@ -1140,6 +1160,7 @@ impl IndependentNonReplacedContents {
             positioning_context,
             &containing_block_for_children,
             containing_block,
+            base,
             false, /* depends_on_block_constraints */
         );
 
@@ -1327,6 +1348,7 @@ impl IndependentNonReplacedContents {
                     style,
                 },
                 containing_block,
+                base,
                 false, /* depends_on_block_constraints */
             );
 
@@ -1391,6 +1413,7 @@ impl IndependentNonReplacedContents {
                         style,
                     },
                     containing_block,
+                    base,
                     false, /* depends_on_block_constraints */
                 );
 
@@ -2281,6 +2304,7 @@ impl IndependentFormattingContext {
                     child_positioning_context,
                     &containing_block_for_children,
                     containing_block,
+                    &self.base,
                     false, /* depends_on_block_constraints */
                 );
                 let inline_size = independent_layout

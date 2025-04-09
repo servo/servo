@@ -219,7 +219,7 @@ impl IndependentFormattingContext {
 }
 
 impl IndependentNonReplacedContents {
-    pub fn layout(
+    pub(crate) fn layout_without_caching(
         &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
@@ -265,7 +265,7 @@ impl IndependentNonReplacedContents {
             level = "trace",
         )
     )]
-    pub fn layout_with_caching(
+    pub fn layout(
         &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
@@ -297,7 +297,7 @@ impl IndependentNonReplacedContents {
             positioning_context.collects_for_nearest_positioned_ancestor(),
         );
 
-        let result = self.layout(
+        let result = self.layout_without_caching(
             layout_context,
             &mut child_positioning_context,
             containing_block_for_children,

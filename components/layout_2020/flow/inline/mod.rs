@@ -196,6 +196,30 @@ pub(crate) enum InlineItem {
     ),
 }
 
+impl InlineItem {
+    pub(crate) fn invalidate_cached_fragment(&self) {
+        match self {
+            InlineItem::StartInlineBox(..) | InlineItem::EndInlineBox | InlineItem::TextRun(..) => {
+            },
+            InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
+                positioned_box
+                    .borrow()
+                    .context
+                    .base
+                    .invalidate_cached_fragment();
+            },
+            InlineItem::OutOfFlowFloatBox(float_box) => {
+                float_box.contents.base.invalidate_cached_fragment()
+            },
+            InlineItem::Atomic(independent_formatting_context, ..) => {
+                independent_formatting_context
+                    .base
+                    .invalidate_cached_fragment();
+            },
+        }
+    }
+}
+
 /// Information about the current line under construction for a particular
 /// [`InlineFormattingContextLayout`]. This tracks position and size information while
 /// [`LineItem`]s are collected and is used as input when those [`LineItem`]s are
