@@ -4,8 +4,6 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use std::fmt::Debug;
-
 use embedder_traits::{EventLoopWaker, MouseButton};
 use euclid::Scale;
 use net::protocols::ProtocolRegistry;
@@ -27,12 +25,6 @@ pub enum WebRenderDebugOption {
     RenderTargetDebug,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum AnimationState {
-    Idle,
-    Animating,
-}
-
 // TODO: this trait assumes that the window is responsible
 // for creating the GL context, making it current, buffer
 // swapping, etc. Really that should all be done by surfman.
@@ -40,12 +32,6 @@ pub trait WindowMethods {
     /// Get the HighDPI factor of the native window, the screen and the framebuffer.
     /// TODO(martin): Move this to `RendererWebView` when possible.
     fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
-    /// Set whether the application is currently animating.
-    /// Typically, when animations are active, the window
-    /// will want to avoid blocking on UI events, and just
-    /// run the event loop at the vsync interval.
-    /// TODO(martin): Move this to `RendererWebView` when possible.
-    fn set_animation_state(&self, _state: AnimationState);
 }
 
 pub trait EmbedderMethods {

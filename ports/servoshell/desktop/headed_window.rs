@@ -14,7 +14,7 @@ use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vec
 use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
-use servo::compositing::windowing::{AnimationState, WebRenderDebugOption, WindowMethods};
+use servo::compositing::windowing::{WebRenderDebugOption, WindowMethods};
 use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
@@ -62,7 +62,6 @@ pub struct Window {
     /// A map of winit's key codes to key values that are interpreted from
     /// winit's ReceivedChar events.
     keys_down: RefCell<HashMap<LogicalKey, Key>>,
-    animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<f32>,
     xr_window_poses: RefCell<Vec<Rc<XRWindowPose>>>,
@@ -151,7 +150,6 @@ impl Window {
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
             last_pressed: Cell::new(None),
             keys_down: RefCell::new(HashMap::new()),
-            animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             inner_size: Cell::new(inner_size),
             monitor,
@@ -570,10 +568,6 @@ impl WindowPortsMethods for Window {
         self.winit_window.set_cursor_visible(true);
     }
 
-    fn is_animating(&self) -> bool {
-        self.animation_state.get() == AnimationState::Animating
-    }
-
     fn id(&self) -> winit::window::WindowId {
         self.winit_window.id()
     }
@@ -771,10 +765,6 @@ impl WindowMethods for Window {
     fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         self.device_pixel_ratio_override()
             .unwrap_or_else(|| self.device_hidpi_factor())
-    }
-
-    fn set_animation_state(&self, state: AnimationState) {
-        self.animation_state.set(state);
     }
 }
 

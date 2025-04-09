@@ -590,4 +590,5 @@ impl From<SerializableImageData> for ImageData {
 pub trait RendererWebView {
     fn id(&self) -> WebViewId;
     fn screen_geometry(&self) -> Option<ScreenGeometry>;
+    fn set_animating(&self, new_value: bool);
 }
