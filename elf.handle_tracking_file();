@@ -1,0 +1,384 @@
+[1mdiff --git a/Cargo.lock b/Cargo.lock[m
+[1mindex 8b3dbf3754b..1ce4b2eeceb 100644[m
+[1m--- a/Cargo.lock[m
+[1m+++ b/Cargo.lock[m
+[36m@@ -4906,6 +4906,7 @@[m [mdependencies = [[m
+  "rustls-pemfile",[m
+  "rustls-pki-types",[m
+  "serde",[m
+[32m+[m[32m "serde-jsonlines",[m
+  "serde_json",[m
+  "servo_allocator",[m
+  "servo_arc",[m
+[36m@@ -6569,6 +6570,16 @@[m [mdependencies = [[m
+  "serde_derive",[m
+ ][m
+ [m
+[32m+[m[32m[[package]][m
+[32m+[m[32mname = "serde-jsonlines"[m
+[32m+[m[32mversion = "0.7.0"[m
+[32m+[m[32msource = "registry+https://github.com/rust-lang/crates.io-index"[m
+[32m+[m[32mchecksum = "013e069239d98648ea43a9c01845b381445e88de08b5a895ef9302e3bffde03d"[m
+[32m+[m[32mdependencies = [[m
+[32m+[m[32m "serde",[m
+[32m+[m[32m "serde_json",[m
+[32m+[m[32m][m
+[32m+[m
+ [[package]][m
+ name = "serde_bytes"[m
+ version = "0.11.17"[m
+[1mdiff --git a/components/net/Cargo.toml b/components/net/Cargo.toml[m
+[1mindex 6ecd746812a..6e60e9a6782 100644[m
+[1m--- a/components/net/Cargo.toml[m
+[1m+++ b/components/net/Cargo.toml[m
+[36m@@ -56,6 +56,7 @@[m [mrustls-pemfile = { workspace = true }[m
+ rustls-pki-types = { workspace = true }[m
+ serde = { workspace = true }[m
+ serde_json = { workspace = true }[m
+[32m+[m[32mserde-jsonlines = "0.7.0"[m
+ servo_allocator = { path = "../allocator" }[m
+ servo_arc = { workspace = true }[m
+ servo_config = { path = "../config" }[m
+[1mdiff --git a/components/net/resource_thread.rs b/components/net/resource_thread.rs[m
+[1mindex 28934c94091..f754871cc10 100644[m
+[1m--- a/components/net/resource_thread.rs[m
+[1m+++ b/components/net/resource_thread.rs[m
+[36m@@ -20,7 +20,7 @@[m [muse devtools_traits::DevtoolsControlMsg;[m
+ use embedder_traits::EmbedderProxy;[m
+ use hyper_serde::Serde;[m
+ use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};[m
+[31m-use log::{debug, trace, warn};[m
+[32m+[m[32muse log::{debug, error, trace, warn};[m
+ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};[m
+ use net_traits::blob_url_store::parse_blob_url;[m
+ use net_traits::filemanager_thread::FileTokenCheck;[m
+[36m@@ -39,6 +39,7 @@[m [muse profile_traits::path;[m
+ use profile_traits::time::ProfilerChan;[m
+ use rustls::RootCertStore;[m
+ use serde::{Deserialize, Serialize};[m
+[32m+[m[32muse serde_jsonlines::{append_json_lines, json_lines};[m
+ use servo_arc::Arc as ServoArc;[m
+ use servo_url::{ImmutableOrigin, ServoUrl};[m
+ [m
+[36m@@ -484,6 +485,48 @@[m [mimpl ResourceChannelManager {[m
+     }[m
+ }[m
+ [m
+[32m+[m[32mpub fn create_or_clear_file(config_dir: &Path, filename: &str) {[m
+[32m+[m[32m    let path = config_dir.join(filename);[m
+[32m+[m[32m    if let Err(why) = File::create("ee/ss/ee/dd.jsonl") {[m
+[32m+[m[32m        error!("Fail to create {}: {}", path.display(), why);[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mpub fn read_jsonl_file<T>(config_dir: &Path, filename: &str) -> Vec<T>[m
+[32m+[m[32mwhere[m
+[32m+[m[32m    T: for<'de> Deserialize<'de>,[m
+[32m+[m[32m{[m
+[32m+[m[32m    let path = config_dir.join(filename);[m
+[32m+[m[32m    let jsonl_iter = match json_lines::<T, _>(&path) {[m
+[32m+[m[32m        Ok(jsonl_iter) => jsonl_iter,[m
+[32m+[m[32m        Err(why) => {[m
+[32m+[m[32m            warn!("couldn't open {}: {}", path.display(), why);[m
+[32m+[m[32m            return Vec::new();[m
+[32m+[m[32m        },[m
+[32m+[m[32m    };[m
+[32m+[m[32m    jsonl_iter[m
+[32m+[m[32m        .filter_map(|data| match data {[m
+[32m+[m[32m            Ok(data) => Some(data),[m
+[32m+[m[32m            Err(why) => {[m
+[32m+[m[32m                warn!("Error when reading {}: {}", path.display(), why);[m
+[32m+[m[32m                None[m
+[32m+[m[32m            },[m
+[32m+[m[32m        })[m
+[32m+[m[32m        .collect()[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mpub fn append_to_jsonl_file<T>(item: T, config_dir: &Path, filename: &str)[m
+[32m+[m[32mwhere[m
+[32m+[m[32m    T: Serialize,[m
+[32m+[m[32m{[m
+[32m+[m[32m    let path = config_dir.join(filename);[m
+[32m+[m[32m    let display = path.display();[m
+[32m+[m[32m    match append_json_lines(&path, [item]) {[m
+[32m+[m[32m        Err(why) => error!("couldn't append to {}: {}", display, why),[m
+[32m+[m[32m        Ok(_) => trace!("successfully append to {}", display),[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+[32m+[m
+ pub fn read_json_from_file<T>(data: &mut T, config_dir: &Path, filename: &str)[m
+ where[m
+     T: for<'de> Deserialize<'de>,[m
+[1mdiff --git a/components/net/storage_thread.rs b/components/net/storage_thread.rs[m
+[1mindex dd058f17170..fb778d7ab39 100644[m
+[1m--- a/components/net/storage_thread.rs[m
+[1m+++ b/components/net/storage_thread.rs[m
+[36m@@ -8,13 +8,23 @@[m [muse std::path::PathBuf;[m
+ use std::thread;[m
+ [m
+ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};[m
+[32m+[m[32muse log::warn;[m
+ use net_traits::storage_thread::{StorageThreadMsg, StorageType};[m
+[32m+[m[32muse serde::{Deserialize, Serialize};[m
+ use servo_url::ServoUrl;[m
+ [m
+ use crate::resource_thread;[m
+ [m
+ const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;[m
+ [m
+[32m+[m[32m#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)][m
+[32m+[m[32mpub struct LocalStorageRecord {[m
+[32m+[m[32m    pub operation: String,[m
+[32m+[m[32m    pub origin: String,[m
+[32m+[m[32m    pub name: String,[m
+[32m+[m[32m    pub value: String,[m
+[32m+[m[32m}[m
+[32m+[m
+ pub trait StorageThreadFactory {[m
+     fn new(config_dir: Option<PathBuf>) -> Self;[m
+ }[m
+[36m@@ -41,10 +51,22 @@[m [mstruct StorageManager {[m
+ }[m
+ [m
+ impl StorageManager {[m
+[32m+[m[32m    /// When the local data is updated, we append the change as a single line in tracking file. At exit, we store the[m
+[32m+[m[32m    /// data to a json file and delete the tracking file. The tracking file is checked at the start of the program in[m
+[32m+[m[32m    /// case the changes from previous run is not properly stored in the json (e.g. caused by crash).[m
+[32m+[m[32m    /// TODO: Implement proper storage mechanism based on <https://storage.spec.whatwg.org/> and use proper key-value[m
+[32m+[m[32m    /// store mechanism.[m
+[32m+[m[32m    const LOCAL_DATA_FILENAME: &str = "local_data.json";[m
+[32m+[m[32m    const TRACK_CHANGES_FILENAME: &str = "track_changes.jsonl";[m
+[32m+[m
+     fn new(port: IpcReceiver<StorageThreadMsg>, config_dir: Option<PathBuf>) -> StorageManager {[m
+         let mut local_data = HashMap::new();[m
+         if let Some(ref config_dir) = config_dir {[m
+[31m-            resource_thread::read_json_from_file(&mut local_data, config_dir, "local_data.json");[m
+[32m+[m[32m            resource_thread::read_json_from_file([m
+[32m+[m[32m                &mut local_data,[m
+[32m+[m[32m                config_dir,[m
+[32m+[m[32m                Self::LOCAL_DATA_FILENAME,[m
+[32m+[m[32m            );[m
+         }[m
+         StorageManager {[m
+             port,[m
+[36m@@ -59,6 +81,9 @@[m [mimpl StorageManager {[m
+     fn start(&mut self) {[m
+         loop {[m
+             match self.port.recv().unwrap() {[m
+[32m+[m[32m                StorageThreadMsg::Initialize(sender) => {[m
+[32m+[m[32m                    self.handle_tracking_file(sender)[m
+[32m+[m[32m                },[m
+                 StorageThreadMsg::Length(sender, url, storage_type) => {[m
+                     self.length(sender, url, storage_type)[m
+                 },[m
+[36m@@ -69,22 +94,35 @@[m [mimpl StorageManager {[m
+                     self.keys(sender, url, storage_type)[m
+                 },[m
+                 StorageThreadMsg::SetItem(sender, url, storage_type, name, value) => {[m
+[31m-                    self.set_item(sender, url, storage_type, name, value);[m
+[31m-                    self.save_state()[m
+[32m+[m[32m                    self.set_item([m
+[32m+[m[32m                        sender,[m
+[32m+[m[32m                        url.clone(),[m
+[32m+[m[32m                        storage_type,[m
+[32m+[m[32m                        name.clone(),[m
+[32m+[m[32m                        value.clone(),[m
+[32m+[m[32m                    );[m
+[32m+[m[32m                    if matches!(storage_type, StorageType::Local) {[m
+[32m+[m[32m                        self.append_change(url, "SET", &name, &value);[m
+[32m+[m[32m                    }[m
+                 },[m
+                 StorageThreadMsg::GetItem(sender, url, storage_type, name) => {[m
+                     self.request_item(sender, url, storage_type, name)[m
+                 },[m
+                 StorageThreadMsg::RemoveItem(sender, url, storage_type, name) => {[m
+[31m-                    self.remove_item(sender, url, storage_type, name);[m
+[31m-                    self.save_state()[m
+[32m+[m[32m                    self.remove_item(sender, url.clone(), storage_type, name.clone());[m
+[32m+[m[32m                    if matches!(storage_type, StorageType::Local) {[m
+[32m+[m[32m                        self.append_change(url, "REMOVE", &name, "");[m
+[32m+[m[32m                    }[m
+                 },[m
+                 StorageThreadMsg::Clear(sender, url, storage_type) => {[m
+[31m-                    self.clear(sender, url, storage_type);[m
+[31m-                    self.save_state()[m
+[32m+[m[32m                    self.clear(sender, url.clone(), storage_type);[m
+[32m+[m[32m                    if matches!(storage_type, StorageType::Local) {[m
+[32m+[m[32m                        self.append_change(url, "CLEAR", "", "");[m
+[32m+[m[32m                    }[m
+                 },[m
+                 StorageThreadMsg::Exit(sender) => {[m
+[31m-                    // Nothing to do since we save localstorage set eagerly.[m
+[32m+[m[32m                    self.save_state();[m
+[32m+[m[32m                    self.clear_tracking_file();[m
+                     let _ = sender.send(());[m
+                     break;[m
+                 },[m
+[36m@@ -92,9 +130,96 @@[m [mimpl StorageManager {[m
+         }[m
+     }[m
+ [m
+[32m+[m[32m    fn update_from_record(&mut self, track_item: LocalStorageRecord) {[m
+[32m+[m[32m        match track_item.operation.as_str() {[m
+[32m+[m[32m            "SET" => {[m
+[32m+[m[32m                let storage_size = self[m
+[32m+[m[32m                    .local_data[m
+[32m+[m[32m                    .get(&track_item.origin)[m
+[32m+[m[32m                    .map_or(0, |&(total, _)| total);[m
+[32m+[m
+[32m+[m[32m                if !self.local_data.contains_key(&track_item.origin) {[m
+[32m+[m[32m                    self.local_data[m
+[32m+[m[32m                        .insert(track_item.origin.clone(), (0, BTreeMap::new()));[m
+[32m+[m[32m                }[m
+[32m+[m
+[32m+[m[32m                if let Some((total, entry)) = self.local_data.get_mut(&track_item.origin) {[m
+[32m+[m[32m                    let mut new_total_size = storage_size + track_item.value.len();[m
+[32m+[m[32m                    if let Some(old_value) = entry.get(&track_item.name) {[m
+[32m+[m[32m                        new_total_size -= old_value.len();[m
+[32m+[m[32m                    } else {[m
+[32m+[m[32m                        new_total_size += track_item.name.len();[m
+[32m+[m[32m                    }[m
+[32m+[m
+[32m+[m[32m                    entry.insert(track_item.name.clone(), track_item.value.clone());[m
+[32m+[m
+[32m+[m[32m                    *total = new_total_size;[m
+[32m+[m[32m                }[m
+[32m+[m[32m            },[m
+[32m+[m[32m            "REMOVE" => {[m
+[32m+[m[32m                self.local_data.get_mut(&track_item.origin).and_then([m
+[32m+[m[32m                    |&mut (ref mut total, ref mut entry)| {[m
+[32m+[m[32m                        entry.remove(&track_item.name).inspect(|old| {[m
+[32m+[m[32m                            *total -= track_item.name.len() + old.len();[m
+[32m+[m[32m                        })[m
+[32m+[m[32m                    },[m
+[32m+[m[32m                );[m
+[32m+[m[32m            },[m
+[32m+[m[32m            "CLEAR" => {[m
+[32m+[m[32m                if let Some((total, entry)) = self.local_data.get_mut(&track_item.origin) {[m
+[32m+[m[32m                    *total = 0;[m
+[32m+[m[32m                    entry.clear();[m
+[32m+[m[32m                }[m
+[32m+[m[32m            },[m
+[32m+[m[32m            _ => warn!("Invalid operation at tracking file"),[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // Merge local data with the change in TRACK_CHANGES_FILENAME,[m
+[32m+[m[32m    // then clear the file (or create the file if it did not exist).[m
+[32m+[m[32m    fn handle_tracking_file(&mut self) {[m
+[32m+[m[32m        let track_list = if let Some(ref config_dir) = self.config_dir {[m
+[32m+[m[32m            resource_thread::read_jsonl_file(config_dir, Self::TRACK_CHANGES_FILENAME)[m
+[32m+[m[32m        } else {[m
+[32m+[m[32m            return;[m
+[32m+[m[32m        };[m
+[32m+[m[32m        for track_elem in track_list {[m
+[32m+[m[32m            self.update_from_record(track_elem);[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        // Before clearing TRACK_CHANGES_FILENAME, make sure we write the data to LOCAL_DATA_FILENAME first.[m
+[32m+[m[32m        // This ensures the data from previous session is saved in the JSON file even if the current session crashes.[m
+[32m+[m[32m        self.save_state();[m
+[32m+[m[32m        self.clear_tracking_file();[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // Append every change to TRACK_CHANGES_FILENAME instead of overwriting LOCAL_DATA_FILENAME.[m
+[32m+[m[32m    fn append_change(&self, url: ServoUrl, operation: &str, name: &str, value: &str) {[m
+[32m+[m[32m        if let Some(ref config_dir) = self.config_dir {[m
+[32m+[m[32m            let origin = self.origin_as_string(url);[m
+[32m+[m[32m            let change = LocalStorageRecord {[m
+[32m+[m[32m                operation: operation.to_string(),[m
+[32m+[m[32m                origin,[m
+[32m+[m[32m                name: name.to_string(),[m
+[32m+[m[32m                value: value.to_string(),[m
+[32m+[m[32m            };[m
+[32m+[m[32m            resource_thread::append_to_jsonl_file(change, config_dir, Self::TRACK_CHANGES_FILENAME);[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    fn clear_tracking_file(&self) {[m
+[32m+[m[32m        if let Some(ref config_dir) = self.config_dir {[m
+[32m+[m[32m            resource_thread::create_or_clear_file(config_dir, Self::TRACK_CHANGES_FILENAME);[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m
+     fn save_state(&self) {[m
+         if let Some(ref config_dir) = self.config_dir {[m
+[31m-            resource_thread::write_json_to_file(&self.local_data, config_dir, "local_data.json");[m
+[32m+[m[32m            resource_thread::write_json_to_file([m
+[32m+[m[32m                &self.local_data,[m
+[32m+[m[32m                config_dir,[m
+[32m+[m[32m                Self::LOCAL_DATA_FILENAME,[m
+[32m+[m[32m            );[m
+         }[m
+     }[m
+ [m
+[1mdiff --git a/components/script/dom/storage.rs b/components/script/dom/storage.rs[m
+[1mindex 054e4ab5ac3..310d7749b7c 100644[m
+[1m--- a/components/script/dom/storage.rs[m
+[1m+++ b/components/script/dom/storage.rs[m
+[36m@@ -42,6 +42,17 @@[m [mimpl Storage {[m
+         storage_type: StorageType,[m
+         can_gc: CanGc,[m
+     ) -> DomRoot<Storage> {[m
+[32m+[m[32m        // Send initialize msg[m
+[32m+[m[32m        // self.global().resource_threads().sender()[m
+[32m+[m[32m        // .send(StorageThreadMsg::Length([m
+[32m+[m[32m        //     sender,[m
+[32m+[m[32m        //     self.get_url(),[m
+[32m+[m[32m        //     self.storage_type,[m
+[32m+[m[32m        // ))[m
+[32m+[m[32m        // .unwrap();[m
+[32m+[m[32m        // Await response[m
+[32m+[m[32m        // receiver.recv().unwrap() as u32[m
+[32m+[m[32m        // Analize it rand return Result<obj, err> or Option<obj>[m
+         reflect_dom_object([m
+             Box::new(Storage::new_inherited(storage_type)),[m
+             global,[m
+[1mdiff --git a/components/script/dom/window.rs b/components/script/dom/window.rs[m
+[1mindex 863c2299081..376377bb04a 100644[m
+[1m--- a/components/script/dom/window.rs[m
+[1m+++ b/components/script/dom/window.rs[m
+[36m@@ -949,7 +949,7 @@[m [mimpl WindowMethods<crate::DomTypeHolder> for Window {[m
+     // https://html.spec.whatwg.org/multipage/#dom-localstorage[m
+     fn LocalStorage(&self) -> DomRoot<Storage> {[m
+         self.local_storage[m
+[31m-            .or_init(|| Storage::new(self, StorageType::Local, CanGc::note()))[m
+[32m+[m[32m            .or_init(|| {Storage::new(self, StorageType::Local, CanGc::note())})[m
+     }[m
+ [m
+     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto[m
+[1mdiff --git a/components/script_bindings/webidls/Window.webidl b/components/script_bindings/webidls/Window.webidl[m
+[1mindex c7b6dde617d..0d151916be6 100644[m
+[1m--- a/components/script_bindings/webidls/Window.webidl[m
+[1m+++ b/components/script_bindings/webidls/Window.webidl[m
+[36m@@ -159,7 +159,7 @@[m [mWindow includes WindowSessionStorage;[m
+ [m
+ // https://html.spec.whatwg.org/multipage/#dom-localstorage[m
+ interface mixin WindowLocalStorage {[m
+[31m-  readonly attribute Storage localStorage;[m
+[32m+[m[32m  readonly attribute Storage? localStorage;[m
+ };[m
+ Window includes WindowLocalStorage;[m
+ [m
+[1mdiff --git a/components/shared/net/storage_thread.rs b/components/shared/net/storage_thread.rs[m
+[1mindex 0253603016e..5d2bd488474 100644[m
+[1m--- a/components/shared/net/storage_thread.rs[m
+[1m+++ b/components/shared/net/storage_thread.rs[m
+[36m@@ -16,6 +16,9 @@[m [mpub enum StorageType {[m
+ /// Request operations on the storage data associated with a particular url[m
+ #[derive(Debug, Deserialize, Serialize)][m
+ pub enum StorageThreadMsg {[m
+[32m+[m[32m    /// special method to avoid panics in Rust code in case we have fs problems[m
+[32m+[m[32m    Initialize(IpcSender<usize>),[m
+[32m+[m[41m    [m
+     /// gets the number of key/value pairs present in the associated storage data[m
+     Length(IpcSender<usize>, ServoUrl, StorageType),[m
+ [m
+[1mdiff --git a/tests/wpt/meta/webstorage/storage_local_setitem_quotaexceedederr.window.js.ini b/tests/wpt/meta/webstorage/storage_local_setitem_quotaexceedederr.window.js.ini[m
+[1mdeleted file mode 100644[m
+[1mindex 9740fd018f1..00000000000[m
+[1m--- a/tests/wpt/meta/webstorage/storage_local_setitem_quotaexceedederr.window.js.ini[m
+[1m+++ /dev/null[m
+[36m@@ -1,2 +0,0 @@[m
+[31m-[storage_local_setitem_quotaexceedederr.window.html][m
+[31m-    expected: TIMEOUT[m

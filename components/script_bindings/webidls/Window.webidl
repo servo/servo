@@ -159,7 +159,7 @@ Window includes WindowSessionStorage;
 
 // https://html.spec.whatwg.org/multipage/#dom-localstorage
 interface mixin WindowLocalStorage {
-  readonly attribute Storage localStorage;
+  [Throws] readonly attribute Storage? localStorage;
 };
 Window includes WindowLocalStorage;
 

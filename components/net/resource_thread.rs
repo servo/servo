@@ -20,7 +20,7 @@ use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
-use log::{debug, trace, warn};
+use log::{debug, error, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
@@ -39,6 +39,7 @@ use profile_traits::path;
 use profile_traits::time::ProfilerChan;
 use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
+use serde_jsonlines::{append_json_lines, json_lines};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -460,19 +461,29 @@ impl ResourceChannelManager {
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
-                    match http_state.auth_cache.read() {
-                        Ok(auth_cache) => {
-                            write_json_to_file(&*auth_cache, config_dir, "auth_cache.json")
-                        },
-                        Err(_) => warn!("Error writing auth cache to disk"),
+                    if let Ok(auth_cache) = http_state.auth_cache.read() {
+                        if write_json_to_file(&*auth_cache, config_dir, "auth_cache.json").is_err()
+                        {
+                            warn!("Error writing auth cache to disk");
+                        }
+                    } else {
+                        warn!("Error reading auth cache");
                     }
-                    match http_state.cookie_jar.read() {
-                        Ok(jar) => write_json_to_file(&*jar, config_dir, "cookie_jar.json"),
-                        Err(_) => warn!("Error writing cookie jar to disk"),
+
+                    if let Ok(jar) = http_state.cookie_jar.read() {
+                        if write_json_to_file(&*jar, config_dir, "cookie_jar.json").is_err() {
+                            warn!("Error writing cookie jar to disk");
+                        }
+                    } else {
+                        warn!("Error reading cookie jar");
                     }
-                    match http_state.hsts_list.read() {
-                        Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
-                        Err(_) => warn!("Error writing hsts list to disk"),
+
+                    if let Ok(hsts) = http_state.hsts_list.read() {
+                        if write_json_to_file(&*hsts, config_dir, "hsts_list.json").is_err() {
+                            warn!("Error writing hsts list to disk");
+                        }
+                    } else {
+                        warn!("Error reading hsts list");
                     }
                 }
                 self.resource_manager.exit();
@@ -481,6 +492,41 @@ impl ResourceChannelManager {
             },
         }
         true
+    }
+}
+
+pub fn read_jsonl_file<T>(config_dir: &Path, filename: &str) -> Vec<T>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    let path = config_dir.join(filename);
+    let jsonl_iter = match json_lines::<T, _>(&path) {
+        Ok(jsonl_iter) => jsonl_iter,
+        Err(why) => {
+            warn!("couldn't open {}: {}", path.display(), why);
+            return Vec::new();
+        },
+    };
+    jsonl_iter
+        .filter_map(|data| match data {
+            Ok(data) => Some(data),
+            Err(why) => {
+                warn!("Error when reading {}: {}", path.display(), why);
+                None
+            },
+        })
+        .collect()
+}
+
+pub fn append_to_jsonl_file<T>(item: T, config_dir: &Path, filename: &str)
+where
+    T: Serialize,
+{
+    let path = config_dir.join(filename);
+    let display = path.display();
+    match append_json_lines(&path, [item]) {
+        Err(why) => error!("couldn't append to {}: {}", display, why),
+        Ok(_) => trace!("successfully append to {}", display),
     }
 }
 
@@ -511,25 +557,25 @@ where
     }
 }
 
-pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
+#[allow(clippy::result_unit_err)]
+pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str) -> Result<(), ()>
 where
     T: Serialize,
 {
     let json_encoded: String = match serde_json::to_string_pretty(&data) {
         Ok(d) => d,
-        Err(_) => return,
+        Err(_) => return Ok(()),
     };
     let path = config_dir.join(filename);
-    let display = path.display();
 
     let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {}", display, why),
+        Err(_) => return Err(()),
         Ok(file) => file,
     };
 
     match file.write_all(json_encoded.as_bytes()) {
-        Err(why) => panic!("couldn't write to {}: {}", display, why),
-        Ok(_) => trace!("successfully wrote to {}", display),
+        Err(_) => Err(()),
+        Ok(_) => Ok(()),
     }
 }
 
