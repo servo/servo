@@ -41,12 +41,28 @@ impl Storage {
         global: &Window,
         storage_type: StorageType,
         can_gc: CanGc,
-    ) -> DomRoot<Storage> {
-        reflect_dom_object(
+    ) -> Result<Option<DomRoot<Storage>>, Error> {
+        let storage_reflector = reflect_dom_object(
             Box::new(Storage::new_inherited(storage_type)),
             global,
             can_gc,
-        )
+        );
+        match storage_type {
+            StorageType::Session => Ok(Some(storage_reflector)),
+            StorageType::Local => {
+                let (sender, receiver) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+                storage_reflector
+                    .global()
+                    .resource_threads()
+                    .sender()
+                    .send(StorageThreadMsg::Initialize(sender))
+                    .unwrap();
+                match receiver.recv().unwrap() {
+                    Ok(_) => Ok(Some(storage_reflector)),
+                    Err(_) => Err(Error::NotReadable),
+                }
+            },
+        }
     }
 
     fn get_url(&self) -> ServoUrl {

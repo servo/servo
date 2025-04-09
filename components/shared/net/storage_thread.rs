@@ -16,6 +16,9 @@ pub enum StorageType {
 /// Request operations on the storage data associated with a particular url
 #[derive(Debug, Deserialize, Serialize)]
 pub enum StorageThreadMsg {
+    /// special method to avoid panics in Rust code in case we have fs problems
+    Initialize(IpcSender<Result<(), ()>>),
+
     /// gets the number of key/value pairs present in the associated storage data
     Length(IpcSender<usize>, ServoUrl, StorageType),
 

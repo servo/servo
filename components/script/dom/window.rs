@@ -89,6 +89,7 @@ use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
+use super::bindings::error;
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
@@ -942,14 +943,28 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
     fn SessionStorage(&self) -> DomRoot<Storage> {
-        self.session_storage
-            .or_init(|| Storage::new(self, StorageType::Session, CanGc::note()))
+        self.session_storage.or_init(|| {
+            Storage::new(self, StorageType::Session, CanGc::note())
+                .unwrap()
+                .unwrap()
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-localstorage
-    fn LocalStorage(&self) -> DomRoot<Storage> {
-        self.local_storage
-            .or_init(|| Storage::new(self, StorageType::Local, CanGc::note()))
+    fn GetLocalStorage(&self) -> Result<Option<DomRoot<Storage>>, error::Error> {
+        // TODO: It will never return Ok(None) on current implementation. Meanwhile in spec, it can return Null object.
+        // <https://html.spec.whatwg.org/multipage/#the-localstorage-attribute>
+        match self.local_storage.get() {
+            Some(local_storage) => Ok(Some(local_storage)),
+            None => {
+                let storage_option = Storage::new(self, StorageType::Local, CanGc::note())?;
+
+                match storage_option {
+                    None => Ok(None),
+                    Some(storage) => Ok(Some(self.local_storage.or_init(|| storage))),
+                }
+            },
+        }
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
