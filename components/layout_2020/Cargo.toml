@@ -58,5 +58,5 @@ webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }
 
 [dev-dependencies]
-quickcheck = "1"
 num-traits = { workspace = true }
+quickcheck = "1"
