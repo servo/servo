@@ -307,7 +307,6 @@ promise_test(t => {
 }, "Test that decodingInfo rejects if the audio configuration contentType has one parameter that isn't codecs");
 
 promise_test(t => {
-  bt709Config.contentType = 'video/webm; codecs="vp09.00.10.08"';
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
         type: 'webrtc',
         video: videoConfigurationWithDynamicRange,

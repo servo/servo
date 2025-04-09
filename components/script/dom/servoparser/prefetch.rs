@@ -10,10 +10,11 @@ use content_security_policy::Destination;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tokenizer::states::RawKind;
 use html5ever::tokenizer::{
-    Tag, TagKind, Token, TokenSink, TokenSinkResult, Tokenizer as HtmlTokenizer, TokenizerResult,
+    Tag, TagKind, Token, TokenSink, TokenSinkResult, Tokenizer as HtmlTokenizer,
 };
 use html5ever::{Attribute, LocalName, local_name};
 use js::jsapi::JSTracer;
+use markup5ever::TokenizerResult;
 use net_traits::request::{
     CorsSettings, CredentialsMode, InsecureRequestsPolicy, ParserMetadata, Referrer,
 };
@@ -73,6 +74,7 @@ impl Tokenizer {
             // block the main parser.
             prefetching: Cell::new(false),
             insecure_requests_policy: document.insecure_requests_policy(),
+            has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
         };
         let options = Default::default();
         let inner = TraceableTokenizer(HtmlTokenizer::new(sink, options));
@@ -105,6 +107,7 @@ struct PrefetchSink {
     prefetching: Cell<bool>,
     #[no_trace]
     insecure_requests_policy: InsecureRequestsPolicy,
+    has_trustworthy_ancestor_origin: bool,
 }
 
 /// The prefetch tokenizer produces trivial results
@@ -146,6 +149,7 @@ impl TokenSink for PrefetchSink {
                             parser_metadata: ParserMetadata::ParserInserted,
                         },
                         self.insecure_requests_policy,
+                        self.has_trustworthy_ancestor_origin,
                     );
                     let _ = self
                         .resource_threads
@@ -164,6 +168,7 @@ impl TokenSink for PrefetchSink {
                         None,
                         self.referrer.clone(),
                         self.insecure_requests_policy,
+                        self.has_trustworthy_ancestor_origin,
                     )
                     .origin(self.origin.clone())
                     .pipeline_id(Some(self.pipeline_id))
@@ -198,6 +203,7 @@ impl TokenSink for PrefetchSink {
                                 None,
                                 self.referrer.clone(),
                                 self.insecure_requests_policy,
+                                self.has_trustworthy_ancestor_origin,
                             )
                             .origin(self.origin.clone())
                             .pipeline_id(Some(self.pipeline_id))

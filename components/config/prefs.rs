@@ -69,6 +69,7 @@ pub struct Preferences {
     /// List of comma-separated backends to be used by wgpu.
     pub dom_webgpu_wgpu_backend: String,
     pub dom_abort_controller_enabled: bool,
+    pub dom_async_clipboard_enabled: bool,
     pub dom_bluetooth_enabled: bool,
     pub dom_bluetooth_testing_enabled: bool,
     pub dom_allow_scripts_to_close_windows: bool,
@@ -114,6 +115,9 @@ pub struct Preferences {
     pub dom_testing_element_activation_enabled: bool,
     pub dom_testing_html_input_element_select_files_enabled: bool,
     pub dom_testperf_enabled: bool,
+    // https://testutils.spec.whatwg.org#availability
+    pub dom_testutils_enabled: bool,
+    pub dom_trusted_types_enabled: bool,
     /// Enable the [URLPattern] API.
     ///
     /// [URLPattern]: https://developer.mozilla.org/en-US/docs/Web/API/URLPattern
@@ -243,6 +247,7 @@ impl Preferences {
             devtools_server_port: 0,
             dom_abort_controller_enabled: false,
             dom_allow_scripts_to_close_windows: false,
+            dom_async_clipboard_enabled: false,
             dom_bluetooth_enabled: false,
             dom_bluetooth_testing_enabled: false,
             dom_canvas_capture_enabled: false,
@@ -287,6 +292,8 @@ impl Preferences {
             dom_testing_element_activation_enabled: false,
             dom_testing_html_input_element_select_files_enabled: false,
             dom_testperf_enabled: false,
+            dom_testutils_enabled: false,
+            dom_trusted_types_enabled: false,
             dom_urlpattern_enabled: false,
             dom_webgl2_enabled: false,
             dom_webgpu_enabled: false,

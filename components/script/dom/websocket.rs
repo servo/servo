@@ -6,6 +6,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
 
+use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -21,7 +22,6 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, MessageData, WebSocketDomAction, WebSocketNetworkEvent,
 };
 use profile_traits::ipc as ProfiledIpc;
-use script_traits::serializable::BlobImpl;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -261,6 +261,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         let request = RequestBuilder::new(global.webview_id(), url_record, Referrer::NoReferrer)
             .origin(global.origin().immutable().clone())
             .insecure_requests_policy(global.insecure_requests_policy())
+            .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
             .mode(RequestMode::WebSocket { protocols })
             .service_workers_mode(ServiceWorkersMode::None)
             .credentials_mode(CredentialsMode::Include)

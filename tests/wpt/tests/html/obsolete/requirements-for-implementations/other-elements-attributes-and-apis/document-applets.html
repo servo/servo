@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>document.applets</title>
+<link rel="help" href="https://html.spec.whatwg.org/C/#dom-document-applets">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<object></object>
+<object type="application/x-java-applet"></object>
+<object type="application/x-java-bean"></object>
+<object type="application/x-java-vm"></object>
+<object><param name="type" value="application/x-java-applet" /></object>
+<object><param name="type" value="application/x-java-bean" /></object>
+<object><param name="type" value="application/x-java-vm" /></object>
+
+<script>
+test(() => {
+  const collection = document.applets;
+  assert_true(collection instanceof HTMLCollection);
+  assert_equals(collection.length, 0, 'The collection should be empty.');
+}, 'document.applets should return an empty collection.');
+</script>

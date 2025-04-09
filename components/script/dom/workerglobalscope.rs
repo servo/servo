@@ -11,6 +11,7 @@ use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, PipelineNamespace};
+use constellation_traits::WorkerGlobalScopeInit;
 use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
@@ -24,7 +25,7 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder as NetRequestInit,
 };
-use script_traits::WorkerGlobalScopeInit;
+use profile_traits::mem::ProcessReports;
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
 use uuid::Uuid;
@@ -51,6 +52,7 @@ use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{base64_atob, base64_btoa};
@@ -121,6 +123,7 @@ pub(crate) struct WorkerGlobalScope {
     #[no_trace]
     navigation_start: CrossProcessInstant,
     performance: MutNullableDom<Performance>,
+    trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
     /// A [`TimerScheduler`] used to schedule timers for this [`WorkerGlobalScope`].
     /// Timers are handled in the service worker event loop.
@@ -183,6 +186,7 @@ impl WorkerGlobalScope {
             performance: Default::default(),
             timer_scheduler: RefCell::default(),
             insecure_requests_policy,
+            trusted_types: Default::default(),
         }
     }
 
@@ -296,6 +300,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             .use_url_credentials(true)
             .origin(global_scope.origin().immutable().clone())
             .insecure_requests_policy(self.insecure_requests_policy())
+            .has_trustworthy_ancestor_origin(
+                global_scope.has_trustworthy_ancestor_or_current_origin(),
+            )
             .pipeline_id(Some(self.upcast::<GlobalScope>().pipeline_id()));
 
             let (url, source) = match fetch::load_whole_resource(
@@ -473,6 +480,14 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         self.upcast::<GlobalScope>()
             .structured_clone(cx, value, options, retval)
     }
+
+    /// <https://www.w3.org/TR/trusted-types/#dom-windoworworkerglobalscope-trustedtypes>
+    fn TrustedTypes(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+        self.trusted_types.or_init(|| {
+            let global_scope = self.upcast::<GlobalScope>();
+            TrustedTypePolicyFactory::new(global_scope, can_gc)
+        })
+    }
 }
 
 impl WorkerGlobalScope {
@@ -532,7 +547,7 @@ impl WorkerGlobalScope {
             CommonScriptMsg::CollectReports(reports_chan) => {
                 let cx = self.get_cx();
                 let reports = cx.get_reports(format!("url({})", self.get_url()));
-                reports_chan.send(reports);
+                reports_chan.send(ProcessReports::new(reports));
             },
         }
         true

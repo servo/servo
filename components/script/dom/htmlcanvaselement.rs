@@ -7,6 +7,9 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
+use constellation_traits::BlobImpl;
+#[cfg(feature = "webgpu")]
+use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
@@ -20,9 +23,6 @@ use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
-#[cfg(feature = "webgpu")]
-use script_traits::ScriptMsg;
-use script_traits::serializable::BlobImpl;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 use style::attr::AttrValue;
@@ -334,7 +334,7 @@ impl HTMLCanvasElement {
         let global_scope = self.owner_global();
         let _ = global_scope
             .script_to_constellation_chan()
-            .send(ScriptMsg::GetWebGPUChan(sender));
+            .send(ScriptToConstellationMessage::GetWebGPUChan(sender));
         receiver
             .recv()
             .expect("Failed to get WebGPU channel")

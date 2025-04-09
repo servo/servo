@@ -19,11 +19,7 @@ pub(crate) fn make_marker<'dom, Node>(
 where
     Node: NodeExt<'dom>,
 {
-    // TODO: use `PseudoElement::Marker` when we add it.
-    let marker_info = info.pseudo(
-        context,
-        style::selector_parser::PseudoElement::ServoLegacyText,
-    )?;
+    let marker_info = info.pseudo(context, style::selector_parser::PseudoElement::Marker)?;
     let style = &marker_info.style;
     let list_style = style.get_list();
 

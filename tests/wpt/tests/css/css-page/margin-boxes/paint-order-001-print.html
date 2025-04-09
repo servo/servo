@@ -4,6 +4,9 @@
 <meta name="assert" content="Test default vertical and horizontal alignment for all 16 margin boxes">
 <link rel="match" href="paint-order-001-print-ref.html">
 <style>
+  :root {
+    print-color-adjust: exact;
+  }
   @page {
     margin: 100px;
     size: 500px 400px;

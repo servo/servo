@@ -8,6 +8,7 @@ use std::sync::Arc;
 use app_units::Au;
 use base::WebRenderEpochToU16;
 use base::id::ScrollTreeNodeId;
+use compositing_traits::display_list::{AxesScrollSensitivity, CompositorDisplayListInfo};
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit};
 use fonts::GlyphStore;
@@ -34,7 +35,6 @@ use webrender_api::{
     self as wr, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
     ImageRendering, NinePatchBorder, NinePatchBorderSource, units,
 };
-use webrender_traits::display_list::{AxesScrollSensitivity, CompositorDisplayListInfo};
 use wr::units::LayoutVector2D;
 
 use crate::context::{LayoutContext, ResolvedImage};
@@ -61,8 +61,7 @@ pub use stacking_context::*;
 
 #[derive(Clone, Copy)]
 pub struct WebRenderImageInfo {
-    pub width: u32,
-    pub height: u32,
+    pub size: Size2D<u32, UnknownUnit>,
     pub key: Option<wr::ImageKey>,
 }
 
@@ -817,8 +816,8 @@ impl<'a> BuilderForBoxFragment<'a> {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
                     let dppx = 1.0;
                     let intrinsic = NaturalSizes::from_width_and_height(
-                        image_info.width as f32 / dppx,
-                        image_info.height as f32 / dppx,
+                        image_info.size.width as f32 / dppx,
+                        image_info.size.height as f32 / dppx,
                     );
                     let Some(image_key) = image_info.key else {
                         continue;
@@ -1007,8 +1006,8 @@ impl<'a> BuilderForBoxFragment<'a> {
                     return false;
                 };
 
-                width = image_info.width as f32;
-                height = image_info.height as f32;
+                width = image_info.size.width as f32;
+                height = image_info.size.height as f32;
                 NinePatchBorderSource::Image(key, ImageRendering::Auto)
             },
             Some(ResolvedImage::Gradient(gradient)) => {

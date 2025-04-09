@@ -14,14 +14,14 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{SendTendril, StrTendril, Tendril};
-use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
+use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts};
 use html5ever::tree_builder::{
-    ElementFlags, NextParserState, NodeOrText as HtmlNodeOrText, QuirksMode, TreeBuilder,
-    TreeBuilderOpts, TreeSink,
+    ElementFlags, NodeOrText as HtmlNodeOrText, QuirksMode, TreeBuilder, TreeBuilderOpts, TreeSink,
 };
 use html5ever::{
     Attribute as HtmlAttribute, ExpandedName, QualName, local_name, namespace_url, ns,
 };
+use markup5ever::TokenizerResult;
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;
 
@@ -484,7 +484,7 @@ impl Tokenizer {
 
                 document
                     .upcast::<Node>()
-                    .AppendChild(doctype.upcast())
+                    .AppendChild(doctype.upcast(), can_gc)
                     .expect("Appending failed");
             },
             ParseOperation::AddAttrsIfMissing { target, attrs } => {
@@ -503,7 +503,7 @@ impl Tokenizer {
             },
             ParseOperation::RemoveFromParent { target } => {
                 if let Some(ref parent) = self.get_node(&target).GetParentNode() {
-                    parent.RemoveChild(&self.get_node(&target)).unwrap();
+                    parent.RemoveChild(&self.get_node(&target), can_gc).unwrap();
                 }
             },
             ParseOperation::MarkScriptAlreadyStarted { node } => {
@@ -517,7 +517,7 @@ impl Tokenizer {
                 let parent = self.get_node(&parent);
                 let new_parent = self.get_node(&new_parent);
                 while let Some(child) = parent.GetFirstChild() {
-                    new_parent.AppendChild(&child).unwrap();
+                    new_parent.AppendChild(&child, can_gc).unwrap();
                 }
             },
             ParseOperation::AssociateWithForm {
@@ -899,10 +899,6 @@ impl TreeSink for Sink {
 
     fn mark_script_already_started(&self, node: &Self::Handle) {
         self.send_op(ParseOperation::MarkScriptAlreadyStarted { node: node.id });
-    }
-
-    fn complete_script(&self, _: &Self::Handle) -> NextParserState {
-        panic!("complete_script should not be called here!");
     }
 
     fn reparent_children(&self, parent: &Self::Handle, new_parent: &Self::Handle) {

@@ -10,6 +10,7 @@ use std::str::{self, FromStr};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentLength, ContentType, HeaderMapExt};
@@ -31,7 +32,6 @@ use net_traits::{
     ResourceFetchTiming, ResourceTimingType, trim_http_whitespace,
 };
 use script_traits::DocumentActivity;
-use script_traits::serializable::BlobImpl;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 use url::Position;
@@ -688,6 +688,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .origin(self.global().origin().immutable().clone())
         .referrer_policy(self.referrer_policy)
         .insecure_requests_policy(self.global().insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(self.global().has_trustworthy_ancestor_or_current_origin())
         .pipeline_id(Some(self.global().pipeline_id()));
 
         // step 4 (second half)
@@ -1515,6 +1516,7 @@ impl XMLHttpRequest {
             false,
             false,
             Some(doc.insecure_requests_policy()),
+            doc.has_trustworthy_ancestor_origin(),
             can_gc,
         )
     }

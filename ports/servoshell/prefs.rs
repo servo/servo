@@ -548,6 +548,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
 
     if opt_match.opt_present("enable-experimental-web-platform-features") {
         vec![
+            "dom_async_clipboard_enabled",
             "dom_fontface_enabled",
             "dom_imagebitmap_enabled",
             "dom_intersection_observer_enabled",
@@ -558,13 +559,13 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
             "dom_resize_observer_enabled",
             "dom_serviceworker_enabled",
             "dom_svg_enabled",
+            "dom_trusted_types_enabled",
             "dom_webgl2_enabled",
             "dom_webgpu_enabled",
             "dom_xpath_enabled",
             "layout_columns_enabled",
             "layout_container_queries_enabled",
             "layout_grid_enabled",
-            "layout_writing_mode_enabled",
         ]
         .iter()
         .for_each(|pref| preferences.set_value(pref, PrefValue::Bool(true)));

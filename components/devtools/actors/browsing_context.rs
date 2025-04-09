@@ -11,8 +11,11 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, WantsLiveNotifications};
+use devtools_traits::DevtoolScriptControlMsg::{
+    self, GetCssDatabase, SimulateColorScheme, WantsLiveNotifications,
+};
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
+use embedder_traits::Theme;
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -29,6 +32,12 @@ use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
 use crate::id::{DevtoolsBrowserId, DevtoolsBrowsingContextId, DevtoolsOuterWindowId, IdMap};
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
+
+#[derive(Serialize)]
+struct ListWorkersReply {
+    from: String,
+    workers: Vec<()>,
+}
 
 #[derive(Serialize)]
 struct FrameUpdateReply {
@@ -161,6 +170,14 @@ impl Actor for BrowsingContextActor {
                 // TODO: Find out what needs to be listed here
                 let msg = EmptyReplyMsg { from: self.name() };
                 let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+            "listWorkers" => {
+                let _ = stream.write_json_packet(&ListWorkersReply {
+                    from: self.name(),
+                    // TODO: Find out what needs to be listed here
+                    workers: vec![],
+                });
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,
@@ -341,15 +358,29 @@ impl BrowsingContextActor {
         });
     }
 
-    pub(crate) fn resource_available<T: Serialize>(&self, message: T, resource_type: String) {
+    pub(crate) fn resource_available<T: Serialize>(&self, resource: T, resource_type: String) {
+        self.resources_available(vec![resource], resource_type);
+    }
+
+    pub(crate) fn resources_available<T: Serialize>(
+        &self,
+        resources: Vec<T>,
+        resource_type: String,
+    ) {
         let msg = ResourceAvailableReply::<T> {
             from: self.name(),
             type_: "resources-available-array".into(),
-            array: vec![(resource_type, vec![message])],
+            array: vec![(resource_type, resources)],
         };
 
         for stream in self.streams.borrow_mut().values_mut() {
             let _ = stream.write_json_packet(&msg);
         }
+    }
+
+    pub fn simulate_color_scheme(&self, theme: Theme) -> Result<(), ()> {
+        self.script_chan
+            .send(SimulateColorScheme(self.active_pipeline_id.get(), theme))
+            .map_err(|_| ())
     }
 }

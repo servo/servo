@@ -21,7 +21,11 @@ use base64::Engine;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
-use constellation_traits::{ScrollState, WindowSizeData, WindowSizeType};
+use compositing_traits::CrossProcessCompositorApi;
+use constellation_traits::{
+    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
+    ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
+};
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::{Parser, ParserInput, SourceLocation};
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
@@ -29,7 +33,7 @@ use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, SimpleDialog, Theme,
-    WebDriverJSError, WebDriverJSResult,
+    ViewportDetails, WebDriverJSError, WebDriverJSResult,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
@@ -62,10 +66,7 @@ use script_layout_interface::{
     FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
     TrustedNodeAddress, combine_id_with_fragment_type,
 };
-use script_traits::{
-    DocumentState, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptMsg, ScriptThreadMessage,
-    ScriptToConstellationChan, StructuredSerializedData,
-};
+use script_traits::ScriptThreadMessage;
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
 use servo_config::{opts, pref};
@@ -86,7 +87,6 @@ use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
-use webrender_traits::CrossProcessCompositorApi;
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
@@ -145,6 +145,7 @@ use crate::dom::selection::Selection;
 use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
+use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::UIEvent;
 use crate::dom::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
@@ -247,6 +248,7 @@ pub(crate) struct Window {
     session_storage: MutNullableDom<Storage>,
     local_storage: MutNullableDom<Storage>,
     status: DomRefCell<DOMString>,
+    trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
@@ -257,7 +259,7 @@ pub(crate) struct Window {
 
     /// Most recent unhandled resize event, if any.
     #[no_trace]
-    unhandled_resize_event: DomRefCell<Option<(WindowSizeData, WindowSizeType)>>,
+    unhandled_resize_event: DomRefCell<Option<(ViewportDetails, WindowSizeType)>>,
 
     /// Platform theme.
     #[no_trace]
@@ -274,9 +276,9 @@ pub(crate) struct Window {
     #[ignore_malloc_size_of = "Rc<T> is hard"]
     js_runtime: DomRefCell<Option<Rc<Runtime>>>,
 
-    /// The current size of the window, in pixels.
+    /// The [`ViewportDetails`] of this [`Window`]'s frame.
     #[no_trace]
-    window_size: Cell<WindowSizeData>,
+    viewport_details: Cell<ViewportDetails>,
 
     /// A handle for communicating messages to the bluetooth thread.
     #[no_trace]
@@ -904,7 +906,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                         // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.
                         window.discard_browsing_context();
 
-                        window.send_to_constellation(ScriptMsg::DiscardTopLevelBrowsingContext);
+                        window.send_to_constellation(ScriptToConstellationMessage::DiscardTopLevelBrowsingContext);
                     }
                 });
                 self.as_global_scope()
@@ -1260,6 +1262,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                 Some(PseudoElement::After)
             },
             Some(ref pseudo) if pseudo == "::selection" => Some(PseudoElement::Selection),
+            Some(ref pseudo) if pseudo == "::marker" => Some(PseudoElement::Marker),
             Some(ref pseudo) if pseudo.starts_with(':') => {
                 // Step 3.2: If type is failure, or is a ::slotted() or ::part()
                 // pseudo-element, let obj be null.
@@ -1300,9 +1303,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight
     //TODO Include Scrollbar
     fn InnerHeight(&self) -> i32 {
-        self.window_size
+        self.viewport_details
             .get()
-            .initial_viewport
+            .size
             .height
             .to_i32()
             .unwrap_or(0)
@@ -1311,12 +1314,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-innerwidth
     //TODO Include Scrollbar
     fn InnerWidth(&self) -> i32 {
-        self.window_size
-            .get()
-            .initial_viewport
-            .width
-            .to_i32()
-            .unwrap_or(0)
+        self.viewport_details.get().size.width.to_i32().unwrap_or(0)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-scrollx
@@ -1525,7 +1523,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://w3c.github.io/selection-api/#dom-window-getselection
     fn GetSelection(&self) -> Option<DomRoot<Selection>> {
-        self.document.get().and_then(|d| d.GetSelection())
+        self.document
+            .get()
+            .and_then(|d| d.GetSelection(CanGc::note()))
     }
 
     // https://dom.spec.whatwg.org/#dom-window-event
@@ -1701,6 +1701,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         self.as_global_scope()
             .structured_clone(cx, value, options, retval)
     }
+
+    fn TrustedTypes(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+        self.trusted_types
+            .or_init(|| TrustedTypePolicyFactory::new(self.as_global_scope(), can_gc))
+    }
 }
 
 impl Window {
@@ -1822,7 +1827,7 @@ impl Window {
 
         // Step 5 & 6
         // TODO: Remove scrollbar dimensions.
-        let viewport = self.window_size.get().initial_viewport;
+        let viewport = self.viewport_details.get().size;
 
         // Step 7 & 8
         // TODO: Consider `block-end` and `inline-end` overflow direction.
@@ -1885,7 +1890,7 @@ impl Window {
     }
 
     pub(crate) fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.window_size.get().device_pixel_ratio
+        self.viewport_details.get().hidpi_scale_factor
     }
 
     fn client_window(&self) -> (Size2D<u32, CSSPixel>, Point2D<i32, CSSPixel>) {
@@ -1893,7 +1898,7 @@ impl Window {
         let (sender, receiver) =
             ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
         let _ = self.compositor_api.sender().send(
-            webrender_traits::CrossProcessCompositorMessage::GetClientWindowRect(
+            compositing_traits::CrossProcessCompositorMessage::GetClientWindowRect(
                 self.webview_id(),
                 sender,
             ),
@@ -1994,7 +1999,7 @@ impl Window {
             document: document.upcast::<Node>().to_trusted_node_address(),
             dirty_root,
             stylesheets_changed,
-            window_size: self.window_size.get(),
+            viewport_details: self.viewport_details.get(),
             origin: self.origin().immutable().clone(),
             reflow_goal,
             dom_count: document.dom_count(),
@@ -2050,9 +2055,9 @@ impl Window {
         let size_messages = self
             .Document()
             .iframes_mut()
-            .handle_new_iframe_sizes_after_layout(results.iframe_sizes, self.device_pixel_ratio());
+            .handle_new_iframe_sizes_after_layout(results.iframe_sizes);
         if !size_messages.is_empty() {
-            self.send_to_constellation(ScriptMsg::IFrameSizes(size_messages));
+            self.send_to_constellation(ScriptToConstellationMessage::IFrameSizes(size_messages));
         }
         document
             .image_animation_manager_mut()
@@ -2150,7 +2155,7 @@ impl Window {
                     "{:?}: Sending DocumentState::Idle to Constellation",
                     self.pipeline_id()
                 );
-                let event = ScriptMsg::SetDocumentState(DocumentState::Idle);
+                let event = ScriptToConstellationMessage::SetDocumentState(DocumentState::Idle);
                 self.send_to_constellation(event);
                 self.has_sent_idle_message.set(true);
             }
@@ -2232,7 +2237,7 @@ impl Window {
             self.pipeline_id()
         );
         let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let event = ScriptMsg::SetLayoutEpoch(epoch, sender);
+        let event = ScriptToConstellationMessage::SetLayoutEpoch(epoch, sender);
         self.send_to_constellation(event);
         let _ = receiver.recv();
     }
@@ -2364,11 +2369,11 @@ impl Window {
     /// If the given |browsing_context_id| refers to an `<iframe>` that is an element
     /// in this [`Window`] and that `<iframe>` has been laid out, return its size.
     /// Otherwise, return `None`.
-    pub(crate) fn get_iframe_size_if_known(
+    pub(crate) fn get_iframe_viewport_details_if_known(
         &self,
         browsing_context_id: BrowsingContextId,
         can_gc: CanGc,
-    ) -> Option<Size2D<f32, CSSPixel>> {
+    ) -> Option<ViewportDetails> {
         // Reflow might fail, but do a best effort to return the right size.
         self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery, can_gc);
         self.Document()
@@ -2450,7 +2455,7 @@ impl Window {
             // Step 6
             // TODO: Fragment handling appears to have moved to step 13
             if let Some(fragment) = load_data.url.fragment() {
-                self.send_to_constellation(ScriptMsg::NavigatedToFragment(
+                self.send_to_constellation(ScriptToConstellationMessage::NavigatedToFragment(
                     load_data.url.clone(),
                     history_handling,
                 ));
@@ -2533,12 +2538,12 @@ impl Window {
         };
     }
 
-    pub(crate) fn set_window_size(&self, size: WindowSizeData) {
-        self.window_size.set(size);
+    pub(crate) fn set_viewport_details(&self, size: ViewportDetails) {
+        self.viewport_details.set(size);
     }
 
-    pub(crate) fn window_size(&self) -> WindowSizeData {
-        self.window_size.get()
+    pub(crate) fn viewport_details(&self) -> ViewportDetails {
+        self.viewport_details.get()
     }
 
     /// Handle a theme change request, triggering a reflow is any actual change occured.
@@ -2563,13 +2568,13 @@ impl Window {
         self.dom_static.windowproxy_handler
     }
 
-    pub(crate) fn add_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
+    pub(crate) fn add_resize_event(&self, event: ViewportDetails, event_type: WindowSizeType) {
         // Whenever we receive a new resize event we forget about all the ones that came before
         // it, to avoid unnecessary relayouts
         *self.unhandled_resize_event.borrow_mut() = Some((event, event_type))
     }
 
-    pub(crate) fn take_unhandled_resize_event(&self) -> Option<(WindowSizeData, WindowSizeType)> {
+    pub(crate) fn take_unhandled_resize_event(&self) -> Option<(ViewportDetails, WindowSizeType)> {
         self.unhandled_resize_event.borrow_mut().take()
     }
 
@@ -2685,7 +2690,7 @@ impl Window {
             return false;
         };
 
-        if self.window_size() == new_size {
+        if self.viewport_details() == new_size {
             return false;
         }
 
@@ -2693,9 +2698,9 @@ impl Window {
         debug!(
             "Resizing Window for pipeline {:?} from {:?} to {new_size:?}",
             self.pipeline_id(),
-            self.window_size(),
+            self.viewport_details(),
         );
-        self.set_window_size(new_size);
+        self.set_viewport_details(new_size);
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
@@ -2774,10 +2779,10 @@ impl Window {
     }
 
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
-        self.send_to_constellation(ScriptMsg::ForwardToEmbedder(msg));
+        self.send_to_constellation(ScriptToConstellationMessage::ForwardToEmbedder(msg));
     }
 
-    pub(crate) fn send_to_constellation(&self, msg: ScriptMsg) {
+    pub(crate) fn send_to_constellation(&self, msg: ScriptToConstellationMessage) {
         self.as_global_scope()
             .script_to_constellation_chan()
             .send(msg)
@@ -2823,7 +2828,7 @@ impl Window {
         control_chan: IpcSender<ScriptThreadMessage>,
         pipeline_id: PipelineId,
         parent_info: Option<PipelineId>,
-        window_size: WindowSizeData,
+        viewport_details: ViewportDetails,
         origin: MutableOrigin,
         creator_url: ServoUrl,
         navigation_start: CrossProcessInstant,
@@ -2848,7 +2853,7 @@ impl Window {
 
         let initial_viewport = f32_rect_to_au_rect(UntypedRect::new(
             Point2D::zero(),
-            window_size.initial_viewport.to_untyped(),
+            viewport_details.size.to_untyped(),
         ));
 
         let win = Box::new(Self {
@@ -2894,7 +2899,7 @@ impl Window {
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(MaxRect::max_rect()),
             unhandled_resize_event: Default::default(),
-            window_size: Cell::new(window_size),
+            viewport_details: Cell::new(viewport_details),
             current_viewport: Cell::new(initial_viewport.to_untyped()),
             layout_blocker: Cell::new(LayoutBlocker::WaitingForParse),
             current_state: Cell::new(WindowState::Alive),
@@ -2927,6 +2932,7 @@ impl Window {
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
             theme: Cell::new(PrefersColorScheme::Light),
+            trusted_types: Default::default(),
         });
 
         unsafe {

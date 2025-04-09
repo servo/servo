@@ -8,22 +8,21 @@ use std::collections::hash_map::Keys;
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
-use compositing_traits::SendableFrameTree;
-use constellation_traits::{CompositorHitTestResult, ConstellationMsg, ScrollState};
+use compositing_traits::{RendererWebView, SendableFrameTree};
+use constellation_traits::{EmbedderToConstellationMessage, ScrollState};
 use embedder_traits::{
-    InputEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, ShutdownState,
-    TouchEvent, TouchEventType, TouchId,
+    AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
+    MouseButtonEvent, MouseMoveEvent, ShutdownState, TouchEvent, TouchEventResult, TouchEventType,
+    TouchId,
 };
 use euclid::{Point2D, Scale, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
-use script_traits::{AnimationState, TouchEventResult};
 use webrender::Transaction;
 use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{
     ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
-use webrender_traits::RendererWebView;
 
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};
@@ -168,14 +167,9 @@ impl WebView {
             }
         });
 
-        let _ = self
-            .global
-            .borrow()
-            .constellation_sender
-            .send(ConstellationMsg::SetScrollStates(
-                pipeline_id,
-                scroll_states,
-            ));
+        let _ = self.global.borrow().constellation_sender.send(
+            EmbedderToConstellationMessage::SetScrollStates(pipeline_id, scroll_states),
+        );
     }
 
     pub(crate) fn set_frame_tree_on_pipeline_details(
@@ -295,16 +289,9 @@ impl WebView {
 
         self.global.borrow_mut().update_cursor(point, &result);
 
-        if let Err(error) =
-            self.global
-                .borrow()
-                .constellation_sender
-                .send(ConstellationMsg::ForwardInputEvent(
-                    self.id,
-                    event,
-                    Some(result),
-                ))
-        {
+        if let Err(error) = self.global.borrow().constellation_sender.send(
+            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
+        ) {
             warn!("Sending event to constellation failed ({error:?}).");
         }
     }
@@ -364,16 +351,9 @@ impl WebView {
 
         event.init_sequence_id(self.touch_handler.current_sequence_id);
         let event = InputEvent::Touch(event);
-        if let Err(e) =
-            self.global
-                .borrow()
-                .constellation_sender
-                .send(ConstellationMsg::ForwardInputEvent(
-                    self.id,
-                    event,
-                    Some(result),
-                ))
-        {
+        if let Err(e) = self.global.borrow().constellation_sender.send(
+            EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, Some(result)),
+        ) {
             warn!("Sending event to constellation failed ({:?}).", e);
             false
         } else {

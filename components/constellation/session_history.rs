@@ -6,11 +6,10 @@ use std::cmp::PartialEq;
 use std::fmt;
 
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, WebViewId};
-use euclid::Size2D;
+use constellation_traits::LoadData;
+use embedder_traits::ViewportDetails;
 use log::debug;
-use script_traits::LoadData;
 use servo_url::ServoUrl;
-use style_traits::CSSPixel;
 
 use crate::browsingcontext::NewBrowsingContextInfo;
 
@@ -127,8 +126,8 @@ pub struct SessionHistoryChange {
     /// easily available when they need to be constructed.
     pub new_browsing_context_info: Option<NewBrowsingContextInfo>,
 
-    /// The size of the viewport for the browsing context.
-    pub window_size: Size2D<f32, CSSPixel>,
+    /// The size and hidpi scale factor of the viewport for the browsing context.
+    pub viewport_details: ViewportDetails,
 }
 
 /// Represents a pipeline or discarded pipeline in a history entry.

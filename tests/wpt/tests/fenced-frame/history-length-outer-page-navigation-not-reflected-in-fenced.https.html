@@ -2,41 +2,22 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/utils.js"></script>
+<script src="resources/history-length-test-helper.js"></script>
 <script src="/common/utils.js"></script>
-<title>history-length-outer-page-navigation-not-reflected-in-fenced</title>
+<title>Test fenced frames can't see outer page history length</title>
 
 <body>
 <script>
-const fenced_history_length_key = token();
-const outer_page_ready_for_next_navigation_key = token();
-
-async function runTest(embed_scope_reporting) {
+promise_test(async () => {
   const kAssertionDesc =  "history.length Should never reflect the length " +
                           "of joint session history that occured outside " +
                           "of the fenced frame tree. history.length will " +
                           "always return 1."
 
-  ////////////// BEGIN NAVIGATIONS
-  // This block performs a sequence of 'kNavigationLimit' navigations in:
-  // -- the outer page
-  const kNavigationLimit = 5
+  maybeNavigateForHistory();
 
-  const url = new URL(location.href);
-
-  // First, perform some real navigations as well as history.pushState to this
-  // same page. Normally this would increase `history.length`.
-  if (url.searchParams.get("navigationCount") == null)
-    url.searchParams.append("navigationCount", 1);
-
-  let navigationCount = parseInt(url.searchParams.get("navigationCount"));
-
-  if (navigationCount <= kNavigationLimit) {
-    url.searchParams.set('navigationCount', ++navigationCount);
-    location.href = url;
-    history.pushState({} , "");
-    return;
-  }
-  ////////////// END
+  const fenced_history_length_key = token();
+  const outer_page_ready_for_next_navigation_key = token();
 
   // Append an iframe to the outer page for subsequent navigations within
   // the iframe
@@ -57,22 +38,13 @@ async function runTest(embed_scope_reporting) {
       "resources/history-length-outer-page-navigation-" +
       "not-reflected-in-fenced-inner.html",
       [fenced_history_length_key, outer_page_ready_for_next_navigation_key,
-       embed_scope_fenced_frame, embed_scope_reporting])
+       embed_scope_fenced_frame, "outer_page::fenced_frame"])
   );
 
-  // Wait for the 'embed_scope_reporting' to report 'history.length'
+  // Wait for the fenced frame to report 'history.length'
   let result = await nextValueFromServer(fenced_history_length_key);
   assert_equals(result, "PASS > " + " history.length: 1", kAssertionDesc);
-}
-
-promise_test(async () => {
-  await runTest("outer_page::fenced_frame");
 }, "history.length should not reflect navigations within outer page in " +
   "fenced frame");
-
-promise_test(async () => {
-  await runTest("outer_page::fenced_frame::iframe");
-}, "history.length should not reflect navigations within outer page in " +
-  "fenced frame nexted iframe");
 </script>
 </body>

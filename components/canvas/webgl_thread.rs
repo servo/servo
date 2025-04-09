@@ -22,6 +22,7 @@ use canvas_traits::webgl::{
     WebGLSLVersion, WebGLSamplerId, WebGLSender, WebGLShaderId, WebGLSyncId, WebGLTextureId,
     WebGLVersion, WebGLVertexArrayId, YAxisTreatment,
 };
+use compositing_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use glow::{
@@ -43,7 +44,6 @@ use webrender_api::{
     DirtyRect, DocumentId, ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind,
     ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
 };
-use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 
 use crate::webgl_limits::GLLimitsDetect;
 #[cfg(feature = "webxr")]

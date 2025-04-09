@@ -14,6 +14,7 @@ path = "lib.rs"
 [dependencies]
 base = { workspace = true }
 ipc-channel = { workspace = true }
+log = { workspace = true }
 parking_lot = { workspace = true }
 profile_traits = { workspace = true }
 serde = { workspace = true }

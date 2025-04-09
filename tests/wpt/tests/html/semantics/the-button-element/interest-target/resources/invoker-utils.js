@@ -14,6 +14,10 @@ async function clickOn(element) {
       .send();
   await waitForRender();
 }
+async function focusOn(element) {
+  element.focus();
+  await waitForRender();
+}
 async function hoverOver(element) {
   await waitForRender();
   let rect = element.getBoundingClientRect();

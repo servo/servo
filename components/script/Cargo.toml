@@ -49,6 +49,7 @@ canvas_traits = { workspace = true }
 cbc = { workspace = true }
 chrono = { workspace = true }
 cipher = { workspace = true }
+compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
@@ -83,6 +84,7 @@ libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+markup5ever = { workspace = true }
 media = { path = "../media" }
 metrics = { path = "../metrics" }
 mime = { workspace = true }
@@ -132,11 +134,11 @@ url = { workspace = true }
 utf-8 = "0.7"
 uuid = { workspace = true, features = ["serde"] }
 webdriver = { workspace = true }
-webgpu = { path = "../webgpu" }
 webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 webxr-api = { workspace = true, features = ["ipc"], optional = true }
+wgpu-core = { workspace = true }
+wgpu-types = { workspace = true }
 xml5ever = { workspace = true }
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]

@@ -49,13 +49,15 @@ idl_test(
       CSSMarginRule: ['sheet.cssRules[2].cssRules[0]'],
       CSSMediaRule: ['sheet.cssRules[3]'],
       CSSStyleRule: ['sheet.cssRules[4]'],
-      CSSStyleDeclaration: [
+      CSSStyleProperties: [
         'sheet.cssRules[4].style', // CSSStyleRule
-        'sheet.cssRules[2].style', // CSSPageRule
         'sheet.cssRules[2].cssRules[0].style', // CSSMarginRule
         'style_element.style', // ElementCSSInlineStyle for HTMLElement
         'svg_element.style', // ElementCSSInlineStyle for SVGElement
         'getComputedStyle(svg_element)'
+      ],
+      CSSPageDescriptors: [
+        'sheet.cssRules[2].style', // CSSPageRule
       ],
       ProcessingInstruction: ['xmlss_pi'],
       Window: ['window'],

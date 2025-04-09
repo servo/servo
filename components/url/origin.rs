@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
+use std::net::IpAddr;
 use std::rc::Rc;
 
 use malloc_size_of::malloc_size_of_is_0;
@@ -39,7 +40,14 @@ impl ImmutableOrigin {
 
     /// Creates a new opaque origin that is only equal to itself.
     pub fn new_opaque() -> ImmutableOrigin {
-        ImmutableOrigin::Opaque(OpaqueOrigin(servo_rand::random_uuid()))
+        ImmutableOrigin::Opaque(OpaqueOrigin::Opaque(servo_rand::random_uuid()))
+    }
+
+    // For use in mixed security context tests because data: URL workers inherit contexts
+    pub fn new_opaque_data_url_worker() -> ImmutableOrigin {
+        ImmutableOrigin::Opaque(OpaqueOrigin::SecureWorkerFromDataUrl(
+            servo_rand::random_uuid(),
+        ))
     }
 
     pub fn scheme(&self) -> Option<&str> {
@@ -79,6 +87,43 @@ impl ImmutableOrigin {
         }
     }
 
+    /// <https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy>
+    pub fn is_potentially_trustworthy(&self) -> bool {
+        // 1. If origin is an opaque origin return "Not Trustworthy"
+        if matches!(self, ImmutableOrigin::Opaque(_)) {
+            return false;
+        }
+
+        if let ImmutableOrigin::Tuple(scheme, host, _) = self {
+            // 3. If origin’s scheme is either "https" or "wss", return "Potentially Trustworthy"
+            if scheme == "https" || scheme == "wss" {
+                return true;
+            }
+            // 6. If origin’s scheme is "file", return "Potentially Trustworthy".
+            if scheme == "file" {
+                return true;
+            }
+
+            // 4. If origin’s host matches one of the CIDR notations 127.0.0.0/8 or ::1/128,
+            // return "Potentially Trustworthy".
+            if let Ok(ip_addr) = host.to_string().parse::<IpAddr>() {
+                return ip_addr.is_loopback();
+            }
+            // 5. If the user agent conforms to the name resolution rules in
+            // [let-localhost-be-localhost] and one of the following is true:
+            // * origin’s host is "localhost" or "localhost."
+            // * origin’s host ends with ".localhost" or ".localhost."
+            // then return "Potentially Trustworthy".
+            if let Host::Domain(domain) = host {
+                if domain == "localhost" || domain.ends_with(".localhost") {
+                    return true;
+                }
+            }
+        }
+        // 9. Return "Not Trustworthy".
+        false
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin>
     pub fn ascii_serialization(&self) -> String {
         self.clone().into_url_origin().ascii_serialization()
@@ -87,8 +132,13 @@ impl ImmutableOrigin {
 
 /// Opaque identifier for URLs that have file or other schemes
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub struct OpaqueOrigin(Uuid);
-
+pub enum OpaqueOrigin {
+    Opaque(Uuid),
+    // Workers created from `data:` urls will have opaque origins but need to be treated
+    // as inheriting the secure context they were created in. This tracks that the origin
+    // was created in such a context
+    SecureWorkerFromDataUrl(Uuid),
+}
 malloc_size_of_is_0!(OpaqueOrigin);
 
 /// A representation of an [origin](https://html.spec.whatwg.org/multipage/#origin-2).

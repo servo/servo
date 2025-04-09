@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover focus behaviors</title>
+<meta name="timeout" content="long">
+<link rel="author" title="Luke Warlow" href="mailto:lwarlow@igalia.com">
+<link rel=help href="https://open-ui.org/components/popover.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<div id=no-focus-candidate>
+  <button tabindex="0">Toggle popover</button>
+  <div popover id=no-focus-candidate-p>
+    Popover with <button tabindex="0">focusable element</button>
+    <div popover id=no-focus-candidate-p2>Nested popover with <button tabindex="0">focusable element</button></div>
+  </div>
+</div>
+<button id="after"></button>
+
+<script>
+async function testNoFocusCandidate() {
+  const invoker = document.querySelector('#no-focus-candidate>button');
+  const popover = document.querySelector('#no-focus-candidate>[popover]');
+  const nestedPopover = document.querySelector('#no-focus-candidate>[popover]>[popover]');
+  invoker.focus(); // Make sure button is focused.
+  assert_equals(document.activeElement,invoker);
+  invoker.click(); // Activate the invoker
+  assert_true(popover.matches(':popover-open'), 'popover should be invoked by invoker');
+  assert_equals(document.activeElement,invoker, 'invoker should still be focused');
+  await sendTab();
+  assert_equals(document.activeElement,popover.querySelector('button'),'next up is the popover');
+  await sendEnter(); // Show nested popover
+  assert_true(nestedPopover.matches(':popover-open'), 'nested popover should be invoked by invoker');
+  await sendTab();
+  assert_equals(document.activeElement, nestedPopover.querySelector('button'), 'focus on the nested popover button');
+  popover.querySelector('button').disabled = true; // Make the invoker no longer a focus candidate.
+  await sendShiftTab();
+  assert_equals(document.activeElement, invoker, 'initial invoker should be focused, nested popover invoker is skipped since it is disabled');
+  nestedPopover.querySelector('button').focus();
+  await sendTab();
+  assert_equals(document.activeElement,after,'no more focusable elements after the button');
+}
+promise_test(async t => {
+  const invoker = document.querySelector('#no-focus-candidate>button');
+  const popover = document.querySelector('#no-focus-candidate>[popover]');
+  const nestedButton = popover.querySelector('button');
+  const nestedPopover = document.querySelector('#no-focus-candidate>[popover]>[popover]');
+  invoker.setAttribute('popovertarget', 'no-focus-candidate-p');
+  nestedButton.setAttribute('popovertarget', 'no-focus-candidate-p2');
+  t.add_cleanup(() => {
+    invoker.removeAttribute('popovertarget');
+    nestedButton.removeAttribute('popovertarget');
+    nestedButton.disabled = false;
+    popover.hidePopover();
+    nestedPopover.hidePopover();
+  });
+  await testNoFocusCandidate();
+}, "Cases where the next focus candidate isn't in the direct parent scope with popovertarget invocation");
+promise_test(async t => {
+  const invoker = document.querySelector('#no-focus-candidate>button');
+  const popover = document.querySelector('#no-focus-candidate>[popover]');
+  const nestedButton = popover.querySelector('button');
+  const nestedPopover = document.querySelector('#no-focus-candidate>[popover]>[popover]');
+  invoker.setAttribute('commandfor', 'no-focus-candidate-p');
+  invoker.setAttribute('command', 'toggle-popover');
+  nestedButton.setAttribute('commandfor', 'no-focus-candidate-p2');
+  nestedButton.setAttribute('command', 'toggle-popover');
+  t.add_cleanup(() => {
+    invoker.removeAttribute('command');
+    invoker.removeAttribute('commandfor');
+    nestedButton.removeAttribute('command');
+    nestedButton.removeAttribute('commandfor');
+    nestedButton.disabled = false;
+    popover.hidePopover();
+    nestedPopover.hidePopover();
+  });
+  await testNoFocusCandidate();
+}, "Cases where the next focus candidate isn't in the direct parent scope with command/commandfor invocation");
+promise_test(async t => {
+  const invoker = document.querySelector('#no-focus-candidate>button');
+  const popover = document.querySelector('#no-focus-candidate>[popover]');
+  const nestedButton = popover.querySelector('button');
+  const nestedPopover = document.querySelector('#no-focus-candidate>[popover]>[popover]');
+  const invokerClick = () => {
+    popover.togglePopover({ source: invoker });
+  };
+  invoker.addEventListener('click', invokerClick);
+  const nestedButtonClick = () => {
+    nestedPopover.togglePopover({ source: nestedButton });
+  };
+  nestedButton.addEventListener('click', nestedButtonClick);
+  t.add_cleanup(() => {
+    invoker.removeEventListener('click', invokerClick);
+    nestedButton.removeEventListener('click', nestedButtonClick);
+    nestedButton.disabled = false;
+    popover.hidePopover();
+    nestedPopover.hidePopover();
+  });
+  await testNoFocusCandidate();
+}, "Cases where the next focus candidate isn't in the direct parent scope with imperative invocation");
+</script>

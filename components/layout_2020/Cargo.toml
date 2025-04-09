@@ -22,6 +22,7 @@ atomic_refcell = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
 canvas_traits = { workspace = true }
+compositing_traits = { workspace = true }
 data-url = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
@@ -54,7 +55,6 @@ unicode-bidi = { workspace = true }
 unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }
 
 [dev-dependencies]

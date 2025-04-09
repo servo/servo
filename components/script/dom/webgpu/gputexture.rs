@@ -5,9 +5,8 @@
 use std::string::String;
 
 use dom_struct::dom_struct;
-use webgpu::wgc::resource;
-use webgpu::wgt;
 use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
+use wgpu_core::resource;
 
 use super::gpuconvert::convert_texture_descriptor;
 use crate::conversions::Convert;
@@ -37,7 +36,7 @@ pub(crate) struct GPUTexture {
     channel: WebGPU,
     #[ignore_malloc_size_of = "defined in wgpu"]
     #[no_trace]
-    texture_size: wgt::Extent3d,
+    texture_size: wgpu_types::Extent3d,
     mip_level_count: u32,
     sample_count: u32,
     dimension: GPUTextureDimension,
@@ -51,7 +50,7 @@ impl GPUTexture {
         texture: WebGPUTexture,
         device: &GPUDevice,
         channel: WebGPU,
-        texture_size: wgt::Extent3d,
+        texture_size: wgpu_types::Extent3d,
         mip_level_count: u32,
         sample_count: u32,
         dimension: GPUTextureDimension,
@@ -80,7 +79,7 @@ impl GPUTexture {
         texture: WebGPUTexture,
         device: &GPUDevice,
         channel: WebGPU,
-        texture_size: wgt::Extent3d,
+        texture_size: wgpu_types::Extent3d,
         mip_level_count: u32,
         sample_count: u32,
         dimension: GPUTextureDimension,
@@ -193,12 +192,14 @@ impl GPUTextureMethods<crate::DomTypeHolder> for GPUTexture {
                     .map(|f| self.device.validate_texture_format_required_features(&f))
                     .transpose()?,
                 dimension: descriptor.dimension.map(|dimension| dimension.convert()),
-                usage: Some(wgt::TextureUsages::from_bits_retain(descriptor.usage)),
-                range: wgt::ImageSubresourceRange {
+                usage: Some(wgpu_types::TextureUsages::from_bits_retain(
+                    descriptor.usage,
+                )),
+                range: wgpu_types::ImageSubresourceRange {
                     aspect: match descriptor.aspect {
-                        GPUTextureAspect::All => wgt::TextureAspect::All,
-                        GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
-                        GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
+                        GPUTextureAspect::All => wgpu_types::TextureAspect::All,
+                        GPUTextureAspect::Stencil_only => wgpu_types::TextureAspect::StencilOnly,
+                        GPUTextureAspect::Depth_only => wgpu_types::TextureAspect::DepthOnly,
                     },
                     base_mip_level: descriptor.baseMipLevel,
                     mip_level_count: descriptor.mipLevelCount,

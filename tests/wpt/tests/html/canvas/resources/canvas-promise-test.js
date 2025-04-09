@@ -19,10 +19,11 @@
  * Enum listing all test types emitted by `canvasPromiseTest()`.
  */
 const CanvasTestType = Object.freeze({
-  HTML:   Symbol("html"),
-  DETACHED_HTML:   Symbol("detached_html"),
-  OFFSCREEN:  Symbol("offscreen"),
-  WORKER: Symbol("worker")
+  HTML:   Symbol('html'),
+  DETACHED_HTML:   Symbol('detached_html'),
+  OFFSCREEN:  Symbol('offscreen'),
+  PLACEHOLDER: Symbol('placeholder'),
+  WORKER: Symbol('worker')
 });
 
 ALL_CANVAS_TEST_TYPES = Object.values(CanvasTestType);
@@ -43,6 +44,7 @@ MAIN_THREAD_CANVAS_TEST_TYPES = [
     CanvasTestType.HTML,
     CanvasTestType.DETACHED_HTML,
     CanvasTestType.OFFSCREEN,
+    CanvasTestType.PLACEHOLDER,
 ];
 WORKER_CANVAS_TEST_TYPES = [
     CanvasTestType.WORKER,
@@ -98,6 +100,18 @@ function canvasPromiseTest(
     promise_test(() => testBody(new OffscreenCanvas(300, 150),
                                 {canvasType: CanvasTestType.OFFSCREEN}),
                  'OffscreenCanvas: ' + description);
+  }
+
+  if (testTypes.includes(CanvasTestType.PLACEHOLDER)) {
+    promise_test(async () => {
+      if (!document.body) {
+        document.documentElement.appendChild(document.createElement("body"));
+      }
+      const placeholder = document.createElement('canvas');
+      document.body.appendChild(placeholder);
+      await testBody(placeholder.transferControlToOffscreen(),
+                     {canvasType: CanvasTestType.PLACEHOLDER});
+    }, 'PlaceholderCanvas: ' + description);
   }
 }
 

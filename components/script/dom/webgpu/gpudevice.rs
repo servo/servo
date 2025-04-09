@@ -10,15 +10,15 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
-use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
-use webgpu::wgc::pipeline as wgpu_pipe;
-use webgpu::wgc::pipeline::RenderPipelineDescriptor;
-use webgpu::wgt::{self, TextureFormat};
 use webgpu_traits::{
     PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
     WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
     WebGPURenderPipelineResponse, WebGPURequest,
 };
+use wgpu_core::id::{BindGroupLayoutId, PipelineLayoutId};
+use wgpu_core::pipeline as wgpu_pipe;
+use wgpu_core::pipeline::RenderPipelineDescriptor;
+use wgpu_types::{self, TextureFormat};
 
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpuerror::AsWebGpu;
@@ -143,8 +143,8 @@ impl GPUDevice {
         channel: WebGPU,
         adapter: &GPUAdapter,
         extensions: Heap<*mut JSObject>,
-        features: wgt::Features,
-        limits: wgt::Limits,
+        features: wgpu_types::Features,
+        limits: wgpu_types::Limits,
         device: WebGPUDevice,
         queue: WebGPUQueue,
         label: String,
@@ -274,14 +274,14 @@ impl GPUDevice {
                         .map(|buffer| wgpu_pipe::VertexBufferLayout {
                             array_stride: buffer.arrayStride,
                             step_mode: match buffer.stepMode {
-                                GPUVertexStepMode::Vertex => wgt::VertexStepMode::Vertex,
-                                GPUVertexStepMode::Instance => wgt::VertexStepMode::Instance,
+                                GPUVertexStepMode::Vertex => wgpu_types::VertexStepMode::Vertex,
+                                GPUVertexStepMode::Instance => wgpu_types::VertexStepMode::Instance,
                             },
                             attributes: Cow::Owned(
                                 buffer
                                     .attributes
                                     .iter()
-                                    .map(|att| wgt::VertexAttribute {
+                                    .map(|att| wgpu_types::VertexAttribute {
                                         format: att.format.convert(),
                                         offset: att.offset,
                                         shader_location: att.shaderLocation,
@@ -305,13 +305,14 @@ impl GPUDevice {
                                 .map(|state| {
                                     self.validate_texture_format_required_features(&state.format)
                                         .map(|format| {
-                                            Some(wgt::ColorTargetState {
+                                            Some(wgpu_types::ColorTargetState {
                                                 format,
-                                                write_mask: wgt::ColorWrites::from_bits_retain(
-                                                    state.writeMask,
-                                                ),
+                                                write_mask:
+                                                    wgpu_types::ColorWrites::from_bits_retain(
+                                                        state.writeMask,
+                                                    ),
                                                 blend: state.blend.as_ref().map(|blend| {
-                                                    wgt::BlendState {
+                                                    wgpu_types::BlendState {
                                                         color: (&blend.color).convert(),
                                                         alpha: (&blend.alpha).convert(),
                                                     }
@@ -330,19 +331,19 @@ impl GPUDevice {
                 .as_ref()
                 .map(|dss_desc| {
                     self.validate_texture_format_required_features(&dss_desc.format)
-                        .map(|format| wgt::DepthStencilState {
+                        .map(|format| wgpu_types::DepthStencilState {
                             format,
                             depth_write_enabled: dss_desc.depthWriteEnabled,
                             depth_compare: dss_desc.depthCompare.convert(),
-                            stencil: wgt::StencilState {
-                                front: wgt::StencilFaceState {
+                            stencil: wgpu_types::StencilState {
+                                front: wgpu_types::StencilFaceState {
                                     compare: dss_desc.stencilFront.compare.convert(),
 
                                     fail_op: dss_desc.stencilFront.failOp.convert(),
                                     depth_fail_op: dss_desc.stencilFront.depthFailOp.convert(),
                                     pass_op: dss_desc.stencilFront.passOp.convert(),
                                 },
-                                back: wgt::StencilFaceState {
+                                back: wgpu_types::StencilFaceState {
                                     compare: dss_desc.stencilBack.compare.convert(),
                                     fail_op: dss_desc.stencilBack.failOp.convert(),
                                     depth_fail_op: dss_desc.stencilBack.depthFailOp.convert(),
@@ -351,7 +352,7 @@ impl GPUDevice {
                                 read_mask: dss_desc.stencilReadMask,
                                 write_mask: dss_desc.stencilWriteMask,
                             },
-                            bias: wgt::DepthBiasState {
+                            bias: wgpu_types::DepthBiasState {
                                 constant: dss_desc.depthBias,
                                 slope_scale: *dss_desc.depthBiasSlopeScale,
                                 clamp: *dss_desc.depthBiasClamp,
@@ -359,7 +360,7 @@ impl GPUDevice {
                         })
                 })
                 .transpose()?,
-            multisample: wgt::MultisampleState {
+            multisample: wgpu_types::MultisampleState {
                 count: descriptor.multisample.count,
                 mask: descriptor.multisample.mask as u64,
                 alpha_to_coverage_enabled: descriptor.multisample.alphaToCoverageEnabled,

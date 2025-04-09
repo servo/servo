@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
 
+use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource as EmbedderResource};
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
@@ -41,7 +42,6 @@ use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageDescriptor,
     ImageDescriptorFlags, ImageFormat, ImageKey,
 };
-use webrender_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
@@ -894,6 +894,7 @@ impl HTMLMediaElement {
             None,
             self.global().get_referrer(),
             document.insecure_requests_policy(),
+            document.has_trustworthy_ancestor_or_current_origin(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())
@@ -1927,7 +1928,7 @@ impl HTMLMediaElement {
             .SetTextContent(Some(DOMString::from(media_controls_script)), can_gc);
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(script.upcast::<Node>())
+            .AppendChild(script.upcast::<Node>(), can_gc)
         {
             warn!("Could not render media controls {:?}", e);
             return;
@@ -1948,7 +1949,7 @@ impl HTMLMediaElement {
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(style.upcast::<Node>())
+            .AppendChild(style.upcast::<Node>(), can_gc)
         {
             warn!("Could not render media controls {:?}", e);
         }

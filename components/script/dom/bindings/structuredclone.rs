@@ -10,6 +10,10 @@ use std::os::raw;
 use std::ptr;
 
 use base::id::{BlobId, DomPointId, MessagePortId, PipelineNamespaceId};
+use constellation_traits::{
+    BlobImpl, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
+    StructuredSerializedData, Transferrable as TransferrableInterface,
+};
 use js::glue::{
     CopyJSStructuredCloneData, DeleteJSAutoStructuredCloneBuffer, GetLengthOfJSStructuredCloneData,
     NewJSAutoStructuredCloneBuffer, WriteBytesToJSStructuredCloneData,
@@ -24,12 +28,6 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use script_bindings::conversions::IDLInterface;
-use script_traits::serializable::{BlobImpl, DomPoint};
-use script_traits::transferable::MessagePortImpl;
-use script_traits::{
-    Serializable as SerializableInterface, StructuredSerializedData,
-    Transferrable as TransferrableInterface,
-};
 use strum::IntoEnumIterator;
 
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
@@ -566,7 +564,7 @@ pub(crate) fn read(
     global: &GlobalScope,
     mut data: StructuredSerializedData,
     rval: MutableHandleValue,
-) -> Result<Vec<DomRoot<MessagePort>>, ()> {
+) -> Fallible<Vec<DomRoot<MessagePort>>> {
     let cx = GlobalScope::get_cx();
     let _ac = enter_realm(global);
     let mut sc_reader = StructuredDataReader {
@@ -605,18 +603,16 @@ pub(crate) fn read(
             &STRUCTURED_CLONE_CALLBACKS,
             sc_reader_ptr as *mut raw::c_void,
         );
+        if !result {
+            JS_ClearPendingException(*cx);
+            return Err(Error::DataClone);
+        }
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);
 
-        if result {
-            // Any transfer-received port-impls should have been taken out.
-            assert!(sc_reader.port_impls.is_none());
+        // Any transfer-received port-impls should have been taken out.
+        assert!(sc_reader.port_impls.is_none());
 
-            match sc_reader.message_ports.take() {
-                Some(ports) => return Ok(ports),
-                None => return Ok(Vec::with_capacity(0)),
-            }
-        }
-        Err(())
+        Ok(sc_reader.message_ports.take().unwrap_or_default())
     }
 }

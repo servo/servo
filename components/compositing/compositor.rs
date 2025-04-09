@@ -16,18 +16,20 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use bitflags::bitflags;
+use compositing_traits::display_list::{HitTestInfo, ScrollTree};
+use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
-    CompositionPipeline, CompositorMsg, CompositorReceiver, SendableFrameTree,
+    CompositionPipeline, CompositorMsg, CompositorReceiver, CrossProcessCompositorMessage,
+    ImageUpdate, RendererWebView, SendableFrameTree,
 };
 use constellation_traits::{
-    AnimationTickType, CompositorHitTestResult, ConstellationMsg, PaintMetricEvent,
-    UntrustedNodeAddress, WindowSizeData, WindowSizeType,
+    AnimationTickType, EmbedderToConstellationMessage, PaintMetricEvent, WindowSizeType,
 };
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ScreenGeometry, ShutdownState,
-    TouchEventType,
+    AnimationState, CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent,
+    ScreenGeometry, ShutdownState, TouchEventType, UntrustedNodeAddress, ViewportDetails,
 };
 use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Transform3D};
 use fnv::FnvHashMap;
@@ -37,7 +39,6 @@ use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::time_profile;
-use script_traits::AnimationState;
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
@@ -53,9 +54,6 @@ use webrender_api::{
     RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
     SpatialTreeItemKey, TransformStyle,
 };
-use webrender_traits::display_list::{HitTestInfo, ScrollTree};
-use webrender_traits::rendering_context::RenderingContext;
-use webrender_traits::{CrossProcessCompositorMessage, ImageUpdate, RendererWebView};
 
 use crate::InitialCompositorState;
 use crate::webview::{UnknownWebView, WebView};
@@ -101,7 +99,7 @@ pub struct ServoRenderer {
     compositor_receiver: CompositorReceiver,
 
     /// The channel on which messages can be sent to the constellation.
-    pub(crate) constellation_sender: Sender<ConstellationMsg>,
+    pub(crate) constellation_sender: Sender<EmbedderToConstellationMessage>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
@@ -279,7 +277,7 @@ impl PipelineDetails {
             tick_type.insert(AnimationTickType::REQUEST_ANIMATION_FRAME);
         }
 
-        let msg = ConstellationMsg::TickAnimation(self.id, tick_type);
+        let msg = EmbedderToConstellationMessage::TickAnimation(self.id, tick_type);
         if let Err(e) = compositor.global.borrow().constellation_sender.send(msg) {
             warn!("Sending tick to constellation failed ({:?}).", e);
         }
@@ -415,7 +413,9 @@ impl ServoRenderer {
         self.cursor = cursor;
         if let Err(e) = self
             .constellation_sender
-            .send(ConstellationMsg::SetCursor(webview_id, cursor))
+            .send(EmbedderToConstellationMessage::SetCursor(
+                webview_id, cursor,
+            ))
         {
             warn!("Sending event to constellation failed ({:?}).", e);
         }
@@ -476,6 +476,17 @@ impl IOCompositor {
         }
         if let Some(webrender) = self.webrender.take() {
             webrender.deinit();
+        }
+    }
+
+    pub fn default_webview_viewport_details(&self) -> ViewportDetails {
+        // The division by 1 represents the page's default zoom of 100%,
+        // and gives us the appropriate CSSPixel type for the viewport.
+        let hidpi_scale_factor = self.window.hidpi_factor();
+        let scaled_viewport_size = self.rendering_context.size2d().to_f32() / hidpi_scale_factor;
+        ViewportDetails {
+            size: scaled_viewport_size / Scale::new(1.0),
+            hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
         }
     }
 
@@ -1248,13 +1259,13 @@ impl IOCompositor {
     ) {
         // The device pixel ratio used by the style system should include the scale from page pixels
         // to device pixels, but not including any pinch zoom.
-        let device_pixel_ratio = self.device_pixels_per_page_pixel_not_including_page_zoom();
-        let initial_viewport = rect.size().to_f32() / device_pixel_ratio;
-        let msg = ConstellationMsg::WindowSize(
+        let hidpi_scale_factor = self.device_pixels_per_page_pixel_not_including_page_zoom();
+        let size = rect.size().to_f32() / hidpi_scale_factor;
+        let msg = EmbedderToConstellationMessage::ChangeViewportDetails(
             webview_id,
-            WindowSizeData {
-                device_pixel_ratio,
-                initial_viewport,
+            ViewportDetails {
+                size,
+                hidpi_scale_factor,
             },
             WindowSizeType::Resize,
         );
@@ -1409,7 +1420,7 @@ impl IOCompositor {
 
                 // Pass the pipeline/epoch states to the constellation and check
                 // if it's safe to output the image.
-                let msg = ConstellationMsg::IsReadyToSaveImage(pipeline_epochs);
+                let msg = EmbedderToConstellationMessage::IsReadyToSaveImage(pipeline_epochs);
                 if let Err(e) = self.global.borrow().constellation_sender.send(msg) {
                     warn!("Sending ready to save to constellation failed ({:?}).", e);
                 }
@@ -1574,7 +1585,7 @@ impl IOCompositor {
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
                         assert!(epoch <= current_epoch);
                         if let Err(error) = self.global.borrow().constellation_sender.send(
-                            ConstellationMsg::PaintMetric(
+                            EmbedderToConstellationMessage::PaintMetric(
                                 *pipeline_id,
                                 PaintMetricEvent::FirstPaint(paint_time, first_reflow),
                             ),
@@ -1591,7 +1602,7 @@ impl IOCompositor {
                 match pipeline.first_contentful_paint_metric {
                     PaintMetricState::Seen(epoch, first_reflow) if epoch <= current_epoch => {
                         if let Err(error) = self.global.borrow().constellation_sender.send(
-                            ConstellationMsg::PaintMetric(
+                            EmbedderToConstellationMessage::PaintMetric(
                                 *pipeline_id,
                                 PaintMetricEvent::FirstContentfulPaint(paint_time, first_reflow),
                             ),

@@ -13,6 +13,7 @@ use std::sync::{Arc, Mutex};
 
 use base::id::{PipelineId, WebViewId};
 use content_security_policy as csp;
+use devtools_traits::{ScriptToDevtoolsControlMsg, SourceInfo};
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
@@ -360,7 +361,7 @@ fn finish_fetching_a_classic_script(
         },
         ExternalScriptKind::Deferred => {
             document = elem.parser_document.as_rooted();
-            document.deferred_script_loaded(elem, load);
+            document.deferred_script_loaded(elem, load, can_gc);
         },
         ExternalScriptKind::ParsingBlocking => {
             document = elem.parser_document.as_rooted();
@@ -558,6 +559,7 @@ impl PreInvoke for ClassicContext {}
 
 /// Steps 1-2 of <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
 // This function is also used to prefetch a script in `script::dom::servoparser::prefetch`.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn script_fetch_request(
     webview_id: WebViewId,
     url: ServoUrl,
@@ -566,6 +568,7 @@ pub(crate) fn script_fetch_request(
     pipeline_id: PipelineId,
     options: ScriptFetchOptions,
     insecure_requests_policy: InsecureRequestsPolicy,
+    has_trustworthy_ancestor_origin: bool,
 ) -> RequestBuilder {
     // We intentionally ignore options' credentials_mode member for classic scripts.
     // The mode is initialized by create_a_potential_cors_request.
@@ -577,6 +580,7 @@ pub(crate) fn script_fetch_request(
         None,
         options.referrer,
         insecure_requests_policy,
+        has_trustworthy_ancestor_origin,
     )
     .origin(origin)
     .pipeline_id(Some(pipeline_id))
@@ -605,6 +609,7 @@ fn fetch_a_classic_script(
         script.global().pipeline_id(),
         options.clone(),
         doc.insecure_requests_policy(),
+        doc.has_trustworthy_ancestor_origin(),
     );
     let request = doc.prepare_request(request);
 
@@ -983,6 +988,19 @@ impl HTMLScriptElement {
 
             Ok(script) => script,
         };
+
+        // TODO: we need to handle this for worker
+        if let Some(chan) = self.global().devtools_chan() {
+            let pipeline_id = self.global().pipeline_id();
+            let source_info = SourceInfo {
+                url: script.url.clone(),
+                external: script.external,
+            };
+            let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                pipeline_id,
+                source_info,
+            ));
+        }
 
         if script.type_ == ScriptType::Classic {
             unminify_js(&mut script);

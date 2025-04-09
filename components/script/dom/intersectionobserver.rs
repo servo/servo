@@ -444,7 +444,7 @@ impl IntersectionObserver {
                 // > (note that this processing step can only be reached if the document is fully active).
                 // TODO: viewport should consider native scrollbar if exist. Recheck Servo's scrollbar approach.
                 document.map(|document| {
-                    let viewport = document.window().window_size().initial_viewport;
+                    let viewport = document.window().viewport_details().size;
                     Rect::from_size(Size2D::new(
                         Au::from_f32_px(viewport.width),
                         Au::from_f32_px(viewport.height),

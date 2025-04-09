@@ -128,7 +128,7 @@ function performFullTest(is_cross_site_test, load_resource_in_iframe, name) {
   function check_server_info() {
     return getServerState(uuid)
       .then(function (testState) {
-        checkRequests(local_requests, testState)
+        checkRequests(undefined, local_requests, testState)
         return Promise.resolve()
       })
   }

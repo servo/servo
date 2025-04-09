@@ -15,6 +15,7 @@ use net_traits::{
 };
 use servo_arc::Arc;
 use servo_url::ServoUrl;
+use style::context::QuirksMode;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
@@ -164,7 +165,16 @@ impl FetchResponseListener for StylesheetContext {
             let is_css = metadata.content_type.is_some_and(|ct| {
                 let mime: Mime = ct.into_inner().into();
                 mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
-            });
+            }) || (
+                // Quirk: If the document has been set to quirks mode,
+                // has the same origin as the URL of the external resource,
+                // and the Content-Type metadata of the external resource
+                // is not a supported style sheet type, the user agent must
+                // instead assume it to be text/css.
+                // <https://html.spec.whatwg.org/multipage/#link-type-stylesheet>
+                document.quirks_mode() == QuirksMode::Quirks &&
+                    document.origin().immutable().clone() == metadata.final_url.origin()
+            );
 
             let data = if is_css {
                 let data = std::mem::take(&mut self.data);
@@ -351,6 +361,7 @@ impl StylesheetLoader<'_> {
             None,
             self.elem.global().get_referrer(),
             document.insecure_requests_policy(),
+            document.has_trustworthy_ancestor_or_current_origin(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(self.elem.global().pipeline_id()))

@@ -207,7 +207,7 @@ pub(crate) mod macros;
 
 #[allow(unused_imports)]
 pub(crate) mod types {
-    include!(concat!(env!("BINDINGS_OUT_DIR"), "/InterfaceTypes.rs"));
+    include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
 }
 
 pub(crate) mod abortcontroller;
@@ -251,6 +251,7 @@ pub(crate) mod channelsplitternode;
 pub(crate) mod characterdata;
 pub(crate) mod client;
 pub(crate) mod clipboardevent;
+pub(crate) mod clipboarditem;
 pub(crate) mod closeevent;
 pub(crate) mod comment;
 pub(crate) mod compositionevent;
@@ -555,6 +556,7 @@ pub(crate) mod testbindingproxy;
 pub(crate) mod testbindingsetlikewithinterface;
 pub(crate) mod testbindingsetlikewithprimitive;
 pub(crate) mod testns;
+pub(crate) mod testutils;
 pub(crate) mod testworklet;
 pub(crate) mod testworkletglobalscope;
 pub(crate) mod text;
@@ -574,6 +576,11 @@ pub(crate) mod touchlist;
 pub(crate) mod trackevent;
 pub(crate) mod transitionevent;
 pub(crate) mod treewalker;
+pub(crate) mod trustedhtml;
+pub(crate) mod trustedscript;
+pub(crate) mod trustedscripturl;
+pub(crate) mod trustedtypepolicy;
+pub(crate) mod trustedtypepolicyfactory;
 pub(crate) mod uievent;
 pub(crate) mod underlyingsourcecontainer;
 pub(crate) mod url;

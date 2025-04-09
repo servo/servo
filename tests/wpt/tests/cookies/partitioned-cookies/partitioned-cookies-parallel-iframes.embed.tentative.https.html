@@ -102,6 +102,9 @@ promise_test( async() => {
   assert_false(iframe2.contentWindow.document.cookie.includes(partitionedCookie),
       iframe2.contentWindow.document.cookie);
 
+  erase_cookie_from_js("partitionedCookie", "Secure; Path=/; SameSite=None; Partitioned");
+  erase_cookie_from_js("second", "Secure; Path=/; SameSite=None; Partitioned");
+
 }, "Partitioned cookies set in same-site contexts are available in other same-site documents.");
 </script>
 </body>
