@@ -50,6 +50,7 @@ use crate::dom::defaultteeunderlyingsource::TeeCancelAlgorithm;
 use crate::dom::types::DefaultTeeUnderlyingSource;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
+use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
@@ -1814,6 +1815,9 @@ impl ReadableStream {
         });
         global.note_cross_realm_transform_readable(&cross_realm_transform_readable, port_id);
 
+        // Enable port’s port message queue.
+        port.Start();
+
         // Perform ! SetUpReadableStreamDefaultController
         controller
             .setup(DomRoot::from_ref(self), can_gc)
@@ -1997,15 +2001,13 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
 /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
 pub(crate) unsafe fn get_type_and_value_from_message(
     cx: SafeJSContext,
-    message: SafeHandleValue,
+    data: SafeHandleValue,
     value: SafeMutableHandleValue,
     can_gc: CanGc,
 ) -> DOMString {
     // Let data be the data of the message.
-    rooted!(in(*cx) let object = message.to_object());
-    rooted!(in(*cx) let mut data = UndefinedValue());
-    get_dictionary_property(*cx, object.handle(), "done", data.handle_mut(), can_gc)
-        .expect("Getting data should not fail.");
+    // Note: we are passed the data as argument,
+    // which originates in the return value of `structuredclone::read`.
 
     // Assert: data is an Object.
     assert!(data.is_object());
@@ -2064,6 +2066,7 @@ impl CrossRealmTransformReadable {
         global: &GlobalScope,
         port: &MessagePort,
         message: SafeHandleValue,
+        realm: InRealm,
         can_gc: CanGc,
     ) {
         rooted!(in(*cx) let mut value = UndefinedValue());
@@ -2103,6 +2106,7 @@ impl CrossRealmTransformReadable {
         cx: SafeJSContext,
         global: &GlobalScope,
         port: &MessagePort,
+        realm: InRealm,
         can_gc: CanGc,
     ) {
         // Let error be a new "DataCloneError" DOMException.
@@ -2220,10 +2224,7 @@ impl Transferable for ReadableStream {
         promise.set_promise_is_handled();
 
         // Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
-        // Done as in the port transfer steps implementation.
-        let id = port_2.message_port_id();
-        let transferred_port = global.mark_port_as_transferred(id);
-        Ok((*id, transferred_port))
+        port_2.transfer()
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A1%E2%91%A0>
@@ -2244,13 +2245,10 @@ impl Transferable for ReadableStream {
         // Done with the `Deserialize` derive of `MessagePortImpl`.
 
         // Let port be deserializedRecord.[[Deserialized]].
-        let transferred_port =
-            MessagePort::new_transferred(owner, id, port_impl.entangled_port_id(), can_gc);
-        owner.track_message_port(&transferred_port, Some(port_impl));
+        let transferred_port = MessagePort::transfer_receive(owner, id, port_impl)?;
 
         // Perform ! SetUpCrossRealmTransformReadable(value, port).
         value.setup_cross_realm_transform_readable(cx, &transferred_port, can_gc);
-
         Ok(value)
     }
 

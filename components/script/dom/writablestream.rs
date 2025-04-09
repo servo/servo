@@ -16,6 +16,7 @@ use js::rust::{
     HandleObject as SafeHandleObject, HandleValue as SafeHandleValue,
     MutableHandleValue as SafeMutableHandleValue,
 };
+use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use script_bindings::conversions::StringificationBehavior;
 use script_bindings::str::DOMString;
 
@@ -886,6 +887,9 @@ impl WritableStream {
         });
         global.note_cross_realm_transform_writable(&cross_realm_transform_writable, port_id);
 
+        // Enable port’s port message queue.
+        port.Start();
+
         // Perform ! SetUpWritableStreamDefaultController
         controller
             .setup(cx, &global, self, &None, can_gc)
@@ -1050,6 +1054,7 @@ impl CrossRealmTransformWritable {
         cx: SafeJSContext,
         global: &GlobalScope,
         message: SafeHandleValue,
+        realm: InRealm,
         can_gc: CanGc,
     ) {
         rooted!(in(*cx) let mut value = UndefinedValue());
@@ -1087,6 +1092,7 @@ impl CrossRealmTransformWritable {
         cx: SafeJSContext,
         global: &GlobalScope,
         port: &MessagePort,
+        realm: InRealm,
         can_gc: CanGc,
     ) {
         // Let error be a new "DataCloneError" DOMException.

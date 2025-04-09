@@ -11,8 +11,8 @@ use std::rc::Rc;
 use base::id::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
 use constellation_traits::{MessagePortImpl, PortMessageTask};
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
-use js::jsval::UndefinedValue;
+use js::jsapi::{Heap, JS_NewObject, JSObject};
+use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use script_bindings::str::DOMString;
 
@@ -197,7 +197,7 @@ impl MessagePort {
         let cx = GlobalScope::get_cx();
 
         // Let message be OrdinaryObjectCreate(null).
-        rooted!(in(*cx) let mut message_obj = ptr::null_mut::<JSObject>());
+        rooted!(in(*cx) let mut message = unsafe { JS_NewObject(*cx, ptr::null()) });
         rooted!(in(*cx) let mut type_string = UndefinedValue());
         unsafe {
             type_.to_jsval(*cx, type_string.handle_mut());
@@ -205,13 +205,13 @@ impl MessagePort {
 
         // Perform ! CreateDataProperty(message, "type", type).
         unsafe {
-            set_dictionary_property(*cx, message_obj.handle(), "type", type_string.handle())
+            set_dictionary_property(*cx, message.handle(), "type", type_string.handle())
                 .expect("Setting the message type should not fail.");
         }
 
         // Perform ! CreateDataProperty(message, "value", value).
         unsafe {
-            set_dictionary_property(*cx, message_obj.handle(), "value", value)
+            set_dictionary_property(*cx, message.handle(), "value", value)
                 .expect("Setting the message value should not fail.");
         }
 
@@ -223,11 +223,11 @@ impl MessagePort {
         let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
 
         // Run the message port post message steps providing targetPort, message, and options.
-        rooted!(in(*cx) let mut message = UndefinedValue());
+        rooted!(in(*cx) let mut message_val = UndefinedValue());
         unsafe {
-            message_obj.to_jsval(*cx, message.handle_mut());
+            message.to_jsval(*cx, message_val.handle_mut());
         }
-        self.post_message_impl(cx, message.handle(), transfer)
+        self.post_message_impl(cx, message_val.handle(), transfer)
     }
 }
 
