@@ -457,6 +457,9 @@ pub(crate) struct ManagedMessagePort {
     pending: bool,
     /// Has the port been closed? If closed, it can be dropped and later GC'ed.
     closed: bool,
+    /// Note: it may seem strange to use a pair of options, versus for example an enum. 
+    /// But it looks like tranform streams will require both of those in their transfer.
+    /// This will be resolved when we reach that point of the implementation.
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
     cross_realm_transform_readable: Option<CrossRealmTransformReadable>,
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
