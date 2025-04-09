@@ -644,7 +644,7 @@ fn escape_a_string(input: &str, to_escape: &[char]) -> String {
 }
 
 /// <https://urlpattern.spec.whatwg.org/#escape-a-pattern-string>
-fn escape_a_pattern_string(input: &str) -> String {
+pub(super) fn escape_a_pattern_string(input: &str) -> String {
     escape_a_string(input, &['+', '*', '?', ':', '{', '}', '(', ')', '\\'])
 }
 

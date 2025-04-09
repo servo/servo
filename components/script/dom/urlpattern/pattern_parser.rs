@@ -4,7 +4,10 @@
 
 use script_bindings::error::{Error, Fallible};
 
-use crate::dom::urlpattern::tokenizer::{Token, TokenType, TokenizePolicy, tokenize};
+use crate::dom::urlpattern::preprocessing::escape_a_pattern_string;
+use crate::dom::urlpattern::tokenizer::{
+    Token, TokenType, TokenizePolicy, is_a_valid_name_code_point, tokenize,
+};
 use crate::dom::urlpattern::{
     EncodingCallback, FULL_WILDCARD_REGEXP_VALUE, Options, Part, PartModifier, PartType,
     generate_a_segment_wildcard_regexp,
@@ -470,4 +473,235 @@ impl<'a> PatternParser<'a> {
 
         result
     }
+}
+
+/// <https://urlpattern.spec.whatwg.org/#generate-a-pattern-string>
+pub(super) fn generate_a_pattern_string(part_list: &[Part], options: Options) -> String {
+    // Step 1. Let result be the empty string.
+    let mut result = String::new();
+
+    // Step 2. Let index list be the result of getting the indices for part list.
+    let index_list = 0..part_list.len();
+
+    // Step 3. For each index of index list:
+    for index in index_list {
+        // Step 3.1 Let part be part list[index].
+        let part = &part_list[index];
+
+        // Step 3.2 Let previous part be part list[index - 1] if index is greater than 0,
+        // otherwise let it be null.
+        let previous_part = if index != 0 {
+            Some(&part_list[index])
+        } else {
+            None
+        };
+
+        // Step 3.3 Let next part be part list[index + 1] if index is less than index list’s size - 1,
+        // otherwise let it be null.
+        let next_part = part_list.get(index + 1);
+
+        // Step 3.4 If part’s type is "fixed-text" then:
+        if part.part_type == PartType::FixedText {
+            // Step 3.4.1 If part’s modifier is "none" then:
+            if part.modifier == PartModifier::None {
+                // Step 3.4.1.1 Append the result of running escape a pattern string
+                // given part’s value to the end of result.
+                result.push_str(&escape_a_pattern_string(&part.value));
+
+                // Step 3.4.1.2 Continue.
+                continue;
+            }
+
+            // Step 3.4.2 Append "{" to the end of result.
+            result.push('{');
+
+            // Step 3.4.3 Append the result of running escape a pattern string
+            // given part’s value to the end of result.
+            result.push_str(&escape_a_pattern_string(&part.value));
+
+            // Step 3.4.4 Append "}" to the end of result.
+            result.push('}');
+
+            // Step 3.4.5 Append the result of running convert a modifier to a string
+            // given part’s modifier to the end of result.
+            result.push_str(part.modifier.convert_to_string());
+
+            // Step 3.4.6 Continue.
+            continue;
+        }
+
+        // Step 3.5 Let custom name be true if part’s name[0] is not an ASCII digit; otherwise false.
+        let custom_name = part.name.chars().next().is_none_or(|c| !c.is_ascii_digit());
+
+        // Step 3.6 Let needs grouping be true if at least one of the following are true,
+        // otherwise let it be false:
+        // * part’s suffix is not the empty string.
+        // * part’s prefix is not the empty string and is not options’s prefix code point.
+        let prefix_is_prefix_code_point = options.prefix_code_point.is_some_and(|c| {
+            let mut buffer = [0; 4];
+            part.prefix.as_str() == c.encode_utf8(&mut buffer)
+        });
+        let mut needs_grouping =
+            !part.suffix.is_empty() || (!part.prefix.is_empty() && !prefix_is_prefix_code_point);
+
+        // Step 3.7 If all of the following are true:
+        // * needs grouping is false; and
+        // * custom name is true; and
+        // * part’s type is "segment-wildcard"; and
+        // * part’s modifier is "none"; and
+        // * next part is not null; and
+        // * next part’s prefix is the empty string; and
+        // * next part’s suffix is the empty string
+        if !needs_grouping &&
+            custom_name &&
+            part.part_type == PartType::SegmentWildcard &&
+            part.modifier == PartModifier::None
+        {
+            if let Some(next_part) = next_part {
+                if next_part.prefix.is_empty() && next_part.suffix.is_empty() {
+                    let first_char_of_next_part = next_part.value.chars().next();
+
+                    // Step 3.7.1 If next part’s type is "fixed-text":
+                    if next_part.part_type == PartType::FixedText {
+                        // Step 3.7.2 Set needs grouping to true if the result of running is a valid name code point
+                        // given next part’s value’s first code point and the boolean false is true.
+                        if first_char_of_next_part
+                            .is_some_and(|c| is_a_valid_name_code_point(c, false))
+                        {
+                            needs_grouping = true;
+                        }
+                    }
+                    // Step 3.7.2 Otherwise:
+                    else {
+                        // Step 3.7.2.1 Set needs grouping to true if next part’s name[0] is an ASCII digit.
+                        if first_char_of_next_part.is_some_and(|c| c.is_ascii_digit()) {
+                            needs_grouping = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Step 3.8 If all of the following are true:
+        // * needs grouping is false; and
+        // * part’s prefix is the empty string; and
+        // * previous part is not null; and
+        // * previous part’s type is "fixed-text"; and
+        // * previous part’s value’s last code point is options’s prefix code point.
+        // then set needs grouping to true.
+        if !needs_grouping && part.prefix.is_empty() {
+            if let Some(previous_part) = previous_part {
+                if previous_part.part_type == PartType::FixedText &&
+                    previous_part.value.chars().last() == options.prefix_code_point
+                {
+                    needs_grouping = true;
+                }
+            }
+        }
+
+        // Step 3.9 Assert: part’s name is not the empty string or null.
+        debug_assert!(!part.name.is_empty());
+
+        // Step 3.10 If needs grouping is true, then append "{" to the end of result.
+        if needs_grouping {
+            result.push('{');
+        }
+
+        // Step 3.11 Append the result of running escape a pattern string given part’s prefix to the end of result.
+        result.push_str(&escape_a_pattern_string(&part.prefix));
+
+        // Step 3.12 If custom name is true:
+        if custom_name {
+            // Step 3.12.1 Append ":" to the end of result.
+            result.push(':');
+
+            // Step 3.12.2 Append part’s name to the end of result.
+            result.push_str(&part.name);
+        }
+
+        // Step 3.13 If part’s type is "regexp" then:
+        if part.part_type == PartType::Regexp {
+            // Step 3.13.1 Append "(" to the end of result.
+            result.push('(');
+
+            // Step 3.13.2 Append part’s value to the end of result.
+            result.push_str(&part.value);
+
+            // Step 3.13.3 Append ")" to the end of result.
+            result.push(')');
+        }
+        // Step 3.14 Otherwise if part’s type is "segment-wildcard" and custom name is false:
+        else if part.part_type == PartType::SegmentWildcard && !custom_name {
+            // Step 3.14.1 Append "(" to the end of result.
+            result.push('(');
+
+            // Step 3.14.2 Append the result of running generate a segment wildcard regexp
+            // given options to the end of result.
+            result.push_str(&generate_a_segment_wildcard_regexp(options));
+
+            // Step 3.14.3 Append ")" to the end of result.
+            result.push(')');
+        }
+        // Step 3.15 Otherwise if part’s type is "full-wildcard":
+        else if part.part_type == PartType::FullWildcard {
+            // Step 3.15.1 If custom name is false and one of the following is true:
+            // * previous part is null; or
+            // * previous part’s type is "fixed-text"; or
+            // * previous part’s modifier is not "none"; or
+            // * needs grouping is true; or
+            // * part’s prefix is not the empty string
+            // then append "*" to the end of result.
+            let one_of_the_following = previous_part.is_none_or(|part| {
+                part.part_type == PartType::FixedText || part.modifier != PartModifier::None
+            }) || needs_grouping ||
+                !part.prefix.is_empty();
+
+            if !custom_name && one_of_the_following {
+                result.push('*');
+            }
+            // Step 3.15.2 Otherwise:
+            else {
+                // Step 3.15.2.1 Append "(" to the end of result.
+                result.push('(');
+
+                // Step 3.15.2.2 Append full wildcard regexp value to the end of result.
+                result.push_str(FULL_WILDCARD_REGEXP_VALUE);
+
+                // Step 3.15.2.3 Append ")" to the end of result.
+                result.push(')');
+            }
+        }
+
+        // Step 3.16 If all of the following are true:
+        // * part’s type is "segment-wildcard"; and
+        // * custom name is true; and
+        // * part’s suffix is not the empty string; and
+        // * The result of running is a valid name code point given part’s suffix’s first code point
+        //   and the boolean false is true
+        // then append U+005C (\) to the end of result.
+        if part.part_type == PartType::SegmentWildcard &&
+            custom_name &&
+            part.suffix
+                .chars()
+                .next()
+                .is_some_and(|c| is_a_valid_name_code_point(c, false))
+        {
+            result.push('\\');
+        }
+
+        // Step 3.17 Append the result of running escape a pattern string given part’s suffix to the end of result.
+        result.push_str(&escape_a_pattern_string(&part.suffix));
+
+        // Step 3.18 If needs grouping is true, then append "}" to the end of result.
+        if needs_grouping {
+            result.push('}');
+        }
+
+        // Step 3.19 Append the result of running convert a modifier to a string
+        // given part’s modifier to the end of result.
+        result.push_str(part.modifier.convert_to_string());
+    }
+
+    // Step 4. Return result.
+    result
 }
