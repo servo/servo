@@ -183,7 +183,7 @@ impl Callback for TransferBackPressurePromiseReaction {
             self.result_promise.reject_error(error, can_gc);
         } else {
             // Otherwise, return a promise resolved with undefined.
-            self.result_promise.reject_native(&(), can_gc);
+            self.result_promise.resolve_native(&(), can_gc);
         }
     }
 }
@@ -660,7 +660,7 @@ impl WritableStreamDefaultController {
             UnderlyingSinkType::Transfer { ref port, .. } => {
                 // Perform ! PackAndPostMessage(port, "close", undefined).
                 rooted!(in(*cx) let mut value = UndefinedValue());
-                port.pack_and_post_message("closed", value.handle());
+                port.pack_and_post_message("close", value.handle());
 
                 // Disentangle port.
                 global.disentangle_port(&port);
