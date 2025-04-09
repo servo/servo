@@ -63,6 +63,10 @@ impl LayoutBoxBase {
         *cache = Some((constraint_space.block_size, result));
         result
     }
+
+    pub(crate) fn invalidate_cached_fragment(&self) {
+        let _ = self.cached_layout_result.borrow_mut().take();
+    }
 }
 
 impl Debug for LayoutBoxBase {

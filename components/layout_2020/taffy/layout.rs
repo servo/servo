@@ -259,7 +259,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                                     )
                                 });
 
-                            let layout = non_replaced.layout(
+                            let layout = non_replaced.layout_without_caching(
                                 self.layout_context,
                                 &mut child_positioning_context,
                                 &content_box_size_override,
