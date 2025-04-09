@@ -960,7 +960,7 @@ impl<'a> TableLayout<'a> {
             .clone()
             .map(max_content_sum)
             .fold(Au::zero(), |a, b| a + b);
-        if total_max_content_width != Au::zero() {
+        if !total_max_content_width.is_zero() {
             for column_index in unconstrained_max_content_columns {
                 column_sizes[column_index] += extra_inline_size.scale_by(
                     columns[column_index].content_sizes.max_content.to_f32_px() /
@@ -1005,7 +1005,7 @@ impl<'a> TableLayout<'a> {
             .clone()
             .map(max_content_sum)
             .fold(Au::zero(), |a, b| a + b);
-        if total_max_content_width != Au::zero() {
+        if !total_max_content_width.is_zero() {
             for column_index in constrained_max_content_columns {
                 column_sizes[column_index] += extra_inline_size.scale_by(
                     columns[column_index].content_sizes.max_content.to_f32_px() /
