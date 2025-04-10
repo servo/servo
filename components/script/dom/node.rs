@@ -324,8 +324,7 @@ impl Node {
          // Step 1. Let newChildren be the result of the HTML fragment parsing algorithm.
         let new_children = ServoParser::parse_html_fragment(context_element, html, true, can_gc);
 
-         // Step 2. Let fragment be a new DocumentFragment whose node document is contextElement's node document.
-
+        // Step 2. Let fragment be a new DocumentFragment whose node document is contextElement's node document.
         let context_document = context_element.owner_document();
         let fragment = DocumentFragment::new(&context_document, can_gc);
 
