@@ -1955,6 +1955,15 @@ impl CanvasContext for WebGLRenderingContext {
         Some(receiver.recv().unwrap())
     }
 
+    fn is_paintable(&self) -> bool {
+        // HTMLCanvasElement.width and .height values less than 1 are treated as 1.
+        // A 0x0 canvas will yield a 1x1 drawingBufferWidth/Height.
+        // <https://registry.khronos.org/webgl/specs/latest/1.0/#2.2>
+        // TODO: The associated drawing buffer may be lost.
+        // <https://registry.khronos.org/webgl/specs/latest/1.0/#5.15.2>
+        !self.size().is_empty()
+    }
+
     fn mark_as_dirty(&self) {
         // If we have a bound framebuffer, then don't mark the canvas as dirty.
         if self.bound_draw_framebuffer.get().is_some() {

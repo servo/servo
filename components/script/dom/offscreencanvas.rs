@@ -9,6 +9,7 @@ use euclid::default::Size2D;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::rust::{HandleObject, HandleValue};
 
+use crate::canvas_state::is_supported_canvas_size;
 use crate::dom::bindings::cell::{DomRefCell, Ref, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     OffscreenCanvasMethods, OffscreenRenderingContext,
@@ -89,9 +90,7 @@ impl OffscreenCanvas {
     }
 
     pub(crate) fn fetch_all_data(&self) -> Option<(Option<IpcSharedMemory>, Size2D<u32>)> {
-        let size = self.get_size();
-
-        if size.width == 0 || size.height == 0 {
+        if !self.is_paintable() {
             return None;
         }
 
@@ -102,7 +101,7 @@ impl OffscreenCanvas {
             None => None,
         };
 
-        Some((data, size.to_u32()))
+        Some((data, self.get_size().to_u32()))
     }
 
     pub(crate) fn get_or_init_2d_context(
@@ -121,8 +120,15 @@ impl OffscreenCanvas {
         Some(context)
     }
 
-    pub(crate) fn is_valid(&self) -> bool {
-        self.Width() != 0 && self.Height() != 0
+    pub(crate) fn is_paintable(&self) -> bool {
+        let size = self.get_size();
+
+        let paintable = match *self.context.borrow() {
+            Some(OffscreenCanvasContext::OffscreenContext2d(ref context)) => context.is_paintable(),
+            _ => false,
+        };
+
+        paintable || is_supported_canvas_size(size)
     }
 
     pub(crate) fn placeholder(&self) -> Option<&HTMLCanvasElement> {

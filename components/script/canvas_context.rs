@@ -40,6 +40,8 @@ pub(crate) trait CanvasContext {
         true
     }
 
+    fn is_paintable(&self) -> bool;
+
     fn size(&self) -> Size2D<u64> {
         self.canvas().size()
     }
