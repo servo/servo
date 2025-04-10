@@ -163,7 +163,7 @@ impl MessagePort {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-crossrealmtransformsenderror>
-    pub fn cross_realm_transform_send_error(&self, error: HandleValue) {
+    pub(crate) fn cross_realm_transform_send_error(&self, error: HandleValue) {
         // Perform PackAndPostMessage(port, "error", error), discarding the result.
         let res = self.pack_and_post_message("error", error);
     }
@@ -196,7 +196,7 @@ impl MessagePort {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessage>
     #[allow(unsafe_code)]
-    pub fn pack_and_post_message(&self, type_: &str, value: HandleValue) -> ErrorResult {
+    pub(crate) fn pack_and_post_message(&self, type_: &str, value: HandleValue) -> ErrorResult {
         let cx = GlobalScope::get_cx();
 
         // Let message be OrdinaryObjectCreate(null).

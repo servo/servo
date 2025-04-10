@@ -2202,13 +2202,10 @@ impl Transferable for ReadableStream {
             return Err(());
         }
 
-        // TODO: move up the call stack.
         let global = self.global();
         let realm = enter_realm(&*global);
         let comp = InRealm::Entered(&realm);
         let cx = GlobalScope::get_cx();
-
-        // TODO: move up the call stack.
         let can_gc = CanGc::note();
 
         // Let port1 be a new MessagePort in the current Realm.
@@ -2244,7 +2241,6 @@ impl Transferable for ReadableStream {
         id: MessagePortId,
         port_impl: MessagePortImpl,
     ) -> Result<DomRoot<Self>, ()> {
-        // TODO: move up the call stack.
         let cx = GlobalScope::get_cx();
         let can_gc = CanGc::note();
 
@@ -2263,6 +2259,7 @@ impl Transferable for ReadableStream {
         Ok(value)
     }
 
+    /// Note: we are relying on the port transfer, so the data returned here are related to the port.
     fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
