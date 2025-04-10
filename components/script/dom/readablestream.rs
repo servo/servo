@@ -2090,8 +2090,19 @@ impl CrossRealmTransformReadable {
 
         // Otherwise, if type is "error",
         if type_string == "error" {
-            // Perform ! ReadableStreamDefaultControllerError(controller, value).
-            self.controller.error(value.handle(), can_gc);
+            if value.is_undefined() {
+                // Note: for DataClone errors, we send UndefinedValue across, 
+                // because somehow sending the error results in another error.
+                // The error is then created here. 
+                rooted!(in(*cx) let mut rooted_error = UndefinedValue());
+                Error::DataClone.to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
+                
+                // Perform ! ReadableStreamDefaultControllerError(controller, value).
+                self.controller.error(rooted_error.handle(), can_gc);
+            } else {
+                // Perform ! ReadableStreamDefaultControllerError(controller, value).
+                self.controller.error(value.handle(), can_gc);
+            }
 
             // Disentangle port.
             global.disentangle_port(port);

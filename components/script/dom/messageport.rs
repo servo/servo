@@ -163,9 +163,9 @@ impl MessagePort {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-crossrealmtransformsenderror>
-    pub(crate) fn cross_realm_transform_send_error(&self, error: HandleValue) {
+    pub fn cross_realm_transform_send_error(&self, error: HandleValue) {
         // Perform PackAndPostMessage(port, "error", error), discarding the result.
-        let _ = self.pack_and_post_message("error", error);
+        let res = self.pack_and_post_message("error", error);
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessagehandlingerror>
@@ -180,11 +180,14 @@ impl MessagePort {
         let result = self.pack_and_post_message(type_, value);
 
         // If result is an abrupt completion,
-        if let Err(error) = result.clone() {
+        if result.is_err() {
             // Perform ! CrossRealmTransformSendError(port, result.[[Value]]).
+            // Note: we send UndefinedValue across, 
+            // because somehow sending an error results in another error.
+            // The Error::DataClone, which is the only one that is sent across,
+            // will be created upon receipt. 
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            error.to_jsval(cx, &self.global(), rooted_error.handle_mut(), can_gc);
             self.cross_realm_transform_send_error(rooted_error.handle());
         }
 
@@ -193,7 +196,7 @@ impl MessagePort {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessage>
     #[allow(unsafe_code)]
-    pub(crate) fn pack_and_post_message(&self, type_: &str, value: HandleValue) -> ErrorResult {
+    pub fn pack_and_post_message(&self, type_: &str, value: HandleValue) -> ErrorResult {
         let cx = GlobalScope::get_cx();
 
         // Let message be OrdinaryObjectCreate(null).
