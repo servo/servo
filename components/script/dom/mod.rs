@@ -479,6 +479,7 @@ pub(crate) mod performanceobserver;
 pub(crate) mod performanceobserverentrylist;
 pub(crate) mod performancepainttiming;
 pub(crate) mod performanceresourcetiming;
+pub(crate) mod performancetiming;
 pub(crate) mod permissions;
 pub(crate) mod permissionstatus;
 pub(crate) mod plugin;

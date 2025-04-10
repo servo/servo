@@ -208,6 +208,9 @@ use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use crate::timers::OneshotTimerCallback;
+use crate::dom::performance::Performance;
+use crate::dom::performancetiming::PerformanceTiming;
+use crate::dom::bindings::codegen::Bindings::PerformanceTimingBinding::PerformanceTimingMethods;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -1059,6 +1062,11 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub(crate) fn set_ready_state(&self, state: DocumentReadyState, can_gc: CanGc) {
+        let window = self.window();
+        let now = window.current_timeline().now() as u64;
+        let performance = window.performance();
+        let timing = performance.Timing();
+
         match state {
             DocumentReadyState::Loading => {
                 if self.window().is_top_level() {
@@ -1068,6 +1076,7 @@ impl Document {
                     ));
                     self.send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
                 }
+                timing.update_dom_loading(now);
             },
             DocumentReadyState::Complete => {
                 if self.window().is_top_level() {
@@ -1077,8 +1086,17 @@ impl Document {
                     ));
                 }
                 update_with_current_instant(&self.dom_complete);
+                timing.update_dom_complete(now);
+
+                timing.update_load_event_start(now);
             },
-            DocumentReadyState::Interactive => update_with_current_instant(&self.dom_interactive),
+            DocumentReadyState::Interactive => {
+                update_with_current_instant(&self.dom_interactive);
+
+                timing.update_dom_interactive(now);
+
+                timing.update_dom_content_loaded_event_start(now);
+            }
         };
 
         self.ready_state.set(state);
