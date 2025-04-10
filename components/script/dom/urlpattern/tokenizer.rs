@@ -517,7 +517,7 @@ impl Tokenizer<'_> {
 }
 
 /// <https://urlpattern.spec.whatwg.org/#is-a-valid-name-code-point>
-fn is_a_valid_name_code_point(code_point: char, first: bool) -> bool {
+pub(super) fn is_a_valid_name_code_point(code_point: char, first: bool) -> bool {
     // FIXME: implement this check
     _ = first;
     code_point.is_alphabetic()
