@@ -57,6 +57,11 @@ pub(crate) struct ServoShellPreferences {
     /// Where to load userscripts from, if any.
     /// and if the option isn't passed userscripts won't be loaded.
     pub userscripts_directory: Option<PathBuf>,
+
+    /// Log filter given in the `log_filter` spec as a String, if any.
+    /// If a filter is passed, the logger should adjust accordingly.
+    #[allow(unused) /* we tag unused to avoid lint errors across platforms */]
+    pub log_filter: Option<String>,
 }
 
 impl Default for ServoShellPreferences {
@@ -75,6 +80,7 @@ impl Default for ServoShellPreferences {
             output_image_path: None,
             exit_after_stable_image: false,
             userscripts_directory: None,
+            log_filter: None,
         }
     }
 }
@@ -348,6 +354,13 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "FILTER",
     );
 
+    opts.optmulti(
+        "",
+        "log-filter",
+        "Define a custom filter for logging.",
+        "FILTER",
+    );
+
     opts.optflag(
         "",
         "enable-experimental-web-platform-features",
@@ -408,11 +421,10 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     }
     // Env-Filter directives are comma seperated.
     let filters = opt_match.opt_strs("tracing-filter").join(",");
-    let tracing_filter = if filters.is_empty() {
-        None
-    } else {
-        Some(filters)
-    };
+    let tracing_filter = (!filters.is_empty()).then_some(filters);
+
+    let filters = opt_match.opt_strs("log-filter").join(",");
+    let log_filter = (!filters.is_empty()).then_some(filters);
 
     let mut debug_options = DebugOptions::default();
     for debug_string in opt_match.opt_strs("Z") {
@@ -626,6 +638,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         userscripts_directory: opt_match
             .opt_default("userscripts", "resources/user-agent-js")
             .map(PathBuf::from),
+        log_filter,
         ..Default::default()
     };
 
