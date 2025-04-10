@@ -143,6 +143,22 @@ pub(crate) enum FlexLevelBox {
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
 }
 
+impl FlexLevelBox {
+    pub(crate) fn invalidate_cached_fragment(&self) {
+        match self {
+            FlexLevelBox::FlexItem(flex_item_box) => flex_item_box
+                .independent_formatting_context
+                .base
+                .invalidate_cached_fragment(),
+            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
+                .borrow()
+                .context
+                .base
+                .invalidate_cached_fragment(),
+        }
+    }
+}
+
 pub(crate) struct FlexItemBox {
     independent_formatting_context: IndependentFormattingContext,
 }

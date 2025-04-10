@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -11,7 +11,7 @@ use keyboard_types::{CompositionEvent, CompositionState};
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::id::WebViewId;
-use servo::compositing::windowing::{AnimationState, EmbedderMethods, WindowMethods};
+use servo::compositing::windowing::{EmbedderMethods, WindowMethods};
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
@@ -86,9 +86,16 @@ struct RunningAppStateInner {
     focused_webview_id: Option<WebViewId>,
 
     context_menu_sender: Option<IpcSender<ContextMenuResult>>,
+
+    /// Whether or not the animation state has changed. This is used to trigger
+    /// host callbacks indicating that animation state has changed.
+    animating_state_changed: Rc<Cell<bool>>,
 }
 
-struct ServoShellServoDelegate;
+struct ServoShellServoDelegate {
+    animating_state_changed: Rc<Cell<bool>>,
+}
+
 impl ServoDelegate for ServoShellServoDelegate {
     fn notify_devtools_server_started(&self, _servo: &Servo, port: u16, _token: String) {
         info!("Devtools Server running on port {port}");
@@ -100,6 +107,10 @@ impl ServoDelegate for ServoShellServoDelegate {
 
     fn notify_error(&self, _servo: &Servo, error: ServoError) {
         error!("Saw Servo error: {error:?}!");
+    }
+
+    fn notify_animating_changed(&self, _animating: bool) {
+        self.animating_state_changed.set(true);
     }
 }
 
@@ -263,7 +274,10 @@ impl RunningAppState {
             .or_else(|| Url::parse("about:blank").ok())
             .unwrap();
 
-        servo.set_delegate(Rc::new(ServoShellServoDelegate));
+        let animating_state_changed = Rc::new(Cell::new(false));
+        servo.set_delegate(Rc::new(ServoShellServoDelegate {
+            animating_state_changed: animating_state_changed.clone(),
+        }));
 
         let app_state = Rc::new(Self {
             rendering_context,
@@ -276,6 +290,7 @@ impl RunningAppState {
                 webviews: Default::default(),
                 creation_order: vec![],
                 focused_webview_id: None,
+                animating_state_changed,
             }),
         });
 
@@ -344,6 +359,12 @@ impl RunningAppState {
         let should_continue = self.servo.spin_event_loop();
         if !should_continue {
             self.callbacks.host_callbacks.on_shutdown_complete();
+        }
+        if self.inner().animating_state_changed.get() {
+            self.inner().animating_state_changed.set(false);
+            self.callbacks
+                .host_callbacks
+                .on_animating_changed(self.servo.animating());
         }
     }
 
@@ -683,11 +704,5 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
 impl WindowMethods for ServoWindowCallbacks {
     fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         self.hidpi_factor
-    }
-
-    fn set_animation_state(&self, state: AnimationState) {
-        debug!("WindowMethods::set_animation_state: {:?}", state);
-        self.host_callbacks
-            .on_animating_changed(state == AnimationState::Animating);
     }
 }
