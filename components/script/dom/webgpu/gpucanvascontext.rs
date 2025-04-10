@@ -9,13 +9,13 @@ use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use script_layout_interface::HTMLCanvasDataSource;
-use webgpu::swapchain::WebGPUContextId;
-use webgpu::wgc::id;
-use webgpu::{
-    ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPU, WebGPURequest, WebGPUTexture,
+use webgpu_traits::{
+    ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPU, WebGPUContextId, WebGPURequest,
+    WebGPUTexture,
 };
 use webrender_api::ImageKey;
 use webrender_api::units::DeviceIntSize;
+use wgpu_core::id;
 
 use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;

@@ -94,7 +94,7 @@ impl HTMLMeterElement {
 
         let meter_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         root.upcast::<Node>()
-            .AppendChild(meter_value.upcast::<Node>())
+            .AppendChild(meter_value.upcast::<Node>(), can_gc)
             .unwrap();
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
@@ -331,8 +331,10 @@ impl VirtualMethods for HTMLMeterElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
 
         let is_important_attribute = matches!(
             attr.local_name(),
@@ -354,8 +356,8 @@ impl VirtualMethods for HTMLMeterElement {
         self.update_state(CanGc::note());
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
-        self.super_type().unwrap().bind_to_tree(context);
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+        self.super_type().unwrap().bind_to_tree(context, can_gc);
 
         self.update_state(CanGc::note());
     }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>MediaCapabilities.decodingInfo() for encrypted media</title>
+<title>MediaCapabilities.decodingInfo for encrypted media</title>
 <meta name="timeout" content="long">
 <script src=/resources/testharness.js></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -38,7 +38,7 @@ promise_test(t => {
     video: minimalVideoConfiguration,
     keySystemConfiguration: minimalKeySystemConfiguration,
   });
-}, "Test that decodingInfo() accepts a stub key system configuration (w/video).");
+}, "Test that decodingInfo accepts a stub key system configuration (w/video).");
 
 promise_test(t => {
   return navigator.mediaCapabilities.decodingInfo({
@@ -46,7 +46,7 @@ promise_test(t => {
     audio: minimalAudioConfiguration,
     keySystemConfiguration: minimalKeySystemConfiguration,
   });
-}, "Test that decodingInfo() accepts a stub key system configuration (w/audio).");
+}, "Test that decodingInfo accepts a stub key system configuration (w/audio).");
 
 promise_test(t => {
   return navigator.mediaCapabilities.decodingInfo({
@@ -59,7 +59,7 @@ promise_test(t => {
       },
     },
   });
-}, "Test that decodingInfo() accepts a key system configuration with video info.");
+}, "Test that decodingInfo accepts a key system configuration with video info.");
 
 promise_test(t => {
   return navigator.mediaCapabilities.decodingInfo({
@@ -72,7 +72,7 @@ promise_test(t => {
       },
     },
   });
-}, "Test that decodingInfo() accepts a key system configuration with audio info.");
+}, "Test that decodingInfo accepts a key system configuration with audio info.");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
@@ -85,7 +85,7 @@ promise_test(t => {
       },
     },
   }));
-}, "Test that decodingInfo() rejects if robustness and configuration do not match (1).");
+}, "Test that decodingInfo rejects if robustness and configuration do not match (1).");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
@@ -98,7 +98,7 @@ promise_test(t => {
       },
     },
   }));
-}, "Test that decodingInfo() rejects if robustness and configuration do not match (2).");
+}, "Test that decodingInfo rejects if robustness and configuration do not match (2).");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
@@ -114,7 +114,7 @@ promise_test(t => {
       },
     },
   }));
-}, "Test that decodingInfo() rejects if robustness and configuration do not match (3).");
+}, "Test that decodingInfo rejects if robustness and configuration do not match (3).");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
@@ -132,7 +132,7 @@ promise_test(t => {
       persistentState: "foobar",
     },
   }));
-}, "Test that decodingInfo() rejects if persistentState isn't valid.");
+}, "Test that decodingInfo rejects if persistentState isn't valid.");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
@@ -150,7 +150,7 @@ promise_test(t => {
       distinctiveIdentifier: "foobar",
     },
   }));
-}, "Test that decodingInfo() rejects if distinctiveIdentifier isn't valid.");
+}, "Test that decodingInfo rejects if distinctiveIdentifier isn't valid.");
 
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
@@ -168,7 +168,7 @@ promise_test(t => {
       sessionTypes: "foobar",
     },
   }));
-}, "Test that decodingInfo() rejects if sessionTypes isn't a sequence.");
+}, "Test that decodingInfo rejects if sessionTypes isn't a sequence.");
 
 promise_test(t => {
   return navigator.mediaCapabilities.decodingInfo({
@@ -186,7 +186,7 @@ promise_test(t => {
       },
     },
   });
-}, "Test that decodingInfo() does not reject when properties are set to unexpected values.");
+}, "Test that decodingInfo does not reject when properties are set to unexpected values.");
 
 promise_test(t => {
   return navigator.mediaCapabilities.decodingInfo({
@@ -257,6 +257,6 @@ promise_test(t => {
     video: minimalVideoConfiguration,
     keySystemConfiguration: minimalKeySystemConfiguration,
   }));
-}, "Test that decodingInfo() with type webrtc rejects key system configuration.");
+}, "Test that decodingInfo with type webrtc rejects key system configuration.");
 
 </script>

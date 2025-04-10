@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/compositing-1/#pagebackdrop">
+<link rel="help" href="https://crbug.com/40904650">
+<link rel="match" href="root-element-background-margin-opacity-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-10000">
+<style>
+html {
+  margin: 100px;
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(green, green) top left no-repeat;
+  opacity: 0.5;
+}
+</style>

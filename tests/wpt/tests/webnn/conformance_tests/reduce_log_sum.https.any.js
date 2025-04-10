@@ -76,6 +76,30 @@ const reduceLogSumTests = [
     }
   },
   {
+    'name': 'reduceLogSum float32 1D constant tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceLogSumInput': {
+          'data': [64.54827117919922, 64.54827117919922],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceLogSum',
+        'arguments':
+            [{'input': 'reduceLogSumInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceLogSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceLogSumOutput': {
+          'data': [4.167413234710693, 4.167413234710693],
+          'descriptor': {shape: [2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name':
         'reduceLogSum float32 1D constant tensor all non-negative default options',
     'graph': {

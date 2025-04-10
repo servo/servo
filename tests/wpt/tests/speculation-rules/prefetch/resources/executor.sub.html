@@ -2,12 +2,23 @@
 <script src="/common/dispatcher/dispatcher.js" nonce="abc"></script>
 <script src="utils.sub.js" nonce="abc"></script>
 <script nonce="abc">
+
+// Workaround for https://crbug.com/404573971.
+function reverse_html_escape(str) {
+  str = str.replaceAll('&quot;', '"');
+  return str;
+}
+
 window.requestHeaders = {
   purpose: "{{header_or_default(Purpose, )}}",
   sec_purpose: "{{header_or_default(Sec-Purpose, )}}",
   referer: "{{header_or_default(Referer, )}}",
   sec_fetch_dest: "{{header_or_default(Sec-Fetch-Dest, )}}",
   sec_fetch_mode: "{{header_or_default(Sec-Fetch-Mode, )}}",
+  // Convert to the raw string to avoid backslashes from being processed as
+  // escape sequences.
+  sec_speculation_tags: reverse_html_escape(
+      String.raw`{{header_or_default(Sec-Speculation-Tags, )}}`),
 };
 
 const uuid = new URLSearchParams(location.search).get('uuid');

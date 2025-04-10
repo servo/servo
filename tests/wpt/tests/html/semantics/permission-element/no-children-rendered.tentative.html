@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!-- The permission element is not a void element. Its children do not render. -->
+
+<!-- This tests for implementations that used to have no end tag for the permission element
+ In those implementations there would be 2 permission elements in this div. -->
+<div id="permission-element-div">
+  <permission type="geolocation">
+  <permission type="camera">
+</div>
+
+<permission id="mic" type="microphone">This is some text</permission>
+
+<!-- The permission element does not automatically close <p> tags -->
+<p id="paragraph">Foo <permission>bar</permission> baz</p>
+
+<script>
+  test(function(){
+    assert_equals(1, document.getElementById("permission-element-div").childElementCount);
+    assert_equals('', document.getElementById("mic").innerText);
+    assert_equals('This is some text', document.getElementById("mic").textContent);
+    assert_equals('This is some text', document.getElementById("mic").innerHTML);
+    assert_equals(4, document.body.childElementCount); //div, permission, script, p
+    assert_equals('Foo bar baz', document.getElementById("paragraph").textContent);
+  }, "The permission element should have no end tag or contents");
+</script>
+</body>

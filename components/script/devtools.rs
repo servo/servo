@@ -102,10 +102,11 @@ pub(crate) fn handle_get_root_node(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<NodeInfo>>,
+    can_gc: CanGc,
 ) {
     let info = documents
         .find_document(pipeline)
-        .map(|document| document.upcast::<Node>().summarize());
+        .map(|document| document.upcast::<Node>().summarize(can_gc));
     reply.send(info).unwrap();
 }
 
@@ -113,11 +114,12 @@ pub(crate) fn handle_get_document_element(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<Option<NodeInfo>>,
+    can_gc: CanGc,
 ) {
     let info = documents
         .find_document(pipeline)
         .and_then(|document| document.GetDocumentElement())
-        .map(|element| element.upcast::<Node>().summarize());
+        .map(|element| element.upcast::<Node>().summarize(can_gc));
     reply.send(info).unwrap();
 }
 
@@ -139,6 +141,7 @@ pub(crate) fn handle_get_children(
     pipeline: PipelineId,
     node_id: String,
     reply: IpcSender<Option<Vec<NodeInfo>>>,
+    can_gc: CanGc,
 ) {
     match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => reply.send(None).unwrap(),
@@ -166,7 +169,7 @@ pub(crate) fn handle_get_children(
                 if !shadow_root.is_user_agent_widget() ||
                     pref!(inspector_show_servo_internal_shadow_roots)
                 {
-                    children.push(shadow_root.upcast::<Node>().summarize());
+                    children.push(shadow_root.upcast::<Node>().summarize(can_gc));
                 }
             }
             let children_iter = parent.children().enumerate().filter_map(|(i, child)| {
@@ -175,7 +178,7 @@ pub(crate) fn handle_get_children(
                 let prev_inline = i > 0 && inline[i - 1];
                 let next_inline = i < inline.len() - 1 && inline[i + 1];
 
-                let info = child.summarize();
+                let info = child.summarize(can_gc);
                 if !is_whitespace(&info) {
                     return Some(info);
                 }
@@ -240,7 +243,7 @@ pub(crate) fn handle_get_stylesheet_style(
         let owner = node.stylesheet_list_owner();
 
         let stylesheet = owner.stylesheet_at(stylesheet)?;
-        let list = stylesheet.GetCssRules().ok()?;
+        let list = stylesheet.GetCssRules(can_gc).ok()?;
 
         let styles = (0..list.Length())
             .filter_map(move |i| {
@@ -249,7 +252,7 @@ pub(crate) fn handle_get_stylesheet_style(
                 if *selector != *style.SelectorText() {
                     return None;
                 };
-                Some(style.Style())
+                Some(style.Style(can_gc))
             })
             .flat_map(|style| {
                 (0..style.Length()).map(move |i| {
@@ -287,7 +290,7 @@ pub(crate) fn handle_get_selectors(
         let rules = (0..owner.stylesheet_count())
             .filter_map(|i| {
                 let stylesheet = owner.stylesheet_at(i)?;
-                let list = stylesheet.GetCssRules().ok()?;
+                let list = stylesheet.GetCssRules(can_gc).ok()?;
                 let elem = node.downcast::<Element>()?;
 
                 Some((0..list.Length()).filter_map(move |j| {

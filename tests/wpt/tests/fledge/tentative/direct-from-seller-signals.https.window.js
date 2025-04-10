@@ -14,7 +14,7 @@
 // META: variant=?29-32
 // META: variant=?33-36
 
-"use strict;"
+"use strict";
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);

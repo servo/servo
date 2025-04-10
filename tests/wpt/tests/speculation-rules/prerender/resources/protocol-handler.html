@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Prerendering custom protocol handler</title>
+<script>
+  // This page should be used by the protocol-handler-*register.https.html
+  // tests as the handler for their test custom protocols.
+
+  // Get URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const id = urlParams.get('id');
+  const s = urlParams.get('s');
+  // This page will be hosted in an iframe. Post message to parent window.
+  window.parent.postMessage({id: id, s: s}, '*');
+</script>

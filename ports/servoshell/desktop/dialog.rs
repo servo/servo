@@ -7,11 +7,14 @@ use std::sync::Arc;
 
 use egui::Modal;
 use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
+use euclid::Length;
 use log::warn;
 use servo::ipc_channel::ipc::IpcSender;
+use servo::servo_geometry::DeviceIndependentPixel;
 use servo::{
     AlertResponse, AuthenticationRequest, ConfirmResponse, FilterPattern, PermissionRequest,
-    PromptResponse, SimpleDialog,
+    PromptResponse, SelectElement, SelectElementOption, SelectElementOptionOrOptgroup,
+    SimpleDialog,
 };
 
 pub enum Dialog {
@@ -35,6 +38,10 @@ pub enum Dialog {
         devices: Vec<String>,
         selected_device_index: usize,
         response_sender: IpcSender<Option<String>>,
+    },
+    SelectElement {
+        maybe_prompt: Option<SelectElement>,
+        toolbar_offset: Length<f32, DeviceIndependentPixel>,
     },
 }
 
@@ -99,6 +106,16 @@ impl Dialog {
             devices,
             selected_device_index: 0,
             response_sender,
+        }
+    }
+
+    pub fn new_select_element_dialog(
+        prompt: SelectElement,
+        toolbar_offset: Length<f32, DeviceIndependentPixel>,
+    ) -> Self {
+        Dialog::SelectElement {
+            maybe_prompt: Some(prompt),
+            toolbar_offset,
         }
     }
 
@@ -371,6 +388,101 @@ impl Dialog {
                         },
                     );
                 });
+                is_open
+            },
+            Dialog::SelectElement {
+                maybe_prompt,
+                toolbar_offset,
+            } => {
+                let Some(prompt) = maybe_prompt else {
+                    // Prompt was dismissed, so the dialog should be closed too.
+                    return false;
+                };
+                let mut is_open = true;
+
+                let mut position = prompt.position();
+                position.min.y += toolbar_offset.0 as i32;
+                position.max.y += toolbar_offset.0 as i32;
+                let area = egui::Area::new(egui::Id::new("select-window"))
+                    .fixed_pos(egui::pos2(position.min.x as f32, position.max.y as f32));
+
+                let mut selected_option = prompt.selected_option();
+
+                fn display_option(
+                    ui: &mut egui::Ui,
+                    option: &SelectElementOption,
+                    selected_option: &mut Option<usize>,
+                    is_open: &mut bool,
+                    in_group: bool,
+                ) {
+                    let is_checked =
+                        selected_option.is_some_and(|selected_index| selected_index == option.id);
+
+                    // TODO: Surely there's a better way to align text in a selectable label in egui.
+                    let label_text = if in_group {
+                        format!("   {}", option.label)
+                    } else {
+                        option.label.to_owned()
+                    };
+                    let label = if option.is_disabled {
+                        egui::RichText::new(&label_text).strikethrough()
+                    } else {
+                        egui::RichText::new(&label_text)
+                    };
+                    let clickable_area = ui
+                        .allocate_ui_with_layout(
+                            [ui.available_width(), 0.0].into(),
+                            egui::Layout::top_down_justified(egui::Align::LEFT),
+                            |ui| ui.selectable_label(is_checked, label),
+                        )
+                        .inner;
+
+                    if clickable_area.clicked() && !option.is_disabled {
+                        *selected_option = Some(option.id);
+                        *is_open = false;
+                    }
+
+                    if clickable_area.hovered() && option.is_disabled {
+                        ui.ctx().set_cursor_icon(egui::CursorIcon::NotAllowed);
+                    }
+                }
+
+                let modal = Modal::new("select_element_picker".into()).area(area);
+                modal.show(ctx, |ui| {
+                    for option_or_optgroup in prompt.options() {
+                        match &option_or_optgroup {
+                            SelectElementOptionOrOptgroup::Option(option) => {
+                                display_option(
+                                    ui,
+                                    option,
+                                    &mut selected_option,
+                                    &mut is_open,
+                                    false,
+                                );
+                            },
+                            SelectElementOptionOrOptgroup::Optgroup { label, options } => {
+                                ui.label(egui::RichText::new(label).strong());
+
+                                for option in options {
+                                    display_option(
+                                        ui,
+                                        option,
+                                        &mut selected_option,
+                                        &mut is_open,
+                                        true,
+                                    );
+                                }
+                            },
+                        }
+                    }
+                });
+
+                prompt.select(selected_option);
+
+                if !is_open {
+                    maybe_prompt.take().unwrap().submit();
+                }
+
                 is_open
             },
         }

@@ -49,6 +49,8 @@ test_invalid_number('pow(1 * )');
 test_invalid_number('pow(1 / )');
 test_invalid_number('pow(1 2)');
 test_invalid_number('pow(1, , 2)');
+test_invalid_number('pow(2px, 2)');
+test_invalid_number('pow(10, 1px)');
 
 // General tests
 test_invalid_length('calc(1px * pow(1))');
@@ -64,4 +66,5 @@ test_invalid_length('pow())');
 test_invalid_length('pow(1, 2)');
 test_invalid_length('calc(sqrt())');
 test_invalid_length('calc(sqrt(100, 200))');
+test_invalid_length('pow(10px, 1)');
 </script>

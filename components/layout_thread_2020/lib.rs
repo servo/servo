@@ -17,14 +17,16 @@ use std::sync::{Arc, LazyLock};
 use app_units::Au;
 use base::Epoch;
 use base::id::{PipelineId, WebViewId};
-use constellation_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
+use compositing_traits::CrossProcessCompositorApi;
+use constellation_traits::ScrollState;
 use embedder_traits::resources::{self, Resource};
+use embedder_traits::{UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
-use fxhash::FxHashMap;
+use fxhash::{FxHashMap, FxHashSet};
 use ipc_channel::ipc::IpcSender;
 use layout::context::LayoutContext;
 use layout::display_list::{DisplayList, WebRenderImageInfo};
@@ -46,15 +48,15 @@ use profile_traits::time::{
 use profile_traits::{path, time_profile};
 use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::{
-    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
-    ReflowRequest, ReflowResult, TrustedNodeAddress,
+    ImageAnimationState, Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType,
+    OffsetParentResponse, ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::{self, DebugOptions};
 use servo_config::pref;
 use servo_url::ServoUrl;
-use style::animation::DocumentAnimationSet;
+use style::animation::{AnimationSetKey, DocumentAnimationSet};
 use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
 };
@@ -86,7 +88,6 @@ use stylo_atoms::Atom;
 use url::Url;
 use webrender_api::units::{DevicePixel, LayoutPixel};
 use webrender_api::{ExternalScrollId, HitTestFlags, units};
-use webrender_traits::CrossProcessCompositorApi;
 
 // This mutex is necessary due to syncronisation issues between two different types of thread-local storage
 // which manifest themselves when the layout thread tries to layout iframes in parallel with the main page
@@ -473,8 +474,8 @@ impl LayoutThread {
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,
-            config.window_size.initial_viewport,
-            Scale::new(config.window_size.device_pixel_ratio.get()),
+            config.viewport_details.size,
+            Scale::new(config.viewport_details.hidpi_scale_factor.get()),
             Box::new(LayoutFontMetricsProvider(config.font_context.clone())),
             ComputedValues::initial_values_with_font_override(font),
             // TODO: obtain preferred color scheme from embedder
@@ -497,8 +498,8 @@ impl LayoutThread {
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
             viewport_size: Size2D::new(
-                Au::from_f32_px(config.window_size.initial_viewport.width),
-                Au::from_f32_px(config.window_size.initial_viewport.height),
+                Au::from_f32_px(config.viewport_details.size.width),
+                Au::from_f32_px(config.viewport_details.size.height),
             ),
             compositor_api: config.compositor_api,
             scroll_offsets: Default::default(),
@@ -536,7 +537,7 @@ impl LayoutThread {
         &'a self,
         guards: StylesheetGuards<'a>,
         snapshot_map: &'a SnapshotMap,
-        reflow_request: &ReflowRequest,
+        reflow_request: &mut ReflowRequest,
         use_rayon: bool,
     ) -> LayoutContext<'a> {
         let traversal_flags = match reflow_request.stylesheets_changed {
@@ -558,6 +559,9 @@ impl LayoutThread {
             font_context: self.font_context.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: Mutex::default(),
+            node_image_animation_map: Arc::new(RwLock::new(std::mem::take(
+                &mut reflow_request.node_to_image_animation_map,
+            ))),
             iframe_sizes: Mutex::default(),
             use_rayon,
         }
@@ -615,11 +619,15 @@ impl LayoutThread {
         };
 
         let had_used_viewport_units = self.stylist.device().used_viewport_units();
-        let viewport_size_changed = self.viewport_did_change(reflow_request.window_size);
+        let viewport_size_changed = self.viewport_did_change(reflow_request.viewport_details);
         let theme_changed = self.theme_did_change(reflow_request.theme);
 
         if viewport_size_changed || theme_changed {
-            self.update_device(reflow_request.window_size, reflow_request.theme, &guards);
+            self.update_device(
+                reflow_request.viewport_details,
+                reflow_request.theme,
+                &guards,
+            );
         }
 
         if viewport_size_changed && had_used_viewport_units {
@@ -696,8 +704,12 @@ impl LayoutThread {
         let rayon_pool = rayon_pool.as_ref();
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context =
-            self.build_layout_context(guards.clone(), &map, &reflow_request, rayon_pool.is_some());
+        let mut layout_context = self.build_layout_context(
+            guards.clone(),
+            &map,
+            &mut reflow_request,
+            rayon_pool.is_some(),
+        );
 
         let dirty_root = unsafe {
             ServoLayoutNode::new(&reflow_request.dirty_root.unwrap())
@@ -791,9 +803,12 @@ impl LayoutThread {
 
         let pending_images = std::mem::take(&mut *layout_context.pending_images.lock());
         let iframe_sizes = std::mem::take(&mut *layout_context.iframe_sizes.lock());
+        let node_to_image_animation_map =
+            std::mem::take(&mut *layout_context.node_image_animation_map.write());
         Some(ReflowResult {
             pending_images,
             iframe_sizes,
+            node_to_image_animation_map,
         })
     }
 
@@ -818,6 +833,11 @@ impl LayoutThread {
     ) {
         Self::cancel_animations_for_nodes_not_in_fragment_tree(
             &context.style_context.animations,
+            &fragment_tree,
+        );
+
+        Self::cancel_image_animation_for_nodes_not_in_fragment_tree(
+            context.node_image_animation_map.clone(),
             &fragment_tree,
         );
 
@@ -920,11 +940,27 @@ impl LayoutThread {
         }
     }
 
-    fn viewport_did_change(&mut self, window_size_data: WindowSizeData) -> bool {
-        let new_pixel_ratio = window_size_data.device_pixel_ratio.get();
+    fn cancel_image_animation_for_nodes_not_in_fragment_tree(
+        image_animation_set: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
+        root: &FragmentTree,
+    ) {
+        let mut image_animations = image_animation_set.write().to_owned();
+        let mut invalid_nodes: FxHashSet<AnimationSetKey> = image_animations
+            .keys()
+            .cloned()
+            .map(|node| AnimationSetKey::new(node, None))
+            .collect();
+        root.remove_nodes_in_fragment_tree_from_set(&mut invalid_nodes);
+        for node in &invalid_nodes {
+            image_animations.remove(&node.node);
+        }
+    }
+
+    fn viewport_did_change(&mut self, viewport_details: ViewportDetails) -> bool {
+        let new_pixel_ratio = viewport_details.hidpi_scale_factor.get();
         let new_viewport_size = Size2D::new(
-            Au::from_f32_px(window_size_data.initial_viewport.width),
-            Au::from_f32_px(window_size_data.initial_viewport.height),
+            Au::from_f32_px(viewport_details.size.width),
+            Au::from_f32_px(viewport_details.size.height),
         );
 
         // TODO: eliminate self.viewport_size in favour of using self.device.au_viewport_size()
@@ -944,15 +980,15 @@ impl LayoutThread {
     /// Update layout given a new viewport. Returns true if the viewport changed or false if it didn't.
     fn update_device(
         &mut self,
-        window_size_data: WindowSizeData,
+        viewport_details: ViewportDetails,
         theme: PrefersColorScheme,
         guards: &StylesheetGuards,
     ) {
         let device = Device::new(
             MediaType::screen(),
             self.stylist.quirks_mode(),
-            window_size_data.initial_viewport,
-            Scale::new(window_size_data.device_pixel_ratio.get()),
+            viewport_details.size,
+            Scale::new(viewport_details.hidpi_scale_factor.get()),
             Box::new(LayoutFontMetricsProvider(self.font_context.clone())),
             self.stylist.device().default_computed_values().to_arc(),
             theme,

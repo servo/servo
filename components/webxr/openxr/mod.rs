@@ -560,9 +560,9 @@ impl LayerManagerAPI<SurfmanGL> for OpenXrLayerManager {
             for surface_texture in mem::replace(&mut layer.surface_textures, vec![]) {
                 if let Some(surface_texture) = surface_texture {
                     let mut surface = device
-                        .destroy_surface_texture(&mut context, surface_texture)
+                        .destroy_surface_texture(context, surface_texture)
                         .unwrap();
-                    device.destroy_surface(&mut context, &mut surface).unwrap();
+                    device.destroy_surface(context, &mut surface).unwrap();
                 }
             }
         }

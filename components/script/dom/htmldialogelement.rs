@@ -105,7 +105,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
         // Step 1 & 2
         if element
-            .remove_attribute(&ns!(), &local_name!("open"))
+            .remove_attribute(&ns!(), &local_name!("open"), CanGc::note())
             .is_none()
         {
             return;

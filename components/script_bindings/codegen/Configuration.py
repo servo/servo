@@ -228,7 +228,7 @@ class Descriptor(DescriptorProvider):
             self.nativeType = typeName
             pathDefault = 'crate::dom::types::%s' % typeName
         elif self.interface.isCallback():
-            ty = 'crate::dom::bindings::codegen::GenericBindings::%sBinding::%s' % (ifaceName, ifaceName)
+            ty = 'crate::codegen::GenericBindings::%sBinding::%s' % (ifaceName, ifaceName)
             pathDefault = ty
             self.returnType = "Rc<%s<D>>" % ty
             self.argumentType = "???"
@@ -238,7 +238,7 @@ class Descriptor(DescriptorProvider):
             self.argumentType = "&%s%s" % (prefix, typeName)
             self.nativeType = "*const %s%s" % (prefix, typeName)
             if self.interface.isIteratorInterface():
-                pathDefault = 'crate::dom::bindings::iterable::IterableIterator'
+                pathDefault = 'crate::iterable::IterableIterator'
             else:
                 pathDefault = 'crate::dom::types::%s' % MakeNativeName(typeName)
 
@@ -491,7 +491,7 @@ def getIdlFileName(object):
 
 
 def getModuleFromObject(object):
-    return ('crate::dom::bindings::codegen::GenericBindings::' + getIdlFileName(object) + 'Binding')
+    return ('crate::codegen::GenericBindings::' + getIdlFileName(object) + 'Binding')
 
 
 def getTypesFromDescriptor(descriptor):
@@ -552,5 +552,5 @@ def iteratorNativeType(descriptor, infer=False):
     res = "IterableIterator%s" % ("" if infer else '<D, D::%s>' % descriptor.interface.identifier.name)
     # todo: this hack is telling us that something is still wrong in codegen
     if iterableDecl.isSetlike() or iterableDecl.isMaplike():
-        res = f"crate::dom::bindings::iterable::{res}"
+        res = f"crate::iterable::{res}"
     return res

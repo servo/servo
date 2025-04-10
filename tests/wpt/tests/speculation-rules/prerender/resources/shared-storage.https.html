@@ -19,9 +19,20 @@ if (!isPrerendering) {
   loadInitiatorPage();
 } else {
   const prerenderEventCollector = new PrerenderEventCollector();
-  prerenderEventCollector.start(
-    window.sharedStorage.set('prerender', 'yes'), 'window.sharedStorage.set');
+
+  if (params.get('type') === 'worklet') {
+    async function register() {
+      return window.sharedStorage.worklet.addModule(
+        "shared-storage-worklet.js");
+    }
+    prerenderEventCollector.start(
+      register(), 'window.sharedStorage.worklet.addModule');
+  } else {
+    prerenderEventCollector.start(
+      window.sharedStorage.set('prerender', 'yes'),
+      'window.sharedStorage.set');
   }
+}
 
 </script>
 

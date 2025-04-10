@@ -13,8 +13,8 @@ use style::selector_parser::PseudoElement;
 #[derive(Clone, Debug)]
 pub(crate) struct BaseFragment {
     /// A tag which identifies the DOM node and pseudo element of this
-    /// Fragment's content. If this fragment isn't related to any DOM
-    /// node at all, the tag will be None.
+    /// Fragment's content. If this fragment is for an anonymous box,
+    /// the tag will be None.
     pub tag: Option<Tag>,
 
     /// Flags which various information about this fragment used during
@@ -102,6 +102,8 @@ bitflags! {
         /// and the fragment can be a flex item. This flag is used to cache items during flex
         /// layout.
         const SIZE_DEPENDS_ON_BLOCK_CONSTRAINTS_AND_CAN_BE_CHILD_OF_FLEX_ITEM = 1 << 8;
+        /// Whether or not the node that created this fragment is the root element.
+        const IS_ROOT_ELEMENT = 1 << 9;
     }
 }
 

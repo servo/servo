@@ -5,7 +5,7 @@
 #![allow(dead_code)] // this file is stub as wgpu does not provide info
 
 use dom_struct::dom_struct;
-use webgpu::ShaderCompilationInfo;
+use webgpu_traits::ShaderCompilationInfo;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCompilationMessageMethods, GPUCompilationMessageType,

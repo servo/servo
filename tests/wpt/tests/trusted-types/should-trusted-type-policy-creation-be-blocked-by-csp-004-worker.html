@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="timeout" content="long">
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  // WebKit test runner assumes the tests always run in the same order, so make
+  // sure fetch_tests_from_worker tests run sequentially.
+  setup({explicit_done: true});
+  (async function() {
+    await fetch_tests_from_worker(new Worker(
+    "support/should-trusted-type-policy-creation-be-blocked-by-csp-004-worker-tt-policy-name.js"
+    ));
+    await fetch_tests_from_worker(new Worker(
+      "support/should-trusted-type-policy-creation-be-blocked-by-csp-004-worker-none.js"
+    ));
+    await fetch_tests_from_worker(new Worker(
+      "support/should-trusted-type-policy-creation-be-blocked-by-csp-004-worker-tt-policy-name-none.js"
+    ));
+    await fetch_tests_from_worker(new Worker(
+      "support/should-trusted-type-policy-creation-be-blocked-by-csp-004-worker-wildcard.js"
+    ));
+    await fetch_tests_from_worker(new Worker(
+      "support/should-trusted-type-policy-creation-be-blocked-by-csp-004-worker-tt-policy-name-allow-duplicates.js"
+    ));
+    await fetch_tests_from_worker(new Worker(
+      "support/should-trusted-type-policy-creation-be-blocked-by-csp-004-worker-allow-duplicates-tt-policy-name.js"
+    ));
+    await fetch_tests_from_worker(new Worker(
+      "support/should-trusted-type-policy-creation-be-blocked-by-csp-004-worker-multiple-violations.js"
+    ));
+    await fetch_tests_from_worker(new Worker(
+      "support/should-trusted-type-policy-creation-be-blocked-by-csp-004-worker-location.js"
+    ));
+    done();
+  })();
+</script>

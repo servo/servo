@@ -8,13 +8,13 @@ use std::ptr;
 use std::rc::Rc;
 
 use base::id::{BlobId, BlobIndex, PipelineNamespaceId};
+use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::Uint8;
 use net_traits::filemanager_thread::RelativePos;
-use script_traits::serializable::BlobImpl;
 use uuid::Uuid;
 
 use crate::body::{FetchedData, run_array_buffer_data_algorithm};
@@ -243,7 +243,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     // https://w3c.github.io/FileAPI/#text-method-algo
     fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
-        let in_realm_proof = AlreadyInRealm::assert();
+        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
         let id = self.get_blob_url_id();
         global.read_file_async(
@@ -266,7 +266,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     // https://w3c.github.io/FileAPI/#arraybuffer-method-algo
     fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
         let global = self.global();
-        let in_realm_proof = AlreadyInRealm::assert();
+        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
 
         let id = self.get_blob_url_id();

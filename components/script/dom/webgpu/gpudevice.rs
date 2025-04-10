@@ -10,15 +10,15 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
-use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
-use webgpu::wgc::pipeline as wgpu_pipe;
-use webgpu::wgc::pipeline::RenderPipelineDescriptor;
-use webgpu::wgt::TextureFormat;
-use webgpu::{
-    PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse,
-    WebGPUPoppedErrorScopeResponse, WebGPURenderPipeline, WebGPURenderPipelineResponse,
-    WebGPURequest, wgt,
+use webgpu_traits::{
+    PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
+    WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
+    WebGPURenderPipelineResponse, WebGPURequest,
 };
+use wgpu_core::id::{BindGroupLayoutId, PipelineLayoutId};
+use wgpu_core::pipeline as wgpu_pipe;
+use wgpu_core::pipeline::RenderPipelineDescriptor;
+use wgpu_types::{self, TextureFormat};
 
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpuerror::AsWebGpu;
@@ -78,7 +78,7 @@ pub(crate) struct GPUDevice {
     limits: Dom<GPUSupportedLimits>,
     label: DomRefCell<USVString>,
     #[no_trace]
-    device: webgpu::WebGPUDevice,
+    device: WebGPUDevice,
     default_queue: Dom<GPUQueue>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
     #[ignore_malloc_size_of = "promises are hard"]
@@ -117,7 +117,7 @@ impl GPUDevice {
         extensions: Heap<*mut JSObject>,
         features: &GPUSupportedFeatures,
         limits: &GPUSupportedLimits,
-        device: webgpu::WebGPUDevice,
+        device: WebGPUDevice,
         queue: &GPUQueue,
         label: String,
         lost_promise: Rc<Promise>,
@@ -143,10 +143,10 @@ impl GPUDevice {
         channel: WebGPU,
         adapter: &GPUAdapter,
         extensions: Heap<*mut JSObject>,
-        features: wgt::Features,
-        limits: wgt::Limits,
-        device: webgpu::WebGPUDevice,
-        queue: webgpu::WebGPUQueue,
+        features: wgpu_types::Features,
+        limits: wgpu_types::Limits,
+        device: WebGPUDevice,
+        queue: WebGPUQueue,
         label: String,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
@@ -175,11 +175,11 @@ impl GPUDevice {
 }
 
 impl GPUDevice {
-    pub(crate) fn id(&self) -> webgpu::WebGPUDevice {
+    pub(crate) fn id(&self) -> WebGPUDevice {
         self.device
     }
 
-    pub(crate) fn queue_id(&self) -> webgpu::WebGPUQueue {
+    pub(crate) fn queue_id(&self) -> WebGPUQueue {
         self.default_queue.id()
     }
 
@@ -187,7 +187,7 @@ impl GPUDevice {
         self.channel.clone()
     }
 
-    pub(crate) fn dispatch_error(&self, error: webgpu::Error) {
+    pub(crate) fn dispatch_error(&self, error: webgpu_traits::Error) {
         if let Err(e) = self.channel.0.send(WebGPURequest::DispatchError {
             device_id: self.device.0,
             error,
@@ -196,7 +196,7 @@ impl GPUDevice {
         }
     }
 
-    pub(crate) fn fire_uncaptured_error(&self, error: webgpu::Error, can_gc: CanGc) {
+    pub(crate) fn fire_uncaptured_error(&self, error: webgpu_traits::Error, can_gc: CanGc) {
         let error = GPUError::from_error(&self.global(), error, can_gc);
         let ev = GPUUncapturedErrorEvent::new(
             &self.global(),
@@ -274,14 +274,14 @@ impl GPUDevice {
                         .map(|buffer| wgpu_pipe::VertexBufferLayout {
                             array_stride: buffer.arrayStride,
                             step_mode: match buffer.stepMode {
-                                GPUVertexStepMode::Vertex => wgt::VertexStepMode::Vertex,
-                                GPUVertexStepMode::Instance => wgt::VertexStepMode::Instance,
+                                GPUVertexStepMode::Vertex => wgpu_types::VertexStepMode::Vertex,
+                                GPUVertexStepMode::Instance => wgpu_types::VertexStepMode::Instance,
                             },
                             attributes: Cow::Owned(
                                 buffer
                                     .attributes
                                     .iter()
-                                    .map(|att| wgt::VertexAttribute {
+                                    .map(|att| wgpu_types::VertexAttribute {
                                         format: att.format.convert(),
                                         offset: att.offset,
                                         shader_location: att.shaderLocation,
@@ -305,13 +305,14 @@ impl GPUDevice {
                                 .map(|state| {
                                     self.validate_texture_format_required_features(&state.format)
                                         .map(|format| {
-                                            Some(wgt::ColorTargetState {
+                                            Some(wgpu_types::ColorTargetState {
                                                 format,
-                                                write_mask: wgt::ColorWrites::from_bits_retain(
-                                                    state.writeMask,
-                                                ),
+                                                write_mask:
+                                                    wgpu_types::ColorWrites::from_bits_retain(
+                                                        state.writeMask,
+                                                    ),
                                                 blend: state.blend.as_ref().map(|blend| {
-                                                    wgt::BlendState {
+                                                    wgpu_types::BlendState {
                                                         color: (&blend.color).convert(),
                                                         alpha: (&blend.alpha).convert(),
                                                     }
@@ -330,19 +331,19 @@ impl GPUDevice {
                 .as_ref()
                 .map(|dss_desc| {
                     self.validate_texture_format_required_features(&dss_desc.format)
-                        .map(|format| wgt::DepthStencilState {
+                        .map(|format| wgpu_types::DepthStencilState {
                             format,
                             depth_write_enabled: dss_desc.depthWriteEnabled,
                             depth_compare: dss_desc.depthCompare.convert(),
-                            stencil: wgt::StencilState {
-                                front: wgt::StencilFaceState {
+                            stencil: wgpu_types::StencilState {
+                                front: wgpu_types::StencilFaceState {
                                     compare: dss_desc.stencilFront.compare.convert(),
 
                                     fail_op: dss_desc.stencilFront.failOp.convert(),
                                     depth_fail_op: dss_desc.stencilFront.depthFailOp.convert(),
                                     pass_op: dss_desc.stencilFront.passOp.convert(),
                                 },
-                                back: wgt::StencilFaceState {
+                                back: wgpu_types::StencilFaceState {
                                     compare: dss_desc.stencilBack.compare.convert(),
                                     fail_op: dss_desc.stencilBack.failOp.convert(),
                                     depth_fail_op: dss_desc.stencilBack.depthFailOp.convert(),
@@ -351,7 +352,7 @@ impl GPUDevice {
                                 read_mask: dss_desc.stencilReadMask,
                                 write_mask: dss_desc.stencilWriteMask,
                             },
-                            bias: wgt::DepthBiasState {
+                            bias: wgpu_types::DepthBiasState {
                                 constant: dss_desc.depthBias,
                                 slope_scale: *dss_desc.depthBiasSlopeScale,
                                 clamp: *dss_desc.depthBiasClamp,
@@ -359,7 +360,7 @@ impl GPUDevice {
                         })
                 })
                 .transpose()?,
-            multisample: wgt::MultisampleState {
+            multisample: wgpu_types::MultisampleState {
                 count: descriptor.multisample.count,
                 mask: descriptor.multisample.mask as u64,
                 alpha_to_coverage_enabled: descriptor.multisample.alphaToCoverageEnabled,
@@ -620,7 +621,7 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
                 ),
                 can_gc,
             ),
-            Err(webgpu::Error::Validation(msg)) => promise.reject_native(
+            Err(webgpu_traits::Error::Validation(msg)) => promise.reject_native(
                 &GPUPipelineError::new(
                     &self.global(),
                     msg.into(),
@@ -629,8 +630,8 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
                 ),
                 can_gc,
             ),
-            Err(webgpu::Error::OutOfMemory(msg) | webgpu::Error::Internal(msg)) => promise
-                .reject_native(
+            Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
+                promise.reject_native(
                     &GPUPipelineError::new(
                         &self.global(),
                         msg.into(),
@@ -638,7 +639,8 @@ impl RoutedPromiseListener<WebGPUComputePipelineResponse> for GPUDevice {
                         can_gc,
                     ),
                     can_gc,
-                ),
+                )
+            },
         }
     }
 }
@@ -661,7 +663,7 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                 ),
                 can_gc,
             ),
-            Err(webgpu::Error::Validation(msg)) => promise.reject_native(
+            Err(webgpu_traits::Error::Validation(msg)) => promise.reject_native(
                 &GPUPipelineError::new(
                     &self.global(),
                     msg.into(),
@@ -670,8 +672,8 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                 ),
                 can_gc,
             ),
-            Err(webgpu::Error::OutOfMemory(msg) | webgpu::Error::Internal(msg)) => promise
-                .reject_native(
+            Err(webgpu_traits::Error::OutOfMemory(msg) | webgpu_traits::Error::Internal(msg)) => {
+                promise.reject_native(
                     &GPUPipelineError::new(
                         &self.global(),
                         msg.into(),
@@ -679,7 +681,8 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                         can_gc,
                     ),
                     can_gc,
-                ),
+                )
+            },
         }
     }
 }

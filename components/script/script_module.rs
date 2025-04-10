@@ -992,7 +992,7 @@ impl ModuleOwner {
                     .has_attribute(&local_name!("async"));
 
                 if !asynch && (*script.root()).get_parser_inserted() {
-                    document.deferred_script_loaded(&script.root(), load);
+                    document.deferred_script_loaded(&script.root(), load, can_gc);
                 } else if !asynch && !(*script.root()).get_non_blocking() {
                     document.asap_in_order_script_loaded(&script.root(), load, can_gc);
                 } else {

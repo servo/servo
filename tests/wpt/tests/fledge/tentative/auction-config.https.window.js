@@ -19,7 +19,7 @@
 // META: variant=?61-65
 // META: variant=?66-last
 
-"use strict;"
+"use strict";
 
 // The tests in this file focus on calls to runAdAuction with various
 // auctionConfigs.
@@ -601,12 +601,16 @@ subsetTest(promise_test, async test => {
     })
   };
 
-  // In the first auction, browserSignals.forDebuggingOnlyInCooldownOrLockout in
-  // generateBid() and scoreAd() should both be false. After the auction,
-  // lockout and cooldowns should be updated.
   await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfigOverrides);
-  await waitForObservedRequestsIgnoreDebugOnlyReports(
-      uuid, [bidderReportURL2, sellerReportURL2]);
+  // TODO(crbug.com/337186761) this causes the test being flaky.
+  // Note: In the first auction,
+  // browserSignals.forDebuggingOnlyInCooldownOrLockout in generateBid() and
+  // scoreAd() should both be false. But due to currently there's no way to
+  // clean up the lockout/cooldown DB tables after a test, so a rerun of this
+  // test will break this, and other tests that writes to these tables may also
+  // affect this test. So we cannot reliably check the signals being false.
+  // await waitForObservedRequestsIgnoreDebugOnlyReports(
+  //     uuid, [bidderReportURL2, sellerReportURL2]);
 
   // In the second auction, browserSignals.forDebuggingOnlyInCooldownOrLockout
   // in generateBid() and scoreAd() should both be true, since both the buyer

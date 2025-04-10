@@ -1,19 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
 
-use compositing::windowing::{AnimationState, EmbedderMethods, WindowMethods};
+use compositing::windowing::{EmbedderMethods, WindowMethods};
 use euclid::{Point2D, Scale, Size2D};
 use servo::{RenderingContext, Servo, TouchEventType, WebView, WindowRenderingContext};
 use servo_geometry::DeviceIndependentPixel;
 use tracing::warn;
 use url::Url;
 use webrender_api::ScrollLocation;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DevicePixel, LayoutVector2D};
+use webrender_api::units::{DeviceIntPoint, DevicePixel, LayoutVector2D};
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{MouseScrollDelta, WindowEvent};
@@ -101,7 +100,6 @@ impl ApplicationHandler<WakerEvent> for App {
                     waker: waker.clone(),
                 }),
                 window_delegate.clone(),
-                Default::default(),
                 Default::default(),
             );
             servo.setup_logging();
@@ -238,43 +236,17 @@ impl embedder_traits::EventLoopWaker for Waker {
 
 struct WindowDelegate {
     window: Window,
-    animation_state: Cell<AnimationState>,
 }
 
 impl WindowDelegate {
     fn new(window: Window) -> Self {
-        Self {
-            window,
-            animation_state: Cell::new(AnimationState::Idle),
-        }
+        Self { window }
     }
 }
 
 impl WindowMethods for WindowDelegate {
-    fn get_coordinates(&self) -> compositing::windowing::EmbedderCoordinates {
-        let monitor = self
-            .window
-            .current_monitor()
-            .or_else(|| self.window.available_monitors().nth(0))
-            .expect("Failed to get winit monitor");
-        let scale =
-            Scale::<f64, DeviceIndependentPixel, DevicePixel>::new(self.window.scale_factor());
-        let window_size = winit_size_to_euclid_size(self.window.outer_size()).to_i32();
-        let window_origin = self.window.outer_position().unwrap_or_default();
-        let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
-        let window_rect = DeviceIntRect::from_origin_and_size(window_origin, window_size);
-
-        compositing::windowing::EmbedderCoordinates {
-            hidpi_factor: Scale::new(self.window.scale_factor() as f32),
-            screen_size: (winit_size_to_euclid_size(monitor.size()).to_f64() / scale).to_i32(),
-            available_screen_size: (winit_size_to_euclid_size(monitor.size()).to_f64() / scale)
-                .to_i32(),
-            window_rect: (window_rect.to_f64() / scale).to_i32(),
-        }
-    }
-
-    fn set_animation_state(&self, state: compositing::windowing::AnimationState) {
-        self.animation_state.set(state);
+    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        Scale::new(self.window.scale_factor() as f32)
     }
 }
 

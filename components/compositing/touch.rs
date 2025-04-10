@@ -329,10 +329,7 @@ impl TouchHandler {
                 .active_touch_points
                 .push(TouchPoint::new(id, point));
             match touch_sequence.active_touch_points.len() {
-                2 => {
-                    touch_sequence.state = Pinching;
-                },
-                3.. => {
+                2.. => {
                     touch_sequence.state = MultiTouch;
                 },
                 0..2 => {
@@ -381,7 +378,8 @@ impl TouchHandler {
         {
             Some(i) => i,
             None => {
-                unreachable!("Got a touchmove event for a non-active touch point");
+                error!("Got a touchmove event for a non-active touch point");
+                return TouchMoveAction::NoAction;
             },
         };
         let old_point = touch_sequence.active_touch_points[idx].point;

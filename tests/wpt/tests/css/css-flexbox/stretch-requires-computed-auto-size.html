@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Stretch alignment with percentage that behaves as auto</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#valdef-align-items-stretch">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/4525">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="
+  Stretch alignment requires a computed cross size of `auto`.
+  So a cyclic percentage that only behaves as `auto` doesn't stretch.
+">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="display: flex">
+  <div style="width: 100px; height: 100px; background: green"></div>
+  <div style="width: 100px; height: 50%; background: red"></div>
+</div>

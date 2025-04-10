@@ -8,11 +8,11 @@ use std::sync::Arc;
 use app_units::Au;
 use base::WebRenderEpochToU16;
 use base::id::ScrollTreeNodeId;
+use compositing_traits::display_list::{AxesScrollSensitivity, CompositorDisplayListInfo};
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
-use net_traits::image_cache::UsePlaceholder;
 use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -22,7 +22,6 @@ use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
 use style::properties::style_structs::Border;
-use style::values::computed::image::Image;
 use style::values::computed::{
     BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
     NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
@@ -36,10 +35,9 @@ use webrender_api::{
     self as wr, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
     ImageRendering, NinePatchBorder, NinePatchBorderSource, units,
 };
-use webrender_traits::display_list::{AxesScrollSensitivity, CompositorDisplayListInfo};
 use wr::units::LayoutVector2D;
 
-use crate::context::LayoutContext;
+use crate::context::{LayoutContext, ResolvedImage};
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
@@ -63,8 +61,7 @@ pub use stacking_context::*;
 
 #[derive(Clone, Copy)]
 pub struct WebRenderImageInfo {
-    pub width: u32,
-    pub height: u32,
+    pub size: Size2D<u32, UnknownUnit>,
     pub key: Option<wr::ImageKey>,
 }
 
@@ -774,11 +771,12 @@ impl<'a> BuilderForBoxFragment<'a> {
     ) {
         let style = painter.style;
         let b = style.get_background();
+        let node = self.fragment.base.tag.map(|tag| tag.node);
         // Reverse because the property is top layer first, we want to paint bottom layer first.
         for (index, image) in b.background_image.0.iter().enumerate().rev() {
-            match image {
-                Image::None => {},
-                Image::Gradient(gradient) => {
+            match builder.context.resolve_image(node, image) {
+                None => {},
+                Some(ResolvedImage::Gradient(gradient)) => {
                     let intrinsic = NaturalSizes::empty();
                     let Some(layer) =
                         &background::layout_layer(self, painter, builder, index, intrinsic)
@@ -814,40 +812,16 @@ impl<'a> BuilderForBoxFragment<'a> {
                         },
                     }
                 },
-                Image::Url(image_url) => {
-                    // FIXME: images won’t always have in intrinsic width or
-                    // height when support for SVG is added, or a WebRender
-                    // `ImageKey`, for that matter.
-                    //
-                    // FIXME: It feels like this should take into account the pseudo
-                    // element and not just the node.
-                    let node = match self.fragment.base.tag {
-                        Some(tag) => tag.node,
-                        None => continue,
-                    };
-                    let image_url = match image_url.url() {
-                        Some(url) => url.clone(),
-                        None => continue,
-                    };
-                    let (width, height, key) = match builder.context.get_webrender_image_for_url(
-                        node,
-                        image_url.into(),
-                        UsePlaceholder::No,
-                    ) {
-                        Some(WebRenderImageInfo {
-                            width,
-                            height,
-                            key: Some(key),
-                        }) => (width, height, key),
-                        _ => continue,
-                    };
-
+                Some(ResolvedImage::Image(image_info)) => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
                     let dppx = 1.0;
                     let intrinsic = NaturalSizes::from_width_and_height(
-                        width as f32 / dppx,
-                        height as f32 / dppx,
+                        image_info.size.width as f32 / dppx,
+                        image_info.size.height as f32 / dppx,
                     );
+                    let Some(image_key) = image_info.key else {
+                        continue;
+                    };
 
                     if let Some(layer) =
                         background::layout_layer(self, painter, builder, index, intrinsic)
@@ -860,7 +834,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 layer.tile_spacing,
                                 style.clone_image_rendering().to_webrender(),
                                 wr::AlphaType::PremultipliedAlpha,
-                                key,
+                                image_key,
                                 wr::ColorF::WHITE,
                             )
                         } else {
@@ -869,17 +843,11 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 layer.bounds,
                                 style.clone_image_rendering().to_webrender(),
                                 wr::AlphaType::PremultipliedAlpha,
-                                key,
+                                image_key,
                                 wr::ColorF::WHITE,
                             )
                         }
                     }
-                },
-                Image::PaintWorklet(_) => {
-                    // TODO: Add support for PaintWorklet rendering.
-                },
-                Image::ImageSet(..) | Image::CrossFade(..) => {
-                    // TODO: Add support for ImageSet and CrossFade rendering.
                 },
             }
         }
@@ -1027,38 +995,22 @@ impl<'a> BuilderForBoxFragment<'a> {
         let stops = Vec::new();
         let mut width = border_image_size.width;
         let mut height = border_image_size.height;
-        let source = match border.border_image_source {
-            Image::Url(ref image_url) => {
-                // FIXME: images won’t always have in intrinsic width or
-                // height when support for SVG is added, or a WebRender
-                // `ImageKey`, for that matter.
-                //
-                // FIXME: It feels like this should take into account the pseudo
-                // element and not just the node.
-                let Some(tag) = self.fragment.base.tag else {
-                    return false;
-                };
-                let Some(image_url) = image_url.url() else {
-                    return false;
-                };
-
-                let Some(image_info) = builder.context.get_webrender_image_for_url(
-                    tag.node,
-                    image_url.clone().into(),
-                    UsePlaceholder::No,
-                ) else {
-                    return false;
-                };
-
+        let node = self.fragment.base.tag.map(|tag| tag.node);
+        let source = match builder
+            .context
+            .resolve_image(node, &border.border_image_source)
+        {
+            None => return false,
+            Some(ResolvedImage::Image(image_info)) => {
                 let Some(key) = image_info.key else {
                     return false;
                 };
 
-                width = image_info.width as f32;
-                height = image_info.height as f32;
+                width = image_info.size.width as f32;
+                height = image_info.size.height as f32;
                 NinePatchBorderSource::Image(key, ImageRendering::Auto)
             },
-            Image::Gradient(ref gradient) => {
+            Some(ResolvedImage::Gradient(gradient)) => {
                 match gradient::build(&self.fragment.style, gradient, border_image_size, builder) {
                     WebRenderGradient::Linear(gradient) => {
                         NinePatchBorderSource::Gradient(gradient)
@@ -1070,9 +1022,6 @@ impl<'a> BuilderForBoxFragment<'a> {
                         NinePatchBorderSource::ConicGradient(gradient)
                     },
                 }
-            },
-            Image::CrossFade(_) | Image::ImageSet(_) | Image::None | Image::PaintWorklet(_) => {
-                return false;
             },
         };
 

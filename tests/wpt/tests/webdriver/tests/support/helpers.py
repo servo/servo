@@ -119,10 +119,13 @@ def deep_update(source, overrides):
     """
     for key, value in overrides.items():
         if isinstance(value, collections.abc.Mapping) and value:
-            returned = deep_update(source.get(key, {}), value)
-            source[key] = returned
+            source[key] = deep_update(source.get(key, {}), value)
+        elif isinstance(value, list) and isinstance(source.get(key), list) and value:
+            # Concatenate lists, ensuring all elements are kept without duplicates
+            source[key] = list(dict.fromkeys(source[key] + value))
         else:
-            source[key] = overrides[key]
+            source[key] = value
+
     return source
 
 

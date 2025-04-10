@@ -9,6 +9,7 @@ use std::mem;
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
+use compositing_traits::display_list::{AxesScrollSensitivity, ScrollableNodeInfo};
 use euclid::SideOffsets2D;
 use euclid::default::{Point2D, Rect, Size2D};
 use log::warn;
@@ -28,7 +29,6 @@ use style::values::generics::transform::{self, GenericRotate, GenericScale, Gene
 use style::values::specified::box_::DisplayOutside;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self as wr, BorderRadius};
-use webrender_traits::display_list::{AxesScrollSensitivity, ScrollableNodeInfo};
 use wr::units::{LayoutPixel, LayoutSize};
 use wr::{ClipChainId, SpatialTreeItemKey, StickyOffsetBounds};
 
@@ -986,7 +986,7 @@ impl BoxFragment {
             return Some(StackingContextType::FloatStackingContainer);
         }
 
-        if box_style.display.is_atomic_inline_level() {
+        if self.is_atomic_inline_level() {
             return Some(StackingContextType::AtomicInlineStackingContainer);
         }
 

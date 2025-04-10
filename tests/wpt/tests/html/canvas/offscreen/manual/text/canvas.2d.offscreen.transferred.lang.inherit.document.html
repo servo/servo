@@ -1,11 +1,12 @@
 <!doctype HTML>
-<html lang="tr">
+<html lang="tr" class="reftest-wait">
   <meta charset="utf-8">
   <title>HTML5 Canvas Test:  The lang attribute inherits from the canvas in a transferred offscreen</title>
   <link rel="match" href="canvas.2d.offscreen.lang-ref.html" />
   <link rel="author" href="mailto:schenney@chromium.org"/>
   <link rel="help" href="https://html.spec.whatwg.org/multipage/canvas.html#text-styles"/>
   <meta name="assert" content="An offscreen transferred from a canvas inherits the document language." />
+  <script src="/common/reftest-wait.js"></script>
   <style>
     #canvas-tr {
       position: absolute;
@@ -40,6 +41,7 @@
         drawText('tr');
         document.documentElement.setAttribute('lang', 'en');
         drawText('en');
+        takeScreenshot();
       });
     }
   </script>

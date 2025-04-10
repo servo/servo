@@ -3,3 +3,7 @@ features:
   files:
   - "*-color-mix-*"
   - color-mix-out-of-gamut.html
+- name: relative-color
+  files:
+  - "relative-*"
+  - "*-relative-*"

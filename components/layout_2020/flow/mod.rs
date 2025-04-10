@@ -90,6 +90,26 @@ pub(crate) enum BlockLevelBox {
 }
 
 impl BlockLevelBox {
+    pub(crate) fn invalidate_cached_fragment(&self) {
+        match self {
+            BlockLevelBox::Independent(independent_formatting_context) => {
+                &independent_formatting_context.base
+            },
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                positioned_box
+                    .borrow()
+                    .context
+                    .base
+                    .invalidate_cached_fragment();
+                return;
+            },
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => &float_box.contents.base,
+            BlockLevelBox::OutsideMarker(outside_marker) => &outside_marker.base,
+            BlockLevelBox::SameFormattingContextBlock { base, .. } => base,
+        }
+        .invalidate_cached_fragment();
+    }
+
     fn contains_floats(&self) -> bool {
         match self {
             BlockLevelBox::SameFormattingContextBlock {
@@ -142,7 +162,7 @@ impl BlockLevelBox {
             _ => return false,
         };
 
-        if pbm.padding.block_start != Au::zero() || pbm.border.block_start != Au::zero() {
+        if !pbm.padding.block_start.is_zero() || !pbm.border.block_start.is_zero() {
             return false;
         }
 
@@ -195,7 +215,7 @@ impl BlockLevelBox {
 
         if !block_size_is_zero_or_intrinsic(style.content_block_size(), containing_block) ||
             !block_size_is_zero_or_intrinsic(style.min_block_size(), containing_block) ||
-            pbm.padding_border_sums.block != Au::zero()
+            !pbm.padding_border_sums.block.is_zero()
         {
             return false;
         }
@@ -227,15 +247,12 @@ pub(crate) struct CollapsibleWithParentStartMargin(bool);
 #[derive(Debug)]
 pub(crate) struct OutsideMarker {
     pub marker_style: Arc<ComputedValues>,
+    pub list_item_style: Arc<ComputedValues>,
     pub base: LayoutBoxBase,
     pub block_container: BlockContainer,
 }
 
 impl OutsideMarker {
-    fn list_item_style(&self) -> &ComputedValues {
-        &self.base.style
-    }
-
     fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
@@ -313,7 +330,7 @@ impl OutsideMarker {
         // TODO: This should use the LayoutStyle of the list item, not the default one. Currently
         // they are the same, but this could change in the future.
         let pbm_of_list_item =
-            LayoutStyle::Default(self.list_item_style()).padding_border_margin(containing_block);
+            LayoutStyle::Default(&self.list_item_style).padding_border_margin(containing_block);
         let content_rect = LogicalRect {
             start_corner: LogicalVec2 {
                 inline: -max_inline_size -
@@ -890,7 +907,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
 
     let computed_block_size = style.content_block_size();
     let start_margin_can_collapse_with_children =
-        pbm.padding.block_start == Au::zero() && pbm.border.block_start == Au::zero();
+        pbm.padding.block_start.is_zero() && pbm.border.block_start.is_zero();
 
     let mut clearance = None;
     let parent_containing_block_position_info;
@@ -1007,15 +1024,15 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     }
 
     let collapsed_through = collapsible_margins_in_children.collapsed_through &&
-        pbm.padding_border_sums.block == Au::zero() &&
+        pbm.padding_border_sums.block.is_zero() &&
         block_size_is_zero_or_intrinsic(computed_block_size, containing_block) &&
         block_size_is_zero_or_intrinsic(style.min_block_size(), containing_block);
     block_margins_collapsed_with_children.collapsed_through = collapsed_through;
 
     let end_margin_can_collapse_with_children = collapsed_through ||
-        (pbm.padding.block_end == Au::zero() &&
-            pbm.border.block_end == Au::zero() &&
-            computed_block_size.is_auto());
+        (pbm.padding.block_end.is_zero() &&
+            pbm.border.block_end.is_zero() &&
+            !containing_block_for_children.size.block.is_definite());
     if end_margin_can_collapse_with_children {
         block_margins_collapsed_with_children
             .end
@@ -1143,6 +1160,7 @@ impl IndependentNonReplacedContents {
             positioning_context,
             &containing_block_for_children,
             containing_block,
+            base,
             false, /* depends_on_block_constraints */
         );
 
@@ -1218,6 +1236,7 @@ impl IndependentNonReplacedContents {
             content_box_sizes,
             pbm,
             depends_on_block_constraints,
+            ..
         } = self
             .layout_style(base)
             .content_box_sizes_and_padding_border_margin(&containing_block.into());
@@ -1329,6 +1348,7 @@ impl IndependentNonReplacedContents {
                     style,
                 },
                 containing_block,
+                base,
                 false, /* depends_on_block_constraints */
             );
 
@@ -1393,6 +1413,7 @@ impl IndependentNonReplacedContents {
                         style,
                     },
                     containing_block,
+                    base,
                     false, /* depends_on_block_constraints */
                 );
 
@@ -1699,6 +1720,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         content_box_sizes,
         pbm,
         depends_on_block_constraints,
+        ..
     } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
 
     let pbm_sums = pbm.sums_auto_is_zero(ignore_block_margins_for_stretch);
@@ -2282,6 +2304,7 @@ impl IndependentFormattingContext {
                     child_positioning_context,
                     &containing_block_for_children,
                     containing_block,
+                    &self.base,
                     false, /* depends_on_block_constraints */
                 );
                 let inline_size = independent_layout

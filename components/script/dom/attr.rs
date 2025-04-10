@@ -112,10 +112,10 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-value
-    fn SetValue(&self, value: DOMString) {
+    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
         if let Some(owner) = self.owner() {
             let value = owner.parse_attribute(self.namespace(), self.local_name(), value);
-            self.set_value(value, &owner);
+            self.set_value(value, &owner, can_gc);
         } else {
             *self.value.borrow_mut() = AttrValue::String(value.into());
         }
@@ -153,7 +153,7 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
 }
 
 impl Attr {
-    pub(crate) fn set_value(&self, mut value: AttrValue, owner: &Element) {
+    pub(crate) fn set_value(&self, mut value: AttrValue, owner: &Element, can_gc: CanGc) {
         let name = self.local_name().clone();
         let namespace = self.namespace().clone();
         let old_value = DOMString::from(&**self.value());
@@ -180,8 +180,11 @@ impl Attr {
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);
         if *self.namespace() == ns!() {
-            vtable_for(owner.upcast())
-                .attribute_mutated(self, AttributeMutation::Set(Some(&value)));
+            vtable_for(owner.upcast()).attribute_mutated(
+                self,
+                AttributeMutation::Set(Some(&value)),
+                can_gc,
+            );
         }
     }
 

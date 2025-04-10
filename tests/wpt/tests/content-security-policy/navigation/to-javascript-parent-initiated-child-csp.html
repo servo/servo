@@ -24,7 +24,7 @@
 
   const kIframeURLPath = "support/frame-with-csp.sub.html";
 
-  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/Sources#unsafe-inline
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy#unsafe-inline
   document.getElementById("iframeWithScriptSrcUnsafeInline").src =
     encodeURIWithApostrophes(kIframeURLPath + "?csp=script-src 'unsafe-inline'");
   document.getElementById("iframeWithScriptSrcNone").src =

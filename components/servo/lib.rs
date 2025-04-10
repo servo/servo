@@ -24,7 +24,6 @@ mod servo_delegate;
 mod webview;
 mod webview_delegate;
 
-use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::cmp::max;
 use std::collections::HashMap;
@@ -45,7 +44,13 @@ use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
 use compositing::windowing::{EmbedderMethods, WindowMethods};
 use compositing::{IOCompositor, InitialCompositorState};
-use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver};
+pub use compositing_traits::rendering_context::{
+    OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
+};
+use compositing_traits::{
+    CompositorMsg, CompositorProxy, CompositorReceiver, CrossProcessCompositorApi,
+    WebrenderExternalImageHandlers, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
+};
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -56,15 +61,14 @@ use compositing_traits::{CompositorMsg, CompositorProxy, CompositorReceiver};
 ))]
 use constellation::content_process_sandbox_profile;
 use constellation::{
-    Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState,
+    Constellation, FromEmbedderLogger, FromScriptLogger, InitialConstellationState,
     UnprivilegedContent,
 };
-use constellation_traits::{ConstellationMsg, WindowSizeData};
+use constellation_traits::{EmbedderToConstellationMessage, ScriptToConstellationChan};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use embedder_traits::user_content_manager::UserContentManager;
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
-use euclid::Scale;
 use fonts::SystemFontService;
 #[cfg(all(
     not(target_os = "windows"),
@@ -87,7 +91,6 @@ use net::resource_thread::new_resource_threads;
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::{mem, time};
 use script::{JSEngineSetup, ServiceWorkerManager};
-use script_traits::ScriptToConstellationChan;
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 use servo_config::{opts, pref, prefs};
@@ -101,13 +104,6 @@ pub use webgpu;
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{ONE_TIME_USAGE_HINT, RenderApiSender, ShaderPrecacheFlags, UploadMethod};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
-pub use webrender_traits::rendering_context::{
-    OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
-};
-use webrender_traits::{
-    CrossProcessCompositorApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
-    WebrenderImageHandlerType,
-};
 use webview::WebViewInner;
 #[cfg(feature = "webxr")]
 pub use webxr;
@@ -125,17 +121,17 @@ use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::webview::WebView;
 pub use crate::webview_delegate::{
-    AllowOrDenyRequest, AuthenticationRequest, NavigationRequest, PermissionRequest,
-    WebResourceLoad, WebViewDelegate,
+    AllowOrDenyRequest, AuthenticationRequest, FormControl, NavigationRequest, PermissionRequest,
+    SelectElement, WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "webdriver")]
-fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
+fn webdriver(port: u16, constellation: Sender<EmbedderToConstellationMessage>) {
     webdriver_server::start_server(port, constellation);
 }
 
 #[cfg(not(feature = "webdriver"))]
-fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
+fn webdriver(_port: u16, _constellation: Sender<EmbedderToConstellationMessage>) {}
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
@@ -214,6 +210,8 @@ pub struct Servo {
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
     _js_engine_setup: Option<JSEngineSetup>,
+    /// Whether or not any WebView in this instance is animating or WebXR is enabled.
+    animating: Cell<bool>,
 }
 
 #[derive(Clone)]
@@ -264,7 +262,6 @@ impl Servo {
         rendering_context: Rc<dyn RenderingContext>,
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<dyn WindowMethods>,
-        user_agent: Option<String>,
         user_content_manager: UserContentManager,
     ) -> Self {
         // Global configuration options, parsed from the command line.
@@ -287,24 +284,6 @@ impl Servo {
         if !opts.multiprocess {
             media_platform::init();
         }
-
-        let user_agent = match user_agent {
-            Some(ref ua) if ua == "ios" => default_user_agent_string_for(UserAgent::iOS).into(),
-            Some(ref ua) if ua == "android" => {
-                default_user_agent_string_for(UserAgent::Android).into()
-            },
-            Some(ref ua) if ua == "desktop" => {
-                default_user_agent_string_for(UserAgent::Desktop).into()
-            },
-            Some(ref ua) if ua == "ohos" => {
-                default_user_agent_string_for(UserAgent::OpenHarmony).into()
-            },
-            Some(ua) => ua.into(),
-            None => embedder
-                .get_user_agent_string()
-                .map(Into::into)
-                .unwrap_or(default_user_agent_string_for(DEFAULT_USER_AGENT).into()),
-        };
 
         // Get GL bindings
         let webrender_gl = rendering_context.gleam_gl_api();
@@ -340,10 +319,6 @@ impl Servo {
         } else {
             None
         };
-
-        let coordinates: compositing::windowing::EmbedderCoordinates = window.get_coordinates();
-        let device_pixel_ratio = coordinates.hidpi_factor.get();
-        let viewport_size = rendering_context.size2d();
 
         let (mut webrender, webrender_api_sender) = {
             let mut debug_flags = webrender::DebugFlags::empty();
@@ -410,7 +385,7 @@ impl Servo {
         };
 
         let webrender_api = webrender_api_sender.create_api();
-        let webrender_document = webrender_api.add_document(viewport_size.to_i32());
+        let webrender_document = webrender_api.add_document(rendering_context.size2d().to_i32());
 
         // Important that this call is done in a single-threaded fashion, we
         // can't defer it after `create_constellation` has started.
@@ -472,21 +447,12 @@ impl Servo {
 
         webrender.set_external_image_handler(external_image_handlers);
 
-        // The division by 1 represents the page's default zoom of 100%,
-        // and gives us the appropriate CSSPixel type for the viewport.
-        let scaled_viewport_size = viewport_size.to_f32().to_untyped() / device_pixel_ratio;
-        let window_size = WindowSizeData {
-            initial_viewport: scaled_viewport_size / Scale::new(1.0),
-            device_pixel_ratio: Scale::new(device_pixel_ratio),
-        };
-
         // Create the constellation, which maintains the engine pipelines, including script and
         // layout, as well as the navigation context.
         let mut protocols = ProtocolRegistry::with_internal_protocols();
         protocols.merge(embedder.get_protocol_handlers());
 
         let constellation_chan = create_constellation(
-            user_agent,
             opts.config_dir.clone(),
             embedder_proxy,
             compositor_proxy.clone(),
@@ -498,7 +464,6 @@ impl Servo {
             #[cfg(feature = "webxr")]
             webxr_main_thread.registry(),
             Some(webgl_threads),
-            window_size,
             external_images,
             #[cfg(feature = "webgpu")]
             wgpu_image_map,
@@ -533,7 +498,6 @@ impl Servo {
                 shutdown_state: shutdown_state.clone(),
             },
             opts.debug.convert_mouse_to_touch,
-            embedder.get_version_string().unwrap_or_default(),
         );
 
         Self {
@@ -545,6 +509,7 @@ impl Servo {
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),
             _js_engine_setup: js_engine_setup,
+            animating: Cell::new(false),
         }
     }
 
@@ -554,6 +519,15 @@ impl Servo {
 
     pub fn set_delegate(&self, delegate: Rc<dyn ServoDelegate>) {
         *self.delegate.borrow_mut() = delegate;
+    }
+
+    /// Whether or not any [`WebView`] of this Servo instance has animating content, such as a CSS
+    /// animation or transition or is running `requestAnimationFrame` callbacks. In addition, this
+    /// returns true if WebXR content is running. This indicates that the embedding application
+    /// should be spinning the Servo event loop on regular intervals in order to trigger animation
+    /// updates.
+    pub fn animating(&self) -> bool {
+        self.animating.get()
     }
 
     /// **EXPERIMENTAL:** Intialize GL accelerated media playback. This currently only works on a limited number
@@ -593,6 +567,7 @@ impl Servo {
 
         self.compositor.borrow_mut().perform_updates();
         self.send_new_frame_ready_messages();
+        self.send_animating_changed_messages();
         self.handle_delegate_errors();
         self.clean_up_destroyed_webview_handles();
 
@@ -615,6 +590,19 @@ impl Servo {
             .filter_map(WebView::from_weak_handle)
         {
             webview.delegate().notify_new_frame_ready(webview);
+        }
+    }
+
+    fn send_animating_changed_messages(&self) {
+        let animating = self.compositor.borrow().webxr_running() ||
+            self.webviews
+                .borrow()
+                .values()
+                .filter_map(WebView::from_weak_handle)
+                .any(|webview| webview.animating());
+        if animating != self.animating.get() {
+            self.animating.set(animating);
+            self.delegate().notify_animating_changed(animating);
         }
     }
 
@@ -642,7 +630,7 @@ impl Servo {
         let constellation_chan = self.constellation_proxy.sender();
         let env = env_logger::Env::default();
         let env_logger = EnvLoggerBuilder::from_env(env).build();
-        let con_logger = FromCompositorLogger::new(constellation_chan);
+        let con_logger = FromEmbedderLogger::new(constellation_chan);
 
         let filter = max(env_logger.filter(), con_logger.filter());
         let logger = BothLogger(env_logger, con_logger);
@@ -658,7 +646,8 @@ impl Servo {
         }
 
         debug!("Sending Exit message to Constellation");
-        self.constellation_proxy.send(ConstellationMsg::Exit);
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::Exit);
         self.shutdown_state.set(ShutdownState::ShuttingDown);
     }
 
@@ -677,8 +666,13 @@ impl Servo {
         self.webviews
             .borrow_mut()
             .insert(webview.id(), webview.weak_handle());
+        let viewport_details = self.compositor.borrow().default_webview_viewport_details();
         self.constellation_proxy
-            .send(ConstellationMsg::NewWebView(url.into(), webview.id()));
+            .send(EmbedderToConstellationMessage::NewWebView(
+                url.into(),
+                webview.id(),
+                viewport_details,
+            ));
         webview
     }
 
@@ -747,8 +741,19 @@ impl Servo {
             },
             EmbedderMsg::AllowOpeningWebView(webview_id, response_sender) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    let new_webview = webview.delegate().request_open_auxiliary_webview(webview);
-                    let _ = response_sender.send(new_webview.map(|webview| webview.id()));
+                    let webview_id_and_viewport_details = webview
+                        .delegate()
+                        .request_open_auxiliary_webview(webview)
+                        .map(|webview| {
+                            let mut viewport =
+                                self.compositor.borrow().default_webview_viewport_details();
+                            let rect = webview.rect();
+                            if !rect.is_empty() {
+                                viewport.size = rect.size() / viewport.hidpi_scale_factor;
+                            }
+                            (webview.id(), viewport)
+                        });
+                    let _ = response_sender.send(webview_id_and_viewport_details);
                 }
             },
             EmbedderMsg::WebViewClosed(webview_id) => {
@@ -994,6 +999,20 @@ impl Servo {
                     None => self.delegate().show_notification(notification),
                 }
             },
+            EmbedderMsg::ShowSelectElementMenu(
+                webview_id,
+                options,
+                selected_option,
+                position,
+                ipc_sender,
+            ) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let prompt = SelectElement::new(options, selected_option, position, ipc_sender);
+                    webview
+                        .delegate()
+                        .show_form_control(webview, FormControl::SelectElement(prompt));
+                }
+            },
         }
     }
 }
@@ -1041,7 +1060,6 @@ fn create_compositor_channel(
 
 #[allow(clippy::too_many_arguments)]
 fn create_constellation(
-    user_agent: Cow<'static, str>,
     config_dir: Option<PathBuf>,
     embedder_proxy: EmbedderProxy,
     compositor_proxy: CompositorProxy,
@@ -1052,12 +1070,11 @@ fn create_constellation(
     webrender_api_sender: RenderApiSender,
     #[cfg(feature = "webxr")] webxr_registry: webxr_api::Registry,
     webgl_threads: Option<WebGLThreads>,
-    initial_window_size: WindowSizeData,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     #[cfg(feature = "webgpu")] wgpu_image_map: WGPUImageMap,
     protocols: ProtocolRegistry,
     user_content_manager: UserContentManager,
-) -> Sender<ConstellationMsg> {
+) -> Sender<EmbedderToConstellationMessage> {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
 
@@ -1066,7 +1083,6 @@ fn create_constellation(
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
     let (public_resource_threads, private_resource_threads) = new_resource_threads(
-        user_agent.clone(),
         devtools_sender.clone(),
         time_profiler_chan.clone(),
         mem_profiler_chan.clone(),
@@ -1105,7 +1121,6 @@ fn create_constellation(
         #[cfg(not(feature = "webxr"))]
         webxr_registry: None,
         webgl_threads,
-        user_agent,
         webrender_external_images: external_images,
         #[cfg(feature = "webgpu")]
         wgpu_image_map,
@@ -1117,7 +1132,6 @@ fn create_constellation(
     Constellation::<script::ScriptThread, script::ServiceWorkerManager>::start(
         initial_state,
         layout_factory,
-        initial_window_size,
         opts.random_pipeline_closure_probability,
         opts.random_pipeline_closure_seed,
         opts.hard_fail,
@@ -1192,6 +1206,8 @@ pub fn run_content_process(token: String) {
             let background_hang_monitor_register = content.register_with_background_hang_monitor();
             let layout_factory = Arc::new(layout_thread_2020::LayoutFactoryImpl());
 
+            content.register_system_memory_reporter();
+
             content.start_all::<script::ScriptThread>(
                 true,
                 layout_factory,
@@ -1229,71 +1245,3 @@ fn create_sandbox() {
 fn create_sandbox() {
     panic!("Sandboxing is not supported on Windows, iOS, ARM targets and android.");
 }
-
-enum UserAgent {
-    Desktop,
-    Android,
-    OpenHarmony,
-    #[allow(non_camel_case_types)]
-    iOS,
-}
-
-fn get_servo_version() -> &'static str {
-    env!("CARGO_PKG_VERSION")
-}
-
-fn default_user_agent_string_for(agent: UserAgent) -> String {
-    let servo_version = get_servo_version();
-
-    #[cfg(all(target_os = "linux", target_arch = "x86_64", not(target_env = "ohos")))]
-    let desktop_ua_string =
-        format!("Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Servo/{servo_version} Firefox/128.0");
-    #[cfg(all(
-        target_os = "linux",
-        not(target_arch = "x86_64"),
-        not(target_env = "ohos")
-    ))]
-    let desktop_ua_string =
-        format!("Mozilla/5.0 (X11; Linux i686; rv:128.0) Servo/{servo_version} Firefox/128.0");
-
-    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    let desktop_ua_string = format!(
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Servo/{servo_version} Firefox/128.0"
-    );
-    #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
-    let desktop_ua_string =
-        format!("Mozilla/5.0 (Windows NT 10.0; rv:128.0) Servo/{servo_version} Firefox/128.0");
-
-    #[cfg(target_os = "macos")]
-    let desktop_ua_string = format!(
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:128.0) Servo/{servo_version} Firefox/128.0"
-    );
-
-    #[cfg(any(target_os = "android", target_env = "ohos"))]
-    let desktop_ua_string = "".to_string();
-
-    match agent {
-        UserAgent::Desktop => desktop_ua_string,
-        UserAgent::Android => {
-            format!("Mozilla/5.0 (Android; Mobile; rv:128.0) Servo/{servo_version} Firefox/128.0")
-        },
-        UserAgent::OpenHarmony => format!(
-            "Mozilla/5.0 (OpenHarmony; Mobile; rv:128.0) Servo/{servo_version} Firefox/128.0"
-        ),
-        UserAgent::iOS => format!(
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X; rv:128.0) Servo/{servo_version} Firefox/128.0"
-        ),
-    }
-}
-
-#[cfg(target_os = "android")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
-
-#[cfg(target_env = "ohos")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::OpenHarmony;
-
-#[cfg(target_os = "ios")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::iOS;
-
-#[cfg(not(any(target_os = "android", target_os = "ios", target_env = "ohos")))]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;

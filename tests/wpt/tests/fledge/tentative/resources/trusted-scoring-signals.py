@@ -13,7 +13,8 @@ def main(request, response):
     try:
         params = fledge_http_server_util.decode_trusted_scoring_signals_params(request)
     except ValueError as ve:
-        return fail(response, str(ve))
+        fail(response, str(ve))
+        return
 
     response.status = (200, b"OK")
 
@@ -36,7 +37,8 @@ def main(request, response):
             try:
                 signalsParams = fledge_http_server_util.decode_render_url_signals_params(renderUrl)
             except ValueError as ve:
-                return fail(response, str(ve))
+                fail(response, str(ve))
+                return
 
             for signalsParam in signalsParams:
                 if signalsParam == "close-connection":
@@ -92,8 +94,8 @@ def main(request, response):
                 responseBody[urlList["type"]][renderUrl] = value
 
     # If the signalsParam embedded inside a render URL calls for CORS, add
-    # appropriate response headers, and fully handle preflights.
-    if cors and fledge_http_server_util.handle_cors_headers_and_preflight(
+    # appropriate response headers.
+    if cors and fledge_http_server_util.handle_cors_headers_fail_if_preflight(
             request, response):
         return
 
@@ -107,8 +109,3 @@ def main(request, response):
     if body != None:
         return body
     return json.dumps(responseBody)
-
-def fail(response, body):
-    response.status = (400, "Bad Request")
-    response.headers.set(b"Content-Type", b"text/plain")
-    return body

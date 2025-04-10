@@ -4,30 +4,18 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="./support/csp-violations.js"></script>
+  <!-- Content-Security-Policy-Report-Only directives are not supported on meta
+       tags per https://www.w3.org/TR/CSP3/#cspro-header. This test sets at
+       least one such directive in a .headers file. It also sets a default-src
+       rule to allow all scripting except 'unsafe-eval', so we can also test
+       reporting of this case. Please refer to that file for the complete set of
+       CSP rules that apply to this test. -->
 </head>
 <body>
   <!-- Some elements for the tests to act on. -->
   <script id="customscript" is="custom-script" src="a"></script>
   <svg><script id="svgscript"></script></svg>
   <script>
-  // CSP insists the "trusted-types: ..." directives are delivered as headers
-  // (rather than as "<meta http-equiv" tags). This test assumes the following
-  // headers are set in the .headers file:
-  //
-  //   Content-Security-Policy: trusted-types one
-  //   Content-Security-Policy-Report-Only: trusted-types two; report-uri ...
-  //   Content-Security-Policy: connect-src 'none'
-  //   Content-Security-Policy: default-src * 'unsafe-inline'
-  //
-  // The third rule is there so we can provoke a CSP violation report at will.
-  // The intent is that in order to test that a violation has *not* been thrown
-  // (and without resorting to abominations like timeouts), we force a *another*
-  // CSP violation (by violating the connect-src rule) and when that event is
-  // processed we can we sure that an earlier event - if it indeed occurred -
-  // must have already been processed.
-  //
-  // The last rule allows all scripting except 'unsafe-eval', so we can also
-  // test reporting of this case.
 
   const url = "" + document.location;
 

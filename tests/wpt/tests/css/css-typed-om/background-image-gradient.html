@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Set gradient to background-image</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om/#the-stylepropertymap">
+<link rel="author" title="CGQAQ" href="mailto:cgqaq@chromium.org">
+<link rel="match" href="background-image-gradient-ref.html">
+<meta name="assert" content="Should show as green rect.">
+<style>
+  div {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="target">
+</div>
+<script>
+  target.attributeStyleMap.set('background-image', 'linear-gradient(green, green)');
+  target.attributeStyleMap.set('background-color', 'red');
+</script>
+<p>
+  There should be a green rect above.
+</p>

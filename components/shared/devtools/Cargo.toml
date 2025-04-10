@@ -22,3 +22,4 @@ net_traits = { workspace = true }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
 uuid = { workspace = true, features = ["serde"] }
+embedder_traits = { workspace = true }

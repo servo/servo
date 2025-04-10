@@ -1,0 +1,4 @@
+features:
+- name: view-transition-class
+  files:
+  - view-transition-class-*

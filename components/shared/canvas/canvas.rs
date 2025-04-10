@@ -120,6 +120,8 @@ pub enum Canvas2dMsg {
     SetLineCap(LineCapStyle),
     SetLineJoin(LineJoinStyle),
     SetMiterLimit(f32),
+    SetLineDash(Vec<f32>),
+    SetLineDashOffset(f32),
     SetGlobalAlpha(f32),
     SetGlobalComposition(CompositionOrBlending),
     SetTransform(Transform2D<f32>),

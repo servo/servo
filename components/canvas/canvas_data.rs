@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use canvas_traits::canvas::*;
+use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::point2;
 use fonts::{
@@ -23,7 +24,6 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
 use webrender_api::units::RectExt as RectExt_;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
-use webrender_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 
 use crate::raqote_backend::Repetition;
 
@@ -1364,6 +1364,14 @@ impl<'a> CanvasData<'a> {
 
     pub fn set_miter_limit(&mut self, limit: f32) {
         self.state.stroke_opts.set_miter_limit(limit);
+    }
+
+    pub fn set_line_dash(&mut self, items: Vec<f32>) {
+        self.state.stroke_opts.set_line_dash(items);
+    }
+
+    pub fn set_line_dash_offset(&mut self, offset: f32) {
+        self.state.stroke_opts.set_line_dash_offset(offset);
     }
 
     pub fn get_transform(&self) -> Transform2D<f32> {

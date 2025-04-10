@@ -113,6 +113,7 @@ fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequ
         .pipeline_id(Some(global.pipeline_id()))
         .https_state(global.get_https_state())
         .insecure_requests_policy(global.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
         .build()
 }
 

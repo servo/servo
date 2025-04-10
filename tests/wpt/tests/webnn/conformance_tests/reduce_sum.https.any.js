@@ -74,6 +74,29 @@ const reduceSumTests = [
     }
   },
   {
+    'name': 'reduceSum float32 1D constant tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceSumInput': {
+          'data': [69.6038589477539, 69.6038589477538],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceSum',
+        'arguments': [{'input': 'reduceSumInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceSumOutput'
+      }],
+      'expectedOutputs': {
+        'reduceSumOutput': {
+          'data': [69.6038589477539, 69.6038589477538],
+          'descriptor': {shape: [2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'reduceSum float32 1D constant tensor all positive default options',
     'graph': {
       'inputs': {

@@ -28,7 +28,10 @@ function testCVHidden(description) {
         `${description} should not affect the div's display property.`);
     assert_equals(getComputedStyle(div).contentVisibility, 'hidden',
         `${description} should make the div content-visibility:hidden.`);
+    assert_equals(div.hidden, "until-found",
+      `${description} should make the div hidden=until-found.`);
   }, description);
+
 }
 
 function testNormal(description) {

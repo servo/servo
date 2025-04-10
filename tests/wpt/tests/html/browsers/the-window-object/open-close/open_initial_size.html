@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML: window.open: window geometry immediately after open</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#apis-for-creating-and-navigating-browsing-contexts-by-name">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/PrefixedPostMessage.js"></script>
+<script>
+var windowURL = 'resources/message-opener.html';
+
+async_test(t => {
+  var prefixedMessage = new PrefixedMessageTest();
+  var initialWidth, initialHeight, initialLeft, initialTop;
+  prefixedMessage.onMessage(t.step_func_done((data, e) => {
+    e.source.close();
+    assert_equals(initialWidth, data.width);
+    assert_equals(initialHeight, data.height);
+    assert_equals(initialLeft, data.left);
+    assert_equals(initialTop, data.top);
+  }));
+  var win = window.open(prefixedMessage.url(windowURL), '');
+  initialWidth = win.innerWidth;
+  initialHeight = win.innerHeight;
+  initialLeft = win.screenX;
+  initialTop = win.screenY;
+}, "Window geometry is available in opener context immediately");
+</script>

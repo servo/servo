@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVGGraphicsElement with padding</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGGraphicsElement"/>
+  </metadata>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+
+  <foreignObject width="100px" height="100px">
+    <svg id="svg" width="100px" height="100px">
+      <circle cx="50" cy="0" r="44"
+            fill="blue"></circle>
+    </svg>
+  </foreignObject>
+
+  <script><![CDATA[
+    test(function() {
+        let svg = document.getElementById("svg");
+        svg.setAttribute("style", "padding-left: 12px; transform: rotate(180deg);");
+        let ctm = svg.getScreenCTM();
+        let pt = DOMPoint.fromPoint({x: 50, y: 50});
+        let transformedPoint = pt.matrixTransform(ctm.inverse());
+        svg.removeAttribute("style");
+        assert_equals(transformedPoint.x, pt.x);
+        assert_equals(transformedPoint.y, pt.y);
+    }, 'getScreenCTM with padding-left and rotation');
+
+    test(function() {
+        let svg = document.getElementById("svg");
+        svg.setAttribute("style", "padding-top: 12px; transform: rotate(180deg);");
+        let ctm = svg.getScreenCTM();
+        let pt = DOMPoint.fromPoint({x: 50, y: 50});
+        let transformedPoint = pt.matrixTransform(ctm.inverse());
+        svg.removeAttribute("style");
+        assert_equals(transformedPoint.x, pt.x);
+        assert_equals(transformedPoint.y, pt.y);
+    }, 'getScreenCTM with padding-top and rotation');
+
+    test(function() {
+        let svg = document.getElementById("svg");
+        svg.setAttribute("style", "padding-right: 12px; transform: rotate(180deg);");
+        let ctm = svg.getScreenCTM();
+        let pt = DOMPoint.fromPoint({x: 50, y: 50});
+        let transformedPoint = pt.matrixTransform(ctm.inverse());
+        svg.removeAttribute("style");
+        assert_equals(transformedPoint.x, pt.x + 12);
+        assert_equals(transformedPoint.y, pt.y);
+    }, 'getScreenCTM with padding-right and rotation');
+
+    test(function() {
+        let svg = document.getElementById("svg");
+        svg.setAttribute("style", "padding-left: 12px; transform: rotate(180deg); transform-box: content-box");
+        let ctm = svg.getScreenCTM();
+        let pt = DOMPoint.fromPoint({x: 50, y: 50});
+        let transformedPoint = pt.matrixTransform(ctm.inverse());
+        svg.removeAttribute("style");
+        assert_equals(transformedPoint.x, pt.x + 12);
+        assert_equals(transformedPoint.y, pt.y);
+    }, 'getScreenCTM with padding-left, rotation and content-box');
+
+  ]]></script>
+</svg>

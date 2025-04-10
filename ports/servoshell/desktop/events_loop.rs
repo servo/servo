@@ -96,7 +96,7 @@ impl EventsLoop {
                     if !app.handle_events_with_headless() {
                         break;
                     }
-                    if !app.is_animating() {
+                    if !app.animating() {
                         *flag.lock().unwrap() = false;
                     }
                 }

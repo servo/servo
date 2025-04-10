@@ -10,9 +10,10 @@ use std::cell::Cell;
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
-use constellation_traits::WindowSizeData;
+use constellation_traits::LoadData;
 use content_security_policy::Destination;
 use crossbeam_channel::Sender;
+use embedder_traits::ViewportDetails;
 use http::header;
 use net_traits::request::{
     CredentialsMode, InsecureRequestsPolicy, RedirectMode, RequestBuilder, RequestMode,
@@ -22,7 +23,7 @@ use net_traits::{
     BoxedFetchCallback, CoreResourceThread, DOCUMENT_ACCEPT_HEADER_VALUE, FetchResponseMsg,
     Metadata, fetch_async, set_default_accept_language,
 };
-use script_traits::{DocumentActivity, LoadData};
+use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::fetch::FetchCanceller;
@@ -138,7 +139,7 @@ pub(crate) struct InProgressLoad {
     pub(crate) opener: Option<BrowsingContextId>,
     /// The current window size associated with this pipeline.
     #[no_trace]
-    pub(crate) window_size: WindowSizeData,
+    pub(crate) viewport_details: ViewportDetails,
     /// The activity level of the document (inactive, active or fully active).
     #[no_trace]
     pub(crate) activity: DocumentActivity,
@@ -170,7 +171,7 @@ impl InProgressLoad {
         webview_id: WebViewId,
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
-        window_size: WindowSizeData,
+        viewport_details: ViewportDetails,
         origin: MutableOrigin,
         load_data: LoadData,
     ) -> InProgressLoad {
@@ -181,7 +182,7 @@ impl InProgressLoad {
             webview_id,
             parent_info,
             opener,
-            window_size,
+            viewport_details,
             activity: DocumentActivity::FullyActive,
             throttled: false,
             origin,
@@ -212,6 +213,7 @@ impl InProgressLoad {
                 .inherited_insecure_requests_policy
                 .unwrap_or(InsecureRequestsPolicy::DoNotUpgrade),
         )
+        .has_trustworthy_ancestor_origin(self.load_data.has_trustworthy_ancestor_origin)
         .headers(self.load_data.headers.clone())
         .body(self.load_data.data.clone())
         .redirect_mode(RedirectMode::Manual)

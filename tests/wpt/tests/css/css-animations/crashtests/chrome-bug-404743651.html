@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Animations: Chrome crash for getKeyframes() when animating background-image</title>
+<link rel="help" href="https://crbug.com/404743651">
+<style>
+  @keyframes animate {
+    to { background-image: url(foo.jpg); }
+  }
+  #target {
+    animation: animate 100s;
+  }
+</style>
+<div id="target"></div>
+<script>
+  for (let anim of document.getAnimations()) {
+    anim.effect.getKeyframes();
+  }
+</script>

@@ -111,6 +111,26 @@ impl TaffyItemBox {
             taffy_level_box: inner,
         }
     }
+
+    pub(crate) fn invalidate_cached_fragment(&mut self) {
+        self.taffy_layout = Default::default();
+        self.positioning_context =
+            PositioningContext::new_for_containing_block_for_all_descendants();
+        match self.taffy_level_box {
+            TaffyItemBoxInner::InFlowBox(ref independent_formatting_context) => {
+                independent_formatting_context
+                    .base
+                    .invalidate_cached_fragment()
+            },
+            TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ref positioned_box) => {
+                positioned_box
+                    .borrow()
+                    .context
+                    .base
+                    .invalidate_cached_fragment()
+            },
+        }
+    }
 }
 
 /// Details from Taffy grid layout that will be stored

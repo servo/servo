@@ -23,8 +23,6 @@ use url::Url;
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), allow(dead_code))]
 #[derive(Clone)]
 pub(crate) struct ServoShellPreferences {
-    /// The user agent to use for servoshell.
-    pub user_agent: Option<String>,
     /// A URL to load when starting servoshell.
     pub url: Option<String>,
     /// An override value for the device pixel ratio.
@@ -74,7 +72,6 @@ impl Default for ServoShellPreferences {
             searchpage: "https://duckduckgo.com/html/?q=%s".into(),
             tracing_filter: None,
             url: None,
-            user_agent: None,
             output_image_path: None,
             exit_after_stable_image: false,
             userscripts_directory: None,
@@ -551,6 +548,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
 
     if opt_match.opt_present("enable-experimental-web-platform-features") {
         vec![
+            "dom_async_clipboard_enabled",
             "dom_fontface_enabled",
             "dom_imagebitmap_enabled",
             "dom_intersection_observer_enabled",
@@ -561,13 +559,13 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
             "dom_resize_observer_enabled",
             "dom_serviceworker_enabled",
             "dom_svg_enabled",
+            "dom_trusted_types_enabled",
             "dom_webgl2_enabled",
             "dom_webgpu_enabled",
             "dom_xpath_enabled",
             "layout_columns_enabled",
             "layout_container_queries_enabled",
             "layout_grid_enabled",
-            "layout_writing_mode_enabled",
         ]
         .iter()
         .for_each(|pref| preferences.set_value(pref, PrefValue::Bool(true)));
@@ -615,7 +613,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let exit_after_load = opt_match.opt_present("x") || output_image_path.is_some();
     let wait_for_stable_image = exit_after_load;
     let servoshell_preferences = ServoShellPreferences {
-        user_agent: opt_match.opt_str("u"),
         url,
         no_native_titlebar,
         device_pixel_ratio_override,

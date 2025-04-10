@@ -16,11 +16,14 @@ base = { workspace = true }
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 canvas_traits = { workspace = true }
+compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }
+embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 fonts = { path = "../../fonts" }
 fonts_traits = { workspace = true }
+fxhash = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
@@ -39,4 +42,3 @@ servo_url = { path = "../../url" }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { workspace = true }

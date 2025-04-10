@@ -8,11 +8,11 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use euclid::num::Zero;
-use euclid::{Box2D, Length, Point2D, Scale, Size2D};
-use servo::compositing::windowing::{AnimationState, EmbedderCoordinates, WindowMethods};
+use euclid::{Length, Scale, Size2D};
+use servo::compositing::windowing::WindowMethods;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntSize, DevicePixel};
-use servo::{RenderingContext, SoftwareRenderingContext};
+use servo::{RenderingContext, ScreenGeometry, SoftwareRenderingContext};
 use winit::dpi::PhysicalSize;
 
 use super::app_state::RunningAppState;
@@ -20,12 +20,10 @@ use crate::desktop::window_trait::WindowPortsMethods;
 use crate::prefs::ServoShellPreferences;
 
 pub struct Window {
-    animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<Scale<f32, DeviceIndependentPixel, DevicePixel>>,
     inner_size: Cell<DeviceIntSize>,
-    screen_size: Size2D<i32, DeviceIndependentPixel>,
-    window_rect: Box2D<i32, DeviceIndependentPixel>,
+    screen_size: Size2D<i32, DevicePixel>,
     rendering_context: Rc<SoftwareRenderingContext>,
 }
 
@@ -44,20 +42,17 @@ impl Window {
         let rendering_context =
             SoftwareRenderingContext::new(physical_size).expect("Failed to create WR surfman");
 
-        let window_rect = Box2D::from_origin_and_size(Point2D::zero(), size.to_i32());
-
-        let screen_size = servoshell_preferences.screen_size_override.map_or_else(
-            || window_rect.size(),
-            |screen_size_override| screen_size_override.to_i32(),
-        );
+        let screen_size = servoshell_preferences
+            .screen_size_override
+            .map_or(inner_size, |screen_size_override| {
+                (screen_size_override.to_f32() * hidpi_factor).to_i32()
+            });
 
         let window = Window {
-            animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             device_pixel_ratio_override,
             inner_size: Cell::new(inner_size),
             screen_size,
-            window_rect,
             rendering_context: Rc::new(rendering_context),
         };
 
@@ -68,6 +63,14 @@ impl Window {
 impl WindowPortsMethods for Window {
     fn id(&self) -> winit::window::WindowId {
         winit::window::WindowId::dummy()
+    }
+
+    fn screen_geometry(&self) -> servo::ScreenGeometry {
+        ScreenGeometry {
+            size: self.screen_size,
+            available_size: self.screen_size,
+            offset: Default::default(),
+        }
     }
 
     fn request_resize(
@@ -115,10 +118,6 @@ impl WindowPortsMethods for Window {
         self.fullscreen.get()
     }
 
-    fn is_animating(&self) -> bool {
-        self.animation_state.get() == AnimationState::Animating
-    }
-
     fn handle_winit_event(&self, _: Rc<RunningAppState>, _: winit::event::WindowEvent) {
         // Not expecting any winit events.
     }
@@ -148,16 +147,8 @@ impl WindowPortsMethods for Window {
 }
 
 impl WindowMethods for Window {
-    fn get_coordinates(&self) -> EmbedderCoordinates {
-        EmbedderCoordinates {
-            window_rect: self.window_rect,
-            screen_size: self.screen_size,
-            available_screen_size: self.screen_size,
-            hidpi_factor: self.hidpi_factor(),
-        }
-    }
-
-    fn set_animation_state(&self, state: AnimationState) {
-        self.animation_state.set(state);
+    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        self.device_pixel_ratio_override()
+            .unwrap_or_else(|| self.device_hidpi_factor())
     }
 }

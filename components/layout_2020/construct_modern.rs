@@ -5,8 +5,10 @@
 //! Layout construction code that is shared between modern layout modes (Flexbox and CSS Grid)
 
 use std::borrow::Cow;
+use std::sync::LazyLock;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use style::selector_parser::PseudoElement;
 
 use crate::PropagatedBoxTreeData;
 use crate::context::LayoutContext;
@@ -136,21 +138,11 @@ where
     pub(crate) fn finish(mut self) -> Vec<ModernItem<'dom>> {
         self.wrap_any_text_in_anonymous_block_container();
 
-        let anonymous_style = if self.has_text_runs {
-            Some(
-                self.context
-                    .shared_context()
-                    .stylist
-                    .style_for_anonymous::<Node::ConcreteElement>(
-                        &self.context.shared_context().guards,
-                        &style::selector_parser::PseudoElement::ServoAnonymousBox,
-                        &self.info.style,
-                    ),
-            )
-        } else {
-            None
-        };
-
+        let anonymous_info = LazyLock::new(|| {
+            self.info
+                .pseudo(self.context, PseudoElement::ServoAnonymousBox)
+                .expect("Should always be able to construct info for anonymous boxes.")
+        });
         let mut children: Vec<ModernItem> = std::mem::take(&mut self.jobs)
             .into_par_iter()
             .filter_map(|job| match job {
@@ -173,7 +165,7 @@ where
                     let block_formatting_context = BlockFormattingContext::from_block_container(
                         BlockContainer::InlineFormattingContext(inline_formatting_context),
                     );
-                    let info = &self.info.new_anonymous(anonymous_style.clone().unwrap());
+                    let info: &NodeAndStyleInfo<_> = &*anonymous_info;
                     let formatting_context = IndependentFormattingContext {
                         base: LayoutBoxBase::new(info.into(), info.style.clone()),
                         contents: IndependentFormattingContextContents::NonReplaced(

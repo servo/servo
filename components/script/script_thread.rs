@@ -17,7 +17,6 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
-use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
@@ -37,7 +36,11 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, WebViewId};
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
-use constellation_traits::{CompositorHitTestResult, ScrollState, WindowSizeData, WindowSizeType};
+use compositing_traits::CrossProcessCompositorApi;
+use constellation_traits::{
+    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
+    ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
+};
 use crossbeam_channel::unbounded;
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
@@ -45,7 +48,8 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    EmbedderMsg, InputEvent, MediaSessionActionType, Theme, WebDriverScriptCommand,
+    CompositorHitTestResult, EmbedderMsg, InputEvent, MediaSessionActionType, Theme,
+    ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -72,7 +76,7 @@ use net_traits::{
     ResourceFetchTiming, ResourceThreads, ResourceTimingType,
 };
 use percent_encoding::percent_decode;
-use profile_traits::mem::ReportsChan;
+use profile_traits::mem::{ProcessReports, ReportsChan};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use script_layout_interface::{
@@ -80,9 +84,7 @@ use script_layout_interface::{
 };
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
-    JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, NewLayoutInfo, Painter,
-    ProgressiveWebMetricType, ScriptMsg, ScriptThreadMessage, ScriptToConstellationChan,
-    StructuredSerializedData, UpdatePipelineIdReason,
+    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -92,9 +94,8 @@ use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerScheduler};
 use url::Position;
 #[cfg(feature = "webgpu")]
-use webgpu::{WebGPUDevice, WebGPUMsg};
+use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
-use webrender_traits::CrossProcessCompositorApi;
 
 use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;
@@ -308,9 +309,6 @@ pub struct ScriptThread {
     #[no_trace]
     user_content_manager: UserContentManager,
 
-    /// An optional string allowing the user agent to be set for testing.
-    user_agent: Cow<'static, str>,
-
     /// Application window's GL Context for Media player
     #[no_trace]
     player_context: WindowGLContext,
@@ -390,7 +388,6 @@ impl ScriptThreadFactory for ScriptThread {
         layout_factory: Arc<dyn LayoutFactory>,
         system_font_service: Arc<SystemFontServiceProxy>,
         load_data: LoadData,
-        user_agent: Cow<'static, str>,
     ) {
         thread::Builder::new()
             .name(format!("Script{:?}", state.id))
@@ -406,10 +403,9 @@ impl ScriptThreadFactory for ScriptThread {
                 let parent_info = state.parent_info;
                 let opener = state.opener;
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
-                let window_size = state.window_size;
+                let viewport_details = state.viewport_details;
 
-                let script_thread =
-                    ScriptThread::new(state, layout_factory, system_font_service, user_agent);
+                let script_thread = ScriptThread::new(state, layout_factory, system_font_service);
 
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(&script_thread as *const _));
@@ -424,7 +420,7 @@ impl ScriptThreadFactory for ScriptThread {
                     webview_id,
                     parent_info,
                     opener,
-                    window_size,
+                    viewport_details,
                     origin,
                     load_data,
                 ));
@@ -433,6 +429,7 @@ impl ScriptThreadFactory for ScriptThread {
                 memory_profiler_sender.run_with_memory_reporting(
                     || {
                         script_thread.start(CanGc::note());
+
                         let _ = script_thread
                             .senders
                             .content_process_shutdown_sender
@@ -615,7 +612,7 @@ impl ScriptThread {
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
                             ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data, CanGc::note());
                             sender
-                                .send((pipeline_id, ScriptMsg::LoadUrl(load_data, history_handling)))
+                                .send((pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
                                 .unwrap();
                         }
                     }
@@ -635,7 +632,10 @@ impl ScriptThread {
                 script_thread
                     .senders
                     .pipeline_to_constellation_sender
-                    .send((pipeline_id, ScriptMsg::LoadUrl(load_data, history_handling)))
+                    .send((
+                        pipeline_id,
+                        ScriptToConstellationMessage::LoadUrl(load_data, history_handling),
+                    ))
                     .expect("Sending a LoadUrl message to the constellation failed");
             }
         });
@@ -736,7 +736,6 @@ impl ScriptThread {
                             .pipeline_to_constellation_sender
                             .clone(),
                         image_cache: script_thread.image_cache.clone(),
-                        user_agent: script_thread.user_agent.clone(),
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
                         inherited_secure_context: script_thread.inherited_secure_context,
@@ -826,7 +825,6 @@ impl ScriptThread {
         state: InitialScriptState,
         layout_factory: Arc<dyn LayoutFactory>,
         system_font_service: Arc<SystemFontServiceProxy>,
-        user_agent: Cow<'static, str>,
     ) -> ScriptThread {
         let (self_sender, self_receiver) = unbounded();
         let runtime = Runtime::new(Some(SendableTaskSource {
@@ -938,7 +936,6 @@ impl ScriptThread {
             unminify_js: opts.unminify_js,
             local_script_source: opts.local_script_source.clone(),
             unminify_css: opts.unminify_css,
-            user_agent,
             user_content_manager: state.user_content_manager,
             player_context: state.player_context,
             node_ids: Default::default(),
@@ -1097,17 +1094,17 @@ impl ScriptThread {
                     {
                         let sequence_id = touch_event.expect_sequence_id();
                         let result = if handled {
-                            script_traits::TouchEventResult::DefaultAllowed(
+                            embedder_traits::TouchEventResult::DefaultAllowed(
                                 sequence_id,
                                 touch_event.event_type,
                             )
                         } else {
-                            script_traits::TouchEventResult::DefaultPrevented(
+                            embedder_traits::TouchEventResult::DefaultPrevented(
                                 sequence_id,
                                 touch_event.event_type,
                             )
                         };
-                        let message = ScriptMsg::TouchEventProcessed(result);
+                        let message = ScriptToConstellationMessage::TouchEventProcessed(result);
                         self.senders
                             .pipeline_to_constellation_sender
                             .send((pipeline_id, message))
@@ -1726,7 +1723,7 @@ impl ScriptThread {
         let task_duration = start.elapsed();
         for (doc_id, doc) in self.documents.borrow().iter() {
             if let Some(pipeline_id) = pipeline_id {
-                if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS.into() {
+                if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS {
                     if self.print_pwm {
                         println!(
                             "Task took longer than max allowed ({:?}) {:?}",
@@ -2009,13 +2006,13 @@ impl ScriptThread {
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
             DevtoolScriptControlMsg::GetRootNode(id, reply) => {
-                devtools::handle_get_root_node(&documents, id, reply)
+                devtools::handle_get_root_node(&documents, id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetDocumentElement(id, reply) => {
-                devtools::handle_get_document_element(&documents, id, reply)
+                devtools::handle_get_document_element(&documents, id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
-                devtools::handle_get_children(&documents, id, node_id, reply)
+                devtools::handle_get_children(&documents, id, node_id, reply, can_gc)
             },
             DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
                 devtools::handle_get_attribute_style(&documents, id, node_id, reply, can_gc)
@@ -2063,6 +2060,14 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetCssDatabase(reply) => {
                 devtools::handle_get_css_database(reply)
             },
+            DevtoolScriptControlMsg::SimulateColorScheme(id, theme) => {
+                match documents.find_window(id) {
+                    Some(window) => {
+                        window.handle_theme_change(theme);
+                    },
+                    None => warn!("Message sent to closed pipeline {}.", id),
+                }
+            },
         }
     }
 
@@ -2105,6 +2110,9 @@ impl ScriptThread {
             WebDriverScriptCommand::DeleteCookies(reply) => {
                 webdriver_handlers::handle_delete_cookies(&documents, pipeline_id, reply)
             },
+            WebDriverScriptCommand::DeleteCookie(name, reply) => {
+                webdriver_handlers::handle_delete_cookie(&documents, pipeline_id, name, reply)
+            },
             WebDriverScriptCommand::FindElementCSS(selector, reply) => {
                 webdriver_handlers::handle_find_element_css(
                     &documents,
@@ -2128,6 +2136,7 @@ impl ScriptThread {
                     pipeline_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementsCSS(selector, reply) => {
@@ -2153,6 +2162,7 @@ impl ScriptThread {
                     pipeline_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementElementCSS(selector, element_id, reply) => {
@@ -2184,6 +2194,7 @@ impl ScriptThread {
                     element_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FindElementElementsCSS(selector, element_id, reply) => {
@@ -2215,6 +2226,7 @@ impl ScriptThread {
                     element_id,
                     selector,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::FocusElement(element_id, reply) => {
@@ -2311,7 +2323,7 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetUrl(reply) => {
-                webdriver_handlers::handle_get_url(&documents, pipeline_id, reply)
+                webdriver_handlers::handle_get_url(&documents, pipeline_id, reply, can_gc)
             },
             WebDriverScriptCommand::IsEnabled(element_id, reply) => {
                 webdriver_handlers::handle_is_enabled(&documents, pipeline_id, element_id, reply)
@@ -2331,18 +2343,18 @@ impl ScriptThread {
     pub(crate) fn handle_resize_message(
         &self,
         id: PipelineId,
-        size: WindowSizeData,
+        viewport_details: ViewportDetails,
         size_type: WindowSizeType,
     ) {
         self.profile_event(ScriptThreadEventCategory::Resize, Some(id), || {
             let window = self.documents.borrow().find_window(id);
             if let Some(ref window) = window {
-                window.add_resize_event(size, size_type);
+                window.add_resize_event(viewport_details, size_type);
                 return;
             }
             let mut loads = self.incomplete_loads.borrow_mut();
             if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-                load.window_size = size;
+                load.viewport_details = viewport_details;
             }
         })
     }
@@ -2384,7 +2396,7 @@ impl ScriptThread {
             webview_id,
             opener,
             load_data,
-            window_size,
+            viewport_details,
         } = new_layout_info;
 
         // Kick off the fetch for the new resource.
@@ -2395,7 +2407,7 @@ impl ScriptThread {
             webview_id,
             parent_info,
             opener,
-            window_size,
+            viewport_details,
             origin,
             load_data,
         );
@@ -2417,7 +2429,7 @@ impl ScriptThread {
             document.window().layout().collect_reports(&mut reports);
         }
 
-        reports_chan.send(reports);
+        reports_chan.send(ProcessReports::new(reports));
     }
 
     /// Updates iframe element after a change in visibility
@@ -2441,7 +2453,10 @@ impl ScriptThread {
         // domain)
         self.senders
             .pipeline_to_constellation_sender
-            .send((id, ScriptMsg::SetThrottledComplete(throttled)))
+            .send((
+                id,
+                ScriptToConstellationMessage::SetThrottledComplete(throttled),
+            ))
             .unwrap();
 
         let window = self.documents.borrow().find_window(id);
@@ -2641,10 +2656,10 @@ impl ScriptThread {
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
-    fn handle_resize_inactive_msg(&self, id: PipelineId, new_size: WindowSizeData) {
+    fn handle_resize_inactive_msg(&self, id: PipelineId, new_viewport_details: ViewportDetails) {
         let window = self.documents.borrow().find_window(id)
             .expect("ScriptThread: received a resize msg for a pipeline not in this script thread. This is a bug.");
-        window.set_window_size(new_size);
+        window.set_viewport_details(new_viewport_details);
     }
 
     /// We have received notification that the response associated with a load has completed.
@@ -2688,7 +2703,7 @@ impl ScriptThread {
                     }
                     self.senders
                         .pipeline_to_constellation_sender
-                        .send((*id, ScriptMsg::AbortLoadUrl))
+                        .send((*id, ScriptToConstellationMessage::AbortLoadUrl))
                         .unwrap();
                     return None;
                 };
@@ -2746,7 +2761,7 @@ impl ScriptThread {
             debug!("{id}: Sending PipelineExited message to constellation");
             self.senders
                 .pipeline_to_constellation_sender
-                .send((id, ScriptMsg::PipelineExited))
+                .send((id, ScriptToConstellationMessage::PipelineExited))
                 .ok();
 
             // Clear any active animations and unroot all of the associated DOM objects.
@@ -2885,7 +2900,7 @@ impl ScriptThread {
         pipeline_id: PipelineId,
     ) -> Option<(BrowsingContextId, Option<PipelineId>)> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
-        let msg = ScriptMsg::GetBrowsingContextInfo(pipeline_id, result_sender);
+        let msg = ScriptToConstellationMessage::GetBrowsingContextInfo(pipeline_id, result_sender);
         self.senders
             .pipeline_to_constellation_sender
             .send((pipeline_id, msg))
@@ -2901,7 +2916,10 @@ impl ScriptThread {
         browsing_context_id: BrowsingContextId,
     ) -> Option<WebViewId> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
-        let msg = ScriptMsg::GetTopForBrowsingContext(browsing_context_id, result_sender);
+        let msg = ScriptToConstellationMessage::GetTopForBrowsingContext(
+            browsing_context_id,
+            result_sender,
+        );
         self.senders
             .pipeline_to_constellation_sender
             .send((sender_pipeline, msg))
@@ -3023,7 +3041,7 @@ impl ScriptThread {
                 .pipeline_to_constellation_sender
                 .send((
                     incomplete.pipeline_id,
-                    ScriptMsg::SetFinalUrl(final_url.clone()),
+                    ScriptToConstellationMessage::SetFinalUrl(final_url.clone()),
                 ))
                 .unwrap();
         }
@@ -3060,7 +3078,7 @@ impl ScriptThread {
             font_context: font_context.clone(),
             time_profiler_chan: self.senders.time_profiler_sender.clone(),
             compositor_api: self.compositor_api.clone(),
-            window_size: incomplete.window_size,
+            viewport_details: incomplete.viewport_details,
         };
 
         // Create the window and document objects.
@@ -3082,7 +3100,7 @@ impl ScriptThread {
             self.senders.constellation_sender.clone(),
             incomplete.pipeline_id,
             incomplete.parent_info,
-            incomplete.window_size,
+            incomplete.viewport_details,
             origin.clone(),
             final_url.clone(),
             incomplete.navigation_start,
@@ -3097,7 +3115,6 @@ impl ScriptThread {
             self.unminify_css,
             self.local_script_source.clone(),
             self.user_content_manager.clone(),
-            self.user_agent.clone(),
             self.player_context.clone(),
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),
@@ -3179,6 +3196,7 @@ impl ScriptThread {
             is_initial_about_blank,
             true,
             incomplete.load_data.inherited_insecure_requests_policy,
+            incomplete.load_data.has_trustworthy_ancestor_origin,
             can_gc,
         );
 
@@ -3216,7 +3234,10 @@ impl ScriptThread {
 
         self.senders
             .pipeline_to_constellation_sender
-            .send((incomplete.pipeline_id, ScriptMsg::ActivateDocument))
+            .send((
+                incomplete.pipeline_id,
+                ScriptToConstellationMessage::ActivateDocument,
+            ))
             .unwrap();
 
         // Notify devtools that a new script global exists.

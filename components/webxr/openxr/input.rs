@@ -311,7 +311,7 @@ impl OpenXRInput {
             InputId(0),
             Handedness::Right,
             &action_set,
-            &session,
+            session,
             needs_hands,
             supported_interaction_profiles.clone(),
         );
@@ -319,7 +319,7 @@ impl OpenXRInput {
             InputId(1),
             Handedness::Left,
             &action_set,
-            &session,
+            session,
             needs_hands,
             supported_interaction_profiles.clone(),
         );

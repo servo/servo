@@ -20,7 +20,6 @@ pub(crate) use script_bindings::error::*;
 
 #[cfg(feature = "js_backtrace")]
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::PrototypeList::proto_id_to_name;
 use crate::dom::bindings::conversions::{
     ConversionResult, FromJSValConvertible, ToJSValConvertible, root_from_object,
 };
@@ -255,23 +254,6 @@ pub(crate) fn report_pending_exception(
             can_gc,
         );
     }
-}
-
-/// Throw an exception to signal that a `JSObject` can not be converted to a
-/// given DOM type.
-pub(crate) fn throw_invalid_this(cx: SafeJSContext, proto_id: u16) {
-    debug_assert!(unsafe { !JS_IsExceptionPending(*cx) });
-    let error = format!(
-        "\"this\" object does not implement interface {}.",
-        proto_id_to_name(proto_id)
-    );
-    unsafe { throw_type_error(*cx, &error) };
-}
-
-pub(crate) fn throw_constructor_without_new(cx: SafeJSContext, name: &str) {
-    debug_assert!(unsafe { !JS_IsExceptionPending(*cx) });
-    let error = format!("{} constructor: 'new' is required", name);
-    unsafe { throw_type_error(*cx, &error) };
 }
 
 pub(crate) trait ErrorToJsval {

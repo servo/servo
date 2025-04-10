@@ -2,16 +2,25 @@ features:
 - name: target-text
   files:
   - target-text-*
-features:
 - name: spelling-grammar-error
   files:
   - spelling-error-*
   - grammar-spelling-errors-*
-features:
 - name: marker
   files:
   - marker-*
-features:
+  - first-letter-exclude-block-child-marker.html
+  - first-letter-exclude-inline-child-marker.html
+  - first-letter-exclude-inline-marker.html
+  - first-letter-skip-marker.html
+  - first-line-and-marker.html
+  - outside-marker-paint-order.html
 - name: file-selector-button
   files:
   - file-selector-button-*
+- name: first-letter
+  files:
+  - first-letter-*
+- name: first-line
+  files:
+  - first-line-*

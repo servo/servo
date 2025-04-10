@@ -9,6 +9,7 @@ use std::thread;
 
 use canvas_traits::ConstellationCanvasMsg;
 use canvas_traits::canvas::*;
+use compositing_traits::CrossProcessCompositorApi;
 use crossbeam_channel::{Sender, select, unbounded};
 use euclid::default::Size2D;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -17,7 +18,6 @@ use ipc_channel::router::ROUTER;
 use log::warn;
 use net_traits::ResourceThreads;
 use webrender_api::ImageKey;
-use webrender_traits::CrossProcessCompositorApi;
 
 use crate::canvas_data::*;
 
@@ -230,6 +230,10 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::SetLineCap(cap) => self.canvas(canvas_id).set_line_cap(cap),
             Canvas2dMsg::SetLineJoin(join) => self.canvas(canvas_id).set_line_join(join),
             Canvas2dMsg::SetMiterLimit(limit) => self.canvas(canvas_id).set_miter_limit(limit),
+            Canvas2dMsg::SetLineDash(items) => self.canvas(canvas_id).set_line_dash(items),
+            Canvas2dMsg::SetLineDashOffset(offset) => {
+                self.canvas(canvas_id).set_line_dash_offset(offset)
+            },
             Canvas2dMsg::GetTransform(sender) => {
                 let transform = self.canvas(canvas_id).get_transform();
                 sender.send(transform).unwrap();

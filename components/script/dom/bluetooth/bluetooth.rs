@@ -300,7 +300,7 @@ where
     T: AsyncBluetoothListener + DomObject + 'static,
     F: FnOnce(StringOrUnsignedLong) -> Fallible<UUID>,
 {
-    let in_realm_proof = AlreadyInRealm::assert();
+    let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
     let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
 
     let result_uuid = if let Some(u) = uuid {

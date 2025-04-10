@@ -8,7 +8,7 @@ use webxr_api::HitTestResult;
 use crate::dom::bindings::codegen::Bindings::XRHitTestResultBinding::XRHitTestResultMethods;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrspace::XRSpace;
@@ -33,14 +33,14 @@ impl XRHitTestResult {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         result: HitTestResult,
         frame: &XRFrame,
         can_gc: CanGc,
     ) -> DomRoot<XRHitTestResult> {
         reflect_dom_object(
             Box::new(XRHitTestResult::new_inherited(result, frame)),
-            global,
+            window,
             can_gc,
         )
     }
@@ -51,6 +51,10 @@ impl XRHitTestResultMethods<crate::DomTypeHolder> for XRHitTestResult {
     fn GetPose(&self, base: &XRSpace, can_gc: CanGc) -> Option<DomRoot<XRPose>> {
         let base = self.frame.get_pose(base)?;
         let pose = self.result.space.then(&base.inverse());
-        Some(XRPose::new(&self.global(), pose.cast_unit(), can_gc))
+        Some(XRPose::new(
+            self.global().as_window(),
+            pose.cast_unit(),
+            can_gc,
+        ))
     }
 }

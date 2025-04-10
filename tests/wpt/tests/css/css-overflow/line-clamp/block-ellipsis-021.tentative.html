@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: block-ellipsis and ::first-line</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="The block overflow ellipsis must not be included in the ::first-line pseudoelement of a child of the line-clamp container.">
+<style>
+.relative {
+  position: relative;
+  font: 25px/25px Ahem;
+}
+.bg, .clamp {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.bg {
+  height: 100px;
+  width: 100px;
+  color: red;
+  background-color: green;
+}
+.clamp {
+  line-clamp: 3;
+  color: green;
+  max-width: 100px;
+}
+.child::first-letter, .red {
+  color: red;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="relative">
+  <div class="bg">XXXX<br>XXXX<br>X</div>
+
+  <div class="clamp">
+    XXXX<br>
+    XXXX
+    <div class="child">
+      <span class="red">
+        XXXXXXXXXXXXX<br>
+        XXXXXXXXXXXXX
+      </span>
+    </div>
+  </div>
+</div>

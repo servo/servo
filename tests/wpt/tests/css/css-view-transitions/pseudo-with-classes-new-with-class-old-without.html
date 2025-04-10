@@ -23,7 +23,10 @@ div {
   view-transition-class: cls;
 }
 
-::view-transition-group(*) {
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
   animation-play-state: paused;
 }
 

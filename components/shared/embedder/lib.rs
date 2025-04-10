@@ -13,24 +13,28 @@ pub mod resources;
 pub mod user_content_manager;
 mod webdriver;
 
+use std::ffi::c_void;
 use std::fmt::{Debug, Error, Formatter};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use base::id::{PipelineId, WebViewId};
+use base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
 use crossbeam_channel::Sender;
+use euclid::{Scale, Size2D};
 use http::{HeaderMap, Method, StatusCode};
 use ipc_channel::ipc::IpcSender;
 pub use keyboard_types::{KeyboardEvent, Modifiers};
 use log::warn;
+use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
 use pixels::Image;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_url::ServoUrl;
 use strum_macros::IntoStaticStr;
+use style_traits::CSSPixel;
 use url::Url;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
 
 pub use crate::input_events::*;
 pub use crate::webdriver::*;
@@ -86,21 +90,16 @@ pub enum Cursor {
     ZoomOut,
 }
 
-#[cfg(feature = "webxr")]
-pub use webxr_api::MainThreadWaker as EventLoopWaker;
-#[cfg(not(feature = "webxr"))]
 pub trait EventLoopWaker: 'static + Send {
     fn clone_box(&self) -> Box<dyn EventLoopWaker>;
     fn wake(&self);
 }
 
-#[cfg(not(feature = "webxr"))]
 impl Clone for Box<dyn EventLoopWaker> {
     fn clone(&self) -> Self {
-        EventLoopWaker::clone_box(self.as_ref())
+        self.clone_box()
     }
 }
-
 /// Sends messages to the embedder.
 pub struct EmbedderProxy {
     pub sender: Sender<EmbedderMsg>,
@@ -223,6 +222,38 @@ pub enum AllowOrDeny {
     Deny,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SelectElementOption {
+    /// A unique identifier for the option that can be used to select it.
+    pub id: usize,
+    /// The label that should be used to display the option to the user.
+    pub label: String,
+    /// Whether or not the option is selectable
+    pub is_disabled: bool,
+}
+
+/// Represents the contents of either an `<option>` or an `<optgroup>` element
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum SelectElementOptionOrOptgroup {
+    Option(SelectElementOption),
+    Optgroup {
+        label: String,
+        options: Vec<SelectElementOption>,
+    },
+}
+
+/// Data about a `WebView` or `<iframe>` viewport: its size and also the
+/// HiDPI scale factor to use when rendering the contents.
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub struct ViewportDetails {
+    /// The size of the layout viewport.
+    pub size: Size2D<f32, CSSPixel>,
+
+    /// The scale factor to use to account for HiDPI scaling. This does not take into account
+    /// any page or pinch zoom applied by the compositor to the contents.
+    pub hidpi_scale_factor: Scale<f32, CSSPixel, DevicePixel>,
+}
+
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
@@ -254,10 +285,10 @@ pub enum EmbedderMsg {
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebView(WebViewId, IpcSender<Option<WebViewId>>),
+    AllowOpeningWebView(WebViewId, IpcSender<Option<(WebViewId, ViewportDetails)>>),
     /// A webview was destroyed.
     WebViewClosed(WebViewId),
-    /// A webview gained focus for keyboard events.
+    /// A webview gained focus for keyboard events
     WebViewFocused(WebViewId),
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
@@ -331,6 +362,16 @@ pub enum EmbedderMsg {
     ShutdownComplete,
     /// Request to display a notification.
     ShowNotification(Option<WebViewId>, Notification),
+    /// Indicates that the user has activated a `<select>` element.
+    ///
+    /// The embedder should respond with the new state of the `<select>` element.
+    ShowSelectElementMenu(
+        WebViewId,
+        Vec<SelectElementOptionOrOptgroup>,
+        Option<usize>,
+        DeviceIntRect,
+        IpcSender<Option<usize>>,
+    ),
 }
 
 impl Debug for EmbedderMsg {
@@ -635,4 +676,111 @@ pub struct NotificationAction {
     pub icon_url: Option<ServoUrl>,
     /// Icon's raw image data and metadata.
     pub icon_resource: Option<Arc<Image>>,
+}
+
+/// Information about a `WebView`'s screen geometry and offset. This is used
+/// for the [Screen](https://drafts.csswg.org/cssom-view/#the-screen-interface)
+/// CSSOM APIs and `window.screenLeft` / `window.screenTop`.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ScreenGeometry {
+    /// The size of the screen in device pixels. This will be converted to
+    /// CSS pixels based on the pixel scaling of the `WebView`.
+    pub size: DeviceIntSize,
+    /// The available size of the screen in device pixels. This size is the size
+    /// available for web content on the screen, and should be `size` minus any system
+    /// toolbars, docks, and interface elements of the browser. This will be converted to
+    /// CSS pixels based on the pixel scaling of the `WebView`.
+    pub available_size: DeviceIntSize,
+    /// The offset of the `WebView` in device pixels for the purposes of the `window.screenLeft`
+    /// and `window.screenTop` APIs. This will be converted to CSS pixels based on the pixel scaling
+    /// of the `WebView`.
+    pub offset: DeviceIntPoint,
+}
+
+impl From<SelectElementOption> for SelectElementOptionOrOptgroup {
+    fn from(value: SelectElementOption) -> Self {
+        Self::Option(value)
+    }
+}
+
+/// The address of a node. Layout sends these back. They must be validated via
+/// `from_untrusted_node_address` before they can be used, because we do not trust layout.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct UntrustedNodeAddress(pub *const c_void);
+
+malloc_size_of_is_0!(UntrustedNodeAddress);
+
+#[allow(unsafe_code)]
+unsafe impl Send for UntrustedNodeAddress {}
+
+impl From<style_traits::dom::OpaqueNode> for UntrustedNodeAddress {
+    fn from(o: style_traits::dom::OpaqueNode) -> Self {
+        UntrustedNodeAddress(o.0 as *const c_void)
+    }
+}
+
+impl Serialize for UntrustedNodeAddress {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        (self.0 as usize).serialize(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for UntrustedNodeAddress {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
+        let value: usize = Deserialize::deserialize(d)?;
+        Ok(UntrustedNodeAddress::from_id(value))
+    }
+}
+
+impl UntrustedNodeAddress {
+    /// Creates an `UntrustedNodeAddress` from the given pointer address value.
+    #[inline]
+    pub fn from_id(id: usize) -> UntrustedNodeAddress {
+        UntrustedNodeAddress(id as *const c_void)
+    }
+}
+
+/// The result of a hit test in the compositor.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CompositorHitTestResult {
+    /// The pipeline id of the resulting item.
+    pub pipeline_id: PipelineId,
+
+    /// The hit test point in the item's viewport.
+    pub point_in_viewport: euclid::default::Point2D<f32>,
+
+    /// The hit test point relative to the item itself.
+    pub point_relative_to_item: euclid::default::Point2D<f32>,
+
+    /// The node address of the hit test result.
+    pub node: UntrustedNodeAddress,
+
+    /// The cursor that should be used when hovering the item hit by the hit test.
+    pub cursor: Option<Cursor>,
+
+    /// The scroll tree node associated with this hit test item.
+    pub scroll_tree_node: ScrollTreeNodeId,
+}
+
+/// Whether the default action for a touch event was prevented by web content
+#[derive(Debug, Deserialize, Serialize)]
+pub enum TouchEventResult {
+    /// Allowed by web content
+    DefaultAllowed(TouchSequenceId, TouchEventType),
+    /// Prevented by web content
+    DefaultPrevented(TouchSequenceId, TouchEventType),
+}
+
+/// For a given pipeline, whether any animations are currently running
+/// and any animation callbacks are queued
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum AnimationState {
+    /// Animations are active but no callbacks are queued
+    AnimationsPresent,
+    /// Animations are active and callbacks are queued
+    AnimationCallbacksPresent,
+    /// No animations are active and no callbacks are queued
+    NoAnimationsPresent,
+    /// No animations are active but callbacks are queued
+    NoAnimationCallbacksPresent,
 }

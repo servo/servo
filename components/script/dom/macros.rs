@@ -637,22 +637,6 @@ macro_rules! document_and_element_event_handlers(
     )
 );
 
-#[macro_export]
-macro_rules! rooted_vec {
-    (let mut $name:ident) => {
-        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
-        let mut $name = $crate::dom::bindings::trace::RootedVec::new(&mut root);
-    };
-    (let $name:ident <- $iter:expr) => {
-        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
-        let $name = $crate::dom::bindings::trace::RootedVec::from_iter(&mut root, $iter);
-    };
-    (let mut $name:ident <- $iter:expr) => {
-        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
-        let mut $name = $crate::dom::bindings::trace::RootedVec::from_iter(&mut root, $iter);
-    };
-}
-
 /// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.
 macro_rules! impl_performance_entry_struct(
     ($binding:ident, $struct:ident, $type:expr) => (

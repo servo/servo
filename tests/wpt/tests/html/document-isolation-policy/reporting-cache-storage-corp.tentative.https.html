@@ -8,22 +8,12 @@
 <script src="/common/utils.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="./resources/common.js"></script>
 <script>
 const {ORIGIN, REMOTE_ORIGIN} = get_host_info();
 
-const REMOTE_EXECUTOR =
-  `${ORIGIN}/common/dispatcher/remote-executor.html?pipe=`;
-const REMOTE_EXECUTOR_WORKER =
-  `${ORIGIN}/common/dispatcher/remote-executor-worker.js?pipe=`;
-
 const header = (name, value) => `|header(${name},${value})`;
-
-const FRAME_URL = REMOTE_EXECUTOR +
-  header("document-isolation-policy", "isolate-and-require-corp") +
-  header("document-isolation-policy-report-only", "isolate-and-require-corp");
-
-const WORKER_URL = REMOTE_EXECUTOR_WORKER +
-  header("document-isolation-policy", "isolate-and-require-corp") +
+const dip_reporting_header = header("document-isolation-policy", "isolate-and-require-corp") +
   header("document-isolation-policy-report-only", "isolate-and-require-corp");
 
 async function putInCache(resourceUrl) {
@@ -89,56 +79,26 @@ async function runRemoteContextTest(uuid, expected_count, check, context_url, re
 
 async function runIFrameTest(t, check, resource_url, expected_count) {
   // Load an iframe with DocumentIsolationPolicy reporting.
-  const uuid = token();
-  const frame_url = FRAME_URL + '&uuid=' + uuid;
-  const frame = await with_iframe(frame_url);
-  t.add_cleanup(() => frame.remove());
-
-  await runRemoteContextTest(uuid, expected_count, check, frame_url, resource_url);
+  const context = await createIframeContext(t, `${ORIGIN}`, dip_reporting_header);
+  await runRemoteContextTest(context[0], expected_count, check, context[1], resource_url);
 }
 
 async function runDedicatedWorkerTest(t, check, resource_url, expected_count) {
-  // Create a worker with DocumentIsolationPolicy reporting.
-  const uuid = token();
-  const worker_url = WORKER_URL + '&uuid=' + uuid;
-  const worker = new Worker(worker_url);
-  worker.addEventListener('error', t.unreached_func('Worker.onerror'));
-  t.add_cleanup(() => worker.terminate());
-
-  await runRemoteContextTest(uuid, expected_count, check, worker_url, resource_url);
+  // Create a worker which will inherit DocumentIsolationPolicy reporting from its creator.
+  const context = await createDedicatedWorkerContext(t, `${ORIGIN}`, dip_reporting_header);
+  await runRemoteContextTest(context[0], expected_count, check, context[1], resource_url);
 }
 
 async function runSharedWorkerTest(t, check, resource_url, expected_count) {
   // Create a shared worker with DocumentIsolationPolicy reporting.
-  const uuid = token();
-  const worker_url = WORKER_URL +
-    '&uuid=' + uuid;
-  const worker = new SharedWorker(worker_url);
-  worker.addEventListener('error', t.unreached_func('Worker.onerror'));
-
-  await runRemoteContextTest(uuid, expected_count, check, worker_url, resource_url);
+  const context = await createSharedWorkerContext(t, `${ORIGIN}`, dip_reporting_header);
+  await runRemoteContextTest(context[0], expected_count, check, context[1], resource_url);
 }
 
 async function runIFrameWithServiceWorkerTest(t, check, resource_url, expected_count) {
-  // Here we use a Service Worker without DIP.
-  const SERVICE_WORKER_URL = `${ORIGIN}/common/dispatcher/executor-service-worker.js`;
-  const reg = await service_worker_unregister_and_register(
-    t, SERVICE_WORKER_URL, FRAME_URL);
-  const worker = reg.installing || reg.waiting || reg.active;
-  worker.addEventListener('error', t.unreached_func('Worker.onerror'));
-
-  // Load an iframe with DocumentIsolationPolicy reporting.
-  const uuid = token();
-  const frame_url = FRAME_URL +
-    '&uuid=' + uuid;
-  const frame = await with_iframe(frame_url);
-
-  t.add_cleanup(() => {
-    reg.unregister();
-    frame.remove();
-  });
-
-  await runRemoteContextTest(uuid, expected_count, check, frame_url, resource_url);
+  // Create an iframe with DocumentIsolationPolicy reporting and a ServiceWorker.
+  const context = await createIframeWithSWContext(t, `${ORIGIN}`, dip_reporting_header);
+  await runRemoteContextTest(context[0], expected_count, check, context[1], resource_url);
 }
 
 // We want to test several URLs in various environments (document,

@@ -16,8 +16,7 @@ jobs:
   check-workflow-run:
     name: "Check for appropriate epochs"
     if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
-    runs-on:
-      - ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
     outputs:
@@ -49,7 +48,6 @@ jobs:
   check-workflow-run-noop:
     name: "Check for appropriate epochs (noop)"
     if: ${{ github.event_name != 'workflow_run' }}
-    runs-on:
-      - ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - run: exit 0

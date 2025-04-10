@@ -6,7 +6,8 @@
 enum AudioContextState {
     "suspended",
     "running",
-    "closed"
+    "closed",
+    "interrupted"
 };
 
 enum AudioContextRenderSizeCategory {

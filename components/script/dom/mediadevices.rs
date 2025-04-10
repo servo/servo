@@ -79,7 +79,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices>
     fn EnumerateDevices(&self, can_gc: CanGc) -> Rc<Promise> {
         // Step 1.
-        let in_realm_proof = AlreadyInRealm::assert();
+        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
 
         // Step 2.

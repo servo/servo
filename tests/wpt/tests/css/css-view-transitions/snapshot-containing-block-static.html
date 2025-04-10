@@ -33,8 +33,11 @@ div {
   view-transition-name: target;
 }
 
-::view-transition-group(target) {
-  animation-duration: 50s;
+::view-transition-group(target),
+::view-transition-image-pair(target),
+::view-transition-old(target),
+::view-transition-new(target) {
+  animation-play-state: paused;
 }
 
 ::view-transition {

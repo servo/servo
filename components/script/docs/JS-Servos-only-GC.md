@@ -334,7 +334,7 @@ the usual [warnings infrastructure][warnings], we can use the `allow` attribute
 in places where it's okay to use `Dom<T>`, like DOM struct definitions and the
 implementation of `Dom<T>` itself.
 
-[js-lint]: https://doc.servo.org/script_plugins/struct.UnrootedPass.html
+[js-lint]: https://github.com/servo/servo/blob/main/support/crown/src/unrooted_must_root.rs
 [stack]: https://en.wikipedia.org/wiki/Stack-based_memory_allocation
 [warnings]: https://doc.rust-lang.org/book/compiler-plugins.html#lint-plugins
 

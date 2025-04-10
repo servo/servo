@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-image">
+<link rel="help" href="https://crbug.com/368562242">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<html style="overflow: hidden">
+  <div style="margin: 0 -20px; overflow: hidden; border-radius: 5px">
+    <div style="overflow: auto; scrollbar-width: none;
+                mask-image: linear-gradient(to right, transparent 20px, red 20px 120px, transparent 120px 100%)">
+      <div style="margin: -20px; height: 140px; background: green">
+        <div style="position: absolute"></div>
+      </div>
+    </div>
+  </div>
+</div>

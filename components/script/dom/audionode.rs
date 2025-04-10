@@ -5,6 +5,9 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use script_bindings::codegen::InheritTypes::{
+    AudioNodeTypeId, AudioScheduledSourceNodeTypeId, EventTargetTypeId,
+};
 use servo_media::audio::graph::NodeId;
 use servo_media::audio::node::{
     AudioNodeInit, AudioNodeMessage, ChannelCountMode as ServoMediaChannelCountMode, ChannelInfo,
@@ -16,9 +19,6 @@ use crate::dom::audioparam::AudioParam;
 use crate::dom::baseaudiocontext::BaseAudioContext;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     AudioNodeMethods, AudioNodeOptions, ChannelCountMode, ChannelInterpretation,
-};
-use crate::dom::bindings::codegen::InheritTypes::{
-    AudioNodeTypeId, AudioScheduledSourceNodeTypeId, EventTargetTypeId,
 };
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;

@@ -3,7 +3,11 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/content-security-policy/support/testharness-helper.js"></script>
-<script src="./support/csp-violations.js"></script>
+  <script src="./support/csp-violations.js"></script>
+  <!-- Content-Security-Policy-Report-Only directives are not supported on meta
+       tags per https://www.w3.org/TR/CSP3/#cspro-header. This test sets at
+       least one such directive in a .headers file. Please refer to that file
+       for the complete set of CSP rules that apply to this test. -->
 </head>
 <body>
 
@@ -14,12 +18,6 @@
   <script id="script2"></script>
 
   <script>
-  // CSP insists the "trusted-types: ..." directives are delivered as headers
-  // (rather than as "meta http-equiv" tags). This test assumes the following
-  // headers are set in the .headers file:
-  //
-  //   Content-Security-Policy-Report-Only: trusted-types ...; report-uri ...
-
   // A sample policy we use to test trustedTypes.createPolicy behaviour.
   const id = x => x;
   const policy = trustedTypes.createPolicy("two", {
@@ -30,10 +28,10 @@
 
   promise_test(async t => {
     let violation = await trusted_type_violation_without_exception_for(_ =>
-      document.getElementById("script").src = "// #abc"
+      document.getElementById("script").src = "support/namespaces.js#abc"
     );
     assert_true(violation.originalPolicy.includes("trusted-types two"));
-    assert_true(document.getElementById("script").src.endsWith("// #abc"));
+    assert_true(document.getElementById("script").src.endsWith("#abc"));
   }, "Trusted Type violation report-only: assign string to script url");
 
   promise_test(async t => {

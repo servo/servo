@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <title>CSS Masonry Test: parsing properties and shortands</title>
 <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-template-masonry">
-<link rel="help" href="https://drafts.csswg.org/css-grid-3/#masonry-auto-flow">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -73,17 +72,6 @@ test_shorthand_value("grid", '10px / masonry', {
   'grid-auto-columns': 'auto',
   'grid-auto-flow': 'row'
 });
-
-test_valid_value("masonry-auto-flow", 'pack');
-test_valid_value("masonry-auto-flow", 'pack ordered', 'ordered');
-test_valid_value("masonry-auto-flow", 'ordered next', 'next ordered');
-test_valid_value("masonry-auto-flow", 'next definite-first', 'next');
-test_valid_value("masonry-auto-flow", 'definite-first pack', 'pack');
-test_invalid_value("masonry-auto-flow", 'auto');
-test_invalid_value("masonry-auto-flow", 'none');
-test_invalid_value("masonry-auto-flow", '10px');
-test_invalid_value("masonry-auto-flow", 'row');
-test_invalid_value("masonry-auto-flow", 'dense');
 
 </script>
 </body>

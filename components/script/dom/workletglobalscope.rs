@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::sync::Arc;
 
 use base::id::PipelineId;
+use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
@@ -15,7 +15,7 @@ use js::rust::Runtime;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
-use script_traits::{Painter, ScriptMsg, ScriptToConstellationChan};
+use script_traits::Painter;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use stylo_atoms::Atom;
 
@@ -96,7 +96,6 @@ impl WorkletGlobalScope {
                 MutableOrigin::new(ImmutableOrigin::new_opaque()),
                 None,
                 Default::default(),
-                init.user_agent.clone(),
                 #[cfg(feature = "webgpu")]
                 init.gpu_id_hub.clone(),
                 init.inherited_secure_context,
@@ -182,11 +181,9 @@ pub(crate) struct WorkletGlobalScopeInit {
     /// Channel to devtools
     pub(crate) devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to constellation
-    pub(crate) to_constellation_sender: IpcSender<(PipelineId, ScriptMsg)>,
+    pub(crate) to_constellation_sender: IpcSender<(PipelineId, ScriptToConstellationMessage)>,
     /// The image cache
     pub(crate) image_cache: Arc<dyn ImageCache>,
-    /// An optional string allowing the user agent to be set for testing
-    pub(crate) user_agent: Cow<'static, str>,
     /// Identity manager for WebGPU resources
     #[cfg(feature = "webgpu")]
     pub(crate) gpu_id_hub: Arc<IdentityHub>,

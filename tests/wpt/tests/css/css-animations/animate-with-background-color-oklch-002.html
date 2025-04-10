@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CSS animations with background-color from legacy rgb to oklch</title>
+  <link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+  <link rel="help" href="https://www.w3.org/TR/css-animations-2/">
+</head>
+<style>
+  @keyframes bg-color-oklch {
+    to {
+      background-color: oklch(45% 0.2 264); /*  blue */
+    }
+  }
+  @keyframes bg-mix-color-oklch {
+    to {
+      background-color: color-mix(in oklch, oklch(45% 0.2 264), oklch(45% 0.2 264));
+    }
+  }
+
+  #target {
+    background: #ff0000;
+    animation-duration: 1s;
+    animation-timing-function: linear;
+    animation-play-state: paused;
+    animation-fill-mode: forwards;
+    height: 100px;
+    width: 100px;
+  }
+  .bg-color-oklch {
+    animation-name: bg-color-oklch;
+  }
+  .bg-mix-color-oklch {
+    animation-name: bg-mix-color-oklch;
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/css/support/color-testcommon.js"></script>
+
+<body>
+  <div id="target"></div>
+  <div id="test"></div>
+</body>
+<script>
+  'use strict';
+
+  async function runAnimationTest(t, name, expected_colors) {
+    const target = document.getElementById('target');
+    target.classList.add(name);
+    t.add_cleanup(() => {
+      target.classList.remove(name);
+    });
+    const anim = document.getAnimations()[0];
+    await anim.ready;
+    expected_colors.forEach(data => {
+      anim.currentTime = 1000 * data.at;
+      const actual = getComputedStyle(target).backgroundColor;
+      const expected = data.value;
+      assert_equals(actual, expected, `Background color at ${100*data.at}% animation progress`);
+    });
+  }
+
+  const bg_color_legacy_rgb_to_oklch = [
+    { at: 0, value: 'rgb(255, 0, 0)' },
+    { at: 0.25, value: 'oklab(0.583475 0.163433 0.0446685)' },
+    { at: 0.5, value: 'oklab(0.538983 0.101987 -0.0365225)' },
+    { at: 0.75, value: 'oklab(0.494492 0.0405407 -0.117713)' },
+    { at: 1, value: 'oklab(0.45 -0.0209057 -0.198904)' }
+  ];
+
+  window.onload = async () => {
+    promise_test(t => {
+      return runAnimationTest(t, 'bg-color-oklch', bg_color_legacy_rgb_to_oklch);
+    }, 'Animate from legacy rgb to oklch');
+
+    promise_test(t => {
+      return runAnimationTest(t, 'bg-mix-color-oklch', bg_color_legacy_rgb_to_oklch);
+    }, 'Animate from legacy rgb to color-mix oklch');
+  };
+
+</script>
+</html>

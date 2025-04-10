@@ -11,6 +11,13 @@
         height: 100px;
         background-color: red;
     }
+
+    ::view-transition-group(*),
+    ::view-transition-image-pair(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation-play-state: paused;
+    }
 </style>
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 <div id="target"></div>

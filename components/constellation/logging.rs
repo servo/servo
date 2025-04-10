@@ -12,11 +12,13 @@ use std::thread;
 
 use backtrace::Backtrace;
 use base::id::WebViewId;
-use constellation_traits::{ConstellationMsg as FromCompositorMsg, LogEntry};
+use constellation_traits::{
+    EmbedderToConstellationMessage, LogEntry, ScriptToConstellationChan,
+    ScriptToConstellationMessage,
+};
 use crossbeam_channel::Sender;
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use parking_lot::ReentrantMutex;
-use script_traits::{ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
 
 /// A logger directed at the constellation from content processes
 /// #[derive(Clone)]
@@ -50,7 +52,7 @@ impl Log for FromScriptLogger {
     fn log(&self, record: &Record) {
         if let Some(entry) = log_entry(record) {
             let thread_name = thread::current().name().map(ToOwned::to_owned);
-            let msg = FromScriptMsg::LogEntry(thread_name, entry);
+            let msg = ScriptToConstellationMessage::LogEntry(thread_name, entry);
             let chan = self.script_to_constellation_chan.lock();
             let _ = chan.send(msg);
         }
@@ -61,15 +63,15 @@ impl Log for FromScriptLogger {
 
 /// A logger directed at the constellation from the compositor
 #[derive(Clone)]
-pub struct FromCompositorLogger {
+pub struct FromEmbedderLogger {
     /// A channel to the constellation
-    pub constellation_chan: Arc<ReentrantMutex<Sender<FromCompositorMsg>>>,
+    pub constellation_chan: Arc<ReentrantMutex<Sender<EmbedderToConstellationMessage>>>,
 }
 
-impl FromCompositorLogger {
+impl FromEmbedderLogger {
     /// Create a new constellation logger.
-    pub fn new(constellation_chan: Sender<FromCompositorMsg>) -> FromCompositorLogger {
-        FromCompositorLogger {
+    pub fn new(constellation_chan: Sender<EmbedderToConstellationMessage>) -> FromEmbedderLogger {
+        FromEmbedderLogger {
             constellation_chan: Arc::new(ReentrantMutex::new(constellation_chan)),
         }
     }
@@ -80,7 +82,7 @@ impl FromCompositorLogger {
     }
 }
 
-impl Log for FromCompositorLogger {
+impl Log for FromEmbedderLogger {
     fn enabled(&self, metadata: &Metadata) -> bool {
         metadata.level() <= Level::Warn
     }
@@ -89,7 +91,7 @@ impl Log for FromCompositorLogger {
         if let Some(entry) = log_entry(record) {
             let top_level_id = WebViewId::installed();
             let thread_name = thread::current().name().map(ToOwned::to_owned);
-            let msg = FromCompositorMsg::LogEntry(top_level_id, thread_name, entry);
+            let msg = EmbedderToConstellationMessage::LogEntry(top_level_id, thread_name, entry);
             let chan = self.constellation_chan.lock();
             let _ = chan.send(msg);
         }

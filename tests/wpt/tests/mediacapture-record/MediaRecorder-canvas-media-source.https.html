@@ -30,8 +30,15 @@
 </head>
 
 <body>
-  <canvas id="canvas"></canvas>
   <script>
+async function createWorker(script) {
+  script += "self.postMessage('ready');";
+  const blob = new Blob([script], { type: 'text/javascript' });
+  const url = URL.createObjectURL(blob);
+  const worker = new Worker(url);
+  await new Promise(resolve => worker.onmessage = resolve);
+  return worker;
+}
 
 async_test(test => {
   const CANVAS_WIDTH = 256;
@@ -100,49 +107,61 @@ async_test(test => {
     return;
   }
 
-  const canvas = document.querySelector("canvas");
-  const ctx = canvas.getContext("2d", {
-    alpha: false,
-  });
-
-  canvas.width = CANVAS_WIDTH;
-  canvas.height = CANVAS_HEIGHT;
-
   const {startCamera, stopCamera} = useUserMedia(CAMERA_CONSTRAINTS);
   startCamera().then(async stream => {
     const videoTrack = stream.getVideoTracks()[0];
-    const { readable: readableStream } = new MediaStreamTrackProcessor({
-      track: videoTrack
-    });
+    const worker = await createWorker(`
+      const CANVAS_WIDTH = ${CANVAS_WIDTH};
+      const CANVAS_HEIGHT = ${CANVAS_HEIGHT};
+      onmessage = e => {
+        const videoTrack = e.data;
+        const { readable: readableStream } = new MediaStreamTrackProcessor({
+          track: videoTrack
+        });
 
-    const composedTrackGenerator = new MediaStreamTrackGenerator({
-      kind: "video"
-    });
-    const sink = composedTrackGenerator.writable;
+        const composedTrackGenerator = new VideoTrackGenerator();
+        const sink = composedTrackGenerator.writable;
 
-    ctx.fillStyle = "#333";
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        const canvas = new OffscreenCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
+        const ctx = canvas.getContext("2d", {
+          alpha: false,
+        });
+        ctx.fillStyle = "#333";
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    const transformer = new TransformStream({
-      async transform(cameraFrame, controller) {
-        if (cameraFrame && cameraFrame?.codedWidth > 0) {
-          const leftPos = (CANVAS_WIDTH - cameraFrame.displayWidth) / 2;
-          const topPos = (CANVAS_HEIGHT - cameraFrame.displayHeight) / 2;
+        const transformer = new TransformStream({
+          async transform(cameraFrame, controller) {
+            if (cameraFrame && cameraFrame?.codedWidth > 0) {
+              const leftPos = (CANVAS_WIDTH - cameraFrame.displayWidth) / 2;
+              const topPos = (CANVAS_HEIGHT - cameraFrame.displayHeight) / 2;
 
-          ctx.drawImage(cameraFrame, leftPos, topPos);
+              ctx.drawImage(cameraFrame, leftPos, topPos);
 
-          const newFrame = new VideoFrame(canvas, {
-            timestamp: cameraFrame.timestamp
-          });
-          cameraFrame.close();
-          controller.enqueue(newFrame);
-        }
+              const newFrame = new VideoFrame(canvas, {
+                timestamp: cameraFrame.timestamp
+              });
+              cameraFrame.close();
+              controller.enqueue(newFrame);
+            }
+          }
+        });
+
+        readableStream.pipeThrough(transformer).pipeTo(sink);
+        self.postMessage(composedTrackGenerator.track, [composedTrackGenerator.track]);
       }
+    `);
+    try {
+      worker.postMessage(videoTrack, [videoTrack]);
+    } catch(e) {
+      test.step_func_done(() => {
+         assert_unreached("MediaStreamTrack transfer not supported");
+      })();
+    }
+    const composedTrack = await new Promise((resolve, reject) => {
+      worker.onmessage = e => resolve(e.data);
+      test.step_timeout(() => reject("unable to get composited track"), 2000);
     });
-
-    readableStream.pipeThrough(transformer).pipeTo(sink);
-
-    const compositedMediaStream = new MediaStream([composedTrackGenerator]);
+    const compositedMediaStream = new MediaStream([composedTrack]);
 
     useMediaRecorder(compositedMediaStream, mimeType, (size => {
       if (size > THRESHOLD_FOR_EMPTY_FRAMES) {
@@ -153,7 +172,6 @@ async_test(test => {
     }));
   });
 }, "MediaRecorder returns frames containing video content");
-
   </script>
 </body>
 

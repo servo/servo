@@ -104,10 +104,14 @@ impl DOMRectReadOnlyMethods<crate::DomTypeHolder> for DOMRectReadOnly {
 
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-fromrect
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMRectReadOnly> {
+    fn FromRect(
+        global: &GlobalScope,
+        other: &DOMRectInit,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMRectReadOnly> {
         let dom_rect = create_a_domrectreadonly_from_the_dictionary(other);
 
-        reflect_dom_object(Box::new(dom_rect), global, CanGc::note())
+        reflect_dom_object(Box::new(dom_rect), global, can_gc)
     }
 
     // https://drafts.fxtf.org/geometry/#dom-domrectreadonly-x

@@ -28,7 +28,9 @@ use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_alg
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::writablestreamdefaultcontroller::WritableStreamDefaultController;
+use crate::dom::writablestreamdefaultcontroller::{
+    UnderlyingSinkType, WritableStreamDefaultController,
+};
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -155,7 +157,7 @@ pub struct WritableStream {
 
 impl WritableStream {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    /// <https://streams.spec.whatwg.org/#initialize-readable-stream>
+    /// <https://streams.spec.whatwg.org/#initialize-writable-stream>
     fn new_inherited() -> WritableStream {
         WritableStream {
             reflector_: Reflector::new(),
@@ -879,6 +881,7 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // Perform ? SetUpWritableStreamDefaultControllerFromUnderlyingSink
         let controller = WritableStreamDefaultController::new(
             global,
+            UnderlyingSinkType::Js,
             &underlying_sink_dict,
             high_water_mark,
             size_algorithm,

@@ -82,6 +82,7 @@ struct LinkProcessingOptions {
     source_set: Option<()>,
     base_url: ServoUrl,
     insecure_requests_policy: InsecureRequestsPolicy,
+    has_trustworthy_ancestor_origin: bool,
     // Some fields that we don't need yet are missing
 }
 
@@ -216,8 +217,10 @@ impl VirtualMethods for HTMLLinkElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         if !self.upcast::<Node>().is_connected() || mutation.is_removal() {
             return;
         }
@@ -265,9 +268,9 @@ impl VirtualMethods for HTMLLinkElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
         self.relations
@@ -294,9 +297,9 @@ impl VirtualMethods for HTMLLinkElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context);
+            s.unbind_from_tree(context, can_gc);
         }
 
         if let Some(s) = self.stylesheet.borrow_mut().take() {
@@ -333,6 +336,7 @@ impl HTMLLinkElement {
             source_set: None, // FIXME
             base_url: document.borrow().base_url(),
             insecure_requests_policy: document.insecure_requests_policy(),
+            has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
         };
 
         // Step 3. If el has an href attribute, then set options's href to the value of el's href attribute.
@@ -667,6 +671,7 @@ impl LinkProcessingOptions {
             None,
             Referrer::NoReferrer,
             self.insecure_requests_policy,
+            self.has_trustworthy_ancestor_origin,
         )
         .integrity_metadata(self.integrity)
         .policy_container(self.policy_container)

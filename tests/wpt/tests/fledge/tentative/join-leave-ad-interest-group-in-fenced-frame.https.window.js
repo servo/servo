@@ -8,7 +8,7 @@
 // META: variant=?5-8
 // META: variant=?9-last
 
-"use strict;"
+"use strict";
 
 // These are separate from the other join-leave tests because these all create
 // and navigate fenced frames, which is much slower than just joining/leaving

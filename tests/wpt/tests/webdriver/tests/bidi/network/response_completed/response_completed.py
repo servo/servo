@@ -1,4 +1,5 @@
 import asyncio
+import random
 from urllib.parse import quote
 
 import pytest
@@ -22,6 +23,8 @@ from .. import (
     PAGE_SERVICEWORKER_HTML,
     RESPONSE_COMPLETED_EVENT,
 )
+
+from ... import any_positive_int
 
 
 @pytest.mark.asyncio
@@ -212,7 +215,7 @@ async def test_response_status(
     wait_for_event, wait_for_future_safe, url, fetch, setup_network_test, status, status_text
 ):
     status_url = url(
-        f"/webdriver/tests/support/http_handlers/status.py?status={status}&nocache={RESPONSE_COMPLETED_EVENT}"
+        f"/webdriver/tests/support/http_handlers/status.py?status={status}&nocache={random.random()}"
     )
 
     network_events = await setup_network_test(events=[RESPONSE_COMPLETED_EVENT])
@@ -239,6 +242,37 @@ async def test_response_status(
         redirect_count=0,
     )
 
+
+@pytest.mark.asyncio
+async def test_content_size(
+    wait_for_event, wait_for_future_safe, inline, fetch, setup_network_test
+):
+    url = f"{inline('<div>bar</div>')}&pipe=gzip"
+
+    network_events = await setup_network_test(events=[RESPONSE_COMPLETED_EVENT])
+    events = network_events[RESPONSE_COMPLETED_EVENT]
+
+    on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
+    await fetch(url)
+    await wait_for_future_safe(on_response_completed)
+
+    assert len(events) == 1
+    expected_request = {"method": "GET", "url": url}
+    expected_response = {
+        "url": url,
+        "content": {
+            # TODO: At the moment, only Firefox returns a non-zero size here.
+            # Once other implementations start supporting this we should update
+            # to compare to a specific value if possible.
+            "size": any_positive_int
+        },
+    }
+    assert_response_event(
+        events[0],
+        expected_request=expected_request,
+        expected_response=expected_response,
+        redirect_count=0,
+    )
 
 @pytest.mark.asyncio
 async def test_response_headers(wait_for_event, wait_for_future_safe, url, fetch, setup_network_test):

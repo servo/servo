@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Gradient powerless hue component converting tests - lch</title>
+    <link rel="author" title="CGQAQ" href="mailto:m.jason.liu@gmail.com">
+    <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
+    <meta name="assert" content="Tests that powerless hue component logic works.">
+    <style>
+       .test {
+            display: flex;
+            align-items: center;
+            width: 200px;
+            height: 50px;
+            position: relative;
+            border: 1px solid black;
+            margin: 10px;
+
+            /* Expected */
+            background-image: linear-gradient(90deg in lch, red, lch(87.82 113.33 134.38 / 0) );
+        }
+
+        .info {
+            position: absolute;
+            right: -10px;
+            transform: translateX(100%);
+        }
+    </style>
+</head>
+<p>They should be the same as the first box.</p>
+<ol>
+  <li class="test lch"><div class="info">lch() Expected</div></li>
+  <li class="test hwb"><div class="info">hwb()</div></li>
+  <li class="test rgba"><div class="info">rgba()</div></li>
+  <li class="test hsl"><div class="info">hsl()</div></li>
+  <li class="test color"><div class="info">color()</div></li>
+</ol>
+</html>

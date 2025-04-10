@@ -220,8 +220,8 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
-        self.super_type().unwrap().bind_to_tree(context);
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+        self.super_type().unwrap().bind_to_tree(context, can_gc);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
         // Handles the case when:
@@ -244,9 +244,9 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context);
+            s.unbind_from_tree(context, can_gc);
         }
 
         if context.tree_connected {
@@ -254,9 +254,9 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.attribute_mutated(attr, mutation);
+            s.attribute_mutated(attr, mutation, can_gc);
         }
 
         let node = self.upcast::<Node>();

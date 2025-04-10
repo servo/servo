@@ -4,7 +4,7 @@
 // META: script=resources/fledge-util.sub.js
 // META: script=/common/subset-tests.js
 
-"use strict;"
+"use strict";
 
 subsetTest(promise_test, async test => {
     const uuid = generateUuid(test);

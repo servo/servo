@@ -4,8 +4,16 @@ from ._module import BidiModule, command
 
 class WebExtension(BidiModule):
     @command
-    def install(self, extension_data: Mapping[str, Any]) -> Mapping[str, Any]:
+    def install(
+        self,
+        extension_data: Mapping[str, Any],
+        **kwargs: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"extensionData": extension_data}
+
+        # Allow vendor specific parameters
+        params.update(**kwargs)
+
         return params
 
     @install.result

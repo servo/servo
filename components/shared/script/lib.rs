@@ -9,157 +9,46 @@
 #![deny(missing_docs)]
 #![deny(unsafe_code)]
 
-mod script_msg;
-pub mod serializable;
-pub mod transferable;
-
-use std::borrow::Cow;
-use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::sync::Arc;
 
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{
-    BlobId, BrowsingContextId, DomPointId, HistoryStateId, MessagePortId, PipelineId,
-    PipelineNamespaceId, WebViewId,
-};
+use base::id::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, WebViewId};
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
-    AnimationTickType, CompositorHitTestResult, ScrollState, WindowSizeData, WindowSizeType,
+    AnimationTickType, LoadData, NavigationHistoryBehavior, ScriptToConstellationChan, ScrollState,
+    StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::{RecvTimeoutError, Sender};
-use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::input_events::InputEvent;
+use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_content_manager::UserContentManager;
-use embedder_traits::{MediaSessionActionType, Theme, WebDriverScriptCommand};
+use embedder_traits::{
+    CompositorHitTestResult, InputEvent, MediaSessionActionType, Theme, ViewportDetails,
+    WebDriverScriptCommand,
+};
 use euclid::{Rect, Scale, Size2D, UnknownUnit};
-use http::{HeaderMap, Method};
-use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use keyboard_types::Modifiers;
-use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
+use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
-use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
-use net_traits::{ReferrerPolicy, ResourceThreads};
 use pixels::PixelFormat;
-use profile_traits::{mem, time as profile_time};
+use profile_traits::mem;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
-use strum::{EnumIter, IntoEnumIterator};
 use strum_macros::IntoStaticStr;
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
-use webgpu::WebGPUMsg;
+use webgpu_traits::WebGPUMsg;
 use webrender_api::units::DevicePixel;
 use webrender_api::{DocumentId, ImageKey};
-use webrender_traits::CrossProcessCompositorApi;
-
-pub use crate::script_msg::{
-    DOMMessage, IFrameSizeMsg, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg,
-    SWManagerSenders, ScopeThings, ScriptMsg, ServiceWorkerMsg, TouchEventResult,
-};
-use crate::serializable::{BlobImpl, DomPoint};
-use crate::transferable::MessagePortImpl;
-
-/// The origin where a given load was initiated.
-/// Useful for origin checks, for example before evaluation a JS URL.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum LoadOrigin {
-    /// A load originating in the constellation.
-    Constellation,
-    /// A load originating in webdriver.
-    WebDriver,
-    /// A load originating in script.
-    Script(ImmutableOrigin),
-}
-
-/// can be passed to `LoadUrl` to load a page with GET/POST
-/// parameters or headers
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct LoadData {
-    /// The origin where the load started.
-    pub load_origin: LoadOrigin,
-    /// The URL.
-    pub url: ServoUrl,
-    /// The creator pipeline id if this is an about:blank load.
-    pub creator_pipeline_id: Option<PipelineId>,
-    /// The method.
-    #[serde(
-        deserialize_with = "::hyper_serde::deserialize",
-        serialize_with = "::hyper_serde::serialize"
-    )]
-    pub method: Method,
-    /// The headers.
-    #[serde(
-        deserialize_with = "::hyper_serde::deserialize",
-        serialize_with = "::hyper_serde::serialize"
-    )]
-    pub headers: HeaderMap,
-    /// The data that will be used as the body of the request.
-    pub data: Option<RequestBody>,
-    /// The result of evaluating a javascript scheme url.
-    pub js_eval_result: Option<JsEvalResult>,
-    /// The referrer.
-    pub referrer: Referrer,
-    /// The referrer policy.
-    pub referrer_policy: ReferrerPolicy,
-
-    /// The source to use instead of a network response for a srcdoc document.
-    pub srcdoc: String,
-    /// The inherited context is Secure, None if not inherited
-    pub inherited_secure_context: Option<bool>,
-    /// The inherited policy for upgrading insecure requests; None if not inherited.
-    pub inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
-
-    /// Servo internal: if crash details are present, trigger a crash error page with these details.
-    pub crash: Option<String>,
-}
-
-/// The result of evaluating a javascript scheme url.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum JsEvalResult {
-    /// The js evaluation had a non-string result, 204 status code.
-    /// <https://html.spec.whatwg.org/multipage/#navigate> 12.11
-    NoContent,
-    /// The js evaluation had a string result.
-    Ok(Vec<u8>),
-}
-
-impl LoadData {
-    /// Create a new `LoadData` object.
-    pub fn new(
-        load_origin: LoadOrigin,
-        url: ServoUrl,
-        creator_pipeline_id: Option<PipelineId>,
-        referrer: Referrer,
-        referrer_policy: ReferrerPolicy,
-        inherited_secure_context: Option<bool>,
-        inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
-    ) -> LoadData {
-        LoadData {
-            load_origin,
-            url,
-            creator_pipeline_id,
-            method: Method::GET,
-            headers: HeaderMap::new(),
-            data: None,
-            js_eval_result: None,
-            referrer,
-            referrer_policy,
-            srcdoc: "".to_string(),
-            inherited_secure_context,
-            crash: None,
-            inherited_insecure_requests_policy,
-        }
-    }
-}
 
 /// The initial data required to create a new layout attached to an existing script thread.
 #[derive(Debug, Deserialize, Serialize)]
@@ -177,8 +66,8 @@ pub struct NewLayoutInfo {
     pub opener: Option<BrowsingContextId>,
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
-    /// Information about the initial window size.
-    pub window_size: WindowSizeData,
+    /// Initial [`ViewportDetails`] for this layout.
+    pub viewport_details: ViewportDetails,
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
@@ -188,21 +77,6 @@ pub enum DiscardBrowsingContext {
     Yes,
     /// Don't discard the browsing context
     No,
-}
-
-/// <https://html.spec.whatwg.org/multipage/#navigation-supporting-concepts:navigationhistorybehavior>
-#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
-pub enum NavigationHistoryBehavior {
-    /// The default value, which will be converted very early in the navigate algorithm into "push"
-    /// or "replace". Usually it becomes "push", but under certain circumstances it becomes
-    /// "replace" instead.
-    #[default]
-    Auto,
-    /// A regular navigation which adds a new session history entry, and will clear the forward
-    /// session history.
-    Push,
-    /// A navigation that will replace the active session history entry.
-    Replace,
 }
 
 /// Is a document fully active, active or inactive?
@@ -253,11 +127,11 @@ pub enum ScriptThreadMessage {
     /// Gives a channel and ID to a layout, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
-    Resize(PipelineId, WindowSizeData, WindowSizeType),
+    Resize(PipelineId, ViewportDetails, WindowSizeType),
     /// Theme changed.
     ThemeChange(PipelineId, Theme),
     /// Notifies script that window has been resized but to not take immediate action.
-    ResizeInactive(PipelineId, WindowSizeData),
+    ResizeInactive(PipelineId, ViewportDetails),
     /// Window switched from fullscreen mode.
     ExitFullScreen(PipelineId),
     /// Notifies the script that the document associated with this pipeline should 'unload'.
@@ -381,20 +255,6 @@ pub enum DocumentState {
     Pending,
 }
 
-/// For a given pipeline, whether any animations are currently running
-/// and any animation callbacks are queued
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum AnimationState {
-    /// Animations are active but no callbacks are queued
-    AnimationsPresent,
-    /// Animations are active and callbacks are queued
-    AnimationCallbacksPresent,
-    /// No animations are active and no callbacks are queued
-    NoAnimationsPresent,
-    /// No animations are active but callbacks are queued
-    NoAnimationCallbacksPresent,
-}
-
 /// Input events from the embedder that are sent via the `Constellation`` to the `ScriptThread`.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ConstellationInputEvent {
@@ -448,8 +308,8 @@ pub struct InitialScriptState {
     pub memory_profiler_sender: mem::ProfilerChan,
     /// A channel to the developer tools, if applicable.
     pub devtools_server_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    /// Information about the initial window size.
-    pub window_size: WindowSizeData,
+    /// Initial [`ViewportDetails`] for the frame that is initiating this `ScriptThread`.
+    pub viewport_details: ViewportDetails,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
@@ -466,119 +326,6 @@ pub struct InitialScriptState {
     pub player_context: WindowGLContext,
     /// User content manager
     pub user_content_manager: UserContentManager,
-}
-
-/// This trait allows creating a `ServiceWorkerManager` without depending on the `script`
-/// crate.
-pub trait ServiceWorkerManagerFactory {
-    /// Create a `ServiceWorkerManager`.
-    fn create(sw_senders: SWManagerSenders, origin: ImmutableOrigin);
-}
-
-/// Whether the sandbox attribute is present for an iframe element
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum IFrameSandboxState {
-    /// Sandbox attribute is present
-    IFrameSandboxed,
-    /// Sandbox attribute is not present
-    IFrameUnsandboxed,
-}
-
-/// Specifies the information required to load an auxiliary browsing context.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct AuxiliaryWebViewCreationRequest {
-    /// Load data containing the url to load
-    pub load_data: LoadData,
-    /// The webview that caused this request.
-    pub opener_webview_id: WebViewId,
-    /// The pipeline opener browsing context.
-    pub opener_pipeline_id: PipelineId,
-    /// Sender for the constellation’s response to our request.
-    pub response_sender: IpcSender<Option<AuxiliaryWebViewCreationResponse>>,
-}
-
-/// Constellation’s response to auxiliary browsing context creation requests.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct AuxiliaryWebViewCreationResponse {
-    /// The new webview ID.
-    pub new_webview_id: WebViewId,
-    /// The new pipeline ID.
-    pub new_pipeline_id: PipelineId,
-}
-
-/// Specifies the information required to load an iframe.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct IFrameLoadInfo {
-    /// Pipeline ID of the parent of this iframe
-    pub parent_pipeline_id: PipelineId,
-    /// The ID for this iframe's nested browsing context.
-    pub browsing_context_id: BrowsingContextId,
-    /// The ID for the top-level ancestor browsing context of this iframe's nested browsing context.
-    pub webview_id: WebViewId,
-    /// The new pipeline ID that the iframe has generated.
-    pub new_pipeline_id: PipelineId,
-    ///  Whether this iframe should be considered private
-    pub is_private: bool,
-    ///  Whether this iframe should be considered secure
-    pub inherited_secure_context: Option<bool>,
-    /// Whether this load should replace the current entry (reload). If true, the current
-    /// entry will be replaced instead of a new entry being added.
-    pub history_handling: NavigationHistoryBehavior,
-}
-
-/// Specifies the information required to load a URL in an iframe.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct IFrameLoadInfoWithData {
-    /// The information required to load an iframe.
-    pub info: IFrameLoadInfo,
-    /// Load data containing the url to load
-    pub load_data: LoadData,
-    /// The old pipeline ID for this iframe, if a page was previously loaded.
-    pub old_pipeline_id: Option<PipelineId>,
-    /// Sandbox type of this iframe
-    pub sandbox: IFrameSandboxState,
-    /// The initial viewport size for this iframe.
-    pub window_size: WindowSizeData,
-}
-
-/// Resources required by workerglobalscopes
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct WorkerGlobalScopeInit {
-    /// Chan to a resource thread
-    pub resource_threads: ResourceThreads,
-    /// Chan to the memory profiler
-    pub mem_profiler_chan: mem::ProfilerChan,
-    /// Chan to the time profiler
-    pub time_profiler_chan: profile_time::ProfilerChan,
-    /// To devtools sender
-    pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    /// From devtools sender
-    pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
-    /// Messages to send to constellation
-    pub script_to_constellation_chan: ScriptToConstellationChan,
-    /// The worker id
-    pub worker_id: WorkerId,
-    /// The pipeline id
-    pub pipeline_id: PipelineId,
-    /// The origin
-    pub origin: ImmutableOrigin,
-    /// The creation URL
-    pub creation_url: Option<ServoUrl>,
-    /// An optional string allowing the user agnet to be set for testing.
-    pub user_agent: Cow<'static, str>,
-    /// True if secure context
-    pub inherited_secure_context: Option<bool>,
-}
-
-/// Common entities representing a network load origin
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct WorkerScriptLoadOrigin {
-    /// referrer url
-    pub referrer_url: Option<ServoUrl>,
-    /// the referrer policy which is used
-    pub referrer_policy: ReferrerPolicy,
-    /// the pipeline id of the entity requesting the load
-    pub pipeline_id: PipelineId,
 }
 
 /// Errors from executing a paint worklet
@@ -631,178 +378,4 @@ pub struct DrawAPaintImageResult {
     pub image_key: Option<ImageKey>,
     /// Drawing the image might have requested loading some image URLs.
     pub missing_image_urls: Vec<ServoUrl>,
-}
-
-/// A Script to Constellation channel.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ScriptToConstellationChan {
-    /// Sender for communicating with constellation thread.
-    pub sender: IpcSender<(PipelineId, ScriptMsg)>,
-    /// Used to identify the origin of the message.
-    pub pipeline_id: PipelineId,
-}
-
-impl ScriptToConstellationChan {
-    /// Send ScriptMsg and attach the pipeline_id to the message.
-    pub fn send(&self, msg: ScriptMsg) -> Result<(), IpcError> {
-        self.sender.send((self.pipeline_id, msg))
-    }
-}
-
-/// A data-holder for serialized data and transferred objects.
-/// <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
-#[derive(Debug, Default, Deserialize, MallocSizeOf, Serialize)]
-pub struct StructuredSerializedData {
-    /// Data serialized by SpiderMonkey.
-    pub serialized: Vec<u8>,
-    /// Serialized in a structured callback,
-    pub blobs: Option<HashMap<BlobId, BlobImpl>>,
-    /// Serialized point objects.
-    pub points: Option<HashMap<DomPointId, DomPoint>>,
-    /// Transferred objects.
-    pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
-}
-
-pub(crate) trait BroadcastClone
-where
-    Self: Sized,
-{
-    /// The ID type that uniquely identify each value.
-    type Id: Eq + std::hash::Hash + Copy;
-    /// Clone this value so that it can be reused with a broadcast channel.
-    /// Only return None if cloning is impossible.
-    fn clone_for_broadcast(&self) -> Option<Self>;
-    /// The field from which to clone values.
-    fn source(data: &StructuredSerializedData) -> &Option<HashMap<Self::Id, Self>>;
-    /// The field into which to place cloned values.
-    fn destination(data: &mut StructuredSerializedData) -> &mut Option<HashMap<Self::Id, Self>>;
-}
-
-/// All the DOM interfaces that can be serialized.
-#[derive(Clone, Copy, Debug, EnumIter)]
-pub enum Serializable {
-    /// The `Blob` interface.
-    Blob,
-    /// The `DOMPoint` interface.
-    DomPoint,
-    /// The `DOMPointReadOnly` interface.
-    DomPointReadOnly,
-}
-
-impl Serializable {
-    fn clone_values(&self) -> fn(&StructuredSerializedData, &mut StructuredSerializedData) {
-        match self {
-            Serializable::Blob => StructuredSerializedData::clone_all_of_type::<BlobImpl>,
-            Serializable::DomPointReadOnly => {
-                StructuredSerializedData::clone_all_of_type::<DomPoint>
-            },
-            Serializable::DomPoint => StructuredSerializedData::clone_all_of_type::<DomPoint>,
-        }
-    }
-}
-
-/// All the DOM interfaces that can be transferred.
-#[derive(Clone, Copy, Debug, EnumIter)]
-pub enum Transferrable {
-    /// The `MessagePort` interface.
-    MessagePort,
-}
-
-impl StructuredSerializedData {
-    fn is_empty(&self, val: Transferrable) -> bool {
-        fn is_field_empty<K, V>(field: &Option<HashMap<K, V>>) -> bool {
-            field.as_ref().is_some_and(|h| h.is_empty())
-        }
-        match val {
-            Transferrable::MessagePort => is_field_empty(&self.ports),
-        }
-    }
-
-    /// Clone all values of the same type stored in this StructuredSerializedData
-    /// into another instance.
-    fn clone_all_of_type<T: BroadcastClone>(&self, cloned: &mut StructuredSerializedData) {
-        let existing = T::source(self);
-        let Some(existing) = existing else { return };
-        let mut clones = HashMap::with_capacity(existing.len());
-
-        for (original_id, obj) in existing.iter() {
-            if let Some(clone) = obj.clone_for_broadcast() {
-                clones.insert(*original_id, clone);
-            }
-        }
-
-        *T::destination(cloned) = Some(clones);
-    }
-
-    /// Clone the serialized data for use with broadcast-channels.
-    pub fn clone_for_broadcast(&self) -> StructuredSerializedData {
-        for transferrable in Transferrable::iter() {
-            if !self.is_empty(transferrable) {
-                // Not panicking only because this is called from the constellation.
-                warn!(
-                    "Attempt to broadcast structured serialized data including {:?} (should never happen).",
-                    transferrable,
-                );
-            }
-        }
-
-        let serialized = self.serialized.clone();
-
-        let mut cloned = StructuredSerializedData {
-            serialized,
-            ..Default::default()
-        };
-
-        for serializable in Serializable::iter() {
-            let clone_impl = serializable.clone_values();
-            clone_impl(self, &mut cloned);
-        }
-
-        cloned
-    }
-}
-
-/// A task on the <https://html.spec.whatwg.org/multipage/#port-message-queue>
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct PortMessageTask {
-    /// The origin of this task.
-    pub origin: ImmutableOrigin,
-    /// A data-holder for serialized data and transferred objects.
-    pub data: StructuredSerializedData,
-}
-
-/// Messages for communication between the constellation and a global managing ports.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum MessagePortMsg {
-    /// Complete the transfer for a batch of ports.
-    CompleteTransfer(HashMap<MessagePortId, VecDeque<PortMessageTask>>),
-    /// Complete the transfer of a single port,
-    /// whose transfer was pending because it had been requested
-    /// while a previous failed transfer was being rolled-back.
-    CompletePendingTransfer(MessagePortId, VecDeque<PortMessageTask>),
-    /// Remove a port, the entangled one doesn't exists anymore.
-    RemoveMessagePort(MessagePortId),
-    /// Handle a new port-message-task.
-    NewTask(MessagePortId, PortMessageTask),
-}
-
-/// Message for communication between the constellation and a global managing broadcast channels.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct BroadcastMsg {
-    /// The origin of this message.
-    pub origin: ImmutableOrigin,
-    /// The name of the channel.
-    pub channel_name: String,
-    /// A data-holder for serialized data.
-    pub data: StructuredSerializedData,
-}
-
-impl Clone for BroadcastMsg {
-    fn clone(&self) -> BroadcastMsg {
-        BroadcastMsg {
-            data: self.data.clone_for_broadcast(),
-            origin: self.origin.clone(),
-            channel_name: self.channel_name.clone(),
-        }
-    }
 }

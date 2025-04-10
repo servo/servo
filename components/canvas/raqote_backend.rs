@@ -298,6 +298,16 @@ impl StrokeOptions {
             StrokeOptions::Raqote(options) => options.cap = val.to_raqote_style(),
         }
     }
+    pub fn set_line_dash(&mut self, items: Vec<f32>) {
+        match self {
+            StrokeOptions::Raqote(options) => options.dash_array = items,
+        }
+    }
+    pub fn set_line_dash_offset(&mut self, offset: f32) {
+        match self {
+            StrokeOptions::Raqote(options) => options.dash_offset = offset,
+        }
+    }
     pub fn as_raqote(&self) -> &raqote::StrokeStyle {
         match self {
             StrokeOptions::Raqote(options) => options,

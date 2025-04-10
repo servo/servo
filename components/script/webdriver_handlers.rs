@@ -23,8 +23,11 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
 use js::rust::{HandleObject, HandleValue, IdVector, ToString};
 use net_traits::CookieSource::{HTTP, NonHTTP};
-use net_traits::CoreResourceMsg::{DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl};
+use net_traits::CoreResourceMsg::{
+    DeleteCookie, DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl,
+};
 use net_traits::IpcSend;
+use script_bindings::conversions::is_array_like;
 use servo_url::ServoUrl;
 use webdriver::common::{WebElement, WebFrame, WebWindow};
 use webdriver::error::ErrorStatus;
@@ -43,8 +46,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLSerializerBinding::XMLSerializerMethods;
 use crate::dom::bindings::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, StringificationBehavior,
-    get_property, get_property_jsval, is_array_like, jsid_to_string, jsstring_to_str,
-    root_from_object,
+    get_property, get_property_jsval, jsid_to_string, jsstring_to_str, root_from_object,
 };
 use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
@@ -224,7 +226,7 @@ pub(crate) unsafe fn jsval_to_webdriver(
         });
         let _ac = JSAutoRealm::new(cx, *object);
 
-        if is_array_like(cx, val) || is_arguments_object(cx, val) {
+        if is_array_like::<crate::DomTypeHolder>(cx, val) || is_arguments_object(cx, val) {
             let mut result: Vec<WebDriverJSValue> = Vec::new();
 
             let length = match get_property::<u32>(
@@ -551,6 +553,7 @@ pub(crate) fn handle_find_element_tag_name(
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -559,7 +562,7 @@ pub(crate) fn handle_find_element_tag_name(
                 .ok_or(ErrorStatus::UnknownError)
                 .map(|document| {
                     document
-                        .GetElementsByTagName(DOMString::from(selector))
+                        .GetElementsByTagName(DOMString::from(selector), can_gc)
                         .elements_iter()
                         .next()
                 })
@@ -618,13 +621,14 @@ pub(crate) fn handle_find_elements_tag_name(
     pipeline: PipelineId,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    can_gc: CanGc,
 ) {
     reply
         .send(
             documents
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
-                .map(|document| document.GetElementsByTagName(DOMString::from(selector)))
+                .map(|document| document.GetElementsByTagName(DOMString::from(selector), can_gc))
                 .map(|nodes| {
                     nodes
                         .elements_iter()
@@ -675,6 +679,7 @@ pub(crate) fn handle_find_element_element_tag_name(
     element_id: String,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(
@@ -737,6 +742,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
     element_id: String,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(
@@ -925,6 +931,7 @@ pub(crate) fn handle_add_cookie(
         .unwrap();
 }
 
+// https://w3c.github.io/webdriver/#delete-all-cookies
 pub(crate) fn handle_delete_cookies(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -942,6 +949,29 @@ pub(crate) fn handle_delete_cookies(
         .as_global_scope()
         .resource_threads()
         .send(DeleteCookies(url))
+        .unwrap();
+    reply.send(Ok(())).unwrap();
+}
+
+// https://w3c.github.io/webdriver/#delete-cookie
+pub(crate) fn handle_delete_cookie(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    name: String,
+    reply: IpcSender<Result<(), ErrorStatus>>,
+) {
+    let document = match documents.find_document(pipeline) {
+        Some(document) => document,
+        None => {
+            return reply.send(Err(ErrorStatus::UnknownError)).unwrap();
+        },
+    };
+    let url = document.url();
+    document
+        .window()
+        .as_global_scope()
+        .resource_threads()
+        .send(DeleteCookie(url, name))
         .unwrap();
     reply.send(Ok(())).unwrap();
 }
@@ -1148,6 +1178,7 @@ pub(crate) fn handle_get_url(
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: IpcSender<ServoUrl>,
+    _can_gc: CanGc,
 ) {
     reply
         .send(

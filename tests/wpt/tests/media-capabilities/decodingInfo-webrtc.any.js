@@ -19,6 +19,17 @@ const minimalAudioConfiguration = {
   contentType: 'audio/opus',
 };
 
+const videoConfigurationWithDynamicRange = {
+  contentType: 'video/webm; codecs="vp09.00.10.08.00.09.16.09.00"',
+  width: 800,
+  height: 600,
+  bitrate: 3000,
+  framerate: 24,
+  hdrMetadataType: 'smpteSt2086',
+  colorGamut: 'rec2020',
+  transferFunction: 'pq',
+};
+
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
     type: 'webrtc',
@@ -93,6 +104,19 @@ promise_test(t => {
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
     type: 'webrtc',
+    video: {
+      contentType: 'application/ogg; codecs=vorbis',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration contentType is of type audio");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'webrtc',
     audio: { contentType: 'fgeoa' },
   }));
 }, "Test that decodingInfo rejects if the audio configuration contentType doesn't parse");
@@ -103,6 +127,49 @@ promise_test(t => {
     audio: { contentType: 'video/fgeoa' },
   }));
 }, "Test that decodingInfo rejects if the audio configuration contentType isn't of type audio");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'webrtc',
+    audio: {
+      contentType: 'application/ogg; codecs=theora',
+      channels: 2,
+    },
+  }));
+}, "Test that decodingInfo rejects if the audio configuration contentType is of type video");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'webrtc',
+    video: {
+      contentType: 'video/webm; codecs="vp09.00.10.08"; foo="bar"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration contentType has more than one parameter");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'webrtc',
+    video: {
+      contentType: 'video/webm; foo="bar"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration contentType has one parameter that isn't codecs");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'webrtc',
+    audio: { contentType: 'fgeoa' },
+  }));
+}, "Test that decodingInfo rejects if the audio configuration contenType doesn't parse");
 
 promise_test(t => {
   return navigator.mediaCapabilities.decodingInfo({
@@ -224,4 +291,27 @@ validVideoCodecs.forEach(codec => {
   });
 }, "Test that decodingInfo returns supported true for the codec " + codec + (isWorkerEnvironment ? "" : " returned by RTCRtpReceiver.getCapabilities()"))}
 );
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'webrtc',
+    audio: { contentType: 'audio/webm; codecs="opus"; foo="bar"' },
+  }));
+}, "Test that decodingInfo rejects if the audio configuration contentType has more than one parameters");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'webrtc',
+    audio: { contentType: 'audio/webm; foo="bar"' },
+  }));
+}, "Test that decodingInfo rejects if the audio configuration contentType has one parameter that isn't codecs");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+        type: 'webrtc',
+        video: videoConfigurationWithDynamicRange,
+      }));
+}, "Test that decodingInfo rejects for type 'webrtc' if HDR members are set");
+
+
 

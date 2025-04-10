@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use profile_traits::ipc;
-use script_traits::ScriptMsg;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
@@ -195,7 +195,9 @@ impl Storage {
     ) {
         let storage = self.storage_type;
         let url = self.get_url();
-        let msg = ScriptMsg::BroadcastStorageEvent(storage, url, key, old_value, new_value);
+        let msg = ScriptToConstellationMessage::BroadcastStorageEvent(
+            storage, url, key, old_value, new_value,
+        );
         self.global()
             .script_to_constellation_chan()
             .send(msg)

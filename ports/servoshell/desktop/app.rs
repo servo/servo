@@ -11,13 +11,16 @@ use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
+use euclid::Scale;
 use log::{info, trace, warn};
-use servo::compositing::windowing::{AnimationState, WindowMethods};
+use servo::compositing::windowing::WindowMethods;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_config::pref;
+use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
+use servo::webrender_api::units::DevicePixel;
 use servo::webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
 use servo::webxr::openxr::{AppInfo, OpenXrDiscovery};
@@ -140,11 +143,8 @@ impl App {
         // <https://github.com/rust-lang/rust/issues/65991>
         struct UpcastedWindow(Rc<dyn WindowPortsMethods>);
         impl WindowMethods for UpcastedWindow {
-            fn get_coordinates(&self) -> servo::compositing::windowing::EmbedderCoordinates {
-                self.0.get_coordinates()
-            }
-            fn set_animation_state(&self, state: AnimationState) {
-                self.0.set_animation_state(state);
+            fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+                self.0.hidpi_factor()
             }
         }
 
@@ -161,7 +161,6 @@ impl App {
             window.rendering_context(),
             embedder,
             Rc::new(UpcastedWindow(window.clone())),
-            self.servoshell_preferences.user_agent.clone(),
             user_content_manager,
         );
         servo.setup_logging();
@@ -181,8 +180,12 @@ impl App {
         self.state = AppState::Running(running_state);
     }
 
-    pub fn is_animating(&self) -> bool {
-        self.windows.iter().any(|(_, window)| window.is_animating())
+    pub(crate) fn animating(&self) -> bool {
+        match self.state {
+            AppState::Initializing => false,
+            AppState::Running(ref running_app_state) => running_app_state.servo().animating(),
+            AppState::ShuttingDown => false,
+        }
     }
 
     /// Handle events with winit contexts
@@ -399,10 +402,8 @@ impl ApplicationHandler<WakerEvent> for App {
             window.handle_winit_event(state.clone(), event);
         }
 
-        let animating = self.is_animating();
-
         // Block until the window gets an event
-        if !animating || self.suspended.get() {
+        if !self.animating() || self.suspended.get() {
             event_loop.set_control_flow(ControlFlow::Wait);
         } else {
             event_loop.set_control_flow(ControlFlow::Poll);
@@ -425,7 +426,7 @@ impl ApplicationHandler<WakerEvent> for App {
         );
         self.t = now;
 
-        if !matches!(self.state, AppState::Running(_)) {
+        if !matches!(self.state, AppState::Running(..)) {
             return;
         };
         let Some(window) = self.windows.values().next() else {
@@ -433,10 +434,8 @@ impl ApplicationHandler<WakerEvent> for App {
         };
         let window = window.clone();
 
-        let animating = self.is_animating();
-
         // Block until the window gets an event
-        if !animating || self.suspended.get() {
+        if !self.animating() || self.suspended.get() {
             event_loop.set_control_flow(ControlFlow::Wait);
         } else {
             event_loop.set_control_flow(ControlFlow::Poll);

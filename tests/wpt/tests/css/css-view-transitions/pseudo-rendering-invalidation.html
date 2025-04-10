@@ -28,8 +28,11 @@ div {
   background: darkseagreen;
 }
 
-::view-transition-group(*) {
-  animation-duration: 50s;
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-play-state: paused;
 }
 
 ::view-transition {

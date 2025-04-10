@@ -51,3 +51,10 @@ pub trait Castable: IDLInterface + DomObject + Sized {
         }
     }
 }
+
+#[allow(missing_docs)]
+pub trait HasParent {
+    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+    type Parent;
+    fn as_parent(&self) -> &Self::Parent;
+}

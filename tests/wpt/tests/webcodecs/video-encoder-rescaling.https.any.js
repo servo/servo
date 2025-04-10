@@ -216,10 +216,16 @@ for (const scale of scaleTests) {
 
       const error = testImageData(outputArrayBuffer, {
         channelOffsets: [offset, offset + 1, offset + 2],
-        channelWidths: [outputFrame.codedWidth, outputFrame.codedWidth, outputFrame.codedWidth],
+        channelWidths: [
+          outputFrame.visibleRect.width, outputFrame.visibleRect.width,
+          outputFrame.visibleRect.width
+        ],
         channelStrides: [stride, stride, stride],
         channelSteps: [4, 4, 4],
-        channelHeights: [outputFrame.codedHeight, outputFrame.codedHeight, outputFrame.codedHeight],
+        channelHeights: [
+          outputFrame.visibleRect.height, outputFrame.visibleRect.height,
+          outputFrame.visibleRect.height
+        ],
         channelFourColors: fourColors.map((col) => col)
       });
       outputFrame.close();

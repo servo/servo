@@ -11,7 +11,6 @@
 pub mod wrapper_traits;
 
 use std::any::Any;
-use std::borrow::Cow;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 
@@ -19,18 +18,21 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
-use constellation_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
-use euclid::Size2D;
+use compositing_traits::CrossProcessCompositorApi;
+use constellation_traits::{LoadData, ScrollState};
+use embedder_traits::{UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
 use fonts::{FontContext, SystemFontServiceProxy};
+use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, PendingImageId};
+use pixels::Image;
 use profile_traits::mem::Report;
 use profile_traits::time;
-use script_traits::{InitialScriptState, LoadData, Painter, ScriptThreadMessage};
+use script_traits::{InitialScriptState, Painter, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -46,9 +48,7 @@ use style::properties::style_structs::Font;
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
-use style_traits::CSSPixel;
 use webrender_api::ImageKey;
-use webrender_traits::CrossProcessCompositorApi;
 
 pub type GenericLayoutData = dyn Any + Send + Sync;
 
@@ -184,7 +184,7 @@ pub struct LayoutConfig {
     pub font_context: Arc<FontContext>,
     pub time_profiler_chan: time::ProfilerChan,
     pub compositor_api: CrossProcessCompositorApi,
-    pub window_size: WindowSizeData,
+    pub viewport_details: ViewportDetails,
 }
 
 pub trait LayoutFactory: Send + Sync {
@@ -278,7 +278,6 @@ pub trait ScriptThreadFactory {
         layout_factory: Arc<dyn LayoutFactory>,
         system_font_service: Arc<SystemFontServiceProxy>,
         load_data: LoadData,
-        user_agent: Cow<'static, str>,
     );
 }
 #[derive(Clone, Default)]
@@ -386,7 +385,7 @@ pub struct Reflow {
 pub struct IFrameSize {
     pub browsing_context_id: BrowsingContextId,
     pub pipeline_id: PipelineId,
-    pub size: Size2D<f32, CSSPixel>,
+    pub viewport_details: ViewportDetails,
 }
 
 pub type IFrameSizes = FnvHashMap<BrowsingContextId, IFrameSize>;
@@ -400,6 +399,8 @@ pub struct ReflowResult {
     /// to communicate them with the Constellation and also the `Window`
     /// element of their content pages.
     pub iframe_sizes: IFrameSizes,
+    /// The mapping of node to animated image, need to be returned to ImageAnimationManager
+    pub node_to_image_animation_map: FxHashMap<OpaqueNode, ImageAnimationState>,
 }
 
 /// Information needed for a script-initiated reflow.
@@ -413,8 +414,8 @@ pub struct ReflowRequest {
     pub dirty_root: Option<TrustedNodeAddress>,
     /// Whether the document's stylesheets have changed since the last script reflow.
     pub stylesheets_changed: bool,
-    /// The current window size.
-    pub window_size: WindowSizeData,
+    /// The current [`ViewportDetails`] to use for this reflow.
+    pub viewport_details: ViewportDetails,
     /// The goal of this reflow.
     pub reflow_goal: ReflowGoal,
     /// The number of objects in the dom #10110
@@ -427,6 +428,8 @@ pub struct ReflowRequest {
     pub animation_timeline_value: f64,
     /// The set of animations for this document.
     pub animations: DocumentAnimationSet,
+    /// The set of image animations.
+    pub node_to_image_animation_map: FxHashMap<OpaqueNode, ImageAnimationState>,
     /// The theme for the window
     pub theme: PrefersColorScheme,
 }
@@ -500,4 +503,26 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
         return Some(id & !3);
     }
     None
+}
+
+#[derive(Clone, Debug, MallocSizeOf)]
+pub struct ImageAnimationState {
+    #[ignore_malloc_size_of = "Arc is hard"]
+    image: Arc<Image>,
+    active_frame: usize,
+    last_update_time: f64,
+}
+
+impl ImageAnimationState {
+    pub fn new(image: Arc<Image>) -> Self {
+        Self {
+            image,
+            active_frame: 0,
+            last_update_time: 0.,
+        }
+    }
+
+    pub fn image_key(&self) -> Option<ImageKey> {
+        self.image.id
+    }
 }

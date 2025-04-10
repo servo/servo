@@ -3,7 +3,10 @@
 <meta name="assert" content="Body's background is fragmented correctly in sideways-lr writing mode.">
 <link rel="match" href="body-background-slr-print-ref.html">
 <style>
-html { writing-mode: sideways-lr; }
+:root {
+  print-color-adjust: exact;
+  writing-mode: sideways-lr;
+}
 body {
   margin: 20px;
   background: linear-gradient(90deg, lightgray 0%, lightgray 50%, white 50%, white 100%)

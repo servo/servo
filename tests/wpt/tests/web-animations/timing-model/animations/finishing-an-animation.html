@@ -326,5 +326,13 @@ promise_test(async t => {
 
 }, 'Finishing a canceled animation sets the current and start times');
 
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 1);
+  await animation.finished;
+  const eventWatcher = new EventWatcher(t, animation, 'finish', waitForNextFrame);
+  await eventWatcher.wait_for('finish');
+}, 'Finishing an animation fires finish event when a finish event listener is '
+  + 'added as the finished promise resolves');
+
 </script>
 </body>

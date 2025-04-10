@@ -19,6 +19,8 @@ test_computed_value("flood-opacity", "3", "1");
 test_computed_value("flood-opacity", "-100%", "0");
 test_computed_value("flood-opacity", "50%", "0.5");
 test_computed_value("flood-opacity", "300%", "1");
+test_computed_value("flood-opacity", "calc(0.5 * sign(10em - 1px))", "0.5");
+test_computed_value("flood-opacity", "calc(50% * sign(10em - 1px))", "0.5");
 
   ]]></script>
 </svg>

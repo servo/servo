@@ -1,10 +1,10 @@
-"use strict;"
+"use strict";
 
 const BASE_URL = document.baseURI.substring(0, document.baseURI.lastIndexOf('/') + 1);
 const BASE_PATH = (new URL(BASE_URL)).pathname;
 
 // Allow overriding to allow other repositories to use these utility functions.
-RESOURCE_PATH = `${BASE_PATH}resources/`
+let RESOURCE_PATH = `${BASE_PATH}resources/`
 
 const DEFAULT_INTEREST_GROUP_NAME = 'default name';
 
@@ -969,7 +969,7 @@ let additionalBidHelper = function() {
   // not be reused in a future call to `fetchAdditionalBids()`, since this
   // mothod consumes and destroys their `testMetadata` field.
   async function fetchAdditionalBids(seller, additionalBids) {
-    additionalBidHeaderValues = await Promise.all(additionalBids.map(
+    let additionalBidHeaderValues = await Promise.all(additionalBids.map(
         async additionalBid =>
             await _convertAdditionalBidToResponseHeader(additionalBid)));
 

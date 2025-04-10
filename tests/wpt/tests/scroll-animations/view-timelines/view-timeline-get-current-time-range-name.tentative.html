@@ -59,6 +59,10 @@
                                            });
     let timeline = anim.timeline;
 
+    assert_percents_approx_equal(
+      timeline.getCurrentTime('scroll'), 0, MAX_SCROLL,
+      'Scroll aligned with scroll start');
+
     container.scrollLeft = 600;
     await waitForNextFrame();
 
@@ -69,12 +73,20 @@
     assert_percents_approx_equal(timeline.getCurrentTime(), 0,
                                  MAX_SCROLL,
                                  'Scroll aligned with timeline start offset');
+    let scroll_pct = (600 / MAX_SCROLL) * 100;
+    assert_percents_approx_equal(
+      timeline.getCurrentTime('scroll'), scroll_pct, MAX_SCROLL,
+      'getCurrentTime for "scroll" range scrollLeft=600');
 
     container.scrollLeft = 650;
     await waitForNextFrame();
 
     assert_percents_approx_equal(timeline.getCurrentTime('entry'), 50,
                                  MAX_SCROLL, 'Scroll at entry midpoint');
+    scroll_pct = (650 / MAX_SCROLL) * 100;
+    assert_percents_approx_equal(
+      timeline.getCurrentTime('scroll'), scroll_pct, MAX_SCROLL,
+      'getCurrentTime for "scroll" range scrollLeft=650');
 
     container.scrollLeft = 700;
     await waitForNextFrame();
@@ -115,9 +127,19 @@
                                  MAX_SCROLL, 'Scroll at cover end');
     assert_percents_approx_equal(timeline.getCurrentTime(), 100,
                                  MAX_SCROLL, 'Scroll at end of timeline');
+    scroll_pct = (900 / MAX_SCROLL) * 100;
+    assert_percents_approx_equal(
+      timeline.getCurrentTime('scroll'), scroll_pct, MAX_SCROLL,
+      'getCurrentTime for "scroll" range scrollLeft=900');
 
     assert_equals(timeline.getCurrentTime('gibberish'), null,
                   'No current time for unknown named range');
+
+    container.scrollLeft = MAX_SCROLL;
+    await waitForNextFrame();
+    assert_percents_approx_equal(
+      timeline.getCurrentTime('scroll'), 100, MAX_SCROLL,
+      'getCurrentTime for "scroll" range at max scroll offset');
 
     // Add insets to force the start and end offsets to align. This forces
     // the timeline to become inactive.

@@ -5,7 +5,7 @@
 <body>
 <iframe src="about:blank"></iframe>
 <script>
-const factory = frames[0].ai.languageDetector;
+const factory = frames[0].LanguageDetector;
 const detector = factory.create();
 document.getElementsByTagName("iframe")[0].remove();
 detector.availability();

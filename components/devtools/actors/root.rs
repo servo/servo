@@ -9,6 +9,7 @@
 //!
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/root.js
 
+use std::cell::RefCell;
 use std::net::TcpStream;
 
 use serde::Serialize;
@@ -129,6 +130,7 @@ pub struct RootActor {
     pub device: String,
     pub preference: String,
     pub process: String,
+    pub active_tab: RefCell<Option<String>>,
 }
 
 impl Actor for RootActor {
@@ -303,13 +305,24 @@ impl RootActor {
         registry: &ActorRegistry,
         browser_id: u32,
     ) -> Option<TabDescriptorActorMsg> {
-        self.tabs
+        let tab_msg = self
+            .tabs
             .iter()
             .map(|target| {
                 registry
                     .find::<TabDescriptorActor>(target)
                     .encodable(registry, true)
             })
-            .find(|tab| tab.browser_id() == browser_id)
+            .find(|tab| tab.browser_id() == browser_id);
+
+        if let Some(ref msg) = tab_msg {
+            *self.active_tab.borrow_mut() = Some(msg.actor());
+        }
+        tab_msg
+    }
+
+    #[allow(dead_code)]
+    pub fn active_tab(&self) -> Option<String> {
+        self.active_tab.borrow().clone()
     }
 }

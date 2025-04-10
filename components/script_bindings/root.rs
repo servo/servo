@@ -440,3 +440,23 @@ pub unsafe fn trace_roots(tracer: *mut JSTracer) {
 pub fn assert_in_script() {
     debug_assert!(thread_state::get().is_script());
 }
+
+/// Get a slice of references to DOM objects.
+pub trait DomSlice<T>
+where
+    T: JSTraceable + DomObject,
+{
+    /// Returns the slice of `T` references.
+    fn r(&self) -> &[&T];
+}
+
+impl<T> DomSlice<T> for [Dom<T>]
+where
+    T: JSTraceable + DomObject,
+{
+    #[inline]
+    fn r(&self) -> &[&T] {
+        let _ = mem::transmute::<Dom<T>, &T>;
+        unsafe { &*(self as *const [Dom<T>] as *const [&T]) }
+    }
+}

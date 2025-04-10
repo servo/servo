@@ -2718,6 +2718,67 @@
     @assert ctx.letterSpacing === '1px';
     @assert ctx.wordSpacing === '10px';
 
+- name: 2d.text.measure.lang
+  desc: Testing the lang attribute
+  test_type: promise
+  fonts:
+  - Lato-Medium
+  code: |
+    {{ load_font }}
+
+    ctx.font = '50px Lato-Medium';
+    ctx.lang = 'tr';
+    const text = 'fi';
+    const tm_tr = ctx.measureText(text);
+    const tr_width = tm_tr.width;
+
+    ctx.lang = 'en';
+    const tm_en = ctx.measureText(text);
+    const en_width = tm_en.width;
+
+    @assert tr_width > en_width;
+  variants:
+  - *load-font-variant-definition
+
+- name: 2d.text.measure.lang.inherit
+  desc: Testing the lang attribute
+  test_type: promise
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
+  fonts:
+  - Lato-Medium
+  canvas: 'lang="tr"'
+  code: |
+    {{ load_font }}
+
+    ctx.font = '50px Lato-Medium';
+    ctx.lang = 'inherit';
+    const text = 'fi';
+    const tm_tr = ctx.measureText(text);
+    const tr_width = tm_tr.width;
+
+    ctx.lang = 'en';
+    const tm_en = ctx.measureText(text);
+    const en_width = tm_en.width;
+
+    @assert tr_width > en_width;
+  variants:
+  - &load-font-variant-definitio-and-set-lang
+    HtmlCanvas:
+      append_variants_to_name: false
+      canvas_types: ['HtmlCanvas']
+      load_font: |-
+        await document.fonts.ready;
+    OffscreenCanvas:
+      append_variants_to_name: false
+      canvas_types: ['OffscreenCanvas']
+      load_font: |-
+        document.documentElement.setAttribute('lang','tr');
+        var f = new FontFace("{{ fonts[0] }}", "url('/fonts/{{ fonts[0] }}.ttf')");
+        f.load();
+        {% set root = 'self' if canvas_type == 'Worker' else 'document' %}
+        {{ root }}.fonts.add(f);
+        await {{ root }}.fonts.ready;
+
 - name: 2d.text.drawing.style.font-relative.spacing
   desc: Testing letter spacing and word spacing with font-relative length
   code: |

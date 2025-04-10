@@ -3,16 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::OnceCell;
+use std::fmt::Display;
 use std::hash::{BuildHasher, Hash};
 use std::marker::PhantomData;
+use std::mem;
+use std::ops::{Deref, DerefMut};
 
 use crossbeam_channel::Sender;
 use html5ever::interface::{Tracer as HtmlTracer, TreeSink};
 use html5ever::tokenizer::{TokenSink, Tokenizer};
 use html5ever::tree_builder::TreeBuilder;
 use indexmap::IndexMap;
+use js::gc::{GCMethods, Handle};
 use js::glue::CallObjectTracer;
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parking_lot::RwLock;
 use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
@@ -46,7 +51,11 @@ pub unsafe fn trace_reflector(tracer: *mut JSTracer, description: &str, reflecto
 ///
 /// # Safety
 /// tracer must point to a valid, non-null JS tracer.
-pub unsafe fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
+pub(crate) unsafe fn trace_object(
+    tracer: *mut JSTracer,
+    description: &str,
+    obj: &Heap<*mut JSObject>,
+) {
     unsafe {
         trace!("tracing {}", description);
         CallObjectTracer(
@@ -306,5 +315,103 @@ unsafe impl<Handle: JSTraceable + Clone, Sink: JSTraceable + XmlTreeSink<Handle 
         let tree_builder = &self.sink;
         tree_builder.trace_handles(&tracer);
         tree_builder.sink.trace(trc);
+    }
+}
+
+/// Roots any JSTraceable thing
+///
+/// If you have a valid DomObject, use DomRoot.
+/// If you have GC things like *mut JSObject or JSVal, use rooted!.
+/// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
+/// If you know what you're doing, use this.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub struct RootedTraceableBox<T: JSTraceable + 'static>(js::gc::RootedTraceableBox<T>);
+
+unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {
+    unsafe fn trace(&self, tracer: *mut JSTracer) {
+        self.0.trace(tracer);
+    }
+}
+
+impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
+    /// DomRoot a JSTraceable thing for the life of this RootedTraceableBox
+    pub fn new(traceable: T) -> RootedTraceableBox<T> {
+        Self(js::gc::RootedTraceableBox::new(traceable))
+    }
+
+    /// Consumes a boxed JSTraceable and roots it for the life of this RootedTraceableBox.
+    pub fn from_box(boxed_traceable: Box<T>) -> RootedTraceableBox<T> {
+        Self(js::gc::RootedTraceableBox::from_box(boxed_traceable))
+    }
+}
+
+impl<T> RootedTraceableBox<Heap<T>>
+where
+    Heap<T>: JSTraceable + 'static,
+    T: GCMethods + Copy,
+{
+    pub fn handle(&self) -> Handle<T> {
+        self.0.handle()
+    }
+}
+
+impl<T: JSTraceable + MallocSizeOf> MallocSizeOf for RootedTraceableBox<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // Briefly resurrect the real Box value so we can rely on the existing calculations.
+        // Then immediately forget about it again to avoid dropping the box.
+        let inner = unsafe { Box::from_raw(self.0.ptr()) };
+        let size = inner.size_of(ops);
+        mem::forget(inner);
+        size
+    }
+}
+
+impl<T: JSTraceable + Default> Default for RootedTraceableBox<T> {
+    fn default() -> RootedTraceableBox<T> {
+        RootedTraceableBox::new(T::default())
+    }
+}
+
+impl<T: JSTraceable> Deref for RootedTraceableBox<T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        self.0.deref()
+    }
+}
+
+impl<T: JSTraceable> DerefMut for RootedTraceableBox<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        self.0.deref_mut()
+    }
+}
+
+/// Wrapper type for nop traceble
+///
+/// SAFETY: Inner type must not impl JSTraceable
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(crown, crown::trace_in_no_trace_lint::must_not_have_traceable)]
+pub(crate) struct NoTrace<T>(pub(crate) T);
+
+impl<T: Display> Display for NoTrace<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<T> From<T> for NoTrace<T> {
+    fn from(item: T) -> Self {
+        Self(item)
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe impl<T> JSTraceable for NoTrace<T> {
+    #[inline]
+    unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {}
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for NoTrace<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.0.size_of(ops)
     }
 }

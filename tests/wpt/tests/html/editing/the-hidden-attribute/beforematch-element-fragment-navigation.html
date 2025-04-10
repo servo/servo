@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
-<link rel="help" href="https://github.com/WICG/display-locking">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#the-hidden-attribute:event-beforematch">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -197,4 +197,21 @@ test(t => {
   div.addEventListener('beforematch', t.unreached_func('beforematch should not be fired without hidden=until-found.'));
   window.location.hash = '#target';
 }, 'Verifies that the beforematch event is not fired on elements without hidden=until-found.');
+
+test(t => {
+  window.location.hash = '';
+  const div = document.createElement('div');
+  div.id = 'target';
+  div.textContent = 'target';
+  div.hidden = 'until-found';
+  document.body.appendChild(div);
+  t.add_cleanup(() => div.remove());
+
+  let hiddenAttributeSet = false;
+  div.addEventListener('beforematch', () => {
+    hiddenAttributeSet = div.hasAttribute('hidden');
+  });
+  window.location.hash = '#target';
+  assert_true(hiddenAttributeSet);
+}, 'The hidden attribute should still be set inside the beforematch event handler.');
 </script>

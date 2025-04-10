@@ -13,6 +13,10 @@ features:
   - white-space-collapse-*
 - name: text-wrap
   files:
+  # No wildcard here to avoid capturing text-wrap-mode-*.
   - text-wrap-computed.html
   - text-wrap-invalid.html
-  - text-wrap-pretty.html
+  - text-wrap-valid.html
+- name: text-wrap-mode
+  files:
+  - text-wrap-mode-*

@@ -22,7 +22,7 @@
 // META: variant=?76-80
 // META: variant=?81-85
 
-"use strict;"
+"use strict";
 
 // These tests focus on making sure InterestGroup fields are passed to generateBid(),
 // and are normalized if necessary. This test does not check the behaviors of the

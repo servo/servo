@@ -1236,6 +1236,34 @@ def test_invalid_web_features_file():
     assert errors == []
 
 
+def test_duplicate_keys_invalid_web_features_file():
+    code = b"""\
+features:
+- name: feature1
+  files:
+  - feature1-*
+features:
+- name: feature2
+  files:
+  - "feature2-*"
+"""
+    # Check when the value is named correctly. It should find the error.
+    errors = check_file_contents("", "css/WEB_FEATURES.yml", io.BytesIO(code))
+    check_errors(errors)
+
+    assert errors == [
+        ('INVALID-WEB-FEATURES-FILE',
+         'The WEB_FEATURES.yml file contains an invalid structure',
+         "css/WEB_FEATURES.yml",
+         None),
+    ]
+
+    # Check when the value is named incorrectly. It should not find the error.
+    errors = check_file_contents("", "css/OTHER_WEB_FEATURES.yml", io.BytesIO(code))
+    check_errors(errors)
+
+    assert errors == []
+
 def test_css_missing_file_manual():
     errors = check_file_contents("", "css/foo/bar-manual.html", io.BytesIO(b""))
     check_errors(errors)

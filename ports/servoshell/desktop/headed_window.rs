@@ -14,18 +14,16 @@ use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vec
 use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
-use servo::compositing::windowing::{
-    AnimationState, EmbedderCoordinates, WebRenderDebugOption, WindowMethods,
-};
+use servo::compositing::windowing::{WebRenderDebugOption, WindowMethods};
 use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel};
+use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, OffscreenRenderingContext,
-    RenderingContext, Theme, TouchEvent, TouchEventType, TouchId, WebView, WheelDelta, WheelEvent,
-    WheelMode, WindowRenderingContext,
+    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, WebView,
+    WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
 };
 use surfman::{Context, Device};
 use url::Url;
@@ -64,7 +62,6 @@ pub struct Window {
     /// A map of winit's key codes to key values that are interpreted from
     /// winit's ReceivedChar events.
     keys_down: RefCell<HashMap<LogicalKey, Key>>,
-    animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<f32>,
     xr_window_poses: RefCell<Vec<Rc<XRWindowPose>>>,
@@ -114,7 +111,7 @@ impl Window {
             .expect("No monitor detected");
 
         let (screen_size, screen_scale) = servoshell_preferences.screen_size_override.map_or_else(
-            || (monitor.size(), monitor.scale_factor()),
+            || (monitor.size(), winit_window.scale_factor()),
             |size| (PhysicalSize::new(size.width, size.height), 1.0),
         );
         let screen_scale: Scale<f64, DeviceIndependentPixel, DevicePixel> =
@@ -153,7 +150,6 @@ impl Window {
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
             last_pressed: Cell::new(None),
             keys_down: RefCell::new(HashMap::new()),
-            animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             inner_size: Cell::new(inner_size),
             monitor,
@@ -446,6 +442,26 @@ impl Window {
 }
 
 impl WindowPortsMethods for Window {
+    fn screen_geometry(&self) -> ScreenGeometry {
+        let hidpi_factor = self.hidpi_factor();
+        let toolbar_size = Size2D::new(0.0, (self.toolbar_height.get() * self.hidpi_factor()).0);
+
+        let screen_size = self.screen_size.to_f32() * hidpi_factor;
+        let available_screen_size = screen_size - toolbar_size;
+
+        // Offset the WebView origin by the toolbar so that it reflects the actual viewport and
+        // not the window origin.
+        let window_origin = self.winit_window.inner_position().unwrap_or_default();
+        let window_origin = winit_position_to_euclid_point(window_origin).to_f32();
+        let offset = window_origin + toolbar_size;
+
+        ScreenGeometry {
+            size: screen_size.to_i32(),
+            available_size: available_screen_size.to_i32(),
+            offset: offset.to_i32(),
+        }
+    }
+
     fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         Scale::new(self.winit_window.scale_factor() as f32)
     }
@@ -552,10 +568,6 @@ impl WindowPortsMethods for Window {
         self.winit_window.set_cursor_visible(true);
     }
 
-    fn is_animating(&self) -> bool {
-        self.animation_state.get() == AnimationState::Animating
-    }
-
     fn id(&self) -> winit::window::WindowId {
         self.winit_window.id()
     }
@@ -645,9 +657,6 @@ impl WindowPortsMethods for Window {
                     winit::window::Theme::Light => Theme::Light,
                     winit::window::Theme::Dark => Theme::Dark,
                 });
-            },
-            WindowEvent::Moved(_new_position) => {
-                webview.notify_embedder_window_moved();
             },
             WindowEvent::Ime(ime) => match ime {
                 Ime::Enabled => {
@@ -753,27 +762,9 @@ impl WindowPortsMethods for Window {
 }
 
 impl WindowMethods for Window {
-    fn get_coordinates(&self) -> EmbedderCoordinates {
-        let window_size = winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32();
-        let window_origin = self.winit_window.outer_position().unwrap_or_default();
-        let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
-        let window_rect = DeviceIntRect::from_origin_and_size(window_origin, window_size);
-        let window_scale: Scale<f64, DeviceIndependentPixel, DevicePixel> =
-            Scale::new(self.winit_window.scale_factor());
-        let window_rect = (window_rect.to_f64() / window_scale).to_i32();
-        let screen_size = self.screen_size.to_i32();
-
-        EmbedderCoordinates {
-            window_rect,
-            screen_size,
-            // FIXME: Winit doesn't have API for available size. Fallback to screen size
-            available_screen_size: screen_size,
-            hidpi_factor: self.hidpi_factor(),
-        }
-    }
-
-    fn set_animation_state(&self, state: AnimationState) {
-        self.animation_state.set(state);
+    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        self.device_pixel_ratio_override()
+            .unwrap_or_else(|| self.device_hidpi_factor())
     }
 }
 

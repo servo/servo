@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
 use js::gc::RootedVec;
 use js::rust::HandleObject;
+use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 
 use crate::ScriptThread;
 use crate::dom::attr::Attr;
@@ -19,7 +20,6 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Bindi
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
 };
-use crate::dom::bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::codegen::UnionTypes::ElementOrText;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -35,7 +35,7 @@ use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#the-slot-element>
 #[dom_struct]
-pub struct HTMLSlotElement {
+pub(crate) struct HTMLSlotElement {
     htmlelement: HTMLElement,
 
     /// <https://dom.spec.whatwg.org/#slot-assigned-nodes>
@@ -461,8 +461,10 @@ impl VirtualMethods for HTMLSlotElement {
     }
 
     /// <https://dom.spec.whatwg.org/#shadow-tree-slots>
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
 
         if attr.local_name() == &local_name!("name") && attr.namespace() == &ns!() {
             if let Some(shadow_root) = self.containing_shadow_root() {
@@ -486,9 +488,9 @@ impl VirtualMethods for HTMLSlotElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &super::node::BindContext) {
+    fn bind_to_tree(&self, context: &super::node::BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
         if !context.tree_is_in_a_shadow_tree {
@@ -500,9 +502,9 @@ impl VirtualMethods for HTMLSlotElement {
             .register_slot(self);
     }
 
-    fn unbind_from_tree(&self, context: &super::node::UnbindContext) {
+    fn unbind_from_tree(&self, context: &super::node::UnbindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.unbind_from_tree(context);
+            s.unbind_from_tree(context, can_gc);
         }
 
         if let Some(shadow_root) = self.containing_shadow_root() {

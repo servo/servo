@@ -10,12 +10,17 @@ use std::slice;
 use std::sync::{Arc, Mutex};
 
 use base::id::PipelineId;
+use compositing_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{info, warn};
 use servo_config::pref;
+use webgpu_traits::{
+    Adapter, ComputePassId, DeviceLostReason, Error, ErrorScope, Mapping, Pipeline, PopError,
+    RenderPassId, ShaderCompilationInfo, WebGPU, WebGPUAdapter, WebGPUContextId, WebGPUDevice,
+    WebGPUMsg, WebGPUQueue, WebGPURequest, apply_render_command,
+};
 use webrender::{RenderApi, RenderApiSender};
 use webrender_api::{DocumentId, ExternalImageId};
-use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use wgc::command::{ComputePass, ComputePassDescriptor, RenderPass};
 use wgc::device::{DeviceDescriptor, ImplicitPipelineIds};
 use wgc::id;
@@ -30,14 +35,8 @@ use wgpu_types::MemoryHints;
 use wgt::InstanceDescriptor;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
-use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
-use crate::render_commands::apply_render_command;
-use crate::swapchain::{WGPUImageMap, WebGPUContextId};
-use crate::{
-    Adapter, ComputePassId, Error, Mapping, Pipeline, PopError, RenderPassId, WebGPU,
-    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest,
-};
+use crate::swapchain::WGPUImageMap;
 
 #[derive(Eq, Hash, PartialEq)]
 pub(crate) struct DeviceScope {
@@ -489,7 +488,7 @@ impl WGPU {
                         if let Err(e) = sender.send(
                             error
                                 .as_ref()
-                                .map(|e| crate::ShaderCompilationInfo::from(e, &program)),
+                                .map(|e| ShaderCompilationInfo::from(e, &program)),
                         ) {
                             warn!("Failed to send CompilationInfo {e:?}");
                         }
@@ -710,11 +709,9 @@ impl WGPU {
                                 let devices = Arc::clone(&self.devices);
                                 let callback = Box::from(move |reason, msg| {
                                     let reason = match reason {
-                                        wgt::DeviceLostReason::Unknown => {
-                                            crate::DeviceLostReason::Unknown
-                                        },
+                                        wgt::DeviceLostReason::Unknown => DeviceLostReason::Unknown,
                                         wgt::DeviceLostReason::Destroyed => {
-                                            crate::DeviceLostReason::Destroyed
+                                            DeviceLostReason::Destroyed
                                         },
                                     };
                                     // make device lost by removing error scopes stack

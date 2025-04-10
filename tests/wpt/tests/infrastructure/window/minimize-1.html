@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Use testdriver to minimize the window</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<!-- This is really setup for the actual test which is test2.html which checks the harness restores the window -->
+<script>
+promise_test(async () => {
+  await test_driver.minimize_window()
+  assert_true(document.hidden);
+  // And no cleanup
+}, "Minimize a window");
+</script>

@@ -10,6 +10,8 @@
 // META: variant=?1-6
 // META: variant=?7-last
 
+"use strict";
+
 // These tests focus on the paggResponse field in AuctionConfig's
 // serverResponse, i.e. auctions involving private aggregation reporting. NOTE:
 // Due to debug mode being disabled for B&A's Private Aggregation reports, these

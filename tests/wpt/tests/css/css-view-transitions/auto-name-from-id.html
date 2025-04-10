@@ -17,6 +17,7 @@ main {
 
 .item {
   view-transition-name: auto;
+  view-transition-class: item;
 }
 
 main.switch #item1 {
@@ -38,8 +39,7 @@ html::view-transition {
 }
 
 :root { view-transition-name: none; }
-html::view-transition-group(item1),
-html::view-transition-group(item2) {
+html::view-transition-group(*.item) {
   animation-timing-function: steps(2, start);
   animation-play-state: paused;
 }
@@ -51,7 +51,7 @@ html::view-transition-new(*) { animation: unset; opacity: 1 }
 
 </style>
 
-<main>
+<main id=main>
   <div class="item" id="item1"></div>
   <div class="item" id="item2"></div>
 </main>
@@ -61,7 +61,16 @@ failIfNot(document.startViewTransition, "Missing document.startViewTransition");
 
 function runTest() {
   document.startViewTransition(() => {
-    document.querySelector("main").classList.toggle("switch");
+    main.classList.toggle("switch");
+    let div1 = document.createElement("div");
+    div1.classList.add("item");
+    div1.id = "item1";
+
+    let div2 = document.createElement("div");
+    div2.classList.add("item");
+    div2.id = "item2";
+
+    main.replaceChildren(div1, div2);
   }).ready.then(takeScreenshot);
 }
 onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));

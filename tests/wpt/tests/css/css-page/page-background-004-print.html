@@ -5,6 +5,9 @@
 <meta name="assert" content="The root element has a different background painting area and thus the background-clip property has no effect when specified on it.">
 <link rel="match" href="page-background-004-print-ref.html">
 <style>
+  :root {
+    print-color-adjust: exact;
+  }
   @page {
     size: 500px 300px;
     margin: 50px;

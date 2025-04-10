@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{f64, mem};
 
+use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource as EmbedderResource};
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
@@ -27,6 +28,9 @@ use net_traits::{
     ResourceTimingType,
 };
 use pixels::Image;
+use script_bindings::codegen::InheritTypes::{
+    ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
+};
 use script_layout_interface::MediaFrame;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
@@ -38,7 +42,6 @@ use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageDescriptor,
     ImageDescriptorFlags, ImageFormat, ImageKey,
 };
-use webrender_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
@@ -60,9 +63,6 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackKind, TextTrackMode};
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
-use crate::dom::bindings::codegen::InheritTypes::{
-    ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
-};
 use crate::dom::bindings::codegen::UnionTypes::{
     MediaStreamOrBlob, VideoTrackOrAudioTrackOrTextTrack,
 };
@@ -894,6 +894,7 @@ impl HTMLMediaElement {
             None,
             self.global().get_referrer(),
             document.insecure_requests_policy(),
+            document.has_trustworthy_ancestor_or_current_origin(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())
@@ -1631,7 +1632,7 @@ impl HTMLMediaElement {
 
                         // Steps 7.
                         let event = TrackEvent::new(
-                            &self.global(),
+                            self.global().as_window(),
                             atom!("addtrack"),
                             false,
                             false,
@@ -1689,7 +1690,7 @@ impl HTMLMediaElement {
 
                         // Steps 7.
                         let event = TrackEvent::new(
-                            &self.global(),
+                            self.global().as_window(),
                             atom!("addtrack"),
                             false,
                             false,
@@ -1927,7 +1928,7 @@ impl HTMLMediaElement {
             .SetTextContent(Some(DOMString::from(media_controls_script)), can_gc);
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(script.upcast::<Node>())
+            .AppendChild(script.upcast::<Node>(), can_gc)
         {
             warn!("Could not render media controls {:?}", e);
             return;
@@ -1948,7 +1949,7 @@ impl HTMLMediaElement {
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(style.upcast::<Node>())
+            .AppendChild(style.upcast::<Node>(), can_gc)
         {
             warn!("Could not render media controls {:?}", e);
         }
@@ -1956,9 +1957,9 @@ impl HTMLMediaElement {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
-    fn remove_controls(&self) {
+    fn remove_controls(&self, can_gc: CanGc) {
         if let Some(id) = self.media_controls_id.borrow_mut().take() {
-            self.owner_document().unregister_media_controls(&id);
+            self.owner_document().unregister_media_controls(&id, can_gc);
         }
     }
 
@@ -2486,8 +2487,10 @@ impl VirtualMethods for HTMLMediaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
 
         match *attr.local_name() {
             local_name!("muted") => {
@@ -2502,9 +2505,9 @@ impl VirtualMethods for HTMLMediaElement {
             },
             local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
-                    self.render_controls(CanGc::note());
+                    self.render_controls(can_gc);
                 } else {
-                    self.remove_controls();
+                    self.remove_controls(can_gc);
                 }
             },
             _ => (),
@@ -2512,10 +2515,10 @@ impl VirtualMethods for HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#playing-the-media-resource:remove-an-element-from-a-document
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
-        self.remove_controls();
+        self.remove_controls(can_gc);
 
         if context.tree_connected {
             let task = MediaElementMicrotask::PauseIfNotInDocument {

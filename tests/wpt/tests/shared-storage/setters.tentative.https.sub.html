@@ -106,10 +106,10 @@ test(() => {
 
 promise_test(() => {
   return sharedStorage.batchUpdate([
-    new SharedStorageSetMethod("key0", "value0", {withLock: "lock1"}),
+    new SharedStorageSetMethod("key0", "value0"),
     new SharedStorageAppendMethod("key1", "value1"),
     new SharedStorageDeleteMethod("key2"),
-    new SharedStorageClearMethod({withLock: "lock2"})
+    new SharedStorageClearMethod()
   ], {withLock: "lock3"});
 }, 'sharedStorage.batchUpdate');
 
