@@ -214,7 +214,7 @@ impl FetchResponseListener for StylesheetContext {
                             document.quirks_mode(),
                         ));
 
-                        if link.is_alternate() {
+                        if link.is_effectively_disabled() {
                             sheet.set_disabled(true);
                         }
 

@@ -114,6 +114,8 @@ pub(crate) struct HTMLLinkElement {
     any_failed_load: Cell<bool>,
     /// A monotonically increasing counter that keeps track of which stylesheet to apply.
     request_generation_id: Cell<RequestGenerationId>,
+    /// <https://html.spec.whatwg.org/multipage/#explicitly-enabled>
+    is_explicitly_enabled: Cell<bool>,
 }
 
 impl HTMLLinkElement {
@@ -133,6 +135,7 @@ impl HTMLLinkElement {
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
             request_generation_id: Cell::new(RequestGenerationId(0)),
+            is_explicitly_enabled: Cell::new(false),
         }
     }
 
@@ -196,6 +199,12 @@ impl HTMLLinkElement {
         self.relations.get().contains(LinkRelations::ALTERNATE)
     }
 
+    pub(crate) fn is_effectively_disabled(&self) -> bool {
+        (self.is_alternate() && !self.is_explicitly_enabled.get()) ||
+            self.upcast::<Element>()
+                .has_attribute(&local_name!("disabled"))
+    }
+
     fn clean_stylesheet_ownership(&self) {
         if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
             cssom_stylesheet.set_owner(None);
@@ -221,11 +230,18 @@ impl VirtualMethods for HTMLLinkElement {
         self.super_type()
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
-        if !self.upcast::<Node>().is_connected() || mutation.is_removal() {
+
+        let local_name = attr.local_name();
+        let is_removal = mutation.is_removal();
+        if *local_name == local_name!("disabled") {
+            self.handle_disabled_attribute_change(!is_removal);
             return;
         }
 
-        match *attr.local_name() {
+        if !self.upcast::<Node>().is_connected() || is_removal {
+            return;
+        }
+        match *local_name {
             local_name!("rel") | local_name!("rev") => {
                 self.relations
                     .set(LinkRelations::for_element(self.upcast()));
@@ -472,6 +488,18 @@ impl HTMLLinkElement {
         );
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#attr-link-disabled>
+    fn handle_disabled_attribute_change(&self, disabled: bool) {
+        if !disabled {
+            self.is_explicitly_enabled.set(true);
+        }
+        if let Some(stylesheet) = self.get_stylesheet() {
+            if stylesheet.set_disabled(disabled) {
+                self.stylesheet_list_owner().invalidate_stylesheets();
+            }
+        }
+    }
+
     fn handle_favicon_url(&self, href: &str, _sizes: &Option<String>) {
         let document = self.owner_document();
         match document.base_url().join(href) {
@@ -566,6 +594,12 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-type
     make_setter!(SetType, "type");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-disabled
+    make_bool_getter!(Disabled, "disabled");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-disabled
+    make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
     fn RelList(&self) -> DomRoot<DOMTokenList> {
