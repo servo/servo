@@ -9,7 +9,7 @@
 [Exposed=(Window,Worker), Pref="dom_trusted_types_enabled"]
 interface TrustedTypePolicy {
   readonly attribute DOMString name;
-  TrustedHTML createHTML(DOMString input, any... arguments);
-  TrustedScript createScript(DOMString input, any... arguments);
-  TrustedScriptURL createScriptURL(DOMString input, any... arguments);
+  [Throws] TrustedHTML createHTML(DOMString input, any... arguments);
+  [Throws] TrustedScript createScript(DOMString input, any... arguments);
+  [Throws] TrustedScriptURL createScriptURL(DOMString input, any... arguments);
 };
