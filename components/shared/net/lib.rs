@@ -471,6 +471,7 @@ pub enum WebSocketDomAction {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
+    ReportCSPViolations(Vec<csp::Violation>),
     ConnectionEstablished { protocol_in_use: Option<String> },
     MessageReceived(MessageData),
     Close(Option<u16>, String),
