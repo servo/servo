@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use base::id::WebViewId;
 use content_security_policy as csp;
 use ipc_channel::ipc;
-use net_traits::policy_container::RequestPolicyContainer;
+use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
     Request as NetTraitsRequest, RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
@@ -392,6 +392,7 @@ pub(crate) fn create_a_potential_cors_request(
     referrer: Referrer,
     insecure_requests_policy: InsecureRequestsPolicy,
     has_trustworthy_ancestor_origin: bool,
+    policy_container: PolicyContainer,
 ) -> RequestBuilder {
     RequestBuilder::new(webview_id, url, referrer)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
@@ -412,4 +413,5 @@ pub(crate) fn create_a_potential_cors_request(
         .use_url_credentials(true)
         .insecure_requests_policy(insecure_requests_policy)
         .has_trustworthy_ancestor_origin(has_trustworthy_ancestor_origin)
+        .policy_container(policy_container)
 }

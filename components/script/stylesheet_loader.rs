@@ -359,15 +359,17 @@ impl StylesheetLoader<'_> {
         }
 
         // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
+        let global = self.elem.global();
         let request = create_a_potential_cors_request(
             Some(document.webview_id()),
             url.clone(),
             Destination::Style,
             cors_setting,
             None,
-            self.elem.global().get_referrer(),
+            global.get_referrer(),
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
+            global.policy_container(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(self.elem.global().pipeline_id()))
