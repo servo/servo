@@ -8,7 +8,7 @@ use std::ops::Deref;
 use atomic_refcell::AtomicRefCell;
 use servo_arc::Arc;
 
-pub(crate) struct ArcRefCell<T> {
+pub struct ArcRefCell<T> {
     value: Arc<AtomicRefCell<T>>,
 }
 

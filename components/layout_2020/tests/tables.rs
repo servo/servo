@@ -6,6 +6,7 @@
 
 mod tables {
     use euclid::Vector2D;
+    use layout_2020::ArcRefCell;
     use layout_2020::table::{Table, TableBuilder, TableSlot, TableSlotCell, TableSlotOffset};
 
     fn row_lengths(table: &Table) -> Vec<usize> {
@@ -14,7 +15,7 @@ mod tables {
 
     fn slot_is_cell_with_id(slot: &TableSlot, id: usize) -> bool {
         match slot {
-            TableSlot::Cell(cell) if cell.node_id() == id => true,
+            TableSlot::Cell(cell) if cell.borrow().node_id() == id => true,
             _ => false,
         }
     }
@@ -51,13 +52,13 @@ mod tables {
         let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(1, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(2, 1, 1));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(1, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(2, 1, 1)));
         table_builder.end_row();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(3, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(4, 1, 1));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(3, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(4, 1, 1)));
         table_builder.end_row();
 
         let table = table_builder.finish();
@@ -74,13 +75,13 @@ mod tables {
         let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(1, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(2, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(3, 1, 2));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(1, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(2, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(3, 1, 2)));
         table_builder.end_row();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(4, 1, 1));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(4, 1, 1)));
         table_builder.end_row();
 
         let table = table_builder.finish();
@@ -103,21 +104,21 @@ mod tables {
         let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(1, 3, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(2, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(3, 1, 1));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(1, 3, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(2, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(3, 1, 1)));
         table_builder.end_row();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(4, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(5, 3, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(6, 1, 1));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(4, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(5, 3, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(6, 1, 1)));
         table_builder.end_row();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(7, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(8, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(9, 3, 1));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(7, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(8, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(9, 3, 1)));
         table_builder.end_row();
 
         let table = table_builder.finish();
@@ -165,13 +166,13 @@ mod tables {
         let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(1, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(2, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(3, 1, 2));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(1, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(2, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(3, 1, 2)));
         table_builder.end_row();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(4, 3, 1));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(4, 3, 1)));
         table_builder.end_row();
 
         let table = table_builder.finish();
@@ -197,9 +198,9 @@ mod tables {
         let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(1, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(2, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(3, 1, 0));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(1, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(2, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(3, 1, 0)));
         table_builder.end_row();
 
         table_builder.start_row();
@@ -235,12 +236,12 @@ mod tables {
         let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(1, 1, 1));
-        table_builder.add_cell(TableSlotCell::mock_for_testing(2, 1, 30));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(1, 1, 1)));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(2, 1, 30)));
         table_builder.end_row();
 
         table_builder.start_row();
-        table_builder.add_cell(TableSlotCell::mock_for_testing(3, 2, 1));
+        table_builder.add_cell(ArcRefCell::new(TableSlotCell::mock_for_testing(3, 2, 1)));
         table_builder.end_row();
 
         assert_eq!(table_builder.incoming_rowspans, vec![0, 28]);

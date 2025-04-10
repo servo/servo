@@ -29,6 +29,7 @@ pub mod table;
 pub mod traversal;
 
 use app_units::Au;
+pub use cell::ArcRefCell;
 pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
 use style::logical_geometry::WritingMode;
