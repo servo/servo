@@ -1803,7 +1803,7 @@ impl ReadableStream {
         let controller = ReadableStreamDefaultController::new(
             &self.global(),
             UnderlyingSourceType::Transfer(Dom::from_ref(port)),
-            1.0,
+            0.,
             size_algorithm,
             can_gc,
         );
