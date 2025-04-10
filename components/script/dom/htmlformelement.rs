@@ -1862,6 +1862,7 @@ pub(crate) fn encode_multipart_form_data(
         // what spec says (that it should start with a '\r\n').
         let mut boundary_bytes = format!("--{}\r\n", boundary).into_bytes();
         result.append(&mut boundary_bytes);
+        let mut crlf = String::from("\r\n").into_bytes();
 
         // TODO(eijebong): Everthing related to content-disposition it to redo once typed headers
         // are capable of it.
@@ -1896,7 +1897,7 @@ pub(crate) fn encode_multipart_form_data(
                     .parse()
                     .unwrap_or(mime::TEXT_PLAIN);
                 let mut type_bytes = format!(
-                    "Content-Disposition: {}\r\ncontent-type: {}\r\n\r\n",
+                    "Content-Disposition: {}\r\nContent-Type: {}\r\n\r\n",
                     content_disposition, content_type
                 )
                 .into_bytes();
@@ -1907,9 +1908,10 @@ pub(crate) fn encode_multipart_form_data(
                 result.append(&mut bytes);
             },
         }
+        result.append(&mut crlf);
     }
 
-    let mut boundary_bytes = format!("\r\n--{}--\r\n", boundary).into_bytes();
+    let mut boundary_bytes = format!("--{}--\r\n", boundary).into_bytes();
     result.append(&mut boundary_bytes);
 
     result
