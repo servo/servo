@@ -544,7 +544,6 @@ pub(crate) fn write(
         );
         if !result {
             JS_ClearPendingException(*cx);
-            println!("SC failed");
             return Err(Error::DataClone);
         }
 

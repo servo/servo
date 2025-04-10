@@ -182,10 +182,10 @@ impl MessagePort {
         // If result is an abrupt completion,
         if result.is_err() {
             // Perform ! CrossRealmTransformSendError(port, result.[[Value]]).
-            // Note: we send UndefinedValue across, 
+            // Note: we send UndefinedValue across,
             // because somehow sending an error results in another error.
             // The Error::DataClone, which is the only one that is sent across,
-            // will be created upon receipt. 
+            // will be created upon receipt.
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
             self.cross_realm_transform_send_error(rooted_error.handle());
