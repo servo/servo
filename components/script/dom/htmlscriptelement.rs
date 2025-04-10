@@ -21,6 +21,7 @@ use ipc_channel::ipc;
 use js::jsval::UndefinedValue;
 use js::rust::{CompileOptionsWrapper, HandleObject, Stencil, transform_str_to_source_text};
 use net_traits::http_status::HttpStatus;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder, RequestId,
@@ -574,6 +575,7 @@ pub(crate) fn script_fetch_request(
     options: ScriptFetchOptions,
     insecure_requests_policy: InsecureRequestsPolicy,
     has_trustworthy_ancestor_origin: bool,
+    policy_container: PolicyContainer,
 ) -> RequestBuilder {
     // We intentionally ignore options' credentials_mode member for classic scripts.
     // The mode is initialized by create_a_potential_cors_request.
@@ -586,6 +588,7 @@ pub(crate) fn script_fetch_request(
         options.referrer,
         insecure_requests_policy,
         has_trustworthy_ancestor_origin,
+        policy_container,
     )
     .origin(origin)
     .pipeline_id(Some(pipeline_id))
@@ -606,15 +609,17 @@ fn fetch_a_classic_script(
 ) {
     // Step 1, 2.
     let doc = script.owner_document();
+    let global = script.global();
     let request = script_fetch_request(
         doc.webview_id(),
         url.clone(),
         cors_setting,
         doc.origin().immutable().clone(),
-        script.global().pipeline_id(),
+        global.pipeline_id(),
         options.clone(),
         doc.insecure_requests_policy(),
         doc.has_trustworthy_ancestor_origin(),
+        global.policy_container(),
     );
     let request = doc.prepare_request(request);
 

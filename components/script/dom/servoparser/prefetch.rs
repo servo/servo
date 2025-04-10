@@ -18,6 +18,7 @@ use markup5ever::TokenizerResult;
 use net_traits::request::{
     CorsSettings, CredentialsMode, InsecureRequestsPolicy, ParserMetadata, Referrer,
 };
+use net_traits::policy_container::PolicyContainer;
 use net_traits::{CoreResourceMsg, FetchChannels, IpcSend, ReferrerPolicy, ResourceThreads};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -60,13 +61,14 @@ unsafe impl CustomTraceable for PrefetchSink {
 
 impl Tokenizer {
     pub(crate) fn new(document: &Document) -> Self {
+        let global = document.global();
         let sink = PrefetchSink {
             origin: document.origin().immutable().clone(),
-            pipeline_id: document.global().pipeline_id(),
+            pipeline_id: global.pipeline_id(),
             webview_id: document.webview_id(),
             base_url: RefCell::new(None),
             document_url: document.url(),
-            referrer: document.global().get_referrer(),
+            referrer: global.get_referrer(),
             referrer_policy: document.get_referrer_policy(),
             resource_threads: document.loader().resource_threads().clone(),
             // Initially we set prefetching to false, and only set it
@@ -75,6 +77,7 @@ impl Tokenizer {
             prefetching: Cell::new(false),
             insecure_requests_policy: document.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: document.has_trustworthy_ancestor_or_current_origin(),
+            policy_container: global.policy_container(),
         };
         let options = Default::default();
         let inner = TraceableTokenizer(HtmlTokenizer::new(sink, options));
@@ -108,6 +111,8 @@ struct PrefetchSink {
     #[no_trace]
     insecure_requests_policy: InsecureRequestsPolicy,
     has_trustworthy_ancestor_origin: bool,
+    #[no_trace]
+    policy_container: PolicyContainer,
 }
 
 /// The prefetch tokenizer produces trivial results
@@ -150,6 +155,7 @@ impl TokenSink for PrefetchSink {
                         },
                         self.insecure_requests_policy,
                         self.has_trustworthy_ancestor_origin,
+                        self.policy_container.clone(),
                     );
                     let _ = self
                         .resource_threads
@@ -169,6 +175,7 @@ impl TokenSink for PrefetchSink {
                         self.referrer.clone(),
                         self.insecure_requests_policy,
                         self.has_trustworthy_ancestor_origin,
+                        self.policy_container.clone(),
                     )
                     .origin(self.origin.clone())
                     .pipeline_id(Some(self.pipeline_id))
@@ -204,6 +211,7 @@ impl TokenSink for PrefetchSink {
                                 self.referrer.clone(),
                                 self.insecure_requests_policy,
                                 self.has_trustworthy_ancestor_origin,
+                                self.policy_container.clone(),
                             )
                             .origin(self.origin.clone())
                             .pipeline_id(Some(self.pipeline_id))

@@ -422,15 +422,17 @@ impl HTMLImageElement {
 
         // https://html.spec.whatwg.org/multipage/#update-the-image-data steps 17-20
         // This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
+        let global = document.global();
         let mut request = create_a_potential_cors_request(
             Some(window.webview_id()),
             img_url.clone(),
             Destination::Image,
             cors_setting_for_element(self.upcast()),
             None,
-            document.global().get_referrer(),
+            global.get_referrer(),
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
+            global.policy_container(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(document.global().pipeline_id()))

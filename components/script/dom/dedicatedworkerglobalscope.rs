@@ -18,6 +18,7 @@ use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use net_traits::IpcSend;
 use net_traits::image_cache::ImageCache;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
     RequestMode,
@@ -347,6 +348,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         context_sender: Sender<ThreadSafeJSContext>,
         insecure_requests_policy: InsecureRequestsPolicy,
+        policy_container: PolicyContainer,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
         let webview_id = WebViewId::installed();
@@ -388,6 +390,7 @@ impl DedicatedWorkerGlobalScope {
                     .referrer_policy(referrer_policy)
                     .insecure_requests_policy(insecure_requests_policy)
                     .has_trustworthy_ancestor_origin(current_global_ancestor_trustworthy)
+                    .policy_container(policy_container)
                     .origin(origin);
 
                 let runtime = unsafe {

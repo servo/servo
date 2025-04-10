@@ -887,15 +887,17 @@ impl HTMLMediaElement {
         };
 
         let cors_setting = cors_setting_for_element(self.upcast());
+        let global = self.global();
         let request = create_a_potential_cors_request(
             Some(document.webview_id()),
             url.clone(),
             destination,
             cors_setting,
             None,
-            self.global().get_referrer(),
+            global.get_referrer(),
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
+            global.policy_container(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())

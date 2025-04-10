@@ -707,9 +707,9 @@ impl LinkProcessingOptions {
             Referrer::NoReferrer,
             self.insecure_requests_policy,
             self.has_trustworthy_ancestor_origin,
+            self.policy_container,
         )
         .integrity_metadata(self.integrity)
-        .policy_container(self.policy_container)
         .cryptographic_nonce_metadata(self.cryptographic_nonce_metadata)
         .referrer_policy(self.referrer_policy);
 
