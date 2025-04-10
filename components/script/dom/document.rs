@@ -1059,6 +1059,11 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub(crate) fn set_ready_state(&self, state: DocumentReadyState, can_gc: CanGc) {
+        let window = self.window();
+        let performance = window.Performance();
+        let now = (*performance.Now()).floor() as u64;
+        let timing = performance.Timing();
+
         match state {
             DocumentReadyState::Loading => {
                 if self.window().is_top_level() {
@@ -1068,6 +1073,11 @@ impl Document {
                     ));
                     self.send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
                 }
+                timing.update_dom_loading(now);
+            },
+            DocumentReadyState::Interactive => {
+                update_with_current_instant(&self.dom_interactive);
+                timing.update_dom_interactive(now);
             },
             DocumentReadyState::Complete => {
                 if self.window().is_top_level() {
@@ -1077,8 +1087,8 @@ impl Document {
                     ));
                 }
                 update_with_current_instant(&self.dom_complete);
+                timing.update_dom_complete(now);
             },
-            DocumentReadyState::Interactive => update_with_current_instant(&self.dom_interactive),
         };
 
         self.ready_state.set(state);
@@ -2746,6 +2756,11 @@ impl Document {
                 if document.browsing_context().is_none() {
                     return;
                 }
+
+                let performance = window.Performance();
+                let timing = performance.Timing();
+                let start_time = (*performance.Now()).floor() as u64;
+
                 let event = Event::new(
                     window.upcast(),
                     atom!("load"),
@@ -2754,6 +2769,10 @@ impl Document {
                     CanGc::note(),
                 );
                 event.set_trusted(true);
+
+                timing.update_load_event_start(start_time);
+                window.upcast::<EventTarget>().dispatch_event(&event, CanGc::note());
+                timing.update_load_event_end((*performance.Now()).floor() as u64);
 
                 // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
                 update_with_current_instant(&document.load_event_start);
@@ -2997,20 +3016,34 @@ impl Document {
             "Complete before DOMContentLoaded?"
         );
 
-        update_with_current_instant(&self.dom_content_loaded_event_start);
-
         // Step 4.1.
         let document = Trusted::new(self);
         self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(
-                task!(fire_dom_content_loaded_event: move || {
-                let document = document.root();
-                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::note());
-                update_with_current_instant(&document.dom_content_loaded_event_end);
-                })
+            .queue(task!(fire_dom_content_loaded_event: move || {
+            let document = document.root();
+
+            let window = document.window();
+            let performance = window.Performance();
+            let timing = performance.Timing();
+            let start_time = (*performance.Now()).floor() as u64;
+
+            let event = Event::new(
+                window.upcast(),
+                atom!("DOMContentLoaded"),
+                EventBubbles::Bubbles,
+                EventCancelable::NotCancelable,
+                CanGc::note(),
             );
+            event.set_trusted(true);
+
+            timing.update_dom_content_loaded_event_start(start_time);
+            window.upcast::<EventTarget>().dispatch_event(&event, CanGc::note());
+            timing.update_dom_content_loaded_event_end((*performance.Now()).floor() as u64);
+
+            update_with_current_instant(&document.dom_content_loaded_event_end);
+            }));
 
         // html parsing has finished - set dom content loaded
         self.interactive_time
