@@ -1357,6 +1357,11 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub(crate) fn set_ready_state(&self, cx: &mut JSContext, state: DocumentReadyState) {
+        let window = self.window();
+        let performance = window.Performance(cx);
+        let now = (*performance.Now()).floor() as u64;
+        let timing = performance.Timing();
+
         match state {
             DocumentReadyState::Loading => {
                 if self.window().is_top_level() {
@@ -1365,6 +1370,7 @@ impl Document {
                         LoadStatus::Started,
                     ));
                     self.send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
+                    timing.update_dom_loading(now);
                 }
             },
             DocumentReadyState::Complete => {
@@ -1375,9 +1381,11 @@ impl Document {
                     ));
                 }
                 update_with_current_instant(&self.navigation_timing.dom_complete);
+                timing.update_dom_complete(now);
             },
             DocumentReadyState::Interactive => {
-                update_with_current_instant(&self.navigation_timing.dom_interactive)
+                update_with_current_instant(&self.navigation_timing.dom_interactive);
+                timing.update_dom_interactive(now);
             },
         };
 
@@ -2337,6 +2345,11 @@ impl Document {
                 // Step 9.4. Set the Document's load timing info's load event start time to the current high resolution time given window.
                 update_with_current_instant(&document.navigation_timing.load_event_start);
 
+                let performance = window.Performance(cx);
+                let timing = performance.Timing();
+                let start_time = (*performance.Now()).floor() as u64;
+                timing.update_load_event_start(start_time);
+
                 // Step 9.5. Fire an event named load at window, with legacy target override flag set.
                 let load_event = Event::new(
                     cx,
@@ -2359,6 +2372,7 @@ impl Document {
 
                 // Step 9.8. Set the Document's load timing info's load event end time to the current high resolution time given window.
                 update_with_current_instant(&document.navigation_timing.load_event_end);
+                timing.update_load_event_end((*performance.Now()).floor() as u64);
 
                 // Step 9.9. Assert: Document's page showing is false.
                 // TODO: Adding this assert fails a lot of tests
@@ -2599,11 +2613,18 @@ impl Document {
                 // the current high resolution time given the Document's relevant global object.
                 let document = document.root();
                 update_with_current_instant(&document.navigation_timing.dom_content_loaded_event_start);
+
+                let performance = document.window().Performance(cx);
+                let timing = performance.Timing();
+                timing.update_dom_content_loaded_event_start((*performance.Now()).floor() as u64);
+
                 // Step 6.2. Fire an event named DOMContentLoaded at the Document object, with its bubbles attribute initialized to true.
                 document.upcast::<EventTarget>().fire_bubbling_event(cx, atom!("DOMContentLoaded"));
                 // Step 6.3. Set the Document's load timing info's DOM content loaded event end time to
                 // the current high resolution time given the Document's relevant global object.
                 update_with_current_instant(&document.navigation_timing.dom_content_loaded_event_end);
+                timing.update_dom_content_loaded_event_end((*performance.Now()).floor() as u64);
+
                 // Step 6.4. Enable the client message queue of the ServiceWorkerContainer object
                 // whose associated service worker client is the Document object's relevant settings object.
                 // TODO

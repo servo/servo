@@ -14,6 +14,7 @@ pub(crate) mod performanceobserver;
 pub(crate) mod performanceobserverentrylist;
 pub(crate) mod performancepainttiming;
 pub(crate) mod performanceresourcetiming;
+pub(crate) mod performancetiming;
 pub(crate) use self::performance::Performance;
 
 /// <https://w3c.github.io/navigation-timing/#the-performancetiming-interface>
