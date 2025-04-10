@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
+//use std::result::Result;
 use dom_struct::dom_struct;
 use html5ever::serialize::TraversalScope;
 use servo_arc::Arc;
@@ -16,6 +17,7 @@ use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
 use stylo_atoms::Atom;
 
+//use script_bindings::error::Error;
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::GetHTMLOptions;
@@ -451,6 +453,16 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-slotassignment>
     fn SlotAssignment(&self) -> SlotAssignmentMode {
         self.slot_assignment_mode
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-sethtmlunsafe>
+    fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+        // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
+        let target = self.upcast::<Node>();
+        let context_element = self.Host();
+
+        // Call the shared implementation of the unsafely set HTML
+        Node::unsafely_set_html(target, &context_element, html, can_gc);
     }
 
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange
