@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 use std::{f64, mem};
 
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
@@ -717,11 +718,8 @@ impl HTMLMediaElement {
         }
 
         if ready_state == ReadyState::HaveEnoughData {
-            // TODO: Check sandboxed automatic features browsing context flag.
-            // FIXME(nox): I have no idea what this TODO is about.
-
             // FIXME(nox): Review this block.
-            if self.autoplaying.get() && self.Paused() && self.Autoplay() {
+            if self.eligible_for_autoplay() {
                 // Step 1
                 self.paused.set(false);
                 // Step 2
@@ -966,6 +964,31 @@ impl HTMLMediaElement {
         if let Some(seek_lock) = seek_lock {
             seek_lock.unlock(/* successful seek */ true);
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#eligible-for-autoplay>
+    fn eligible_for_autoplay(&self) -> bool {
+        // its can autoplay flag is true;
+        self.autoplaying.get() &&
+
+        // its paused attribute is true;
+        self.Paused() &&
+
+        // it has an autoplay attribute specified;
+        self.Autoplay() &&
+
+        // its node document's active sandboxing flag set does not have the sandboxed automatic
+        // features browsing context flag set; and
+        {
+            let document = self.owner_document();
+
+            !document.has_active_sandboxing_flag(
+                SandboxingFlagSet::SANDBOXED_AUTOMATIC_FEATURES_BROWSING_CONTEXT_FLAG,
+            )
+        }
+
+        // its node document is allowed to use the "autoplay" feature.
+        // TODO: Feature policy: https://html.spec.whatwg.org/iframe-embed-object.html#allowed-to-use
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-resource

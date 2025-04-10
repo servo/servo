@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#concept-form-submit">
+  <title>Test that form submission is blocked by a document's active sandboxing flags</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <form id="f">
+      <input type="hidden" value="test" />
+    </form>
+    <script>
+      async_test((t) => {
+        var f = document.getElementById('f')
+
+        f.addEventListener('submit', t.unreached_func('form should not be submitted due to sandboxing flags'));
+
+        f.submit();
+        t.step_timeout(() => t.done(), 500);
+      }, 'csp-derived sandboxing flags prevent form submission.')
+    </script>
+  </body>
+</html>

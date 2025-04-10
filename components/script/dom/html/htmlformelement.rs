@@ -6,6 +6,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 
 use constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentType, HeaderMapExt};
@@ -739,10 +740,18 @@ impl HTMLFormElement {
         if self.constructing_entry_list.get() {
             return;
         }
-        // Step 3
+        // Step 3. Let form document be form's node document.
         let doc = self.owner_document();
+
+        // Step 4. If form document's active sandboxing flag set has its sandboxed forms browsing
+        // context flag set, then return.
+        if doc.has_active_sandboxing_flag(SandboxingFlagSet::SANDBOXED_FORMS_BROWSING_CONTEXT_FLAG)
+        {
+            return;
+        }
+
         let base = doc.base_url();
-        // TODO: Handle browsing contexts (Step 4, 5)
+        // TODO: Handle browsing contexts (Step 5)
         // Step 6
         if submit_method_flag == SubmittedFrom::NotFromForm {
             // Step 6.1
