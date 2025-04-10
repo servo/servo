@@ -1,4 +1,6 @@
-## Bluetooth
+# Bluetooth
+
+Servo-specific APIs to access Bluetooth devices.
 
 Bluetooth related code is located in `bluetooth.rs`.
 
@@ -75,8 +77,6 @@ fn main() {
 ```
 
 #### With the *bluetooth-test* feature
-
-The `bluetooth-test` feature is not a default feature, to use it, append `features = ["bluetooth-test"]`, to the `bluetooth` crate dependency in the project's `Cargo.toml`.
 
 Each enum (`BluetoothAdapter`, `BluetoothDevice`, etc.) will contain one variant of the three possible default target, and a `Mock` variant, which wraps a `Fake` structure.
 
