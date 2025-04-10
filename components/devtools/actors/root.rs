@@ -292,10 +292,10 @@ impl RootActor {
             from: "root".to_owned(),
             application_type: "browser".to_owned(),
             traits: ActorTraits {
-                sources: false,
+                sources: true,
                 highlightable: true,
                 custom_highlighters: true,
-                network_monitor: false,
+                network_monitor: true,
             },
         }
     }
