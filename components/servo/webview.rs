@@ -81,6 +81,7 @@ pub(crate) struct WebViewInner {
     page_title: Option<String>,
     favicon_url: Option<Url>,
     focused: bool,
+    animating: bool,
     cursor: Cursor,
 }
 
@@ -110,6 +111,7 @@ impl WebView {
             page_title: None,
             favicon_url: None,
             focused: false,
+            animating: false,
             cursor: Cursor::Pointer,
         })));
 
@@ -263,6 +265,22 @@ impl WebView {
         self.inner()
             .constellation_proxy
             .send(EmbedderToConstellationMessage::BlurWebView);
+    }
+
+    /// Whether or not this [`WebView`] has animating content, such as a CSS animation or
+    /// transition or is running `requestAnimationFrame` callbacks. This indicates that the
+    /// embedding application should be spinning the Servo event loop on regular intervals
+    /// in order to trigger animation updates.
+    pub fn animating(self) -> bool {
+        self.inner().animating
+    }
+
+    pub(crate) fn set_animating(self, new_value: bool) {
+        if self.inner().animating == new_value {
+            return;
+        }
+        self.inner_mut().animating = new_value;
+        self.delegate().notify_animating_changed(self, new_value);
     }
 
     pub fn rect(&self) -> DeviceRect {
@@ -475,12 +493,18 @@ struct ServoRendererWebView {
 }
 
 impl RendererWebView for ServoRendererWebView {
+    fn id(&self) -> WebViewId {
+        self.id
+    }
+
     fn screen_geometry(&self) -> Option<ScreenGeometry> {
         let webview = WebView::from_weak_handle(&self.weak_handle)?;
         webview.delegate().screen_geometry(webview)
     }
 
-    fn id(&self) -> WebViewId {
-        self.id
+    fn set_animating(&self, new_value: bool) {
+        if let Some(webview) = WebView::from_weak_handle(&self.weak_handle) {
+            webview.set_animating(new_value);
+        }
     }
 }

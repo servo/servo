@@ -154,6 +154,9 @@ class Config(object):
             if word in ["fail-fast", "failfast", "fail_fast"]:
                 self.fail_fast = True
                 continue  # skip over keyword
+            if word == "wpt":
+                words.extend(["linux-wpt"])
+                continue  # skip over keyword
             if word == "full":
                 words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
                 words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
@@ -317,6 +320,10 @@ class TestParser(unittest.TestCase):
     def test_full(self):
         self.assertDictEqual(json.loads(Config("full").to_json()),
                              json.loads(Config("").to_json()))
+
+    def test_wpt_alias(self):
+        self.assertDictEqual(json.loads(Config("wpt").to_json()),
+                             json.loads(Config("linux-wpt").to_json()))
 
 
 def run_tests():

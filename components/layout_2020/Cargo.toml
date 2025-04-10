@@ -59,4 +59,5 @@ xi-unicode = { workspace = true }
 num-traits = { workspace = true }
 
 [dev-dependencies]
+num-traits = { workspace = true }
 quickcheck = "1"

@@ -228,50 +228,72 @@ impl BoxTree {
         }
 
         loop {
-            if let Some((primary_style, display_inside, update_point)) = update_point(dirty_node) {
-                let contents = ReplacedContents::for_element(dirty_node, context)
-                    .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
-                let info = NodeAndStyleInfo::new(dirty_node, Arc::clone(&primary_style));
-                let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
-                    AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
-                );
-                match update_point {
-                    UpdatePoint::AbsolutelyPositionedBlockLevelBox(block_level_box) => {
-                        *block_level_box.borrow_mut() =
-                            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                                out_of_flow_absolutely_positioned_box,
-                            );
-                    },
-                    UpdatePoint::AbsolutelyPositionedInlineLevelBox(
-                        inline_level_box,
-                        text_offset_index,
-                    ) => {
-                        *inline_level_box.borrow_mut() =
-                            InlineItem::OutOfFlowAbsolutelyPositionedBox(
-                                out_of_flow_absolutely_positioned_box,
-                                text_offset_index,
-                            );
-                    },
-                    UpdatePoint::AbsolutelyPositionedFlexLevelBox(flex_level_box) => {
-                        *flex_level_box.borrow_mut() =
-                            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                                out_of_flow_absolutely_positioned_box,
-                            );
-                    },
-                    UpdatePoint::AbsolutelyPositionedTaffyLevelBox(taffy_level_box) => {
-                        taffy_level_box.borrow_mut().taffy_level_box =
-                            TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(
-                                out_of_flow_absolutely_positioned_box,
-                            );
-                    },
-                }
-                return true;
-            }
-            dirty_node = match dirty_node.parent_node() {
-                Some(parent) => parent,
-                None => return false,
+            let Some((primary_style, display_inside, update_point)) = update_point(dirty_node)
+            else {
+                dirty_node = match dirty_node.parent_node() {
+                    Some(parent) => parent,
+                    None => return false,
+                };
+                continue;
             };
+
+            let contents = ReplacedContents::for_element(dirty_node, context)
+                .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
+            let info = NodeAndStyleInfo::new(dirty_node, Arc::clone(&primary_style));
+            let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
+                AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
+            );
+            match update_point {
+                UpdatePoint::AbsolutelyPositionedBlockLevelBox(block_level_box) => {
+                    *block_level_box.borrow_mut() = BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                        out_of_flow_absolutely_positioned_box,
+                    );
+                },
+                UpdatePoint::AbsolutelyPositionedInlineLevelBox(
+                    inline_level_box,
+                    text_offset_index,
+                ) => {
+                    *inline_level_box.borrow_mut() = InlineItem::OutOfFlowAbsolutelyPositionedBox(
+                        out_of_flow_absolutely_positioned_box,
+                        text_offset_index,
+                    );
+                },
+                UpdatePoint::AbsolutelyPositionedFlexLevelBox(flex_level_box) => {
+                    *flex_level_box.borrow_mut() = FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                        out_of_flow_absolutely_positioned_box,
+                    );
+                },
+                UpdatePoint::AbsolutelyPositionedTaffyLevelBox(taffy_level_box) => {
+                    taffy_level_box.borrow_mut().taffy_level_box =
+                        TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(
+                            out_of_flow_absolutely_positioned_box,
+                        );
+                },
+            }
+            break;
         }
+
+        // We are going to rebuild the box tree from the update point downward, but this update
+        // point is an absolute, which means that it needs to be laid out again in the containing
+        // block for absolutes, which is established by one of its ancestors. In addition,
+        // absolutes, when laid out, can produce more absolutes (either fixed or absolutely
+        // positioned) elements, so there may be yet more layout that has to happen in this
+        // ancestor.
+        //
+        // We do not know which ancestor is the one that established the containing block for this
+        // update point, so just invalidate the fragment cache of all ancestors, meaning that even
+        // though the box tree is preserved, the fragment tree from the root to the update point and
+        // all of its descendants will need to be rebuilt. This isn't as bad as it seems, because
+        // siblings and siblings of ancestors of this path through the tree will still have cached
+        // fragments.
+        //
+        // TODO: Do better. This is still a very crude way to do incremental layout.
+        while let Some(parent_node) = dirty_node.parent_node() {
+            parent_node.invalidate_cached_fragment();
+            dirty_node = parent_node;
+        }
+
+        true
     }
 }
 

@@ -217,37 +217,41 @@ impl WebView {
             })
     }
 
-    /// Sets or unsets the animations-running flag for the given pipeline, and schedules a
-    /// recomposite if necessary. Returns true if the pipeline is throttled.
+    /// Sets or unsets the animations-running flag for the given pipeline. Returns true if
+    /// the pipeline is throttled.
     pub(crate) fn change_running_animations_state(
         &mut self,
         pipeline_id: PipelineId,
         animation_state: AnimationState,
     ) -> bool {
-        let pipeline_details = self.ensure_pipeline_details(pipeline_id);
-        match animation_state {
-            AnimationState::AnimationsPresent => {
-                pipeline_details.animations_running = true;
-            },
-            AnimationState::AnimationCallbacksPresent => {
-                pipeline_details.animation_callbacks_running = true;
-            },
-            AnimationState::NoAnimationsPresent => {
-                pipeline_details.animations_running = false;
-            },
-            AnimationState::NoAnimationCallbacksPresent => {
-                pipeline_details.animation_callbacks_running = false;
-            },
-        }
-        pipeline_details.throttled
+        let throttled = {
+            let pipeline_details = self.ensure_pipeline_details(pipeline_id);
+            match animation_state {
+                AnimationState::AnimationsPresent => {
+                    pipeline_details.animations_running = true;
+                },
+                AnimationState::AnimationCallbacksPresent => {
+                    pipeline_details.animation_callbacks_running = true;
+                },
+                AnimationState::NoAnimationsPresent => {
+                    pipeline_details.animations_running = false;
+                },
+                AnimationState::NoAnimationCallbacksPresent => {
+                    pipeline_details.animation_callbacks_running = false;
+                },
+            }
+            pipeline_details.throttled
+        };
+
+        let animating = self.pipelines.values().any(PipelineDetails::animating);
+        self.renderer_webview.set_animating(animating);
+        throttled
     }
 
-    pub(crate) fn tick_all_animations(&self, compositor: &IOCompositor) -> bool {
-        let mut ticked_any = false;
+    pub(crate) fn tick_all_animations(&self, compositor: &IOCompositor) {
         for pipeline_details in self.pipelines.values() {
-            ticked_any = pipeline_details.tick_animations(compositor) || ticked_any;
+            pipeline_details.tick_animations(compositor)
         }
-        ticked_any
     }
 
     pub(crate) fn tick_animations_for_pipeline(

@@ -46,6 +46,26 @@ pub(super) enum LayoutBox {
     TaffyItemBox(ArcRefCell<TaffyItemBox>),
 }
 
+impl LayoutBox {
+    fn invalidate_cached_fragment(&self) {
+        match self {
+            LayoutBox::DisplayContents => {},
+            LayoutBox::BlockLevel(block_level_box) => {
+                block_level_box.borrow().invalidate_cached_fragment()
+            },
+            LayoutBox::InlineLevel(inline_item) => {
+                inline_item.borrow().invalidate_cached_fragment()
+            },
+            LayoutBox::FlexLevel(flex_level_box) => {
+                flex_level_box.borrow().invalidate_cached_fragment()
+            },
+            LayoutBox::TaffyItemBox(taffy_item_box) => {
+                taffy_item_box.borrow_mut().invalidate_cached_fragment()
+            },
+        }
+    }
+}
+
 /// A wrapper for [`InnerDOMLayoutData`]. This is necessary to give the entire data
 /// structure interior mutability, as we will need to mutate the layout data of
 /// non-mutable DOM nodes.
@@ -114,6 +134,8 @@ pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
 
     /// Remove boxes for the element itself, and its `:before` and `:after` if any.
     fn unset_all_boxes(self);
+
+    fn invalidate_cached_fragment(self);
 }
 
 impl<'dom, LayoutNodeType> NodeExt<'dom> for LayoutNodeType
@@ -254,5 +276,12 @@ where
         *data.pseudo_marker_box.borrow_mut() = None;
         // Stylo already takes care of removing all layout data
         // for DOM descendants of elements with `display: none`.
+    }
+
+    fn invalidate_cached_fragment(self) {
+        let data = self.layout_data_mut();
+        if let Some(data) = data.self_box.borrow_mut().as_mut() {
+            data.invalidate_cached_fragment();
+        }
     }
 }

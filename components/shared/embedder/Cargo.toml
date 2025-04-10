@@ -11,9 +11,6 @@ rust-version.workspace = true
 name = "embedder_traits"
 path = "lib.rs"
 
-[features]
-webxr = ["dep:webxr-api"]
-
 [dependencies]
 base = { workspace = true }
 cfg-if = { workspace = true }
@@ -37,4 +34,3 @@ stylo_traits = { workspace = true }
 url = { workspace = true }
 webdriver = { workspace = true }
 webrender_api = { workspace = true }
-webxr-api = { workspace = true, features = ["ipc"], optional = true }
