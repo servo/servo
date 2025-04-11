@@ -705,7 +705,6 @@ where
                     false, /* is_list_item */
                 );
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
-                    marker_style: info.style.clone(),
                     base: LayoutBoxBase::new(info.into(), info.style.clone()),
                     block_container,
                     list_item_style,

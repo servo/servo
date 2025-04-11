@@ -246,7 +246,6 @@ pub(crate) struct CollapsibleWithParentStartMargin(bool);
 /// for a list that has `list-style-position: outside`.
 #[derive(Debug)]
 pub(crate) struct OutsideMarker {
-    pub marker_style: Arc<ComputedValues>,
     pub list_item_style: Arc<ComputedValues>,
     pub base: LayoutBoxBase,
     pub block_container: BlockContainer,
@@ -271,7 +270,7 @@ impl OutsideMarker {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
     ) -> Fragment {
         let constraint_space = ConstraintSpace::new_for_style_and_ratio(
-            &self.marker_style,
+            &self.base.style,
             None, /* TODO: support preferred aspect ratios on non-replaced boxes */
         );
         let content_sizes = self.inline_content_sizes(layout_context, &constraint_space);
@@ -280,7 +279,7 @@ impl OutsideMarker {
                 inline: content_sizes.sizes.max_content,
                 block: SizeConstraint::default(),
             },
-            style: &self.marker_style,
+            style: &self.base.style,
         };
 
         // A ::marker can't have a stretch size (must be auto), so this doesn't matter.
@@ -349,7 +348,7 @@ impl OutsideMarker {
 
         Fragment::Box(ArcRefCell::new(BoxFragment::new(
             base_fragment_info,
-            self.marker_style.clone(),
+            self.base.style.clone(),
             flow_layout.fragments,
             content_rect.as_physical(Some(containing_block)),
             PhysicalSides::zero(),
