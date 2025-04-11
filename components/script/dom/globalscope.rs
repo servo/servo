@@ -950,7 +950,7 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#disentangle>
     pub(crate) fn disentangle_port(&self, port: &MessagePort) {
-        // TODO
+        // TODO: #36465
     }
 
     /// <https://html.spec.whatwg.org/multipage/#entangle>
