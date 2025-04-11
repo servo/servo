@@ -880,8 +880,9 @@ impl Size<Au> {
         get_automatic_minimum_size: impl FnOnce() -> Au,
         stretch_size: Option<Au>,
         content_size: &LazyCell<ContentSizes, F>,
+        is_table: bool,
     ) -> Au {
-        match self {
+        let result = match self {
             Self::Initial => get_automatic_minimum_size(),
             Self::MinContent => content_size.min_content,
             Self::MaxContent => content_size.max_content,
@@ -889,6 +890,19 @@ impl Size<Au> {
             Self::FitContent => content_size.shrink_to_fit(stretch_size.unwrap_or_default()),
             Self::Stretch => stretch_size.unwrap_or_default(),
             Self::Numeric(numeric) => *numeric,
+        };
+        if is_table {
+            // In addition to the specified minimum, the inline size of a table is forced to be
+            // at least as big as its min-content size.
+            //
+            // Note that if there are collapsed columns, only the inline size of the table grid will
+            // shrink, while the size of the table wrapper (being computed here) won't be affected.
+            // However, collapsed rows should typically affect the block size of the table wrapper,
+            // so it might be wrong to use this function for that case.
+            // This is being discussed in https://github.com/w3c/csswg-drafts/issues/11408
+            result.max(content_size.min_content)
+        } else {
+            result
         }
     }
 
@@ -1027,17 +1041,12 @@ impl Sizes {
         let preferred =
             self.preferred
                 .resolve_for_preferred(automatic_size, stretch_size, &content_size);
-        let mut min =
-            self.min
-                .resolve_for_min(get_automatic_minimum_size, stretch_size, &content_size);
-        if is_table {
-            // In addition to the specified minimum, the inline size of a table is forced to be
-            // at least as big as its min-content size.
-            // Note that if there are collapsed columns, only the inline size of the table grid will
-            // shrink, while the size of the table wrapper (being computed here) won't be affected.
-            // This is being discussed in https://github.com/w3c/csswg-drafts/issues/11408
-            min.max_assign(content_size.min_content);
-        }
+        let min = self.min.resolve_for_min(
+            get_automatic_minimum_size,
+            stretch_size,
+            &content_size,
+            is_table,
+        );
         let max = self.max.resolve_for_max(stretch_size, &content_size);
         preferred.clamp_between_extremums(min, max)
     }
