@@ -23,9 +23,7 @@ use webrender_api::FontInstanceKey;
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
 use super::{InlineFormattingContextLayout, LineBlockSizes};
 use crate::cell::ArcRefCell;
-use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
-};
+use crate::fragment_tree::{BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
@@ -465,7 +463,6 @@ impl LineItemLayout<'_, '_> {
             border.to_physical(ifc_writing_mode),
             margin.to_physical(ifc_writing_mode),
             None, /* clearance */
-            CollapsedBlockMargins::zero(),
         );
 
         let offset_from_parent_ifc = LogicalVec2 {

@@ -76,7 +76,7 @@ pub(crate) struct BoxFragment {
     /// to things such as tables and inline formatting contexts.
     baselines: Baselines,
 
-    pub block_margins_collapsed_with_children: CollapsedBlockMargins,
+    block_margins_collapsed_with_children: Option<Box<CollapsedBlockMargins>>,
 
     /// The scrollable overflow of this box fragment.
     pub scrollable_overflow_from_children: PhysicalRect<Au>,
@@ -103,7 +103,6 @@ impl BoxFragment {
         border: PhysicalSides<Au>,
         margin: PhysicalSides<Au>,
         clearance: Option<Au>,
-        block_margins_collapsed_with_children: CollapsedBlockMargins,
     ) -> BoxFragment {
         let scrollable_overflow_from_children =
             children.iter().fold(PhysicalRect::zero(), |acc, child| {
@@ -120,7 +119,7 @@ impl BoxFragment {
             margin,
             clearance,
             baselines: Baselines::default(),
-            block_margins_collapsed_with_children,
+            block_margins_collapsed_with_children: None,
             scrollable_overflow_from_children,
             resolved_sticky_insets: AtomicRefCell::default(),
             background_mode: BackgroundMode::Normal,
@@ -179,6 +178,14 @@ impl BoxFragment {
 
     pub fn with_specific_layout_info(mut self, info: Option<SpecificLayoutInfo>) -> Self {
         self.specific_layout_info = info;
+        self
+    }
+
+    pub fn with_block_margins_collapsed_with_children(
+        mut self,
+        collapsed_margins: CollapsedBlockMargins,
+    ) -> Self {
+        self.block_margins_collapsed_with_children = Some(collapsed_margins.into());
         self
     }
 
@@ -372,6 +379,13 @@ impl BoxFragment {
                 self.style.get_inherited_table().border_collapse == BorderCollapse::Collapse
             },
             _ => false,
+        }
+    }
+
+    pub(crate) fn block_margins_collapsed_with_children(&self) -> CollapsedBlockMargins {
+        match self.block_margins_collapsed_with_children.as_ref() {
+            Some(collapsed_block_margins) => *(collapsed_block_margins).clone(),
+            _ => CollapsedBlockMargins::zero(),
         }
     }
 }
