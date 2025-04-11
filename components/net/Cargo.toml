@@ -42,6 +42,7 @@ hyper-util = { workspace = true }
 hyper_serde = { workspace = true }
 imsz = { workspace = true }
 ipc-channel = { workspace = true }
+itertools = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
