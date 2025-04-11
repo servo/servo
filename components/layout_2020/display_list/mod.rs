@@ -1223,9 +1223,7 @@ fn glyphs(
     glyphs
 }
 
-// TODO: This implementation has not been tested against `TextFragment` with mutiple runs.
-// It is possible that the `glyphs` function above will need to be modified to
-// handle multiple runs correctly.
+// TODO: The implementation here does not account for multiple glyph runs properly.
 fn glyphs_advance_by_index(
     glyph_runs: &[Arc<GlyphStore>],
     index: fonts_traits::ByteIndex,
@@ -1233,11 +1231,13 @@ fn glyphs_advance_by_index(
     justification_adjustment: Au,
 ) -> PhysicalPoint<Au> {
     let mut point = baseline_origin;
+    let mut index = index;
     for run in glyph_runs {
         let total_advance = run.advance_for_byte_range(
-            &ServoRange::new(fonts::ByteIndex(0), index),
+            &ServoRange::new(fonts::ByteIndex(0), index.min(run.len())),
             justification_adjustment,
         );
+        index = index - index.min(run.len());
         point.x += total_advance;
     }
     point

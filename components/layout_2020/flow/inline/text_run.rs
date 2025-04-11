@@ -166,7 +166,7 @@ impl TextRunSegment {
                 self.bidi_level,
                 ServoRange::<ByteIndex>::new(
                     byte_processed + ByteIndex(self.range.start as isize),
-                    run.range.length(),
+                    ByteIndex(self.range.len() as isize) - byte_processed,
                 ),
             );
             byte_processed = byte_processed + run.range.length();
