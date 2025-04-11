@@ -2145,15 +2145,8 @@ async fn cors_preflight_fetch(
         // TODO(36451): replace this with typed_insert when headers fixes headers#207
         preflight.headers.insert(
             ACCESS_CONTROL_REQUEST_HEADERS,
-            HeaderValue::from_bytes(
-                headers
-                    .iter()
-                    .map(|header| header.to_string())
-                    .reduce(|acc, x| acc + "," + &x)
-                    .unwrap_or(String::new())
-                    .as_bytes(),
-            )
-            .unwrap_or(HeaderValue::from_static("")),
+            HeaderValue::from_bytes(itertools::join(headers.iter(), ",").as_bytes())
+                .unwrap_or(HeaderValue::from_static("")),
         );
     }
 
