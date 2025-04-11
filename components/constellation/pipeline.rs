@@ -291,8 +291,7 @@ impl Pipeline {
                     webrender_document: state.webrender_document,
                     cross_process_compositor_api: state
                         .compositor_proxy
-                        .cross_process_compositor_api
-                        .clone(),
+                        .cross_process_compositor_api(),
                     webgl_chan: state.webgl_chan,
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,

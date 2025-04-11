@@ -1898,10 +1898,7 @@ impl Window {
         let (sender, receiver) =
             ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
         let _ = self.compositor_api.sender().send(
-            compositing_traits::CrossProcessCompositorMessage::GetClientWindowRect(
-                self.webview_id(),
-                sender,
-            ),
+            compositing_traits::CompositorMsg::GetClientWindowRect(self.webview_id(), sender),
         );
         let rect = receiver.recv().unwrap_or_default();
         (
