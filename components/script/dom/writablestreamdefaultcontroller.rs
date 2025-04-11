@@ -272,8 +272,8 @@ impl Callback for WriteAlgorithmRejectionHandler {
 pub enum UnderlyingSinkType {
     /// Algorithms are provided by Js callbacks.
     Js,
-    /// Algorithms supporting streams transfer are implemented in Rust,
-    /// and the `backpressure_promise` used in those algorithms is stored here.
+    /// Algorithms supporting streams transfer are implemented in Rust.
+    /// The promise and port used in those algorithms are stored here.
     Transfer {
         backpressure_promise: Rc<RefCell<Option<Rc<Promise>>>>,
         port: Dom<MessagePort>,
