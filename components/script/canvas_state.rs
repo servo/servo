@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -59,6 +59,39 @@ use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
+
+// Firefox limits width/height to 32767 pixels and Chromium to 65535 pixels,
+// but slows down dramatically before it reaches that limit.
+// We limit by area instead, giving us larger maximum dimensions,
+// in exchange for a smaller maximum canvas size.
+const MAX_CANVAS_AREA: u64 = 32768 * 8192;
+// Max width/height to 65535 in CSS pixels.
+const MAX_CANVAS_SIZE: u64 = 65535;
+
+#[derive(Clone, Debug, JSTraceable, MallocSizeOf)]
+/// Helps observe states of canvas draw target.
+struct DrawTarget {
+    #[no_trace]
+    size: Size2D<u64>,
+    paintable: bool,
+}
+
+impl DrawTarget {
+    fn new(size: Size2D<u64>) -> DrawTarget {
+        DrawTarget {
+            size,
+            paintable: is_supported_canvas_size(size),
+        }
+    }
+
+    fn get_paintable_size(&self) -> Size2D<u64> {
+        if self.paintable {
+            self.size
+        } else {
+            Size2D::zero()
+        }
+    }
+}
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -152,6 +185,7 @@ pub(crate) struct CanvasState {
     canvas_id: CanvasId,
     #[no_trace]
     image_key: ImageKey,
+    draw_target: RefCell<DrawTarget>,
     state: DomRefCell<CanvasContextState>,
     origin_clean: Cell<bool>,
     #[ignore_malloc_size_of = "Arc"]
@@ -176,9 +210,11 @@ impl CanvasState {
             profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
         let script_to_constellation_chan = global.script_to_constellation_chan();
         debug!("Asking constellation to create new canvas thread.");
+        let draw_target = DrawTarget::new(size);
         script_to_constellation_chan
             .send(ScriptToConstellationMessage::CreateCanvasPaintThread(
-                size, sender,
+                draw_target.get_paintable_size(),
+                sender,
             ))
             .unwrap();
         let (ipc_renderer, canvas_id, image_key) = receiver.recv().unwrap();
@@ -194,6 +230,7 @@ impl CanvasState {
         CanvasState {
             ipc_renderer,
             canvas_id,
+            draw_target: RefCell::new(draw_target),
             state: DomRefCell::new(CanvasContextState::new()),
             origin_clean: Cell::new(true),
             image_cache: global.image_cache(),
@@ -221,7 +258,15 @@ impl CanvasState {
         self.canvas_id
     }
 
+    pub(crate) fn is_paintable(&self) -> bool {
+        self.draw_target.borrow().paintable
+    }
+
     pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
+        if !self.is_paintable() {
+            return;
+        }
+
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(msg, self.get_canvas_id()))
             .unwrap()
@@ -229,6 +274,10 @@ impl CanvasState {
 
     /// Updates WR image and blocks on completion
     pub(crate) fn update_rendering(&self) {
+        if !self.is_paintable() {
+            return;
+        }
+
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(
@@ -239,16 +288,27 @@ impl CanvasState {
         receiver.recv().unwrap();
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
+    /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>
     pub(crate) fn set_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.reset_to_initial_state();
+
+        self.draw_target.replace(DrawTarget::new(size));
+
         self.ipc_renderer
-            .send(CanvasMsg::Recreate(Some(size), self.get_canvas_id()))
+            .send(CanvasMsg::Recreate(
+                Some(self.draw_target.borrow().get_paintable_size()),
+                self.get_canvas_id(),
+            ))
             .unwrap();
     }
 
     pub(crate) fn reset(&self) {
         self.reset_to_initial_state();
+
+        if !self.is_paintable() {
+            return;
+        }
+
         self.ipc_renderer
             .send(CanvasMsg::Recreate(None, self.get_canvas_id()))
             .unwrap();
@@ -386,18 +446,22 @@ impl CanvasState {
         dw: Option<f64>,
         dh: Option<f64>,
     ) -> ErrorResult {
+        if !self.is_paintable() {
+            return Ok(());
+        }
+
         let result = match image {
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
                     return Err(Error::InvalidState);
                 }
 
                 self.draw_html_canvas_element(canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
             },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
                     return Err(Error::InvalidState);
                 }
 
@@ -516,11 +580,6 @@ impl CanvasState {
         dw: Option<f64>,
         dh: Option<f64>,
     ) -> ErrorResult {
-        // 1. Check the usability of the image argument
-        if !canvas.is_valid() {
-            return Err(Error::InvalidState);
-        }
-
         let canvas_size = canvas.get_size();
         let dw = dw.unwrap_or(canvas_size.width as f64);
         let dh = dh.unwrap_or(canvas_size.height as f64);
@@ -1890,6 +1949,19 @@ impl CanvasState {
         ));
         Ok(())
     }
+}
+
+pub(crate) fn is_supported_canvas_size(size: Size2D<u64>) -> bool {
+    if size.is_empty() {
+        return false;
+    }
+    if size.width > MAX_CANVAS_SIZE || size.height > MAX_CANVAS_SIZE {
+        return false;
+    }
+    if size.area() > MAX_CANVAS_AREA {
+        return false;
+    }
+    true
 }
 
 pub(crate) fn parse_color(

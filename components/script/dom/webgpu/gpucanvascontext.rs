@@ -297,6 +297,10 @@ impl CanvasContext for GPUCanvasContext {
     fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
         self.canvas.clone()
     }
+
+    fn is_paintable(&self) -> bool {
+        true
+    }
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {

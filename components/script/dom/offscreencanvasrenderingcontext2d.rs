@@ -65,7 +65,7 @@ impl OffscreenCanvasRenderingContext2D {
     }
 
     pub(crate) fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
-        self.context.set_bitmap_dimensions(size.cast());
+        self.context.set_canvas_bitmap_dimensions(size.cast());
     }
 
     pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
@@ -74,6 +74,10 @@ impl OffscreenCanvasRenderingContext2D {
 
     pub(crate) fn origin_is_clean(&self) -> bool {
         self.context.origin_is_clean()
+    }
+
+    pub(crate) fn is_paintable(&self) -> bool {
+        self.context.is_paintable()
     }
 
     pub(crate) fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {

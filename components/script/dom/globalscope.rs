@@ -2714,8 +2714,8 @@ impl GlobalScope {
 
         match image {
             ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 }
@@ -2735,8 +2735,8 @@ impl GlobalScope {
                 p
             },
             ImageBitmapSource::OffscreenCanvas(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 }

@@ -29,6 +29,7 @@ use style::attr::AttrValue;
 
 use crate::canvas_context::CanvasContext as _;
 pub(crate) use crate::canvas_context::*;
+use crate::canvas_state::is_supported_canvas_size;
 use crate::conversions::Convert;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -371,14 +372,24 @@ impl HTMLCanvasElement {
         }
     }
 
-    pub(crate) fn is_valid(&self) -> bool {
-        self.Height() != 0 && self.Width() != 0
+    pub(crate) fn is_paintable(&self) -> bool {
+        let size = self.get_size();
+
+        let paintable = match *self.context.borrow() {
+            Some(CanvasContext::Context2d(ref context)) => context.is_paintable(),
+            Some(CanvasContext::WebGL(ref context)) => context.is_paintable(),
+            Some(CanvasContext::WebGL2(ref context)) => context.is_paintable(),
+            #[cfg(feature = "webgpu")]
+            Some(CanvasContext::WebGPU(ref context)) => context.is_paintable(),
+            Some(CanvasContext::Placeholder(ref offscreencanvas)) => offscreencanvas.is_paintable(),
+            None => false,
+        };
+
+        paintable || is_supported_canvas_size(size.to_u64())
     }
 
     pub(crate) fn fetch_all_data(&self) -> Option<(Option<IpcSharedMemory>, Size2D<u32>)> {
-        let size = self.get_size();
-
-        if size.width == 0 || size.height == 0 {
+        if !self.is_paintable() {
             return None;
         }
 
@@ -398,7 +409,7 @@ impl HTMLCanvasElement {
             None => None,
         };
 
-        Some((data, size))
+        Some((data, self.get_size()))
     }
 
     fn get_content(&self) -> Option<Vec<u8>> {
@@ -555,7 +566,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         }
 
         // Step 2.
-        if self.Width() == 0 || self.Height() == 0 {
+        if !self.is_paintable() {
             return Ok(USVString("data:,".into()));
         }
 
@@ -601,7 +612,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // If this canvas element's bitmap has pixels (i.e., neither its horizontal dimension
         // nor its vertical dimension is zero),
         // then set result to a copy of this canvas element's bitmap.
-        let result = if self.Width() == 0 || self.Height() == 0 {
+        let result = if !self.is_paintable() {
             None
         } else {
             self.get_content()

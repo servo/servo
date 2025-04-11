@@ -924,6 +924,10 @@ impl CanvasContext for WebGL2RenderingContext {
         self.base.get_image_data()
     }
 
+    fn is_paintable(&self) -> bool {
+        self.base.is_paintable()
+    }
+
     fn mark_as_dirty(&self) {
         self.base.mark_as_dirty()
     }

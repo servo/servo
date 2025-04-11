@@ -74,23 +74,12 @@ impl CanvasRenderingContext2D {
         reflect_dom_object(boxed, global, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
-    pub(crate) fn set_bitmap_dimensions(&self, size: Size2D<u32>) {
-        self.reset_to_initial_state();
-        self.canvas_state
-            .get_ipc_renderer()
-            .send(CanvasMsg::Recreate(
-                Some(size.to_u64()),
-                self.canvas_state.get_canvas_id(),
-            ))
-            .unwrap();
-    }
-
     // https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state
     fn reset_to_initial_state(&self) {
         self.canvas_state.reset_to_initial_state();
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>
     pub(crate) fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.canvas_state.set_bitmap_dimensions(size);
     }
@@ -119,7 +108,12 @@ impl CanvasRenderingContext2D {
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
     fn canvas_data_source(self) -> HTMLCanvasDataSource {
         let canvas_state = &self.unsafe_get().canvas_state;
-        HTMLCanvasDataSource::Image(canvas_state.image_key())
+
+        if canvas_state.is_paintable() {
+            HTMLCanvasDataSource::Image(canvas_state.image_key())
+        } else {
+            HTMLCanvasDataSource::Empty
+        }
     }
 }
 
@@ -139,7 +133,7 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn resize(&self) {
-        self.set_bitmap_dimensions(self.size().cast())
+        self.set_canvas_bitmap_dimensions(self.size().cast())
     }
 
     fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
@@ -156,6 +150,10 @@ impl CanvasContext for CanvasRenderingContext2D {
 
     fn origin_is_clean(&self) -> bool {
         self.canvas_state.origin_is_clean()
+    }
+
+    fn is_paintable(&self) -> bool {
+        self.canvas_state.is_paintable()
     }
 
     fn mark_as_dirty(&self) {
