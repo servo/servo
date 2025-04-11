@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 use std::{f64, mem};
 
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource as EmbedderResource};
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
@@ -892,15 +893,17 @@ impl HTMLMediaElement {
         };
 
         let cors_setting = cors_setting_for_element(self.upcast());
+        let global = self.global();
         let request = create_a_potential_cors_request(
             Some(document.webview_id()),
             url.clone(),
             destination,
             cors_setting,
             None,
-            self.global().get_referrer(),
+            global.get_referrer(),
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
+            global.policy_container(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())
@@ -2902,6 +2905,11 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
     }
 }
 

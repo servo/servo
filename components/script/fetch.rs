@@ -6,8 +6,9 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use base::id::WebViewId;
+use content_security_policy as csp;
 use ipc_channel::ipc;
-use net_traits::policy_container::RequestPolicyContainer;
+use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, InsecureRequestsPolicy, Referrer,
     Request as NetTraitsRequest, RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
@@ -309,6 +310,11 @@ impl FetchResponseListener for FetchContext {
             network_listener::submit_timing(self, CanGc::note())
         }
     }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
+    }
 }
 
 impl ResourceTimingListener for FetchContext {
@@ -352,8 +358,9 @@ pub(crate) fn load_whole_resource(
     let mut metadata = None;
     loop {
         match action_receiver.recv().unwrap() {
-            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
-            },
+            FetchResponseMsg::ProcessRequestBody(..) |
+            FetchResponseMsg::ProcessRequestEOF(..) |
+            FetchResponseMsg::ProcessCspViolations(..) => {},
             FetchResponseMsg::ProcessResponse(_, Ok(m)) => {
                 metadata = Some(match m {
                     FetchMetadata::Unfiltered(m) => m,
@@ -385,6 +392,7 @@ pub(crate) fn create_a_potential_cors_request(
     referrer: Referrer,
     insecure_requests_policy: InsecureRequestsPolicy,
     has_trustworthy_ancestor_origin: bool,
+    policy_container: PolicyContainer,
 ) -> RequestBuilder {
     RequestBuilder::new(webview_id, url, referrer)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
@@ -405,4 +413,5 @@ pub(crate) fn create_a_potential_cors_request(
         .use_url_credentials(true)
         .insecure_requests_policy(insecure_requests_policy)
         .has_trustworthy_ancestor_origin(has_trustworthy_ancestor_origin)
+        .policy_container(policy_container)
 }

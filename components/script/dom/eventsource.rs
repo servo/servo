@@ -8,6 +8,7 @@ use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use headers::ContentType;
 use http::header::{self, HeaderName, HeaderValue};
@@ -431,6 +432,11 @@ impl FetchResponseListener for EventSourceContext {
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
     }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
+    }
 }
 
 impl ResourceTimingListener for EventSourceContext {
@@ -562,6 +568,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             global.get_referrer(),
             global.insecure_requests_policy(),
             global.has_trustworthy_ancestor_or_current_origin(),
+            global.policy_container(),
         )
         .origin(global.origin().immutable().clone())
         .pipeline_id(Some(global.pipeline_id()));

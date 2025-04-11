@@ -406,6 +406,7 @@ unsafe extern "C" fn content_security_policy_allows(
                     policy.disposition == PolicyDisposition::Report,
                     runtime_code,
                     scripted_caller.filename.clone(),
+                    "script-src".to_owned(),
                     scripted_caller.line,
                     scripted_caller.col,
                 );

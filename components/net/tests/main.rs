@@ -26,6 +26,7 @@ use std::net::TcpListener as StdTcpListener;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock, Mutex, RwLock, Weak};
 
+use content_security_policy as csp;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::{AuthenticationResponse, EmbedderMsg, EmbedderProxy, EventLoopWaker};
@@ -196,6 +197,7 @@ impl FetchTaskTarget for FetchResponseCollector {
     fn process_response_eof(&mut self, _: &Request, response: &Response) {
         let _ = self.sender.take().unwrap().send(response.clone());
     }
+    fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
 }
 
 fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {

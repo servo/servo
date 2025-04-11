@@ -7,6 +7,7 @@ use std::cell::Cell;
 use std::default::Default;
 
 use base::id::WebViewId;
+use content_security_policy as csp;
 use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -706,9 +707,9 @@ impl LinkProcessingOptions {
             Referrer::NoReferrer,
             self.insecure_requests_policy,
             self.has_trustworthy_ancestor_origin,
+            self.policy_container,
         )
         .integrity_metadata(self.integrity)
-        .policy_container(self.policy_container)
         .cryptographic_nonce_metadata(self.cryptographic_nonce_metadata)
         .referrer_policy(self.referrer_policy);
 
@@ -787,6 +788,11 @@ impl FetchResponseListener for PrefetchContext {
 
     fn submit_resource_timing(&mut self) {
         submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
     }
 }
 

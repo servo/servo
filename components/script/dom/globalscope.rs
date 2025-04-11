@@ -21,7 +21,9 @@ use constellation_traits::{
     BlobData, BlobImpl, BroadcastMsg, FileBlob, MessagePortImpl, MessagePortMsg, PortMessageTask,
     ScriptToConstellationChan, ScriptToConstellationMessage,
 };
-use content_security_policy::{CheckResult, CspList, PolicyDisposition};
+use content_security_policy::{
+    CheckResult, CspList, PolicyDisposition, Violation, ViolationResource,
+};
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
@@ -2682,6 +2684,7 @@ impl GlobalScope {
                     policy.disposition == PolicyDisposition::Report,
                     RuntimeCode::JS,
                     scripted_caller.filename.clone(),
+                    "script-src".to_owned(),
                     scripted_caller.line,
                     scripted_caller.col,
                 );
@@ -3308,6 +3311,28 @@ impl GlobalScope {
             return worker.TrustedTypes(can_gc);
         }
         unreachable!();
+    }
+
+    pub(crate) fn report_csp_violations(&self, violations: Vec<Violation>) {
+        for violation in violations {
+            let sample = match violation.resource {
+                ViolationResource::Inline { .. } | ViolationResource::Url(_) => None,
+                ViolationResource::TrustedTypePolicy { sample } => Some(sample),
+            };
+            let task = CSPViolationReporter::new(
+                self,
+                sample,
+                false,
+                RuntimeCode::JS,
+                "".to_string(),
+                violation.directive.name,
+                0,
+                0,
+            );
+            self.task_manager()
+                .dom_manipulation_task_source()
+                .queue(task);
+        }
     }
 }
 

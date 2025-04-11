@@ -3,7 +3,7 @@
 
 <head>
     <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncraciws.-->
-    <meta http-equiv="Content-Security-Policy" content="connect-src 'self' ws://{{domains[www1]}}:{{ports[http][0]}}/echo; script-src 'self' 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="connect-src 'self' ws://{{domains[www1]}}:{{ports[ws][0]}}/echo; script-src 'self' 'unsafe-inline';">
     <title>connect-src-websocket-blocked</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
@@ -18,9 +18,14 @@
         });
 
         try {
-            var ws = new WebSocket("ws://{{domains[www1]}}:{{ports[http][0]}}/echo");
+            var ws = new WebSocket("ws://{{domains[www1]}}:{{ports[ws][0]}}/echo");
 
-            if (ws.readyState == WebSocket.CLOSING || ws.readyState == WebSocket.CLOSED) {
+            // Not all browsers fail the connection in a synchronous fashion.
+            if (ws.readyState == WebSocket.CONNECTING) {
+                setTimeout( function() {
+                    ws.readyState != WebSocket.CLOSED ? log("allowed") : log("blocked");
+                }, 1000);
+            } else if (ws.readyState == WebSocket.CLOSED) {
                 log("blocked");
             } else {
                 log("allowed");

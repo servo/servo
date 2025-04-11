@@ -900,9 +900,9 @@ impl RemoteWebFontDownloader {
         response_message: FetchResponseMsg,
     ) -> DownloaderResponseResult {
         match response_message {
-            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
-                DownloaderResponseResult::InProcess
-            },
+            FetchResponseMsg::ProcessRequestBody(..) |
+            FetchResponseMsg::ProcessRequestEOF(..) |
+            FetchResponseMsg::ProcessCspViolations(..) => DownloaderResponseResult::InProcess,
             FetchResponseMsg::ProcessResponse(_, meta_result) => {
                 trace!(
                     "@font-face {} metadata ok={:?}",
