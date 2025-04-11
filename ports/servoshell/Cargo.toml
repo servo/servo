@@ -91,7 +91,7 @@ euclid = { workspace = true }
 # force inprocess, until libc-rs 0.2.156 is released containing
 # https://github.com/rust-lang/libc/commit/9e248e212c5602cb4e98676e4c21ea0382663a12
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
-hilog = "0.1.1"
+hilog = "0.2.0"
 napi-derive-ohos = "1.0.4"
 napi-ohos = "1.0.4"
 ohos-vsync = "0.1.3"
