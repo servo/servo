@@ -1,0 +1,39 @@
+{
+    "name": "python3-hatchling",
+    "buildsystem": "simple",
+    "build-commands": [
+        "pip3 install --use-deprecated=legacy-resolver --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"hatchling\" --no-build-isolation"
+    ],
+    "sources": [
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/8b/2b/46dde7e5df5f2b22e35d060d1e3ec2ec68c6c89f85e00273ea67585e4237/trove-classifiers-2023.7.6.tar.gz",
+            "sha256": "8a8e168b51d20fed607043831d37632bb50919d1c80a64e0f1393744691a8b22"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/8a/42/8f2833655a29c4e9cb52ee8a2be04ceac61bcff4a680fb338cbd3d1e322d/pluggy-1.2.0.tar.gz",
+            "sha256": "d12f0c4b579b15f5e054301bb226ee85eeeba08ffec228092f8defbaa3a4c4b3"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/a0/2a/bd167cdf116d4f3539caaa4c332752aac0b3a0cc0174cdb302ee68933e81/pathspec-0.11.2.tar.gz",
+            "sha256": "e0d8d0ac2f12da61956eb2306b69f9469b42f4deb0f3cb6ed47b9cce9996ced3"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/b9/6c/7c6658d258d7971c5eb0d9b69fa9265879ec9a9158031206d47800ae2213/packaging-23.1.tar.gz",
+            "sha256": "a392980d2b6cffa644431898be54b0045151319d1e7ec34f0cfed48767dd334f"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/37/4a/986d35164e2033ddfb44515168a281a7986e260d344cf369c3f52d4c3275/editables-0.5.tar.gz",
+            "sha256": "309627d9b5c4adc0e668d8c6fa7bac1ba7c8c5d415c2d27f60f081f8e80d1de2"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/e3/57/87da2c5adc173950ebe9f1acce4d5f2cd0a960783992fd4879a899a0b637/hatchling-1.18.0.tar.gz",
+            "sha256": "50e99c3110ce0afc3f7bdbadff1c71c17758e476731c27607940cfa6686489ca"
+        }
+    ]
+}
