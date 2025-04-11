@@ -21,6 +21,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
 
+use super::transformunderlyingsource::TransformUnderlyingSource;
+
 /// <https://streams.spec.whatwg.org/#underlying-source-api>
 /// The `Js` variant corresponds to
 /// the JavaScript object representing the underlying source.
@@ -40,6 +42,10 @@ pub(crate) enum UnderlyingSourceType {
     Js(JsUnderlyingSource, Heap<*mut JSObject>),
     /// Tee
     Tee(Dom<DefaultTeeUnderlyingSource>),
+    /// A struct representing a JS object as underlying source,
+    /// and the actual JS object for use as `thisArg` in callbacks.
+    /// This is used for the `TransformStream` API.
+    Transform(Dom<TransformUnderlyingSource>)
 }
 
 impl UnderlyingSourceType {
@@ -216,6 +222,10 @@ impl UnderlyingSourceContainer {
             UnderlyingSourceType::Tee(_) => {
                 // Let startAlgorithm be an algorithm that returns undefined.
                 None
+            },
+            UnderlyingSourceType::Transform(_) => {
+                todo!("Transform stream start algorithm");
+               
             },
             _ => None,
         }

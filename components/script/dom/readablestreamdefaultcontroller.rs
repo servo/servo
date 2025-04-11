@@ -812,7 +812,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-get-desired-size>
-    fn get_desired_size(&self) -> Option<f64> {
+    pub(crate) fn get_desired_size(&self) -> Option<f64> {
         let stream = self.stream.get()?;
 
         // If state is "errored", return null.
@@ -832,7 +832,7 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-can-close-or-enqueue>
-    fn can_close_or_enqueue(&self) -> bool {
+    pub(crate) fn can_close_or_enqueue(&self) -> bool {
         let Some(stream) = self.stream.get() else {
             return false;
         };
@@ -864,6 +864,13 @@ impl ReadableStreamDefaultController {
         self.clear_algorithms();
 
         stream.error(e, can_gc);
+    }
+
+    // https://streams.spec.whatwg.org/#rs-default-controller-has-backpressure
+    pub(crate) fn has_backpressure(&self) -> bool {
+        // If ! ReadableStreamDefaultControllerShouldCallPull(controller) is true, return false.
+        // Otherwise, return true.
+        !self.should_call_pull()
     }
 }
 
