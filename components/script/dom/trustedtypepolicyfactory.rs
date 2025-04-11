@@ -48,7 +48,7 @@ impl TrustedTypePolicyFactory {
     fn create_trusted_type_policy(
         &self,
         policy_name: String,
-        _options: &TrustedTypePolicyOptions,
+        options: &TrustedTypePolicyOptions,
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
@@ -72,11 +72,10 @@ impl TrustedTypePolicyFactory {
 
         // Step 4: Let policy be a new TrustedTypePolicy object.
         // Step 5: Set policy’s name property value to policyName.
-        let policy = TrustedTypePolicy::new(policy_name.clone(), global, can_gc);
         // Step 6: Set policy’s options value to «[ "createHTML" ->
         // options["createHTML", "createScript" -> options["createScript",
         // "createScriptURL" -> options["createScriptURL" ]».
-        // TODO(36258): implement step 6
+        let policy = TrustedTypePolicy::new(policy_name.clone(), options, global, can_gc);
         // Step 7: If the policyName is default, set the factory’s default policy value to policy.
         if policy_name == "default" {
             self.default_policy.set(Some(&policy))
