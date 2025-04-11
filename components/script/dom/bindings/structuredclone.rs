@@ -445,23 +445,13 @@ unsafe extern "C" fn report_error_callback(
     closure: *mut raw::c_void,
     error_message: *const ::std::os::raw::c_char,
 ) {
-    log::warn!("DataCloneError from report_error_callback");
     let msg_result = unsafe { CStr::from_ptr(error_message).to_str().map(str::to_string) };
 
     if let Ok(msg) = msg_result {
-        let sc_reader = &mut *(closure as *mut StructuredDataReader);
+        let dom_error_record = &mut *(closure as *mut DOMErrorRecord);
 
-        sc_reader.errors = Some(DOMErrorRecord {
-            message: DOMString::from_string(msg),
-        })
+        dom_error_record.message = Some(msg)
     }
-    //sc_reader.errors = Some(DOMErrorRecord {
-    //    message: domstring_message.clone(),
-    //});
-    // let sc_writer = &mut *(closure as *mut StructuredDataWriter);
-    // sc_writer.errors = Some(DOMErrorRecord {
-    //    message: domstring_message.clone(),
-    // })
 }
 
 unsafe extern "C" fn sab_cloned_callback(
@@ -488,9 +478,10 @@ pub(crate) enum StructuredData<'a> {
     Writer(&'a mut StructuredDataWriter),
 }
 
-#[derive(Debug)]
+#[repr(C)]
+#[derive(Default)]
 pub(crate) struct DOMErrorRecord {
-    pub(crate) message: DOMString,
+    pub(crate) message: Option<String>,
 }
 
 /// Reader and writer structs for results from, and inputs to, structured-data read/write operations.
@@ -515,7 +506,7 @@ pub(crate) struct StructuredDataReader {
     /// A map of serialized points.
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// A recorder for error in DOM
-    pub(crate) errors: Option<DOMErrorRecord>,
+    pub(crate) errors: DOMErrorRecord,
 }
 
 /// A data holder for transferred and serialized objects.
@@ -528,7 +519,7 @@ pub(crate) struct StructuredDataWriter {
     /// Serialized blobs.
     pub(crate) blobs: Option<HashMap<BlobId, BlobImpl>>,
     /// A recorder for error in DOM
-    pub(crate) errors: Option<DOMErrorRecord>,
+    pub(crate) errors: DOMErrorRecord,
 }
 
 /// Writes a structured clone. Returns a `DataClone` error if that fails.
@@ -566,9 +557,7 @@ pub(crate) fn write(
         );
         if !result {
             JS_ClearPendingException(*cx);
-            return Err(Error::DataClone(Some(
-                "This costum error from DataClone".to_string(),
-            )));
+            return Err(Error::DataClone(sc_writer.errors.message));
         }
 
         let nbytes = GetLengthOfJSStructuredCloneData(scdata);
@@ -606,7 +595,7 @@ pub(crate) fn read(
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),
         points: data.points.take(),
-        errors: None,
+        errors: DOMErrorRecord { message: None },
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {
@@ -637,7 +626,7 @@ pub(crate) fn read(
         );
         if !result {
             JS_ClearPendingException(*cx);
-            return Err(Error::DataClone(None));
+            return Err(Error::DataClone(sc_reader.errors.message));
         }
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);
