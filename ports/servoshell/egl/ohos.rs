@@ -6,6 +6,7 @@
 use std::cell::RefCell;
 use std::mem::MaybeUninit;
 use std::os::raw::c_void;
+use std::sync::LazyLock;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Once, OnceLock, mpsc};
 use std::thread;
@@ -386,32 +387,38 @@ extern "C" fn on_dispatch_key_event(xc: *mut OH_NativeXComponent, _window: *mut 
     }
 }
 
+static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
+    let mut builder = hilog::Builder::new();
+    let filters = [
+        "fonts",
+        "servo",
+        "servoshell",
+        "servoshell::egl:gl_glue",
+        // Show redirected stdout / stderr by default
+        "servoshell::egl::log",
+        // Show JS errors by default.
+        "script::dom::bindings::error",
+        // Show GL errors by default.
+        "canvas::webgl_thread",
+        "compositing::compositor",
+        "compositing::touch",
+        "constellation::constellation",
+        "ohos_ime",
+    ];
+    for &module in &filters {
+        builder.filter_module(module, log::LevelFilter::Debug);
+    }
+
+    builder.filter_level(LevelFilter::Warn).build()
+});
+
 fn initialize_logging_once() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
-        let mut builder = hilog::Builder::new();
-        let filters = [
-            "fonts",
-            "servo",
-            "servoshell",
-            "servoshell::egl:gl_glue",
-            // Show redirected stdout / stderr by default
-            "servoshell::egl::log",
-            // Show JS errors by default.
-            "script::dom::bindings::error",
-            // Show GL errors by default.
-            "canvas::webgl_thread",
-            "compositing::compositor",
-            "compositing::touch",
-            "constellation::constellation",
-            "ohos_ime",
-        ];
-        for &module in &filters {
-            builder.filter_module(module, log::LevelFilter::Debug);
-        }
-
-        builder.filter_level(LevelFilter::Warn).init();
-
+        let logger: &'static hilog::Logger = &LOGGER;
+        let max_level = logger.filter();
+        let r = log::set_logger(logger).and_then(|()| Ok(log::set_max_level(max_level)));
+        debug!("Attempted to register the logger: {r:?} and set max level to: {max_level}");
         info!("Servo Register callback called!");
 
         std::panic::set_hook(Box::new(|info| {
@@ -447,7 +454,21 @@ fn initialize_logging_once() {
         if let Err(e) = super::log::redirect_stdout_and_stderr() {
             error!("Failed to redirect stdout and stderr to hilog due to: {e:?}");
         }
-    })
+    });
+}
+
+pub fn set_log_filter(filter: &str) {
+    debug!("Updating log filter to {filter}");
+    let mut builder = env_filter::Builder::new();
+    let filter = match builder.try_parse(filter) {
+        Result::Ok(filter) => filter,
+        Result::Err(err) => {
+            error!("Failed to parse log filter: {err}");
+            return;
+        },
+    };
+    let filter = filter.build();
+    (*LOGGER).set_filter(filter);
 }
 
 fn register_xcomponent_callbacks(env: &Env, xcomponent: &JsObject) -> napi_ohos::Result<()> {
