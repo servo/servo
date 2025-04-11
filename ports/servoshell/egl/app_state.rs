@@ -42,26 +42,6 @@ impl Coordinates {
     }
 }
 
-pub(super) struct ServoWindowCallbacks {
-    host_callbacks: Box<dyn HostTrait>,
-    coordinates: RefCell<Coordinates>,
-    hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-}
-
-impl ServoWindowCallbacks {
-    pub(super) fn new(
-        host_callbacks: Box<dyn HostTrait>,
-        coordinates: RefCell<Coordinates>,
-        hidpi_factor: f32,
-    ) -> Self {
-        Self {
-            host_callbacks,
-            coordinates,
-            hidpi_factor: Scale::new(hidpi_factor),
-        }
-    }
-}
-
 pub struct RunningAppState {
     servo: Servo,
     rendering_context: Rc<WindowRenderingContext>,
@@ -90,6 +70,9 @@ struct RunningAppStateInner {
     /// Whether or not the animation state has changed. This is used to trigger
     /// host callbacks indicating that animation state has changed.
     animating_state_changed: Rc<Cell<bool>>,
+
+    /// The HiDPI scaling factor to use for the display of [`WebView`]s.
+    hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 }
 
 struct ServoShellServoDelegate {
@@ -211,8 +194,13 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
-    fn request_open_auxiliary_webview(&self, _parent_webview: WebView) -> Option<WebView> {
-        let new_webview = self.servo.new_auxiliary_webview();
+    fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
+        let new_webview = self
+            .servo
+            .new_auxiliary_webview()
+            .hidpi_scale_factor(self.inner().hidpi_scale_factor)
+            .delegate(parent_webview.delegate())
+            .build();
         self.add(new_webview.clone());
         Some(new_webview)
     }
@@ -273,6 +261,7 @@ impl WebViewDelegate for RunningAppState {
 impl RunningAppState {
     pub(super) fn new(
         initial_url: Option<String>,
+        hidpi_scale_factor: f32,
         rendering_context: Rc<WindowRenderingContext>,
         servo: Servo,
         callbacks: Rc<ServoWindowCallbacks>,
@@ -301,6 +290,7 @@ impl RunningAppState {
                 creation_order: vec![],
                 focused_webview_id: None,
                 animating_state_changed,
+                hidpi_scale_factor: Scale::new(hidpi_scale_factor),
             }),
         });
 
@@ -309,8 +299,13 @@ impl RunningAppState {
     }
 
     pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
-        let webview = self.servo.new_webview(url);
-        webview.set_delegate(self.clone());
+        let webview = self
+            .servo
+            .new_webview()
+            .url(url)
+            .hidpi_scale_factor(self.inner().hidpi_scale_factor)
+            .delegate(self.clone())
+            .build();
         webview.focus();
         self.add(webview.clone());
     }
@@ -708,11 +703,5 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         if let Some(discovery) = self.xr_discovery.take() {
             registry.register(discovery);
         }
-    }
-}
-
-impl WindowMethods for ServoWindowCallbacks {
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.hidpi_factor
     }
 }
