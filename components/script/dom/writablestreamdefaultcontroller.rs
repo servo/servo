@@ -466,7 +466,7 @@ impl WritableStreamDefaultController {
             // Note: we are either here because the Js algorithm is none,
             // or because we are suppporting a stream transfer as
             // part of #abstract-opdef-setupcrossrealmtransformwritable
-            // but the logic is the same for both.
+            // and the logic is the same for both.
 
             // Let startAlgorithm be an algorithm that returns undefined.
             Promise::new_resolved(global, cx, (), can_gc)
