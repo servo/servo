@@ -1232,17 +1232,10 @@ fn glyphs_advance_by_index(
 ) -> PhysicalPoint<Au> {
     let mut point = baseline_origin;
     for run in glyph_runs {
-        let total_advance = if index < run.len() {
-            run.advance_for_byte_range(
-                &ServoRange::new(fonts::ByteIndex(0), index),
-                justification_adjustment,
-            )
-        } else {
-            run.advance_for_byte_range(
-                &ServoRange::new(fonts::ByteIndex(0), run.len()),
-                justification_adjustment,
-            )
-        };
+        let total_advance = run.advance_for_byte_range(
+            &ServoRange::new(fonts::ByteIndex(0), index.min(run.len())),
+            justification_adjustment,
+        );
         point.x += total_advance;
     }
     point
