@@ -60,6 +60,7 @@ pub(crate) struct ServoShellPreferences {
 
     /// Log filter given in the `log_filter` spec as a String, if any.
     /// If a filter is passed, the logger should adjust accordingly.
+    #[allow(unused) /* we tag unused to avoid lint errors across platforms */] 
     pub log_filter: Option<String>
 }
 
