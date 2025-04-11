@@ -275,12 +275,13 @@ impl FormData {
         };
 
         let bytes = blob.get_bytes().unwrap_or_default();
+        let last_modified = blob.downcast::<File>().map(|file| file.get_modified());
 
         File::new(
             &self.global(),
             BlobImpl::new_from_bytes(bytes, blob.type_string()),
             name,
-            None,
+            last_modified,
             can_gc,
         )
     }
