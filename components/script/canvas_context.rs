@@ -30,6 +30,9 @@ pub(crate) trait CanvasContext {
 
     fn resize(&self);
 
+    /// Returns none if sizes are incorrect.
+    ///
+    /// In case of other errors it returns cleared snapshot
     fn get_image_data(&self) -> Option<Snapshot>;
 
     fn origin_is_clean(&self) -> bool {

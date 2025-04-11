@@ -377,24 +377,22 @@ impl HTMLCanvasElement {
     }
 
     pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
-        let size = self.get_size();
-
-        if size.width == 0 || size.height == 0 {
-            return None;
+        match self.context.borrow().as_ref() {
+            Some(CanvasContext::Context2d(context)) => context.get_image_data(),
+            Some(CanvasContext::WebGL(context)) => context.get_image_data(),
+            Some(CanvasContext::WebGL2(context)) => context.get_image_data(),
+            #[cfg(feature = "webgpu")]
+            Some(CanvasContext::WebGPU(context)) => context.get_image_data(),
+            Some(CanvasContext::Placeholder(context)) => context.get_image_data(),
+            None => {
+                let size = self.get_size();
+                if size.width == 0 || size.height == 0 {
+                    None
+                } else {
+                    Some(Snapshot::cleared(size.cast()))
+                }
+            },
         }
-
-        Some(
-            match self.context.borrow().as_ref() {
-                Some(CanvasContext::Context2d(context)) => context.get_image_data(),
-                Some(CanvasContext::WebGL(context)) => context.get_image_data(),
-                Some(CanvasContext::WebGL2(context)) => context.get_image_data(),
-                #[cfg(feature = "webgpu")]
-                Some(CanvasContext::WebGPU(context)) => context.get_image_data(),
-                Some(CanvasContext::Placeholder(context)) => context.get_image_data(),
-                None => None,
-            }
-            .unwrap_or_else(|| Snapshot::cleared(self.get_size().cast())),
-        )
     }
 
     fn maybe_quality(quality: HandleValue) -> Option<f64> {

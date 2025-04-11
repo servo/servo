@@ -89,21 +89,17 @@ impl OffscreenCanvas {
     }
 
     pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
-        let size = self.get_size();
-
-        if size.width == 0 || size.height == 0 {
-            return None;
+        match self.context.borrow().as_ref() {
+            Some(OffscreenCanvasContext::OffscreenContext2d(context)) => context.get_image_data(),
+            None => {
+                let size = self.get_size();
+                if size.width == 0 || size.height == 0 {
+                    None
+                } else {
+                    Some(Snapshot::cleared(size))
+                }
+            },
         }
-
-        Some(
-            match self.context.borrow().as_ref() {
-                Some(OffscreenCanvasContext::OffscreenContext2d(context)) => {
-                    context.get_image_data()
-                },
-                None => None,
-            }
-            .unwrap_or_else(|| Snapshot::cleared(self.get_size().cast())),
-        )
     }
 
     pub(crate) fn get_or_init_2d_context(
