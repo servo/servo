@@ -477,14 +477,15 @@ pub(crate) enum StructuredData<'a> {
     Writer(&'a mut StructuredDataWriter),
 }
 
-#[repr(C)]
 #[derive(Default)]
+#[repr(C)]
 pub(crate) struct DOMErrorRecord {
     pub(crate) message: Option<String>,
 }
 
 /// Reader and writer structs for results from, and inputs to, structured-data read/write operations.
 /// <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
+#[repr(C)]
 pub(crate) struct StructuredDataReader {
     /// A map of deserialized blobs, stored temporarily here to keep them rooted.
     pub(crate) blobs: Option<HashMap<StorageKey, DomRoot<Blob>>>,
@@ -504,12 +505,13 @@ pub(crate) struct StructuredDataReader {
     pub(crate) blob_impls: Option<HashMap<BlobId, BlobImpl>>,
     /// A map of serialized points.
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
-    /// A recorder for error in DOM
+    /// A struct of error message.
     pub(crate) errors: DOMErrorRecord,
 }
 
 /// A data holder for transferred and serialized objects.
 #[derive(Default)]
+#[repr(C)]
 pub(crate) struct StructuredDataWriter {
     /// Transferred ports.
     pub(crate) ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
@@ -517,7 +519,7 @@ pub(crate) struct StructuredDataWriter {
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// Serialized blobs.
     pub(crate) blobs: Option<HashMap<BlobId, BlobImpl>>,
-    /// A recorder for error in DOM
+    /// Error message.
     pub(crate) errors: DOMErrorRecord,
 }
 
