@@ -335,7 +335,7 @@ impl WritableStreamDefaultController {
         self.strategy_size.borrow_mut().take();
     }
 
-    /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controllerr>
+    /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
     #[allow(unsafe_code)]
     pub(crate) fn setup(
         &self,

@@ -767,7 +767,7 @@ fn create_readable_stream(
     // If sizeAlgorithm was not passed, set it to an algorithm that returns 1.
     let size_algorithm = queuing_strategy
         .size
-        .unwrap_or(extract_size_algorithm(&QueuingStrategy::empty(), can_gc));
+        .unwrap_or(extract_size_algorithm(&QueuingStrategy::empty()));
 
     // Assert: ! IsNonNegativeNumber(highWaterMark) is true.
     assert!(high_water_mark >= 0.0);
@@ -899,7 +899,7 @@ impl ReadableStream {
             global,
             source,
             1.0,
-            extract_size_algorithm(&QueuingStrategy::empty(), can_gc),
+            extract_size_algorithm(&QueuingStrategy::empty()),
             can_gc,
         );
         controller.setup(stream.clone(), can_gc)?;
@@ -1827,7 +1827,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
 
             // Let sizeAlgorithm be ! ExtractSizeAlgorithm(strategy).
-            let size_algorithm = extract_size_algorithm(strategy, can_gc);
+            let size_algorithm = extract_size_algorithm(strategy);
 
             let controller = ReadableStreamDefaultController::new(
                 global,

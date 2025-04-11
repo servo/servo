@@ -16,6 +16,7 @@ use js::rust::{
     MutableHandleValue as SafeMutableHandleValue,
 };
 
+use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::UnderlyingSink;
@@ -198,6 +199,10 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
     pub(crate) fn set_default_controller(&self, controller: &WritableStreamDefaultController) {
         self.controller.set(Some(controller));
+    }
+
+    pub(crate) fn get_default_controller(&self) -> DomRoot<WritableStreamDefaultController> {
+        self.controller.get().expect("Controller should be set.")
     }
 
     pub(crate) fn is_writable(&self) -> bool {
@@ -834,6 +839,23 @@ impl WritableStream {
         // Set stream.[[backpressure]] to backpressure.
         self.set_backpressure(backpressure);
     }
+
+    /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink>
+    pub(crate) fn setup_from_underlying_sink(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        underlying_sink: &UnderlyingSink,
+        strategy_hwm: f64,
+        strategy_size: Rc<QueuingStrategySize>,
+        can_gc: CanGc,
+    ) -> Result<(), Error> {
+        // Let controller be a new WritableStreamDefaultController.
+        let controller =
+            WritableStreamDefaultController::new(global, strategy_hwm, strategy_size, can_gc);
+
+        todo!()
+    }
 }
 
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
@@ -873,27 +895,28 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         let stream = WritableStream::new_with_proto(global, proto, can_gc);
 
         // Let sizeAlgorithm be ! ExtractSizeAlgorithm(strategy).
-        let size_algorithm = extract_size_algorithm(strategy, can_gc);
+        let size_algorithm = extract_size_algorithm(strategy);
 
         // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
         let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
 
+        // // Note: this must be done before `setup`,
+        // // otherwise `thisOb` is null in the start callback.
+        // controller.set_underlying_sink_this_object(underlying_sink_obj.handle());
+
+        // // Perform ? SetUpWritableStreamDefaultController
+        // controller.setup(cx, global, &stream, &underlying_sink_dict.start, can_gc)?;
+
         // Perform ? SetUpWritableStreamDefaultControllerFromUnderlyingSink
-        let controller = WritableStreamDefaultController::new(
+        stream.setup_from_underlying_sink(
+            cx,
             global,
             UnderlyingSinkType::Js,
             &underlying_sink_dict,
             high_water_mark,
             size_algorithm,
             can_gc,
-        );
-
-        // Note: this must be done before `setup`,
-        // otherwise `thisOb` is null in the start callback.
-        controller.set_underlying_sink_this_object(underlying_sink_obj.handle());
-
-        // Perform ? SetUpWritableStreamDefaultController
-        controller.setup(cx, global, &stream, &underlying_sink_dict.start, can_gc)?;
+        )?;
 
         Ok(stream)
     }
