@@ -17,7 +17,6 @@ use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::codecs::webp::WebPEncoder;
 use image::{ColorType, ImageEncoder};
-use ipc_channel::ipc::IpcSharedMemory;
 #[cfg(feature = "webgpu")]
 use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
@@ -25,6 +24,7 @@ use js::rust::{HandleObject, HandleValue};
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
+use snapshot::Snapshot;
 use style::attr::AttrValue;
 
 use crate::canvas_context::CanvasContext as _;
@@ -69,6 +69,7 @@ use crate::script_runtime::{CanGc, JSContext};
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
+#[derive(PartialEq)]
 enum EncodedImageType {
     Png,
     Jpeg,
@@ -375,42 +376,21 @@ impl HTMLCanvasElement {
         self.Height() != 0 && self.Width() != 0
     }
 
-    pub(crate) fn fetch_all_data(&self) -> Option<(Option<IpcSharedMemory>, Size2D<u32>)> {
-        let size = self.get_size();
-
-        if size.width == 0 || size.height == 0 {
-            return None;
-        }
-
-        let data = match self.context.borrow().as_ref() {
-            Some(CanvasContext::Context2d(context)) => context.get_image_data_as_shared_memory(),
-            Some(CanvasContext::WebGL(_context)) => {
-                // TODO: add a method in WebGLRenderingContext to get the pixels.
-                return None;
-            },
-            Some(CanvasContext::WebGL2(_context)) => {
-                // TODO: add a method in WebGL2RenderingContext to get the pixels.
-                return None;
-            },
+    pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
+        match self.context.borrow().as_ref() {
+            Some(CanvasContext::Context2d(context)) => context.get_image_data(),
+            Some(CanvasContext::WebGL(context)) => context.get_image_data(),
+            Some(CanvasContext::WebGL2(context)) => context.get_image_data(),
             #[cfg(feature = "webgpu")]
-            Some(CanvasContext::WebGPU(context)) => context.get_image_data_as_shared_memory(),
-            Some(CanvasContext::Placeholder(context)) => return context.fetch_all_data(),
-            None => None,
-        };
-
-        Some((data, size))
-    }
-
-    fn get_content(&self) -> Option<Vec<u8>> {
-        match *self.context.borrow() {
-            Some(CanvasContext::Context2d(ref context)) => context.get_image_data(),
-            Some(CanvasContext::WebGL(ref context)) => context.get_image_data(),
-            Some(CanvasContext::WebGL2(ref context)) => context.get_image_data(),
-            #[cfg(feature = "webgpu")]
-            Some(CanvasContext::WebGPU(ref context)) => context.get_image_data(),
-            Some(CanvasContext::Placeholder(_)) | None => {
-                // Each pixel is fully-transparent black.
-                Some(vec![0; (self.Width() * self.Height() * 4) as usize])
+            Some(CanvasContext::WebGPU(context)) => context.get_image_data(),
+            Some(CanvasContext::Placeholder(context)) => context.get_image_data(),
+            None => {
+                let size = self.get_size();
+                if size.width == 0 || size.height == 0 {
+                    None
+                } else {
+                    Some(Snapshot::cleared(size.cast()))
+                }
             },
         }
     }
@@ -560,11 +540,23 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         }
 
         // Step 3.
-        let Some(file) = self.get_content() else {
+        let Some(mut snapshot) = self.get_image_data() else {
             return Ok(USVString("data:,".into()));
         };
 
         let image_type = EncodedImageType::from(mime_type);
+        snapshot.transform(
+            if image_type == EncodedImageType::Jpeg {
+                snapshot::AlphaMode::AsOpaque {
+                    premultiplied: true,
+                }
+            } else {
+                snapshot::AlphaMode::Transparent {
+                    premultiplied: false,
+                }
+            },
+            snapshot::PixelFormat::RGBA,
+        );
         let mut url = format!("data:{};base64,", image_type.as_mime_type());
 
         let mut encoder = base64::write::EncoderStringWriter::from_consumer(
@@ -575,7 +567,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         self.encode_for_mime_type(
             &image_type,
             Self::maybe_quality(quality),
-            &file,
+            snapshot.data(),
             &mut encoder,
         );
         encoder.into_inner();
@@ -604,7 +596,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         let result = if self.Width() == 0 || self.Height() == 0 {
             None
         } else {
-            self.get_content()
+            self.get_image_data()
         };
 
         let this = Trusted::new(self);
@@ -625,13 +617,17 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                     return error!("Expected blob callback, but found none!");
                 };
 
-                if let Some(bytes) = result {
+                if let Some(mut snapshot) = result {
+                    snapshot.transform(
+                        snapshot::AlphaMode::Transparent{ premultiplied: false },
+                        snapshot::PixelFormat::RGBA
+                    );
                     // Step 4.1
                     // If result is non-null, then set result to a serialization of result as a file with
                     // type and quality if given.
                     let mut encoded: Vec<u8> = vec![];
 
-                    this.encode_for_mime_type(&image_type, quality, &bytes, &mut encoded);
+                    this.encode_for_mime_type(&image_type, quality, snapshot.data(), &mut encoded);
                     let blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
                     // Step 4.2.1 & 4.2.2
                     // Set result to a new Blob object, created in the relevant realm of this canvas element

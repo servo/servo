@@ -6,8 +6,8 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use ipc_channel::ipc::IpcSharedMemory;
 use js::rust::{HandleObject, HandleValue};
+use snapshot::Snapshot;
 
 use crate::dom::bindings::cell::{DomRefCell, Ref, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
@@ -88,21 +88,18 @@ impl OffscreenCanvas {
         ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
     }
 
-    pub(crate) fn fetch_all_data(&self) -> Option<(Option<IpcSharedMemory>, Size2D<u32>)> {
-        let size = self.get_size();
-
-        if size.width == 0 || size.height == 0 {
-            return None;
-        }
-
-        let data = match self.context.borrow().as_ref() {
-            Some(OffscreenCanvasContext::OffscreenContext2d(context)) => {
-                context.get_image_data_as_shared_memory()
+    pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
+        match self.context.borrow().as_ref() {
+            Some(OffscreenCanvasContext::OffscreenContext2d(context)) => context.get_image_data(),
+            None => {
+                let size = self.get_size();
+                if size.width == 0 || size.height == 0 {
+                    None
+                } else {
+                    Some(Snapshot::cleared(size))
+                }
             },
-            None => None,
-        };
-
-        Some((data, size.to_u32()))
+        }
     }
 
     pub(crate) fn get_or_init_2d_context(
