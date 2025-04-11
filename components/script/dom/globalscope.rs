@@ -1324,6 +1324,10 @@ impl GlobalScope {
 
             let realm = enter_realm(self);
             let comp = InRealm::Entered(&realm);
+
+            // Note: this is necessary, on top of entering the realm above, 
+            // for the call to `GlobalScope::incumbent`,
+            // in `MessagePort::post_message_impl` to succeed.
             let _aes = AutoEntryScript::new(self);
 
             // Let deserializeRecord be StructuredDeserializeWithTransfer(serializeWithTransferResult, targetRealm).
