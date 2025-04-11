@@ -5,6 +5,7 @@
 //! This module implements structured cloning, as defined by [HTML](https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
 use std::collections::HashMap;
+use std::ffi::CStr;
 use std::num::NonZeroU32;
 use std::os::raw;
 use std::ptr;
@@ -28,6 +29,7 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use script_bindings::conversions::IDLInterface;
+use script_bindings::str::DOMString;
 use strum::IntoEnumIterator;
 
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
@@ -312,6 +314,7 @@ unsafe extern "C" fn read_transfer_callback(
     let sc_reader = &mut *(closure as *mut StructuredDataReader);
     let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
     let owner = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
+
     for transferrable in TransferrableInterface::iter() {
         if tag == StructuredCloneTags::from(transferrable) as u32 {
             let transfer_receiver = receiver_for_type(transferrable);
@@ -439,9 +442,26 @@ unsafe extern "C" fn can_transfer_callback(
 unsafe extern "C" fn report_error_callback(
     _cx: *mut JSContext,
     _errorid: u32,
-    _closure: *mut ::std::os::raw::c_void,
-    _error_message: *const ::std::os::raw::c_char,
+    closure: *mut raw::c_void,
+    error_message: *const ::std::os::raw::c_char,
 ) {
+    log::warn!("DataCloneError from report_error_callback");
+    let msg_result = unsafe { CStr::from_ptr(error_message).to_str().map(str::to_string) };
+
+    if let Ok(msg) = msg_result {
+        let sc_reader = &mut *(closure as *mut StructuredDataReader);
+
+        sc_reader.errors = Some(DOMErrorRecord {
+            message: DOMString::from_string(msg),
+        })
+    }
+    //sc_reader.errors = Some(DOMErrorRecord {
+    //    message: domstring_message.clone(),
+    //});
+    // let sc_writer = &mut *(closure as *mut StructuredDataWriter);
+    // sc_writer.errors = Some(DOMErrorRecord {
+    //    message: domstring_message.clone(),
+    // })
 }
 
 unsafe extern "C" fn sab_cloned_callback(
@@ -468,6 +488,11 @@ pub(crate) enum StructuredData<'a> {
     Writer(&'a mut StructuredDataWriter),
 }
 
+#[derive(Debug)]
+pub(crate) struct DOMErrorRecord {
+    pub(crate) message: DOMString,
+}
+
 /// Reader and writer structs for results from, and inputs to, structured-data read/write operations.
 /// <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
 pub(crate) struct StructuredDataReader {
@@ -489,6 +514,8 @@ pub(crate) struct StructuredDataReader {
     pub(crate) blob_impls: Option<HashMap<BlobId, BlobImpl>>,
     /// A map of serialized points.
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
+    /// A recorder for error in DOM
+    pub(crate) errors: Option<DOMErrorRecord>,
 }
 
 /// A data holder for transferred and serialized objects.
@@ -500,6 +527,8 @@ pub(crate) struct StructuredDataWriter {
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// Serialized blobs.
     pub(crate) blobs: Option<HashMap<BlobId, BlobImpl>>,
+    /// A recorder for error in DOM
+    pub(crate) errors: Option<DOMErrorRecord>,
 }
 
 /// Writes a structured clone. Returns a `DataClone` error if that fails.
@@ -537,7 +566,9 @@ pub(crate) fn write(
         );
         if !result {
             JS_ClearPendingException(*cx);
-            return Err(Error::DataClone(None));
+            return Err(Error::DataClone(Some(
+                "This costum error from DataClone".to_string(),
+            )));
         }
 
         let nbytes = GetLengthOfJSStructuredCloneData(scdata);
@@ -575,6 +606,7 @@ pub(crate) fn read(
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),
         points: data.points.take(),
+        errors: None,
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {
@@ -605,14 +637,13 @@ pub(crate) fn read(
         );
         if !result {
             JS_ClearPendingException(*cx);
-            return Err(Error::DataClone);
+            return Err(Error::DataClone(None));
         }
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);
 
         // Any transfer-received port-impls should have been taken out.
         assert!(sc_reader.port_impls.is_none());
-
         Ok(sc_reader.message_ports.take().unwrap_or_default())
     }
 }
