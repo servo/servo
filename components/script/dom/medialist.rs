@@ -106,6 +106,11 @@ impl MediaList {
         );
         MediaQuery::parse(&context, &mut parser)
     }
+
+    pub(crate) fn clone_media_list(&self) -> StyleMediaList {
+        let guard = self.shared_lock().read();
+        self.media_queries.read_with(&guard).clone()
+    }
 }
 
 impl MediaListMethods<crate::DomTypeHolder> for MediaList {
