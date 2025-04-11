@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::sync::Arc;
 
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
@@ -415,6 +416,11 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
     }
 }
 

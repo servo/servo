@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::{char, mem};
 
 use app_units::{AU_PER_PX, Au};
+use content_security_policy as csp;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
@@ -293,6 +294,11 @@ impl FetchResponseListener for ImageContext {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
     }
 }
 
