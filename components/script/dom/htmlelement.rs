@@ -594,7 +594,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         false
     }
     /// <https://html.spec.whatwg.org/multipage#dom-attachinternals>
-    fn AttachInternals(&self) -> Fallible<DomRoot<ElementInternals>> {
+    fn AttachInternals(&self, can_gc: CanGc) -> Fallible<DomRoot<ElementInternals>> {
         let element = self.as_element();
         // Step 1: If this's is value is not null, then throw a "NotSupportedError" DOMException
         if element.get_is().is_some() {
@@ -620,7 +620,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         // Step 5: If this's attached internals is non-null, then throw an "NotSupportedError" DOMException
-        let internals = element.ensure_element_internals();
+        let internals = element.ensure_element_internals(can_gc);
         if internals.attached() {
             return Err(Error::NotSupported);
         }
@@ -1227,7 +1227,7 @@ impl FormControl for HTMLElement {
     fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
         debug_assert!(self.is_form_associated_custom_element());
         self.as_element()
-            .ensure_element_internals()
+            .ensure_element_internals(CanGc::note())
             .set_form_owner(form);
     }
 

@@ -226,7 +226,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove>
     fn Remove(&self, index: i32) {
         if let Some(element) = self.upcast().IndexedGetter(index as u32) {
-            element.Remove();
+            element.Remove(CanGc::note());
         }
     }
 

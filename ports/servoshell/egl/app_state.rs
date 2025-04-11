@@ -20,8 +20,8 @@ use servo::{
     AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, ImeEvent, InputEvent,
     InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
     MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    NavigationRequest, PermissionRequest, RenderingContext, Servo, ServoDelegate, ServoError,
-    SimpleDialog, TouchEvent, TouchEventType, TouchId, WebView, WebViewDelegate,
+    NavigationRequest, PermissionRequest, RenderingContext, ScreenGeometry, Servo, ServoDelegate,
+    ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, WebView, WebViewDelegate,
     WindowRenderingContext,
 };
 use url::Url;
@@ -115,6 +115,16 @@ impl ServoDelegate for ServoShellServoDelegate {
 }
 
 impl WebViewDelegate for RunningAppState {
+    fn screen_geometry(&self, webview: WebView) -> Option<ScreenGeometry> {
+        let coord = self.callbacks.coordinates.borrow();
+        let screen_size = DeviceIntSize::new(coord.viewport.size.width, coord.viewport.size.height);
+        Some(ScreenGeometry {
+            size: screen_size,
+            available_size: screen_size,
+            offset: Point2D::zero(),
+        })
+    }
+
     fn notify_page_title_changed(&self, _webview: servo::WebView, title: Option<String>) {
         self.callbacks.host_callbacks.on_title_changed(title);
     }

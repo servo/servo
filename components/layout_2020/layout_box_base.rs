@@ -103,10 +103,16 @@ pub(crate) struct CacheableLayoutResult {
     pub specific_layout_info: Option<SpecificLayoutInfo>,
 }
 
+/// A collection of layout inputs and a cached layout result for a [`LayoutBoxBase`].
 pub(crate) struct CacheableLayoutResultAndInputs {
+    /// The [`CacheableLayoutResult`] for this layout.
     pub result: CacheableLayoutResult,
 
+    /// The [`ContainingBlockSize`] to use for this box's contents, but not
+    /// for the box itself.
     pub containing_block_for_children_size: ContainingBlockSize,
 
+    /// A [`PositioningContext`] holding absolutely-positioned descendants
+    /// collected during the layout of this box.
     pub positioning_context: PositioningContext,
 }

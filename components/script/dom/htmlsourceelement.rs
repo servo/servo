@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourc
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, Root};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::element::AttributeMutation;
 use crate::dom::htmlelement::HTMLElement;
@@ -119,10 +119,10 @@ impl VirtualMethods for HTMLSourceElement {
 
 impl HTMLSourceElementMethods<crate::DomTypeHolder> for HTMLSourceElement {
     // https://html.spec.whatwg.org/multipage/#dom-source-src
-    make_getter!(Src, "src");
+    make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-source-src
-    make_setter!(SetSrc, "src");
+    make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-source-type
     make_getter!(Type, "type");
@@ -131,10 +131,10 @@ impl HTMLSourceElementMethods<crate::DomTypeHolder> for HTMLSourceElement {
     make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-source-srcset
-    make_getter!(Srcset, "srcset");
+    make_url_getter!(Srcset, "srcset");
 
     // https://html.spec.whatwg.org/multipage/#dom-source-srcset
-    make_setter!(SetSrcset, "srcset");
+    make_url_setter!(SetSrcset, "srcset");
 
     // https://html.spec.whatwg.org/multipage/#dom-source-sizes
     make_getter!(Sizes, "sizes");

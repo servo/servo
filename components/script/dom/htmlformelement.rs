@@ -1129,6 +1129,7 @@ impl HTMLFormElement {
         &self,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
+        can_gc: CanGc,
     ) -> Vec<FormDatum> {
         let controls = self.controls.borrow();
         let mut data_set = Vec::new();
@@ -1177,7 +1178,8 @@ impl HTMLFormElement {
                         let custom = child.downcast::<HTMLElement>().unwrap();
                         if custom.is_form_associated_custom_element() {
                             // https://html.spec.whatwg.org/multipage/#face-entry-construction
-                            let internals = custom.upcast::<Element>().ensure_element_internals();
+                            let internals =
+                                custom.upcast::<Element>().ensure_element_internals(can_gc);
                             internals.perform_entry_construction(&mut data_set);
                             // Otherwise no form value has been set so there is nothing to do.
                         }
@@ -1225,7 +1227,7 @@ impl HTMLFormElement {
         self.constructing_entry_list.set(true);
 
         // Step 3-6
-        let ret = self.get_unclean_dataset(submitter, encoding);
+        let ret = self.get_unclean_dataset(submitter, encoding, can_gc);
 
         let window = self.owner_window();
 
