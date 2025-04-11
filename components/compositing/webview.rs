@@ -8,6 +8,9 @@ use std::collections::hash_map::Keys;
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
+use compositing_traits::viewport_description::{
+    DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM, ViewportDescription,
+};
 use compositing_traits::{RendererWebView, SendableFrameTree};
 use constellation_traits::{EmbedderToConstellationMessage, ScrollState};
 use embedder_traits::{
@@ -18,6 +21,7 @@ use embedder_traits::{
 use euclid::{Point2D, Scale, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
+use style_traits::PinchZoomFactor;
 use webrender::Transaction;
 use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector2D};
 use webrender_api::{
@@ -65,6 +69,10 @@ pub(crate) struct WebView {
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
     /// Touch input state machine
     touch_handler: TouchHandler,
+    /// "Mobile-style" zoom that does not reflow the page.
+    viewport_zoom: PinchZoomFactor,
+    /// Viewport Description
+    viewport_description: Option<ViewportDescription>,
 }
 
 impl Drop for WebView {
@@ -91,6 +99,8 @@ impl WebView {
             touch_handler: TouchHandler::new(),
             global,
             pending_scroll_zoom_events: Default::default(),
+            viewport_zoom: PinchZoomFactor::new(DEFAULT_ZOOM),
+            viewport_description: None,
         }
     }
 
@@ -727,8 +737,8 @@ impl WebView {
             }
         }
 
-        let zoom_changed = compositor
-            .set_pinch_zoom_level(compositor.pinch_zoom_level().get() * combined_magnification);
+        let zoom_changed = self
+            .set_viewport_zoom_level_and_update(self.viewport_zoom.get() * combined_magnification);
         let scroll_result = combined_scroll_event.and_then(|combined_event| {
             self.scroll_node_at_device_point(
                 combined_event.cursor.to_f32(),
@@ -744,7 +754,6 @@ impl WebView {
         if zoom_changed {
             compositor.send_root_pipeline_display_list_in_transaction(&mut transaction);
         }
-
         if let Some((pipeline_id, external_id, offset)) = scroll_result {
             let offset = LayoutVector2D::new(-offset.x, -offset.y);
             transaction.set_scroll_offsets(
@@ -759,6 +768,16 @@ impl WebView {
 
         compositor.generate_frame(&mut transaction, RenderReasons::APZ);
         self.global.borrow_mut().send_transaction(transaction);
+    }
+
+    fn set_viewport_zoom_level_and_update(&mut self, mut zoom: f32) -> bool {
+        if let Some(viewport) = self.viewport_description.as_ref() {
+            zoom = f32::max(viewport.minimum_scale.get(), zoom);
+            zoom = f32::min(viewport.maximum_scale.get(), zoom);
+        }
+
+        let old_zoom = std::mem::replace(&mut self.viewport_zoom, PinchZoomFactor::new(zoom));
+        old_zoom != self.viewport_zoom
     }
 
     /// Perform a hit test at the given [`DevicePoint`] and apply the [`ScrollLocation`]
@@ -826,7 +845,23 @@ impl WebView {
 
         // TODO: Scroll to keep the center in view?
         self.pending_scroll_zoom_events
-            .push(ScrollZoomEvent::PinchZoom(magnification));
+            .push(ScrollZoomEvent::PinchZoom(
+                self.clamp_zoom_within_viewport_scale(magnification),
+            ));
+    }
+
+    pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
+        self.set_viewport_zoom_level_and_update(viewport_description.initial_scale.get());
+        self.viewport_description = Some(viewport_description);
+    }
+
+    fn clamp_zoom_within_viewport_scale(&self, mut zoom: f32) -> f32 {
+        if let Some(viewport) = self.viewport_description.as_ref() {
+            zoom = zoom.clamp(viewport.minimum_scale.get(), viewport.maximum_scale.get());
+        } else {
+            zoom = zoom.clamp(MIN_ZOOM, MAX_ZOOM);
+        }
+        zoom
     }
 }
 

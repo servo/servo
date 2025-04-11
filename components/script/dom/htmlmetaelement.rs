@@ -6,6 +6,8 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use compositing_traits::CrossProcessCompositorMessage;
+use compositing_traits::viewport_description::ViewportDescription;
 use constellation_traits::NavigationHistoryBehavior;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
@@ -90,6 +92,9 @@ impl HTMLMetaElement {
             if name == "referrer" {
                 self.apply_referrer();
             }
+            if name == "viewport" {
+                self.parse_and_send_viewport_if_necessary();
+            }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
         } else if !self.HttpEquiv().is_empty() {
             // TODO: Implement additional http-equiv candidates
@@ -140,6 +145,19 @@ impl HTMLMetaElement {
             let attr_val = attr.trim();
             if !attr_val.is_empty() {
                 doc.set_referrer_policy(determine_policy_for_token(attr_val));
+            }
+        }
+    }
+
+    /// <https://drafts.csswg.org/css-viewport/#parsing-algorithm>
+    fn parse_and_send_viewport_if_necessary(&self) {
+        let element = self.upcast::<Element>();
+        if let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) {
+            if let Ok(viewport) = ViewportDescription::from_str(&content.value()) {
+                let document = self.owner_window();
+                let _ = document.compositor_api().sender().send(
+                    CrossProcessCompositorMessage::Viewport(document.webview_id(), viewport),
+                );
             }
         }
     }

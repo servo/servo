@@ -21,6 +21,7 @@ use webrender_api::DocumentId;
 
 pub mod display_list;
 pub mod rendering_context;
+pub mod viewport_description;
 
 use core::fmt;
 use std::collections::HashMap;
@@ -39,6 +40,8 @@ use webrender_api::{
     FontInstanceFlags, FontInstanceKey, FontKey, HitTestFlags, ImageData, ImageDescriptor,
     ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId,
 };
+
+use crate::viewport_description::ViewportDescription;
 
 /// Sends messages to the compositor.
 #[derive(Clone)]
@@ -193,6 +196,8 @@ pub enum CrossProcessCompositorMessage {
     /// Get the available screen size (without toolbars and docks) for the screen
     /// the client window inhabits.
     GetAvailableScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
+    /// ViewportDescription
+    Viewport(WebViewId, ViewportDescription),
 }
 
 impl fmt::Debug for CrossProcessCompositorMessage {
@@ -213,6 +218,7 @@ impl fmt::Debug for CrossProcessCompositorMessage {
             Self::GetClientWindowRect(..) => f.write_str("GetClientWindowRect"),
             Self::GetScreenSize(..) => f.write_str("GetScreenSize"),
             Self::GetAvailableScreenSize(..) => f.write_str("GetAvailableScreenSize"),
+            Self::Viewport(..) => f.write_str("Viewport"),
         }
     }
 }
