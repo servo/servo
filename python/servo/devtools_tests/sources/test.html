@@ -1,0 +1,11 @@
+<!doctype html><meta charset=utf-8>
+<script src="classic.js"></script>
+<script>
+    console.log("inline classic");
+    new Worker("worker.js");
+</script>
+<script type="module">
+    import module from "./module.js";
+    console.log("inline module");
+</script>
+<script src="https://servo.org/js/load-table.js"></script>
