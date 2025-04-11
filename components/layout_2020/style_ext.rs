@@ -798,7 +798,13 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
-        if !self.get_effects().filter.0.is_empty() {
+        // From <https://www.w3.org/TR/filter-effects-1/#propdef-filter>:
+        // > A value other than none for the filter property results in the creation of a containing
+        // > block for absolute and fixed positioned descendants unless the element it applies to is
+        // > a document root element in the current browsing context.
+        if !self.get_effects().filter.0.is_empty() &&
+            !fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT)
+        {
             return true;
         }
 
@@ -813,7 +819,8 @@ impl ComputedValuesExt for ComputedValues {
         // > containing block for fixed positioned elements, specifying that property in will-change
         // > must cause the element to generate a containing block for fixed positioned elements.
         let will_change_bits = self.clone_will_change().bits;
-        if will_change_bits.intersects(WillChangeBits::FIXPOS_CB_NON_SVG) ||
+        if (will_change_bits.intersects(WillChangeBits::FIXPOS_CB_NON_SVG) &&
+            !fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT)) ||
             (will_change_bits
                 .intersects(WillChangeBits::TRANSFORM | WillChangeBits::PERSPECTIVE) &&
                 self.is_transformable(fragment_flags))
