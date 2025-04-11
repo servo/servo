@@ -70,7 +70,22 @@ pub(crate) fn throw_dom_exception(
         Error::Abort => DOMErrorName::AbortError,
         Error::Timeout => DOMErrorName::TimeoutError,
         Error::InvalidNodeType => DOMErrorName::InvalidNodeTypeError,
-        Error::DataClone => DOMErrorName::DataCloneError,
+        Error::DataClone(message) => match message {
+            Some(custom_message) => unsafe {
+                assert!(!JS_IsExceptionPending(*cx));
+                let exception = DOMException::new_with_custom_message(
+                    global,
+                    DOMErrorName::DataCloneError,
+                    custom_message,
+                    can_gc,
+                );
+                rooted!(in(*cx) let mut thrown = UndefinedValue());
+                exception.to_jsval(*cx, thrown.handle_mut());
+                JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
+                return;
+            },
+            None => DOMErrorName::DataCloneError,
+        },
         Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
         Error::QuotaExceeded => DOMErrorName::QuotaExceededError,
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,

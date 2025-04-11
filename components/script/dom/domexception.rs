@@ -159,6 +159,21 @@ impl DOMException {
         )
     }
 
+    pub(crate) fn new_with_custom_message(
+        global: &GlobalScope,
+        code: DOMErrorName,
+        message: String,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMException> {
+        let (_, name) = DOMException::get_error_data_by_code(code);
+
+        reflect_dom_object(
+            Box::new(DOMException::new_inherited(DOMString::from(message), name)),
+            global,
+            can_gc,
+        )
+    }
+
     // not an IDL stringifier, used internally
     pub(crate) fn stringifier(&self) -> DOMString {
         DOMString::from(format!("{}: {}", self.name, self.message))
