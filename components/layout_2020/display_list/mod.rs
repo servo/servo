@@ -39,7 +39,6 @@ use webrender_api::{
 use wr::units::LayoutVector2D;
 
 use crate::context::{LayoutContext, ResolvedImage};
-use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
     BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
@@ -58,6 +57,7 @@ mod gradient;
 mod stacking_context;
 
 use background::BackgroundPainter;
+pub use conversions::*;
 pub use stacking_context::*;
 
 #[derive(Clone, Copy)]
@@ -711,7 +711,12 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build(&mut self, builder: &mut DisplayListBuilder, section: StackingContextSection) {
         if self.is_hit_test_for_scrollable_overflow {
-            self.build_hit_test(builder, self.fragment.scrollable_overflow().to_webrender());
+            self.build_hit_test(
+                builder,
+                self.fragment
+                    .reachable_scrollable_overflow_region(None)
+                    .to_webrender(),
+            );
             return;
         }
 
