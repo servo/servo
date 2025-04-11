@@ -15,14 +15,66 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     Cursor, InputEvent, LoadStatus, MediaSessionActionType, ScreenGeometry, Theme, TouchEventType,
+    ViewportDetails,
 };
+use euclid::{Point2D, Scale, Size2D};
+use servo_geometry::DeviceIndependentPixel;
 use url::Url;
 use webrender_api::ScrollLocation;
-use webrender_api::units::{DeviceIntPoint, DeviceRect};
+use webrender_api::units::{DeviceIntPoint, DevicePixel, DeviceRect};
 
-use crate::ConstellationProxy;
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
+use crate::{ConstellationProxy, Servo};
+
+pub struct WebViewBuilder<'servo> {
+    servo: &'servo Servo,
+    delegate: Rc<dyn WebViewDelegate>,
+    auxiliary: bool,
+    size: Option<PhysicalSize<u32>>,
+    hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    url: Option<Url>,
+}
+
+impl<'servo> WebViewBuilder<'servo> {
+    pub(crate) fn new(servo: &'servo Servo, auxiliary: bool) -> Self {
+        Self {
+            servo,
+            auxiliary,
+            size: None,
+            hidpi_scale_factor: Scale::new(1.0),
+            url: None,
+            delegate: Rc::new(DefaultWebViewDelegate),
+        }
+    }
+
+    pub fn delegate(mut self, delegate: Rc<dyn WebViewDelegate>) -> Self {
+        self.delegate = delegate;
+        self
+    }
+
+    pub fn size(mut self, size: PhysicalSize<u32>) -> Self {
+        self.size = Some(size);
+        self
+    }
+
+    pub fn hidpi_scale_factor(
+        mut self,
+        hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    ) -> Self {
+        self.hidpi_scale_factor = hidpi_scale_factor;
+        self
+    }
+
+    pub fn url(mut self, url: Url) -> Self {
+        self.url = Some(url);
+        self
+    }
+
+    pub fn build(self) -> WebView {
+        WebView::new(self)
+    }
+}
 
 /// A handle to a Servo webview. If you clone this handle, it does not create a new webview,
 /// but instead creates a new handle to the webview. Once the last handle is dropped, Servo
@@ -75,6 +127,7 @@ pub(crate) struct WebViewInner {
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
 
     rect: DeviceRect,
+    hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     load_status: LoadStatus,
     url: Option<Url>,
     status_text: Option<String>,
@@ -93,18 +146,29 @@ impl Drop for WebViewInner {
 }
 
 impl WebView {
-    pub(crate) fn new(
-        constellation_proxy: &ConstellationProxy,
-        compositor: Rc<RefCell<IOCompositor>>,
-    ) -> Self {
+    pub(crate) fn new(builder: WebViewBuilder) -> Self {
         let id = WebViewId::new();
+
+        let size = builder.size.map_or_else(
+            || {
+                builder
+                    .servo
+                    .compositor
+                    .borrow()
+                    .rendering_context_size()
+                    .to_f32()
+            },
+            |size| Size2D::new(size.width as f32, size.height as f32),
+        );
+
         let webview = Self(Rc::new(RefCell::new(WebViewInner {
             id,
-            constellation_proxy: constellation_proxy.clone(),
-            compositor: compositor.clone(),
-            delegate: Rc::new(DefaultWebViewDelegate),
+            constellation_proxy: builder.servo.constellation_proxy.clone(),
+            compositor: builder.servo.compositor.clone(),
+            delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
-            rect: DeviceRect::zero(),
+            rect: DeviceRect::from_origin_and_size(Point2D::origin(), size),
+            hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Complete,
             url: None,
             status_text: None,
@@ -115,12 +179,34 @@ impl WebView {
             cursor: Cursor::Pointer,
         })));
 
-        compositor
-            .borrow_mut()
-            .add_webview(Box::new(ServoRendererWebView {
+        builder.servo.compositor.borrow_mut().add_webview(
+            Box::new(ServoRendererWebView {
                 weak_handle: webview.weak_handle(),
                 id,
-            }));
+            }),
+            webview.viewport_details(),
+        );
+
+        builder
+            .servo
+            .webviews
+            .borrow_mut()
+            .insert(webview.id(), webview.weak_handle());
+
+        if !builder.auxiliary {
+            let url = builder.url.unwrap_or(
+                Url::parse("about:blank").expect("Should always be able to parse 'about:blank'."),
+            );
+
+            builder
+                .servo
+                .constellation_proxy
+                .send(EmbedderToConstellationMessage::NewWebView(
+                    url.into(),
+                    webview.id(),
+                    webview.viewport_details(),
+                ));
+        }
 
         webview
     }
@@ -131,6 +217,17 @@ impl WebView {
 
     fn inner_mut(&self) -> RefMut<'_, WebViewInner> {
         self.0.borrow_mut()
+    }
+
+    pub(crate) fn viewport_details(&self) -> ViewportDetails {
+        // The division by 1 represents the page's default zoom of 100%,
+        // and gives us the appropriate CSSPixel type for the viewport.
+        let inner = self.inner();
+        let scaled_viewport_size = inner.rect.size() / inner.hidpi_scale_factor;
+        ViewportDetails {
+            size: scaled_viewport_size / Scale::new(1.0),
+            hidpi_scale_factor: Scale::new(inner.hidpi_scale_factor.0),
+        }
     }
 
     pub(crate) fn from_weak_handle(inner: &Weak<RefCell<WebViewInner>>) -> Option<Self> {
@@ -299,6 +396,25 @@ impl WebView {
             .move_resize_webview(self.id(), rect);
     }
 
+    pub fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        self.inner().hidpi_scale_factor
+    }
+
+    pub fn set_hidpi_scale_factor(
+        &self,
+        new_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    ) {
+        if self.inner().hidpi_scale_factor == new_scale_factor {
+            return;
+        }
+
+        self.inner_mut().hidpi_scale_factor = new_scale_factor;
+        self.inner()
+            .compositor
+            .borrow_mut()
+            .set_hidpi_scale_factor(self.id(), new_scale_factor);
+    }
+
     pub fn show(&self, hide_others: bool) {
         self.inner()
             .compositor
@@ -416,14 +532,14 @@ impl WebView {
         self.inner()
             .compositor
             .borrow_mut()
-            .on_zoom_window_event(new_zoom);
+            .on_zoom_window_event(self.id(), new_zoom);
     }
 
     pub fn reset_zoom(&self) {
         self.inner()
             .compositor
             .borrow_mut()
-            .on_zoom_reset_window_event();
+            .on_zoom_reset_window_event(self.id());
     }
 
     pub fn set_pinch_zoom(&self, new_pinch_zoom: f32) {

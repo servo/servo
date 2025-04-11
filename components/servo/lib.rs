@@ -42,7 +42,7 @@ use canvas::WebGLComm;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
-use compositing::windowing::{EmbedderMethods, WindowMethods};
+use compositing::windowing::EmbedderMethods;
 use compositing::{IOCompositor, InitialCompositorState};
 pub use compositing_traits::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
@@ -104,7 +104,7 @@ pub use webgpu;
 use webgpu::swapchain::WGPUImageMap;
 use webrender::{ONE_TIME_USAGE_HINT, RenderApiSender, ShaderPrecacheFlags, UploadMethod};
 use webrender_api::{ColorF, DocumentId, FramePublishId};
-use webview::WebViewInner;
+use webview::{WebViewBuilder, WebViewInner};
 #[cfg(feature = "webxr")]
 pub use webxr;
 pub use {
@@ -187,11 +187,8 @@ mod media_platform {
 /// orchestrating the interaction between JavaScript, CSS layout,
 /// rendering, and the client window.
 ///
-/// Clients create a `Servo` instance for a given reference-counted type
-/// implementing `WindowMethods`, which is the bridge to whatever
-/// application Servo is embedded in. Clients then create an event
-/// loop to pump messages between the embedding application and
-/// various browser components.
+// Clients create an event loop to pump messages between the embedding
+// application and various browser components.
 pub struct Servo {
     delegate: RefCell<Rc<dyn ServoDelegate>>,
     compositor: Rc<RefCell<IOCompositor>>,
@@ -251,7 +248,7 @@ impl Servo {
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(
-            skip(preferences, rendering_context, embedder, window),
+            skip(preferences, rendering_context, embedder),
             fields(servo_profiling = true),
             level = "trace",
         )
@@ -261,7 +258,6 @@ impl Servo {
         preferences: Preferences,
         rendering_context: Rc<dyn RenderingContext>,
         mut embedder: Box<dyn EmbedderMethods>,
-        window: Rc<dyn WindowMethods>,
         user_content_manager: UserContentManager,
     ) -> Self {
         // Global configuration options, parsed from the command line.
@@ -481,7 +477,6 @@ impl Servo {
         // rendered page and display it somewhere.
         let shutdown_state = Rc::new(Cell::new(ShutdownState::NotShuttingDown));
         let compositor = IOCompositor::new(
-            window,
             InitialCompositorState {
                 sender: compositor_proxy,
                 receiver: compositor_receiver,
@@ -622,10 +617,6 @@ impl Servo {
             .retain(|_webview_id, webview| webview.strong_count() > 0);
     }
 
-    pub fn pinch_zoom_level(&self) -> f32 {
-        self.compositor.borrow_mut().pinch_zoom_level().get()
-    }
-
     pub fn setup_logging(&self) {
         let constellation_chan = self.constellation_proxy.sender();
         let env = env_logger::Env::default();
@@ -661,27 +652,12 @@ impl Servo {
         self.compositor.borrow_mut().deinit();
     }
 
-    pub fn new_webview(&self, url: url::Url) -> WebView {
-        let webview = WebView::new(&self.constellation_proxy, self.compositor.clone());
-        self.webviews
-            .borrow_mut()
-            .insert(webview.id(), webview.weak_handle());
-        let viewport_details = self.compositor.borrow().default_webview_viewport_details();
-        self.constellation_proxy
-            .send(EmbedderToConstellationMessage::NewWebView(
-                url.into(),
-                webview.id(),
-                viewport_details,
-            ));
-        webview
+    pub fn new_webview(&self) -> WebViewBuilder {
+        WebViewBuilder::new(self, false /* auxiliary */)
     }
 
-    pub fn new_auxiliary_webview(&self) -> WebView {
-        let webview = WebView::new(&self.constellation_proxy, self.compositor.clone());
-        self.webviews
-            .borrow_mut()
-            .insert(webview.id(), webview.weak_handle());
-        webview
+    pub fn new_auxiliary_webview(&self) -> WebViewBuilder {
+        WebViewBuilder::new(self, true /* auxiliary */)
     }
 
     fn get_webview_handle(&self, id: WebViewId) -> Option<WebView> {
@@ -744,15 +720,7 @@ impl Servo {
                     let webview_id_and_viewport_details = webview
                         .delegate()
                         .request_open_auxiliary_webview(webview)
-                        .map(|webview| {
-                            let mut viewport =
-                                self.compositor.borrow().default_webview_viewport_details();
-                            let rect = webview.rect();
-                            if !rect.is_empty() {
-                                viewport.size = rect.size() / viewport.hidpi_scale_factor;
-                            }
-                            (webview.id(), viewport)
-                        });
+                        .map(|webview| (webview.id(), webview.viewport_details()));
                     let _ = response_sender.send(webview_id_and_viewport_details);
                 }
             },
