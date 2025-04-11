@@ -143,6 +143,12 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn get_image_data(&self) -> Option<Snapshot> {
+        let size = self.size();
+
+        if size.is_empty() {
+            return None;
+        }
+
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender), self.get_canvas_id());
         self.canvas_state.get_ipc_renderer().send(msg).unwrap();
