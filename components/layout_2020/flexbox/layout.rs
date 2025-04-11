@@ -257,7 +257,6 @@ impl FlexLineItem<'_> {
             },
         );
         let margin = flex_context.sides_to_flow_relative(item_margin);
-        let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
 
         if let Some(item_baseline) = self.layout_result.baseline_relative_to_margin_box.as_ref() {
             let item_baseline = *item_baseline + item_content_cross_start_position -
@@ -296,7 +295,6 @@ impl FlexLineItem<'_> {
                 .to_physical(container_writing_mode),
             margin.to_physical(container_writing_mode),
             None, /* clearance */
-            collapsed_margin,
         );
 
         // If this flex item establishes a containing block for absolutely-positioned
