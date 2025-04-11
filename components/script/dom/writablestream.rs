@@ -8,7 +8,6 @@ use std::mem;
 use std::ptr::{self};
 use std::rc::Rc;
 
-use base::id::MessagePortId;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
@@ -17,8 +16,6 @@ use js::rust::{
     MutableHandleValue as SafeMutableHandleValue,
 };
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
-use script_bindings::conversions::StringificationBehavior;
-use script_bindings::str::DOMString;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
@@ -28,7 +25,6 @@ use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
@@ -40,7 +36,7 @@ use crate::dom::writablestreamdefaultcontroller::{
     UnderlyingSinkType, WritableStreamDefaultController,
 };
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
-use crate::js::conversions::{FromJSValConvertible, ToJSValConvertible};
+use crate::js::conversions::ToJSValConvertible;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -1054,7 +1050,7 @@ impl CrossRealmTransformWritable {
         cx: SafeJSContext,
         global: &GlobalScope,
         message: SafeHandleValue,
-        realm: InRealm,
+        _realm: InRealm,
         can_gc: CanGc,
     ) {
         rooted!(in(*cx) let mut value = UndefinedValue());
@@ -1092,7 +1088,7 @@ impl CrossRealmTransformWritable {
         cx: SafeJSContext,
         global: &GlobalScope,
         port: &MessagePort,
-        realm: InRealm,
+        _realm: InRealm,
         can_gc: CanGc,
     ) {
         // Let error be a new "DataCloneError" DOMException.
@@ -1101,7 +1097,7 @@ impl CrossRealmTransformWritable {
         unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
 
         // Perform ! CrossRealmTransformSendError(port, error).
-        port.cross_realm_transform_send_error(rooted_error.handle());
+        port.cross_realm_transform_send_error(rooted_error.handle(), can_gc);
 
         // Perform ! WritableStreamDefaultControllerErrorIfNeeded(controller, error).
         self.controller

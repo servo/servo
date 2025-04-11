@@ -22,10 +22,10 @@ use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStra
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
     ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode, StreamPipeOptions
 };
+use script_bindings::str::DOMString;
 
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use script_bindings::conversions::StringificationBehavior;
-use script_bindings::str::DOMString;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -56,10 +56,10 @@ use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use base::id::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
+use base::id::MessagePortId;
 use constellation_traits::MessagePortImpl;
-use crate::dom::bindings::transferable::{ExtractComponents, IdFromComponents, Transferable};
-use crate::dom::bindings::structuredclone::{self, StructuredData, StructuredDataReader};
+use crate::dom::bindings::transferable::Transferable;
+use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
 
 use super::bindings::buffer_source::HeapBufferSource;
 use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
@@ -2066,7 +2066,7 @@ impl CrossRealmTransformReadable {
         global: &GlobalScope,
         port: &MessagePort,
         message: SafeHandleValue,
-        realm: InRealm,
+        _realm: InRealm,
         can_gc: CanGc,
     ) {
         rooted!(in(*cx) let mut value = UndefinedValue());
@@ -2076,7 +2076,9 @@ impl CrossRealmTransformReadable {
         // If type is "chunk",
         if type_string == "chunk" {
             // Perform ! ReadableStreamDefaultControllerEnqueue(controller, value).
-            self.controller.enqueue(cx, value.handle(), can_gc);
+            self.controller
+                .enqueue(cx, value.handle(), can_gc)
+                .expect("Enqueing a chunk should not fail.");
         }
 
         // Otherwise, if type is "close",
@@ -2117,7 +2119,7 @@ impl CrossRealmTransformReadable {
         cx: SafeJSContext,
         global: &GlobalScope,
         port: &MessagePort,
-        realm: InRealm,
+        _realm: InRealm,
         can_gc: CanGc,
     ) {
         // Let error be a new "DataCloneError" DOMException.
@@ -2126,7 +2128,7 @@ impl CrossRealmTransformReadable {
         unsafe { error.to_jsval(*cx, rooted_error.handle_mut()) };
 
         // Perform ! CrossRealmTransformSendError(port, error).
-        port.cross_realm_transform_send_error(rooted_error.handle());
+        port.cross_realm_transform_send_error(rooted_error.handle(), can_gc);
 
         // Perform ! ReadableStreamDefaultControllerError(controller, error).
         self.controller.error(rooted_error.handle(), can_gc);

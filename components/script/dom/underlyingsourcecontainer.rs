@@ -9,7 +9,6 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValue, IntoHandle};
-use script_bindings::str::DOMString;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -193,7 +192,8 @@ impl UnderlyingSourceContainer {
 
                 // Perform ! PackAndPostMessage(port, "pull", undefined).
                 rooted!(in(*cx) let mut value = UndefinedValue());
-                port.pack_and_post_message("pull", value.handle());
+                port.pack_and_post_message("pull", value.handle(), can_gc)
+                    .expect("Sending pull should not fail.");
 
                 // Return a promise resolved with undefined.
                 let promise = Promise::new(&self.global(), can_gc);

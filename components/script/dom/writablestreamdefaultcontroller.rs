@@ -10,7 +10,6 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
-use script_bindings::str::DOMString;
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -162,7 +161,7 @@ struct TransferBackPressurePromiseReaction {
 
 impl Callback for TransferBackPressurePromiseReaction {
     /// Reacting to backpressurePromise with the following fulfillment steps:
-    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         let global = self.result_promise.global();
         // Set backpressurePromise to a new promise.
         *self.backpressure_promise.borrow_mut() = Some(Promise::new(&global, can_gc));
@@ -660,7 +659,8 @@ impl WritableStreamDefaultController {
             UnderlyingSinkType::Transfer { ref port, .. } => {
                 // Perform ! PackAndPostMessage(port, "close", undefined).
                 rooted!(in(*cx) let mut value = UndefinedValue());
-                port.pack_and_post_message("close", value.handle());
+                port.pack_and_post_message("close", value.handle(), can_gc)
+                    .expect("Sending close should not fail.");
 
                 // Disentangle port.
                 global.disentangle_port(&port);

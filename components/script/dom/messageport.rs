@@ -12,16 +12,15 @@ use base::id::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
 use constellation_traits::{MessagePortImpl, PortMessageTask};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewObject, JSObject};
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
     MessagePortMethods, StructuredSerializeOptions,
 };
 use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{Error, ErrorResult, ErrorToJsval};
+use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
@@ -163,10 +162,10 @@ impl MessagePort {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-crossrealmtransformsenderror>
-    pub(crate) fn cross_realm_transform_send_error(&self, error: HandleValue) {
-        // Perform PackAndPostMessage(port, "error", error), 
+    pub(crate) fn cross_realm_transform_send_error(&self, error: HandleValue, can_gc: CanGc) {
+        // Perform PackAndPostMessage(port, "error", error),
         // discarding the result.
-        let _ = self.pack_and_post_message("error", error);
+        let _ = self.pack_and_post_message("error", error, can_gc);
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessagehandlingerror>
@@ -178,7 +177,7 @@ impl MessagePort {
         can_gc: CanGc,
     ) -> ErrorResult {
         // Let result be PackAndPostMessage(port, type, value).
-        let result = self.pack_and_post_message(type_, value);
+        let result = self.pack_and_post_message(type_, value, can_gc);
 
         // If result is an abrupt completion,
         if result.is_err() {
@@ -189,7 +188,7 @@ impl MessagePort {
             // will be created upon receipt.
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            self.cross_realm_transform_send_error(rooted_error.handle());
+            self.cross_realm_transform_send_error(rooted_error.handle(), can_gc);
         }
 
         result
@@ -197,7 +196,12 @@ impl MessagePort {
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessage>
     #[allow(unsafe_code)]
-    pub(crate) fn pack_and_post_message(&self, type_: &str, value: HandleValue) -> ErrorResult {
+    pub(crate) fn pack_and_post_message(
+        &self,
+        type_: &str,
+        value: HandleValue,
+        _can_gc: CanGc,
+    ) -> ErrorResult {
         let cx = GlobalScope::get_cx();
 
         // Let message be OrdinaryObjectCreate(null).
