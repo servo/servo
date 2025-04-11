@@ -60,6 +60,7 @@ use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
+use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
@@ -1191,6 +1192,28 @@ pub(crate) fn handle_get_url(
         .unwrap();
 }
 
+fn get_option_parent(node: &Node) -> Option<DomRoot<Node>> {
+    // Get datalist or select parent of <option> or <optiongrp>
+    let root_node = node.GetRootNode(&GetRootNodeOptions::empty());
+    node.preceding_nodes(&root_node)
+        .find(|preceding| preceding.is::<HTMLDataListElement>())
+        .or(node
+            .preceding_nodes(&root_node)
+            .find(|preceding| preceding.is::<HTMLSelectElement>()))
+}
+
+fn get_container(node: &Node) -> Option<DomRoot<Node>> {
+    // https://w3c.github.io/webdriver/#dfn-container
+    if node.downcast::<HTMLOptionElement>().is_some() {
+        return get_option_parent(node);
+    }
+    if node.downcast::<HTMLOptGroupElement>().is_some() {
+        let option_parent = get_option_parent(node);
+        return option_parent.or(Some(DomRoot::from_ref(node)));
+    }
+    Some(DomRoot::from_ref(node))
+}
+
 // https://w3c.github.io/webdriver/#element-click
 pub(crate) fn handle_element_click(
     documents: &DocumentCollection,
@@ -1210,6 +1233,12 @@ pub(crate) fn handle_element_click(
                     }
                 }
 
+                let container = if let Some(container) = get_container(&node) {
+                    container
+                } else {
+                    return Err(ErrorStatus::UnknownError);
+                };
+
                 // Step 5
                 // TODO: scroll into view
 
@@ -1222,32 +1251,14 @@ pub(crate) fn handle_element_click(
                 // Step 8
                 match node.downcast::<HTMLOptionElement>() {
                     Some(option_element) => {
-                        // https://w3c.github.io/webdriver/#dfn-container
-                        let root_node = node.GetRootNode(&GetRootNodeOptions::empty());
-                        let datalist_parent = node
-                            .preceding_nodes(&root_node)
-                            .find(|preceding| preceding.is::<HTMLDataListElement>());
-                        let select_parent = node
-                            .preceding_nodes(&root_node)
-                            .find(|preceding| preceding.is::<HTMLSelectElement>());
-
-                        // Step 8.1
-                        let parent_node = match datalist_parent {
-                            Some(datalist_parent) => datalist_parent,
-                            None => match select_parent {
-                                Some(select_parent) => select_parent,
-                                None => return Err(ErrorStatus::UnknownError),
-                            },
-                        };
-
                         // Steps 8.2 - 8.4
-                        let event_target = parent_node.upcast::<EventTarget>();
+                        let event_target = container.upcast::<EventTarget>();
                         event_target.fire_event(atom!("mouseover"), can_gc);
                         event_target.fire_event(atom!("mousemove"), can_gc);
                         event_target.fire_event(atom!("mousedown"), can_gc);
 
                         // Step 8.5
-                        match parent_node.downcast::<HTMLElement>() {
+                        match container.downcast::<HTMLElement>() {
                             Some(html_element) => html_element.Focus(can_gc),
                             None => return Err(ErrorStatus::UnknownError),
                         }
@@ -1261,7 +1272,7 @@ pub(crate) fn handle_element_click(
                             let previous_selectedness = option_element.Selected();
 
                             // Step 8.6.3
-                            match parent_node.downcast::<HTMLSelectElement>() {
+                            match container.downcast::<HTMLSelectElement>() {
                                 Some(select_element) => {
                                     if select_element.Multiple() {
                                         option_element.SetSelected(!option_element.Selected());
