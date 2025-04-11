@@ -66,6 +66,15 @@ pub fn init(
             );
         });
 
+    // Ensure cache dir exists before copy `prefs.json`
+    let _ = crate::prefs::default_config_dir().inspect(|path| {
+        if !path.exists() {
+            fs::create_dir_all(path).unwrap_or_else(|e| {
+                log::error!("Failed to create config directory at {:?}: {:?}", path, e)
+            })
+        }
+    });
+
     // Try copy `prefs.json` from {this.context.resource_prefsDir}/servo/
     // to `config_dir` if none exist
     let source_prefs = resource_dir.join("prefs.json");
