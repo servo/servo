@@ -1257,6 +1257,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn SetChecked(&self, checked: bool) {
         self.update_checked_state(checked, true);
+        update_related_validity_states(self, CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-readonly
@@ -2579,7 +2580,12 @@ impl VirtualMethods for HTMLInputElement {
         }
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
-
+        let root = self
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions::empty());
+        if root.is_connected() && self.input_type() == InputType::Radio {
+            self.radio_group_updated(self.radio_group_name().as_ref());
+        }
         update_related_validity_states(self, can_gc);
     }
 
@@ -2860,9 +2866,9 @@ impl Activatable for HTMLInputElement {
     }
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior
-    fn legacy_pre_activation_behavior(&self, can_gc: CanGc) -> Option<InputActivationState> {
+    fn legacy_pre_activation_behavior(&self, _can_gc: CanGc) -> Option<InputActivationState> {
         let ty = self.input_type();
-        let activation_state = match ty {
+        match ty {
             InputType::Checkbox => {
                 let was_checked = self.Checked();
                 let was_indeterminate = self.Indeterminate();
@@ -2897,20 +2903,14 @@ impl Activatable for HTMLInputElement {
                 })
             },
             _ => None,
-        };
-
-        if activation_state.is_some() {
-            update_related_validity_states(self, can_gc);
         }
-
-        activation_state
     }
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior
     fn legacy_canceled_activation_behavior(
         &self,
         cache: Option<InputActivationState>,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) {
         // Step 1
         let ty = self.input_type();
@@ -2958,8 +2958,6 @@ impl Activatable for HTMLInputElement {
             },
             _ => (),
         }
-
-        update_related_validity_states(self, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
