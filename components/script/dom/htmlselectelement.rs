@@ -534,7 +534,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-remove>
     fn Remove(&self) {
-        self.upcast::<Element>().Remove()
+        self.upcast::<Element>().Remove(CanGc::note())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-value>
