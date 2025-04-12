@@ -21,7 +21,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::microtask::Microtask;
-use crate::script_runtime::CanGc;
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -32,8 +32,8 @@ pub(crate) struct DefaultTeeReadRequestMicrotask {
 }
 
 impl DefaultTeeReadRequestMicrotask {
-    pub(crate) fn microtask_chunk_steps(&self, can_gc: CanGc) {
-        self.tee_read_request.chunk_steps(&self.chunk, can_gc)
+    pub(crate) fn microtask_chunk_steps(&self, cx: SafeJSContext, can_gc: CanGc) {
+        self.tee_read_request.chunk_steps(cx, &self.chunk, can_gc)
     }
 }
 
@@ -94,8 +94,14 @@ impl DefaultTeeReadRequest {
     }
     /// Call into cancel of the stream,
     /// <https://streams.spec.whatwg.org/#readable-stream-cancel>
-    pub(crate) fn stream_cancel(&self, reason: SafeHandleValue, can_gc: CanGc) {
-        self.stream.cancel(reason, can_gc);
+    pub(crate) fn stream_cancel(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        reason: SafeHandleValue,
+        can_gc: CanGc,
+    ) {
+        self.stream.cancel(cx, global, reason, can_gc);
     }
     /// Enqueue a microtask to perform the chunk steps
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
@@ -115,13 +121,13 @@ impl DefaultTeeReadRequest {
     }
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     #[allow(clippy::borrowed_box)]
-    pub(crate) fn chunk_steps(&self, chunk: &Box<Heap<JSVal>>, can_gc: CanGc) {
+    pub(crate) fn chunk_steps(&self, cx: SafeJSContext, chunk: &Box<Heap<JSVal>>, can_gc: CanGc) {
+        let global = &self.stream.global();
         // Set readAgain to false.
         self.read_again.set(false);
         // Let chunk1 and chunk2 be chunk.
         let chunk1 = chunk;
         let chunk2 = chunk;
-        let cx = GlobalScope::get_cx();
 
         rooted!(in(*cx) let chunk1_value = chunk1.get());
         rooted!(in(*cx) let chunk2_value = chunk2.get());
@@ -131,9 +137,7 @@ impl DefaultTeeReadRequest {
             rooted!(in(*cx) let mut clone_result = UndefinedValue());
             let data = structuredclone::write(cx, chunk2_value.handle(), None).unwrap();
             // If cloneResult is an abrupt completion,
-            if structuredclone::read(&self.stream.global(), data, clone_result.handle_mut())
-                .is_err()
-            {
+            if structuredclone::read(global, data, clone_result.handle_mut()).is_err() {
                 // Perform ! ReadableStreamDefaultControllerError(branch_1.[[controller]], cloneResult.[[Value]]).
                 self.readable_stream_default_controller_error(
                     &self.branch_1,
@@ -148,7 +152,7 @@ impl DefaultTeeReadRequest {
                     can_gc,
                 );
                 // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
-                self.stream_cancel(clone_result.handle(), can_gc);
+                self.stream_cancel(cx, global, clone_result.handle(), can_gc);
                 // Return.
                 return;
             } else {
