@@ -77,7 +77,10 @@ impl ImageAnimationManager {
                         image.id.unwrap(),
                         ImageDescriptor {
                             format: ImageFormat::BGRA8,
-                            size: DeviceIntSize::new(image.width as i32, image.height as i32),
+                            size: DeviceIntSize::new(
+                                image.metadata.width as i32,
+                                image.metadata.height as i32,
+                            ),
                             stride: None,
                             offset: 0,
                             flags: ImageDescriptorFlags::ALLOW_MIPMAPS,

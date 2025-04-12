@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use constellation_traits::BlobImpl;
 use indexmap::IndexMap;
-use pixels::Image;
+use pixels::RasterImage;
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
@@ -70,7 +70,7 @@ impl Kind {
 /// <https://html.spec.whatwg.org/multipage/#drag-data-store-bitmap>
 #[allow(dead_code)] // TODO this used by DragEvent.
 struct Bitmap {
-    image: Option<Arc<Image>>,
+    image: Option<Arc<RasterImage>>,
     x: i32,
     y: i32,
 }
@@ -126,7 +126,7 @@ impl DragDataStore {
         self.mode = mode;
     }
 
-    pub(crate) fn set_bitmap(&mut self, image: Option<Arc<Image>>, x: i32, y: i32) {
+    pub(crate) fn set_bitmap(&mut self, image: Option<Arc<RasterImage>>, x: i32, y: i32) {
         self.bitmap = Some(Bitmap { image, x, y });
     }
 

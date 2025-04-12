@@ -32,7 +32,7 @@ use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
-use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
+use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage};
 use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
 use profile_traits::{path, time_profile};
@@ -1431,7 +1431,7 @@ impl IOCompositor {
         &mut self,
         webview_id: WebViewId,
         page_rect: Option<Rect<f32, CSSPixel>>,
-    ) -> Result<Option<Image>, UnableToComposite> {
+    ) -> Result<Option<RasterImage>, UnableToComposite> {
         self.render_inner()?;
 
         let size = self.rendering_context.size2d().to_i32();
@@ -1458,9 +1458,11 @@ impl IOCompositor {
         Ok(self
             .rendering_context
             .read_to_image(rect)
-            .map(|image| Image {
-                width: image.width(),
-                height: image.height(),
+            .map(|image| RasterImage {
+                metadata: ImageMetadata {
+                    width: image.width(),
+                    height: image.height(),
+                },
                 format: PixelFormat::RGBA8,
                 frames: vec![ImageFrame {
                     delay: None,
