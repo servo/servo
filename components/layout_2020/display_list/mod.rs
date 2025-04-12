@@ -1233,11 +1233,9 @@ fn glyphs_advance_by_index(
     let mut point = baseline_origin;
     let mut index = index;
     for run in glyph_runs {
-        let total_advance = run.advance_for_byte_range(
-            &ServoRange::new(fonts::ByteIndex(0), index.min(run.len())),
-            justification_adjustment,
-        );
-        index = index - index.min(run.len());
+        let range = ServoRange::new(fonts::ByteIndex(0), index.min(run.len()));
+        index = index - range.length();
+        let total_advance = run.advance_for_byte_range(&range, justification_adjustment);
         point.x += total_advance;
     }
     point

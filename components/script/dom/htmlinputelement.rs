@@ -2647,12 +2647,18 @@ impl VirtualMethods for HTMLInputElement {
                             point_in_target,
                             CanGc::note(),
                         );
-                        if let Some(i) = index {
-                            self.textinput.borrow_mut().set_edit_point_index(i);
-                            // trigger redraw
-                            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                            event.PreventDefault();
-                        }
+                        // Position the caret at the click position or at the end of the current
+                        // value.
+                        let edit_point_index = match index {
+                            Some(i) => i,
+                            None => self.textinput.borrow().char_count(),
+                        };
+                        self.textinput
+                            .borrow_mut()
+                            .set_edit_point_index(edit_point_index);
+                        // trigger redraw
+                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        event.PreventDefault();
                     }
                 }
             }

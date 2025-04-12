@@ -108,6 +108,10 @@ impl File {
     pub(crate) fn file_type(&self) -> String {
         self.blob.type_string()
     }
+
+    pub(crate) fn get_modified(&self) -> SystemTime {
+        self.modified
+    }
 }
 
 impl FileMethods<crate::DomTypeHolder> for File {
@@ -132,15 +136,12 @@ impl FileMethods<crate::DomTypeHolder> for File {
             .map(|modified| OffsetDateTime::UNIX_EPOCH + Duration::milliseconds(modified))
             .map(Into::into);
 
-        // NOTE: Following behaviour might be removed in future,
-        // see https://github.com/w3c/FileAPI/issues/41
-        let replaced_filename = DOMString::from_string(filename.replace('/', ":"));
         let type_string = normalize_type_string(blobPropertyBag.type_.as_ref());
         Ok(File::new_with_proto(
             global,
             proto,
             BlobImpl::new_from_bytes(bytes, type_string),
-            replaced_filename,
+            filename,
             modified,
             can_gc,
         ))
