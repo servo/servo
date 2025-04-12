@@ -4,13 +4,11 @@
 
 //! This module implements structured cloning, as defined by [HTML](https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::num::NonZeroU32;
 use std::os::raw;
 use std::ptr;
-use std::rc::Rc;
 
 use base::id::{BlobId, DomPointId, MessagePortId, PipelineNamespaceId};
 use constellation_traits::{
@@ -449,10 +447,9 @@ unsafe extern "C" fn report_error_callback(
     let msg_result = unsafe { CStr::from_ptr(error_message).to_str().map(str::to_string) };
 
     if let Ok(msg) = msg_result {
-        let dom_error_record = &*(closure as *const Rc<RefCell<DOMErrorRecord>>);
-        if let Ok(mut dom_error) = dom_error_record.try_borrow_mut() {
-            dom_error.message = Some(msg);
-        }
+        let dom_error_record = &mut *(closure as *mut DOMErrorRecord);
+
+        dom_error_record.message = Some(msg)
     }
 }
 
@@ -491,7 +488,7 @@ pub(crate) struct DOMErrorRecord {
 #[repr(C)]
 pub(crate) struct StructuredDataReader {
     /// A struct of error message.
-    pub(crate) errors: Rc<RefCell<DOMErrorRecord>>,
+    pub(crate) errors: DOMErrorRecord,
     /// A map of deserialized blobs, stored temporarily here to keep them rooted.
     pub(crate) blobs: Option<HashMap<StorageKey, DomRoot<Blob>>>,
     /// A map of deserialized points, stored temporarily here to keep them rooted.
@@ -517,7 +514,7 @@ pub(crate) struct StructuredDataReader {
 #[repr(C)]
 pub(crate) struct StructuredDataWriter {
     /// Error message.
-    pub(crate) errors: Rc<RefCell<DOMErrorRecord>>,
+    pub(crate) errors: DOMErrorRecord,
     /// Transferred ports.
     pub(crate) ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
     /// Serialized points.
@@ -561,7 +558,7 @@ pub(crate) fn write(
         );
         if !result {
             JS_ClearPendingException(*cx);
-            return Err(Error::DataClone(sc_writer.errors.borrow().message.clone()));
+            return Err(Error::DataClone(sc_writer.errors.message));
         }
 
         let nbytes = GetLengthOfJSStructuredCloneData(scdata);
@@ -599,7 +596,7 @@ pub(crate) fn read(
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),
         points: data.points.take(),
-        errors: Rc::new(RefCell::new(DOMErrorRecord { message: None })),
+        errors: None,
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {
@@ -630,7 +627,7 @@ pub(crate) fn read(
         );
         if !result {
             JS_ClearPendingException(*cx);
-            return Err(Error::DataClone(sc_reader.errors.borrow().message.clone()));
+            return Err(Error::DataClone(sc_reader.errors.message));
         }
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);
