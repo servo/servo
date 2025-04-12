@@ -633,6 +633,7 @@ impl LayoutThread {
             font_context: self.font_context.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: Mutex::default(),
+            pending_rasterization_images: Mutex::default(),
             node_image_animation_map: Arc::new(RwLock::new(std::mem::take(
                 &mut reflow_request.node_to_image_animation_map,
             ))),
@@ -654,11 +655,13 @@ impl LayoutThread {
         }
 
         let pending_images = std::mem::take(&mut *layout_context.pending_images.lock());
+        let pending_rasterization_images = std::mem::take(&mut *layout_context.pending_rasterization_images.lock());
         let iframe_sizes = std::mem::take(&mut *layout_context.iframe_sizes.lock());
         let node_to_image_animation_map =
             std::mem::take(&mut *layout_context.node_image_animation_map.write());
         Some(ReflowResult {
             pending_images,
+            pending_rasterization_images,
             iframe_sizes,
             node_to_image_animation_map,
         })

@@ -155,7 +155,11 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
 
         // Step 3
         if let Some(image) = image.downcast::<HTMLImageElement>() {
-            data_store.set_bitmap(image.image_data(), x, y);
+            if let Some(image) = image.image_data().and_then(|image| image.as_raster_image()) {
+                data_store.set_bitmap(Some(image), x, y);
+            } else {
+                warn!("Vector images are not yet supported in setDragImage");
+            }
         }
     }
 

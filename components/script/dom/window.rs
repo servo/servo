@@ -54,7 +54,8 @@ use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::{
-    ImageCache, ImageResponder, ImageResponse, PendingImageId, PendingImageResponse,
+    ImageCache, ImageCacheMessage, ImageLoadListener, ImageResponse, PendingImageId,
+    PendingImageResponse,
 };
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
@@ -84,7 +85,7 @@ use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::ExternalScrollId;
-use webrender_api::units::{DevicePixel, LayoutPixel};
+use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
@@ -212,6 +213,8 @@ impl LayoutBlocker {
     }
 }
 
+type PendingImageRasterizationKey = (PendingImageId, DeviceIntSize);
+
 #[dom_struct]
 pub(crate) struct Window {
     globalscope: GlobalScope,
@@ -234,7 +237,7 @@ pub(crate) struct Window {
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
-    image_cache_sender: IpcSender<PendingImageResponse>,
+    image_cache_sender: IpcSender<ImageCacheMessage>,
     window_proxy: MutNullableDom<WindowProxy>,
     document: MutNullableDom<Document>,
     location: MutNullableDom<Location>,
@@ -341,6 +344,9 @@ pub(crate) struct Window {
     /// to ensure that the element can be marked dirty when the image data becomes
     /// available at some point in the future.
     pending_layout_images: DomRefCell<HashMapTracedValues<PendingImageId, Vec<Dom<Node>>>>,
+
+    pending_images_for_rasterization:
+        DomRefCell<HashMapTracedValues<PendingImageRasterizationKey, Vec<Dom<Node>>>>,
 
     /// Directory to store unminified css for this window if unminify-css
     /// opt is enabled.
@@ -562,7 +568,7 @@ impl Window {
         &self,
         id: PendingImageId,
         callback: impl Fn(PendingImageResponse) + 'static,
-    ) -> IpcSender<PendingImageResponse> {
+    ) -> IpcSender<ImageCacheMessage> {
         self.pending_image_callbacks
             .borrow_mut()
             .entry(id)
@@ -589,6 +595,23 @@ impl Window {
                 nodes.remove();
             },
         }
+    }
+
+    pub(crate) fn handle_image_rasterization_complete_notification(
+        &self,
+        image_id: PendingImageId,
+        size: DeviceIntSize,
+    ) {
+        let mut images = self.pending_images_for_rasterization.borrow_mut();
+        let nodes = images.entry((image_id, size));
+        let nodes = match nodes {
+            Entry::Occupied(nodes) => nodes,
+            Entry::Vacant(_) => return,
+        };
+        for node in nodes.get() {
+            node.dirty(NodeDamage::OtherNodeDamage);
+        }
+        nodes.remove();
     }
 
     pub(crate) fn pending_image_notification(&self, response: PendingImageResponse) {
@@ -2045,11 +2068,33 @@ impl Window {
                         .pending_layout_image_notification(response);
                 });
 
-                self.image_cache
-                    .add_listener(ImageResponder::new(sender, self.pipeline_id(), id));
+                self.image_cache.add_listener(ImageLoadListener::new(
+                    sender,
+                    self.pipeline_id(),
+                    id,
+                ));
             }
 
             let nodes = images.entry(id).or_default();
+            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
+                nodes.push(Dom::from_ref(&*node));
+            }
+        }
+
+        for image in results.pending_rasterization_images {
+            let node = unsafe { from_untrusted_node_address(image.node) };
+
+            let mut images = self.pending_images_for_rasterization.borrow_mut();
+            if !images.contains_key(&(image.id, image.size)) {
+                self.image_cache.add_rasterization_complete_listener(
+                    pipeline_id,
+                    image.id,
+                    image.size,
+                    self.image_cache_sender.clone(),
+                );
+            }
+
+            let nodes = images.entry((image.id, image.size)).or_default();
             if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
                 nodes.push(Dom::from_ref(&*node));
             }
@@ -2826,7 +2871,7 @@ impl Window {
         script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
         font_context: Arc<FontContext>,
-        image_cache_sender: IpcSender<PendingImageResponse>,
+        image_cache_sender: IpcSender<ImageCacheMessage>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
         #[cfg(feature = "bluetooth")] bluetooth_thread: IpcSender<BluetoothRequest>,
@@ -2924,6 +2969,7 @@ impl Window {
             webxr_registry,
             pending_image_callbacks: Default::default(),
             pending_layout_images: Default::default(),
+            pending_images_for_rasterization: Default::default(),
             unminified_css_dir: Default::default(),
             local_script_source,
             test_worklet: Default::default(),

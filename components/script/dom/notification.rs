@@ -21,8 +21,8 @@ use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
 use net_traits::http_status::HttpStatus;
 use net_traits::image_cache::{
-    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponder, ImageResponse,
-    PendingImageId, PendingImageResponse, UsePlaceholder,
+    ImageCache, ImageCacheMessage, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
+    ImageResponse, PendingImageId, UsePlaceholder,
 };
 use net_traits::request::{RequestBuilder, RequestId};
 use net_traits::{
@@ -886,7 +886,11 @@ impl Notification {
             ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
                 image, ..
             }) => {
-                self.set_resource_and_show_when_ready(request_id, &resource_type, Some(image));
+                let image = image.as_raster_image();
+                if image.is_none() {
+                    warn!("Vector images are not supported in notifications yet");
+                };
+                self.set_resource_and_show_when_ready(request_id, &resource_type, image);
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(
                 _,
@@ -925,8 +929,7 @@ impl Notification {
         pending_image_id: PendingImageId,
         resource_type: ResourceType,
     ) {
-        let (sender, receiver) =
-            ipc::channel::<PendingImageResponse>().expect("ipc channel failure");
+        let (sender, receiver) = ipc::channel::<ImageCacheMessage>().expect("ipc channel failure");
 
         let global: &GlobalScope = &self.global();
 
@@ -942,7 +945,11 @@ impl Notification {
                 task_source.queue(task!(handle_response: move || {
                     let this = trusted_this.root();
                     if let Ok(response) = response {
-                        this.handle_image_cache_response(request_id, response.response, resource_type);
+                        let ImageCacheMessage::NotifyPendingImageLoadStatus(status) = response else {
+                            warn!("Received unexpected message from image cache: {response:?}");
+                            return;
+                        };
+                        this.handle_image_cache_response(request_id, status.response, resource_type);
                     } else {
                         this.handle_image_cache_response(request_id, ImageResponse::None, resource_type);
                     }
@@ -950,7 +957,7 @@ impl Notification {
             }),
         );
 
-        global.image_cache().add_listener(ImageResponder::new(
+        global.image_cache().add_listener(ImageLoadListener::new(
             sender,
             global.pipeline_id(),
             pending_image_id,
@@ -965,7 +972,11 @@ impl Notification {
     ) {
         match response {
             ImageResponse::Loaded(image, _) => {
-                self.set_resource_and_show_when_ready(request_id, &resource_type, Some(image));
+                let image = image.as_raster_image();
+                if image.is_none() {
+                    warn!("Vector images are not yet supported in notification attribute");
+                };
+                self.set_resource_and_show_when_ready(request_id, &resource_type, image);
             },
             ImageResponse::PlaceholderLoaded(image, _) => {
                 self.set_resource_and_show_when_ready(request_id, &resource_type, Some(image));

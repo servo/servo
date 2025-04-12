@@ -10,15 +10,18 @@ use fnv::FnvHashMap;
 use fonts::FontContext;
 use fxhash::FxHashMap;
 use net_traits::image_cache::{
-    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
+    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, PendingImageId, UsePlaceholder,
 };
 use parking_lot::{Mutex, RwLock};
 use pixels::Image as PixelImage;
-use script_layout_interface::{IFrameSizes, ImageAnimationState, PendingImage, PendingImageState};
+use script_layout_interface::{
+    IFrameSizes, ImageAnimationState, PendingImage, PendingImageRasterization, PendingImageState,
+};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
 use style::values::computed::image::{Gradient, Image};
+use webrender_api::units::DeviceIntSize;
 
 use crate::display_list::WebRenderImageInfo;
 
@@ -38,6 +41,10 @@ pub struct LayoutContext<'a> {
 
     /// A list of in-progress image loads to be shared with the script thread.
     pub pending_images: Mutex<Vec<PendingImage>>,
+
+    /// A list of fully loaded vector images that need to be rasterized. This will be
+    /// shared with the script thread.
+    pub pending_rasterization_images: Mutex<Vec<PendingImageRasterization>>,
 
     /// A collection of `<iframe>` sizes to send back to script.
     pub iframe_sizes: Mutex<IFrameSizes>,
@@ -147,6 +154,10 @@ impl LayoutContext<'_> {
 
         match self.get_or_request_image_or_meta(node, url.clone(), use_placeholder) {
             Some(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {
+                let Some(image) = image.as_raster_image() else {
+                    // TODO: Add support for vector images in layout image.
+                    return None;
+                };
                 self.handle_animated_image(node, image.clone());
                 let image_info = WebRenderImageInfo {
                     size: Size2D::new(image.width, image.height),
@@ -162,6 +173,28 @@ impl LayoutContext<'_> {
             },
             None | Some(ImageOrMetadataAvailable::MetadataAvailable(..)) => None,
         }
+    }
+
+    pub fn rasterize_vector_image(
+        &self,
+        image_id: PendingImageId,
+        size: DeviceIntSize,
+        node: OpaqueNode,
+    ) -> Option<PixelImage> {
+        let pipeline_id = self.id;
+        let result = self
+            .image_cache
+            .rasterize_vector_image(pipeline_id, image_id, size);
+        if result.is_none() {
+            self.pending_rasterization_images
+                .lock()
+                .push(PendingImageRasterization {
+                    id: image_id,
+                    node: node.into(),
+                    size,
+                });
+        }
+        result
     }
 
     pub fn resolve_image<'a>(
