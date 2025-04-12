@@ -596,7 +596,7 @@ pub(crate) fn read(
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),
         points: data.points.take(),
-        errors: None,
+        errors: DOMErrorRecord { message: None },
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {
