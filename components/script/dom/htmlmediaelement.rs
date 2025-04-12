@@ -27,7 +27,7 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
-use pixels::Image;
+use pixels::RasterImage;
 use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMethods;
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
@@ -186,12 +186,12 @@ impl MediaFrameRenderer {
         }
     }
 
-    fn render_poster_frame(&mut self, image: Arc<Image>) {
+    fn render_poster_frame(&mut self, image: Arc<RasterImage>) {
         if let Some(image_key) = image.id {
             self.current_frame = Some(MediaFrame {
                 image_key,
-                width: image.width as i32,
-                height: image.height as i32,
+                width: image.metadata.width as i32,
+                height: image.metadata.height as i32,
             });
             self.show_poster = true;
         }
@@ -1358,13 +1358,13 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    pub(crate) fn process_poster_image_loaded(&self, image: Arc<Image>) {
+    pub(crate) fn process_poster_image_loaded(&self, image: Arc<RasterImage>) {
         if !self.show_poster.get() {
             return;
         }
 
         // Step 6.
-        self.handle_resize(Some(image.width), Some(image.height));
+        self.handle_resize(Some(image.metadata.width), Some(image.metadata.height));
         self.video_renderer
             .lock()
             .unwrap()

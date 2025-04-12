@@ -14,6 +14,7 @@ use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
+use net_traits::image_cache::Image as CachedImage;
 use range::Range as ServoRange;
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DebugOptions;
@@ -37,7 +38,7 @@ use style::values::generics::rect::Rect;
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
 use style_traits::CSSPixel;
-use webrender_api::units::{DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
+use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
     self as wr, BorderDetails, BoxShadowClipMode, BuiltDisplayList, ClipChainId, ClipMode,
     CommonItemProperties, ComplexClipRegion, ImageRendering, NinePatchBorder,
@@ -67,12 +68,6 @@ mod stacking_context;
 
 use background::BackgroundPainter;
 pub use stacking_context::*;
-
-#[derive(Clone, Copy)]
-pub struct WebRenderImageInfo {
-    pub size: Size2D<u32, UnknownUnit>,
-    pub key: Option<wr::ImageKey>,
-}
 
 // webrender's `ItemTag` is private.
 type ItemTag = (u64, u16);
@@ -1280,20 +1275,41 @@ impl<'a> BuilderForBoxFragment<'a> {
                         },
                     }
                 },
-                Ok(ResolvedImage::Image(image_info)) => {
+                Ok(ResolvedImage::Image { image, size }) => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
                     let dppx = 1.0;
-                    let intrinsic = NaturalSizes::from_width_and_height(
-                        image_info.size.width as f32 / dppx,
-                        image_info.size.height as f32 / dppx,
-                    );
-                    let Some(image_key) = image_info.key else {
+                    let intrinsic =
+                        NaturalSizes::from_width_and_height(size.width / dppx, size.height / dppx);
+                    let layer = background::layout_layer(self, painter, builder, index, intrinsic);
+                    let image_wr_key = match image {
+                        CachedImage::Raster(raster_image) => raster_image.id,
+                        CachedImage::Vector(vector_image) => {
+                            let scale = builder.context.shared_context().device_pixel_ratio().0;
+                            let default_size: DeviceIntSize =
+                                Size2D::new(size.width * scale, size.height * scale).to_i32();
+                            let layer_size = layer.as_ref().map(|layer| {
+                                Size2D::new(
+                                    layer.tile_size.width * scale,
+                                    layer.tile_size.height * scale,
+                                )
+                                .to_i32()
+                            });
+
+                            node.and_then(|node| {
+                                let size = layer_size.unwrap_or(default_size);
+                                builder
+                                    .context
+                                    .rasterize_vector_image(vector_image.id, size, node)
+                            })
+                            .and_then(|rasterized_image| rasterized_image.id)
+                        },
+                    };
+
+                    let Some(image_key) = image_wr_key else {
                         continue;
                     };
 
-                    if let Some(layer) =
-                        background::layout_layer(self, painter, builder, index, intrinsic)
-                    {
+                    if let Some(layer) = layer {
                         if layer.repeat {
                             builder.wr().push_repeating_image(
                                 &layer.common,
@@ -1469,13 +1485,17 @@ impl<'a> BuilderForBoxFragment<'a> {
             .resolve_image(node, &border.border_image_source)
         {
             Err(_) => return false,
-            Ok(ResolvedImage::Image(image_info)) => {
-                let Some(key) = image_info.key else {
+            Ok(ResolvedImage::Image { image, size }) => {
+                let Some(image) = image.as_raster_image() else {
                     return false;
                 };
 
-                width = image_info.size.width as f32;
-                height = image_info.size.height as f32;
+                let Some(key) = image.id else {
+                    return false;
+                };
+
+                width = size.width;
+                height = size.height;
                 NinePatchBorderSource::Image(key, ImageRendering::Auto)
             },
             Ok(ResolvedImage::Gradient(gradient)) => {

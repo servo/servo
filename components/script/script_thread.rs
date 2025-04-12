@@ -71,7 +71,7 @@ use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
-use net_traits::image_cache::{ImageCache, PendingImageResponse};
+use net_traits::image_cache::{ImageCache, ImageCacheMessage};
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::storage_thread::StorageType;
@@ -2095,11 +2095,24 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_image_cache(&self, response: PendingImageResponse) {
-        let window = self.documents.borrow().find_window(response.pipeline_id);
-        if let Some(ref window) = window {
-            window.pending_image_notification(response);
-        }
+    fn handle_msg_from_image_cache(&self, response: ImageCacheMessage) {
+        match response {
+            ImageCacheMessage::NotifyPendingImageLoadStatus(pending_image_response) => {
+                let window = self
+                    .documents
+                    .borrow()
+                    .find_window(pending_image_response.pipeline_id);
+                if let Some(ref window) = window {
+                    window.pending_image_notification(pending_image_response);
+                }
+            },
+            ImageCacheMessage::VectorImageRasterizationCompleted(pipeline_id, image_id, size) => {
+                let window = self.documents.borrow().find_window(pipeline_id);
+                if let Some(ref window) = window {
+                    window.handle_image_rasterization_complete_notification(image_id, size);
+                }
+            },
+        };
     }
 
     fn handle_webdriver_msg(

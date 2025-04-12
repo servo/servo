@@ -14,7 +14,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
-use pixels::Image;
+use pixels::RasterImage;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -69,7 +69,7 @@ pub enum WebDriverCommandMsg {
     TakeScreenshot(
         WebViewId,
         Option<Rect<f32, CSSPixel>>,
-        IpcSender<Option<Image>>,
+        IpcSender<Option<RasterImage>>,
     ),
     /// Create a new webview that loads about:blank. The constellation will use
     /// the provided channels to return the top level browsing context id
