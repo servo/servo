@@ -147,8 +147,6 @@ pub enum CrossProcessCompositorMessage {
     SendDisplayList {
         /// The [`WebViewId`] that this display list belongs to.
         webview_id: WebViewId,
-        /// The [CompositorDisplayListInfo] that describes the display list being sent.
-        display_list_info: Box<CompositorDisplayListInfo>,
         /// A descriptor of this display list used to construct this display list from raw data.
         display_list_descriptor: BuiltDisplayListDescriptor,
         /// An [ipc::IpcBytesReceiver] used to send the raw data of the display list.
@@ -275,21 +273,26 @@ impl CrossProcessCompositorApi {
         let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
         if let Err(e) = self.0.send(CrossProcessCompositorMessage::SendDisplayList {
             webview_id,
-            display_list_info: Box::new(display_list_info),
             display_list_descriptor,
             display_list_receiver,
         }) {
             warn!("Error sending display list: {}", e);
         }
 
+        let display_list_info_serialized =
+            bincode::serialize(&display_list_info).unwrap_or_default();
+        if let Err(error) = display_list_sender.send(&display_list_info_serialized) {
+            warn!("Error sending display list info: {error}");
+        }
+
         if let Err(error) = display_list_sender.send(&display_list_data.items_data) {
-            warn!("Error sending display list items: {}", error);
+            warn!("Error sending display list items: {error}");
         }
         if let Err(error) = display_list_sender.send(&display_list_data.cache_data) {
-            warn!("Error sending display list cache data: {}", error);
+            warn!("Error sending display list cache data: {error}");
         }
         if let Err(error) = display_list_sender.send(&display_list_data.spatial_tree) {
-            warn!("Error sending display spatial tree: {}", error);
+            warn!("Error sending display spatial tree: {error}");
         }
     }
 

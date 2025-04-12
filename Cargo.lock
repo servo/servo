@@ -1089,6 +1089,7 @@ name = "compositing"
 version = "0.0.1"
 dependencies = [
  "base",
+ "bincode",
  "bitflags 2.9.0",
  "compositing_traits",
  "constellation_traits",
@@ -1120,6 +1121,7 @@ name = "compositing_traits"
 version = "0.0.1"
 dependencies = [
  "base",
+ "bincode",
  "crossbeam-channel",
  "dpi",
  "embedder_traits",
