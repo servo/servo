@@ -21,8 +21,7 @@ use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
 };
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, HoistedSharedFragment,
-    SpecificLayoutInfo,
+    BoxFragment, Fragment, FragmentFlags, HoistedSharedFragment, SpecificLayoutInfo,
 };
 use crate::geom::{
     AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2,
@@ -697,9 +696,6 @@ impl HoistedAbsolutelyPositionedBox {
                 pbm.border.to_physical(containing_block_writing_mode),
                 margin.to_physical(containing_block_writing_mode),
                 None, /* clearance */
-                // We do not set the baseline offset, because absolutely positioned
-                // elements are not inflow.
-                CollapsedBlockMargins::zero(),
             )
             .with_specific_layout_info(specific_layout_info)
         };

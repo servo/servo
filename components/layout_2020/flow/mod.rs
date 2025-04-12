@@ -355,7 +355,6 @@ impl OutsideMarker {
             PhysicalSides::zero(),
             PhysicalSides::zero(),
             None,
-            CollapsedBlockMargins::zero(),
         )))
     }
 }
@@ -1105,9 +1104,9 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         pbm.border.to_physical(containing_block_writing_mode),
         margin.to_physical(containing_block_writing_mode),
         clearance,
-        block_margins_collapsed_with_children,
     )
     .with_baselines(flow_layout.baselines)
+    .with_block_margins_collapsed_with_children(block_margins_collapsed_with_children)
 }
 
 impl IndependentNonReplacedContents {
@@ -1211,10 +1210,10 @@ impl IndependentNonReplacedContents {
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
             None, /* clearance */
-            block_margins_collapsed_with_children,
         )
         .with_baselines(layout.baselines)
         .with_specific_layout_info(layout.specific_layout_info)
+        .with_block_margins_collapsed_with_children(block_margins_collapsed_with_children)
     }
 
     /// Lay out a normal in flow non-replaced block that establishes an independent
@@ -1516,10 +1515,10 @@ impl IndependentNonReplacedContents {
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
             clearance,
-            CollapsedBlockMargins::from_margin(&margin),
         )
         .with_baselines(layout.baselines)
         .with_specific_layout_info(layout.specific_layout_info)
+        .with_block_margins_collapsed_with_children(CollapsedBlockMargins::from_margin(&margin))
     }
 }
 
@@ -1653,8 +1652,8 @@ impl ReplacedContents {
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
             clearance,
-            CollapsedBlockMargins::from_margin(&margin),
         )
+        .with_block_margins_collapsed_with_children(CollapsedBlockMargins::from_margin(&margin))
     }
 }
 
@@ -2038,7 +2037,7 @@ impl<'container> PlacementState<'container> {
                     return;
                 }
 
-                let fragment_block_margins = &fragment.block_margins_collapsed_with_children;
+                let fragment_block_margins = fragment.block_margins_collapsed_with_children();
                 let mut fragment_block_size = fragment
                     .border_rect()
                     .size
@@ -2352,7 +2351,6 @@ impl IndependentFormattingContext {
             // so there's no need to store it explicitly in the fragment.
             // And atomic inlines don't have clearance.
             None, /* clearance */
-            CollapsedBlockMargins::zero(),
         );
 
         IndependentFloatOrAtomicLayoutResult {
