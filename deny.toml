@@ -118,7 +118,6 @@ skip = [
     "foreign-types-shared",
     "metal",
     "windows-core",
-    "hashbrown",
 
     # wgpu-hal depends on 0.5.0.
     "ndk-sys",
@@ -163,4 +162,4 @@ skip = [
 
 # github.com organizations to allow git sources for
 [sources.allow-org]
-github = ["pcwalton", "servo", "gfx-rs"]
+github = ["pcwalton", "servo"]

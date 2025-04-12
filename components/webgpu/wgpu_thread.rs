@@ -664,7 +664,8 @@ impl WGPU {
                                     limits,
                                     channel: WebGPU(self.sender.clone()),
                                 }
-                            });
+                            })
+                            .map_err(|err| err.to_string());
 
                         if let Err(e) = sender.send(Some(response)) {
                             warn!(
@@ -686,6 +687,7 @@ impl WGPU {
                             required_features: descriptor.required_features,
                             required_limits: descriptor.required_limits.clone(),
                             memory_hints: MemoryHints::MemoryUsage,
+                            trace: wgpu_types::Trace::Off,
                         };
                         let global = &self.global;
                         let device = WebGPUDevice(device_id);
@@ -694,7 +696,6 @@ impl WGPU {
                             .adapter_request_device(
                                 adapter_id.0,
                                 &desc,
-                                None,
                                 Some(device_id),
                                 Some(queue_id),
                             )
@@ -733,7 +734,8 @@ impl WGPU {
                                 });
                                 global.device_set_device_lost_closure(device_id, callback);
                                 descriptor
-                            });
+                            })
+                            .map_err(Into::into);
                         if let Err(e) = sender.send((device, queue, result)) {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestDevice ({})",
