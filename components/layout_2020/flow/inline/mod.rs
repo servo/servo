@@ -1979,7 +1979,9 @@ impl IndependentFormattingContext {
         bidi_level: Level,
     ) {
         // We need to know the inline size of the atomic before deciding whether to do the line break.
-        let mut child_positioning_context = PositioningContext::new_for_style(self.style())
+        let mut child_positioning_context = self
+            .base
+            .new_positioning_context()
             .unwrap_or_else(|| PositioningContext::new_for_subtree(true));
         let IndependentFloatOrAtomicLayoutResult {
             mut fragment,
