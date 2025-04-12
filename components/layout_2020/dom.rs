@@ -26,6 +26,7 @@ use crate::flow::BlockLevelBox;
 use crate::flow::inline::InlineItem;
 use crate::geom::PhysicalSize;
 use crate::replaced::{CanvasInfo, CanvasSource};
+use crate::table::TableLevelBox;
 use crate::taffy::TaffyItemBox;
 
 /// The data that is stored in each DOM node that is used by layout.
@@ -43,6 +44,7 @@ pub(super) enum LayoutBox {
     BlockLevel(ArcRefCell<BlockLevelBox>),
     InlineLevel(ArcRefCell<InlineItem>),
     FlexLevel(ArcRefCell<FlexLevelBox>),
+    TableLevelBox(TableLevelBox),
     TaffyItemBox(ArcRefCell<TaffyItemBox>),
 }
 
@@ -62,6 +64,7 @@ impl LayoutBox {
             LayoutBox::TaffyItemBox(taffy_item_box) => {
                 taffy_item_box.borrow_mut().invalidate_cached_fragment()
             },
+            LayoutBox::TableLevelBox(table_box) => table_box.invalidate_cached_fragment(),
         }
     }
 }

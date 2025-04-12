@@ -71,6 +71,7 @@ mod layout;
 use std::ops::Range;
 
 use app_units::Au;
+use atomic_refcell::AtomicRef;
 pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
@@ -107,20 +108,20 @@ pub struct Table {
     grid_base_fragment_info: BaseFragmentInfo,
 
     /// The captions for this table.
-    pub captions: Vec<TableCaption>,
+    pub captions: Vec<ArcRefCell<TableCaption>>,
 
     /// The column groups for this table.
-    pub column_groups: Vec<TableTrackGroup>,
+    pub column_groups: Vec<ArcRefCell<TableTrackGroup>>,
 
     /// The columns of this table defined by `<colgroup> | display: table-column-group`
     /// and `<col> | display: table-column` elements as well as `display: table-column`.
-    pub columns: Vec<TableTrack>,
+    pub columns: Vec<ArcRefCell<TableTrack>>,
 
     /// The rows groups for this table defined by `<tbody>`, `<thead>`, and `<tfoot>`.
-    pub row_groups: Vec<TableTrackGroup>,
+    pub row_groups: Vec<ArcRefCell<TableTrackGroup>>,
 
     /// The rows of this table defined by `<tr>` or `display: table-row` elements.
-    pub rows: Vec<TableTrack>,
+    pub rows: Vec<ArcRefCell<TableTrack>>,
 
     /// The content of the slots of this table.
     pub slots: Vec<Vec<TableSlot>>,
@@ -175,11 +176,14 @@ impl Table {
         }
     }
 
-    fn resolve_first_cell(&self, coords: TableSlotCoordinates) -> Option<&TableSlotCell> {
+    fn resolve_first_cell(
+        &self,
+        coords: TableSlotCoordinates,
+    ) -> Option<AtomicRef<'_, TableSlotCell>> {
         let resolved_coords = self.resolve_first_cell_coords(coords)?;
         let slot = self.get_slot(resolved_coords);
         match slot {
-            Some(TableSlot::Cell(cell)) => Some(cell),
+            Some(TableSlot::Cell(cell)) => Some(cell.borrow()),
             _ => unreachable!(
                 "Spanned slot should not point to an empty cell or another spanned slot."
             ),
@@ -234,7 +238,7 @@ impl TableSlotCell {
 /// In case of table model errors, it may be multiple references
 pub enum TableSlot {
     /// A table cell, with a colspan and a rowspan.
-    Cell(TableSlotCell),
+    Cell(ArcRefCell<TableSlotCell>),
 
     /// This slot is spanned by one or more multiple cells earlier in the table, which are
     /// found at the given negative coordinate offsets. The vector is in the order of most
@@ -317,7 +321,7 @@ impl TableTrackGroup {
 #[derive(Debug)]
 pub struct TableCaption {
     /// The contents of this cell, with its own layout.
-    context: ArcRefCell<IndependentFormattingContext>,
+    context: IndependentFormattingContext,
 }
 
 /// A calculated collapsed border.
@@ -339,4 +343,31 @@ pub(crate) struct SpecificTableGridInfo {
 pub(crate) struct TableLayoutStyle<'a> {
     table: &'a Table,
     layout: Option<&'a TableLayout<'a>>,
+}
+
+/// Table parts that are stored in the DOM. This is used in order to map from
+/// the DOM to the box tree and will eventually be important for incremental
+/// layout.
+pub(crate) enum TableLevelBox {
+    Caption(ArcRefCell<TableCaption>),
+    Cell(ArcRefCell<TableSlotCell>),
+    #[allow(dead_code)]
+    TrackGroup(ArcRefCell<TableTrackGroup>),
+    #[allow(dead_code)]
+    Track(ArcRefCell<TableTrack>),
+}
+
+impl TableLevelBox {
+    pub(crate) fn invalidate_cached_fragment(&self) {
+        match self {
+            TableLevelBox::Caption(caption) => {
+                caption.borrow().context.base.invalidate_cached_fragment();
+            },
+            TableLevelBox::Cell(cell) => {
+                cell.borrow().base.invalidate_cached_fragment();
+            },
+            TableLevelBox::TrackGroup(..) => {},
+            TableLevelBox::Track(..) => {},
+        }
+    }
 }
