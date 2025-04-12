@@ -2155,10 +2155,7 @@ impl FlexItem<'_> {
 
     #[inline]
     fn is_table(&self) -> bool {
-        match &self.box_.independent_formatting_context.contents {
-            IndependentFormattingContextContents::NonReplaced(content) => content.is_table(),
-            IndependentFormattingContextContents::Replaced(_) => false,
-        }
+        self.box_.is_table()
     }
 }
 
@@ -2366,6 +2363,7 @@ impl FlexItemBox {
             get_automatic_minimum_size,
             stretch_size.main,
             &main_content_sizes,
+            self.is_table(),
         );
 
         FlexItem {
@@ -2722,6 +2720,14 @@ impl FlexItemBox {
                     IntrinsicSizingMode::Size => content_block_size(),
                 }
             },
+        }
+    }
+
+    #[inline]
+    fn is_table(&self) -> bool {
+        match &self.independent_formatting_context.contents {
+            IndependentFormattingContextContents::NonReplaced(content) => content.is_table(),
+            IndependentFormattingContextContents::Replaced(_) => false,
         }
     }
 }
