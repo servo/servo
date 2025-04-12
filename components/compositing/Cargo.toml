@@ -19,6 +19,7 @@ webxr = ["dep:webxr"]
 
 [dependencies]
 base = { workspace = true }
+bincode = { workspace = true }
 bitflags = { workspace = true }
 compositing_traits = { workspace = true }
 constellation_traits = { workspace = true }

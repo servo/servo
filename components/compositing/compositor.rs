@@ -16,7 +16,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::{PipelineId, WebViewId};
 use base::{Epoch, WebRenderEpochToU16};
 use bitflags::bitflags;
-use compositing_traits::display_list::{HitTestInfo, ScrollTree};
+use compositing_traits::display_list::{CompositorDisplayListInfo, HitTestInfo, ScrollTree};
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
     CompositionPipeline, CompositorMsg, CompositorReceiver, CrossProcessCompositorMessage,
@@ -740,11 +740,23 @@ impl IOCompositor {
 
             CrossProcessCompositorMessage::SendDisplayList {
                 webview_id,
-                display_list_info,
                 display_list_descriptor,
                 display_list_receiver,
             } => {
                 // This must match the order from the sender, currently in `shared/script/lib.rs`.
+                let display_list_info = match display_list_receiver.recv() {
+                    Ok(display_list_info) => display_list_info,
+                    Err(error) => {
+                        return warn!("Could not receive display list info: {error}");
+                    },
+                };
+                let display_list_info: CompositorDisplayListInfo =
+                    match bincode::deserialize(&display_list_info) {
+                        Ok(display_list_info) => display_list_info,
+                        Err(error) => {
+                            return warn!("Could not deserialize display list info: {error}");
+                        },
+                    };
                 let items_data = match display_list_receiver.recv() {
                     Ok(display_list_data) => display_list_data,
                     Err(error) => {
