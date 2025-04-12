@@ -7,7 +7,9 @@ use std::rc::Rc;
 
 use compositing::windowing::{EmbedderMethods, WindowMethods};
 use euclid::{Point2D, Scale, Size2D};
-use servo::{RenderingContext, Servo, TouchEventType, WebView, WindowRenderingContext};
+use servo::{
+    RenderingContext, Servo, TouchEventType, WebView, WebViewBuilder, WindowRenderingContext,
+};
 use servo_geometry::DeviceIndependentPixel;
 use tracing::warn;
 use url::Url;
@@ -53,8 +55,9 @@ impl ::servo::WebViewDelegate for AppState {
     }
 
     fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
-        let webview = self.servo.new_auxiliary_webview();
-        webview.set_delegate(parent_webview.delegate());
+        let webview = WebViewBuilder::new_auxiliary(&self.servo)
+            .delegate(parent_webview.delegate())
+            .build();
         webview.focus();
         webview.raise_to_top(true);
         self.webviews.borrow_mut().push(webview.clone());
@@ -115,8 +118,10 @@ impl ApplicationHandler<WakerEvent> for App {
             let url = Url::parse("https://demo.servo.org/experiments/twgl-tunnel/")
                 .expect("Guaranteed by argument");
 
-            let webview = app_state.servo.new_webview(url);
-            webview.set_delegate(app_state.clone());
+            let webview = WebViewBuilder::new(&app_state.servo)
+                .url(url)
+                .delegate(app_state.clone())
+                .build();
             webview.focus();
             webview.raise_to_top(true);
 

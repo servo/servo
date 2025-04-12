@@ -20,9 +20,9 @@ use url::Url;
 use webrender_api::ScrollLocation;
 use webrender_api::units::{DeviceIntPoint, DeviceRect};
 
-use crate::ConstellationProxy;
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
+use crate::{ConstellationProxy, Servo};
 
 /// A handle to a Servo webview. If you clone this handle, it does not create a new webview,
 /// but instead creates a new handle to the webview. Once the last handle is dropped, Servo
@@ -93,16 +93,15 @@ impl Drop for WebViewInner {
 }
 
 impl WebView {
-    pub(crate) fn new(
-        constellation_proxy: &ConstellationProxy,
-        compositor: Rc<RefCell<IOCompositor>>,
-    ) -> Self {
+    pub(crate) fn new(builder: WebViewBuilder) -> Self {
         let id = WebViewId::new();
+        let servo = builder.servo;
+
         let webview = Self(Rc::new(RefCell::new(WebViewInner {
             id,
-            constellation_proxy: constellation_proxy.clone(),
-            compositor: compositor.clone(),
-            delegate: Rc::new(DefaultWebViewDelegate),
+            constellation_proxy: servo.constellation_proxy.clone(),
+            compositor: servo.compositor.clone(),
+            delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
             rect: DeviceRect::zero(),
             load_status: LoadStatus::Complete,
@@ -115,12 +114,34 @@ impl WebView {
             cursor: Cursor::Pointer,
         })));
 
-        compositor
+        builder
+            .servo
+            .compositor
             .borrow_mut()
             .add_webview(Box::new(ServoRendererWebView {
                 weak_handle: webview.weak_handle(),
                 id,
             }));
+
+        servo
+            .webviews
+            .borrow_mut()
+            .insert(webview.id(), webview.weak_handle());
+
+        if !builder.auxiliary {
+            let url = builder.url.unwrap_or(
+                Url::parse("about:blank").expect("Should always be able to parse 'about:blank'."),
+            );
+
+            let viewport_details = servo.compositor.borrow().default_webview_viewport_details();
+            servo
+                .constellation_proxy
+                .send(EmbedderToConstellationMessage::NewWebView(
+                    url.into(),
+                    webview.id(),
+                    viewport_details,
+                ));
+        }
 
         webview
     }
@@ -506,5 +527,43 @@ impl RendererWebView for ServoRendererWebView {
         if let Some(webview) = WebView::from_weak_handle(&self.weak_handle) {
             webview.set_animating(new_value);
         }
+    }
+}
+
+pub struct WebViewBuilder<'servo> {
+    servo: &'servo Servo,
+    delegate: Rc<dyn WebViewDelegate>,
+    auxiliary: bool,
+    url: Option<Url>,
+}
+
+impl<'servo> WebViewBuilder<'servo> {
+    pub fn new(servo: &'servo Servo) -> Self {
+        Self {
+            servo,
+            auxiliary: false,
+            url: None,
+            delegate: Rc::new(DefaultWebViewDelegate),
+        }
+    }
+
+    pub fn new_auxiliary(servo: &'servo Servo) -> Self {
+        let mut builder = Self::new(servo);
+        builder.auxiliary = true;
+        builder
+    }
+
+    pub fn delegate(mut self, delegate: Rc<dyn WebViewDelegate>) -> Self {
+        self.delegate = delegate;
+        self
+    }
+
+    pub fn url(mut self, url: Url) -> Self {
+        self.url = Some(url);
+        self
+    }
+
+    pub fn build(self) -> WebView {
+        WebView::new(self)
     }
 }

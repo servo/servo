@@ -19,7 +19,7 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, FilterPattern, FormControl, GamepadHapticEffectType,
     LoadStatus, PermissionRequest, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEventType,
-    WebView, WebViewDelegate,
+    WebView, WebViewBuilder, WebViewDelegate,
 };
 use url::Url;
 
@@ -107,8 +107,10 @@ impl RunningAppState {
     }
 
     pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
-        let webview = self.servo().new_webview(url);
-        webview.set_delegate(self.clone());
+        let webview = WebViewBuilder::new(self.servo())
+            .url(url)
+            .delegate(self.clone())
+            .build();
 
         webview.focus();
         webview.raise_to_top(true);
@@ -459,8 +461,9 @@ impl WebViewDelegate for RunningAppState {
         &self,
         parent_webview: servo::WebView,
     ) -> Option<servo::WebView> {
-        let webview = self.servo.new_auxiliary_webview();
-        webview.set_delegate(parent_webview.delegate());
+        let webview = WebViewBuilder::new_auxiliary(&self.servo)
+            .delegate(parent_webview.delegate())
+            .build();
 
         webview.focus();
         webview.raise_to_top(true);

@@ -119,7 +119,7 @@ pub use {bluetooth, bluetooth_traits};
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
-pub use crate::webview::WebView;
+pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, FormControl, NavigationRequest, PermissionRequest,
     SelectElement, WebResourceLoad, WebViewDelegate,
@@ -659,29 +659,6 @@ impl Servo {
 
     pub fn deinit(&self) {
         self.compositor.borrow_mut().deinit();
-    }
-
-    pub fn new_webview(&self, url: url::Url) -> WebView {
-        let webview = WebView::new(&self.constellation_proxy, self.compositor.clone());
-        self.webviews
-            .borrow_mut()
-            .insert(webview.id(), webview.weak_handle());
-        let viewport_details = self.compositor.borrow().default_webview_viewport_details();
-        self.constellation_proxy
-            .send(EmbedderToConstellationMessage::NewWebView(
-                url.into(),
-                webview.id(),
-                viewport_details,
-            ));
-        webview
-    }
-
-    pub fn new_auxiliary_webview(&self) -> WebView {
-        let webview = WebView::new(&self.constellation_proxy, self.compositor.clone());
-        self.webviews
-            .borrow_mut()
-            .insert(webview.id(), webview.weak_handle());
-        webview
     }
 
     fn get_webview_handle(&self, id: WebViewId) -> Option<WebView> {

@@ -21,8 +21,8 @@ use servo::{
     InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
     MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
     NavigationRequest, PermissionRequest, RenderingContext, ScreenGeometry, Servo, ServoDelegate,
-    ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, WebView, WebViewDelegate,
-    WindowRenderingContext,
+    ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, WebView, WebViewBuilder,
+    WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -211,10 +211,12 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
-    fn request_open_auxiliary_webview(&self, _parent_webview: WebView) -> Option<WebView> {
-        let new_webview = self.servo.new_auxiliary_webview();
-        self.add(new_webview.clone());
-        Some(new_webview)
+    fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
+        let webview = WebViewBuilder::new_auxiliary(&self.servo)
+            .delegate(parent_webview.delegate())
+            .build();
+        self.add(webview.clone());
+        Some(webview)
     }
 
     fn request_permission(&self, webview: WebView, request: PermissionRequest) {
@@ -309,8 +311,11 @@ impl RunningAppState {
     }
 
     pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
-        let webview = self.servo.new_webview(url);
-        webview.set_delegate(self.clone());
+        let webview = WebViewBuilder::new(&self.servo)
+            .url(url)
+            .delegate(self.clone())
+            .build();
+
         webview.focus();
         self.add(webview.clone());
     }
