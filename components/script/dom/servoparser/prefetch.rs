@@ -15,10 +15,10 @@ use html5ever::tokenizer::{
 use html5ever::{Attribute, LocalName, local_name};
 use js::jsapi::JSTracer;
 use markup5ever::TokenizerResult;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, CredentialsMode, InsecureRequestsPolicy, ParserMetadata, Referrer,
 };
-use net_traits::policy_container::PolicyContainer;
 use net_traits::{CoreResourceMsg, FetchChannels, IpcSend, ReferrerPolicy, ResourceThreads};
 use servo_url::{ImmutableOrigin, ServoUrl};
 

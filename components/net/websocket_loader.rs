@@ -393,8 +393,7 @@ fn connect(
     let (check_result, violations) = should_request_be_blocked_by_csp(&request, &policy_container);
 
     if !violations.is_empty() {
-        let _ = resource_event_sender
-            .send(WebSocketNetworkEvent::ReportCSPViolations(violations));
+        let _ = resource_event_sender.send(WebSocketNetworkEvent::ReportCSPViolations(violations));
     }
 
     if check_result == csp::CheckResult::Blocked {

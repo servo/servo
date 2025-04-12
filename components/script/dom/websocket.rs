@@ -288,7 +288,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                         violations,
                     };
                     task_source.queue(task);
-                }
+                },
                 WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use } => {
                     let open_thread = ConnectionEstablishedTask {
                         address: address.clone(),
