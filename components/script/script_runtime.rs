@@ -83,7 +83,7 @@ use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
-use crate::security_manager::CSPViolationReporter;
+use crate::security_manager::{CSPViolationReportBuilder, CSPViolationReportTask};
 use crate::task_source::SendableTaskSource;
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
@@ -390,6 +390,11 @@ unsafe extern "C" fn content_security_policy_allows(
             csp_list.is_wasm_evaluation_allowed() == CheckResult::Allowed;
         let scripted_caller = describe_scripted_caller(*cx).unwrap_or_default();
 
+        let resource = match runtime_code {
+            RuntimeCode::JS => "eval".to_owned(),
+            RuntimeCode::WASM => "wasm-eval".to_owned(),
+        };
+
         allowed = match runtime_code {
             RuntimeCode::JS if is_js_evaluation_allowed => true,
             RuntimeCode::WASM if is_wasm_evaluation_allowed => true,
@@ -400,15 +405,17 @@ unsafe extern "C" fn content_security_policy_allows(
             // FIXME: Don't fire event if `script-src` and `default-src`
             // were not passed.
             for policy in csp_list.0 {
-                let task = CSPViolationReporter::new(
-                    &global,
-                    sample.clone(),
-                    policy.disposition == PolicyDisposition::Report,
-                    runtime_code,
-                    scripted_caller.filename.clone(),
-                    scripted_caller.line,
-                    scripted_caller.col,
-                );
+                let report = CSPViolationReportBuilder::default()
+                    .resource(resource.clone())
+                    .sample(sample.clone())
+                    .report_only(policy.disposition == PolicyDisposition::Report)
+                    .source_file(scripted_caller.filename.clone())
+                    .line_number(scripted_caller.line)
+                    .column_number(scripted_caller.col)
+                    .effective_directive("script-src".to_owned())
+                    .build(&global);
+                let task = CSPViolationReportTask::new(&global, report);
+
                 global
                     .task_manager()
                     .dom_manipulation_task_source()
