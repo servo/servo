@@ -19,8 +19,7 @@ use bitflags::bitflags;
 use compositing_traits::display_list::{CompositorDisplayListInfo, HitTestInfo, ScrollTree};
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
-    CompositionPipeline, CompositorMsg, CompositorReceiver, CrossProcessCompositorMessage,
-    ImageUpdate, RendererWebView, SendableFrameTree,
+    CompositionPipeline, CompositorMsg, ImageUpdate, RendererWebView, SendableFrameTree,
 };
 use constellation_traits::{
     AnimationTickType, EmbedderToConstellationMessage, PaintMetricEvent, WindowSizeType,
@@ -33,7 +32,7 @@ use embedder_traits::{
 };
 use euclid::{Box2D, Point2D, Rect, Scale, Size2D, Transform3D};
 use fnv::FnvHashMap;
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
@@ -96,7 +95,7 @@ pub struct ServoRenderer {
     shutdown_state: Rc<Cell<ShutdownState>>,
 
     /// The port on which we receive messages.
-    compositor_receiver: CompositorReceiver,
+    compositor_receiver: IpcReceiver<CompositorMsg>,
 
     /// The channel on which messages can be sent to the constellation.
     pub(crate) constellation_sender: Sender<EmbedderToConstellationMessage>,
@@ -515,8 +514,8 @@ impl IOCompositor {
             .global
             .borrow_mut()
             .compositor_receiver
-            .try_recv_compositor_msg()
-            .is_some()
+            .try_recv()
+            .is_ok()
         {}
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
@@ -678,33 +677,14 @@ impl IOCompositor {
                 webview.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
             },
 
-            CompositorMsg::CrossProcess(cross_proces_message) => {
-                self.handle_cross_process_message(cross_proces_message);
-            },
-        }
-    }
-
-    /// Accept messages from content processes that need to be relayed to the WebRender
-    /// instance in the parent process.
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
-    )]
-    fn handle_cross_process_message(&mut self, msg: CrossProcessCompositorMessage) {
-        match msg {
-            CrossProcessCompositorMessage::SendInitialTransaction(pipeline) => {
+            CompositorMsg::SendInitialTransaction(pipeline) => {
                 let mut txn = Transaction::new();
                 txn.set_display_list(WebRenderEpoch(0), (pipeline, Default::default()));
                 self.generate_frame(&mut txn, RenderReasons::SCENE);
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CrossProcessCompositorMessage::SendScrollNode(
-                webview_id,
-                pipeline_id,
-                point,
-                external_scroll_id,
-            ) => {
+            CompositorMsg::SendScrollNode(webview_id, pipeline_id, point, external_scroll_id) => {
                 let Some(webview) = self.webviews.get_mut(webview_id) else {
                     return;
                 };
@@ -738,7 +718,7 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CrossProcessCompositorMessage::SendDisplayList {
+            CompositorMsg::SendDisplayList {
                 webview_id,
                 display_list_descriptor,
                 display_list_receiver,
@@ -827,7 +807,7 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(transaction);
             },
 
-            CrossProcessCompositorMessage::HitTest(pipeline, point, flags, sender) => {
+            CompositorMsg::HitTest(pipeline, point, flags, sender) => {
                 // When a display list is sent to WebRender, it starts scene building in a
                 // separate thread and then that display list is available for hit testing.
                 // Without flushing scene building, any hit test we do might be done against
@@ -853,11 +833,11 @@ impl IOCompositor {
                 let _ = sender.send(result);
             },
 
-            CrossProcessCompositorMessage::GenerateImageKey(sender) => {
+            CompositorMsg::GenerateImageKey(sender) => {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());
             },
 
-            CrossProcessCompositorMessage::UpdateImages(updates) => {
+            CompositorMsg::UpdateImages(updates) => {
                 let mut txn = Transaction::new();
                 for update in updates {
                     match update {
@@ -873,26 +853,21 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CrossProcessCompositorMessage::AddFont(font_key, data, index) => {
+            CompositorMsg::AddFont(font_key, data, index) => {
                 self.add_font(font_key, index, data);
             },
 
-            CrossProcessCompositorMessage::AddSystemFont(font_key, native_handle) => {
+            CompositorMsg::AddSystemFont(font_key, native_handle) => {
                 let mut transaction = Transaction::new();
                 transaction.add_native_font(font_key, native_handle);
                 self.global.borrow_mut().send_transaction(transaction);
             },
 
-            CrossProcessCompositorMessage::AddFontInstance(
-                font_instance_key,
-                font_key,
-                size,
-                flags,
-            ) => {
+            CompositorMsg::AddFontInstance(font_instance_key, font_key, size, flags) => {
                 self.add_font_instance(font_instance_key, font_key, size, flags);
             },
 
-            CrossProcessCompositorMessage::RemoveFonts(keys, instance_keys) => {
+            CompositorMsg::RemoveFonts(keys, instance_keys) => {
                 let mut transaction = Transaction::new();
 
                 for instance in instance_keys.into_iter() {
@@ -905,13 +880,13 @@ impl IOCompositor {
                 self.global.borrow_mut().send_transaction(transaction);
             },
 
-            CrossProcessCompositorMessage::AddImage(key, desc, data) => {
+            CompositorMsg::AddImage(key, desc, data) => {
                 let mut txn = Transaction::new();
                 txn.add_image(key, desc, data.into(), None);
                 self.global.borrow_mut().send_transaction(txn);
             },
 
-            CrossProcessCompositorMessage::GenerateFontKeys(
+            CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
@@ -929,7 +904,7 @@ impl IOCompositor {
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
             },
-            CrossProcessCompositorMessage::GetClientWindowRect(webview_id, response_sender) => {
+            CompositorMsg::GetClientWindowRect(webview_id, response_sender) => {
                 let screen_geometry = self.webview_screen_geometry(webview_id);
                 let rect = DeviceIntRect::from_origin_and_size(
                     screen_geometry.offset,
@@ -942,7 +917,7 @@ impl IOCompositor {
                     warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
-            CrossProcessCompositorMessage::GetScreenSize(webview_id, response_sender) => {
+            CompositorMsg::GetScreenSize(webview_id, response_sender) => {
                 let screen_geometry = self.webview_screen_geometry(webview_id);
                 let screen_size = screen_geometry.size.to_f32() / self.hidpi_factor;
 
@@ -950,7 +925,7 @@ impl IOCompositor {
                     warn!("Sending response to get screen size failed ({error:?}).");
                 }
             },
-            CrossProcessCompositorMessage::GetAvailableScreenSize(webview_id, response_sender) => {
+            CompositorMsg::GetAvailableScreenSize(webview_id, response_sender) => {
                 let screen_geometry = self.webview_screen_geometry(webview_id);
                 let available_screen_size =
                     screen_geometry.available_size.to_f32() / self.hidpi_factor;
@@ -990,16 +965,14 @@ impl IOCompositor {
                 }
                 let _ = sender.send(());
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GenerateImageKey(
-                sender,
-            )) => {
+            CompositorMsg::GenerateImageKey(sender) => {
                 let _ = sender.send(self.global.borrow().webrender_api.generate_image_key());
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GenerateFontKeys(
+            CompositorMsg::GenerateFontKeys(
                 number_of_font_keys,
                 number_of_font_instance_keys,
                 result_sender,
-            )) => {
+            ) => {
                 let font_keys = (0..number_of_font_keys)
                     .map(|_| self.global.borrow().webrender_api.generate_font_key())
                     .collect();
@@ -1013,26 +986,17 @@ impl IOCompositor {
                     .collect();
                 let _ = result_sender.send((font_keys, font_instance_keys));
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetClientWindowRect(
-                _,
-                response_sender,
-            )) => {
+            CompositorMsg::GetClientWindowRect(_, response_sender) => {
                 if let Err(error) = response_sender.send(Default::default()) {
                     warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetScreenSize(
-                _,
-                response_sender,
-            )) => {
+            CompositorMsg::GetScreenSize(_, response_sender) => {
                 if let Err(error) = response_sender.send(Default::default()) {
                     warn!("Sending response to get client window failed ({error:?}).");
                 }
             },
-            CompositorMsg::CrossProcess(CrossProcessCompositorMessage::GetAvailableScreenSize(
-                _,
-                response_sender,
-            )) => {
+            CompositorMsg::GetAvailableScreenSize(_, response_sender) => {
                 if let Err(error) = response_sender.send(Default::default()) {
                     warn!("Sending response to get client window failed ({error:?}).");
                 }
@@ -1672,12 +1636,7 @@ impl IOCompositor {
         // Check for new messages coming from the other threads in the system.
         let mut compositor_messages = vec![];
         let mut found_recomposite_msg = false;
-        while let Some(msg) = self
-            .global
-            .borrow_mut()
-            .compositor_receiver
-            .try_recv_compositor_msg()
-        {
+        while let Ok(msg) = self.global.borrow_mut().compositor_receiver.try_recv() {
             match msg {
                 CompositorMsg::NewWebRenderFrameReady(..) if found_recomposite_msg => {
                     // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
