@@ -457,8 +457,21 @@ impl Element {
             .is_some_and(|s| !s.get_box().clone_display().is_none())
     }
 
-    // https://drafts.csswg.org/cssom-view/#potentially-scrollable
-    pub(crate) fn is_potentially_scrollable_body(
+    /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
+    pub(crate) fn is_potentially_scrollable_body(&self, can_gc: CanGc) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(false, can_gc)
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
+    pub(crate) fn is_potentially_scrollable_body_for_scrolling_element(
+        &self,
+        can_gc: CanGc,
+    ) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(true, can_gc)
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
+    fn is_potentially_scrollable_body_shared_logic(
         &self,
         treat_overflow_clip_on_parent_as_hidden: bool,
         can_gc: CanGc,
@@ -2208,7 +2221,7 @@ impl Element {
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(false, can_gc)
+            !self.is_potentially_scrollable_body(can_gc)
         {
             win.scroll(x, y, behavior, can_gc);
             return;
@@ -2835,7 +2848,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 7
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(false, can_gc)
+            !self.is_potentially_scrollable_body(can_gc)
         {
             return win.ScrollY() as f64;
         }
@@ -2885,7 +2898,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(false, can_gc)
+            !self.is_potentially_scrollable_body(can_gc)
         {
             win.scroll(win.ScrollX() as f64, y, behavior, can_gc);
             return;
@@ -2934,7 +2947,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 7
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(false, can_gc)
+            !self.is_potentially_scrollable_body(can_gc)
         {
             return win.ScrollX() as f64;
         }
@@ -2985,7 +2998,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 9
         if doc.GetBody().as_deref() == self.downcast::<HTMLElement>() &&
             doc.quirks_mode() == QuirksMode::Quirks &&
-            !self.is_potentially_scrollable_body(false, can_gc)
+            !self.is_potentially_scrollable_body(can_gc)
         {
             win.scroll(x, win.ScrollY() as f64, behavior, can_gc);
             return;
