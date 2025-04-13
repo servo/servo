@@ -39,7 +39,7 @@ function getUrl(cacheHelper, {
     } else { // !second_origin && !subdomain
         url += "{{hosts[][]}}";
     }
-    url += ":{{ports[https][1]}}";
+    url += ":{{ports[https][0]}}";
     url += "/clear-site-data/support/clear-site-data-cache.py";
     url = new URL(url);
     let params = new URLSearchParams();
@@ -130,4 +130,3 @@ function testCacheClear(test, params, assert) {
         openTestPageHelper(test, null, testUrls, 0, assert, resolve)
     });
 }
-

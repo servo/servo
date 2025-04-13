@@ -25,6 +25,7 @@ function testprop(prop) {
   test_valid_value(prop, '32s');
   test_valid_value(prop, '123ms');
   test_valid_value(prop, 'inherit');
+  test_valid_value(prop, 'calc(2s * sibling-index())');
 
   // Invalid values:
   test_invalid_value(prop, '0', '0s');

@@ -16,9 +16,9 @@
       "default timeline is document.timeline.");
     assert_equals(trigger.rangeStart, "normal", "default rangeStart is normal");
     assert_equals(trigger.rangeEnd, "normal", "default rangeEnd is normal");
-    assert_equals(trigger.exitRangeStart, "normal",
+    assert_equals(trigger.exitRangeStart, "auto",
       "default exitRangeStart is normal");
-    assert_equals(trigger.exitRangeStart, "normal",
+    assert_equals(trigger.exitRangeStart, "auto",
       "default exitRangeEnd is normal");
   }, "Default values when no property bag is supplied");
 
@@ -29,9 +29,9 @@
       "default timeline is document.timeline.");
     assert_equals(trigger.rangeStart, "normal", "default rangeStart is normal");
     assert_equals(trigger.rangeEnd, "normal", "default rangeEnd is normal");
-    assert_equals(trigger.exitRangeStart, "normal",
+    assert_equals(trigger.exitRangeStart, "auto",
       "default exitRangeStart is normal");
-    assert_equals(trigger.exitRangeEnd, "normal",
+    assert_equals(trigger.exitRangeEnd, "auto",
       "default exitRangeEnd is normal");
   }, "Default values when an empty property bag is supplied.");
 

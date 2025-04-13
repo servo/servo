@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Sec-Speculation-Tags request headers</title>
+<meta name="variant" content="?tag-level=ruleset&type=prefetch">
+<meta name="variant" content="?tag-level=ruleset&type=prerender">
+<meta name="variant" content="?tag-level=rule&type=prefetch">
+<meta name="variant" content="?tag-level=rule&type=prerender">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="/speculation-rules/resources/utils.js"></script>
+<script src="resources/speculation-tags-utils.js"></script>
+<script>
+"use strict";
+
+setup(() => assertSpeculationRulesIsSupported());
+
+const R = String.raw;
+
+// Valid tag cases.
+testTag('my-rules', '"my-rules"', "string tag");
+testTag('null', '"null"', "'null' string tag");
+testTag('', '""', "empty string tag");
+testTag(' ', '" "', "single space tag");
+testTag('"', R`"\""`, "double quote tag");
+testTag('"""', R`"\"\"\""`, "double quotes tag");
+testTag('\\', R`"\\"`, "backslash tag");
+testTag('\\\\\\', R`"\\\\\\"`, "backslashes tag");
+</script>

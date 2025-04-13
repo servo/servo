@@ -13,7 +13,7 @@ dictionary RTCConfiguration {
 };
 
 dictionary RTCIceServer {
-  required (DOMString or sequence<DOMString>) urls;
+  required (USVString or sequence<USVString>) urls;
   DOMString username;
   DOMString credential;
 };
@@ -228,7 +228,7 @@ interface RTCPeerConnectionIceEvent : Event {
 
 dictionary RTCPeerConnectionIceEventInit : EventInit {
   RTCIceCandidate? candidate;
-  DOMString? url;
+  USVString? url;
 };
 
 [Exposed=Window]
@@ -236,7 +236,7 @@ interface RTCPeerConnectionIceErrorEvent : Event {
   constructor(DOMString type, RTCPeerConnectionIceErrorEventInit eventInitDict);
   readonly attribute DOMString? address;
   readonly attribute unsigned short? port;
-  readonly attribute DOMString url;
+  readonly attribute USVString url;
   readonly attribute unsigned short errorCode;
   readonly attribute USVString errorText;
 };
@@ -244,7 +244,7 @@ interface RTCPeerConnectionIceErrorEvent : Event {
 dictionary RTCPeerConnectionIceErrorEventInit : EventInit {
   DOMString? address;
   unsigned short? port;
-  DOMString url;
+  USVString url;
   required unsigned short errorCode;
   USVString errorText;
 };

@@ -110,7 +110,7 @@ function render_rect_with_corner_shapes(style, ctx, width, height) {
   }
 
   function draw_inner_corner_from_params(params) {
-    add_corner(ctx, ...params.inner_rect, params.inner_shape);
+    add_corner(ctx, ...params.inner_rect, params.shape);
   }
 
   function draw_inner_corner(corner) {

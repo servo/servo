@@ -1,3 +1,5 @@
+const kTestPrompt = 'Please write a sentence in English.';
+
 // The method should take the AbortSignal as an option and return a promise.
 const testAbortPromise = async (t, method) => {
   // Test abort signal without custom error.
@@ -23,6 +25,43 @@ const testAbortPromise = async (t, method) => {
     // Using the same aborted controller will get the same error as well.
     const anotherPromise = method(controller.signal);
     await promise_rejects_exactly(t, err, anotherPromise);
+  }
+};
+
+// The method should take the AbortSignal as an option and return a ReadableStream.
+const testAbortReadableStream = async (t, method) => {
+  // Test abort signal without custom error.
+  {
+    const controller = new AbortController();
+    const stream = method(controller.signal);
+    controller.abort();
+    let writableStream = new WritableStream();
+    await promise_rejects_dom(
+      t, "AbortError", stream.pipeTo(writableStream)
+    );
+
+    // Using the same aborted controller will get the `AbortError` as well.
+    await promise_rejects_dom(
+      t, "AbortError", new Promise(() => { method(controller.signal); })
+    );
+  }
+
+  // Test abort signal with custom error.
+  {
+    const error = new DOMException("test", "VersionError");
+    const controller = new AbortController();
+    const stream = method(controller.signal);
+    controller.abort(error);
+    let writableStream = new WritableStream();
+    await promise_rejects_exactly(
+      t, error,
+      stream.pipeTo(writableStream)
+    );
+
+    // Using the same aborted controller will get the same error.
+    await promise_rejects_exactly(
+      t, error, new Promise(() => { method(controller.signal); })
+    );
   }
 };
 
