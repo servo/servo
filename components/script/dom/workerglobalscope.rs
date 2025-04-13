@@ -351,7 +351,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
     // https://html.spec.whatwg.org/multipage/#dfn-Crypto
     fn Crypto(&self) -> DomRoot<Crypto> {
-        self.upcast::<GlobalScope>().crypto()
+        self.upcast::<GlobalScope>().crypto(CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa

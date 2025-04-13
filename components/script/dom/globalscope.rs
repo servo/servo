@@ -2126,8 +2126,8 @@ impl GlobalScope {
         unsafe { SafeJSContext::from_ptr(cx) }
     }
 
-    pub(crate) fn crypto(&self) -> DomRoot<Crypto> {
-        self.crypto.or_init(|| Crypto::new(self, CanGc::note()))
+    pub(crate) fn crypto(&self, can_gc: CanGc) -> DomRoot<Crypto> {
+        self.crypto.or_init(|| Crypto::new(self, can_gc))
     }
 
     pub(crate) fn live_devtools_updates(&self) -> bool {
@@ -2994,6 +2994,7 @@ impl GlobalScope {
         device: WebGPUDevice,
         reason: DeviceLostReason,
         msg: String,
+        can_gc: CanGc,
     ) {
         let reason = match reason {
             DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
@@ -3007,7 +3008,7 @@ impl GlobalScope {
             .expect("GPUDevice should still be in devices hashmap")
             .root()
         {
-            device.lose(reason, msg, CanGc::note());
+            device.lose(reason, msg, can_gc);
         }
     }
 
