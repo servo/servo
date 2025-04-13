@@ -574,7 +574,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 .decode_audio_data(audio_data, callbacks);
         } else {
             // Step 3.
-            promise.reject_error(Error::DataClone, can_gc);
+            promise.reject_error(Error::DataClone(None), can_gc);
             return promise;
         }
 
