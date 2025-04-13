@@ -20,13 +20,13 @@ use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
-    AccessControlAllowOrigin, AccessControlMaxAge, AccessControlRequestHeaders,
-    AccessControlRequestMethod, Authorization, CacheControl, ContentLength, HeaderMapExt,
-    IfModifiedSince, LastModified, Pragma, Referer, UserAgent,
+    AccessControlAllowOrigin, AccessControlMaxAge, AccessControlRequestMethod, Authorization,
+    CacheControl, ContentLength, HeaderMapExt, IfModifiedSince, LastModified, Pragma, Referer,
+    UserAgent,
 };
 use http::header::{
-    self, ACCEPT, AUTHORIZATION, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
-    CONTENT_TYPE, HeaderValue, RANGE,
+    self, ACCEPT, ACCESS_CONTROL_REQUEST_HEADERS, AUTHORIZATION, CONTENT_ENCODING,
+    CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
 use http_body_util::combinators::BoxBody;
@@ -2139,11 +2139,15 @@ async fn cors_preflight_fetch(
     // Step 4
     let headers = get_cors_unsafe_header_names(&request.headers);
 
-    // Step 5
+    // Step 5 If headers is not empty, then:
     if !headers.is_empty() {
-        preflight
-            .headers
-            .typed_insert(AccessControlRequestHeaders::from_iter(headers));
+        // 5.1 Let value be the items in headers separated from each other by `,`
+        // TODO(36451): replace this with typed_insert when headers fixes headers#207
+        preflight.headers.insert(
+            ACCESS_CONTROL_REQUEST_HEADERS,
+            HeaderValue::from_bytes(itertools::join(headers.iter(), ",").as_bytes())
+                .unwrap_or(HeaderValue::from_static("")),
+        );
     }
 
     // Step 6

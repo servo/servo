@@ -99,13 +99,13 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dialog-close
-    fn Close(&self, return_value: Option<DOMString>) {
+    fn Close(&self, return_value: Option<DOMString>, can_gc: CanGc) {
         let element = self.upcast::<Element>();
         let target = self.upcast::<EventTarget>();
 
         // Step 1 & 2
         if element
-            .remove_attribute(&ns!(), &local_name!("open"), CanGc::note())
+            .remove_attribute(&ns!(), &local_name!("open"), can_gc)
             .is_none()
         {
             return;

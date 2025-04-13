@@ -8,9 +8,9 @@
 </head>
 <body>
 <some-host id="host">
-    <template shadowrootmode="closed" shadowrootclonable="true" shadowrootcustomelements>
+    <template shadowrootmode="closed" shadowrootclonable="true" shadowrootcustomelementregistry>
         <a-b>
-            <template shadowrootmode="closed" shadowrootclonable="true" shadowrootcustomelements>
+            <template shadowrootmode="closed" shadowrootclonable="true" shadowrootcustomelementregistry>
                 <c-d/>
                     <template shadowrootmode="closed" shadowrootclonable="true">
                         <a-b></a-b>
@@ -63,10 +63,10 @@ test(() => {
     registry.upgrade(clone.elementInternals.shadowRoot);
     const abElement = clone.elementInternals.shadowRoot.querySelector('a-b');
     assert_equals(abElement.__proto__.constructor.name, 'ABElement');
-    assert_equals(abElement.elementInternals.shadowRoot.customElements, null);
+    assert_equals(abElement.elementInternals.shadowRoot.customElementRegistry, null);
     const cdElement = abElement.elementInternals.shadowRoot.querySelector('c-d');
     assert_equals(cdElement.__proto__.constructor.name, 'HTMLElement');
-    assert_equals(cdElement.customElements, null);
+    assert_equals(cdElement.customElementRegistry, null);
 }, 'upgrade should upgrade a candidate element when called on a shadow root with an association');
 
 test(() => {
@@ -86,9 +86,9 @@ test(() => {
     const abElement = clone.elementInternals.shadowRoot.querySelector('a-b');
     assert_equals(abElement.__proto__.constructor.name, 'ScopedABElement');
     registry.initialize(abElement.elementInternals.shadowRoot);
-    assert_equals(abElement.elementInternals.shadowRoot.customElements, registry);
+    assert_equals(abElement.elementInternals.shadowRoot.customElementRegistry, registry);
     const cdElement = abElement.elementInternals.shadowRoot.querySelector('c-d');
-    assert_equals(cdElement.customElements, registry);
+    assert_equals(cdElement.customElementRegistry, registry);
 
     registry.define('c-d', class ScopedCDElement extends HTMLElement {
         elementInternals;
@@ -101,11 +101,11 @@ test(() => {
     assert_equals(cdElement.__proto__.constructor.name, 'HTMLElement');
     registry.upgrade(abElement.elementInternals.shadowRoot);
     assert_equals(cdElement.__proto__.constructor.name, 'ScopedCDElement');
-    assert_equals(cdElement.customElements, registry);
+    assert_equals(cdElement.customElementRegistry, registry);
 
-    assert_equals(cdElement.elementInternals.shadowRoot.customElements, window.customElements);
+    assert_equals(cdElement.elementInternals.shadowRoot.customElementRegistry, window.customElements);
     const innerAB = cdElement.elementInternals.shadowRoot.querySelector('a-b');
-    assert_equals(innerAB.customElements, window.customElements);
+    assert_equals(innerAB.customElementRegistry, window.customElements);
     assert_equals(innerAB.__proto__.constructor.name, 'HTMLElement');
 }, 'upgrade should not upgrade a candidate element not associated with the registry');
 

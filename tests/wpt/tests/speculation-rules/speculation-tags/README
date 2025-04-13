@@ -1,0 +1,8 @@
+Web Platform Tests for Speculation Rules tags.
+
+Explainer:
+https://github.com/WICG/nav-speculation/blob/main/speculation-rules-tags.md
+
+Spec:
+https://wicg.github.io/nav-speculation/speculation-rules.html#collect-tags-for-matching-speculative-load-candidates
+https://wicg.github.io/nav-speculation/prefetch.html#sec-speculation-tags-header

@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: observe after painting happened without buffering</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script src="/element-timing/resources/element-timing-helpers.js"></script>
+<script>
+  let beforeRender;
+  async_test(function (t) {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    t.step_timeout(() => {
+      const observer = new PerformanceObserver(
+        t.step_func_done(function(entryList) {
+          assert_unreached("Painting happened before observing, it should not create a containertiming entry");
+        })
+      );
+      observer.observe({type: 'container', buffered: false });
+      t.step_timeout(() => {
+        t.done();
+      }, 2000);
+    }, 2000);
+    // Add the image during onload to be sure that the observer is registered
+    // in time.
+    window.onload = () => {
+      // Add image of width equal to 100 and height equal to 100.
+      const img = document.createElement('img');
+      img.src = '/container-timing/resources/square100.png';
+      img.setAttribute('containertiming', 'image_ct');
+      img.setAttribute('id', 'my_id');
+      document.body.appendChild(img);
+      beforeRender = performance.now();
+    };
+  }, 'containertiming does not report paints before observing if buffering is disabled.');
+</script>
+
+</body>

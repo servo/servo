@@ -679,7 +679,7 @@ pub(crate) fn handle_find_element_element_tag_name(
     element_id: String,
     selector: String,
     reply: IpcSender<Result<Option<String>, ErrorStatus>>,
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -687,7 +687,7 @@ pub(crate) fn handle_find_element_element_tag_name(
                 .downcast::<Element>(
             ) {
                 Some(element) => Ok(element
-                    .GetElementsByTagName(DOMString::from(selector))
+                    .GetElementsByTagName(DOMString::from(selector), can_gc)
                     .elements_iter()
                     .next()
                     .map(|x| x.upcast::<Node>().unique_id())),
@@ -742,7 +742,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
     element_id: String,
     selector: String,
     reply: IpcSender<Result<Vec<String>, ErrorStatus>>,
-    _can_gc: CanGc,
+    can_gc: CanGc,
 ) {
     reply
         .send(
@@ -750,7 +750,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
                 .downcast::<Element>(
             ) {
                 Some(element) => Ok(element
-                    .GetElementsByTagName(DOMString::from(selector))
+                    .GetElementsByTagName(DOMString::from(selector), can_gc)
                     .elements_iter()
                     .map(|x| x.upcast::<Node>().unique_id())
                     .collect::<Vec<String>>()),

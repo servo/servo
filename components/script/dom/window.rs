@@ -954,7 +954,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
     fn Crypto(&self) -> DomRoot<Crypto> {
-        self.as_global_scope().crypto()
+        self.as_global_scope().crypto(CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
@@ -1626,6 +1626,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             self,
             document.upcast(),
             Box::new(WindowNamedGetter { name }),
+            CanGc::note(),
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }
@@ -1898,10 +1899,7 @@ impl Window {
         let (sender, receiver) =
             ProfiledIpc::channel::<DeviceIndependentIntRect>(timer_profile_chan).unwrap();
         let _ = self.compositor_api.sender().send(
-            compositing_traits::CrossProcessCompositorMessage::GetClientWindowRect(
-                self.webview_id(),
-                sender,
-            ),
+            compositing_traits::CompositorMsg::GetClientWindowRect(self.webview_id(), sender),
         );
         let rect = receiver.recv().unwrap_or_default();
         (

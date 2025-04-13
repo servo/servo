@@ -161,6 +161,10 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
     # Disable overlay scrollbar animations to prevent flaky wpt screenshots based on timing.
     chrome_options["args"].append("--disable-features=ScrollbarAnimations")
 
+    # Always enable ViewTransitions long callback timeout to avoid erroneous
+    # failures due to implicit timeout within the API.
+    blink_features = ['ViewTransitionLongCallbackTimeoutForTesting']
+
     if kwargs["enable_mojojs"]:
         blink_features = ['MojoJS', 'MojoJSTest']
         chrome_options["args"].append("--enable-blink-features=" + ','.join(blink_features))

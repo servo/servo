@@ -4,6 +4,7 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
+use html5ever::{LocalName, Namespace, QualName, local_name, namespace_url, ns};
 use js::rust::HandleValue;
 
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
@@ -47,7 +48,7 @@ impl TrustedTypePolicyFactory {
     fn create_trusted_type_policy(
         &self,
         policy_name: String,
-        _options: &TrustedTypePolicyOptions,
+        options: &TrustedTypePolicyOptions,
         global: &GlobalScope,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
@@ -71,11 +72,10 @@ impl TrustedTypePolicyFactory {
 
         // Step 4: Let policy be a new TrustedTypePolicy object.
         // Step 5: Set policy’s name property value to policyName.
-        let policy = TrustedTypePolicy::new(policy_name.clone(), global, can_gc);
         // Step 6: Set policy’s options value to «[ "createHTML" ->
         // options["createHTML", "createScript" -> options["createScript",
         // "createScriptURL" -> options["createScriptURL" ]».
-        // TODO(36258): implement step 6
+        let policy = TrustedTypePolicy::new(policy_name.clone(), options, global, can_gc);
         // Step 7: If the policyName is default, set the factory’s default policy value to policy.
         if policy_name == "default" {
             self.default_policy.set(Some(&policy))
@@ -84,6 +84,49 @@ impl TrustedTypePolicyFactory {
         self.policy_names.borrow_mut().push(policy_name);
         // Step 9: Return policy.
         Ok(policy)
+    }
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-get-trusted-type-data-for-attribute>
+    #[allow(clippy::if_same_then_else)]
+    fn get_trusted_type_data_for_attribute(
+        element: QualName,
+        attribute: String,
+        attribute_namespace: Option<Namespace>,
+    ) -> Option<DOMString> {
+        // Step 1: Let data be null.
+        let mut data = None;
+        // Step 2: If attributeNs is null, and attribute is the name of an event handler content attribute, then:
+        // TODO(36258): look up event handlers
+        // Step 3: Find the row in the following table, where element is in the first column,
+        // attributeNs is in the second column, and attribute is in the third column.
+        // If a matching row is found, set data to that row.
+        if element.ns == ns!(html) &&
+            element.local == local_name!("iframe") &&
+            attribute_namespace.is_none() &&
+            attribute == "srcdoc"
+        {
+            data = Some(DOMString::from("TrustedHTML"))
+        } else if element.ns == ns!(html) &&
+            element.local == local_name!("script") &&
+            attribute_namespace.is_none() &&
+            attribute == "src"
+        {
+            data = Some(DOMString::from("TrustedScriptURL"))
+        } else if element.ns == ns!(svg) &&
+            element.local == local_name!("script") &&
+            attribute_namespace.is_none() &&
+            attribute == "href"
+        {
+            data = Some(DOMString::from("TrustedScriptURL"))
+        } else if element.ns == ns!(svg) &&
+            element.local == local_name!("script") &&
+            attribute_namespace == Some(ns!(xlink)) &&
+            attribute == "href"
+        {
+            data = Some(DOMString::from("TrustedScriptURL"))
+        }
+        // Step 4: Return data.
+        data
     }
 }
 
@@ -135,23 +178,99 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-getattributetype>
     fn GetAttributeType(
         &self,
-        _: DOMString,
-        _: DOMString,
-        _: Option<DOMString>,
-        _: Option<DOMString>,
+        tag_name: DOMString,
+        attribute: DOMString,
+        element_namespace: Option<DOMString>,
+        attribute_namespace: Option<DOMString>,
     ) -> Option<DOMString> {
-        // TODO(36258): implement algorithm
-        Some(DOMString::from("".to_string()))
+        // Step 1: Set localName to tagName in ASCII lowercase.
+        let local_name = tag_name.to_ascii_lowercase();
+        // Step 2: Set attribute to attribute in ASCII lowercase.
+        let attribute = attribute.to_ascii_lowercase();
+        // Step 3: If elementNs is null or an empty string, set elementNs to HTML namespace.
+        let element_namespace = match element_namespace {
+            Some(namespace) if !namespace.is_empty() => Namespace::from(namespace),
+            Some(_) | None => ns!(html),
+        };
+        // Step 4: If attrNs is an empty string, set attrNs to null.
+        let attribute_namespace = match attribute_namespace {
+            Some(namespace) if !namespace.is_empty() => Some(Namespace::from(namespace)),
+            Some(_) | None => None,
+        };
+        // Step 5: Let interface be the element interface for localName and elementNs.
+        let interface = QualName::new(None, element_namespace, LocalName::from(local_name));
+        // Step 6: Let expectedType be null.
+        let mut expected_type = None;
+        // Step 7: Set attributeData to the result of Get Trusted Type data for attribute algorithm,
+        // with the following arguments: interface as element, attribute, attrNs
+        let attribute_data = TrustedTypePolicyFactory::get_trusted_type_data_for_attribute(
+            interface,
+            attribute,
+            attribute_namespace,
+        );
+        // Step 8: If attributeData is not null, then set expectedType to the interface’s name of
+        // the value of the fourth member of attributeData.
+        if let Some(trusted_type) = attribute_data {
+            expected_type = Some(trusted_type)
+        }
+        // Step 9: Return expectedType.
+        expected_type
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-getpropertytype>
+    #[allow(clippy::if_same_then_else)]
     fn GetPropertyType(
         &self,
-        _: DOMString,
-        _: DOMString,
-        _: Option<DOMString>,
+        tag_name: DOMString,
+        property: DOMString,
+        element_namespace: Option<DOMString>,
     ) -> Option<DOMString> {
-        // TODO(36258): implement algorithm
-        Some(DOMString::from("".to_string()))
+        // Step 1: Set localName to tagName in ASCII lowercase.
+        let local_name = tag_name.to_ascii_lowercase();
+        // Step 2: If elementNs is null or an empty string, set elementNs to HTML namespace.
+        let element_namespace = match element_namespace {
+            Some(namespace) if !namespace.is_empty() => Namespace::from(namespace),
+            Some(_) | None => ns!(html),
+        };
+        // Step 3: Let interface be the element interface for localName and elementNs.
+        let interface = QualName::new(None, element_namespace, LocalName::from(local_name));
+        // Step 4: Let expectedType be null.
+        let mut expected_type = None;
+        // Step 5: Find the row in the following table, where the first column is "*" or interface’s name,
+        // and property is in the second column. If a matching row is found, set expectedType to
+        // the interface’s name of the value of the third column.
+        let property = property.str();
+        if interface.ns == ns!(html) &&
+            interface.local == local_name!("iframe") &&
+            property == "srcdoc"
+        {
+            expected_type = Some(DOMString::from("TrustedHTML"))
+        } else if interface.ns == ns!(html) &&
+            interface.local == local_name!("script") &&
+            property == "innerText"
+        {
+            expected_type = Some(DOMString::from("TrustedScript"))
+        } else if interface.ns == ns!(html) &&
+            interface.local == local_name!("script") &&
+            property == "src"
+        {
+            expected_type = Some(DOMString::from("TrustedScriptURL"))
+        } else if interface.ns == ns!(html) &&
+            interface.local == local_name!("script") &&
+            property == "text"
+        {
+            expected_type = Some(DOMString::from("TrustedScript"))
+        } else if interface.ns == ns!(html) &&
+            interface.local == local_name!("script") &&
+            property == "textContent"
+        {
+            expected_type = Some(DOMString::from("TrustedScript"))
+        } else if property == "innerHTML" {
+            expected_type = Some(DOMString::from("TrustedHTML"))
+        } else if property == "outerHTML" {
+            expected_type = Some(DOMString::from("TrustedHTML"))
+        }
+        // Step 6: Return expectedType.
+        expected_type
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-defaultpolicy>
     fn GetDefaultPolicy(&self) -> Option<DomRoot<TrustedTypePolicy>> {

@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
 use std::iter::repeat;
 
+use atomic_refcell::AtomicRef;
 use log::warn;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use servo_arc::Arc;
@@ -15,13 +16,13 @@ use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
 
 use super::{
-    Table, TableCaption, TableSlot, TableSlotCell, TableSlotCoordinates, TableSlotOffset,
-    TableTrack, TableTrackGroup, TableTrackGroupType,
+    Table, TableCaption, TableLevelBox, TableSlot, TableSlotCell, TableSlotCoordinates,
+    TableSlotOffset, TableTrack, TableTrackGroup, TableTrackGroupType,
 };
 use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, NodeExt};
+use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
 use crate::flow::{BlockContainerBuilder, BlockFormattingContext};
 use crate::formatting_contexts::{
@@ -33,9 +34,9 @@ use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{DisplayGeneratingBox, DisplayLayoutInternal};
 
 /// A reference to a slot and its coordinates in the table
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub(super) struct ResolvedSlotAndLocation<'a> {
-    pub cell: &'a TableSlotCell,
+    pub cell: AtomicRef<'a, TableSlotCell>,
     pub coords: TableSlotCoordinates,
 }
 
@@ -161,7 +162,10 @@ impl Table {
     ) -> Vec<ResolvedSlotAndLocation<'_>> {
         let slot = self.get_slot(coords);
         match slot {
-            Some(TableSlot::Cell(cell)) => vec![ResolvedSlotAndLocation { cell, coords }],
+            Some(TableSlot::Cell(cell)) => vec![ResolvedSlotAndLocation {
+                cell: cell.borrow(),
+                coords,
+            }],
             Some(TableSlot::Spanned(offsets)) => offsets
                 .iter()
                 .flat_map(|offset| self.resolve_slot_at(coords - *offset))
@@ -241,6 +245,7 @@ impl TableBuilder {
         // generally less than or equal to three row groups, but if we notice a lot
         // of web content with more, we can consider a binary search here.
         for row_group in self.table.row_groups.iter() {
+            let row_group = row_group.borrow();
             if row_group.track_range.start > n {
                 return row_group.track_range.start - 1;
             }
@@ -286,6 +291,7 @@ impl TableBuilder {
         let mut thead_index = None;
         let mut tfoot_index = None;
         for (row_group_index, row_group) in self.table.row_groups.iter().enumerate() {
+            let row_group = row_group.borrow();
             if thead_index.is_none() && row_group.group_type == TableTrackGroupType::HeaderGroup {
                 thead_index = Some(row_group_index);
             }
@@ -315,25 +321,35 @@ impl TableBuilder {
         // Now update all track group ranges.
         let mut current_row_group_index = None;
         for (row_index, row) in self.table.rows.iter().enumerate() {
+            let row = row.borrow();
             if current_row_group_index == row.group_index {
                 continue;
             }
 
             // Finish any row group that is currently being processed.
             if let Some(current_group_index) = current_row_group_index {
-                self.table.row_groups[current_group_index].track_range.end = row_index;
+                self.table.row_groups[current_group_index]
+                    .borrow_mut()
+                    .track_range
+                    .end = row_index;
             }
 
             // Start processing this new row group and update its starting index.
             current_row_group_index = row.group_index;
             if let Some(current_group_index) = current_row_group_index {
-                self.table.row_groups[current_group_index].track_range.start = row_index;
+                self.table.row_groups[current_group_index]
+                    .borrow_mut()
+                    .track_range
+                    .start = row_index;
             }
         }
 
         // Finish the last row group.
         if let Some(current_group_index) = current_row_group_index {
-            self.table.row_groups[current_group_index].track_range.end = self.table.rows.len();
+            self.table.row_groups[current_group_index]
+                .borrow_mut()
+                .track_range
+                .end = self.table.rows.len();
         }
     }
 
@@ -344,6 +360,7 @@ impl TableBuilder {
             self.table.row_groups.insert(0, removed_row_group);
 
             for row in self.table.rows.iter_mut() {
+                let mut row = row.borrow_mut();
                 match row.group_index.as_mut() {
                     Some(group_index) if *group_index < index_to_move => *group_index += 1,
                     Some(group_index) if *group_index == index_to_move => *group_index = 0,
@@ -352,7 +369,7 @@ impl TableBuilder {
             }
         }
 
-        let row_range = self.table.row_groups[0].track_range.clone();
+        let row_range = self.table.row_groups[0].borrow().track_range.clone();
         if row_range.start > 0 {
             // Move the slots associated with the moved group.
             let removed_slots: Vec<Vec<TableSlot>> = self
@@ -363,7 +380,7 @@ impl TableBuilder {
             self.table.slots.splice(0..0, removed_slots);
 
             // Move the rows associated with the moved group.
-            let removed_rows: Vec<TableTrack> = self
+            let removed_rows: Vec<_> = self
                 .table
                 .rows
                 .splice(row_range, std::iter::empty())
@@ -385,6 +402,7 @@ impl TableBuilder {
             self.table.row_groups.push(removed_row_group);
 
             for row in self.table.rows.iter_mut() {
+                let mut row = row.borrow_mut();
                 match row.group_index.as_mut() {
                     Some(group_index) if *group_index > index_to_move => *group_index -= 1,
                     Some(group_index) if *group_index == index_to_move => {
@@ -396,6 +414,7 @@ impl TableBuilder {
         }
 
         let row_range = self.table.row_groups[last_row_group_index]
+            .borrow()
             .track_range
             .clone();
         if row_range.end < self.table.rows.len() {
@@ -408,7 +427,7 @@ impl TableBuilder {
             self.table.slots.extend(removed_slots);
 
             // Move the rows associated with the moved group.
-            let removed_rows: Vec<TableTrack> = self
+            let removed_rows: Vec<_> = self
                 .table
                 .rows
                 .splice(row_range, std::iter::empty())
@@ -427,6 +446,7 @@ impl TableBuilder {
             let last_row_index_in_group = self.last_row_index_in_row_group_at_row_n(row_index);
             for cell in self.table.slots[row_index].iter_mut() {
                 if let TableSlot::Cell(cell) = cell {
+                    let mut cell = cell.borrow_mut();
                     if cell.rowspan == 1 {
                         continue;
                     }
@@ -547,14 +567,17 @@ impl TableBuilder {
     /// <https://html.spec.whatwg.org/multipage/#algorithm-for-processing-rows>
     /// Push a single cell onto the slot map, handling any colspans it may have, and
     /// setting up the outgoing rowspans.
-    pub fn add_cell(&mut self, cell: TableSlotCell) {
+    pub fn add_cell(&mut self, cell: ArcRefCell<TableSlotCell>) {
         // Make sure the incoming_rowspans table is large enough
         // because we will be writing to it.
         let current_coords = self
             .current_coords()
             .expect("Should have rows before calling `add_cell`");
-        let colspan = cell.colspan;
-        let rowspan = cell.rowspan;
+
+        let (colspan, rowspan) = {
+            let cell = cell.borrow();
+            (cell.colspan, cell.rowspan)
+        };
 
         if self.incoming_rowspans.len() < current_coords.x + colspan {
             self.incoming_rowspans
@@ -704,21 +727,21 @@ where
         row_builder.finish();
 
         let style = anonymous_info.style.clone();
-        self.push_table_row(TableTrack {
+        self.push_table_row(ArcRefCell::new(TableTrack {
             base_fragment_info: (&anonymous_info).into(),
             style,
             group_index: self.current_row_group_index,
             is_anonymous: true,
-        });
+        }));
     }
 
-    fn push_table_row(&mut self, table_track: TableTrack) {
+    fn push_table_row(&mut self, table_track: ArcRefCell<TableTrack>) {
         self.builder.table.rows.push(table_track);
 
         let last_row = self.builder.table.rows.len();
         if let Some(index) = self.current_row_group_index {
             let row_group = &mut self.builder.table.row_groups[index];
-            row_group.track_range.end = last_row;
+            row_group.borrow_mut().track_range.end = last_row;
         }
     }
 }
@@ -749,12 +772,13 @@ where
                     self.builder.incoming_rowspans.clear();
 
                     let next_row_index = self.builder.table.rows.len();
-                    self.builder.table.row_groups.push(TableTrackGroup {
+                    let row_group = ArcRefCell::new(TableTrackGroup {
                         base_fragment_info: info.into(),
                         style: info.style.clone(),
                         group_type: internal.into(),
                         track_range: next_row_index..next_row_index,
                     });
+                    self.builder.table.row_groups.push(row_group.clone());
 
                     let previous_propagated_data = self.current_propagated_data;
                     self.current_propagated_data = self.current_propagated_data.union(&info.style);
@@ -773,8 +797,9 @@ where
                     self.current_propagated_data = previous_propagated_data;
                     self.builder.incoming_rowspans.clear();
 
-                    // We are doing this until we have actually set a Box for this `BoxSlot`.
-                    ::std::mem::forget(box_slot)
+                    box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::TrackGroup(
+                        row_group,
+                    )));
                 },
                 DisplayLayoutInternal::TableRow => {
                     self.finish_anonymous_row_if_needed();
@@ -790,26 +815,23 @@ where
                     );
                     row_builder.finish();
 
-                    self.push_table_row(TableTrack {
+                    let row = ArcRefCell::new(TableTrack {
                         base_fragment_info: info.into(),
                         style: info.style.clone(),
                         group_index: self.current_row_group_index,
                         is_anonymous: false,
                     });
-
-                    // We are doing this until we have actually set a Box for this `BoxSlot`.
-                    ::std::mem::forget(box_slot)
+                    self.push_table_row(row.clone());
+                    box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(row)));
                 },
                 DisplayLayoutInternal::TableColumn => {
-                    add_column(
+                    let column = add_column(
                         &mut self.builder.table.columns,
                         info,
                         None,  /* group_index */
                         false, /* is_anonymous */
                     );
-
-                    // We are doing this until we have actually set a Box for this `BoxSlot`.
-                    ::std::mem::forget(box_slot)
+                    box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(column)));
                 },
                 DisplayLayoutInternal::TableColumnGroup => {
                     let column_group_index = self.builder.table.column_groups.len();
@@ -839,14 +861,16 @@ where
                             .extend(column_group_builder.columns);
                     }
 
-                    self.builder.table.column_groups.push(TableTrackGroup {
+                    let column_group = ArcRefCell::new(TableTrackGroup {
                         base_fragment_info: info.into(),
                         style: info.style.clone(),
                         group_type: internal.into(),
                         track_range: first_column..self.builder.table.columns.len(),
                     });
-
-                    ::std::mem::forget(box_slot);
+                    self.builder.table.column_groups.push(column_group.clone());
+                    box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::TrackGroup(
+                        column_group,
+                    )));
                 },
                 DisplayLayoutInternal::TableCaption => {
                     let contents = match contents.try_into() {
@@ -864,17 +888,14 @@ where
                         },
                     };
 
-                    let caption = TableCaption {
-                        context: ArcRefCell::new(IndependentFormattingContext {
+                    let caption = ArcRefCell::new(TableCaption {
+                        context: IndependentFormattingContext {
                             base: LayoutBoxBase::new(info.into(), info.style.clone()),
                             contents: IndependentFormattingContextContents::NonReplaced(contents),
-                        }),
-                    };
-
-                    self.builder.table.captions.push(caption);
-
-                    // We are doing this until we have actually set a Box for this `BoxSlot`.
-                    ::std::mem::forget(box_slot)
+                        },
+                    });
+                    self.builder.table.captions.push(caption.clone());
+                    box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Caption(caption)));
                 },
                 DisplayLayoutInternal::TableCell => {
                     self.current_anonymous_row_content
@@ -968,12 +989,14 @@ where
         }
 
         let block_container = builder.finish();
-        self.table_traversal.builder.add_cell(TableSlotCell {
-            base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
-            contents: BlockFormattingContext::from_block_container(block_container),
-            colspan: 1,
-            rowspan: 1,
-        });
+        self.table_traversal
+            .builder
+            .add_cell(ArcRefCell::new(TableSlotCell {
+                base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
+                contents: BlockFormattingContext::from_block_container(block_container),
+                colspan: 1,
+                rowspan: 1,
+            }));
     }
 }
 
@@ -1032,15 +1055,15 @@ where
                     };
 
                     self.finish_current_anonymous_cell_if_needed();
-                    self.table_traversal.builder.add_cell(TableSlotCell {
+
+                    let cell = ArcRefCell::new(TableSlotCell {
                         base: LayoutBoxBase::new(info.into(), info.style.clone()),
                         contents,
                         colspan,
                         rowspan,
                     });
-
-                    // We are doing this until we have actually set a Box for this `BoxSlot`.
-                    ::std::mem::forget(box_slot)
+                    self.table_traversal.builder.add_cell(cell.clone());
+                    box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Cell(cell)));
                 },
                 _ => {
                     //// TODO: Properly handle other table-like elements in the middle of a row.
@@ -1068,7 +1091,7 @@ where
 
 struct TableColumnGroupBuilder {
     column_group_index: usize,
-    columns: Vec<TableTrack>,
+    columns: Vec<ArcRefCell<TableTrack>>,
 }
 
 impl<'dom, Node: 'dom> TraversalHandler<'dom, Node> for TableColumnGroupBuilder
@@ -1083,21 +1106,22 @@ where
         _contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-        // We are doing this until we have actually set a Box for this `BoxSlot`.
-        ::std::mem::forget(box_slot);
-
         if !matches!(
             display,
             DisplayGeneratingBox::LayoutInternal(DisplayLayoutInternal::TableColumn)
         ) {
+            // The BoxSlot destructor will check to ensure that it isn't empty but in this case, the
+            // DOM node doesn't produce any box, so explicitly skip the destructor here.
+            ::std::mem::forget(box_slot);
             return;
         }
-        add_column(
+        let column = add_column(
             &mut self.columns,
             info,
             Some(self.column_group_index),
             false, /* is_anonymous */
         );
+        box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(column)));
     }
 }
 
@@ -1113,14 +1137,12 @@ impl From<DisplayLayoutInternal> for TableTrackGroupType {
     }
 }
 
-fn add_column<'dom, Node>(
-    collection: &mut Vec<TableTrack>,
+fn add_column<'dom, Node: NodeExt<'dom>>(
+    collection: &mut Vec<ArcRefCell<TableTrack>>,
     column_info: &NodeAndStyleInfo<Node>,
     group_index: Option<usize>,
     is_anonymous: bool,
-) where
-    Node: NodeExt<'dom>,
-{
+) -> ArcRefCell<TableTrack> {
     let span = if column_info.pseudo_element_type.is_none() {
         column_info
             .node
@@ -1132,13 +1154,12 @@ fn add_column<'dom, Node>(
         1
     };
 
-    collection.extend(
-        repeat(TableTrack {
-            base_fragment_info: column_info.into(),
-            style: column_info.style.clone(),
-            group_index,
-            is_anonymous,
-        })
-        .take(span),
-    );
+    let column = ArcRefCell::new(TableTrack {
+        base_fragment_info: column_info.into(),
+        style: column_info.style.clone(),
+        group_index,
+        is_anonymous,
+    });
+    collection.extend(repeat(column.clone()).take(span));
+    column
 }

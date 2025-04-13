@@ -4,8 +4,9 @@
 
 use app_units::Au;
 use bitflags::bitflags;
-use fonts::{FontMetrics, GlyphStore};
+use fonts::{ByteIndex, FontMetrics, GlyphStore};
 use itertools::Either;
+use range::Range;
 use servo_arc::Arc;
 use style::Zero;
 use style::computed_values::position::T as Position;
@@ -22,9 +23,7 @@ use webrender_api::FontInstanceKey;
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
 use super::{InlineFormattingContextLayout, LineBlockSizes};
 use crate::cell::ArcRefCell;
-use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, TextFragment,
-};
+use crate::fragment_tree::{BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{LogicalRect, LogicalVec2, PhysicalRect, ToLogical};
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
@@ -464,7 +463,6 @@ impl LineItemLayout<'_, '_> {
             border.to_physical(ifc_writing_mode),
             margin.to_physical(ifc_writing_mode),
             None, /* clearance */
-            CollapsedBlockMargins::zero(),
         );
 
         let offset_from_parent_ifc = LogicalVec2 {
@@ -576,6 +574,8 @@ impl LineItemLayout<'_, '_> {
                 glyphs: text_item.text,
                 text_decoration_line: text_item.text_decoration_line,
                 justification_adjustment: self.justification_adjustment,
+                selection_range: text_item.selection_range,
+                selected_style: text_item.selected_style,
             })),
             content_rect,
         ));
@@ -768,6 +768,8 @@ pub(super) struct TextRunLineItem {
     pub text_decoration_line: TextDecorationLine,
     /// The BiDi level of this [`TextRunLineItem`] to enable reordering.
     pub bidi_level: Level,
+    pub selection_range: Option<Range<ByteIndex>>,
+    pub selected_style: Arc<ComputedValues>,
 }
 
 impl TextRunLineItem {

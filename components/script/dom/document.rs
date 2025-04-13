@@ -12,6 +12,7 @@ use std::f64::consts::PI;
 use std::mem;
 use std::rc::Rc;
 use std::slice::from_ref;
+use std::str::FromStr;
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
@@ -20,7 +21,9 @@ use base::id::WebViewId;
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
-use constellation_traits::{AnimationTickType, ScriptToConstellationMessage};
+use constellation_traits::{
+    AnimationTickType, NavigationHistoryBehavior, ScriptToConstellationMessage,
+};
 use content_security_policy::{self as csp, CspList, PolicyDisposition};
 use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
@@ -51,6 +54,7 @@ use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
+use regex::bytes::Regex;
 use script_bindings::interfaces::DocumentHelpers;
 use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
 use script_traits::{ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType};
@@ -151,13 +155,12 @@ use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
-use crate::dom::htmlmetaelement::RefreshRedirectDue;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmltitleelement::HTMLTitleElement;
 use crate::dom::intersectionobserver::IntersectionObserver;
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::location::Location;
+use crate::dom::location::{Location, NavigationType};
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{
@@ -239,6 +242,24 @@ impl FireMouseEventType {
             FireMouseEventType::Enter => "mouseenter",
             FireMouseEventType::Leave => "mouseleave",
         }
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct RefreshRedirectDue {
+    #[no_trace]
+    pub(crate) url: ServoUrl,
+    #[ignore_malloc_size_of = "non-owning"]
+    pub(crate) window: DomRoot<Window>,
+}
+impl RefreshRedirectDue {
+    pub(crate) fn invoke(self, can_gc: CanGc) {
+        self.window.Location().navigate(
+            self.url.clone(),
+            NavigationHistoryBehavior::Replace,
+            NavigationType::DeclarativeRefresh,
+            can_gc,
+        );
     }
 }
 
@@ -4743,6 +4764,93 @@ impl Document {
         self.image_animation_manager.borrow_mut()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
+    pub(crate) fn shared_declarative_refresh_steps(&self, content: &[u8]) {
+        // 1. If document's will declaratively refresh is true, then return.
+        if self.will_declaratively_refresh() {
+            return;
+        }
+
+        // 2-11 Parsing
+        static REFRESH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+            // s flag is used to match . on newlines since the only places we use . in the
+            // regex is to go "to end of the string"
+            // (?s-u:.) is used to consume invalid unicode bytes
+            Regex::new(
+                r#"(?xs)
+                    ^
+                    \s* # 3
+                    ((?<time>[0-9]+)|\.) # 5-6
+                    [0-9.]* # 8
+                    (
+                        (
+                            (\s*;|\s*,|\s) # 10.3
+                            \s* # 10.4
+                        )
+                        (
+                            (
+                                (U|u)(R|r)(L|l) # 11.2-11.4
+                                \s*=\s* # 11.5-11.7
+                            )?
+                        ('(?<url1>[^']*)'(?s-u:.)*|"(?<url2>[^"]*)"(?s-u:.)*|['"]?(?<url3>(?s-u:.)*)) # 11.8 - 11.10
+                        |
+                        (?<url4>(?s-u:.)*)
+                    )
+                )?
+                $
+            "#,
+            )
+            .unwrap()
+        });
+
+        // 9. Let urlRecord be document's URL.
+        let mut url_record = self.url();
+        let captures = if let Some(captures) = REFRESH_REGEX.captures(content) {
+            captures
+        } else {
+            return;
+        };
+        let time = if let Some(time_string) = captures.name("time") {
+            u64::from_str(&String::from_utf8_lossy(time_string.as_bytes())).unwrap_or(0)
+        } else {
+            0
+        };
+        let captured_url = captures.name("url1").or(captures
+            .name("url2")
+            .or(captures.name("url3").or(captures.name("url4"))));
+
+        // 11.11 Parse: Set urlRecord to the result of encoding-parsing a URL given urlString, relative to document.
+        if let Some(url_match) = captured_url {
+            url_record = if let Ok(url) = ServoUrl::parse_with_base(
+                Some(&url_record),
+                &String::from_utf8_lossy(url_match.as_bytes()),
+            ) {
+                info!("Refresh to {}", url.debug_compact());
+                url
+            } else {
+                // 11.12 If urlRecord is failure, then return.
+                return;
+            }
+        }
+        // 12. Set document's will declaratively refresh to true.
+        if self.completely_loaded() {
+            // TODO: handle active sandboxing flag
+            self.window.as_global_scope().schedule_callback(
+                OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
+                    window: DomRoot::from_ref(self.window()),
+                    url: url_record,
+                }),
+                Duration::from_secs(time),
+            );
+            self.set_declarative_refresh(DeclarativeRefresh::CreatedAfterLoad);
+        } else {
+            self.set_declarative_refresh(DeclarativeRefresh::PendingLoad {
+                url: url_record,
+                time,
+            });
+        }
+    }
+
     pub(crate) fn will_declaratively_refresh(&self) -> bool {
         self.declarative_refresh.borrow().is_some()
     }
@@ -5821,6 +5929,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             self.window(),
             self.upcast(),
             Box::new(DocumentNamedGetter { name }),
+            CanGc::note(),
         );
         Some(NamedPropertyValue::HTMLCollection(collection))
     }

@@ -5,7 +5,6 @@
 <script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
 <body>
 
-
 <script>
 
 const params = new URLSearchParams(location.search);
@@ -19,21 +18,46 @@ if (!isPrerendering) {
   loadInitiatorPage();
 } else {
   const prerenderEventCollector = new PrerenderEventCollector();
-
-  if (params.get('type') === 'worklet') {
-    async function register() {
-      return window.sharedStorage.worklet.addModule(
+  const test_type = params.get('type');
+  let add_module_promise = null;
+  switch (test_type) {
+    case 'add_module':
+      add_module_promise = window.sharedStorage.worklet.addModule(
         "shared-storage-worklet.js");
-    }
-    prerenderEventCollector.start(
-      register(), 'window.sharedStorage.worklet.addModule');
-  } else {
-    prerenderEventCollector.start(
-      window.sharedStorage.set('prerender', 'yes'),
-      'window.sharedStorage.set');
+
+      prerenderEventCollector.start(
+        add_module_promise, 'add_module');
+      break;
+    case 'run':
+      add_module_promise = window.sharedStorage.worklet.addModule(
+        "shared-storage-worklet.js");
+      prerenderEventCollector.start(
+        window.sharedStorage.run("test-prerender"), 'run');
+      break;
+    case 'select_url':
+      add_module_promise = window.sharedStorage.worklet.addModule(
+        "shared-storage-worklet.js");
+      // Run the URL selection operation
+      const fenced_frame_promise = window.sharedStorage.selectURL(
+        "test-prerender-selection",
+        [{
+            url: "/resources/blank.html?a=1"
+          },
+          {
+            url: "/resources/blank.html?a=2"
+          },
+        ], {
+          resolveToConfig: true,
+        },
+      );
+      prerenderEventCollector.start(
+        fenced_frame_promise, 'select_url');
+      break;
+    default:
+      prerenderEventCollector.start(
+        window.sharedStorage.set('prerender', 'yes'),
+        'window.sharedStorage.set');
   }
 }
-
 </script>
-
 </body>

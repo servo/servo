@@ -212,6 +212,7 @@ impl BoxTree {
                         },
                         _ => return None,
                     },
+                    LayoutBox::TableLevelBox(..) => return None,
                     LayoutBox::TaffyItemBox(taffy_level_box) => match &taffy_level_box
                         .borrow()
                         .taffy_level_box

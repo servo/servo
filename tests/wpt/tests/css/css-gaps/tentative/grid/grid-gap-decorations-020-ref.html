@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .grid-container {
+        height: 110px;
+        width: 110px;
+
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+
+        column-gap: 10px;
+        row-gap: 10px;
+
+        column-rule-color: pink;
+        column-rule-style: dotted;
+        column-rule-width: 10px;
+
+        row-rule-color: green;
+        row-rule-style: ridge;
+        row-rule-width: 10px;
+    }
+
+    .grid-item {
+        background: skyblue;
+    }
+</style>
+<div class="grid-container">
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+</div>

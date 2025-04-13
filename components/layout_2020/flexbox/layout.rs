@@ -256,8 +256,6 @@ impl FlexLineItem<'_> {
                 size: item_used_size,
             },
         );
-        let margin = flex_context.sides_to_flow_relative(item_margin);
-        let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
 
         if let Some(item_baseline) = self.layout_result.baseline_relative_to_margin_box.as_ref() {
             let item_baseline = *item_baseline + item_content_cross_start_position -
@@ -294,9 +292,10 @@ impl FlexLineItem<'_> {
             flex_context
                 .sides_to_flow_relative(self.item.border)
                 .to_physical(container_writing_mode),
-            margin.to_physical(container_writing_mode),
+            flex_context
+                .sides_to_flow_relative(item_margin)
+                .to_physical(container_writing_mode),
             None, /* clearance */
-            collapsed_margin,
         );
 
         // If this flex item establishes a containing block for absolutely-positioned
@@ -2156,10 +2155,7 @@ impl FlexItem<'_> {
 
     #[inline]
     fn is_table(&self) -> bool {
-        match &self.box_.independent_formatting_context.contents {
-            IndependentFormattingContextContents::NonReplaced(content) => content.is_table(),
-            IndependentFormattingContextContents::Replaced(_) => false,
-        }
+        self.box_.is_table()
     }
 }
 
@@ -2367,6 +2363,7 @@ impl FlexItemBox {
             get_automatic_minimum_size,
             stretch_size.main,
             &main_content_sizes,
+            self.is_table(),
         );
 
         FlexItem {
@@ -2723,6 +2720,14 @@ impl FlexItemBox {
                     IntrinsicSizingMode::Size => content_block_size(),
                 }
             },
+        }
+    }
+
+    #[inline]
+    fn is_table(&self) -> bool {
+        match &self.independent_formatting_context.contents {
+            IndependentFormattingContextContents::NonReplaced(content) => content.is_table(),
+            IndependentFormattingContextContents::Replaced(_) => false,
         }
     }
 }

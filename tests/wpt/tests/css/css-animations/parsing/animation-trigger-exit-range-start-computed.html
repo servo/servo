@@ -6,7 +6,9 @@
 <script src="/css/support/computed-testcommon.js"></script>
 <div id="target" style="font-size:10px;"></div>
 <script>
-test_computed_value("animation-trigger-exit-range-start", "initial", "normal");
+// https://drafts.csswg.org/css-animations-2/#animation-trigger-exit-range-start
+test_computed_value("animation-trigger-exit-range-start", "initial", "auto");
+test_computed_value("animation-trigger-exit-range-start", "auto");
 test_computed_value("animation-trigger-exit-range-start", "normal");
 test_computed_value("animation-trigger-exit-range-start", "cover 0%", "cover");
 test_computed_value("animation-trigger-exit-range-start", "cover 100%");

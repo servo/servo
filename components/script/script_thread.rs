@@ -55,6 +55,7 @@ use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::{local_name, namespace_url, ns};
+use http::header::REFRESH;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -1947,7 +1948,7 @@ impl ScriptThread {
                 msg,
             } => {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
-                global.gpu_device_lost(device, reason, msg);
+                global.gpu_device_lost(device, reason, msg, can_gc);
             },
             WebGPUMsg::UncapturedError {
                 device,
@@ -3205,8 +3206,14 @@ impl ScriptThread {
             .as_deref()
             .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
             .into();
-
         document.set_referrer_policy(referrer_policy);
+
+        let refresh_header = metadata.headers.as_deref().and_then(|h| h.get(REFRESH));
+        if let Some(refresh_val) = refresh_header {
+            // There are tests that this header handles Unicode code points
+            document.shared_declarative_refresh_steps(refresh_val.as_bytes());
+        }
+
         document.set_ready_state(DocumentReadyState::Loading, can_gc);
 
         self.documents

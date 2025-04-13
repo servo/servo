@@ -209,7 +209,7 @@ pub(crate) fn handle_get_attribute_style(
         reply.send(None).unwrap();
         return;
     };
-    let style = elem.Style();
+    let style = elem.Style(can_gc);
 
     let msg = (0..style.Length())
         .map(|i| {
@@ -440,7 +440,7 @@ pub(crate) fn handle_modify_attribute(
                     can_gc,
                 );
             },
-            None => elem.RemoveAttribute(DOMString::from(modification.attribute_name)),
+            None => elem.RemoveAttribute(DOMString::from(modification.attribute_name), can_gc),
         }
     }
 }
@@ -467,7 +467,7 @@ pub(crate) fn handle_modify_rule(
     let elem = node
         .downcast::<HTMLElement>()
         .expect("This should be an HTMLElement");
-    let style = elem.Style();
+    let style = elem.Style(can_gc);
 
     for modification in modifications {
         let _ = style.SetProperty(

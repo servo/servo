@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <title>Worklet operations to Shared Storage API is deferred</title>
 <meta name="timeout" content="long">
+<meta name="variant" content="?type=add_module">
+<meta name="variant" content="?type=select_url">
+<meta name="variant" content="?type=run">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
@@ -22,14 +25,15 @@ promise_test(async t => {
       });
     });
 
+    const params = new URLSearchParams(location.search);
+    const test_type = params.get('type');
     const url =
-      `resources/shared-storage.https.html?uid=${uid}&type=worklet`;
+      `resources/shared-storage.https.html?uid=${uid}&type=${test_type}`;
     window.open(url, '_blank', 'noopener');
 
     const result = await gotMessage;
-    const expected = [
-      {
-        event: 'started waiting window.sharedStorage.worklet.addModule',
+    const expected = [{
+        event: `started waiting ${test_type}`,
         prerendering: true
       },
       {
@@ -37,7 +41,7 @@ promise_test(async t => {
         prerendering: false
       },
       {
-        event: 'finished waiting window.sharedStorage.worklet.addModule',
+        event: `finished waiting ${test_type}`,
         prerendering: false
       }
     ];
@@ -53,6 +57,6 @@ promise_test(async t => {
     // Send a close signal to PrerenderEventCollector on the prerendered page.
     new PrerenderChannel('close', uid).postMessage('');
   },
-  `add module for the Shared Storage API should be deferred until the
-    prerendered page is activated`);
+  `Worklet operations the Shared Storage API should
+   be deferred until the prerendered page is activated`);
 </script>

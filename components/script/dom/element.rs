@@ -2294,13 +2294,13 @@ impl Element {
             .map(|sr| DomRoot::from_ref(&**sr))
     }
 
-    pub(crate) fn ensure_element_internals(&self) -> DomRoot<ElementInternals> {
+    pub(crate) fn ensure_element_internals(&self, can_gc: CanGc) -> DomRoot<ElementInternals> {
         let mut rare_data = self.ensure_rare_data();
         DomRoot::from_ref(rare_data.element_internals.get_or_insert_with(|| {
             let elem = self
                 .downcast::<HTMLElement>()
                 .expect("ensure_element_internals should only be called for an HTMLElement");
-            Dom::from_ref(&*ElementInternals::new(elem, CanGc::note()))
+            Dom::from_ref(&*ElementInternals::new(elem, can_gc))
         }))
     }
 }
@@ -2361,9 +2361,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-classlist
-    fn ClassList(&self) -> DomRoot<DOMTokenList> {
+    fn ClassList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.class_list
-            .or_init(|| DOMTokenList::new(self, &local_name!("class"), None, CanGc::note()))
+            .or_init(|| DOMTokenList::new(self, &local_name!("class"), None, can_gc))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-slot
@@ -2373,9 +2373,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     make_setter!(SetSlot, "slot");
 
     // https://dom.spec.whatwg.org/#dom-element-attributes
-    fn Attributes(&self) -> DomRoot<NamedNodeMap> {
+    fn Attributes(&self, can_gc: CanGc) -> DomRoot<NamedNodeMap> {
         self.attr_list
-            .or_init(|| NamedNodeMap::new(&self.owner_window(), self, CanGc::note()))
+            .or_init(|| NamedNodeMap::new(&self.owner_window(), self, can_gc))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-hasattributes
@@ -2515,7 +2515,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattributenode
-    fn SetAttributeNode(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
+    fn SetAttributeNode(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
         // Step 1.
         if let Some(owner) = attr.GetOwnerElement() {
             if &*owner != self {
@@ -2565,7 +2565,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 vtable.attribute_mutated(
                     attr,
                     AttributeMutation::Set(Some(&old_attr.value())),
-                    CanGc::note(),
+                    can_gc,
                 );
             }
 
@@ -2574,7 +2574,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         } else {
             // Step 5.
             attr.set_owner(Some(self));
-            self.push_attribute(attr, CanGc::note());
+            self.push_attribute(attr, can_gc);
 
             // Step 6.
             Ok(None)
@@ -2582,26 +2582,31 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-setattributenodens
-    fn SetAttributeNodeNS(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
-        self.SetAttributeNode(attr)
+    fn SetAttributeNodeNS(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
+        self.SetAttributeNode(attr, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattribute
-    fn RemoveAttribute(&self, name: DOMString) {
+    fn RemoveAttribute(&self, name: DOMString, can_gc: CanGc) {
         let name = self.parsed_name(name);
-        self.remove_attribute_by_name(&name, CanGc::note());
+        self.remove_attribute_by_name(&name, can_gc);
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattributens
-    fn RemoveAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) {
+    fn RemoveAttributeNS(
+        &self,
+        namespace: Option<DOMString>,
+        local_name: DOMString,
+        can_gc: CanGc,
+    ) {
         let namespace = namespace_from_domstring(namespace);
         let local_name = LocalName::from(local_name);
-        self.remove_attribute(&namespace, &local_name, CanGc::note());
+        self.remove_attribute(&namespace, &local_name, can_gc);
     }
 
     // https://dom.spec.whatwg.org/#dom-element-removeattributenode
-    fn RemoveAttributeNode(&self, attr: &Attr) -> Fallible<DomRoot<Attr>> {
-        self.remove_first_matching_attribute(|a| a == attr, CanGc::note())
+    fn RemoveAttributeNode(&self, attr: &Attr, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
+        self.remove_first_matching_attribute(|a| a == attr, can_gc)
             .ok_or(Error::NotFound)
     }
 
@@ -2616,13 +2621,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
-    fn GetElementsByTagName(&self, localname: DOMString) -> DomRoot<HTMLCollection> {
+    fn GetElementsByTagName(&self, localname: DOMString, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
         HTMLCollection::by_qualified_name(
             &window,
             self.upcast(),
             LocalName::from(&*localname),
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -2631,15 +2636,16 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         &self,
         maybe_ns: Option<DOMString>,
         localname: DOMString,
+        can_gc: CanGc,
     ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::by_tag_name_ns(&window, self.upcast(), localname, maybe_ns, CanGc::note())
+        HTMLCollection::by_tag_name_ns(&window, self.upcast(), localname, maybe_ns, can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbyclassname
-    fn GetElementsByClassName(&self, classes: DOMString) -> DomRoot<HTMLCollection> {
+    fn GetElementsByClassName(&self, classes: DOMString, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::by_class_name(&window, self.upcast(), classes, CanGc::note())
+        HTMLCollection::by_class_name(&window, self.upcast(), classes, can_gc)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
@@ -2690,13 +2696,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollto
-    fn ScrollTo(&self, options: &ScrollToOptions) {
-        self.Scroll(options, CanGc::note());
+    fn ScrollTo(&self, options: &ScrollToOptions, can_gc: CanGc) {
+        self.Scroll(options, can_gc);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollto
-    fn ScrollTo_(&self, x: f64, y: f64) {
-        self.Scroll_(x, y, CanGc::note());
+    fn ScrollTo_(&self, x: f64, y: f64, can_gc: CanGc) {
+        self.Scroll_(x, y, can_gc);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollby
@@ -3117,9 +3123,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
-    fn Children(&self) -> DomRoot<HTMLCollection> {
+    fn Children(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
-        HTMLCollection::children(&window, self.upcast(), CanGc::note())
+        HTMLCollection::children(&window, self.upcast(), can_gc)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
@@ -3183,8 +3189,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-remove
-    fn Remove(&self) {
-        self.upcast::<Node>().remove_self(CanGc::note());
+    fn Remove(&self, can_gc: CanGc) {
+        self.upcast::<Node>().remove_self(can_gc);
     }
 
     // https://dom.spec.whatwg.org/#dom-element-matches
@@ -3240,9 +3246,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         &self,
         where_: DOMString,
         element: &Element,
+        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<Element>>> {
         let where_ = where_.parse::<AdjacentPosition>()?;
-        let inserted_node = self.insert_adjacent(where_, element.upcast(), CanGc::note())?;
+        let inserted_node = self.insert_adjacent(where_, element.upcast(), can_gc)?;
         Ok(inserted_node.map(|node| DomRoot::downcast(node).unwrap()))
     }
 
@@ -3325,7 +3332,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // https://dom.spec.whatwg.org/#dom-element-attachshadow
-    fn AttachShadow(&self, init: &ShadowRootInit) -> Fallible<DomRoot<ShadowRoot>> {
+    fn AttachShadow(&self, init: &ShadowRootInit, can_gc: CanGc) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1. Run attach a shadow root with this, init["mode"], init["clonable"], init["serializable"],
         // init["delegatesFocus"], and init["slotAssignment"].
         let shadow_root = self.attach_shadow(
@@ -3335,7 +3342,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             init.serializable,
             init.delegatesFocus,
             init.slotAssignment,
-            CanGc::note(),
+            can_gc,
         )?;
 
         // Step 2. Return this’s shadow root.
@@ -3751,7 +3758,7 @@ impl VirtualMethods for Element {
         let doc = node.owner_doc();
         match attr.local_name() {
             &local_name!("tabindex") | &local_name!("draggable") | &local_name!("hidden") => {
-                self.update_sequentially_focusable_status(CanGc::note())
+                self.update_sequentially_focusable_status(can_gc)
             },
             &local_name!("style") => {
                 // Modifying the `style` attribute might change style.
@@ -3924,7 +3931,7 @@ impl VirtualMethods for Element {
             return;
         }
 
-        self.update_sequentially_focusable_status(CanGc::note());
+        self.update_sequentially_focusable_status(can_gc);
 
         if let Some(ref id) = *self.id_attribute.borrow() {
             if let Some(shadow_root) = self.containing_shadow_root() {
@@ -3957,13 +3964,13 @@ impl VirtualMethods for Element {
             return;
         }
 
-        self.update_sequentially_focusable_status(CanGc::note());
+        self.update_sequentially_focusable_status(can_gc);
 
         let doc = self.owner_document();
 
         let fullscreen = doc.GetFullscreenElement();
         if fullscreen.as_deref() == Some(self) {
-            doc.exit_fullscreen(CanGc::note());
+            doc.exit_fullscreen(can_gc);
         }
         if let Some(ref value) = *self.id_attribute.borrow() {
             if let Some(ref shadow_root) = self.containing_shadow_root() {

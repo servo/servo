@@ -246,7 +246,6 @@ pub(crate) struct CollapsibleWithParentStartMargin(bool);
 /// for a list that has `list-style-position: outside`.
 #[derive(Debug)]
 pub(crate) struct OutsideMarker {
-    pub marker_style: Arc<ComputedValues>,
     pub list_item_style: Arc<ComputedValues>,
     pub base: LayoutBoxBase,
     pub block_container: BlockContainer,
@@ -271,7 +270,7 @@ impl OutsideMarker {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
     ) -> Fragment {
         let constraint_space = ConstraintSpace::new_for_style_and_ratio(
-            &self.marker_style,
+            &self.base.style,
             None, /* TODO: support preferred aspect ratios on non-replaced boxes */
         );
         let content_sizes = self.inline_content_sizes(layout_context, &constraint_space);
@@ -280,7 +279,7 @@ impl OutsideMarker {
                 inline: content_sizes.sizes.max_content,
                 block: SizeConstraint::default(),
             },
-            style: &self.marker_style,
+            style: &self.base.style,
         };
 
         // A ::marker can't have a stretch size (must be auto), so this doesn't matter.
@@ -349,14 +348,13 @@ impl OutsideMarker {
 
         Fragment::Box(ArcRefCell::new(BoxFragment::new(
             base_fragment_info,
-            self.marker_style.clone(),
+            self.base.style.clone(),
             flow_layout.fragments,
             content_rect.as_physical(Some(containing_block)),
             PhysicalSides::zero(),
             PhysicalSides::zero(),
             PhysicalSides::zero(),
             None,
-            CollapsedBlockMargins::zero(),
         )))
     }
 }
@@ -1106,9 +1104,9 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         pbm.border.to_physical(containing_block_writing_mode),
         margin.to_physical(containing_block_writing_mode),
         clearance,
-        block_margins_collapsed_with_children,
     )
     .with_baselines(flow_layout.baselines)
+    .with_block_margins_collapsed_with_children(block_margins_collapsed_with_children)
 }
 
 impl IndependentNonReplacedContents {
@@ -1212,10 +1210,10 @@ impl IndependentNonReplacedContents {
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
             None, /* clearance */
-            block_margins_collapsed_with_children,
         )
         .with_baselines(layout.baselines)
         .with_specific_layout_info(layout.specific_layout_info)
+        .with_block_margins_collapsed_with_children(block_margins_collapsed_with_children)
     }
 
     /// Lay out a normal in flow non-replaced block that establishes an independent
@@ -1517,10 +1515,10 @@ impl IndependentNonReplacedContents {
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
             clearance,
-            CollapsedBlockMargins::from_margin(&margin),
         )
         .with_baselines(layout.baselines)
         .with_specific_layout_info(layout.specific_layout_info)
+        .with_block_margins_collapsed_with_children(CollapsedBlockMargins::from_margin(&margin))
     }
 }
 
@@ -1654,8 +1652,8 @@ impl ReplacedContents {
             pbm.border.to_physical(containing_block_writing_mode),
             margin.to_physical(containing_block_writing_mode),
             clearance,
-            CollapsedBlockMargins::from_margin(&margin),
         )
+        .with_block_margins_collapsed_with_children(CollapsedBlockMargins::from_margin(&margin))
     }
 }
 
@@ -2039,7 +2037,7 @@ impl<'container> PlacementState<'container> {
                     return;
                 }
 
-                let fragment_block_margins = &fragment.block_margins_collapsed_with_children;
+                let fragment_block_margins = fragment.block_margins_collapsed_with_children();
                 let mut fragment_block_size = fragment
                     .border_rect()
                     .size
@@ -2353,7 +2351,6 @@ impl IndependentFormattingContext {
             // so there's no need to store it explicitly in the fragment.
             // And atomic inlines don't have clearance.
             None, /* clearance */
-            CollapsedBlockMargins::zero(),
         );
 
         IndependentFloatOrAtomicLayoutResult {

@@ -359,7 +359,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-elements
-    fn Elements(&self) -> DomRoot<HTMLFormControlsCollection> {
+    fn Elements(&self, can_gc: CanGc) -> DomRoot<HTMLFormControlsCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
         struct ElementsFilter {
             form: DomRoot<HTMLFormElement>,
@@ -422,35 +422,35 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                 form: DomRoot::from_ref(self),
             });
             let window = self.owner_window();
-            HTMLFormControlsCollection::new(&window, self, filter, CanGc::note())
+            HTMLFormControlsCollection::new(&window, self, filter, can_gc)
         }))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-length
     fn Length(&self) -> u32 {
-        self.Elements().Length()
+        self.Elements(CanGc::note()).Length()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-item
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Element>> {
-        let elements = self.Elements();
+    fn IndexedGetter(&self, index: u32, can_gc: CanGc) -> Option<DomRoot<Element>> {
+        let elements = self.Elements(can_gc);
         elements.IndexedGetter(index)
     }
 
     // https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property
-    fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
+    fn NamedGetter(&self, name: DOMString, can_gc: CanGc) -> Option<RadioNodeListOrElement> {
         let window = self.owner_window();
 
         let name = Atom::from(name);
 
         // Step 1
         let mut candidates =
-            RadioNodeList::new_controls_except_image_inputs(&window, self, &name, CanGc::note());
+            RadioNodeList::new_controls_except_image_inputs(&window, self, &name, can_gc);
         let mut candidates_length = candidates.Length();
 
         // Step 2
         if candidates_length == 0 {
-            candidates = RadioNodeList::new_images(&window, self, &name, CanGc::note());
+            candidates = RadioNodeList::new_images(&window, self, &name, can_gc);
             candidates_length = candidates.Length();
         }
 
@@ -497,7 +497,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
-    fn RelList(&self) -> DomRoot<DOMTokenList> {
+    fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
                 self.upcast(),
@@ -507,7 +507,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
-                CanGc::note(),
+                can_gc,
             )
         })
     }
@@ -1129,6 +1129,7 @@ impl HTMLFormElement {
         &self,
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
+        can_gc: CanGc,
     ) -> Vec<FormDatum> {
         let controls = self.controls.borrow();
         let mut data_set = Vec::new();
@@ -1177,7 +1178,8 @@ impl HTMLFormElement {
                         let custom = child.downcast::<HTMLElement>().unwrap();
                         if custom.is_form_associated_custom_element() {
                             // https://html.spec.whatwg.org/multipage/#face-entry-construction
-                            let internals = custom.upcast::<Element>().ensure_element_internals();
+                            let internals =
+                                custom.upcast::<Element>().ensure_element_internals(can_gc);
                             internals.perform_entry_construction(&mut data_set);
                             // Otherwise no form value has been set so there is nothing to do.
                         }
@@ -1225,7 +1227,7 @@ impl HTMLFormElement {
         self.constructing_entry_list.set(true);
 
         // Step 3-6
-        let ret = self.get_unclean_dataset(submitter, encoding);
+        let ret = self.get_unclean_dataset(submitter, encoding, can_gc);
 
         let window = self.owner_window();
 

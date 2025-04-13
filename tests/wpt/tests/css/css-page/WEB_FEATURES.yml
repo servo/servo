@@ -2,3 +2,7 @@ features:
 - name: page-orientation
   files:
   - page-orientation*
+- name: page-selectors
+  files:
+  - page-left-right-*
+  - pseudo-first-*

@@ -9,9 +9,9 @@
 <body>
 <script>
 
-function createConnectedShadowTree(test, customElements) {
+function createConnectedShadowTree(test, customElementRegistry) {
     const host = document.createElement('div');
-    const shadowRoot = host.attachShadow({mode: 'closed', customElements});
+    const shadowRoot = host.attachShadow({mode: 'closed', customElementRegistry});
     document.body.appendChild(host);
     test.add_cleanup(() => host.remove());
     return shadowRoot;
@@ -33,7 +33,7 @@ test((test) => {
     registry.define('other-element', ScopedOtherElement);
 
     const shadowRoot = createConnectedShadowTree(test, registry);
-    const someElement = document.createElement('some-element', {customElements: registry});
+    const someElement = document.createElement('some-element', {customElementRegistry: registry});
     assert_true(someElement instanceof ScopedSomeElement);
     someElement.innerHTML = '<other-element></other-element>';
     assert_true(someElement.querySelector('other-element') instanceof ScopedOtherElement);
@@ -53,7 +53,7 @@ test((test) => {
 
     const shadowRoot1 = createConnectedShadowTree(test, registry1);
     const shadowRoot2 = createConnectedShadowTree(test, registry2);
-    const someElement = document.createElement('some-element', {customElements: registry1});
+    const someElement = document.createElement('some-element', {customElementRegistry: registry1});
     someElement.innerHTML = '<other-element></other-element>';
     assert_true(someElement.querySelector('other-element') instanceof ScopedOtherElement1);
     shadowRoot2.appendChild(someElement);

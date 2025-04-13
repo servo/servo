@@ -52,7 +52,6 @@ use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::{
     CanPlayTypeResult, HTMLMediaElementConstants, HTMLMediaElementMethods,
 };
-use crate::dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
@@ -836,15 +835,20 @@ impl HTMLMediaElement {
             Mode::Children(source) => {
                 // This is only a partial implementation
                 // FIXME: https://github.com/servo/servo/issues/21481
-                let src = source.Src();
+                let src = source
+                    .upcast::<Element>()
+                    .get_attribute(&ns!(), &local_name!("src"));
                 // Step 9.attr.2.
-                if src.is_empty() {
-                    source
-                        .upcast::<EventTarget>()
-                        .fire_event(atom!("error"), can_gc);
-                    self.queue_dedicated_media_source_failure_steps();
-                    return;
-                }
+                let src: String = match src {
+                    Some(src) if !src.Value().is_empty() => src.Value().into(),
+                    _ => {
+                        source
+                            .upcast::<EventTarget>()
+                            .fire_event(atom!("error"), can_gc);
+                        self.queue_dedicated_media_source_failure_steps();
+                        return;
+                    },
+                };
                 // Step 9.attr.3.
                 let url_record = match base_url.join(&src) {
                     Ok(url) => url,
@@ -856,6 +860,8 @@ impl HTMLMediaElement {
                         return;
                     },
                 };
+                // Step 9.attr.7
+                *self.current_src.borrow_mut() = url_record.as_str().into();
                 // Step 9.attr.8.
                 self.resource_fetch_algorithm(Resource::Url(url_record));
             },
