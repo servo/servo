@@ -1367,7 +1367,7 @@ impl Node {
         if let Some(node) = self.downcast::<HTMLStyleElement>() {
             node.get_cssom_stylesheet()
         } else if let Some(node) = self.downcast::<HTMLLinkElement>() {
-            node.get_cssom_stylesheet()
+            node.get_cssom_stylesheet(CanGc::note())
         } else {
             None
         }
