@@ -33,8 +33,7 @@ use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
     Compile1, CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap,
-    InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, RuntimeCode,
-    SetScriptPrivate,
+    InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, SetScriptPrivate,
 };
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
@@ -139,7 +138,7 @@ use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::{DynamicModuleList, ModuleScript, ModuleTree, ScriptFetchOptions};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
-use crate::security_manager::CSPViolationReporter;
+use crate::security_manager::{CSPViolationReportBuilder, CSPViolationReportTask};
 use crate::task_manager::TaskManager;
 use crate::task_source::SendableTaskSource;
 use crate::timers::{
@@ -2676,15 +2675,16 @@ impl GlobalScope {
             // FIXME: Don't fire event if `script-src` and `default-src`
             // were not passed.
             for policy in csp_list.0 {
-                let task = CSPViolationReporter::new(
-                    self,
-                    None,
-                    policy.disposition == PolicyDisposition::Report,
-                    RuntimeCode::JS,
-                    scripted_caller.filename.clone(),
-                    scripted_caller.line,
-                    scripted_caller.col,
-                );
+                let report = CSPViolationReportBuilder::default()
+                    .resource("eval".to_owned())
+                    .effective_directive("script-src".to_owned())
+                    .report_only(policy.disposition == PolicyDisposition::Report)
+                    .source_file(scripted_caller.filename.clone())
+                    .line_number(scripted_caller.line)
+                    .column_number(scripted_caller.col)
+                    .build(self);
+                let task = CSPViolationReportTask::new(self, report);
+
                 self.task_manager()
                     .dom_manipulation_task_source()
                     .queue(task);
