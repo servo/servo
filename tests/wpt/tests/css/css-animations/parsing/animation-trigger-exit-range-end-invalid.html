@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<!-- TODO(crbug.com/390314945): Replace with spec link when the spec lands. -->
-<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8942">
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#animation-trigger-exit-range-end">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -18,4 +17,5 @@ test_invalid_value("animation-trigger-exit-range-end", "50% exit");
 test_invalid_value("animation-trigger-exit-range-end", "contain contain");
 test_invalid_value("animation-trigger-exit-range-end", "none");
 test_invalid_value("animation-trigger-exit-range-end", "cover 50% enter 50%");
+test_invalid_value("animation-trigger-exit-range-end", "auto contain");
 </script>

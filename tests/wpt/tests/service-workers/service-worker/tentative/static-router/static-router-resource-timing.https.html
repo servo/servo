@@ -56,10 +56,12 @@ function test_resource_timing(options) {
       assert_equals(entry.workerStart, 0, description);
       assert_equals(entry.workerCacheLookupStart, 0, description);
       assert_less_than_equal(entry.workerRouterEvaluationStart, entry.fetchStart, description);
+      assert_greater_than(entry.encodedBodySize, 0, description);
       break;
     case 'cache':
       assert_equals(entry.workerStart, 0, description);
       assert_greater_than_equal(entry.workerCacheLookupStart, entry.workerRouterEvaluationStart, description);
+      assert_greater_than(entry.encodedBodySize, 0, description);
       if (entry.workerFinalSourceType === 'cache') {
         assert_equals(entry.fetchStart, entry.responseStart, description);
         assert_less_than_equal(entry.workerCacheLookupStart, entry.responseStart, description);
@@ -70,6 +72,7 @@ function test_resource_timing(options) {
       break;
     case 'race-network-and-fetch-handler':
       assert_equals(entry.workerCacheLookupStart, 0, description);
+      assert_greater_than(entry.encodedBodySize, 0, description);
       if (entry.workerFinalSourceType === 'network') {
         assert_equals(entry.workerStart, 0, description);
         assert_less_than_equal(entry.workerRouterEvaluationStart, entry.fetchStart, description);
@@ -79,6 +82,8 @@ function test_resource_timing(options) {
       }
       break;
     case 'fetch-event':
+      assert_greater_than(entry.encodedBodySize, 0, description);
+      break;
     case '':  // i.e. no matching rules
       assert_equals(entry.workerCacheLookupStart, 0, description);
       assert_greater_than_equal(entry.workerStart, entry.workerRouterEvaluationStart, description);

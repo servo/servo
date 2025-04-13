@@ -44,11 +44,11 @@ function resolve_corner_style(style, w, h) {
     if ('box-shadow' in style) {
       const shadows = style['box-shadow'].split(",");
       style.shadow = [];
-      const boxShadowRegex = /(?:(-?\d+(?:\.\d+)?)px)\s+(?:(-?\d+(?:\.\d+)?)px)\s+(?:(-?\d+(?:\.\d+)?)(?:px)?)?(?:\s+(?:(-?\d+(?:\.\d+)?)px))?\s+([^\$]*)/i;
+      const boxShadowRegex = /(?:(-?\d+(?:\.\d+)?)px)\s+(?:(-?\d+(?:\.\d+)?)px)\s+(?:(-?\d+(?:\.\d+)?)(?:px)?)?(?:\s+(?:(-?\d+(?:\.\d+)?)px))?\s+([^\$\s]*(\s+inset)?)/i;
       for (const shadow of shadows.toReversed()) {
         const parsed = shadow.match(boxShadowRegex)
         if (parsed)
-          style.shadow.push({offset: [parseFloat(parsed[1]), parseFloat(parsed[2])], blur: parsed[3], spread: parsed[4], color: parsed[5] || "black" });
+          style.shadow.push({offset: [parseFloat(parsed[1]), parseFloat(parsed[2])], blur: parsed[3], spread: parsed[4], color: parsed[5] || "black", inset: !!parsed[6] });
       }
     }
   }));

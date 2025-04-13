@@ -105,7 +105,7 @@ function runEventTest(params, description) {
   runBfcacheTest(params, description);
 }
 
-async function navigateAndThenBack(pageA, pageB, urlB,
+async function navigateAndThenBack(pageA, pageB, urlB, scripts = [],
                                    funcBeforeBackNavigation,
                                    argsBeforeBackNavigation) {
   await pageA.execute_script(
@@ -118,6 +118,16 @@ async function navigateAndThenBack(pageA, pageB, urlB,
   );
 
   await pageB.execute_script(waitForPageShow);
+
+  for (const src of scripts) {
+    await pageB.execute_script((src) => {
+      const script = document.createElement("script");
+      script.src = src;
+      document.head.append(script);
+      return new Promise(resolve => script.onload = resolve);
+    }, [src]);
+  }
+
   if (funcBeforeBackNavigation) {
     await pageB.execute_script(funcBeforeBackNavigation,
                                argsBeforeBackNavigation);
@@ -172,7 +182,7 @@ function runBfcacheTest(params, description) {
 
     await pageA.execute_script(params.funcBeforeNavigation,
                                params.argsBeforeNavigation);
-    await navigateAndThenBack(pageA, pageB, urlB,
+    await navigateAndThenBack(pageA, pageB, urlB, params.scripts,
                               params.funcBeforeBackNavigation,
                               params.argsBeforeBackNavigation);
 

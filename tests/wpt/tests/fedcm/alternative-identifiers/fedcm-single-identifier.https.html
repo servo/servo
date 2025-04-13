@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API alternative identifier tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_mediation_required,
+        select_manifest,
+        fedcm_get_dialog_type_promise,
+        fedcm_select_account_promise} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_required("manifest_with_single_identifier.json");
+  await select_manifest(t, test_options);
+
+  const cred_promise = navigator.credentials.get(test_options);
+
+  // Wait for the dialog to appear.
+  const type = await fedcm_get_dialog_type_promise(t);
+  assert_equals(type, "AccountChooser");
+
+  const accounts = await window.test_driver.get_fedcm_account_list();
+  assert_equals(accounts.length, 2);
+
+  fedcm_select_account_promise(t, 0);
+
+  const cred = await cred_promise;
+  assert_equals(cred.token, "account_id=john_doe");
+  assert_equals(cred.isAutoSelected, false);
+}, "Accounts that only have a phone number or only a username should not cause failure.");
+
+</script>

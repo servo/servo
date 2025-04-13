@@ -51,24 +51,37 @@ interface MLContext {
 
 dictionary MLOpSupportLimits {
   MLInputOperandLayout preferredInputLayout;
-  MLSupportLimits input;
-  MLSupportLimits constant;
-  MLSupportLimits output;
+  [EnforceRange] unsigned long long maxTensorByteLength;
+  MLDataTypeLimits input;
+  MLDataTypeLimits constant;
+  MLDataTypeLimits output;
 };
 
-dictionary MLSupportLimits {
-  sequence<MLOperandDataType> dataTypes;
+typedef sequence<MLOperandDataType> MLDataTypeList;
+
+dictionary MLDataTypeLimits {
+  MLDataTypeList dataTypes;
+};
+
+dictionary MLRankRange {
+  unsigned long min;
+  unsigned long max;
+};
+
+dictionary MLTensorLimits {
+  MLDataTypeList dataTypes;
+  MLRankRange rankRange;
 };
 
 dictionary MLBinarySupportLimits {
-  MLSupportLimits a;
-  MLSupportLimits b;
-  MLSupportLimits output;
+  MLTensorLimits a;
+  MLTensorLimits b;
+  MLDataTypeLimits output;
 };
 
 dictionary MLSingleInputSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits output;
+  MLTensorLimits input;
+  MLDataTypeLimits output;
 };
 
 [SecureContext, Exposed=(Window, Worker)]
@@ -175,12 +188,12 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLBatchNormalizationSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits mean;
-  MLSupportLimits variance;
-  MLSupportLimits scale;
-  MLSupportLimits bias;
-  MLSupportLimits output;
+  MLTensorLimits input;
+  MLTensorLimits mean;
+  MLTensorLimits variance;
+  MLTensorLimits scale;
+  MLTensorLimits bias;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -217,8 +230,8 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLConcatSupportLimits {
-  MLSupportLimits inputs;
-  MLSupportLimits output;
+  MLTensorLimits inputs;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -249,10 +262,10 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLConv2dSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits filter;
-  MLSupportLimits bias;
-  MLSupportLimits output;
+  MLTensorLimits input;
+  MLTensorLimits filter;
+  MLTensorLimits bias;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -353,8 +366,8 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLLogicalNotSupportLimits {
-  MLSupportLimits a;
-  MLSupportLimits output;
+  MLTensorLimits a;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -411,15 +424,15 @@ partial interface MLGraphBuilder {
                              optional MLOperatorOptions options = {});
 };
 
-dictionary MLQuantizationSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits scale;
-  MLSupportLimits zeroPoint;
-  MLSupportLimits output;
+dictionary MLQuantizeDequantizeLinearSupportLimits {
+  MLTensorLimits input;
+  MLTensorLimits scale;
+  MLTensorLimits zeroPoint;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
-  MLQuantizationSupportLimits dequantizeLinear;
+  MLQuantizeDequantizeLinearSupportLimits dequantizeLinear;
 };
 
 partial interface MLGraphBuilder {
@@ -430,7 +443,7 @@ partial interface MLGraphBuilder {
 };
 
 partial dictionary MLOpSupportLimits {
-  MLQuantizationSupportLimits quantizeLinear;
+  MLQuantizeDequantizeLinearSupportLimits quantizeLinear;
 };
 
 dictionary MLEluOptions : MLOperatorOptions {
@@ -466,9 +479,9 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLGatherSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits indices;
-  MLSupportLimits output;
+  MLTensorLimits input;
+  MLTensorLimits indices;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -516,10 +529,10 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLGemmSupportLimits {
-  MLSupportLimits a;
-  MLSupportLimits b;
-  MLSupportLimits c;
-  MLSupportLimits output;
+  MLTensorLimits a;
+  MLTensorLimits b;
+  MLTensorLimits c;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -564,13 +577,13 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLGruSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits weight;
-  MLSupportLimits recurrentWeight;
-  MLSupportLimits bias;
-  MLSupportLimits recurrentBias;
-  MLSupportLimits initialHiddenState;
-  MLSupportLimits outputs;
+  MLTensorLimits input;
+  MLTensorLimits weight;
+  MLTensorLimits recurrentWeight;
+  MLTensorLimits bias;
+  MLTensorLimits recurrentBias;
+  MLTensorLimits initialHiddenState;
+  MLDataTypeLimits outputs;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -595,13 +608,13 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLGruCellSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits weight;
-  MLSupportLimits recurrentWeight;
-  MLSupportLimits hiddenState;
-  MLSupportLimits bias;
-  MLSupportLimits recurrentBias;
-  MLSupportLimits output;
+  MLTensorLimits input;
+  MLTensorLimits weight;
+  MLTensorLimits recurrentWeight;
+  MLTensorLimits hiddenState;
+  MLTensorLimits bias;
+  MLTensorLimits recurrentBias;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -642,10 +655,10 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLNormalizationSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits scale;
-  MLSupportLimits bias;
-  MLSupportLimits output;
+  MLTensorLimits input;
+  MLTensorLimits scale;
+  MLTensorLimits bias;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -720,15 +733,15 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLLstmSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits weight;
-  MLSupportLimits recurrentWeight;
-  MLSupportLimits bias;
-  MLSupportLimits recurrentBias;
-  MLSupportLimits peepholeWeight;
-  MLSupportLimits initialHiddenState;
-  MLSupportLimits initialCellState;
-  MLSupportLimits outputs;
+  MLTensorLimits input;
+  MLTensorLimits weight;
+  MLTensorLimits recurrentWeight;
+  MLTensorLimits bias;
+  MLTensorLimits recurrentBias;
+  MLTensorLimits peepholeWeight;
+  MLTensorLimits initialHiddenState;
+  MLTensorLimits initialCellState;
+  MLDataTypeLimits outputs;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -754,15 +767,15 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLLstmCellSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits weight;
-  MLSupportLimits recurrentWeight;
-  MLSupportLimits hiddenState;
-  MLSupportLimits cellState;
-  MLSupportLimits bias;
-  MLSupportLimits recurrentBias;
-  MLSupportLimits peepholeWeight;
-  MLSupportLimits outputs;
+  MLTensorLimits input;
+  MLTensorLimits weight;
+  MLTensorLimits recurrentWeight;
+  MLTensorLimits hiddenState;
+  MLTensorLimits cellState;
+  MLTensorLimits bias;
+  MLTensorLimits recurrentBias;
+  MLTensorLimits peepholeWeight;
+  MLDataTypeLimits outputs;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -834,9 +847,9 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLPreluSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits slope;
-  MLSupportLimits output;
+  MLTensorLimits input;
+  MLTensorLimits slope;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -936,10 +949,10 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLScatterSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits indices;
-  MLSupportLimits updates;
-  MLSupportLimits output;
+  MLTensorLimits input;
+  MLTensorLimits indices;
+  MLTensorLimits updates;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -1018,8 +1031,8 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLSplitSupportLimits {
-  MLSupportLimits input;
-  MLSupportLimits outputs;
+  MLTensorLimits input;
+  MLDataTypeLimits outputs;
 };
 
 partial dictionary MLOpSupportLimits {
@@ -1077,10 +1090,10 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLWhereSupportLimits {
-  MLSupportLimits condition;
-  MLSupportLimits trueValue;
-  MLSupportLimits falseValue;
-  MLSupportLimits output;
+  MLTensorLimits condition;
+  MLTensorLimits trueValue;
+  MLTensorLimits falseValue;
+  MLDataTypeLimits output;
 };
 
 partial dictionary MLOpSupportLimits {

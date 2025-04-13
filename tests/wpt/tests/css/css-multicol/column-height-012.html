@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Non-auto column-height should turn it into a multicol</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#ch">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#cwr">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="position:relative; width:100px; height:100px; background:red;">
+  <div style="column-height:40px; row-gap:20px;">
+    <div style="height:80px; background:green;"></div>
+  </div>
+  <!-- Fill the gap. -->
+  <div style="position:absolute; top:40px; width:100%; height:20px; background:green;"></div>
+</div>
