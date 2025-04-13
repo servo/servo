@@ -3456,11 +3456,16 @@ impl GlobalScope {
                 ViolationResource::TrustedTypePolicy { sample } => {
                     (Some(sample), "trusted-types-policy".to_owned())
                 },
+                ViolationResource::TrustedTypeSink { sample } => {
+                    (Some(sample), "trusted-types-sink".to_owned())
+                },
             };
             let report = CSPViolationReportBuilder::default()
                 .resource(resource)
                 .sample(sample)
                 .effective_directive(violation.directive.name)
+                .original_policy(violation.policy.to_string())
+                .report_only(violation.policy.disposition == PolicyDisposition::Report)
                 .build(self);
             let task = CSPViolationReportTask::new(self, report);
             self.task_manager()
