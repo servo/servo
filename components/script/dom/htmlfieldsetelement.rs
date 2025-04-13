@@ -87,7 +87,7 @@ impl HTMLFieldSetElement {
 
 impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-elements
-    fn Elements(&self) -> DomRoot<HTMLCollection> {
+    fn Elements(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
         HTMLCollection::new_with_filter_fn(
             &self.owner_window(),
             self.upcast(),
@@ -96,7 +96,7 @@ impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
                     .downcast::<HTMLElement>()
                     .is_some_and(HTMLElement::is_listed_element)
             },
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -223,7 +223,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status(CanGc::note());
+                        element.update_sequentially_focusable_status(can_gc);
                     }
                 } else {
                     for field in fields {
@@ -244,10 +244,10 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status(CanGc::note());
+                        element.update_sequentially_focusable_status(can_gc);
                     }
                 }
-                element.update_sequentially_focusable_status(CanGc::note());
+                element.update_sequentially_focusable_status(can_gc);
             },
             local_name!("form") => {
                 self.form_attribute_mutated(mutation, can_gc);
