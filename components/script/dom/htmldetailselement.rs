@@ -122,7 +122,7 @@ impl HTMLDetailsElement {
             .unwrap();
 
         let fallback_summary =
-            HTMLElement::new(local_name!("summary"), None, &document, None, CanGc::note());
+            HTMLElement::new(local_name!("summary"), None, &document, None, can_gc);
         fallback_summary
             .upcast::<Node>()
             .SetTextContent(Some(DEFAULT_SUMMARY.into()), can_gc);
@@ -238,7 +238,7 @@ impl VirtualMethods for HTMLDetailsElement {
             .attribute_mutated(attr, mutation, can_gc);
 
         if attr.local_name() == &local_name!("open") {
-            self.update_shadow_tree_styles(CanGc::note());
+            self.update_shadow_tree_styles(can_gc);
 
             let counter = self.toggle_counter.get() + 1;
             self.toggle_counter.set(counter);

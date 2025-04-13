@@ -590,7 +590,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     make_setter!(SetSrcdoc, "srcdoc");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
-    fn Sandbox(&self) -> DomRoot<DOMTokenList> {
+    fn Sandbox(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.sandbox.or_init(|| {
             DOMTokenList::new(
                 self.upcast::<Element>(),
@@ -603,7 +603,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
                     Atom::from("allow-scripts"),
                     Atom::from("allow-top-navigation"),
                 ]),
-                CanGc::note(),
+                can_gc,
             )
         })
     }
@@ -718,7 +718,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 // trigger the processing of iframe attributes whenever "srcdoc" attribute is set, changed or removed
                 if self.upcast::<Node>().is_connected_with_browsing_context() {
                     debug!("iframe srcdoc modified while in browsing context.");
-                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, CanGc::note());
+                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, can_gc);
                 }
             },
             local_name!("src") => {
@@ -732,7 +732,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 // the child browsing context to be created.
                 if self.upcast::<Node>().is_connected_with_browsing_context() {
                     debug!("iframe src set while in browsing context.");
-                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, CanGc::note());
+                    self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, can_gc);
                 }
             },
             _ => {},

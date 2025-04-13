@@ -138,7 +138,7 @@ impl HTMLElement {
 
 impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#the-style-attribute
-    fn Style(&self) -> DomRoot<CSSStyleDeclaration> {
+    fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = self.owner_window();
             CSSStyleDeclaration::new(
@@ -146,7 +146,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
                 CSSStyleOwner::Element(Dom::from_ref(self.upcast())),
                 None,
                 CSSModificationAccess::ReadWrite,
-                CanGc::note(),
+                can_gc,
             )
         })
     }
@@ -185,9 +185,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     document_and_element_event_handlers!();
 
     // https://html.spec.whatwg.org/multipage/#dom-dataset
-    fn Dataset(&self) -> DomRoot<DOMStringMap> {
-        self.dataset
-            .or_init(|| DOMStringMap::new(self, CanGc::note()))
+    fn Dataset(&self, can_gc: CanGc) -> DomRoot<DOMStringMap> {
+        self.dataset.or_init(|| DOMStringMap::new(self, can_gc))
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-onerror
@@ -1145,7 +1144,7 @@ impl VirtualMethods for HTMLElement {
             super_type.bind_to_tree(context, can_gc);
         }
         let element = self.as_element();
-        element.update_sequentially_focusable_status(CanGc::note());
+        element.update_sequentially_focusable_status(can_gc);
 
         // Binding to a tree can disable a form control if one of the new
         // ancestors is a fieldset.
