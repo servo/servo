@@ -14,6 +14,7 @@ use js::jsval::{self, JSVal};
 use js::rust::HandleObject;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime};
+use script_bindings::num::Finite;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -463,8 +464,8 @@ impl FileReader {
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
             total.is_some(),
-            loaded,
-            total.unwrap_or(0),
+            Finite::wrap(loaded as f64),
+            Finite::wrap(total.unwrap_or(0) as f64),
             can_gc,
         );
         progressevent.upcast::<Event>().fire(self.upcast(), can_gc);
