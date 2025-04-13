@@ -31,6 +31,7 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType, trim_http_whitespace,
 };
+use script_bindings::num::Finite;
 use script_traits::DocumentActivity;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
@@ -1235,8 +1236,8 @@ impl XMLHttpRequest {
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
             length_computable,
-            loaded,
-            total_length,
+            Finite::wrap(loaded as f64),
+            Finite::wrap(total_length as f64),
             can_gc,
         );
         let target = if upload {
