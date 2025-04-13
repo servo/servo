@@ -43,6 +43,7 @@ use constellation_traits::{
 };
 use content_security_policy::{self as csp};
 use crossbeam_channel::unbounded;
+use data_url::mime::Mime;
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
@@ -68,7 +69,6 @@ use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
-use mime::{self, Mime};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
@@ -145,6 +145,7 @@ use crate::messaging::{
     ScriptThreadReceivers, ScriptThreadSenders,
 };
 use crate::microtask::{Microtask, MicrotaskQueue};
+use crate::mime::{APPLICATION, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
@@ -3155,20 +3156,17 @@ impl ScriptThread {
             Some(final_url.clone()),
         );
 
-        let content_type: Option<Mime> =
-            metadata.content_type.map(Serde::into_inner).map(Into::into);
+        let content_type: Option<Mime> = metadata
+            .content_type
+            .map(Serde::into_inner)
+            .map(Mime::from_ct);
 
         let is_html_document = match content_type {
-            Some(ref mime)
-                if mime.type_() == mime::APPLICATION && mime.suffix() == Some(mime::XML) =>
-            {
+            Some(ref mime) if mime.type_ == APPLICATION && mime.has_suffix("xml") => {
                 IsHTMLDocument::NonHTMLDocument
             },
 
-            Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
-            {
+            Some(ref mime) if mime.matches(TEXT, XML) || mime.matches(APPLICATION, XML) => {
                 IsHTMLDocument::NonHTMLDocument
             },
             _ => IsHTMLDocument::HTMLDocument,

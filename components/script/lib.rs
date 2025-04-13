@@ -48,6 +48,7 @@ pub mod layout_dom;
 #[allow(unsafe_code)]
 pub(crate) mod messaging;
 mod microtask;
+pub(crate) mod mime;
 mod navigation;
 mod network_listener;
 mod realms;
