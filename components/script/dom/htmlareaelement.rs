@@ -362,7 +362,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-area-rellist>
-    fn RelList(&self) -> DomRoot<DOMTokenList> {
+    fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
                 self.upcast(),
@@ -372,7 +372,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
                     Atom::from("noreferrer"),
                     Atom::from("opener"),
                 ]),
-                CanGc::note(),
+                can_gc,
             )
         })
     }

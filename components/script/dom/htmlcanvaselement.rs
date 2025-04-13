@@ -323,7 +323,7 @@ impl HTMLCanvasElement {
     }
 
     #[cfg(feature = "webgpu")]
-    fn get_or_init_webgpu_context(&self) -> Option<DomRoot<GPUCanvasContext>> {
+    fn get_or_init_webgpu_context(&self, can_gc: CanGc) -> Option<DomRoot<GPUCanvasContext>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
                 CanvasContext::WebGPU(ref ctx) => Some(DomRoot::from_ref(ctx)),
@@ -339,7 +339,7 @@ impl HTMLCanvasElement {
             .recv()
             .expect("Failed to get WebGPU channel")
             .map(|channel| {
-                let context = GPUCanvasContext::new(&global_scope, self, channel, CanGc::note());
+                let context = GPUCanvasContext::new(&global_scope, self, channel, can_gc);
                 *self.context.borrow_mut() = Some(CanvasContext::WebGPU(Dom::from_ref(&*context)));
                 context
             })
@@ -477,7 +477,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     // When setting the value of the width or height attribute, if the context mode of the canvas element
     // is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
     // attribute's value unchanged.
-    fn SetWidth(&self, value: u32) -> Fallible<()> {
+    fn SetWidth(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
         if let Some(CanvasContext::Placeholder(_)) = *self.context.borrow() {
             return Err(Error::InvalidState);
         }
@@ -488,7 +488,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("width"), value, CanGc::note());
+        element.set_uint_attribute(&html5ever::local_name!("width"), value, can_gc);
         Ok(())
     }
 
@@ -496,7 +496,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     make_uint_getter!(Height, "height", DEFAULT_HEIGHT);
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
-    fn SetHeight(&self, value: u32) -> Fallible<()> {
+    fn SetHeight(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
         if let Some(CanvasContext::Placeholder(_)) = *self.context.borrow() {
             return Err(Error::InvalidState);
         }
@@ -507,7 +507,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("height"), value, CanGc::note());
+        element.set_uint_attribute(&html5ever::local_name!("height"), value, can_gc);
         Ok(())
     }
 
@@ -536,7 +536,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                 .map(RenderingContext::WebGL2RenderingContext),
             #[cfg(feature = "webgpu")]
             "webgpu" => self
-                .get_or_init_webgpu_context()
+                .get_or_init_webgpu_context(can_gc)
                 .map(RenderingContext::GPUCanvasContext),
             _ => None,
         })
@@ -647,7 +647,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-transfercontroltooffscreen>
-    fn TransferControlToOffscreen(&self) -> Fallible<DomRoot<OffscreenCanvas>> {
+    fn TransferControlToOffscreen(&self, can_gc: CanGc) -> Fallible<DomRoot<OffscreenCanvas>> {
         if self.context.borrow().is_some() {
             // Step 1.
             // If this canvas element's context mode is not set to none, throw an "InvalidStateError" DOMException.
@@ -665,7 +665,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             self.Width().into(),
             self.Height().into(),
             Some(&Dom::from_ref(self)),
-            CanGc::note(),
+            can_gc,
         );
         // Step 4. Set this canvas element's context mode to placeholder.
         *self.context.borrow_mut() = Some(CanvasContext::Placeholder(offscreen_canvas.as_traced()));

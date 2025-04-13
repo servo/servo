@@ -954,7 +954,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
     fn Crypto(&self) -> DomRoot<Crypto> {
-        self.as_global_scope().crypto()
+        self.as_global_scope().crypto(CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
