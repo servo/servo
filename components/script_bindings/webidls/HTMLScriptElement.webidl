@@ -7,8 +7,8 @@
 interface HTMLScriptElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  [CEReactions]
-           attribute USVString src;
+  [CEReactions, SetterThrows]
+           attribute (TrustedScriptURL or USVString) src;
   [CEReactions]
            attribute DOMString type;
   [CEReactions]
