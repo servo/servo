@@ -243,6 +243,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             control_receiver,
             context_sender,
             global.insecure_requests_policy(),
+            global.policy_container(),
         );
 
         let context = context_receiver

@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
+use content_security_policy as csp;
 use cookie::Cookie as CookiePair;
 use crossbeam_channel::{Receiver, unbounded};
 use devtools_traits::{
@@ -1537,6 +1538,7 @@ fn test_fetch_compressed_response_update_count() {
         fn process_response_eof(&mut self, _: &Request, _: &Response) {
             let _ = self.sender.take().unwrap().send(self.update_count);
         }
+        fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
     }
 
     let (sender, receiver) = tokio::sync::oneshot::channel();

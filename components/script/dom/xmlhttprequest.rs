@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use constellation_traits::BlobImpl;
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentLength, ContentType, HeaderMapExt};
@@ -142,6 +143,11 @@ impl FetchResponseListener for XHRContext {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
     }
 }
 
@@ -671,8 +677,9 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             None => None,
         };
 
+        let global = self.global();
         let mut request = RequestBuilder::new(
-            self.global().webview_id(),
+            global.webview_id(),
             self.request_url.borrow().clone().unwrap(),
             self.referrer.clone(),
         )
@@ -686,11 +693,12 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         .use_cors_preflight(self.upload_listener.get())
         .credentials_mode(credentials_mode)
         .use_url_credentials(use_url_credentials)
-        .origin(self.global().origin().immutable().clone())
+        .origin(global.origin().immutable().clone())
         .referrer_policy(self.referrer_policy)
-        .insecure_requests_policy(self.global().insecure_requests_policy())
-        .has_trustworthy_ancestor_origin(self.global().has_trustworthy_ancestor_or_current_origin())
-        .pipeline_id(Some(self.global().pipeline_id()));
+        .insecure_requests_policy(global.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_or_current_origin())
+        .policy_container(global.policy_container())
+        .pipeline_id(Some(global.pipeline_id()));
 
         // step 4 (second half)
         if let Some(content_type) = content_type {

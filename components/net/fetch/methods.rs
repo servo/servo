@@ -173,9 +173,9 @@ pub async fn fetch_with_cors_cache(
 pub fn should_request_be_blocked_by_csp(
     request: &Request,
     policy_container: &PolicyContainer,
-) -> csp::CheckResult {
+) -> (csp::CheckResult, Vec<csp::Violation>) {
     let origin = match &request.origin {
-        Origin::Client => return csp::CheckResult::Allowed,
+        Origin::Client => return (csp::CheckResult::Allowed, Vec::new()),
         Origin::Origin(origin) => origin,
     };
 
@@ -190,12 +190,11 @@ pub fn should_request_be_blocked_by_csp(
         parser_metadata: csp::ParserMetadata::None,
     };
 
-    // TODO: Instead of ignoring violations, report them.
     policy_container
         .csp_list
         .as_ref()
-        .map(|c| c.should_request_be_blocked(&csp_request).0)
-        .unwrap_or(csp::CheckResult::Allowed)
+        .map(|c| c.should_request_be_blocked(&csp_request))
+        .unwrap_or((csp::CheckResult::Allowed, Vec::new()))
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
@@ -278,7 +277,13 @@ pub async fn main_fetch(
     // Step 7. If should request be blocked due to a bad port, should fetching request be blocked
     // as mixed content, or should request be blocked by Content Security Policy returns blocked,
     // then set response to a network error.
-    if should_request_be_blocked_by_csp(request, &policy_container) == csp::CheckResult::Blocked {
+    let (check_result, violations) = should_request_be_blocked_by_csp(request, &policy_container);
+
+    if !violations.is_empty() {
+        target.process_csp_violations(request, violations);
+    }
+
+    if check_result == csp::CheckResult::Blocked {
         warn!("Request blocked by CSP");
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked by Content-Security-Policy".into(),
