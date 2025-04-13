@@ -179,7 +179,7 @@ impl HTMLLinkElement {
         self.stylesheet.borrow().clone()
     }
 
-    pub(crate) fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn get_cssom_stylesheet(&self, can_gc: CanGc) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
@@ -189,7 +189,7 @@ impl HTMLLinkElement {
                     None, // todo handle location
                     None, // todo handle title
                     sheet,
-                    CanGc::note(),
+                    can_gc,
                 )
             })
         })
@@ -541,7 +541,7 @@ impl StylesheetOwner for HTMLLinkElement {
     }
 
     fn referrer_policy(&self) -> ReferrerPolicy {
-        if self.RelList().Contains("noreferrer".into()) {
+        if self.RelList(CanGc::note()).Contains("noreferrer".into()) {
             return ReferrerPolicy::NoReferrer;
         }
 
@@ -549,7 +549,7 @@ impl StylesheetOwner for HTMLLinkElement {
     }
 
     fn set_origin_clean(&self, origin_clean: bool) {
-        if let Some(stylesheet) = self.get_cssom_stylesheet() {
+        if let Some(stylesheet) = self.get_cssom_stylesheet(CanGc::note()) {
             stylesheet.set_origin_clean(origin_clean);
         }
     }
@@ -602,7 +602,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
-    fn RelList(&self) -> DomRoot<DOMTokenList> {
+    fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
                 self.upcast(),
@@ -624,7 +624,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
                     Atom::from("prerender"),
                     Atom::from("stylesheet"),
                 ]),
-                CanGc::note(),
+                can_gc,
             )
         })
     }
@@ -666,8 +666,8 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
-    fn GetSheet(&self) -> Option<DomRoot<DOMStyleSheet>> {
-        self.get_cssom_stylesheet().map(DomRoot::upcast)
+    fn GetSheet(&self, can_gc: CanGc) -> Option<DomRoot<DOMStyleSheet>> {
+        self.get_cssom_stylesheet(can_gc).map(DomRoot::upcast)
     }
 }
 

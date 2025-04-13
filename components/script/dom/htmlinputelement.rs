@@ -1566,7 +1566,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     // Different from make_labels_getter because this one
     // conditionally returns null.
-    fn GetLabels(&self) -> Option<DomRoot<NodeList>> {
+    fn GetLabels(&self, can_gc: CanGc) -> Option<DomRoot<NodeList>> {
         if self.input_type() == InputType::Hidden {
             None
         } else {
@@ -1574,7 +1574,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 NodeList::new_labels_list(
                     self.upcast::<Node>().owner_doc().window(),
                     self.upcast::<HTMLElement>(),
-                    CanGc::note(),
+                    can_gc,
                 )
             }))
         }
@@ -2378,7 +2378,7 @@ impl VirtualMethods for HTMLInputElement {
                     el.set_read_write_state(read_write);
                 }
 
-                el.update_sequentially_focusable_status(CanGc::note());
+                el.update_sequentially_focusable_status(can_gc);
             },
             local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
@@ -2416,7 +2416,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         if new_type == InputType::File {
                             let window = self.owner_window();
-                            let filelist = FileList::new(&window, vec![], CanGc::note());
+                            let filelist = FileList::new(&window, vec![], can_gc);
                             self.filelist.set(Some(&filelist));
                         }
 
@@ -2425,7 +2425,7 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {
-                                self.SetValue(old_idl_value, CanGc::note())
+                                self.SetValue(old_idl_value, can_gc)
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
 
@@ -2437,7 +2437,7 @@ impl VirtualMethods for HTMLInputElement {
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),
-                                    CanGc::note(),
+                                    can_gc,
                                 )
                                 .expect(
                                     "Failed to set input value on type change to ValueMode::Value.",
@@ -2449,7 +2449,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(DOMString::from(""), CanGc::note())
+                                self.SetValue(DOMString::from(""), can_gc)
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
@@ -2642,11 +2642,8 @@ impl VirtualMethods for HTMLInputElement {
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
                         let window = self.owner_window();
-                        let index = window.text_index_query(
-                            self.upcast::<Node>(),
-                            point_in_target,
-                            CanGc::note(),
-                        );
+                        let index =
+                            window.text_index_query(self.upcast::<Node>(), point_in_target, can_gc);
                         // Position the caret at the click position or at the end of the current
                         // value.
                         let edit_point_index = match index {
@@ -2672,7 +2669,7 @@ impl VirtualMethods for HTMLInputElement {
                 let action = self.textinput.borrow_mut().handle_keydown(keyevent);
                 match action {
                     TriggerDefaultAction => {
-                        self.implicit_submission(CanGc::note());
+                        self.implicit_submission(can_gc);
                     },
                     DispatchInput => {
                         self.value_dirty.set(true);
@@ -2725,7 +2722,7 @@ impl VirtualMethods for HTMLInputElement {
             }
         } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
             if !event.DefaultPrevented() {
-                handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
+                handle_text_clipboard_action(self, &self.textinput, clipboard_event, can_gc);
             }
         }
 
@@ -2988,7 +2985,7 @@ impl Activatable for HTMLInputElement {
                     form_owner.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitterElement::Input(self),
-                        CanGc::note(),
+                        can_gc,
                     )
                 }
             },
