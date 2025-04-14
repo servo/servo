@@ -125,7 +125,11 @@ fn write_blobs_and_option_to_the_clipboard(
         // using formatString as the native clipboard format.
         window.send_to_embedder(EmbedderMsg::SetClipboardText(
             window.webview_id(),
-            String::from_utf8(item.get_bytes().unwrap()).unwrap(),
+            String::from_utf8(
+                item.get_bytes()
+                    .expect("No bytes found for Blob created by caller"),
+            )
+            .expect("DOMString contained invalid bytes"),
         ));
     }
 
