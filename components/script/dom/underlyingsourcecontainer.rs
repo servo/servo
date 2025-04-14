@@ -140,7 +140,7 @@ impl UnderlyingSourceContainer {
                 let result = port.pack_and_post_message_handling_error("error", reason, can_gc);
 
                 // Disentangle port.
-                self.global().disentangle_port(&port);
+                self.global().disentangle_port(port);
 
                 let promise = Promise::new(&self.global(), can_gc);
 

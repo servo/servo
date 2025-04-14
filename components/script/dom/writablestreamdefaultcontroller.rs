@@ -546,7 +546,7 @@ impl WritableStreamDefaultController {
                 let result = port.pack_and_post_message_handling_error("error", reason, can_gc);
 
                 // Disentangle port.
-                global.disentangle_port(&port);
+                global.disentangle_port(port);
 
                 let promise = Promise::new(global, can_gc);
 
@@ -672,7 +672,7 @@ impl WritableStreamDefaultController {
                     .expect("Sending close should not fail.");
 
                 // Disentangle port.
-                global.disentangle_port(&port);
+                global.disentangle_port(port);
 
                 // Return a promise resolved with undefined.
                 Promise::new_resolved(global, cx, (), can_gc)
