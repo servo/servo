@@ -2093,7 +2093,7 @@ impl CrossRealmTransformReadable {
                 // because somehow sending the error results in another error.
                 // The error is then created here.
                 rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-                Error::DataClone.to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
+                Error::DataClone(None).to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
 
                 // Perform ! ReadableStreamDefaultControllerError(controller, value).
                 self.controller.error(rooted_error.handle(), can_gc);
