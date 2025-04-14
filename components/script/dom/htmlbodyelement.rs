@@ -201,13 +201,14 @@ impl VirtualMethods for HTMLBodyElement {
                     &local_name!("onresize") |
                     &local_name!("onunload") |
                     &local_name!("onerror") => {
+                        let source = &**attr.value();
                         let evtarget = window.upcast::<EventTarget>(); // forwarded event
                         let source_line = 1; //TODO(#9604) obtain current JS execution line
                         evtarget.set_event_handler_uncompiled(
                             window.get_url(),
                             source_line,
                             &name[2..],
-                            DOMString::from((**attr.value()).to_owned()),
+                            source,
                         );
                         false
                     },

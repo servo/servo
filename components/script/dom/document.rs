@@ -4016,13 +4016,18 @@ impl Document {
                 .get_attribute(&ns!(), &local_name!("nonce"))
                 .map(|attr| Cow::Owned(attr.value().to_string())),
         };
-        // TODO: Instead of ignoring violations, report them.
-        self.get_csp_list()
-            .map(|c| {
-                c.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
-                    .0
-            })
-            .unwrap_or(csp::CheckResult::Allowed)
+        let (result, violations) = match self.get_csp_list() {
+            None => {
+                return csp::CheckResult::Allowed;
+            },
+            Some(csp_list) => {
+                csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
+            },
+        };
+
+        self.global().report_csp_violations(violations);
+
+        result
     }
 
     /// Prevent any JS or layout from running until the corresponding call to
