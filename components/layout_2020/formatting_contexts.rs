@@ -275,6 +275,7 @@ impl IndependentNonReplacedContents {
         depends_on_block_constraints: bool,
     ) -> CacheableLayoutResult {
         if let Some(cache) = base.cached_layout_result.borrow().as_ref() {
+            let cache = &**cache;
             if cache.containing_block_for_children_size.inline ==
                 containing_block_for_children.size.inline &&
                 (cache.containing_block_for_children_size.block ==
@@ -305,11 +306,11 @@ impl IndependentNonReplacedContents {
             depends_on_block_constraints,
         );
 
-        *base.cached_layout_result.borrow_mut() = Some(CacheableLayoutResultAndInputs {
+        *base.cached_layout_result.borrow_mut() = Some(Box::new(CacheableLayoutResultAndInputs {
             result: result.clone(),
             positioning_context: child_positioning_context.clone(),
             containing_block_for_children_size: containing_block_for_children.size.clone(),
-        });
+        }));
         positioning_context.append(child_positioning_context);
 
         result

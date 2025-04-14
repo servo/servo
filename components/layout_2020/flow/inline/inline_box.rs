@@ -6,8 +6,6 @@ use std::vec::IntoIter;
 
 use app_units::Au;
 use fonts::FontMetrics;
-use servo_arc::Arc;
-use style::properties::ComputedValues;
 
 use super::{InlineContainerState, InlineContainerStateFlags, inline_container_needs_strut};
 use crate::ContainingBlock;
@@ -16,12 +14,12 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::fragment_tree::BaseFragmentInfo;
+use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{LayoutStyle, PaddingBorderMargin};
 
 #[derive(Debug)]
 pub(crate) struct InlineBox {
-    pub base_fragment_info: BaseFragmentInfo,
-    pub style: Arc<ComputedValues>,
+    pub base: LayoutBoxBase,
     /// The identifier of this inline box in the containing [`super::InlineFormattingContext`].
     pub(super) identifier: InlineBoxIdentifier,
     pub is_first_fragment: bool,
@@ -34,8 +32,7 @@ pub(crate) struct InlineBox {
 impl InlineBox {
     pub(crate) fn new<'dom, Node: NodeExt<'dom>>(info: &NodeAndStyleInfo<Node>) -> Self {
         Self {
-            base_fragment_info: info.into(),
-            style: info.style.clone(),
+            base: LayoutBoxBase::new(info.into(), info.style.clone()),
             // This will be assigned later, when the box is actually added to the IFC.
             identifier: InlineBoxIdentifier::default(),
             is_first_fragment: true,
@@ -46,7 +43,7 @@ impl InlineBox {
 
     pub(crate) fn split_around_block(&self) -> Self {
         Self {
-            style: self.style.clone(),
+            base: LayoutBoxBase::new(self.base.base_fragment_info, self.base.style.clone()),
             is_first_fragment: false,
             is_last_fragment: false,
             ..*self
@@ -55,7 +52,7 @@ impl InlineBox {
 
     #[inline]
     pub(crate) fn layout_style(&self) -> LayoutStyle {
-        LayoutStyle::Default(&self.style)
+        LayoutStyle::Default(&self.base.style)
     }
 }
 
@@ -218,7 +215,7 @@ impl InlineBoxContainerState {
         is_last_fragment: bool,
         font_metrics: Option<&FontMetrics>,
     ) -> Self {
-        let style = inline_box.style.clone();
+        let style = inline_box.base.style.clone();
         let pbm = inline_box
             .layout_style()
             .padding_border_margin(containing_block);
@@ -237,7 +234,7 @@ impl InlineBoxContainerState {
                 font_metrics,
             ),
             identifier: inline_box.identifier,
-            base_fragment_info: inline_box.base_fragment_info,
+            base_fragment_info: inline_box.base.base_fragment_info,
             pbm,
             is_last_fragment,
         }

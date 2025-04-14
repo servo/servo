@@ -27,8 +27,8 @@ pub(crate) struct LayoutBoxBase {
     pub base_fragment_info: BaseFragmentInfo,
     pub style: Arc<ComputedValues>,
     pub cached_inline_content_size:
-        AtomicRefCell<Option<(SizeConstraint, InlineContentSizesResult)>>,
-    pub cached_layout_result: AtomicRefCell<Option<CacheableLayoutResultAndInputs>>,
+        AtomicRefCell<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
+    pub cached_layout_result: AtomicRefCell<Option<Box<CacheableLayoutResultAndInputs>>>,
 }
 
 impl LayoutBoxBase {
@@ -50,7 +50,8 @@ impl LayoutBoxBase {
         layout_box: &impl ComputeInlineContentSizes,
     ) -> InlineContentSizesResult {
         let mut cache = self.cached_inline_content_size.borrow_mut();
-        if let Some((previous_cb_block_size, result)) = *cache {
+        if let Some(cached_inline_content_size) = cache.as_ref() {
+            let (previous_cb_block_size, result) = **cached_inline_content_size;
             if !result.depends_on_block_constraints ||
                 previous_cb_block_size == constraint_space.block_size
             {
@@ -60,7 +61,7 @@ impl LayoutBoxBase {
         }
 
         let result = layout_box.compute_inline_content_sizes(layout_context, constraint_space);
-        *cache = Some((constraint_space.block_size, result));
+        *cache = Some(Box::new((constraint_space.block_size, result)));
         result
     }
 

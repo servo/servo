@@ -200,8 +200,10 @@ pub(crate) enum InlineItem {
 impl InlineItem {
     pub(crate) fn invalidate_cached_fragment(&self) {
         match self {
-            InlineItem::StartInlineBox(..) | InlineItem::EndInlineBox | InlineItem::TextRun(..) => {
+            InlineItem::StartInlineBox(inline_box) => {
+                inline_box.borrow().base.invalidate_cached_fragment()
             },
+            InlineItem::EndInlineBox | InlineItem::TextRun(..) => {},
             InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
                 positioned_box
                     .borrow()
@@ -732,6 +734,7 @@ impl InlineFormattingContextLayout<'_> {
         );
 
         self.depends_on_block_constraints |= inline_box
+            .base
             .style
             .depends_on_block_constraints_due_to_relative_positioning(
                 self.containing_block.style.writing_mode,
@@ -1603,7 +1606,7 @@ impl InlineFormattingContext {
                 InlineItem::StartInlineBox(inline_box) => {
                     let inline_box = &mut *inline_box.borrow_mut();
                     if let Some(font) = get_font_for_first_font_for_style(
-                        &inline_box.style,
+                        &inline_box.base.style,
                         &layout_context.font_context,
                     ) {
                         inline_box.default_font_index = Some(add_or_get_font(
@@ -2309,6 +2312,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     .percentages_relative_to(zero);
                 let border = layout_style.border_width(writing_mode);
                 let margin = inline_box
+                    .base
                     .style
                     .margin(writing_mode)
                     .percentages_relative_to(zero)
