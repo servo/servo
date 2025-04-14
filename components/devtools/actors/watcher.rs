@@ -20,6 +20,7 @@ use serde_json::{Map, Value};
 
 use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
 use super::thread::ThreadActor;
+use super::worker::WorkerMsg;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::watcher::target_configuration::{
@@ -29,7 +30,7 @@ use crate::actors::watcher::thread_configuration::{
     ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
 use crate::protocol::JsonPacketStream;
-use crate::{EmptyReplyMsg, StreamId};
+use crate::{EmptyReplyMsg, StreamId, WorkerActor};
 
 pub mod network_parent;
 pub mod target_configuration;
@@ -54,7 +55,7 @@ impl SessionContext {
             supported_targets: HashMap::from([
                 ("frame", true),
                 ("process", false),
-                ("worker", false),
+                ("worker", true),
                 ("service_worker", false),
                 ("shared_worker", false),
             ]),
@@ -102,11 +103,17 @@ pub enum SessionContextType {
 }
 
 #[derive(Serialize)]
+enum TargetActorMsg {
+    BrowsingContext(BrowsingContextActorMsg),
+    Worker(WorkerMsg),
+}
+
+#[derive(Serialize)]
 struct WatchTargetsReply {
     from: String,
     #[serde(rename = "type")]
     type_: String,
-    target: BrowsingContextActorMsg,
+    target: TargetActorMsg,
 }
 
 #[derive(Serialize)]
@@ -216,7 +223,7 @@ impl Actor for WatcherActor {
                 let msg = WatchTargetsReply {
                     from: self.name(),
                     type_: "target-available-form".into(),
-                    target: target.encodable(),
+                    target: TargetActorMsg::BrowsingContext(target.encodable()),
                 };
                 let _ = stream.write_json_packet(&msg);
 

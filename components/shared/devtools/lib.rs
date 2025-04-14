@@ -105,7 +105,7 @@ pub enum ScriptToDevtoolsControlMsg {
     TitleChanged(PipelineId, String),
 
     /// Get source information from script
-    ScriptSourceLoaded(PipelineId, SourceInfo),
+    ScriptSourceLoaded(PipelineId, Option<WorkerId>, SourceInfo),
 }
 
 /// Serialized JS return values
