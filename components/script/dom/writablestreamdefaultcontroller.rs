@@ -539,6 +539,9 @@ impl WritableStreamDefaultController {
                 })
             },
             UnderlyingSinkType::Transfer { ref port, .. } => {
+                // The steps from the `abortAlgorithm` at
+                // <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+
                 // Let result be PackAndPostMessageHandlingError(port, "error", reason).
                 let result = port.pack_and_post_message_handling_error("error", reason, can_gc);
 
@@ -598,6 +601,9 @@ impl WritableStreamDefaultController {
                 ref port,
                 ..
             } => {
+                // The steps from the `writeAlgorithm` at
+                // <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+
                 {
                     // If backpressurePromise is undefined,
                     // set backpressurePromise to a promise resolved with undefined.
@@ -657,6 +663,9 @@ impl WritableStreamDefaultController {
                 })
             },
             UnderlyingSinkType::Transfer { ref port, .. } => {
+                // The steps from the `closeAlgorithm` at
+                // <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+
                 // Perform ! PackAndPostMessage(port, "close", undefined).
                 rooted!(in(*cx) let mut value = UndefinedValue());
                 port.pack_and_post_message("close", value.handle(), can_gc)

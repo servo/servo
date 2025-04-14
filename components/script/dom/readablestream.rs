@@ -2030,12 +2030,8 @@ pub(crate) unsafe fn get_type_and_value_from_message(
 
     // Assert: type is a String.
     let result = unsafe {
-        DOMString::from_jsval(
-            *GlobalScope::get_cx(),
-            type_.handle(),
-            StringificationBehavior::Empty,
-        )
-        .expect("The type of the message should be a string")
+        DOMString::from_jsval(*cx, type_.handle(), StringificationBehavior::Empty)
+            .expect("The type of the message should be a string")
     };
     let ConversionResult::Success(type_string) = result else {
         unreachable!("The type of the message should be a string");
