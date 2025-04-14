@@ -31,8 +31,9 @@ use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
-use style::values::computed::Float;
+use style::values::computed::{Float, Size};
 use style::values::generics::font::LineHeight;
+use style::values::generics::position::AspectRatio;
 use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
 use style_traits::{ParsingMode, ToCss};
@@ -143,8 +144,21 @@ pub fn process_resolved_style_request<'dom>(
     }
     .to_physical(style.writing_mode);
 
-    let computed_style =
-        || style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id));
+    let computed_style = |fragment: Option<&Fragment>| match longhand_id {
+        LonghandId::MinWidth
+            if style.clone_min_width() == Size::Auto &&
+                !should_honor_min_size_auto(fragment, style) =>
+        {
+            String::from("0px")
+        },
+        LonghandId::MinHeight
+            if style.clone_min_height() == Size::Auto &&
+                !should_honor_min_size_auto(fragment, style) =>
+        {
+            String::from("0px")
+        },
+        _ => style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id)),
+    };
 
     let tag_to_find = Tag::new_pseudo(node.opaque(), *pseudo);
 
@@ -160,7 +174,9 @@ pub fn process_resolved_style_request<'dom>(
         let font = style.get_font();
         let font_size = font.font_size.computed_size();
         return match font.line_height {
-            LineHeight::Normal => computed_style(),
+            // There could be a fragment, but it's only interesting for `min-width` and `min-height`,
+            // so just pass None.
+            LineHeight::Normal => computed_style(None),
             LineHeight::Number(value) => (font_size * value.0).to_css_string(),
             LineHeight::Length(value) => value.0.to_css_string(),
         };
@@ -171,98 +187,99 @@ pub fn process_resolved_style_request<'dom>(
     // when the element is display:none or display:contents.
     let display = style.get_box().display;
     if display.is_none() || display.is_contents() {
-        return computed_style();
+        return computed_style(None);
     }
 
-    let fragment_tree = match fragment_tree {
-        Some(fragment_tree) => fragment_tree,
-        None => return computed_style(),
-    };
-    fragment_tree
-        .find(|fragment, _, containing_block| {
-            if Some(tag_to_find) != fragment.tag() {
-                return None;
-            }
-
-            let (content_rect, margins, padding, specific_layout_info) = match fragment {
-                Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                    let box_fragment = box_fragment.borrow();
-                    if style.get_box().position != Position::Static {
-                        let resolved_insets = || {
-                            box_fragment.calculate_resolved_insets_if_positioned(containing_block)
-                        };
-                        match longhand_id {
-                            LonghandId::Top => return Some(resolved_insets().top.to_css_string()),
-                            LonghandId::Right => {
-                                return Some(resolved_insets().right.to_css_string());
-                            },
-                            LonghandId::Bottom => {
-                                return Some(resolved_insets().bottom.to_css_string());
-                            },
-                            LonghandId::Left => {
-                                return Some(resolved_insets().left.to_css_string());
-                            },
-                            _ => {},
-                        }
-                    }
-                    let content_rect = box_fragment.content_rect;
-                    let margins = box_fragment.margin;
-                    let padding = box_fragment.padding;
-                    let specific_layout_info = box_fragment.specific_layout_info.clone();
-                    (content_rect, margins, padding, specific_layout_info)
-                },
-                Fragment::Positioning(positioning_fragment) => {
-                    let content_rect = positioning_fragment.borrow().rect;
-                    (
-                        content_rect,
-                        SideOffsets2D::zero(),
-                        SideOffsets2D::zero(),
-                        None,
-                    )
-                },
-                _ => return None,
-            };
-
-            // https://drafts.csswg.org/css-grid/#resolved-track-list
-            // > The grid-template-rows and grid-template-columns properties are
-            // > resolved value special case properties.
-            //
-            // > When an element generates a grid container box...
-            if display.inside() == DisplayInside::Grid {
-                if let Some(SpecificLayoutInfo::Grid(info)) = specific_layout_info {
-                    if let Some(value) = resolve_grid_template(&info, style, longhand_id) {
-                        return Some(value);
+    let resolve_for_fragment = |fragment: &Fragment, containing_block: &PhysicalRect<Au>| {
+        let (content_rect, margins, padding, specific_layout_info) = match fragment {
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                let box_fragment = box_fragment.borrow();
+                if style.get_box().position != Position::Static {
+                    let resolved_insets =
+                        || box_fragment.calculate_resolved_insets_if_positioned(containing_block);
+                    match longhand_id {
+                        LonghandId::Top => return resolved_insets().top.to_css_string(),
+                        LonghandId::Right => {
+                            return resolved_insets().right.to_css_string();
+                        },
+                        LonghandId::Bottom => {
+                            return resolved_insets().bottom.to_css_string();
+                        },
+                        LonghandId::Left => {
+                            return resolved_insets().left.to_css_string();
+                        },
+                        _ => {},
                     }
                 }
-            }
+                let content_rect = box_fragment.content_rect;
+                let margins = box_fragment.margin;
+                let padding = box_fragment.padding;
+                let specific_layout_info = box_fragment.specific_layout_info.clone();
+                (content_rect, margins, padding, specific_layout_info)
+            },
+            Fragment::Positioning(positioning_fragment) => {
+                let content_rect = positioning_fragment.borrow().rect;
+                (
+                    content_rect,
+                    SideOffsets2D::zero(),
+                    SideOffsets2D::zero(),
+                    None,
+                )
+            },
+            _ => return computed_style(Some(fragment)),
+        };
 
-            // https://drafts.csswg.org/cssom/#resolved-value-special-case-property-like-height
-            // > If the property applies to the element or pseudo-element and the resolved value of the
-            // > display property is not none or contents, then the resolved value is the used value.
-            // > Otherwise the resolved value is the computed value.
-            //
-            // However, all browsers ignore that for margin and padding properties, and resolve to a length
-            // even if the property doesn't apply: https://github.com/w3c/csswg-drafts/issues/10391
-            match longhand_id {
-                LonghandId::Width if resolved_size_should_be_used_value(fragment) => {
-                    Some(content_rect.size.width)
-                },
-                LonghandId::Height if resolved_size_should_be_used_value(fragment) => {
-                    Some(content_rect.size.height)
-                },
-                LonghandId::MarginBottom => Some(margins.bottom),
-                LonghandId::MarginTop => Some(margins.top),
-                LonghandId::MarginLeft => Some(margins.left),
-                LonghandId::MarginRight => Some(margins.right),
-                LonghandId::PaddingBottom => Some(padding.bottom),
-                LonghandId::PaddingTop => Some(padding.top),
-                LonghandId::PaddingLeft => Some(padding.left),
-                LonghandId::PaddingRight => Some(padding.right),
-                _ => None,
+        // https://drafts.csswg.org/css-grid/#resolved-track-list
+        // > The grid-template-rows and grid-template-columns properties are
+        // > resolved value special case properties.
+        //
+        // > When an element generates a grid container box...
+        if display.inside() == DisplayInside::Grid {
+            if let Some(SpecificLayoutInfo::Grid(info)) = specific_layout_info {
+                if let Some(value) = resolve_grid_template(&info, style, longhand_id) {
+                    return value;
+                }
             }
-            .map(|value| value.to_css_string())
+        }
+
+        // https://drafts.csswg.org/cssom/#resolved-value-special-case-property-like-height
+        // > If the property applies to the element or pseudo-element and the resolved value of the
+        // > display property is not none or contents, then the resolved value is the used value.
+        // > Otherwise the resolved value is the computed value.
+        //
+        // However, all browsers ignore that for margin and padding properties, and resolve to a length
+        // even if the property doesn't apply: https://github.com/w3c/csswg-drafts/issues/10391
+        match longhand_id {
+            LonghandId::Width if resolved_size_should_be_used_value(fragment) => {
+                content_rect.size.width
+            },
+            LonghandId::Height if resolved_size_should_be_used_value(fragment) => {
+                content_rect.size.height
+            },
+            LonghandId::MarginBottom => margins.bottom,
+            LonghandId::MarginTop => margins.top,
+            LonghandId::MarginLeft => margins.left,
+            LonghandId::MarginRight => margins.right,
+            LonghandId::PaddingBottom => padding.bottom,
+            LonghandId::PaddingTop => padding.top,
+            LonghandId::PaddingLeft => padding.left,
+            LonghandId::PaddingRight => padding.right,
+            _ => return computed_style(Some(fragment)),
+        }
+        .to_css_string()
+    };
+
+    fragment_tree
+        .and_then(|fragment_tree| {
+            fragment_tree.find(|fragment, _, containing_block| {
+                if Some(tag_to_find) == fragment.tag() {
+                    Some(resolve_for_fragment(fragment, containing_block))
+                } else {
+                    None
+                }
+            })
         })
-        .unwrap_or_else(computed_style)
+        .unwrap_or_else(|| computed_style(None))
 }
 
 fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
@@ -277,6 +294,23 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
         Fragment::IFrame(_) => true,
         Fragment::Text(_) => false,
     }
+}
+
+fn should_honor_min_size_auto(fragment: Option<&Fragment>, style: &ComputedValues) -> bool {
+    // <https://drafts.csswg.org/css-sizing-3/#automatic-minimum-size>
+    // For backwards-compatibility, the resolved value of an automatic minimum size is zero
+    // for boxes of all CSS2 display types: block and inline boxes, inline blocks, and all
+    // the table layout boxes. It also resolves to zero when no box is generated.
+    //
+    // <https://github.com/w3c/csswg-drafts/issues/11716>
+    // However, when a box is generated and `aspect-ratio` isn't `auto`, we need to preserve
+    // the automatic minimum size as `auto`.
+    let Some(Fragment::Box(box_fragment)) = fragment else {
+        return false;
+    };
+    let flags = box_fragment.borrow().base.flags;
+    flags.contains(FragmentFlags::IS_FLEX_OR_GRID_ITEM) ||
+        style.clone_aspect_ratio() != AspectRatio::auto()
 }
 
 fn resolve_grid_template(
@@ -372,9 +406,16 @@ pub fn process_resolved_style_request_for_unstyled_node<'dom>(
         },
     };
 
-    // No need to care about used values here, since we're on a display: none
-    // subtree, use the resolved value.
-    style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id))
+    match longhand_id {
+        // <https://drafts.csswg.org/css-sizing-3/#automatic-minimum-size>
+        // The resolved value of an automatic minimum size is zero when no box is generated.
+        LonghandId::MinWidth if style.clone_min_width() == Size::Auto => String::from("0px"),
+        LonghandId::MinHeight if style.clone_min_height() == Size::Auto => String::from("0px"),
+
+        // No need to care about used values here, since we're on a display: none
+        // subtree, use the computed value.
+        _ => style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id)),
+    }
 }
 
 fn shorthand_to_css_string(
