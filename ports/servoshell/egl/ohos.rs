@@ -456,7 +456,12 @@ fn initialize_logging_once() {
     });
 }
 
-pub fn set_log_filter(filter: &str) {
+pub fn set_log_filter(filter: Option<&str>) {
+    let Some(filter) = filter else {
+        debug!("Called ohos::set_log_filter without providing a filter");
+        return;
+    };
+
     debug!("Updating log filter to {filter}");
     let mut builder = env_filter::Builder::new();
     let filter = match builder.try_parse(filter) {

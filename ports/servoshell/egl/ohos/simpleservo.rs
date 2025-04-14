@@ -97,9 +97,8 @@ pub fn init(
     };
 
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
-    if let Some(filter) = servoshell_preferences.log_filter.as_deref() {
-        crate::egl::ohos::set_log_filter(filter);
-    }
+    #[cfg(target_env = "ohos")]
+    crate::egl::ohos::set_log_filter(servoshell_preferences.log_filter.as_deref());
 
     let Ok(window_size) = (unsafe { super::get_xcomponent_size(xcomponent, native_window) }) else {
         return Err("Failed to get xcomponent size");

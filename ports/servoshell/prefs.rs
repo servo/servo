@@ -60,7 +60,7 @@ pub(crate) struct ServoShellPreferences {
 
     /// Log filter given in the `log_filter` spec as a String, if any.
     /// If a filter is passed, the logger should adjust accordingly.
-    #[allow(unused) /* we tag unused to avoid lint errors across platforms */]
+    #[cfg(target_env = "ohos")]
     pub log_filter: Option<String>,
 }
 
@@ -80,6 +80,7 @@ impl Default for ServoShellPreferences {
             output_image_path: None,
             exit_after_stable_image: false,
             userscripts_directory: None,
+            #[cfg(target_env = "ohos")]
             log_filter: None,
         }
     }
@@ -354,6 +355,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "FILTER",
     );
 
+    #[cfg(target_env = "ohos")]
     opts.optmulti(
         "",
         "log-filter",
@@ -423,8 +425,11 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     let filters = opt_match.opt_strs("tracing-filter").join(",");
     let tracing_filter = (!filters.is_empty()).then_some(filters);
 
-    let filters = opt_match.opt_strs("log-filter").join(",");
-    let log_filter = (!filters.is_empty()).then_some(filters);
+    #[cfg(target_env = "ohos")]
+    let log_filter = {
+        let filters = opt_match.opt_strs("log-filter").join(",");
+        (!filters.is_empty()).then_some(filters)
+    };
 
     let mut debug_options = DebugOptions::default();
     for debug_string in opt_match.opt_strs("Z") {
@@ -638,6 +643,7 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         userscripts_directory: opt_match
             .opt_default("userscripts", "resources/user-agent-js")
             .map(PathBuf::from),
+        #[cfg(target_env = "ohos")]
         log_filter,
         ..Default::default()
     };
