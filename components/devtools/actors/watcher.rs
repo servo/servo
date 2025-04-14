@@ -104,6 +104,7 @@ pub enum SessionContextType {
 }
 
 #[derive(Serialize)]
+#[serde(untagged)]
 enum TargetActorMsg {
     BrowsingContext(BrowsingContextActorMsg),
     Worker(WorkerMsg),
