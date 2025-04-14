@@ -14,7 +14,6 @@ path = "lib.rs"
 [features]
 bluetooth = ["bluetooth_traits"]
 default = []
-multiview = []
 tracing = ["dep:tracing"]
 webgpu = ["script_traits/webgpu"]
 
