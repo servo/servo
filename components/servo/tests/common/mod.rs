@@ -7,14 +7,12 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use compositing::windowing::{EmbedderMethods, WindowMethods};
+use compositing::windowing::EmbedderMethods;
 use compositing_traits::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
 use euclid::Scale;
 use servo::Servo;
-use servo_geometry::DeviceIndependentPixel;
-use webrender_api::units::DevicePixel;
 
 pub struct ServoTest {
     servo: Servo,
@@ -39,13 +37,6 @@ impl ServoTest {
             }
         }
 
-        struct WindowMethodsImpl;
-        impl WindowMethods for WindowMethodsImpl {
-            fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-                Scale::new(1.0)
-            }
-        }
-
         #[derive(Clone)]
         struct EventLoopWakerImpl(Arc<AtomicBool>);
         impl EventLoopWaker for EventLoopWakerImpl {
@@ -64,7 +55,6 @@ impl ServoTest {
             Default::default(),
             rendering_context.clone(),
             Box::new(EmbedderMethodsImpl(user_event_triggered)),
-            Rc::new(WindowMethodsImpl),
             Default::default(),
         );
         Self { servo }

@@ -42,7 +42,7 @@ use canvas::WebGLComm;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
-use compositing::windowing::{EmbedderMethods, WindowMethods};
+use compositing::windowing::EmbedderMethods;
 use compositing::{IOCompositor, InitialCompositorState};
 pub use compositing_traits::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
@@ -186,11 +186,8 @@ mod media_platform {
 /// orchestrating the interaction between JavaScript, CSS layout,
 /// rendering, and the client window.
 ///
-/// Clients create a `Servo` instance for a given reference-counted type
-/// implementing `WindowMethods`, which is the bridge to whatever
-/// application Servo is embedded in. Clients then create an event
-/// loop to pump messages between the embedding application and
-/// various browser components.
+// Clients create an event loop to pump messages between the embedding
+// application and various browser components.
 pub struct Servo {
     delegate: RefCell<Rc<dyn ServoDelegate>>,
     compositor: Rc<RefCell<IOCompositor>>,
@@ -250,7 +247,7 @@ impl Servo {
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(
-            skip(preferences, rendering_context, embedder, window),
+            skip(preferences, rendering_context, embedder),
             fields(servo_profiling = true),
             level = "trace",
         )
@@ -260,7 +257,6 @@ impl Servo {
         preferences: Preferences,
         rendering_context: Rc<dyn RenderingContext>,
         mut embedder: Box<dyn EmbedderMethods>,
-        window: Rc<dyn WindowMethods>,
         user_content_manager: UserContentManager,
     ) -> Self {
         // Global configuration options, parsed from the command line.
@@ -484,7 +480,6 @@ impl Servo {
         // rendered page and display it somewhere.
         let shutdown_state = Rc::new(Cell::new(ShutdownState::NotShuttingDown));
         let compositor = IOCompositor::new(
-            window,
             InitialCompositorState {
                 sender: compositor_proxy,
                 receiver: compositor_receiver,
@@ -625,10 +620,6 @@ impl Servo {
             .retain(|_webview_id, webview| webview.strong_count() > 0);
     }
 
-    pub fn pinch_zoom_level(&self) -> f32 {
-        self.compositor.borrow_mut().pinch_zoom_level().get()
-    }
-
     pub fn setup_logging(&self) {
         let constellation_chan = self.constellation_proxy.sender();
         let env = env_logger::Env::default();
@@ -724,15 +715,7 @@ impl Servo {
                     let webview_id_and_viewport_details = webview
                         .delegate()
                         .request_open_auxiliary_webview(webview)
-                        .map(|webview| {
-                            let mut viewport =
-                                self.compositor.borrow().default_webview_viewport_details();
-                            let rect = webview.rect();
-                            if !rect.is_empty() {
-                                viewport.size = rect.size() / viewport.hidpi_scale_factor;
-                            }
-                            (webview.id(), viewport)
-                        });
+                        .map(|webview| (webview.id(), webview.viewport_details()));
                     let _ = response_sender.send(webview_id_and_viewport_details);
                 }
             },

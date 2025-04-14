@@ -124,7 +124,6 @@ pub fn init(
     let window_callbacks = Rc::new(ServoWindowCallbacks::new(
         callbacks,
         RefCell::new(coordinates),
-        options.display_density as f32,
     ));
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(
@@ -138,12 +137,12 @@ pub fn init(
         preferences,
         rendering_context.clone(),
         embedder_callbacks,
-        window_callbacks.clone(),
         Default::default(),
     );
 
     let app_state = RunningAppState::new(
         Some(options.url),
+        options.display_density as f32,
         rendering_context,
         servo,
         window_callbacks,
