@@ -2285,10 +2285,16 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         for inline_item in inline_formatting_context.inline_items.iter() {
             self.process_item(&inline_item.borrow(), inline_formatting_context);
         }
-
         self.forced_line_break();
+
+        // We might get a max-content size which is smaller than the min-content size,
+        // due to negative margins. So we need to adjust to avoid problems down the line.
+        // This is being discussed in <https://github.com/w3c/csswg-drafts/issues/12076>.
+        let mut sizes = self.paragraph;
+        sizes.max_content.max_assign(sizes.min_content);
+
         InlineContentSizesResult {
-            sizes: self.paragraph,
+            sizes,
             depends_on_block_constraints: self.depends_on_block_constraints,
         }
     }
