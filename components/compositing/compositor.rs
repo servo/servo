@@ -150,12 +150,6 @@ pub struct IOCompositor {
     /// Tracks whether or not the view needs to be repainted.
     needs_repaint: Cell<RepaintReason>,
 
-    /// Tracks whether the zoom action has happened recently.
-    zoom_action: bool,
-
-    /// The time of the last zoom action has started.
-    zoom_time: f64,
-
     /// Used by the logic that determines when it is safe to output an
     /// image for the reftest framework.
     ready_to_save_state: ReadyState,
@@ -448,8 +442,6 @@ impl IOCompositor {
             viewport_zoom: PinchZoomFactor::new(1.0),
             min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
             max_viewport_zoom: None,
-            zoom_action: false,
-            zoom_time: 0f64,
             ready_to_save_state: ReadyState::Unknown,
             webrender: Some(state.webrender),
             rendering_context: state.rendering_context,
@@ -1666,15 +1658,6 @@ impl IOCompositor {
     pub fn perform_updates(&mut self) -> bool {
         if self.global.borrow().shutdown_state() == ShutdownState::FinishedShuttingDown {
             return false;
-        }
-
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as f64;
-        // If a pinch-zoom happened recently, ask for tiles at the new resolution
-        if self.zoom_action && now - self.zoom_time > 0.3 {
-            self.zoom_action = false;
         }
 
         #[cfg(feature = "webxr")]
