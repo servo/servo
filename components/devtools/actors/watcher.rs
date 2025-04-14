@@ -23,6 +23,7 @@ use super::thread::ThreadActor;
 use super::worker::WorkerMsg;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
+use crate::actors::root::RootActor;
 use crate::actors::watcher::target_configuration::{
     TargetConfigurationActor, TargetConfigurationActorMsg,
 };
@@ -56,7 +57,7 @@ impl SessionContext {
             supported_targets: HashMap::from([
                 ("frame", true),
                 ("process", false),
-                ("worker", true),
+                ("worker", false),
                 ("service_worker", false),
                 ("shared_worker", false),
             ]),
@@ -219,6 +220,8 @@ impl Actor for WatcherActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+        println!("target: {:?}", target.name());
+        let root = registry.find::<RootActor>("root");
         Ok(match msg_type {
             "watchTargets" => {
                 let msg = WatchTargetsReply {
@@ -229,6 +232,17 @@ impl Actor for WatcherActor {
                 let _ = stream.write_json_packet(&msg);
 
                 target.frame_update(stream);
+
+                for worker_name in &root.workers {
+                    println!("worker for loop");
+                    let worker = registry.find::<WorkerActor>(worker_name);
+                    let worker_msg = WatchTargetsReply {
+                        from: self.name(),
+                        type_: "target-available-form".into(),
+                        target: TargetActorMsg::Worker(worker.encodable()),
+                    };
+                    let _ = stream.write_json_packet(&worker_msg);
+                }
 
                 // Messages that contain a `type` field are used to send event callbacks, but they
                 // don't count as a reply. Since every message needs to be responded, we send an
@@ -274,6 +288,15 @@ impl Actor for WatcherActor {
                             let thread_actor = registry.find::<ThreadActor>(&target.thread);
                             let sources = thread_actor.source_manager.sources();
                             target.resources_available(sources.iter().collect(), "source".into());
+
+                            // worker case
+                            for worker_name in &root.workers {
+                                println!("worker for loop 1");
+                                let worker = registry.find::<WorkerActor>(worker_name);
+                                let thread = registry.find::<ThreadActor>(&worker.thread);
+                                let sources = thread.sources();
+                                worker.resources_available(sources.iter().collect(), "source".into());
+                            }
                         },
                         "console-message" | "error-message" => {},
                         _ => warn!("resource {} not handled yet", resource),
