@@ -326,7 +326,7 @@ impl LineItemLayout<'_, '_> {
         let inline_box = self.layout.ifc.inline_boxes.get(identifier);
         let inline_box = &*(inline_box.borrow());
 
-        let style = &inline_box.style;
+        let style = &inline_box.base.style;
         let space_above_baseline = inline_box_state.calculate_space_above_baseline();
         let block_start_offset =
             self.calculate_inline_box_block_start(inline_box_state, space_above_baseline);
@@ -378,7 +378,7 @@ impl LineItemLayout<'_, '_> {
 
         let containing_block_writing_mode = self.layout.containing_block.style.writing_mode;
         if containing_block_writing_mode.is_bidi_ltr() !=
-            inline_box.style.writing_mode.is_bidi_ltr()
+            inline_box.base.style.writing_mode.is_bidi_ltr()
         {
             std::mem::swap(&mut had_start, &mut had_end)
         }
@@ -418,7 +418,7 @@ impl LineItemLayout<'_, '_> {
 
         // Relative adjustment should not affect the rest of line layout, so we can
         // do it right before creating the Fragment.
-        let style = &inline_box.style;
+        let style = &inline_box.base.style;
         if style.get_box().position == Position::Relative {
             content_rect.start_corner += relative_adjustement(style, self.layout.containing_block);
         }
@@ -455,7 +455,7 @@ impl LineItemLayout<'_, '_> {
         // but they need to be made relative to this fragment.
         let physical_content_rect = content_rect.as_physical(Some(self.layout.containing_block));
         let mut fragment = BoxFragment::new(
-            inline_box.base_fragment_info,
+            inline_box.base.base_fragment_info,
             style.clone(),
             fragments,
             physical_content_rect,

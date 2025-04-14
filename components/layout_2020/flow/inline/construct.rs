@@ -163,7 +163,7 @@ impl InlineFormattingContextBuilder {
     }
 
     pub(crate) fn start_inline_box(&mut self, inline_box: InlineBox) -> ArcRefCell<InlineItem> {
-        self.push_control_character_string(inline_box.style.bidi_control_chars().0);
+        self.push_control_character_string(inline_box.base.style.bidi_control_chars().0);
 
         let (identifier, inline_box) = self.inline_boxes.start_inline_box(inline_box);
         let inline_level_box = ArcRefCell::new(InlineItem::StartInlineBox(inline_box));
@@ -177,7 +177,9 @@ impl InlineFormattingContextBuilder {
         let inline_level_box = self.inline_boxes.get(&identifier);
         inline_level_box.borrow_mut().is_last_fragment = true;
 
-        self.push_control_character_string(inline_level_box.borrow().style.bidi_control_chars().1);
+        self.push_control_character_string(
+            inline_level_box.borrow().base.style.bidi_control_chars().1,
+        );
 
         inline_level_box
     }
