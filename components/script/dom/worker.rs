@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use constellation_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Sender, unbounded};
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
@@ -212,6 +212,17 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                     (browsing_context, pipeline_id, Some(worker_id), webview_id),
                     devtools_sender.clone(),
                     page_info,
+                ));
+
+                // send source info to devtools
+                let source_info = SourceInfo {
+                    url: worker_url.clone(),
+                    external: true, // worker scripts are always external
+                };
+                let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                    pipeline_id,
+                    Some(worker_id),
+                    source_info,
                 ));
             }
         }

@@ -1017,6 +1017,7 @@ impl HTMLScriptElement {
             };
             let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                 pipeline_id,
+                None,
                 source_info,
             ));
         }
