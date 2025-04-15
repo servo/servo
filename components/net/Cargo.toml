@@ -15,7 +15,7 @@ test = false
 doctest = false
 
 [dependencies]
-async-compression = { version = "0.4.12", default-features = false, features = ["tokio", "brotli", "gzip", "zlib"] }
+async-compression = { version = "0.4.12", default-features = false, features = ["tokio", "brotli", "gzip", "zlib", "zstd"] }
 async-recursion = "1.1"
 async-tungstenite = { workspace = true }
 base = { workspace = true }
