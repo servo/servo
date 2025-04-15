@@ -184,7 +184,7 @@ fn set_default_accept_encoding(headers: &mut HeaderMap) {
     // TODO(eijebong): Change this once typed headers are done
     headers.insert(
         header::ACCEPT_ENCODING,
-        HeaderValue::from_static("gzip, deflate, br"),
+        HeaderValue::from_static("gzip, deflate, br, zstd"),
     );
 }
 

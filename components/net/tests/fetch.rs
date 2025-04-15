@@ -1313,7 +1313,7 @@ fn test_fetch_with_devtools() {
 
     headers.insert(
         header::ACCEPT_ENCODING,
-        HeaderValue::from_static("gzip, deflate, br"),
+        HeaderValue::from_static("gzip, deflate, br, zstd"),
     );
 
     // Append fetch metadata headers
