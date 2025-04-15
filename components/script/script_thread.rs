@@ -2426,10 +2426,13 @@ impl ScriptThread {
         let documents = self.documents.borrow();
         let urls = itertools::join(documents.iter().map(|(_, d)| d.url().to_string()), ", ");
 
-        let mut reports = self.get_cx().get_reports(format!("url({})", urls));
+        let prefix = format!("url({urls})");
+        let mut reports = self.get_cx().get_reports(prefix.clone());
         for (_, document) in documents.iter() {
             document.window().layout().collect_reports(&mut reports);
         }
+
+        reports.push(self.image_cache.memory_report(&prefix));
 
         reports_chan.send(ProcessReports::new(reports));
     }
