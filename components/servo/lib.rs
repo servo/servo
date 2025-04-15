@@ -48,8 +48,8 @@ pub use compositing_traits::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
 };
 use compositing_traits::{
-    CompositorMsg, CompositorProxy, CompositorReceiver, CrossProcessCompositorApi,
-    WebrenderExternalImageHandlers, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
+    CompositorMsg, CompositorProxy, CrossProcessCompositorApi, WebrenderExternalImageHandlers,
+    WebrenderExternalImageRegistry, WebrenderImageHandlerType,
 };
 #[cfg(all(
     not(target_os = "windows"),
@@ -992,7 +992,7 @@ fn create_embedder_channel(
 
 fn create_compositor_channel(
     event_loop_waker: Box<dyn EventLoopWaker>,
-) -> (CompositorProxy, CompositorReceiver) {
+) -> (CompositorProxy, Receiver<CompositorMsg>) {
     let (sender, receiver) = unbounded();
 
     let (compositor_ipc_sender, compositor_ipc_receiver) =
@@ -1009,13 +1009,11 @@ fn create_compositor_channel(
     ROUTER.add_typed_route(
         compositor_ipc_receiver,
         Box::new(move |message| {
-            compositor_proxy_clone.send(CompositorMsg::CrossProcess(
-                message.expect("Could not convert Compositor message"),
-            ));
+            compositor_proxy_clone.send(message.expect("Could not convert Compositor message"));
         }),
     );
 
-    (compositor_proxy, CompositorReceiver { receiver })
+    (compositor_proxy, receiver)
 }
 
 #[allow(clippy::too_many_arguments)]
