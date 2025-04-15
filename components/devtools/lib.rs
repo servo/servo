@@ -531,20 +531,20 @@ impl DevtoolsInstance {
             };
             worker_actor.resource_available(source, "source".into());
         } else {
-        let browsing_context_id = match self.pipelines.get(&pipeline_id) {
-            Some(id) => id,
-            None => return,
-        };
+            let browsing_context_id = match self.pipelines.get(&pipeline_id) {
+                Some(id) => id,
+                None => return,
+            };
 
-        let actor_name = match self.browsing_contexts.get(browsing_context_id) {
-            Some(name) => name,
-            None => return,
-        };
+            let actor_name = match self.browsing_contexts.get(browsing_context_id) {
+                Some(name) => name,
+                None => return,
+            };
 
-        let thread_actor_name = actors
-            .find::<BrowsingContextActor>(actor_name)
-            .thread
-            .clone();
+            let thread_actor_name = actors
+                .find::<BrowsingContextActor>(actor_name)
+                .thread
+                .clone();
 
         let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
         thread_actor
@@ -557,10 +557,10 @@ impl DevtoolsInstance {
             is_black_boxed: false,
         };
 
-        // Notify browsing context about the new source
-        let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
-        browsing_context.resource_available(source, "source".into());
-    }
+            // Notify browsing context about the new source
+            let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
+            browsing_context.resource_available(source, "source".into());
+        }
     }
 }
 

@@ -57,7 +57,7 @@ impl SessionContext {
             supported_targets: HashMap::from([
                 ("frame", true),
                 ("process", false),
-                ("worker", false),
+                ("worker", true),
                 ("service_worker", false),
                 ("shared_worker", false),
             ]),
