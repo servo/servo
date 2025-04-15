@@ -8,7 +8,6 @@ use std::default::Default;
 
 use base::id::WebViewId;
 use content_security_policy as csp;
-use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
@@ -25,10 +24,7 @@ use net_traits::{
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
-use style::media_queries::MediaList;
-use style::parser::ParserContext as CssParserContext;
-use style::stylesheets::{CssRuleType, Origin, Stylesheet, UrlExtraData};
-use style_traits::ParsingMode;
+use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
 
 use crate::dom::attr::Attr;
@@ -50,6 +46,7 @@ use crate::dom::element::{
     set_cross_origin_attribute,
 };
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::medialist::MediaList;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
@@ -449,24 +446,7 @@ impl HTMLLinkElement {
             None => "",
         };
 
-        let mut input = ParserInput::new(mq_str);
-        let mut css_parser = CssParser::new(&mut input);
-        let document_url_data = &UrlExtraData(document.url().get_arc());
-        let window = document.window();
-        // FIXME(emilio): This looks somewhat fishy, since we use the context
-        // only to parse the media query list, CssRuleType::Media doesn't make
-        // much sense.
-        let context = CssParserContext::new(
-            Origin::Author,
-            document_url_data,
-            Some(CssRuleType::Media),
-            ParsingMode::DEFAULT,
-            document.quirks_mode(),
-            /* namespaces = */ Default::default(),
-            window.css_error_reporter(),
-            None,
-        );
-        let media = MediaList::parse(&context, &mut css_parser);
+        let media = MediaList::parse_media_list(mq_str, document.window());
 
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
