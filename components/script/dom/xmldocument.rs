@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use data_url::mime::Mime;
 use dom_struct::dom_struct;
-use mime::Mime;
 use net_traits::request::InsecureRequestsPolicy;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};

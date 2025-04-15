@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 
 use constellation_traits::BlobImpl;
 use content_security_policy as csp;
+use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentLength, ContentType, HeaderMapExt};
@@ -25,7 +26,6 @@ use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::rust::{HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
-use mime::{self, Mime, Name};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{CredentialsMode, Referrer, RequestBuilder, RequestId, RequestMode};
 use net_traits::{
@@ -70,6 +70,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::FetchCanceller;
+use crate::mime::{APPLICATION, CHARSET, HTML, MimeExt, TEXT, XML};
 use crate::network_listener::{self, PreInvoke, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::{SendableTaskSource, TaskSourceName};
@@ -727,21 +728,19 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 let ct = request.headers.typed_get::<ContentType>();
                 if let Some(ct) = ct {
                     if let Some(encoding) = encoding {
-                        let mime: Mime = ct.into();
-                        for param in mime.params() {
-                            if param.0 == mime::CHARSET &&
-                                !param.1.as_ref().eq_ignore_ascii_case(encoding)
-                            {
-                                let new_params: Vec<(Name, Name)> = mime
-                                    .params()
-                                    .filter(|p| p.0 != mime::CHARSET)
-                                    .map(|p| (p.0, p.1))
+                        let mime: Mime = ct.to_string().parse().unwrap();
+                        for param in mime.parameters.iter() {
+                            if param.0 == CHARSET && !param.1.eq_ignore_ascii_case(encoding) {
+                                let params_iter = mime.parameters.iter();
+                                let new_params: Vec<(String, String)> = params_iter
+                                    .filter(|p| p.0 != CHARSET)
+                                    .map(|p| (p.0.clone(), p.1.clone()))
                                     .collect();
 
                                 let new_mime = format!(
                                     "{}/{}; charset={}{}{}",
-                                    mime.type_().as_ref(),
-                                    mime.subtype().as_ref(),
+                                    mime.type_,
+                                    mime.subtype,
                                     encoding,
                                     if new_params.is_empty() { "" } else { "; " },
                                     new_params
@@ -750,8 +749,9 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                                         .collect::<Vec<String>>()
                                         .join("; ")
                                 );
-                                let new_mime: Mime = new_mime.parse().unwrap();
-                                request.headers.typed_insert(ContentType::from(new_mime))
+                                request
+                                    .headers
+                                    .typed_insert(ContentType::from_str(&new_mime).unwrap())
                             }
                         }
                     }
@@ -1327,7 +1327,7 @@ impl XMLHttpRequest {
         let mime = self
             .final_mime_type()
             .as_ref()
-            .map(|m| normalize_type_string(m.as_ref()))
+            .map(|m| normalize_type_string(&m.to_string()))
             .unwrap_or("".to_owned());
 
         // Step 3, 4
@@ -1377,7 +1377,7 @@ impl XMLHttpRequest {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let temp_doc: DomRoot<Document>;
         match mime_type {
-            Some(ref mime) if mime.type_() == mime::TEXT && mime.subtype() == mime::HTML => {
+            Some(ref mime) if mime.matches(TEXT, HTML) => {
                 // Step 4
                 if self.response_type.get() == XMLHttpRequestResponseType::_empty {
                     return None;
@@ -1399,9 +1399,9 @@ impl XMLHttpRequest {
                 }
             },
             Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) ||
-                    mime.suffix() == Some(mime::XML) =>
+                if mime.matches(TEXT, XML) ||
+                    mime.matches(APPLICATION, XML) ||
+                    mime.has_suffix(XML) =>
             {
                 temp_doc = self.handle_xml(can_gc);
                 // Not sure it the parser should throw an error for this case
@@ -1598,14 +1598,14 @@ impl XMLHttpRequest {
         // 3. If responseMIME’s parameters["charset"] exists, then set label to it.
         let response_charset = self
             .response_mime_type()
-            .and_then(|mime| mime.get_param(mime::CHARSET).map(|c| c.to_string()));
+            .and_then(|mime| mime.get_parameter(CHARSET).map(|c| c.to_string()));
 
         // 4. If xhr’s override MIME type’s parameters["charset"] exists, then set label to it.
         let override_charset = self
             .override_mime_type
             .borrow()
             .as_ref()
-            .and_then(|mime| mime.get_param(mime::CHARSET).map(|c| c.to_string()));
+            .and_then(|mime| mime.get_parameter(CHARSET).map(|c| c.to_string()));
 
         // 5. If label is null, then return null.
         // 6. Let encoding be the result of getting an encoding from label.
@@ -1625,15 +1625,14 @@ impl XMLHttpRequest {
                     .parse()
                     .ok()
             })
-            .or(Some(mime::TEXT_XML));
+            .or(Some(Mime::new(TEXT, XML)));
     }
 
     /// <https://xhr.spec.whatwg.org/#final-mime-type>
     fn final_mime_type(&self) -> Option<Mime> {
-        if self.override_mime_type.borrow().is_some() {
-            self.override_mime_type.borrow().clone()
-        } else {
-            self.response_mime_type()
+        match *self.override_mime_type.borrow() {
+            Some(ref override_mime) => Some(override_mime.clone()),
+            None => self.response_mime_type(),
         }
     }
 }
