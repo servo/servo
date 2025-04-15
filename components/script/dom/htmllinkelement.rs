@@ -182,11 +182,12 @@ impl HTMLLinkElement {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
                     &self.owner_window(),
-                    self.upcast::<Element>(),
+                    Some(self.upcast::<Element>()),
                     "text/css".into(),
                     None, // todo handle location
                     None, // todo handle title
                     sheet,
+                    false, // is_constructed
                     can_gc,
                 )
             })

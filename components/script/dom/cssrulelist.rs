@@ -125,6 +125,11 @@ impl CSSRuleList {
         let loader = owner
             .as_ref()
             .map(|element| StylesheetLoader::for_element(element));
+        let allow_import_rules = if self.parent_stylesheet.is_constructed() {
+            AllowImportRules::No
+        } else {
+            AllowImportRules::Yes
+        };
         let new_rule = css_rules
             .insert_rule(
                 &parent_stylesheet.shared_lock,
@@ -134,7 +139,7 @@ impl CSSRuleList {
                 containing_rule_types,
                 parse_relative_rule_type,
                 loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
-                AllowImportRules::Yes,
+                allow_import_rules,
             )
             .map_err(Convert::convert)?;
 
