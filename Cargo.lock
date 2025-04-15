@@ -6490,7 +6490,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.27.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 dependencies = [
  "bitflags 2.9.0",
  "cssparser",
@@ -6775,7 +6775,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -7220,7 +7220,7 @@ dependencies = [
 [[package]]
 name = "stylo"
 version = "0.2.1"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -7278,7 +7278,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -7287,12 +7287,12 @@ dependencies = [
 [[package]]
 name = "stylo_config"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 
 [[package]]
 name = "stylo_derive"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -7304,7 +7304,7 @@ dependencies = [
 [[package]]
 name = "stylo_dom"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 dependencies = [
  "bitflags 2.9.0",
  "stylo_malloc_size_of",
@@ -7313,7 +7313,7 @@ dependencies = [
 [[package]]
 name = "stylo_malloc_size_of"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 dependencies = [
  "app_units",
  "cssparser",
@@ -7330,12 +7330,12 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 
 [[package]]
 name = "stylo_traits"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 dependencies = [
  "app_units",
  "bitflags 2.9.0",
@@ -7718,7 +7718,7 @@ dependencies = [
 [[package]]
 name = "to_shmem"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -7731,7 +7731,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2025-03-15#c756a21864709dae8f85c564125bf92440aeaab5"
+source = "git+https://github.com/servo/stylo?branch=2025-03-15#0eaeea3dfd4aa0415529700353075ad1e1e47e5b"
 dependencies = [
  "darling",
  "proc-macro2",
