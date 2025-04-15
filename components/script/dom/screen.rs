@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use compositing_traits::CompositorMsg;
+use compositing_traits::CrossProcessCompositorMessage;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use profile_traits::ipc;
@@ -41,7 +41,7 @@ impl Screen {
         self.window
             .compositor_api()
             .sender()
-            .send(CompositorMsg::GetScreenSize(
+            .send(CrossProcessCompositorMessage::GetScreenSize(
                 self.window.webview_id(),
                 sender,
             ))
@@ -57,7 +57,7 @@ impl Screen {
         self.window
             .compositor_api()
             .sender()
-            .send(CompositorMsg::GetAvailableScreenSize(
+            .send(CrossProcessCompositorMessage::GetAvailableScreenSize(
                 self.window.webview_id(),
                 sender,
             ))
