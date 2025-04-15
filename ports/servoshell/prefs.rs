@@ -57,6 +57,11 @@ pub(crate) struct ServoShellPreferences {
     /// Where to load userscripts from, if any.
     /// and if the option isn't passed userscripts won't be loaded.
     pub userscripts_directory: Option<PathBuf>,
+
+    /// Log filter given in the `log_filter` spec as a String, if any.
+    /// If a filter is passed, the logger should adjust accordingly.
+    #[cfg(target_env = "ohos")]
+    pub log_filter: Option<String>,
 }
 
 impl Default for ServoShellPreferences {
@@ -75,6 +80,8 @@ impl Default for ServoShellPreferences {
             output_image_path: None,
             exit_after_stable_image: false,
             userscripts_directory: None,
+            #[cfg(target_env = "ohos")]
+            log_filter: None,
         }
     }
 }
@@ -348,6 +355,14 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         "FILTER",
     );
 
+    #[cfg(target_env = "ohos")]
+    opts.optmulti(
+        "",
+        "log-filter",
+        "Define a custom filter for logging.",
+        "FILTER",
+    );
+
     opts.optflag(
         "",
         "enable-experimental-web-platform-features",
@@ -408,10 +423,12 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     }
     // Env-Filter directives are comma seperated.
     let filters = opt_match.opt_strs("tracing-filter").join(",");
-    let tracing_filter = if filters.is_empty() {
-        None
-    } else {
-        Some(filters)
+    let tracing_filter = (!filters.is_empty()).then_some(filters);
+
+    #[cfg(target_env = "ohos")]
+    let log_filter = {
+        let filters = opt_match.opt_strs("log-filter").join(",");
+        (!filters.is_empty()).then_some(filters)
     };
 
     let mut debug_options = DebugOptions::default();
@@ -626,6 +643,8 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         userscripts_directory: opt_match
             .opt_default("userscripts", "resources/user-agent-js")
             .map(PathBuf::from),
+        #[cfg(target_env = "ohos")]
+        log_filter,
         ..Default::default()
     };
 
