@@ -22,10 +22,9 @@ use ohos_ime::{AttachOptions, Ime, ImeProxy, RawTextEditorProxy};
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use servo::style::Zero;
 use servo::{
-    AlertResponse, InputMethodType, LoadStatus, MediaSessionPlaybackState, PermissionRequest,
-    SimpleDialog, WebView,
+    AlertResponse, EventLoopWaker, InputMethodType, LoadStatus, MediaSessionPlaybackState,
+    PermissionRequest, SimpleDialog, WebView,
 };
-use simpleservo::EventLoopWaker;
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
     OH_NativeXComponent_GetKeyEventAction, OH_NativeXComponent_GetKeyEventCode,

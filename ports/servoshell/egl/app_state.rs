@@ -11,18 +11,16 @@ use keyboard_types::{CompositionEvent, CompositionState};
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::id::WebViewId;
-use servo::compositing::windowing::EmbedderMethods;
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, ImeEvent, InputEvent,
-    InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
-    MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    NavigationRequest, PermissionRequest, RenderingContext, ScreenGeometry, Servo, ServoDelegate,
-    ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, WebView, WebViewBuilder,
-    WebViewDelegate, WindowRenderingContext,
+    AllowOrDenyRequest, ContextMenuResult, ImeEvent, InputEvent, InputMethodType, Key, KeyState,
+    KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest,
+    RenderingContext, ScreenGeometry, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEvent,
+    TouchEventType, TouchId, WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -682,38 +680,24 @@ impl RunningAppState {
     }
 }
 
-pub(super) struct ServoEmbedderCallbacks {
-    waker: Box<dyn EventLoopWaker>,
-    #[cfg(feature = "webxr")]
-    xr_discovery: Option<servo::webxr::Discovery>,
+#[cfg(feature = "webxr")]
+pub(crate) struct XrDiscoveryWebXrRegistry {
+    xr_discovery: RefCell<Option<servo::webxr::Discovery>>,
 }
 
-impl ServoEmbedderCallbacks {
-    pub(super) fn new(
-        waker: Box<dyn EventLoopWaker>,
-        #[cfg(feature = "webxr")] xr_discovery: Option<servo::webxr::Discovery>,
-    ) -> Self {
+#[cfg(feature = "webxr")]
+impl XrDiscoveryWebXrRegistry {
+    pub(crate) fn new(xr_discovery: Option<servo::webxr::Discovery>) -> Self {
         Self {
-            waker,
-            #[cfg(feature = "webxr")]
-            xr_discovery,
+            xr_discovery: RefCell::new(xr_discovery),
         }
     }
 }
 
-impl EmbedderMethods for ServoEmbedderCallbacks {
-    fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker> {
-        debug!("EmbedderMethods::create_event_loop_waker");
-        self.waker.clone()
-    }
-
-    #[cfg(feature = "webxr")]
-    fn register_webxr(
-        &mut self,
-        registry: &mut servo::webxr::MainThreadRegistry,
-        _embedder_proxy: EmbedderProxy,
-    ) {
-        debug!("EmbedderMethods::register_xr");
+#[cfg(feature = "webxr")]
+impl servo::webxr::WebXrRegistry for XrDiscoveryWebXrRegistry {
+    fn register(&self, registry: &mut servo::webxr::MainThreadRegistry) {
+        debug!("XrDiscoveryWebXrRegistry::register");
         if let Some(discovery) = self.xr_discovery.take() {
             registry.register(discovery);
         }

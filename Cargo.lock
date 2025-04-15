@@ -8595,6 +8595,7 @@ name = "webxr"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
+ "embedder_traits",
  "euclid",
  "glow",
  "log",
