@@ -10,9 +10,9 @@ use std::num::NonZeroU32;
 use std::os::raw;
 use std::ptr;
 
-use base::id::{BlobId, DomPointId, MessagePortId, PipelineNamespaceId};
+use base::id::{BlobId, DomExceptionId, DomPointId, MessagePortId, PipelineNamespaceId};
 use constellation_traits::{
-    BlobImpl, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
+    BlobImpl, DomException, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
     StructuredSerializedData, Transferrable as TransferrableInterface,
 };
 use js::glue::{
@@ -42,6 +42,7 @@ use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::readablestream::ReadableStream;
+use crate::dom::types::DOMException;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -59,6 +60,7 @@ pub(super) enum StructuredCloneTags {
     DomPointReadOnly = 0xFFFF8004,
     DomPoint = 0xFFFF8005,
     ReadableStream = 0xFFFF8006,
+    DomException = 0xFFFF8007,
     Max = 0xFFFFFFFF,
 }
 
@@ -68,6 +70,7 @@ impl From<SerializableInterface> for StructuredCloneTags {
             SerializableInterface::Blob => StructuredCloneTags::DomBlob,
             SerializableInterface::DomPointReadOnly => StructuredCloneTags::DomPointReadOnly,
             SerializableInterface::DomPoint => StructuredCloneTags::DomPoint,
+            SerializableInterface::DomException => StructuredCloneTags::DomException,
         }
     }
 }
@@ -93,6 +96,7 @@ fn reader_for_type(
         SerializableInterface::Blob => read_object::<Blob>,
         SerializableInterface::DomPointReadOnly => read_object::<DOMPointReadOnly>,
         SerializableInterface::DomPoint => read_object::<DOMPoint>,
+        SerializableInterface::DomException => read_object::<DOMException>,
     }
 }
 
@@ -226,6 +230,7 @@ fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
         SerializableInterface::Blob => try_serialize::<Blob>,
         SerializableInterface::DomPointReadOnly => try_serialize::<DOMPointReadOnly>,
         SerializableInterface::DomPoint => try_serialize::<DOMPoint>,
+        SerializableInterface::DomException => try_serialize::<DOMException>,
     }
 }
 
@@ -500,6 +505,8 @@ pub(crate) struct StructuredDataReader {
     /// A map of deserialized points, stored temporarily here to keep them rooted.
     pub(crate) points_read_only: Option<HashMap<StorageKey, DomRoot<DOMPointReadOnly>>>,
     pub(crate) dom_points: Option<HashMap<StorageKey, DomRoot<DOMPoint>>>,
+    /// A map of deserialized exceptions, stored temporarily here to keep them rooted.
+    pub(crate) dom_exceptions: Option<HashMap<StorageKey, DomRoot<DOMException>>>,
     /// A vec of transfer-received DOM ports,
     /// to be made available to script through a message event.
     pub(crate) message_ports: Option<Vec<DomRoot<MessagePort>>>,
@@ -513,6 +520,8 @@ pub(crate) struct StructuredDataReader {
     pub(crate) blob_impls: Option<HashMap<BlobId, BlobImpl>>,
     /// A map of serialized points.
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
+    /// A map of serialized exceptions.
+    pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
     pub(crate) readable_streams: Option<Vec<DomRoot<ReadableStream>>>,
 }
 
@@ -526,6 +535,8 @@ pub(crate) struct StructuredDataWriter {
     pub(crate) ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
     /// Serialized points.
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
+    /// Serialized exceptions.
+    pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
     /// Serialized blobs.
     pub(crate) blobs: Option<HashMap<BlobId, BlobImpl>>,
 }
@@ -579,6 +590,7 @@ pub(crate) fn write(
             serialized: data,
             ports: sc_writer.ports.take(),
             points: sc_writer.points.take(),
+            exceptions: sc_writer.exceptions.take(),
             blobs: sc_writer.blobs.take(),
         };
 
@@ -600,9 +612,11 @@ pub(crate) fn read(
         message_ports: None,
         points_read_only: None,
         dom_points: None,
+        dom_exceptions: None,
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),
         points: data.points.take(),
+        exceptions: data.exceptions.take(),
         errors: DOMErrorRecord { message: None },
         readable_streams: None,
     };

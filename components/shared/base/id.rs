@@ -196,6 +196,7 @@ impl PipelineNamespace {
     self, ServiceWorkerRegistrationIndex}
     namespace_id_method! {next_blob_id, BlobId, self, BlobIndex}
     namespace_id_method! {next_dom_point_id, DomPointId, self, DomPointIndex}
+    namespace_id_method! {next_dom_exception_id, DomExceptionId, self, DomExceptionIndex}
 }
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = const { Cell::new(None) });
@@ -421,6 +422,19 @@ impl DomPointId {
             let next_point_id = namespace.next_dom_point_id();
             tls.set(Some(namespace));
             next_point_id
+        })
+    }
+}
+
+namespace_id! {DomExceptionId, DomExceptionIndex, "DomException"}
+
+impl DomExceptionId {
+    pub fn new() -> DomExceptionId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_exception_id = namespace.next_dom_exception_id();
+            tls.set(Some(namespace));
+            next_exception_id
         })
     }
 }
