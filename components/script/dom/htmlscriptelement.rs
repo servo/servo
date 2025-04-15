@@ -748,7 +748,10 @@ impl HTMLScriptElement {
             }
         }
 
-        // Step 21. Charset.
+        // Step 21. If el has a charset attribute, then let encoding be the result of getting
+        // an encoding from the value of the charset attribute.
+        // If el does not have a charset attribute, or if getting an encoding failed,
+        // then let encoding be el's node document's the encoding.
         let encoding = element
             .get_attribute(&ns!(), &local_name!("charset"))
             .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
@@ -770,9 +773,11 @@ impl HTMLScriptElement {
             ),
         };
 
-        // TODO: Step 24. Nonce.
+        // Step 24. Let cryptographic nonce be el's [[CryptographicNonce]] internal slot's value.
+        let cryptographic_nonce = self.upcast::<HTMLElement>().Nonce().into();
 
-        // Step 25. Integrity metadata.
+        // Step 25. If el has an integrity attribute, then let integrity metadata be that attribute's value.
+        // Otherwise, let integrity metadata be the empty string.
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
@@ -780,11 +785,13 @@ impl HTMLScriptElement {
             None => "",
         };
 
-        // TODO: Step 26. Referrer policy
+        // Step 26. Let referrer policy be the current state of el's referrerpolicy content attribute.
+        let referrer_policy = referrer_policy_for_element(self.upcast::<Element>());
 
         // TODO: Step 27. Fetch priority.
 
-        // Step 28. Parser metadata.
+        // Step 28. Let parser metadata be "parser-inserted" if el is parser-inserted,
+        // and "not-parser-inserted" otherwise.
         let parser_metadata = if self.parser_inserted.get() {
             ParserMetadata::ParserInserted
         } else {
@@ -793,11 +800,11 @@ impl HTMLScriptElement {
 
         // Step 29. Fetch options.
         let options = ScriptFetchOptions {
-            cryptographic_nonce: self.upcast::<HTMLElement>().Nonce().into(),
+            cryptographic_nonce,
             integrity_metadata: integrity_metadata.to_owned(),
             parser_metadata,
             referrer: self.global().get_referrer(),
-            referrer_policy: referrer_policy_for_element(self.upcast::<Element>()),
+            referrer_policy,
             credentials_mode: module_credentials_mode,
         };
 
