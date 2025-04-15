@@ -1745,13 +1745,16 @@ class MethodDefiner(PropertyDefiner):
                        and (MemberIsLegacyUnforgeable(m, descriptor) == unforgeable or crossorigin)]
         else:
             methods = []
-        self.regular = [{"name": m.identifier.name,
-                         "methodInfo": not m.isStatic(),
-                         "length": methodLength(m),
-                         "flags": "JSPROP_READONLY" if crossorigin else "JSPROP_ENUMERATE",
-                         "condition": PropertyDefiner.getControllingCondition(m, descriptor),
-                         "returnsPromise": m.returnsPromise()}
-                        for m in methods]
+        self.regular = []
+        for m in methods:
+            method = self.methodData(m, descriptor, crossorigin)
+
+            if m.isStatic():
+                method["nativeName"] = CGDictionary.makeMemberName(
+                    descriptor.binaryNameFor(m.identifier.name, True)
+                )
+
+            self.regular.append(method)
 
         # TODO: Once iterable is implemented, use tiebreak rules instead of
         # failing. Also, may be more tiebreak rules to implement once spec bug
@@ -1840,6 +1843,17 @@ class MethodDefiner(PropertyDefiner):
                 })
         self.unforgeable = unforgeable
         self.crossorigin = crossorigin
+
+    @staticmethod
+    def methodData(m, descriptor, crossorigin):
+        return {
+            "name": m.identifier.name,
+            "methodInfo": not m.isStatic(),
+            "length": methodLength(m),
+            "flags": "JSPROP_READONLY" if crossorigin else "JSPROP_ENUMERATE",
+            "condition": PropertyDefiner.getControllingCondition(m, descriptor),
+            "returnsPromise": m.returnsPromise()
+        }
 
     def generateArray(self, array, name):
         if len(array) == 0:
@@ -4233,7 +4247,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         if method.underlyingAttr:
             return CGSpecializedGetter.makeNativeName(descriptor, method.underlyingAttr)
         name = method.identifier.name
-        nativeName = descriptor.binaryNameFor(name)
+        nativeName = descriptor.binaryNameFor(name, method.isStatic())
         if nativeName == name:
             nativeName = descriptor.internalNameFor(name)
         return MakeNativeName(nativeName)
@@ -4357,7 +4371,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     """
     def __init__(self, descriptor, method):
         self.method = method
-        name = method.identifier.name
+        name = descriptor.binaryNameFor(method.identifier.name, True)
         CGAbstractStaticBindingMethod.__init__(self, descriptor, name, templateArgs=["D: DomTypes"])
 
     def generate_code(self):
@@ -4395,7 +4409,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     @staticmethod
     def makeNativeName(descriptor, attr):
         name = attr.identifier.name
-        nativeName = descriptor.binaryNameFor(name)
+        nativeName = descriptor.binaryNameFor(name, attr.isStatic())
         if nativeName == name:
             nativeName = descriptor.internalNameFor(name)
         nativeName = MakeNativeName(nativeName)
@@ -4452,7 +4466,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
     @staticmethod
     def makeNativeName(descriptor, attr):
         name = attr.identifier.name
-        nativeName = descriptor.binaryNameFor(name)
+        nativeName = descriptor.binaryNameFor(name, attr.isStatic())
         if nativeName == name:
             nativeName = descriptor.internalNameFor(name)
         return f"Set{MakeNativeName(nativeName)}"
@@ -5745,7 +5759,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
     (don't use this directly, use the derived classes below).
     """
     def __init__(self, descriptor, operation):
-        nativeName = MakeNativeName(descriptor.binaryNameFor(operation))
+        nativeName = MakeNativeName(descriptor.binaryNameFor(operation, False))
         operation = descriptor.operations[operation]
         assert len(operation.signatures()) == 1
         signature = operation.signatures()[0]
@@ -6535,7 +6549,7 @@ let global = D::GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
         else:
             ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
             name = self.constructor.identifier.name
-            nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
+            nativeName = MakeNativeName(self.descriptor.binaryNameFor(name, True))
 
             if len(self.exposureSet) == 1:
                 args = [
@@ -7988,11 +8002,11 @@ class CGCallback(CGClass):
 
 # We're always fallible
 def callbackGetterName(attr, descriptor):
-    return f"Get{MakeNativeName(descriptor.binaryNameFor(attr.identifier.name))}"
+    return f"Get{MakeNativeName(descriptor.binaryNameFor(attr.identifier.name, attr.isStatic()))}"
 
 
 def callbackSetterName(attr, descriptor):
-    return f"Set{MakeNativeName(descriptor.binaryNameFor(attr.identifier.name))}"
+    return f"Set{MakeNativeName(descriptor.binaryNameFor(attr.identifier.name, attr.isStatic()))}"
 
 
 class CGCallbackFunction(CGCallback):
@@ -8332,7 +8346,7 @@ class CallbackOperation(CallbackOperationBase):
         jsName = method.identifier.name
         CallbackOperationBase.__init__(self, signature,
                                        jsName,
-                                       MakeNativeName(descriptor.binaryNameFor(jsName)),
+                                       MakeNativeName(descriptor.binaryNameFor(jsName, False)),
                                        descriptor, descriptor.interface.isSingleOperationInterface())
 
 
