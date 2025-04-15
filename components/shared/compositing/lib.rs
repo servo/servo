@@ -7,7 +7,7 @@
 use std::fmt::{Debug, Error, Formatter};
 
 use base::id::{PipelineId, WebViewId};
-use crossbeam_channel::{Receiver, Sender};
+use crossbeam_channel::Sender;
 use embedder_traits::{
     AnimationState, EventLoopWaker, MouseButton, MouseButtonAction, TouchEventResult,
 };
@@ -22,7 +22,6 @@ use webrender_api::DocumentId;
 pub mod display_list;
 pub mod rendering_context;
 
-use core::fmt;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -60,22 +59,8 @@ impl CompositorProxy {
     }
 }
 
-/// The port that the compositor receives messages on.
-pub struct CompositorReceiver {
-    pub receiver: Receiver<CompositorMsg>,
-}
-
-impl CompositorReceiver {
-    pub fn try_recv_compositor_msg(&mut self) -> Option<CompositorMsg> {
-        self.receiver.try_recv().ok()
-    }
-    pub fn recv_compositor_msg(&mut self) -> CompositorMsg {
-        self.receiver.recv().unwrap()
-    }
-}
-
 /// Messages from (or via) the constellation thread to the compositor.
-#[derive(IntoStaticStr)]
+#[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum CompositorMsg {
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(WebViewId, PipelineId, AnimationState),
@@ -112,32 +97,6 @@ pub enum CompositorMsg {
     /// WebDriver mouse move event
     WebDriverMouseMoveEvent(WebViewId, f32, f32),
 
-    /// Messages forwarded to the compositor by the constellation from other crates. These
-    /// messages are mainly passed on from the compositor to WebRender.
-    CrossProcess(CrossProcessCompositorMessage),
-}
-
-pub struct SendableFrameTree {
-    pub pipeline: CompositionPipeline,
-    pub children: Vec<SendableFrameTree>,
-}
-
-/// The subset of the pipeline that is needed for layer composition.
-#[derive(Clone)]
-pub struct CompositionPipeline {
-    pub id: PipelineId,
-    pub webview_id: WebViewId,
-}
-
-impl Debug for CompositorMsg {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-        let string: &'static str = self.into();
-        write!(formatter, "{string}")
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-pub enum CrossProcessCompositorMessage {
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebRenderPipelineId),
     /// Perform a scroll operation.
@@ -197,31 +156,29 @@ pub enum CrossProcessCompositorMessage {
     GetAvailableScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
 }
 
-impl fmt::Debug for CrossProcessCompositorMessage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::AddImage(..) => f.write_str("AddImage"),
-            Self::GenerateFontKeys(..) => f.write_str("GenerateFontKeys"),
-            Self::AddSystemFont(..) => f.write_str("AddSystemFont"),
-            Self::SendInitialTransaction(..) => f.write_str("SendInitialTransaction"),
-            Self::SendScrollNode(..) => f.write_str("SendScrollNode"),
-            Self::SendDisplayList { .. } => f.write_str("SendDisplayList"),
-            Self::HitTest(..) => f.write_str("HitTest"),
-            Self::GenerateImageKey(..) => f.write_str("GenerateImageKey"),
-            Self::UpdateImages(..) => f.write_str("UpdateImages"),
-            Self::RemoveFonts(..) => f.write_str("RemoveFonts"),
-            Self::AddFontInstance(..) => f.write_str("AddFontInstance"),
-            Self::AddFont(..) => f.write_str("AddFont"),
-            Self::GetClientWindowRect(..) => f.write_str("GetClientWindowRect"),
-            Self::GetScreenSize(..) => f.write_str("GetScreenSize"),
-            Self::GetAvailableScreenSize(..) => f.write_str("GetAvailableScreenSize"),
-        }
+impl Debug for CompositorMsg {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
+        let string: &'static str = self.into();
+        write!(formatter, "{string}")
     }
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct SendableFrameTree {
+    pub pipeline: CompositionPipeline,
+    pub children: Vec<SendableFrameTree>,
+}
+
+/// The subset of the pipeline that is needed for layer composition.
+#[derive(Clone, Deserialize, Serialize)]
+pub struct CompositionPipeline {
+    pub id: PipelineId,
+    pub webview_id: WebViewId,
 }
 
 /// A mechanism to send messages from ScriptThread to the parent process' WebRender instance.
 #[derive(Clone, Deserialize, Serialize)]
-pub struct CrossProcessCompositorApi(pub IpcSender<CrossProcessCompositorMessage>);
+pub struct CrossProcessCompositorApi(pub IpcSender<CompositorMsg>);
 
 impl CrossProcessCompositorApi {
     /// Create a new [`CrossProcessCompositorApi`] struct that does not have a listener on the other
@@ -232,18 +189,13 @@ impl CrossProcessCompositorApi {
     }
 
     /// Get the sender for this proxy.
-    pub fn sender(&self) -> &IpcSender<CrossProcessCompositorMessage> {
+    pub fn sender(&self) -> &IpcSender<CompositorMsg> {
         &self.0
     }
 
     /// Inform WebRender of the existence of this pipeline.
     pub fn send_initial_transaction(&self, pipeline: WebRenderPipelineId) {
-        if let Err(e) = self
-            .0
-            .send(CrossProcessCompositorMessage::SendInitialTransaction(
-                pipeline,
-            ))
-        {
+        if let Err(e) = self.0.send(CompositorMsg::SendInitialTransaction(pipeline)) {
             warn!("Error sending initial transaction: {}", e);
         }
     }
@@ -256,7 +208,7 @@ impl CrossProcessCompositorApi {
         point: LayoutPoint,
         scroll_id: ExternalScrollId,
     ) {
-        if let Err(e) = self.0.send(CrossProcessCompositorMessage::SendScrollNode(
+        if let Err(e) = self.0.send(CompositorMsg::SendScrollNode(
             webview_id,
             pipeline_id,
             point,
@@ -275,7 +227,7 @@ impl CrossProcessCompositorApi {
     ) {
         let (display_list_data, display_list_descriptor) = list.into_data();
         let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
-        if let Err(e) = self.0.send(CrossProcessCompositorMessage::SendDisplayList {
+        if let Err(e) = self.0.send(CompositorMsg::SendDisplayList {
             webview_id,
             display_list_descriptor,
             display_list_receiver,
@@ -310,9 +262,7 @@ impl CrossProcessCompositorApi {
     ) -> Vec<CompositorHitTestResult> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0
-            .send(CrossProcessCompositorMessage::HitTest(
-                pipeline, point, flags, sender,
-            ))
+            .send(CompositorMsg::HitTest(pipeline, point, flags, sender))
             .expect("error sending hit test");
         receiver.recv().expect("error receiving hit test result")
     }
@@ -320,9 +270,7 @@ impl CrossProcessCompositorApi {
     /// Create a new image key. Blocks until the key is available.
     pub fn generate_image_key(&self) -> Option<ImageKey> {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.0
-            .send(CrossProcessCompositorMessage::GenerateImageKey(sender))
-            .ok()?;
+        self.0.send(CompositorMsg::GenerateImageKey(sender)).ok()?;
         receiver.recv().ok()
     }
 
@@ -332,19 +280,14 @@ impl CrossProcessCompositorApi {
         descriptor: ImageDescriptor,
         data: SerializableImageData,
     ) {
-        if let Err(e) = self.0.send(CrossProcessCompositorMessage::AddImage(
-            key, descriptor, data,
-        )) {
+        if let Err(e) = self.0.send(CompositorMsg::AddImage(key, descriptor, data)) {
             warn!("Error sending image update: {}", e);
         }
     }
 
     /// Perform an image resource update operation.
     pub fn update_images(&self, updates: Vec<ImageUpdate>) {
-        if let Err(e) = self
-            .0
-            .send(CrossProcessCompositorMessage::UpdateImages(updates))
-        {
+        if let Err(e) = self.0.send(CompositorMsg::UpdateImages(updates)) {
             warn!("error sending image updates: {}", e);
         }
     }
@@ -357,10 +300,7 @@ impl CrossProcessCompositorApi {
         if keys.is_empty() && instance_keys.is_empty() {
             return;
         }
-        let _ = self.0.send(CrossProcessCompositorMessage::RemoveFonts(
-            keys,
-            instance_keys,
-        ));
+        let _ = self.0.send(CompositorMsg::RemoveFonts(keys, instance_keys));
     }
 
     pub fn add_font_instance(
@@ -370,7 +310,7 @@ impl CrossProcessCompositorApi {
         size: f32,
         flags: FontInstanceFlags,
     ) {
-        let _x = self.0.send(CrossProcessCompositorMessage::AddFontInstance(
+        let _x = self.0.send(CompositorMsg::AddFontInstance(
             font_instance_key,
             font_key,
             size,
@@ -379,15 +319,11 @@ impl CrossProcessCompositorApi {
     }
 
     pub fn add_font(&self, font_key: FontKey, data: Arc<IpcSharedMemory>, index: u32) {
-        let _ = self.0.send(CrossProcessCompositorMessage::AddFont(
-            font_key, data, index,
-        ));
+        let _ = self.0.send(CompositorMsg::AddFont(font_key, data, index));
     }
 
     pub fn add_system_font(&self, font_key: FontKey, handle: NativeFontHandle) {
-        let _ = self.0.send(CrossProcessCompositorMessage::AddSystemFont(
-            font_key, handle,
-        ));
+        let _ = self.0.send(CompositorMsg::AddSystemFont(font_key, handle));
     }
 
     pub fn fetch_font_keys(
@@ -396,7 +332,7 @@ impl CrossProcessCompositorApi {
         number_of_font_instance_keys: usize,
     ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
         let (sender, receiver) = ipc_channel::ipc::channel().expect("Could not create IPC channel");
-        let _ = self.0.send(CrossProcessCompositorMessage::GenerateFontKeys(
+        let _ = self.0.send(CompositorMsg::GenerateFontKeys(
             number_of_font_keys,
             number_of_font_instance_keys,
             sender,
