@@ -4,16 +4,8 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use embedder_traits::{EventLoopWaker, MouseButton};
+use embedder_traits::EventLoopWaker;
 use net::protocols::ProtocolRegistry;
-use webrender_api::units::DevicePoint;
-
-#[derive(Clone)]
-pub enum MouseWindowEvent {
-    Click(MouseButton, DevicePoint),
-    MouseDown(MouseButton, DevicePoint),
-    MouseUp(MouseButton, DevicePoint),
-}
 
 /// Various debug and profiling flags that WebRender supports.
 #[derive(Clone)]
