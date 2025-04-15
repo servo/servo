@@ -60,7 +60,8 @@ impl LayoutBoxBase {
             // TODO: Should we keep multiple caches for various block sizes?
         }
 
-        let result = layout_box.compute_inline_content_sizes(layout_context, constraint_space);
+        let result =
+            layout_box.compute_inline_content_sizes_with_fixup(layout_context, constraint_space);
         *cache = Some(Box::new((constraint_space.block_size, result)));
         result
     }
