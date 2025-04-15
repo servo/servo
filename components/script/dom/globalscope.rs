@@ -121,7 +121,7 @@ use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
@@ -133,6 +133,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
+use crate::dom::writablestream::CrossRealmTransformWritable;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{NetworkListener, PreInvoke};
@@ -456,6 +457,13 @@ pub(crate) struct ManagedMessagePort {
     pending: bool,
     /// Has the port been closed? If closed, it can be dropped and later GC'ed.
     closed: bool,
+    /// Note: it may seem strange to use a pair of options, versus for example an enum.
+    /// But it looks like tranform streams will require both of those in their transfer.
+    /// This will be resolved when we reach that point of the implementation.
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+    cross_realm_transform_readable: Option<CrossRealmTransformReadable>,
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    cross_realm_transform_writable: Option<CrossRealmTransformWritable>,
 }
 
 /// State representing whether this global is currently managing broadcast channels.
@@ -940,6 +948,11 @@ impl GlobalScope {
         *self.broadcast_channel_state.borrow_mut() = BroadcastChannelState::UnManaged;
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#disentangle>
+    pub(crate) fn disentangle_port(&self, _port: &MessagePort) {
+        // TODO: #36465
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#entangle>
     pub(crate) fn entangle_ports(&self, port1: MessagePortId, port2: MessagePortId) {
         if let MessagePortState::Managed(_id, message_ports) =
@@ -1007,10 +1020,10 @@ impl GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
     pub(crate) fn start_message_port(&self, port_id: &MessagePortId) {
-        if let MessagePortState::Managed(_id, message_ports) =
+        let message_buffer = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let message_buffer = match message_ports.get_mut(port_id) {
+            match message_ports.get_mut(port_id) {
                 None => panic!("start_message_port called on a unknown port."),
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
@@ -1019,21 +1032,14 @@ impl GlobalScope {
                         panic!("managed-port has no port-impl.");
                     }
                 },
-            };
-            if let Some(message_buffer) = message_buffer {
-                for task in message_buffer {
-                    let port_id = *port_id;
-                    let this = Trusted::new(self);
-                    self.task_manager().port_message_queue().queue(
-                        task!(process_pending_port_messages: move || {
-                            let target_global = this.root();
-                            target_global.route_task_to_port(port_id, task, CanGc::note());
-                        }),
-                    );
-                }
             }
         } else {
-            warn!("start_message_port called on a global not managing any ports.")
+            return warn!("start_message_port called on a global not managing any ports.");
+        };
+        if let Some(message_buffer) = message_buffer {
+            for task in message_buffer {
+                self.route_task_to_port(*port_id, task, CanGc::note());
+            }
         }
     }
 
@@ -1208,13 +1214,64 @@ impl GlobalScope {
         }
     }
 
-    /// Route the task to be handled by the relevant port.
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+    /// The "Add a handler for port’s message event with the following steps:"
+    /// and "Add a handler for port’s messageerror event with the following steps:" part.
+    pub(crate) fn note_cross_realm_transform_readable(
+        &self,
+        cross_realm_transform_readable: &CrossRealmTransformReadable,
+        port_id: &MessagePortId,
+    ) {
+        let MessagePortState::Managed(_id, message_ports) =
+            &mut *self.message_port_state.borrow_mut()
+        else {
+            unreachable!(
+                "Cross realm transform readable must be called on a global managing ports"
+            );
+        };
+
+        let Some(managed_port) = message_ports.get_mut(port_id) else {
+            unreachable!("Cross realm transform readable must match a managed port");
+        };
+
+        managed_port.cross_realm_transform_readable = Some(cross_realm_transform_readable.clone());
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+    /// The "Add a handler for port’s message event with the following steps:"
+    /// and "Add a handler for port’s messageerror event with the following steps:" part.
+    pub(crate) fn note_cross_realm_transform_writable(
+        &self,
+        cross_realm_transform_writable: &CrossRealmTransformWritable,
+        port_id: &MessagePortId,
+    ) {
+        let MessagePortState::Managed(_id, message_ports) =
+            &mut *self.message_port_state.borrow_mut()
+        else {
+            unreachable!(
+                "Cross realm transform writable must be called on a global managing ports"
+            );
+        };
+
+        let Some(managed_port) = message_ports.get_mut(port_id) else {
+            unreachable!("Cross realm transform writable must match a managed port");
+        };
+
+        managed_port.cross_realm_transform_writable = Some(cross_realm_transform_writable.clone());
+    }
+
+    /// Custom routing logic, followed by the task steps of
+    /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
     pub(crate) fn route_task_to_port(
         &self,
         port_id: MessagePortId,
         task: PortMessageTask,
         can_gc: CanGc,
     ) {
+        let cx = GlobalScope::get_cx();
+        rooted!(in(*cx) let mut cross_realm_transform_readable = None);
+        rooted!(in(*cx) let mut cross_realm_transform_writable = None);
+
         let should_dispatch = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1228,9 +1285,14 @@ impl GlobalScope {
                     // If the port is not enabled yet, or if is awaiting the completion of it's transfer,
                     // the task will be buffered and dispatched upon enablement or completion of the transfer.
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                        port_impl.handle_incoming(task).map(|to_dispatch| {
+                        let to_dispatch = port_impl.handle_incoming(task).map(|to_dispatch| {
                             (DomRoot::from_ref(&*managed_port.dom_port), to_dispatch)
-                        })
+                        });
+                        cross_realm_transform_readable
+                            .set(managed_port.cross_realm_transform_readable.clone());
+                        cross_realm_transform_writable
+                            .set(managed_port.cross_realm_transform_writable.clone());
+                        to_dispatch
                     } else {
                         panic!("managed-port has no port-impl.");
                     }
@@ -1240,24 +1302,93 @@ impl GlobalScope {
             self.re_route_port_task(port_id, task);
             return;
         };
+
+        // Add a task that runs the following steps to the port message queue of targetPort:
+        // Note: we are in the task, and running the relevant steps.
+
+        // Let finalTargetPort be the MessagePort in whose port message queue the task now finds itself.
         if let Some((dom_port, PortMessageTask { origin, data })) = should_dispatch {
-            // Substep 3-4
-            rooted!(in(*GlobalScope::get_cx()) let mut message_clone = UndefinedValue());
+            // Let messageEventTarget be finalTargetPort's message event target.
+            let message_event_target = dom_port.upcast();
+
+            // Let targetRealm be finalTargetPort's relevant realm.
+            // Done via the routing logic here and in the constellation: `self` is the target realm.
+
+            // Let messageClone be deserializeRecord.[[Deserialized]].
+            // Re-ordered because we need to pass it to `structuredclone::read`.
+            rooted!(in(*cx) let mut message_clone = UndefinedValue());
+
+            // Note: if this port is used to transfer a stream, we handle the events in Rust.
+            let has_cross_realm_tansform = cross_realm_transform_readable.is_some() ||
+                cross_realm_transform_writable.is_some();
+
+            let realm = enter_realm(self);
+            let comp = InRealm::Entered(&realm);
+
+            // Note: this is necessary, on top of entering the realm above,
+            // for the call to `GlobalScope::incumbent`,
+            // in `MessagePort::post_message_impl` to succeed.
+            let _aes = AutoEntryScript::new(self);
+
+            // Let deserializeRecord be StructuredDeserializeWithTransfer(serializeWithTransferResult, targetRealm).
+            // Let newPorts be a new frozen array
+            // consisting of all MessagePort objects in deserializeRecord.[[TransferredValues]],
+            // if any, maintaining their relative order.
+            // Note: both done in `structuredclone::read`.
             if let Ok(ports) = structuredclone::read(self, data, message_clone.handle_mut()) {
-                // Substep 6
-                // Dispatch the event, using the dom message-port.
-                MessageEvent::dispatch_jsval(
-                    dom_port.upcast(),
-                    self,
-                    message_clone.handle(),
-                    Some(&origin.ascii_serialization()),
-                    None,
-                    ports,
-                    can_gc,
-                );
+                // Add a handler for port’s message event with the following steps:
+                // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+                if let Some(transform) = cross_realm_transform_readable.as_ref() {
+                    transform.handle_message(
+                        cx,
+                        self,
+                        &dom_port,
+                        message_clone.handle(),
+                        comp,
+                        can_gc,
+                    );
+                }
+
+                // Add a handler for port’s message event with the following steps:
+                // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+                if let Some(transform) = cross_realm_transform_writable.as_ref() {
+                    transform.handle_message(cx, self, message_clone.handle(), comp, can_gc);
+                }
+
+                if !has_cross_realm_tansform {
+                    // Fire an event named message at messageEventTarget,
+                    // using MessageEvent,
+                    // with the data attribute initialized to messageClone
+                    // and the ports attribute initialized to newPorts.
+                    MessageEvent::dispatch_jsval(
+                        message_event_target,
+                        self,
+                        message_clone.handle(),
+                        Some(&origin.ascii_serialization()),
+                        None,
+                        ports,
+                        can_gc,
+                    );
+                }
             } else {
-                // Step 4, fire messageerror event.
-                MessageEvent::dispatch_error(dom_port.upcast(), self, can_gc);
+                // Add a handler for port’s messageerror event with the following steps:
+                // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+                if let Some(transform) = cross_realm_transform_readable.as_ref() {
+                    transform.handle_error(cx, self, &dom_port, comp, can_gc);
+                }
+
+                // Add a handler for port’s messageerror event with the following steps:
+                // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+                if let Some(transform) = cross_realm_transform_writable.as_ref() {
+                    transform.handle_error(cx, self, &dom_port, comp, can_gc);
+                }
+
+                if !has_cross_realm_tansform {
+                    // If this throws an exception, catch it,
+                    // fire an event named messageerror at messageEventTarget,
+                    // using MessageEvent, and then return.
+                    MessageEvent::dispatch_error(message_event_target, self, can_gc);
+                }
             }
         }
     }
@@ -1449,6 +1580,8 @@ impl GlobalScope {
                         dom_port: Dom::from_ref(dom_port),
                         pending: true,
                         closed: false,
+                        cross_realm_transform_readable: None,
+                        cross_realm_transform_writable: None,
                     },
                 );
 
@@ -1471,6 +1604,8 @@ impl GlobalScope {
                         dom_port: Dom::from_ref(dom_port),
                         pending: false,
                         closed: false,
+                        cross_realm_transform_readable: None,
+                        cross_realm_transform_writable: None,
                     },
                 );
                 let _ = self.script_to_constellation_chan().send(
