@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, LoadStatus};
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;

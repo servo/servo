@@ -7,7 +7,7 @@ use std::default::Default;
 use std::ops::Range;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;

@@ -14,7 +14,7 @@ use content_security_policy as csp;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
-use html5ever::{LocalName, Prefix, QualName, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::jsapi::JSAutoRealm;
 use js::rust::HandleObject;
 use mime::{self, Mime};

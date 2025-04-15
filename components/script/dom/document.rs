@@ -37,7 +37,7 @@ use embedder_traits::{
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
-use html5ever::{LocalName, Namespace, QualName, local_name, namespace_url, ns};
+use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue};

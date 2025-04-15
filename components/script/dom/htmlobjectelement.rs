@@ -5,7 +5,7 @@
 use std::default::Default;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use pixels::Image;
 use servo_arc::Arc;

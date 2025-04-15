@@ -18,9 +18,7 @@ use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts};
 use html5ever::tree_builder::{
     ElementFlags, NodeOrText as HtmlNodeOrText, QuirksMode, TreeBuilder, TreeBuilderOpts, TreeSink,
 };
-use html5ever::{
-    Attribute as HtmlAttribute, ExpandedName, QualName, local_name, namespace_url, ns,
-};
+use html5ever::{Attribute as HtmlAttribute, ExpandedName, QualName, local_name, ns};
 use markup5ever::TokenizerResult;
 use servo_url::ServoUrl;
 use style::context::QuirksMode as ServoQuirksMode;

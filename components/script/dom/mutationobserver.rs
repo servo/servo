@@ -6,7 +6,7 @@ use std::cell::LazyCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Namespace, namespace_url, ns};
+use html5ever::{LocalName, Namespace, ns};
 use js::rust::HandleObject;
 
 use crate::dom::bindings::callback::ExceptionHandling;

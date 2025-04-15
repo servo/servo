@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use html5ever::{QualName, local_name, namespace_prefix, namespace_url, ns};
+use html5ever::{QualName, local_name, namespace_prefix, ns};
 
 use super::parser::{
     AdditiveOp, Axis, EqualityOp, Expr, FilterExpr, KindTest, Literal, MultiplicativeOp, NodeTest,

@@ -10,7 +10,7 @@ use std::sync::Arc as StdArc;
 
 use base::id::{BrowsingContextId, PipelineId};
 use fonts_traits::ByteIndex;
-use html5ever::{local_name, namespace_url, ns};
+use html5ever::{local_name, ns};
 use pixels::{Image, ImageMetadata};
 use range::Range;
 use script_layout_interface::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};

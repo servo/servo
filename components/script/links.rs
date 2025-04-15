@@ -5,7 +5,7 @@
 //! Defines shared hyperlink behaviour for `<link>`, `<a>`, `<area>` and `<form>` elements.
 
 use constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
-use html5ever::{local_name, namespace_url, ns};
+use html5ever::{local_name, ns};
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::request::Referrer;
 use style::str::HTML_SPACE_CHARACTERS;

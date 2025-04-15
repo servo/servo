@@ -12,7 +12,7 @@ use html5ever::serialize::TraversalScope::IncludeNode;
 use html5ever::serialize::{AttrRef, Serialize, Serializer, TraversalScope};
 use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts};
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
-use html5ever::{QualName, local_name, namespace_url, ns};
+use html5ever::{QualName, local_name, ns};
 use markup5ever::TokenizerResult;
 use script_bindings::trace::CustomTraceable;
 use servo_url::ServoUrl;

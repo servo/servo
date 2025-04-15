@@ -19,9 +19,7 @@ use embedder_traits::InputMethodType;
 use euclid::default::{Rect, Size2D};
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
-use html5ever::{
-    LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, namespace_url, ns,
-};
+use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;

@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::{mem, ptr};
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Namespace, Prefix, namespace_url, ns};
+use html5ever::{LocalName, Namespace, Prefix, ns};
 use js::conversions::ToJSValConvertible;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};

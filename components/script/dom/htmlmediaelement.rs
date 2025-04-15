@@ -16,7 +16,7 @@ use embedder_traits::resources::{self, Resource as EmbedderResource};
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt};
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use http::StatusCode;
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc::{self, IpcSharedMemory, channel};

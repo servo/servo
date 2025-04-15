@@ -8,7 +8,7 @@ use std::mem;
 
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Namespace, Prefix, namespace_url, ns};
+use html5ever::{LocalName, Namespace, Prefix, ns};
 use style::attr::{AttrIdentifier, AttrValue};
 use style::values::GenericAtomIdent;
 use stylo_atoms::Atom;
