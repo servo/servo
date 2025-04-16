@@ -8,18 +8,14 @@ use std::rc::Rc;
 
 use dpi::PhysicalSize;
 use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
-/// The EventLoopWaker::wake function will be called from any thread.
-/// It will be called to notify embedder that some events are available,
-/// and that perform_updates need to be called
-pub use servo::EventLoopWaker;
 pub use servo::webrender_api::units::DeviceIntRect;
-use servo::{self, Servo, resources};
+use servo::{self, EventLoopWaker, ServoBuilder, resources};
 pub use servo::{InputMethodType, MediaSessionPlaybackState, WindowRenderingContext};
 
 use crate::egl::android::resources::ResourceReaderInstance;
-use crate::egl::app_state::{
-    Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
-};
+#[cfg(feature = "webxr")]
+use crate::egl::app_state::XrDiscoveryWebXrRegistry;
+use crate::egl::app_state::{Coordinates, RunningAppState, ServoWindowCallbacks};
 use crate::egl::host_trait::HostTrait;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
@@ -85,26 +81,22 @@ pub fn init(
         RefCell::new(init_opts.coordinates),
     ));
 
-    let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(
-        waker,
-        #[cfg(feature = "webxr")]
-        init_opts.xr_discovery,
-    ));
+    let servo_builder = ServoBuilder::new(rendering_context.clone())
+        .opts(opts)
+        .preferences(preferences)
+        .event_loop_waker(waker);
 
-    let servo = Servo::new(
-        opts,
-        preferences,
-        rendering_context.clone(),
-        embedder_callbacks,
-        Default::default(),
-    );
+    #[cfg(feature = "webxr")]
+    let servo_builder = servo_builder.webxr_registry(Box::new(XrDiscoveryWebXrRegistry::new(
+        init_opts.xr_discovery,
+    )));
 
     APP.with(|app| {
         let app_state = RunningAppState::new(
             init_opts.url,
             init_opts.density,
             rendering_context,
-            servo,
+            servo_builder.build(),
             window_callbacks,
             servoshell_preferences,
         );

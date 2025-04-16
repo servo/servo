@@ -5,10 +5,10 @@ use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
 
-use compositing::windowing::EmbedderMethods;
 use euclid::{Scale, Size2D};
 use servo::{
-    RenderingContext, Servo, TouchEventType, WebView, WebViewBuilder, WindowRenderingContext,
+    RenderingContext, Servo, ServoBuilder, TouchEventType, WebView, WebViewBuilder,
+    WindowRenderingContext,
 };
 use tracing::warn;
 use url::Url;
@@ -95,15 +95,9 @@ impl ApplicationHandler<WakerEvent> for App {
 
             let _ = rendering_context.make_current();
 
-            let servo = Servo::new(
-                Default::default(),
-                Default::default(),
-                rendering_context.clone(),
-                Box::new(EmbedderDelegate {
-                    waker: waker.clone(),
-                }),
-                Default::default(),
-            );
+            let servo = ServoBuilder::new(rendering_context.clone())
+                .event_loop_waker(Box::new(waker.clone()))
+                .build();
             servo.setup_logging();
 
             let app_state = Rc::new(AppState {
@@ -201,19 +195,6 @@ impl ApplicationHandler<WakerEvent> for App {
             },
             _ => (),
         }
-    }
-}
-
-struct EmbedderDelegate {
-    waker: Waker,
-}
-
-impl EmbedderMethods for EmbedderDelegate {
-    // FIXME: rust-analyzer “Implement missing members” autocompletes this as
-    // webxr_api::MainThreadWaker, which is not available when building without
-    // libservo/webxr, and even if it was, it would fail to compile with E0053.
-    fn create_event_loop_waker(&mut self) -> Box<dyn embedder_traits::EventLoopWaker> {
-        Box::new(self.waker.clone())
     }
 }
 

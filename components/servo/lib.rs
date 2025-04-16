@@ -42,7 +42,6 @@ use canvas::WebGLComm;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
-use compositing::windowing::EmbedderMethods;
 use compositing::{IOCompositor, InitialCompositorState};
 pub use compositing_traits::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
@@ -247,26 +246,18 @@ impl webrender_api::RenderNotifier for RenderNotifier {
 impl Servo {
     #[cfg_attr(
         feature = "tracing",
-        tracing::instrument(
-            skip(preferences, rendering_context, embedder),
-            fields(servo_profiling = true),
-            level = "trace",
-        )
+        tracing::instrument(skip(builder), fields(servo_profiling = true), level = "trace",)
     )]
-    pub fn new(
-        opts: Opts,
-        preferences: Preferences,
-        rendering_context: Rc<dyn RenderingContext>,
-        mut embedder: Box<dyn EmbedderMethods>,
-        user_content_manager: UserContentManager,
-    ) -> Self {
+    fn new(builder: ServoBuilder) -> Self {
         // Global configuration options, parsed from the command line.
-        opts::set_options(opts);
+        let opts = builder.opts.map(|opts| *opts);
+        opts::set_options(opts.unwrap_or_default());
         let opts = opts::get();
 
         // Set the preferences globally.
         // TODO: It would be better to make these private to a particular Servo instance.
-        servo_config::prefs::set(preferences);
+        let preferences = builder.preferences.map(|opts| *opts);
+        servo_config::prefs::set(preferences.unwrap_or_default());
 
         use std::sync::atomic::Ordering;
 
@@ -282,6 +273,7 @@ impl Servo {
         }
 
         // Get GL bindings
+        let rendering_context = builder.rendering_context;
         let webrender_gl = rendering_context.gleam_gl_api();
 
         // Make sure the gl context is made current.
@@ -297,7 +289,7 @@ impl Servo {
         // the client window and the compositor. This channel is unique because
         // messages to client may need to pump a platform-specific event loop
         // to deliver the message.
-        let event_loop_waker = embedder.create_event_loop_waker();
+        let event_loop_waker = builder.event_loop_waker;
         let (compositor_proxy, compositor_receiver) =
             create_compositor_channel(event_loop_waker.clone());
         let (embedder_proxy, embedder_receiver) = create_embedder_channel(event_loop_waker.clone());
@@ -424,7 +416,7 @@ impl Servo {
                 .expect("Failed to create WebXR device registry");
         #[cfg(feature = "webxr")]
         if pref!(dom_webxr_enabled) {
-            embedder.register_webxr(&mut webxr_main_thread, embedder_proxy.clone());
+            builder.webxr_registry.register(&mut webxr_main_thread);
         }
 
         #[cfg(feature = "webgpu")]
@@ -447,7 +439,7 @@ impl Servo {
         // Create the constellation, which maintains the engine pipelines, including script and
         // layout, as well as the navigation context.
         let mut protocols = ProtocolRegistry::with_internal_protocols();
-        protocols.merge(embedder.get_protocol_handlers());
+        protocols.merge(builder.protocol_registry);
 
         let constellation_chan = create_constellation(
             opts.config_dir.clone(),
@@ -465,7 +457,7 @@ impl Servo {
             #[cfg(feature = "webgpu")]
             wgpu_image_map,
             protocols,
-            user_content_manager,
+            builder.user_content_manager,
         );
 
         if cfg!(feature = "webdriver") {
@@ -1203,4 +1195,78 @@ fn create_sandbox() {
 ))]
 fn create_sandbox() {
     panic!("Sandboxing is not supported on Windows, iOS, ARM targets and android.");
+}
+
+struct DefaultEventLoopWaker;
+
+impl EventLoopWaker for DefaultEventLoopWaker {
+    fn clone_box(&self) -> Box<dyn EventLoopWaker> {
+        Box::new(DefaultEventLoopWaker)
+    }
+}
+
+#[cfg(feature = "webxr")]
+struct DefaultWebXrRegistry;
+#[cfg(feature = "webxr")]
+impl webxr::WebXrRegistry for DefaultWebXrRegistry {}
+
+pub struct ServoBuilder {
+    rendering_context: Rc<dyn RenderingContext>,
+    opts: Option<Box<Opts>>,
+    preferences: Option<Box<Preferences>>,
+    event_loop_waker: Box<dyn EventLoopWaker>,
+    user_content_manager: UserContentManager,
+    protocol_registry: ProtocolRegistry,
+    #[cfg(feature = "webxr")]
+    webxr_registry: Box<dyn webxr::WebXrRegistry>,
+}
+
+impl ServoBuilder {
+    pub fn new(rendering_context: Rc<dyn RenderingContext>) -> Self {
+        Self {
+            rendering_context,
+            opts: None,
+            preferences: None,
+            event_loop_waker: Box::new(DefaultEventLoopWaker),
+            user_content_manager: UserContentManager::default(),
+            protocol_registry: ProtocolRegistry::default(),
+            #[cfg(feature = "webxr")]
+            webxr_registry: Box::new(DefaultWebXrRegistry),
+        }
+    }
+
+    pub fn build(self) -> Servo {
+        Servo::new(self)
+    }
+
+    pub fn opts(mut self, opts: Opts) -> Self {
+        self.opts = Some(Box::new(opts));
+        self
+    }
+
+    pub fn preferences(mut self, preferences: Preferences) -> Self {
+        self.preferences = Some(Box::new(preferences));
+        self
+    }
+
+    pub fn event_loop_waker(mut self, event_loop_waker: Box<dyn EventLoopWaker>) -> Self {
+        self.event_loop_waker = event_loop_waker;
+        self
+    }
+
+    pub fn user_content_manager(mut self, user_content_manager: UserContentManager) -> Self {
+        self.user_content_manager = user_content_manager;
+        self
+    }
+
+    pub fn protocol_registry(mut self, protocol_registry: ProtocolRegistry) -> Self {
+        self.protocol_registry = protocol_registry;
+        self
+    }
+
+    #[cfg(feature = "webxr")]
+    pub fn webxr_registry(mut self, webxr_registry: Box<dyn webxr::WebXrRegistry>) -> Self {
+        self.webxr_registry = webxr_registry;
+        self
+    }
 }

@@ -8,13 +8,12 @@ use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use anyhow::Error;
-use compositing::windowing::EmbedderMethods;
 use compositing_traits::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
 use parking_lot::Mutex;
-use servo::Servo;
+use servo::{Servo, ServoBuilder};
 
 pub struct ServoTest {
     servo: Servo,
@@ -42,14 +41,6 @@ impl ServoTest {
         assert!(rendering_context.make_current().is_ok());
 
         #[derive(Clone)]
-        struct EmbedderMethodsImpl(Arc<AtomicBool>);
-        impl EmbedderMethods for EmbedderMethodsImpl {
-            fn create_event_loop_waker(&mut self) -> Box<dyn embedder_traits::EventLoopWaker> {
-                Box::new(EventLoopWakerImpl(self.0.clone()))
-            }
-        }
-
-        #[derive(Clone)]
         struct EventLoopWakerImpl(Arc<AtomicBool>);
         impl EventLoopWaker for EventLoopWakerImpl {
             fn clone_box(&self) -> Box<dyn EventLoopWaker> {
@@ -62,13 +53,9 @@ impl ServoTest {
         }
 
         let user_event_triggered = Arc::new(AtomicBool::new(false));
-        let servo = Servo::new(
-            Default::default(),
-            Default::default(),
-            rendering_context.clone(),
-            Box::new(EmbedderMethodsImpl(user_event_triggered)),
-            Default::default(),
-        );
+        let servo = ServoBuilder::new(rendering_context.clone())
+            .event_loop_waker(Box::new(EventLoopWakerImpl(user_event_triggered)))
+            .build();
         Self { servo }
     }
 

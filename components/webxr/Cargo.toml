@@ -26,6 +26,7 @@ openxr-api = ["angle", "openxr", "winapi", "wio", "surfman/sm-angle-default"]
 
 [dependencies]
 crossbeam-channel = { workspace = true }
+embedder_traits = { workspace = true }
 euclid = { workspace = true }
 glow = { workspace = true }
 log = { workspace = true }
