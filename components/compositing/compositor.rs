@@ -56,7 +56,6 @@ use webrender_api::{
 use crate::InitialCompositorState;
 use crate::webview::{UnknownWebView, WebView};
 use crate::webview_manager::WebViewManager;
-use crate::windowing::WebRenderDebugOption;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -77,6 +76,14 @@ enum ReadyState {
     Unknown,
     WaitingForConstellationReply,
     ReadyToSaveImage,
+}
+
+/// An option to control what kind of WebRender debugging is enabled while Servo is running.
+#[derive(Clone)]
+pub enum WebRenderDebugOption {
+    Profiler,
+    TextureCacheDebug,
+    RenderTargetDebug,
 }
 /// Data that is shared by all WebView renderers.
 pub struct ServoRenderer {

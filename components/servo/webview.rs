@@ -9,7 +9,6 @@ use std::time::Duration;
 
 use base::id::WebViewId;
 use compositing::IOCompositor;
-use compositing::windowing::WebRenderDebugOption;
 use compositing_traits::RendererWebView;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
@@ -25,7 +24,7 @@ use webrender_api::units::{DeviceIntPoint, DevicePixel, DeviceRect};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
-use crate::{ConstellationProxy, Servo};
+use crate::{ConstellationProxy, Servo, WebRenderDebugOption};
 
 /// A handle to a Servo webview. If you clone this handle, it does not create a new webview,
 /// but instead creates a new handle to the webview. Once the last handle is dropped, Servo
