@@ -4162,6 +4162,7 @@ dependencies = [
  "ipc-channel",
  "itertools 0.13.0",
  "log",
+ "malloc_size_of_derive",
  "net_traits",
  "num-traits",
  "parking_lot",
@@ -4174,6 +4175,7 @@ dependencies = [
  "servo_arc",
  "servo_config",
  "servo_geometry",
+ "servo_malloc_size_of",
  "servo_url",
  "stylo",
  "stylo_traits",
@@ -6822,6 +6824,7 @@ version = "0.0.1"
 dependencies = [
  "accountable-refcell",
  "app_units",
+ "atomic_refcell",
  "content-security-policy",
  "crossbeam-channel",
  "euclid",

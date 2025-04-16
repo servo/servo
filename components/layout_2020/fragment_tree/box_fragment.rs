@@ -5,6 +5,7 @@
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use base::print_tree::PrintTree;
+use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::border_collapse::T as BorderCollapse;
@@ -24,6 +25,7 @@ use crate::table::SpecificTableGridInfo;
 use crate::taffy::SpecificTaffyGridInfo;
 
 /// Describes how a [`BoxFragment`] paints its background.
+#[derive(MallocSizeOf)]
 pub(crate) enum BackgroundMode {
     /// Draw the normal [`BoxFragment`] background as well as the extra backgrounds
     /// based on the style and positioning rectangles in this data structure.
@@ -36,12 +38,14 @@ pub(crate) enum BackgroundMode {
     Normal,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct ExtraBackground {
+    #[ignore_malloc_size_of = "stylo type"]
     pub style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) enum SpecificLayoutInfo {
     Grid(Box<SpecificTaffyGridInfo>),
     TableCellWithCollapsedBorders,
@@ -49,9 +53,11 @@ pub(crate) enum SpecificLayoutInfo {
     TableWrapper,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 
+    #[ignore_malloc_size_of = "stylo type"]
     pub style: ServoArc<ComputedValues>,
     pub children: Vec<Fragment>,
 
@@ -84,6 +90,7 @@ pub(crate) struct BoxFragment {
     /// The resolved box insets if this box is `position: sticky`. These are calculated
     /// during stacking context tree construction because they rely on the size of the
     /// scroll container.
+    #[ignore_malloc_size_of = "stylo type"]
     pub(crate) resolved_sticky_insets: AtomicRefCell<Option<PhysicalSides<AuOrAuto>>>,
 
     pub background_mode: BackgroundMode,

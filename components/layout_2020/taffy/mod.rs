@@ -6,6 +6,7 @@ mod stylo_taffy;
 use std::fmt;
 
 use app_units::Au;
+use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use stylo_taffy::TaffyStyloStyle;
@@ -20,9 +21,10 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::Fragment;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct TaffyContainer {
     children: Vec<ArcRefCell<TaffyItemBox>>,
+    #[ignore_malloc_size_of = "stylo type"]
     style: Arc<ComputedValues>,
 }
 
@@ -69,15 +71,18 @@ impl TaffyContainer {
     }
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct TaffyItemBox {
+    #[ignore_malloc_size_of = "taffy type"]
     pub(crate) taffy_layout: taffy::Layout,
     pub(crate) child_fragments: Vec<Fragment>,
     pub(crate) positioning_context: PositioningContext,
+    #[ignore_malloc_size_of = "stylo type"]
     pub(crate) style: Arc<ComputedValues>,
     pub(crate) taffy_level_box: TaffyItemBoxInner,
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) enum TaffyItemBoxInner {
     InFlowBox(IndependentFormattingContext),
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
@@ -145,7 +150,7 @@ impl TaffyItemBox {
 }
 
 /// Details from Taffy grid layout that will be stored
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SpecificTaffyGridInfo {
     pub rows: SpecificTaffyGridTrackInfo,
     pub columns: SpecificTaffyGridTrackInfo,
@@ -174,7 +179,7 @@ impl SpecificTaffyGridInfo {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SpecificTaffyGridTrackInfo {
     pub sizes: Box<[Au]>,
 }

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use malloc_size_of_derive::MallocSizeOf;
 use style::logical_geometry::WritingMode;
 use style::values::specified::align::AlignFlags;
 
@@ -12,6 +13,7 @@ use crate::geom::{LogicalVec2, PhysicalRect, PhysicalVec};
 /// A reference to a Fragment which is shared between `HoistedAbsolutelyPositionedBox`
 /// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
 /// This will be used later in order to paint this hoisted box in tree order.
+#[derive(MallocSizeOf)]
 pub(crate) struct HoistedSharedFragment {
     pub fragment: Option<Fragment>,
     /// The "static-position rect" of this absolutely positioned box. This is defined by the
@@ -23,11 +25,13 @@ pub(crate) struct HoistedSharedFragment {
     /// if the "static-position rect" ends up being the "inset-modified containing block".
     /// These values are dependent on the layout mode (currently only interesting for
     /// flexbox).
+    #[ignore_malloc_size_of = "stylo type"]
     pub resolved_alignment: LogicalVec2<AlignFlags>,
     /// This is the [`WritingMode`] of the original parent of the element that created this
     /// hoisted absolutely-positioned fragment. This helps to interpret the offset for
     /// static positioning. If the writing mode is right-to-left or bottom-to-top, the static
     /// offset needs to be adjusted by the absolutely positioned element's inline size.
+    #[ignore_malloc_size_of = "stylo type"]
     pub original_parent_writing_mode: WritingMode,
 }
 

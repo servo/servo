@@ -36,6 +36,8 @@ icu_segmenter = { workspace = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { path = "../pixels" }

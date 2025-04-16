@@ -4,6 +4,7 @@
 
 //! <https://drafts.csswg.org/css-flexbox/#box-model>
 
+use malloc_size_of_derive::MallocSizeOf;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
@@ -67,7 +68,7 @@ impl<T> FlexRelativeSides<T> {
 
 /// One of the two bits set by the `flex-direction` property
 /// (The other is "forward" v.s. reverse.)
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
 pub(super) enum FlexAxis {
     /// The main axis is the inline axis of the container (not necessarily of flex items!),
     /// cross is block.
@@ -78,7 +79,7 @@ pub(super) enum FlexAxis {
 
 /// Which flow-relative sides map to the main-start and cross-start sides, respectively.
 /// See <https://drafts.csswg.org/css-flexbox/#box-model>
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub(super) enum MainStartCrossStart {
     InlineStartBlockStart,
     InlineStartBlockEnd,

@@ -88,6 +88,7 @@ use line::{
     TextRunLineItem,
 };
 use line_breaker::LineBreaker;
+use malloc_size_of_derive::MallocSizeOf;
 use range::Range;
 use servo_arc::Arc;
 use style::Zero;
@@ -136,7 +137,7 @@ use crate::{ConstraintSpace, ContainingBlock, PropagatedBoxTreeData};
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
 static FONT_SUPERSCRIPT_OFFSET_RATIO: f32 = 0.34;
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct InlineFormattingContext {
     /// All [`InlineItem`]s in this [`InlineFormattingContext`] stored in a flat array.
     /// [`InlineItem::StartInlineBox`] and [`InlineItem::EndInlineBox`] allow representing
@@ -155,6 +156,7 @@ pub(crate) struct InlineFormattingContext {
     /// context in order to avoid duplicating this information.
     pub font_metrics: Vec<FontKeyAndMetrics>,
 
+    #[ignore_malloc_size_of = "stylo type"]
     pub(super) text_decoration_line: TextDecorationLine,
 
     /// Whether this IFC contains the 1st formatted line of an element:
@@ -173,14 +175,14 @@ pub(crate) struct InlineFormattingContext {
 }
 
 /// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct FontKeyAndMetrics {
     pub key: FontInstanceKey,
     pub pt_size: Au,
     pub metrics: FontMetrics,
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) enum InlineItem {
     StartInlineBox(ArcRefCell<InlineBox>),
     EndInlineBox,
@@ -189,11 +191,11 @@ pub(crate) enum InlineItem {
         ArcRefCell<AbsolutelyPositionedBox>,
         usize, /* offset_in_text */
     ),
-    OutOfFlowFloatBox(Arc<FloatBox>),
+    OutOfFlowFloatBox(#[conditional_malloc_size_of] Arc<FloatBox>),
     Atomic(
-        Arc<IndependentFormattingContext>,
-        usize, /* offset_in_text */
-        Level, /* bidi_level */
+        #[conditional_malloc_size_of] Arc<IndependentFormattingContext>,
+        usize,                                                /* offset_in_text */
+        #[ignore_malloc_size_of = "unicode-bidi type"] Level, /* bidi_level */
     ),
 }
 

@@ -13,6 +13,7 @@ path = "lib.rs"
 [dependencies]
 accountable-refcell = { workspace = true }
 app_units = { workspace = true }
+atomic_refcell = { workspace = true }
 content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }

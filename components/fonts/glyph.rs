@@ -741,9 +741,10 @@ impl fmt::Debug for GlyphStore {
 }
 
 /// A single series of glyphs within a text run.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct GlyphRun {
     /// The glyphs.
+    #[conditional_malloc_size_of]
     pub glyph_store: Arc<GlyphStore>,
     /// The byte range of characters in the containing run.
     pub range: Range<ByteIndex>,

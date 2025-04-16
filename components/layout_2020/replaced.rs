@@ -11,6 +11,7 @@ use base::id::{BrowsingContextId, PipelineId};
 use data_url::DataUrl;
 use embedder_traits::ViewportDetails;
 use euclid::{Scale, Size2D};
+use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use pixels::Image;
 use script_layout_interface::IFrameSize;
@@ -37,7 +38,7 @@ use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesR
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
 use crate::{ConstraintSpace, ContainingBlock, SizeConstraint};
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct ReplacedContents {
     pub kind: ReplacedContentKind,
     natural_size: NaturalSizes,
@@ -61,10 +62,11 @@ pub(crate) struct ReplacedContents {
 ///
 /// * IFrames do not have natural width and height or natural ratio according
 ///   to <https://drafts.csswg.org/css-images/#intrinsic-dimensions>.
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct NaturalSizes {
     pub width: Option<Au>,
     pub height: Option<Au>,
+    #[ignore_malloc_size_of = "stylo type"]
     pub ratio: Option<CSSFloat>,
 }
 
@@ -95,6 +97,7 @@ impl NaturalSizes {
     }
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) enum CanvasSource {
     WebGL(ImageKey),
     Image(ImageKey),
@@ -118,25 +121,25 @@ impl fmt::Debug for CanvasSource {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct CanvasInfo {
     pub source: CanvasSource,
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct IFrameInfo {
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct VideoInfo {
     pub image_key: webrender_api::ImageKey,
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) enum ReplacedContentKind {
-    Image(Option<Arc<Image>>),
+    Image(#[conditional_malloc_size_of] Option<Arc<Image>>),
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
     Video(Option<VideoInfo>),

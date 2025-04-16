@@ -8,6 +8,7 @@ use std::cell::LazyCell;
 use std::ops::{Add, AddAssign};
 
 use app_units::Au;
+use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::values::computed::LengthPercentage;
 
@@ -32,7 +33,7 @@ pub(crate) enum IntrinsicSizingMode {
     Size,
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, MallocSizeOf)]
 pub(crate) struct ContentSizes {
     pub min_content: Au,
     pub max_content: Au,
@@ -267,7 +268,7 @@ pub(crate) fn outer_inline(
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub(crate) struct InlineContentSizesResult {
     pub sizes: ContentSizes,
     pub depends_on_block_constraints: bool,

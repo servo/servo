@@ -219,6 +219,26 @@ where
     }
 }
 
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for Option<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if let Some(val) = self.as_ref() {
+            val.conditional_size_of(ops)
+        } else {
+            0
+        }
+    }
+}
+
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for Vec<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let mut n = self.shallow_size_of(ops);
+        for elem in self.iter() {
+            n += elem.conditional_size_of(ops);
+        }
+        n
+    }
+}
+
 impl<T: MallocSizeOf> MallocSizeOf for Option<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if let Some(val) = self.as_ref() {
@@ -787,6 +807,12 @@ where
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         <style::stylesheet_set::DocumentStylesheetSet<S> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+    }
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for atomic_refcell::AtomicRefCell<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.borrow().size_of(ops)
     }
 }
 
