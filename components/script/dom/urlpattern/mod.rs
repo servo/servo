@@ -11,7 +11,7 @@ use std::ptr;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, RegExpFlag_IgnoreCase, RegExpFlag_UnicodeSets, RegExpFlags};
 use js::rust::HandleObject;
-use pattern_parser::parse_a_pattern_string;
+use pattern_parser::{generate_a_pattern_string, parse_a_pattern_string};
 use preprocessing::{
     canonicalize_a_hash, canonicalize_a_hostname, canonicalize_a_password, canonicalize_a_pathname,
     canonicalize_a_port, canonicalize_a_protocol, canonicalize_a_search, canonicalize_a_username,
@@ -203,6 +203,7 @@ impl URLPattern {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         input: &URLPatternInit,
+        base_url: Option<USVString>,
         options: &URLPatternOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<URLPattern>> {
@@ -210,6 +211,7 @@ impl URLPattern {
         let pattern = URLPattern::new_with_proto(global, proto, can_gc);
         URLPatternInternal::create(
             input,
+            base_url,
             options,
             &mut pattern.associated_url_pattern.borrow_mut(),
         )?;
@@ -228,7 +230,7 @@ impl URLPatternMethods<crate::DomTypeHolder> for URLPattern {
         options: &URLPatternOptions,
     ) -> Fallible<DomRoot<URLPattern>> {
         // Step 1. Run initialize given this, input, null, and options.
-        URLPattern::initialize(global, proto, input, options, can_gc)
+        URLPattern::initialize(global, proto, input, None, options, can_gc)
     }
 
     /// <https://urlpattern.spec.whatwg.org/#dom-urlpattern-protocol>
@@ -321,15 +323,20 @@ impl URLPatternMethods<crate::DomTypeHolder> for URLPattern {
 
 impl URLPatternInternal {
     /// <https://urlpattern.spec.whatwg.org/#url-pattern-create>
-    fn create(input: &URLPatternInit, options: &URLPatternOptions, out: &mut Self) -> Fallible<()> {
+    fn create(
+        input: &URLPatternInit,
+        base_url: Option<USVString>,
+        options: &URLPatternOptions,
+        out: &mut Self,
+    ) -> Fallible<()> {
         // Step 1. Let init be null.
         // Step 2. If input is a scalar value string then:
         // NOTE: We don't support strings as input yet
         // Step 3. Otherwise:
         // Step 3.1 Assert: input is a URLPatternInit.
         // Step 3.2 If baseURL is not null, then throw a TypeError.
-        if input.baseURL.is_some() {
-            return Err(Error::Type("baseURL must be none".into()));
+        if base_url.is_some() {
+            return Err(Error::Type("baseURL must null".into()));
         }
 
         // Step 3.3 Set init to input.
@@ -505,9 +512,9 @@ impl Component {
             )));
         }
 
-        // TODO Step 7. Let pattern string be the result of running generate a pattern string given
+        // Step 7. Let pattern string be the result of running generate a pattern string given
         // part list and options.
-        let pattern_string = Default::default();
+        let pattern_string = USVString(generate_a_pattern_string(&part_list, options));
 
         // Step 8. Let has regexp groups be false.
         // Step 9. For each part of part list:
