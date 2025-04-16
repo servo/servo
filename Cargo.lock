@@ -4900,6 +4900,7 @@ dependencies = [
  "num-traits",
  "percent-encoding",
  "pixels",
+ "profile_traits",
  "rustls-pki-types",
  "serde",
  "servo_arc",
