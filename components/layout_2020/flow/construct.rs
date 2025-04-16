@@ -169,10 +169,11 @@ impl BlockContainer {
             if let Some((marker_info, marker_contents)) = crate::lists::make_marker(context, info) {
                 match marker_info.style.clone_list_style_position() {
                     ListStylePosition::Inside => {
-                        builder.handle_list_item_marker_inside(&marker_info, marker_contents)
+                        builder.handle_list_item_marker_inside(&marker_info, info, marker_contents)
                     },
                     ListStylePosition::Outside => builder.handle_list_item_marker_outside(
                         &marker_info,
+                        info,
                         marker_contents,
                         info.style.clone(),
                     ),
@@ -384,28 +385,50 @@ where
 {
     fn handle_list_item_marker_inside(
         &mut self,
-        info: &NodeAndStyleInfo<Node>,
+        marker_info: &NodeAndStyleInfo<Node>,
+        container_info: &NodeAndStyleInfo<Node>,
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
     ) {
+        // TODO: We do not currently support saving box slots for ::marker pseudo-elements
+        // that are part nested in ::before and ::after pseudo elements. For now, just
+        // forget about them once they are built.
+        let box_slot = match container_info.pseudo_element_type {
+            Some(_) => BoxSlot::dummy(),
+            None => marker_info
+                .node
+                .pseudo_element_box_slot(PseudoElement::Marker),
+        };
+
         self.handle_inline_level_element(
-            info,
+            marker_info,
             DisplayInside::Flow {
                 is_list_item: false,
             },
             NonReplacedContents::OfPseudoElement(contents).into(),
-            info.node.pseudo_element_box_slot(PseudoElement::Marker),
+            box_slot,
         );
     }
 
     fn handle_list_item_marker_outside(
         &mut self,
-        info: &NodeAndStyleInfo<Node>,
+        marker_info: &NodeAndStyleInfo<Node>,
+        container_info: &NodeAndStyleInfo<Node>,
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
         list_item_style: Arc<ComputedValues>,
     ) {
+        // TODO: We do not currently support saving box slots for ::marker pseudo-elements
+        // that are part nested in ::before and ::after pseudo elements. For now, just
+        // forget about them once they are built.
+        let box_slot = match container_info.pseudo_element_type {
+            Some(_) => BoxSlot::dummy(),
+            None => marker_info
+                .node
+                .pseudo_element_box_slot(PseudoElement::Marker),
+        };
+
         self.block_level_boxes.push(BlockLevelJob {
-            info: info.clone(),
-            box_slot: info.node.pseudo_element_box_slot(PseudoElement::Marker),
+            info: marker_info.clone(),
+            box_slot,
             kind: BlockLevelCreator::OutsideMarker {
                 contents,
                 list_item_style,
@@ -452,7 +475,7 @@ where
                 // Ignore `list-style-position` here:
                 // “If the list item is an inline box: this value is equivalent to `inside`.”
                 // https://drafts.csswg.org/css-lists/#list-style-position-outside
-                self.handle_list_item_marker_inside(&marker_info, marker_contents)
+                self.handle_list_item_marker_inside(&marker_info, info, marker_contents)
             }
         }
 
