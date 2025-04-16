@@ -618,19 +618,7 @@ impl LayoutThread {
             ua_or_user: &ua_or_user_guard,
         };
 
-        let had_used_viewport_units = self.stylist.device().used_viewport_units();
-        let viewport_size_changed = self.viewport_did_change(reflow_request.viewport_details);
-        let theme_changed = self.theme_did_change(reflow_request.theme);
-
-        if viewport_size_changed || theme_changed {
-            self.update_device(
-                reflow_request.viewport_details,
-                reflow_request.theme,
-                &guards,
-            );
-        }
-
-        if viewport_size_changed && had_used_viewport_units {
+        if self.update_device_if_necessary(&reflow_request, &guards) {
             if let Some(mut data) = root_element.mutate_data() {
                 data.hint.insert(RestyleHint::recascade_subtree());
             }
@@ -973,25 +961,28 @@ impl LayoutThread {
         size_did_change || pixel_ratio_did_change
     }
 
-    fn theme_did_change(&self, theme: PrefersColorScheme) -> bool {
-        theme != self.device().color_scheme()
-    }
-
-    /// Update layout given a new viewport. Returns true if the viewport changed or false if it didn't.
-    fn update_device(
+    /// Update Stylo's [`Device`] given a viewport and theme defined by the
+    /// [`ReflowRequest`]. Returns true if the viewport changed and recascade is necessary
+    /// due to the use of viewport units.
+    fn update_device_if_necessary(
         &mut self,
-        viewport_details: ViewportDetails,
-        theme: PrefersColorScheme,
+        reflow_request: &ReflowRequest,
         guards: &StylesheetGuards,
-    ) {
+    ) -> bool {
+        let had_used_viewport_units = self.stylist.device().used_viewport_units();
+        let viewport_size_changed = self.viewport_did_change(reflow_request.viewport_details);
+        if !viewport_size_changed && reflow_request.theme == self.device().color_scheme() {
+            return false;
+        }
+
         let device = Device::new(
             MediaType::screen(),
             self.stylist.quirks_mode(),
-            viewport_details.size,
-            Scale::new(viewport_details.hidpi_scale_factor.get()),
+            reflow_request.viewport_details.size,
+            Scale::new(reflow_request.viewport_details.hidpi_scale_factor.get()),
             Box::new(LayoutFontMetricsProvider(self.font_context.clone())),
             self.stylist.device().default_computed_values().to_arc(),
-            theme,
+            reflow_request.theme,
         );
 
         // Preserve any previously computed root font size.
@@ -1000,6 +991,8 @@ impl LayoutThread {
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
+
+        viewport_size_changed && had_used_viewport_units
     }
 }
 
