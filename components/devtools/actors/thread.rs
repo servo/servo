@@ -58,7 +58,7 @@ struct SourcesReply {
     sources: Vec<Source>,
 }
 
-#[derive(Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Source {
     pub actor: String,
