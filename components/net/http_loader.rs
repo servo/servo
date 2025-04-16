@@ -40,6 +40,7 @@ use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::http_status::HttpStatus;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::Origin::Origin as SpecificOrigin;
@@ -55,6 +56,8 @@ use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
     RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
 };
+use profile_traits::mem::{Report, ReportKind};
+use profile_traits::path;
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{
@@ -105,6 +108,21 @@ pub struct HttpState {
 }
 
 impl HttpState {
+    pub(crate) fn memory_reports(&self, suffix: &str, ops: &mut MallocSizeOfOps) -> Vec<Report> {
+        vec![
+            Report {
+                path: path!["memory-cache", suffix],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: self.http_cache.read().unwrap().size_of(ops),
+            },
+            Report {
+                path: path!["hsts-list", suffix],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: self.hsts_list.read().unwrap().size_of(ops),
+            },
+        ]
+    }
+
     fn request_authentication(
         &self,
         request: &Request,
