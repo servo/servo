@@ -224,23 +224,31 @@ impl Actor for WatcherActor {
         let root = registry.find::<RootActor>("root");
         Ok(match msg_type {
             "watchTargets" => {
-                let msg = WatchTargetsReply {
-                    from: self.name(),
-                    type_: "target-available-form".into(),
-                    target: TargetActorMsg::BrowsingContext(target.encodable()),
-                };
-                let _ = stream.write_json_packet(&msg);
+                // As per logs we either get targetType as "frame" or "worker"
+                let target_type = msg
+                    .get("targetType")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("frame"); // default to "frame"
 
-                target.frame_update(stream);
-
-                for worker_name in &root.workers {
-                    let worker = registry.find::<WorkerActor>(worker_name);
-                    let worker_msg = WatchTargetsReply {
+                if target_type == "frame" {
+                    let msg = WatchTargetsReply {
                         from: self.name(),
                         type_: "target-available-form".into(),
-                        target: TargetActorMsg::Worker(worker.encodable()),
+                        target: TargetActorMsg::BrowsingContext(target.encodable()),
                     };
-                    let _ = stream.write_json_packet(&worker_msg);
+                    let _ = stream.write_json_packet(&msg);
+
+                    target.frame_update(stream);
+                } else if target_type == "worker" {
+                    for worker_name in &root.workers {
+                        let worker = registry.find::<WorkerActor>(worker_name);
+                        let worker_msg = WatchTargetsReply {
+                            from: self.name(),
+                            type_: "target-available-form".into(),
+                            target: TargetActorMsg::Worker(worker.encodable()),
+                        };
+                        let _ = stream.write_json_packet(&worker_msg);
+                    }
                 }
 
                 // Messages that contain a `type` field are used to send event callbacks, but they

@@ -527,12 +527,13 @@ impl DevtoolsInstance {
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
             thread_actor.add_source(source_info.url.clone());
 
-            let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
             let source = Source {
                 actor: thread_actor_name.clone(),
                 url: source_info.url.to_string(),
                 is_black_boxed: false,
             };
+
+            let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
             worker_actor.resource_available(source, "source".into());
         } else {
             let browsing_context_id = match self.pipelines.get(&pipeline_id) {
