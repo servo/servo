@@ -798,6 +798,24 @@ pub(crate) fn handle_get_active_element(
         .unwrap();
 }
 
+pub(crate) fn handle_get_computed_role(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    node_id: String,
+    reply: IpcSender<Result<Option<String>, ErrorStatus>>,
+) {
+    reply
+        .send(
+            find_node_by_unique_id(documents, pipeline, node_id).and_then(|node| {
+                match node.downcast::<Element>() {
+                    Some(element) => Ok(element.GetRole().map(String::from)),
+                    None => Err(ErrorStatus::UnknownError),
+                }
+            }),
+        )
+        .unwrap();
+}
+
 pub(crate) fn handle_get_page_source(
     documents: &DocumentCollection,
     pipeline: PipelineId,
