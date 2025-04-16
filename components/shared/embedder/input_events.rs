@@ -51,7 +51,7 @@ pub struct MouseButtonEvent {
     pub point: DevicePoint,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum MouseButton {
     Left,
     Middle,
