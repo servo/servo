@@ -1106,6 +1106,7 @@ dependencies = [
  "pixels",
  "profile_traits",
  "script_traits",
+ "servo_allocator",
  "servo_config",
  "servo_geometry",
  "stylo_traits",
@@ -1114,6 +1115,7 @@ dependencies = [
  "webrender",
  "webrender_api",
  "webxr",
+ "wr_malloc_size_of",
 ]
 
 [[package]]
@@ -1132,6 +1134,7 @@ dependencies = [
  "ipc-channel",
  "log",
  "pixels",
+ "profile_traits",
  "raw-window-handle",
  "serde",
  "servo_geometry",
@@ -4352,6 +4355,7 @@ dependencies = [
  "servo-media",
  "servo-media-dummy",
  "servo-media-gstreamer",
+ "servo_allocator",
  "servo_config",
  "servo_geometry",
  "servo_url",

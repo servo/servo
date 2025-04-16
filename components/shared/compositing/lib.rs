@@ -28,6 +28,7 @@ use display_list::CompositorDisplayListInfo;
 use embedder_traits::{CompositorHitTestResult, ScreenGeometry};
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSharedMemory};
+use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use webrender_api::units::{DevicePoint, LayoutPoint, TexelRect};
@@ -43,6 +44,12 @@ use webrender_api::{
 pub struct CompositorProxy {
     pub sender: IpcSender<CompositorMsg>,
     pub event_loop_waker: Box<dyn EventLoopWaker>,
+}
+
+impl OpaqueSender<CompositorMsg> for CompositorProxy {
+    fn send(&self, message: CompositorMsg) {
+        CompositorProxy::send(self, message)
+    }
 }
 
 impl CompositorProxy {
@@ -153,6 +160,10 @@ pub enum CompositorMsg {
     /// Get the available screen size (without toolbars and docks) for the screen
     /// the client window inhabits.
     GetAvailableScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
+
+    /// Measure the current memory usage associated with the compositor.
+    /// The report must be sent on the provided channel once it's complete.
+    CollectMemoryReport(ReportsChan),
 }
 
 impl Debug for CompositorMsg {

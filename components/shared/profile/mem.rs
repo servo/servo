@@ -50,6 +50,21 @@ where
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProfilerChan(pub IpcSender<ProfilerMsg>);
 
+/// A handle that encompasses a registration with the memory profiler.
+/// The registration is tied to the lifetime of this type; the memory
+/// profiler unregister the reporter when this object is dropped.
+pub struct ProfilerRegistration {
+    sender: ProfilerChan,
+    reporter_name: String,
+}
+
+impl Drop for ProfilerRegistration {
+    fn drop(&mut self) {
+        self.sender
+            .send(ProfilerMsg::UnregisterReporter(self.reporter_name.clone()));
+    }
+}
+
 impl ProfilerChan {
     /// Send `msg` on this `IpcSender`.
     ///
@@ -60,15 +75,15 @@ impl ProfilerChan {
         }
     }
 
-    /// Runs `f()` with memory profiling.
-    pub fn run_with_memory_reporting<F, M, T, C>(
+    /// Register a new reporter and return a handle to automatically
+    /// unregister it in the future.
+    pub fn prepare_memory_reporting<M, T, C>(
         &self,
-        f: F,
         reporter_name: String,
         channel_for_reporter: C,
         msg: M,
-    ) where
-        F: FnOnce(),
+    ) -> ProfilerRegistration
+    where
         M: Fn(ReportsChan) -> T + Send + 'static,
         T: Send + 'static,
         C: OpaqueSender<T> + Send + 'static,
@@ -88,9 +103,28 @@ impl ProfilerChan {
             Reporter(reporter_sender),
         ));
 
-        f();
+        ProfilerRegistration {
+            sender: self.clone(),
+            reporter_name,
+        }
+    }
 
-        self.send(ProfilerMsg::UnregisterReporter(reporter_name));
+    /// Runs `f()` with memory profiling.
+    pub fn run_with_memory_reporting<F, M, T, C>(
+        &self,
+        f: F,
+        reporter_name: String,
+        channel_for_reporter: C,
+        msg: M,
+    ) where
+        F: FnOnce(),
+        M: Fn(ReportsChan) -> T + Send + 'static,
+        T: Send + 'static,
+        C: OpaqueSender<T> + Send + 'static,
+    {
+        let _registration = self.prepare_memory_reporting(reporter_name, channel_for_reporter, msg);
+
+        f();
     }
 }
 
