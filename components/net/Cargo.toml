@@ -57,6 +57,7 @@ rustls-pemfile = { workspace = true }
 rustls-pki-types = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde-jsonlines = "0.7.0"
 servo_allocator = { path = "../allocator" }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }

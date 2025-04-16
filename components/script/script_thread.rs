@@ -2881,7 +2881,13 @@ impl ScriptThread {
         };
 
         let storage = match storage_type {
-            StorageType::Local => window.LocalStorage(),
+            StorageType::Local => match window.GetLocalStorage() {
+                Ok(root) => match root {
+                    Some(storage) => storage,
+                    None => return,
+                },
+                Err(_) => return,
+            },
             StorageType::Session => window.SessionStorage(),
         };
 
