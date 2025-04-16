@@ -31,8 +31,8 @@ use crate::actors::watcher::thread_configuration::{
     ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
 use crate::protocol::JsonPacketStream;
-use crate::resource::ResourceAvailable;
-use crate::{EmptyReplyMsg, StreamId};
+use crate::resource::{ResourceAvailable, ResourceAvailableReply};
+use crate::{EmptyReplyMsg, StreamId, WorkerActor};
 
 pub mod network_parent;
 pub mod target_configuration;
@@ -296,13 +296,21 @@ impl Actor for WatcherActor {
                             let sources = thread_actor.source_manager.sources();
                             target.resources_available(sources.iter().collect(), "source".into());
 
-                            // worker case
+                            // handle worker scripts
                             for worker_name in &root.workers {
                                 let worker = registry.find::<WorkerActor>(worker_name);
                                 let thread = registry.find::<ThreadActor>(&worker.thread);
-                                let sources = thread.sources();
-                                worker
-                                    .resources_available(sources.iter().collect(), "source".into());
+                                let worker_sources = thread.source_manager.sources();
+
+                                let msg = ResourceAvailableReply {
+                                    from: worker.name(),
+                                    type_: "resources-available-array".into(),
+                                    array: vec![(
+                                        "source".to_string(),
+                                        worker_sources.iter().cloned().collect(),
+                                    )],
+                                };
+                                let _ = stream.write_json_packet(&msg);
                             }
                         },
                         "console-message" | "error-message" => {},
