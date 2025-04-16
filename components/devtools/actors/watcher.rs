@@ -19,6 +19,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
+use super::browsing_context::ResourceAvailableReply;
 use super::thread::ThreadActor;
 use super::worker::WorkerMsg;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
@@ -293,16 +294,23 @@ impl Actor for WatcherActor {
                         "source" => {
                             let thread_actor = registry.find::<ThreadActor>(&target.thread);
                             let sources = thread_actor.sources();
-                            println!("sources--: {:?}", sources);
                             target.resources_available(sources.iter().collect(), "source".into());
 
-                            // worker case
+                            // handle worker scripts
                             for worker_name in &root.workers {
                                 let worker = registry.find::<WorkerActor>(worker_name);
                                 let thread = registry.find::<ThreadActor>(&worker.thread);
-                                let sources = thread.sources();
-                                worker
-                                    .resources_available(sources.iter().collect(), "source".into());
+                                let worker_sources = thread.sources();
+
+                                let msg = ResourceAvailableReply {
+                                    from: worker.name(),
+                                    type_: "resources-available-array".into(),
+                                    array: vec![(
+                                        "source".to_string(),
+                                        worker_sources.iter().cloned().collect(),
+                                    )],
+                                };
+                                let _ = stream.write_json_packet(&msg);
                             }
                         },
                         "console-message" | "error-message" => {},
