@@ -221,7 +221,6 @@ impl Actor for WatcherActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-        println!("target: {:?}", target.name());
         let root = registry.find::<RootActor>("root");
         Ok(match msg_type {
             "watchTargets" => {
@@ -235,7 +234,6 @@ impl Actor for WatcherActor {
                 target.frame_update(stream);
 
                 for worker_name in &root.workers {
-                    println!("worker for loop");
                     let worker = registry.find::<WorkerActor>(worker_name);
                     let worker_msg = WatchTargetsReply {
                         from: self.name(),
@@ -292,11 +290,11 @@ impl Actor for WatcherActor {
 
                             // worker case
                             for worker_name in &root.workers {
-                                println!("worker for loop 1");
                                 let worker = registry.find::<WorkerActor>(worker_name);
                                 let thread = registry.find::<ThreadActor>(&worker.thread);
                                 let sources = thread.sources();
-                                worker.resources_available(sources.iter().collect(), "source".into());
+                                worker
+                                    .resources_available(sources.iter().collect(), "source".into());
                             }
                         },
                         "console-message" | "error-message" => {},

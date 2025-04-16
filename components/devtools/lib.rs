@@ -508,7 +508,12 @@ impl DevtoolsInstance {
         }
     }
 
-    fn handle_script_source_info(&mut self, pipeline_id: PipelineId, worker_id: Option<WorkerId>, source_info: SourceInfo) {
+    fn handle_script_source_info(
+        &mut self,
+        pipeline_id: PipelineId,
+        worker_id: Option<WorkerId>,
+        source_info: SourceInfo,
+    ) {
         let mut actors = self.actors.lock().unwrap();
 
         if let Some(worker_id) = worker_id {
@@ -522,7 +527,6 @@ impl DevtoolsInstance {
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
             thread_actor.add_source(source_info.url.clone());
 
-            // Also notify the worker actor for compatibility
             let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
             let source = Source {
                 actor: thread_actor_name.clone(),
