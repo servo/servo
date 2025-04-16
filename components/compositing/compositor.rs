@@ -19,7 +19,7 @@ use bitflags::bitflags;
 use compositing_traits::display_list::{CompositorDisplayListInfo, HitTestInfo, ScrollTree};
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
-    CompositionPipeline, CompositorMsg, ImageUpdate, RendererWebView, SendableFrameTree,
+    CompositionPipeline, CompositorMsg, ImageUpdate, SendableFrameTree, WebViewTrait,
 };
 use constellation_traits::{AnimationTickType, EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::{Receiver, Sender};
@@ -54,8 +54,8 @@ use webrender_api::{
 };
 
 use crate::InitialCompositorState;
-use crate::webview::{UnknownWebView, WebView};
 use crate::webview_manager::WebViewManager;
+use crate::webview_renderer::{UnknownWebView, WebViewRenderer};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -133,8 +133,8 @@ pub struct IOCompositor {
     /// Data that is shared by all WebView renderers.
     global: Rc<RefCell<ServoRenderer>>,
 
-    /// Our top-level browsing contexts.
-    webviews: WebViewManager<WebView>,
+    /// Our [`WebViewRenderer`]s, one for every `WebView`.
+    webview_renderers: WebViewManager<WebViewRenderer>,
 
     /// Tracks whether or not the view needs to be repainted.
     needs_repaint: Cell<RepaintReason>,
@@ -424,7 +424,7 @@ impl IOCompositor {
                 cursor: Cursor::None,
                 cursor_pos: DevicePoint::new(0.0, 0.0),
             })),
-            webviews: WebViewManager::default(),
+            webview_renderers: WebViewManager::default(),
             needs_repaint: Cell::default(),
             ready_to_save_state: ReadyState::Unknown,
             webrender: Some(state.webrender),
@@ -544,9 +544,9 @@ impl IOCompositor {
                 animation_state,
             ) => {
                 let mut throttled = true;
-                if let Some(webview) = self.webviews.get_mut(webview_id) {
-                    throttled =
-                        webview.change_running_animations_state(pipeline_id, animation_state);
+                if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+                    throttled = webview_renderer
+                        .change_running_animations_state(pipeline_id, animation_state);
                 }
 
                 // These operations should eventually happen per-WebView, but they are global now as rendering
@@ -557,8 +557,8 @@ impl IOCompositor {
 
                 if !throttled && animation_state == AnimationState::AnimationCallbacksPresent {
                     // We need to fetch the WebView again in order to avoid a double borrow.
-                    if let Some(webview) = self.webviews.get(webview_id) {
-                        webview.tick_animations_for_pipeline(pipeline_id, self);
+                    if let Some(webview_renderer) = self.webview_renderers.get(webview_id) {
+                        webview_renderer.tick_animations_for_pipeline(pipeline_id, self);
                     }
                 }
             },
@@ -572,11 +572,11 @@ impl IOCompositor {
             },
 
             CompositorMsg::TouchEventProcessed(webview_id, result) => {
-                let Some(webview) = self.webviews.get_mut(webview_id) else {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
-                webview.on_touch_event_processed(result);
+                webview_renderer.on_touch_event_processed(result);
             },
 
             CompositorMsg::CreatePng(webview_id, page_rect, reply) => {
@@ -604,8 +604,8 @@ impl IOCompositor {
             },
 
             CompositorMsg::SetThrottled(webview_id, pipeline_id, throttled) => {
-                if let Some(webview) = self.webviews.get_mut(webview_id) {
-                    webview.set_throttled(pipeline_id, throttled);
+                if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+                    webview_renderer.set_throttled(pipeline_id, throttled);
                     self.process_animations(true);
                 }
             },
@@ -615,8 +615,8 @@ impl IOCompositor {
                     "Compositor got pipeline exited: {:?} {:?}",
                     webview_id, pipeline_id
                 );
-                if let Some(webview) = self.webviews.get_mut(webview_id) {
-                    webview.remove_pipeline(pipeline_id);
+                if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+                    webview_renderer.remove_pipeline(pipeline_id);
                 }
                 let _ = sender.send(());
             },
@@ -648,13 +648,13 @@ impl IOCompositor {
             },
 
             CompositorMsg::WebDriverMouseButtonEvent(webview_id, action, button, x, y) => {
-                let Some(webview) = self.webviews.get_mut(webview_id) else {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
-                let dppx = webview.device_pixels_per_page_pixel();
+                let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                webview_renderer.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
                     point,
                     action,
                     button,
@@ -662,13 +662,14 @@ impl IOCompositor {
             },
 
             CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y) => {
-                let Some(webview) = self.webviews.get_mut(webview_id) else {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
-                let dppx = webview.device_pixels_per_page_pixel();
+                let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+                webview_renderer
+                    .dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
             },
 
             CompositorMsg::SendInitialTransaction(pipeline) => {
@@ -679,12 +680,13 @@ impl IOCompositor {
             },
 
             CompositorMsg::SendScrollNode(webview_id, pipeline_id, point, external_scroll_id) => {
-                let Some(webview) = self.webviews.get_mut(webview_id) else {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return;
                 };
 
                 let pipeline_id = pipeline_id.into();
-                let Some(pipeline_details) = webview.pipelines.get_mut(&pipeline_id) else {
+                let Some(pipeline_details) = webview_renderer.pipelines.get_mut(&pipeline_id)
+                else {
                     return;
                 };
 
@@ -771,12 +773,12 @@ impl IOCompositor {
                 )
                 .entered();
 
-                let Some(webview) = self.webviews.get_mut(webview_id) else {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     return warn!("Could not find WebView for incoming display list");
                 };
 
                 let pipeline_id = display_list_info.pipeline_id;
-                let details = webview.ensure_pipeline_details(pipeline_id.into());
+                let details = webview_renderer.ensure_pipeline_details(pipeline_id.into());
                 details.most_recent_display_list_epoch = Some(display_list_info.epoch);
                 details.hit_test_items = display_list_info.hit_test_info;
                 details.install_new_scroll_tree(display_list_info.scroll_tree);
@@ -900,9 +902,11 @@ impl IOCompositor {
             },
             CompositorMsg::GetClientWindowRect(webview_id, response_sender) => {
                 let client_window_rect = self
-                    .webviews
+                    .webview_renderers
                     .get(webview_id)
-                    .map(|webview| webview.client_window_rect(self.rendering_context.size2d()))
+                    .map(|webview_renderer| {
+                        webview_renderer.client_window_rect(self.rendering_context.size2d())
+                    })
                     .unwrap_or_default();
                 if let Err(error) = response_sender.send(client_window_rect) {
                     warn!("Sending response to get client window failed ({error:?}).");
@@ -910,9 +914,9 @@ impl IOCompositor {
             },
             CompositorMsg::GetScreenSize(webview_id, response_sender) => {
                 let screen_size = self
-                    .webviews
+                    .webview_renderers
                     .get(webview_id)
-                    .map(WebView::screen_size)
+                    .map(WebViewRenderer::screen_size)
                     .unwrap_or_default();
                 if let Err(error) = response_sender.send(screen_size) {
                     warn!("Sending response to get screen size failed ({error:?}).");
@@ -920,9 +924,9 @@ impl IOCompositor {
             },
             CompositorMsg::GetAvailableScreenSize(webview_id, response_sender) => {
                 let available_screen_size = self
-                    .webviews
+                    .webview_renderers
                     .get(webview_id)
-                    .map(WebView::available_screen_size)
+                    .map(WebViewRenderer::available_screen_size)
                     .unwrap_or_default();
                 if let Err(error) = response_sender.send(available_screen_size) {
                     warn!("Sending response to get screen size failed ({error:?}).");
@@ -947,8 +951,8 @@ impl IOCompositor {
                     "Compositor got pipeline exited: {:?} {:?}",
                     webview_id, pipeline_id
                 );
-                if let Some(webview) = self.webviews.get_mut(webview_id) {
-                    webview.remove_pipeline(pipeline_id);
+                if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+                    webview_renderer.remove_pipeline(pipeline_id);
                 }
                 let _ = sender.send(());
             },
@@ -1040,12 +1044,12 @@ impl IOCompositor {
 
         let root_clip_id = builder.define_clip_rect(root_reference_frame, viewport_rect);
         let clip_chain_id = builder.define_clip_chain(None, [root_clip_id]);
-        for (_, webview) in self.webviews.painting_order() {
-            let Some(pipeline_id) = webview.root_pipeline_id else {
+        for (_, webview_renderer) in self.webview_renderers.painting_order() {
+            let Some(pipeline_id) = webview_renderer.root_pipeline_id else {
                 continue;
             };
 
-            let device_pixels_per_page_pixel = webview.device_pixels_per_page_pixel().0;
+            let device_pixels_per_page_pixel = webview_renderer.device_pixels_per_page_pixel().0;
             let webview_reference_frame = builder.push_reference_frame(
                 LayoutPoint::zero(),
                 root_reference_frame,
@@ -1063,7 +1067,7 @@ impl IOCompositor {
                 SpatialTreeItemKey::new(0, 0),
             );
 
-            let scaled_webview_rect = webview.rect / device_pixels_per_page_pixel;
+            let scaled_webview_rect = webview_renderer.rect / device_pixels_per_page_pixel;
             builder.push_iframe(
                 LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
                 LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
@@ -1094,8 +1098,8 @@ impl IOCompositor {
     /// TODO(mrobinson): Could we only send offsets for the branch being modified
     /// and not the entire scene?
     fn update_transaction_with_all_scroll_offsets(&self, transaction: &mut Transaction) {
-        for webview in self.webviews.iter() {
-            for details in webview.pipelines.values() {
+        for webview_renderer in self.webview_renderers.iter() {
+            for details in webview_renderer.pipelines.values() {
                 for node in details.scroll_tree.nodes.iter() {
                     let (Some(offset), Some(external_id)) = (node.offset(), node.external_id())
                     else {
@@ -1117,34 +1121,36 @@ impl IOCompositor {
 
     pub fn add_webview(
         &mut self,
-        webview: Box<dyn RendererWebView>,
+        webview: Box<dyn WebViewTrait>,
         viewport_details: ViewportDetails,
     ) {
-        self.webviews.entry(webview.id()).or_insert(WebView::new(
-            self.global.clone(),
-            webview,
-            viewport_details,
-        ));
+        self.webview_renderers
+            .entry(webview.id())
+            .or_insert(WebViewRenderer::new(
+                self.global.clone(),
+                webview,
+                viewport_details,
+            ));
     }
 
     fn set_frame_tree_for_webview(&mut self, frame_tree: &SendableFrameTree) {
         debug!("{}: Setting frame tree for webview", frame_tree.pipeline.id);
 
         let webview_id = frame_tree.pipeline.webview_id;
-        let Some(webview) = self.webviews.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
             warn!(
                 "Attempted to set frame tree on unknown WebView (perhaps closed?): {webview_id:?}"
             );
             return;
         };
 
-        webview.set_frame_tree(frame_tree);
+        webview_renderer.set_frame_tree(frame_tree);
         self.send_root_pipeline_display_list();
     }
 
     fn remove_webview(&mut self, webview_id: WebViewId) {
         debug!("{}: Removing", webview_id);
-        if self.webviews.remove(webview_id).is_err() {
+        if self.webview_renderers.remove(webview_id).is_err() {
             warn!("{webview_id}: Removing unknown webview");
             return;
         };
@@ -1160,15 +1166,15 @@ impl IOCompositor {
         debug!("{webview_id}: Showing webview; hide_others={hide_others}");
         let painting_order_changed = if hide_others {
             let result = self
-                .webviews
+                .webview_renderers
                 .painting_order()
                 .map(|(&id, _)| id)
                 .ne(once(webview_id));
-            self.webviews.hide_all();
-            self.webviews.show(webview_id)?;
+            self.webview_renderers.hide_all();
+            self.webview_renderers.show(webview_id)?;
             result
         } else {
-            self.webviews.show(webview_id)?
+            self.webview_renderers.show(webview_id)?
         };
         if painting_order_changed {
             self.send_root_pipeline_display_list();
@@ -1178,7 +1184,7 @@ impl IOCompositor {
 
     pub fn hide_webview(&mut self, webview_id: WebViewId) -> Result<(), UnknownWebView> {
         debug!("{webview_id}: Hiding webview");
-        if self.webviews.hide(webview_id)? {
+        if self.webview_renderers.hide(webview_id)? {
             self.send_root_pipeline_display_list();
         }
         Ok(())
@@ -1192,15 +1198,15 @@ impl IOCompositor {
         debug!("{webview_id}: Raising webview to top; hide_others={hide_others}");
         let painting_order_changed = if hide_others {
             let result = self
-                .webviews
+                .webview_renderers
                 .painting_order()
                 .map(|(&id, _)| id)
                 .ne(once(webview_id));
-            self.webviews.hide_all();
-            self.webviews.raise_to_top(webview_id)?;
+            self.webview_renderers.hide_all();
+            self.webview_renderers.raise_to_top(webview_id)?;
             result
         } else {
-            self.webviews.raise_to_top(webview_id)?
+            self.webview_renderers.raise_to_top(webview_id)?
         };
         if painting_order_changed {
             self.send_root_pipeline_display_list();
@@ -1212,10 +1218,10 @@ impl IOCompositor {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-        let Some(webview) = self.webviews.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
             return;
         };
-        if !webview.set_rect(rect) {
+        if !webview_renderer.set_rect(rect) {
             return;
         }
 
@@ -1231,10 +1237,10 @@ impl IOCompositor {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
-        let Some(webview) = self.webviews.get_mut(webview_id) else {
+        let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
             return;
         };
-        if !webview.set_hidpi_scale_factor(new_scale_factor) {
+        if !webview_renderer.set_hidpi_scale_factor(new_scale_factor) {
             return;
         }
 
@@ -1277,8 +1283,8 @@ impl IOCompositor {
         }
         self.last_animation_tick = Instant::now();
 
-        for webview in self.webviews.iter() {
-            webview.tick_all_animations(self);
+        for webview_renderer in self.webview_renderers.iter() {
+            webview_renderer.tick_all_animations(self);
         }
     }
 
@@ -1287,8 +1293,8 @@ impl IOCompositor {
             return;
         }
 
-        if let Some(webview) = self.webviews.get_mut(webview_id) {
-            webview.set_page_zoom(1.0);
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.set_page_zoom(1.0);
         }
         self.send_root_pipeline_display_list();
     }
@@ -1298,8 +1304,8 @@ impl IOCompositor {
             return;
         }
 
-        if let Some(webview) = self.webviews.get_mut(webview_id) {
-            webview.set_page_zoom(magnification);
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.set_page_zoom(magnification);
         }
         self.send_root_pipeline_display_list();
     }
@@ -1311,21 +1317,24 @@ impl IOCompositor {
             .pipeline_to_webview_map
             .get(&pipeline_id)
             .cloned()?;
-        self.webviews.get(webview_id)?.pipelines.get(&pipeline_id)
+        self.webview_renderers
+            .get(webview_id)?
+            .pipelines
+            .get(&pipeline_id)
     }
 
     // Check if any pipelines currently have active animations or animation callbacks.
     fn animations_or_animation_callbacks_running(&self) -> bool {
-        self.webviews
+        self.webview_renderers
             .iter()
-            .any(WebView::animations_or_animation_callbacks_running)
+            .any(WebViewRenderer::animations_or_animation_callbacks_running)
     }
 
     /// Returns true if any animation callbacks (ie `requestAnimationFrame`) are waiting for a response.
     fn animation_callbacks_running(&self) -> bool {
-        self.webviews
+        self.webview_renderers
             .iter()
-            .any(WebView::animation_callbacks_running)
+            .any(WebViewRenderer::animation_callbacks_running)
     }
 
     /// Query the constellation to see if the current compositor
@@ -1341,7 +1350,11 @@ impl IOCompositor {
                 // This gets sent to the constellation for comparison with the current
                 // frame tree.
                 let mut pipeline_epochs = HashMap::new();
-                for id in self.webviews.iter().flat_map(WebView::pipeline_ids) {
+                for id in self
+                    .webview_renderers
+                    .iter()
+                    .flat_map(WebViewRenderer::pipeline_ids)
+                {
                     if let Some(WebRenderEpoch(epoch)) = self
                         .webrender
                         .as_ref()
@@ -1408,9 +1421,9 @@ impl IOCompositor {
         let size = self.rendering_context.size2d().to_i32();
         let rect = if let Some(rect) = page_rect {
             let scale = self
-                .webviews
+                .webview_renderers
                 .get(webview_id)
-                .map(WebView::device_pixels_per_page_pixel)
+                .map(WebViewRenderer::device_pixels_per_page_pixel)
                 .unwrap_or_else(|| Scale::new(1.0));
             let rect = scale.transform_rect(&rect);
 
@@ -1507,8 +1520,8 @@ impl IOCompositor {
     fn send_pending_paint_metrics_messages_after_composite(&mut self) {
         let paint_time = CrossProcessInstant::now();
         let document_id = self.webrender_document();
-        for webview_details in self.webviews.iter_mut() {
-            for (pipeline_id, pipeline) in webview_details.pipelines.iter_mut() {
+        for webview_renderer in self.webview_renderers.iter_mut() {
+            for (pipeline_id, pipeline) in webview_renderer.pipelines.iter_mut() {
                 let Some(current_epoch) = self
                     .webrender
                     .as_ref()
@@ -1646,11 +1659,11 @@ impl IOCompositor {
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
-        let mut webviews = take(&mut self.webviews);
-        for webview in webviews.iter_mut() {
-            webview.process_pending_scroll_events(self);
+        let mut webview_renderers = take(&mut self.webview_renderers);
+        for webview_renderer in webview_renderers.iter_mut() {
+            webview_renderer.process_pending_scroll_events(self);
         }
-        self.webviews = webviews;
+        self.webview_renderers = webview_renderers;
         self.global.borrow().shutdown_state() != ShutdownState::FinishedShuttingDown
     }
 
@@ -1735,8 +1748,8 @@ impl IOCompositor {
     }
 
     pub fn notify_input_event(&mut self, webview_id: WebViewId, event: InputEvent) {
-        if let Some(webview) = self.webviews.get_mut(webview_id) {
-            webview.notify_input_event(event);
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.notify_input_event(event);
         }
     }
 
@@ -1747,20 +1760,20 @@ impl IOCompositor {
         cursor: DeviceIntPoint,
         event_type: TouchEventType,
     ) {
-        if let Some(webview) = self.webviews.get_mut(webview_id) {
-            webview.notify_scroll_event(scroll_location, cursor, event_type);
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.notify_scroll_event(scroll_location, cursor, event_type);
         }
     }
 
     pub fn on_vsync(&mut self, webview_id: WebViewId) {
-        if let Some(webview) = self.webviews.get_mut(webview_id) {
-            webview.on_vsync();
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.on_vsync();
         }
     }
 
     pub fn set_pinch_zoom(&mut self, webview_id: WebViewId, magnification: f32) {
-        if let Some(webview) = self.webviews.get_mut(webview_id) {
-            webview.set_pinch_zoom(magnification);
+        if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
+            webview_renderer.set_pinch_zoom(magnification);
         }
     }
 

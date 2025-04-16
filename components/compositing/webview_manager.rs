@@ -7,7 +7,7 @@ use std::collections::hash_map::{Entry, Values, ValuesMut};
 
 use base::id::WebViewId;
 
-use crate::webview::UnknownWebView;
+use crate::webview_renderer::UnknownWebView;
 
 #[derive(Debug)]
 pub struct WebViewManager<WebView> {
@@ -117,8 +117,8 @@ mod test {
         BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId, WebViewId,
     };
 
-    use crate::webview::UnknownWebView;
     use crate::webview_manager::WebViewManager;
+    use crate::webview_renderer::UnknownWebView;
 
     fn top_level_id(namespace_id: u32, index: u32) -> WebViewId {
         WebViewId(BrowsingContextId {

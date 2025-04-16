@@ -23,8 +23,8 @@ mod tracing;
 
 mod compositor;
 mod touch;
-pub mod webview;
 pub mod webview_manager;
+pub mod webview_renderer;
 
 /// Data used to construct a compositor.
 pub struct InitialCompositorState {
