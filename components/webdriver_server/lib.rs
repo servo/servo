@@ -1214,6 +1214,18 @@ impl Handler {
         )))
     }
 
+    fn handle_computed_role(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cmd = WebDriverScriptCommand::GetComputedRole(element.to_string(), sender);
+        self.browsing_context_script_command(cmd)?;
+        match receiver.recv().unwrap() {
+            Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
+                serde_json::to_value(value)?,
+            ))),
+            Err(error) => Err(WebDriverError::new(error, "")),
+        }
+    }
+
     fn handle_element_tag_name(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementTagName(element.to_string(), sender);
@@ -1844,6 +1856,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::GetNamedCookie(name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),
+            WebDriverCommand::GetComputedRole(ref element) => self.handle_computed_role(element),
             WebDriverCommand::GetElementRect(ref element) => self.handle_element_rect(element),
             WebDriverCommand::GetElementText(ref element) => self.handle_element_text(element),
             WebDriverCommand::GetElementTagName(ref element) => {
