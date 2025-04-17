@@ -11,6 +11,7 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
+use content_security_policy as csp;
 use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
@@ -551,9 +552,25 @@ impl EventTarget {
         url: ServoUrl,
         line: usize,
         ty: &str,
-        source: DOMString,
+        source: &str,
     ) {
-        let handler = InternalRawUncompiledHandler { source, line, url };
+        if let Some(element) = self.downcast::<Element>() {
+            let doc = element.owner_document();
+            if doc.should_elements_inline_type_behavior_be_blocked(
+                element.upcast(),
+                csp::InlineCheckType::ScriptAttribute,
+                source,
+            ) == csp::CheckResult::Blocked
+            {
+                return;
+            }
+        };
+
+        let handler = InternalRawUncompiledHandler {
+            source: DOMString::from(source),
+            line,
+            url,
+        };
         self.set_inline_event_listener(
             Atom::from(ty),
             Some(InlineEventListener::Uncompiled(handler)),
