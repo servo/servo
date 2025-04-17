@@ -2972,7 +2972,8 @@ class CGConstructorEnabled(CGAbstractMethod):
                                   'ConstructorEnabled', 'bool',
                                   [Argument("SafeJSContext", "aCx"),
                                    Argument("HandleObject", "aObj")],
-                                  templateArgs=['D: DomTypes'])
+                                  templateArgs=['D: DomTypes'],
+                                  pub=True)
 
     def definition_body(self):
         conditions = []
@@ -8531,8 +8532,7 @@ class GlobalGenRoots():
     def InterfaceObjectMap(config):
         mods = [
             "crate::dom::bindings::codegen",
-            "crate::script_runtime::JSContext",
-            "js::rust::HandleObject",
+            "script_bindings::interfaces::Interface",
         ]
         imports = CGList([CGGeneric(f"use {mod};") for mod in mods], "\n")
 
@@ -8555,9 +8555,13 @@ class GlobalGenRoots():
             for ctor in d.interface.legacyFactoryFunctions:
                 pairs.append((ctor.identifier.name, binding_mod, binding_ns))
         pairs.sort(key=operator.itemgetter(0))
+
+        def bindingPath(pair):
+            return f'codegen::Bindings::{pair[1]}::{pair[2]}'
+
         mappings = [
-            CGGeneric(f'"{pair[0]}": "codegen::Bindings::{pair[1]}'
-                      f'::{pair[2]}::DefineDOMInterface::<crate::DomTypeHolder>"')
+            CGGeneric(f'"{pair[0]}": ["{bindingPath(pair)}::DefineDOMInterface::<crate::DomTypeHolder>", '
+                      f'"{bindingPath(pair)}::ConstructorEnabled::<crate::DomTypeHolder>"]')
             for pair in pairs
         ]
         return CGWrapper(
