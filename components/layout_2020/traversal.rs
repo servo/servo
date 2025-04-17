@@ -12,19 +12,15 @@ use crate::context::LayoutContext;
 use crate::dom::DOMLayoutData;
 
 pub struct RecalcStyle<'a> {
-    context: LayoutContext<'a>,
+    context: &'a LayoutContext<'a>,
 }
 
 impl<'a> RecalcStyle<'a> {
-    pub fn new(context: LayoutContext<'a>) -> Self {
+    pub fn new(context: &'a LayoutContext<'a>) -> Self {
         RecalcStyle { context }
     }
 
     pub fn context(&self) -> &LayoutContext<'a> {
-        &self.context
-    }
-
-    pub fn destroy(self) -> LayoutContext<'a> {
         self.context
     }
 }
