@@ -44,6 +44,7 @@ interface mixin NavigatorLanguage {
 };
 
 // https://html.spec.whatwg.org/multipage/system-state.html#dom-navigator-online
+[Exposed=(Window,Worker)]
 interface mixin NavigatorOnLine {
   readonly attribute boolean onLine;
 };
