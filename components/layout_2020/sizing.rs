@@ -279,4 +279,18 @@ pub(crate) trait ComputeInlineContentSizes {
         layout_context: &LayoutContext,
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult;
+
+    /// Returns the same result as [`Self::compute_inline_content_sizes()`], but adjusted
+    /// to floor the max-content size by the min-content size.
+    /// This is being discussed in <https://github.com/w3c/csswg-drafts/issues/12076>.
+    fn compute_inline_content_sizes_with_fixup(
+        &self,
+        layout_context: &LayoutContext,
+        constraint_space: &ConstraintSpace,
+    ) -> InlineContentSizesResult {
+        let mut result = self.compute_inline_content_sizes(layout_context, constraint_space);
+        let sizes = &mut result.sizes;
+        sizes.max_content.max_assign(sizes.min_content);
+        result
+    }
 }
