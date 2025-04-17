@@ -3,12 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
+use std::slice;
 use std::str::FromStr;
 
 use dom_struct::dom_struct;
 use http::header::HeaderMap as HyperHeaders;
 use hyper_serde::Serde;
-use js::rust::HandleObject;
+use js::rust::wrappers::ToJSON;
+use js::rust::{HandleObject, HandleValue};
 use net_traits::http_status::HttpStatus;
 use servo_url::ServoUrl;
 use url::Position;
@@ -30,7 +32,7 @@ use crate::dom::headers::{Guard, Headers, is_obs_text, is_vchar};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
-use crate::script_runtime::{CanGc, StreamConsumer};
+use crate::script_runtime::{CanGc, JSContext, StreamConsumer};
 
 #[dom_struct]
 pub(crate) struct Response {
@@ -142,80 +144,27 @@ fn is_null_body_status(status: u16) -> bool {
 }
 
 impl ResponseMethods<crate::DomTypeHolder> for Response {
-    // https://fetch.spec.whatwg.org/#initialize-a-response
+    // https://fetch.spec.whatwg.org/#dom-response
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        body: Option<BodyInit>,
+        body_init: Option<BodyInit>,
         init: &ResponseBinding::ResponseInit,
     ) -> Fallible<DomRoot<Response>> {
-        // Step 1
-        if init.status < 200 || init.status > 599 {
-            return Err(Error::Range(format!(
-                "init's status member should be in the range 200 to 599, inclusive, but is {}",
-                init.status
-            )));
-        }
-
-        // Step 2
-        if !is_valid_status_text(&init.statusText) {
-            return Err(Error::Type(
-                "init's statusText member does not match the reason-phrase token production"
-                    .to_string(),
-            ));
-        }
-
+        // 1. Set this’s response to a new response.
         let r = Response::new_with_proto(global, proto, can_gc);
+        // 2. Set this’s headers to a new Headers object with this’s relevant realm,
+        // whose header list is this’s response’s header list and guard is "response".
+        r.Headers(can_gc).set_guard(Guard::Response);
 
-        // Step 3 & 4
-        *r.status.borrow_mut() = HttpStatus::new_raw(init.status, init.statusText.clone().into());
-
-        // Step 5
-        if let Some(ref headers_member) = init.headers {
-            r.Headers(can_gc).fill(Some(headers_member.clone()))?;
-        }
-
-        // Step 6
-        if let Some(ref body) = body {
-            // Step 6.1
-            if is_null_body_status(init.status) {
-                return Err(Error::Type(
-                    "Body is non-null but init's status member is a null body status".to_string(),
-                ));
-            };
-
-            // Step 6.2
-            let ExtractedBody {
-                stream,
-                total_bytes: _,
-                content_type,
-                source: _,
-            } = body.extract(global, can_gc)?;
-
-            r.body_stream.set(Some(&*stream));
-
-            // Step 6.3
-            if let Some(content_type_contents) = content_type {
-                if !r
-                    .Headers(can_gc)
-                    .Has(ByteString::new(b"Content-Type".to_vec()))
-                    .unwrap()
-                {
-                    r.Headers(can_gc).Append(
-                        ByteString::new(b"Content-Type".to_vec()),
-                        ByteString::new(content_type_contents.as_bytes().to_vec()),
-                    )?;
-                }
-            };
-        } else {
-            // Reset FetchResponse to an in-memory stream with empty byte sequence here for
-            // no-init-body case
-            let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0), can_gc)?;
-            r.body_stream.set(Some(&*stream));
-        }
-
-        Ok(r)
+        // 4. If body is non-null, then set bodyWithType to the result of extracting body.
+        let body = match body_init {
+            Some(body) => Some(body.extract(global, can_gc)?),
+            None => None,
+        };
+        // 5. Perform *initialize a response* given this, init, and bodyWithType.
+        initialize_response(global, can_gc, body, init, r)
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-error
@@ -268,6 +217,71 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
         // Step 7
         Ok(r)
+    }
+
+    // https://fetch.spec.whatwg.org/#dom-response-json
+    #[allow(unsafe_code)]
+    fn CreateFromJson(
+        cx: JSContext,
+        global: &GlobalScope,
+        data: HandleValue,
+        init: &ResponseBinding::ResponseInit,
+        can_gc: CanGc,
+    ) -> Fallible<DomRoot<Response>> {
+        #[repr(C)]
+        struct VoidableString {
+            is_void: bool,
+            data: String,
+        }
+
+        let mut out_str = VoidableString {
+            is_void: true,
+            data: String::new(),
+        };
+
+        #[allow(unsafe_code)]
+        unsafe extern "C" fn stringified(
+            string: *const u16,
+            len: u32,
+            data: *mut std::ffi::c_void,
+        ) -> bool {
+            let s = data as *mut VoidableString;
+            let string_chars = slice::from_raw_parts(string, len as usize);
+            (*s).is_void = false;
+            (*s).data.push_str(&String::from_utf16_lossy(string_chars));
+            true
+        }
+        rooted!(in(*cx) let mut data = data.get());
+        // 1. Let bytes the result of running serialize a JavaScript value to JSON bytes on data.
+        unsafe {
+            let stringify_result = ToJSON(
+                *cx,
+                data.handle(),
+                HandleObject::null(),
+                HandleValue::null(),
+                Some(stringified),
+                &mut out_str as *mut VoidableString as *mut _,
+            );
+            if !stringify_result {
+                return Err(Error::JSFailed);
+            }
+        }
+        // ToJSON will not call the callback if the data cannot be serialized
+        if out_str.is_void {
+            return Err(Error::Type("unable to serialize JSON".to_owned()));
+        }
+        // 2. Let body be the result of extracting bytes
+        let body_init = BodyInit::String(out_str.data.into());
+        let mut body = body_init.extract(global, can_gc)?;
+
+        // 3. Let responseObject be the result of creating a Response object, given a new response,
+        // "response", and the current realm.
+        let r = Response::new(global, can_gc);
+        r.Headers(can_gc).set_guard(Guard::Response);
+
+        // 4. Perform initialize a response given responseObject, init, and (body, "application/json").
+        body.content_type = Some("application/json".into());
+        initialize_response(global, can_gc, Some(body), init, r)
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-type
@@ -391,6 +405,76 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     fn Bytes(&self, can_gc: CanGc) -> std::rc::Rc<Promise> {
         consume_body(self, BodyType::Bytes, can_gc)
     }
+}
+
+// https://fetch.spec.whatwg.org/#initialize-a-response
+fn initialize_response(
+    global: &GlobalScope,
+    can_gc: CanGc,
+    body: Option<ExtractedBody>,
+    init: &ResponseBinding::ResponseInit,
+    r: DomRoot<Response>,
+) -> Result<DomRoot<Response>, Error> {
+    // 1. If init["status"] is not in the range 200 to 599, inclusive, then throw a RangeError.
+    if init.status < 200 || init.status > 599 {
+        return Err(Error::Range(format!(
+            "init's status member should be in the range 200 to 599, inclusive, but is {}",
+            init.status
+        )));
+    }
+
+    // 2. If init["statusText"] is not the empty string and does not match the reason-phrase token production,
+    // then throw a TypeError.
+    if !is_valid_status_text(&init.statusText) {
+        return Err(Error::Type(
+            "init's statusText member does not match the reason-phrase token production"
+                .to_string(),
+        ));
+    }
+
+    // 3. Set response’s response’s status to init["status"].
+    // 4. Set response’s response’s status message to init["statusText"].
+    *r.status.borrow_mut() = HttpStatus::new_raw(init.status, init.statusText.clone().into());
+
+    // 5. If init["headers"] exists, then fill response’s headers with init["headers"].
+    if let Some(ref headers_member) = init.headers {
+        r.Headers(can_gc).fill(Some(headers_member.clone()))?;
+    }
+
+    // 6. If body is non-null, then:
+    if let Some(ref body) = body {
+        // 6.1 If response’s status is a null body status, then throw a TypeError.
+        if is_null_body_status(init.status) {
+            return Err(Error::Type(
+                "Body is non-null but init's status member is a null body status".to_string(),
+            ));
+        };
+
+        // 6.2 Set response’s body to body’s body.
+        r.body_stream.set(Some(&*body.stream));
+
+        // 6.3 If body’s type is non-null and response’s header list does not contain `Content-Type`,
+        // then append (`Content-Type`, body’s type) to response’s header list.
+        if let Some(content_type_contents) = &body.content_type {
+            if !r
+                .Headers(can_gc)
+                .Has(ByteString::new(b"Content-Type".to_vec()))
+                .unwrap()
+            {
+                r.Headers(can_gc).Append(
+                    ByteString::new(b"Content-Type".to_vec()),
+                    ByteString::new(content_type_contents.as_bytes().to_vec()),
+                )?;
+            }
+        };
+    } else {
+        // Reset FetchResponse to an in-memory stream with empty byte sequence here for
+        // no-init-body case
+        let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0), can_gc)?;
+        r.body_stream.set(Some(&*stream));
+    }
+
+    Ok(r)
 }
 
 fn serialize_without_fragment(url: &ServoUrl) -> &str {
