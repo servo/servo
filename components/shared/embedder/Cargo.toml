@@ -11,6 +11,11 @@ rust-version.workspace = true
 name = "embedder_traits"
 path = "lib.rs"
 
+[features]
+# bakes default resources into the library.
+# This feature is mainly intended for testing purposes.
+baked-default-resources = []
+
 [dependencies]
 base = { workspace = true }
 cfg-if = { workspace = true }
