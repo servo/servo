@@ -2366,7 +2366,8 @@ impl Node {
             kid.GetRootNode(&GetRootNodeOptions::empty())
                 .assign_slottables_for_a_tree();
 
-            // Step 7.7. For each shadow-including inclusive descendant inclusiveDescendant of node, in shadow-including tree order:
+            // Step 7.7. For each shadow-including inclusive descendant inclusiveDescendant of node,
+            // in shadow-including tree order:
             for descendant in kid
                 .traverse_preorder(ShadowIncluding::Yes)
                 .filter_map(DomRoot::downcast::<Element>)
