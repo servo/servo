@@ -6832,6 +6832,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo_tracing"
+version = "0.0.1"
+dependencies = [
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "servo_url"
 version = "0.0.1"
 dependencies = [
@@ -6892,6 +6902,7 @@ dependencies = [
  "rustls",
  "serde_json",
  "servo_allocator",
+ "servo_tracing",
  "shellwords",
  "sig",
  "surfman",

@@ -16,6 +16,7 @@ publish = false
 rust-version = "1.85.0"
 
 [workspace.dependencies]
+servo_tracing = { path = "components/servo_tracing" }
 accountable-refcell = "0.2.0"
 aes = "0.8.4"
 aes-gcm = "0.10.3"
