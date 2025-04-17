@@ -26,6 +26,7 @@ use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
+use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use style::attr::AttrValue;
 use style::str::{split_commas, str_join};
 use stylo_atoms::Atom;
@@ -46,7 +47,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMo
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::inheritance::{Castable, NodeTypeId};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -1257,6 +1258,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn SetChecked(&self, checked: bool) {
         self.update_checked_state(checked, true);
+        update_related_validity_states(self, CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-readonly
@@ -1733,6 +1735,57 @@ fn update_related_validity_states(elem: &HTMLInputElement, can_gc: CanGc) {
                 .perform_validation_and_update(ValidationFlags::all(), can_gc);
         },
     }
+}
+
+fn should_update_validity_state(elem: &HTMLInputElement) -> bool {
+    let root = elem
+        .upcast::<Node>()
+        .GetRootNode(&GetRootNodeOptions::empty());
+
+    //Any connected tree can update
+    if root.is_connected() {
+        return true;
+    }
+
+    //Appending input radio input into a disconnect form should update the other radio inputs in the same radio group.
+    if elem.form_owner().is_some() {
+        return true;
+    }
+
+    //Shadow roots in disconnected trees can serve as radio group containers.
+    if elem.upcast::<Element>().GetShadowRoot().is_some() {
+        return true;
+    }
+
+    let to_element = root.downcast::<Element>();
+    //Non-HTML elements in disconnected trees can serve as radio group containers.
+    if to_element.is_some() && !to_element.unwrap().is_html_element() {
+        return true;
+    }
+
+    //Disconnected document fragments can serve as radio group containers.
+    if root.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::DocumentFragment) ||
+        root.type_id() == NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot)
+    {
+        return true;
+    }
+
+    let input_parent = root.downcast::<HTMLInputElement>();
+    //Disconnected radio buttons can serve as radio group containers.
+    if input_parent.is_some() && input_parent.unwrap().input_type() == InputType::Radio {
+        return true;
+    }
+
+    //If parent was moved into a different root, we must trigger update
+    if let Some(parent) = elem.upcast::<Node>().GetParentNode() {
+        let parent_root = parent.GetRootNode(&GetRootNodeOptions::empty());
+        if !ptr::eq(&*root, &*parent_root) {
+            return true;
+        }
+    }
+
+    //Appending radio input into a disconnect tree don't update the other radio inputs in the same radio group.
+    false
 }
 
 // https://html.spec.whatwg.org/multipage/#radio-button-group
@@ -2355,6 +2408,7 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        let pushing_attribute = matches!(mutation, AttributeMutation::Set(None));
         self.super_type()
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
@@ -2389,7 +2443,12 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                self.update_checked_state(checked_state, false);
+                if pushing_attribute {
+                    self.upcast::<Element>()
+                        .set_state(ElementState::CHECKED, checked_state);
+                } else {
+                    self.update_checked_state(checked_state, false);
+                }
             },
             local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| value.as_uint());
@@ -2493,7 +2552,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
             },
-            local_name!("name") if self.input_type() == InputType::Radio => {
+            local_name!("name") if self.input_type() == InputType::Radio && !pushing_attribute => {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()),
                 );
@@ -2552,7 +2611,12 @@ impl VirtualMethods for HTMLInputElement {
             _ => {},
         }
 
-        update_related_validity_states(self, can_gc);
+        if !pushing_attribute {
+            update_related_validity_states(self, can_gc);
+        } else {
+            self.validity_state()
+                .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        }
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -2579,8 +2643,15 @@ impl VirtualMethods for HTMLInputElement {
         }
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
-
-        update_related_validity_states(self, can_gc);
+        if context.is_in_tree() || should_update_validity_state(self) {
+            if self.input_type() == InputType::Radio {
+                self.radio_group_updated(self.radio_group_name().as_ref());
+            }
+            update_related_validity_states(self, can_gc);
+        } else {
+            self.validity_state()
+                .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        }
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
@@ -2860,9 +2931,9 @@ impl Activatable for HTMLInputElement {
     }
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior
-    fn legacy_pre_activation_behavior(&self, can_gc: CanGc) -> Option<InputActivationState> {
+    fn legacy_pre_activation_behavior(&self, _can_gc: CanGc) -> Option<InputActivationState> {
         let ty = self.input_type();
-        let activation_state = match ty {
+        match ty {
             InputType::Checkbox => {
                 let was_checked = self.Checked();
                 let was_indeterminate = self.Indeterminate();
@@ -2897,20 +2968,14 @@ impl Activatable for HTMLInputElement {
                 })
             },
             _ => None,
-        };
-
-        if activation_state.is_some() {
-            update_related_validity_states(self, can_gc);
         }
-
-        activation_state
     }
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior
     fn legacy_canceled_activation_behavior(
         &self,
         cache: Option<InputActivationState>,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) {
         // Step 1
         let ty = self.input_type();
@@ -2958,8 +3023,6 @@ impl Activatable for HTMLInputElement {
             },
             _ => (),
         }
-
-        update_related_validity_states(self, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
