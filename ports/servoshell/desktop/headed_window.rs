@@ -14,7 +14,6 @@ use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vec
 use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
-use servo::compositing::windowing::WebRenderDebugOption;
 use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
@@ -22,8 +21,8 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, OffscreenRenderingContext,
-    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, WebView,
-    WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
+    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId,
+    WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
 };
 use surfman::{Context, Device};
 use url::Url;

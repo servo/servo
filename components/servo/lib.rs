@@ -42,6 +42,7 @@ use canvas::WebGLComm;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
+pub use compositing::WebRenderDebugOption;
 use compositing::{IOCompositor, InitialCompositorState};
 pub use compositing_traits::rendering_context::{
     OffscreenRenderingContext, RenderingContext, SoftwareRenderingContext, WindowRenderingContext,
@@ -107,10 +108,10 @@ use webview::WebViewInner;
 #[cfg(feature = "webxr")]
 pub use webxr;
 pub use {
-    background_hang_monitor, base, canvas, canvas_traits, compositing, devtools, devtools_traits,
-    euclid, fonts, ipc_channel, layout_thread_2020, media, net, net_traits, profile,
-    profile_traits, script, script_layout_interface, script_traits, servo_config as config,
-    servo_config, servo_geometry, servo_url, style, style_traits, webrender_api,
+    background_hang_monitor, base, canvas, canvas_traits, devtools, devtools_traits, euclid, fonts,
+    ipc_channel, layout_thread_2020, media, net, net_traits, profile, profile_traits, script,
+    script_layout_interface, script_traits, servo_config as config, servo_config, servo_geometry,
+    servo_url, style, style_traits, webrender_api,
 };
 #[cfg(feature = "bluetooth")]
 pub use {bluetooth, bluetooth_traits};
