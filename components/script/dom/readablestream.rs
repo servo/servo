@@ -845,7 +845,7 @@ impl ReadableStream {
     }
 
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn new_with_proto(
+    pub(crate) fn new_with_proto(
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         can_gc: CanGc,
@@ -1619,7 +1619,7 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     #[allow(clippy::too_many_arguments)]
-    fn pipe_to(
+    pub(crate) fn pipe_to(
         &self,
         cx: SafeJSContext,
         global: &GlobalScope,
@@ -1782,7 +1782,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
-    fn setup_cross_realm_transform_readable(
+    pub(crate) fn setup_cross_realm_transform_readable(
         &self,
         cx: SafeJSContext,
         port: &MessagePort,

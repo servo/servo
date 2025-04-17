@@ -233,6 +233,8 @@ pub enum Transferrable {
     MessagePort,
     /// The `ReadableStream` interface.
     ReadableStream,
+    /// The `WritableStream` interface.
+    WritableStream,
 }
 
 impl StructuredSerializedData {
@@ -243,6 +245,7 @@ impl StructuredSerializedData {
         match val {
             Transferrable::MessagePort => is_field_empty(&self.ports),
             Transferrable::ReadableStream => is_field_empty(&self.ports),
+            Transferrable::WritableStream => is_field_empty(&self.ports),
         }
     }
 
