@@ -4207,6 +4207,7 @@ dependencies = [
  "net_traits",
  "parking_lot",
  "profile_traits",
+ "rayon",
  "script",
  "script_layout_interface",
  "script_traits",
