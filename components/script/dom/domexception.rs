@@ -53,6 +53,7 @@ pub(crate) enum DOMErrorName {
     NotReadableError,
     DataError,
     OperationError,
+    NotAllowedError,
 }
 
 impl DOMErrorName {
@@ -84,6 +85,7 @@ impl DOMErrorName {
             "NotReadableError" => Some(DOMErrorName::NotReadableError),
             "DataError" => Some(DOMErrorName::DataError),
             "OperationError" => Some(DOMErrorName::OperationError),
+            "NotAllowedError" => Some(DOMErrorName::NotAllowedError),
             _ => None,
         }
     }
@@ -134,6 +136,10 @@ impl DOMException {
             DOMErrorName::DataError => "Provided data is inadequate.",
             DOMErrorName::OperationError => {
                 "The operation failed for an operation-specific reason."
+            },
+            DOMErrorName::NotAllowedError => {
+                r#"The request is not allowed by the user agent or the platform in the current context,
+                possibly because the user denied permission."#
             },
         };
 
