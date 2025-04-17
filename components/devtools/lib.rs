@@ -522,12 +522,13 @@ impl DevtoolsInstance {
             let thread_actor_name = actors.find::<WorkerActor>(worker_actor_name).thread.clone();
 
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
-            thread_actor.add_source(source_info.url.clone());
+            thread_actor.add_source(source_info.url.clone(), source_info.display_url.clone());
 
             let source = Source {
                 actor: thread_actor_name.clone(),
                 url: source_info.url.to_string(),
                 is_black_boxed: false,
+                display_url: source_info.display_url,
             };
 
             let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
@@ -549,12 +550,13 @@ impl DevtoolsInstance {
                 .clone();
 
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
-            thread_actor.add_source(source_info.url.clone());
+            thread_actor.add_source(source_info.url.clone(), None);
 
             let source = Source {
                 actor: thread_actor_name.clone(),
                 url: source_info.url.to_string(),
                 is_black_boxed: false,
+                display_url: None,
             };
 
             // Notify browsing context about the new source

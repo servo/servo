@@ -65,11 +65,12 @@ pub struct Source {
     /// URL of the script, or URL of the page for inline scripts.
     pub url: String,
     pub is_black_boxed: bool,
+    pub display_url: Option<String>,
 }
 
 pub struct ThreadActor {
-    name: String,
-    source_urls: RefCell<BTreeSet<Source>>,
+    pub name: String,
+    pub source_urls: RefCell<BTreeSet<Source>>,
 }
 
 impl ThreadActor {
@@ -80,11 +81,12 @@ impl ThreadActor {
         }
     }
 
-    pub fn add_source(&self, url: ServoUrl) {
+    pub fn add_source(&self, url: ServoUrl, display_url: Option<String>) {
         self.source_urls.borrow_mut().insert(Source {
             actor: self.name.clone(),
             url: url.to_string(),
             is_black_boxed: false,
+            display_url,
         });
     }
 

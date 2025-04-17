@@ -245,7 +245,7 @@ impl Actor for WatcherActor {
                         let worker_msg = WatchTargetsReply {
                             from: self.name(),
                             type_: "target-available-form".into(),
-                            target: TargetActorMsg::Worker(worker.encodable()),
+                            target: TargetActorMsg::Worker(worker.encodable(registry)),
                         };
                         let _ = stream.write_json_packet(&worker_msg);
                     }

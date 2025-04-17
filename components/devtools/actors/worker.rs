@@ -39,13 +39,23 @@ pub(crate) struct WorkerActor {
 }
 
 impl WorkerActor {
-    pub(crate) fn encodable(&self) -> WorkerMsg {
+    pub(crate) fn encodable(&self, registry: &ActorRegistry) -> WorkerMsg {
+        // Get display_url from source, for worker cases it should be available, otherwise fallback to self.url
+        let thread_actor = registry.find::<crate::actors::thread::ThreadActor>(&self.thread);
+        let display_url = thread_actor
+            .source_urls
+            .borrow()
+            .iter()
+            .find(|s| s.url == self.url.to_string())
+            .and_then(|s| s.display_url.clone())
+            .unwrap_or_else(|| self.url.to_string());
+
         WorkerMsg {
             actor: self.name.clone(),
             console_actor: self.console.clone(),
             thread_actor: self.thread.clone(),
             id: self.worker_id.0.to_string(),
-            url: self.url.to_string(),
+            url: display_url,
             traits: WorkerTraits {
                 is_parent_intercept_enabled: false,
                 supports_top_level_target_flag: false,

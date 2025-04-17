@@ -14,6 +14,7 @@ use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
+use net_traits::blob_url_store::parse_blob_url;
 use net_traits::request::Referrer;
 use uuid::Uuid;
 
@@ -214,15 +215,26 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                     page_info,
                 ));
 
-                // send source info to devtools
-                let source_info = SourceInfo {
+                // Use uuid if it's a blob url, else use the original script url
+                let display_url = if worker_url.as_str().starts_with("blob:") {
+                    match parse_blob_url(&worker_url) {
+                        Ok((uuid, _)) => format!("{}", uuid),
+                        Err(_) => worker_url.to_string(),
+                    }
+                } else {
+                    script_url.to_string()
+                };
+
+                // send worker source info to devtools
+                let worker_source_info = SourceInfo {
                     url: worker_url.clone(),
                     external: true, // worker scripts are always external
+                    display_url: Some(display_url),
                 };
                 let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                     pipeline_id,
                     Some(worker_id),
-                    source_info,
+                    worker_source_info,
                 ));
             }
         }

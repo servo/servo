@@ -232,7 +232,7 @@ impl Actor for RootActor {
                     workers: self
                         .workers
                         .iter()
-                        .map(|name| registry.find::<WorkerActor>(name).encodable())
+                        .map(|name| registry.find::<WorkerActor>(name).encodable(registry))
                         .collect(),
                 };
                 let _ = stream.write_json_packet(&reply);
