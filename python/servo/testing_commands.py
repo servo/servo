@@ -673,6 +673,12 @@ class MachCommands(CommandBase):
         # Write the file out again
         with open(cts_html, 'w') as file:
             file.write(filedata)
+        logger = path.join(clone_dir, "out-wpt", "common/internal/logging/test_case_recorder.js")
+        with open(logger, 'r') as file:
+            filedata = file.read()
+        filedata.replace("info(ex) {", "info(ex) {return;")
+        with open(logger, 'w') as file:
+            file.write(filedata)
         # copy
         delete(path.join(tdir, "webgpu"))
         shutil.copytree(path.join(clone_dir, "out-wpt"), path.join(tdir, "webgpu"))
