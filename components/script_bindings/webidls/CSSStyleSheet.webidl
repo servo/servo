@@ -11,6 +11,7 @@ interface CSSStyleSheet : StyleSheet {
   [Throws, SameObject] readonly attribute CSSRuleList cssRules;
   [Throws] unsigned long insertRule(DOMString rule, optional unsigned long index = 0);
   [Throws] undefined deleteRule(unsigned long index);
+  [Throws] undefined replaceSync(USVString text);
 };
 
 dictionary CSSStyleSheetInit {
