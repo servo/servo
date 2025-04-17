@@ -21,7 +21,6 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use log::{debug, trace, warn};
-use malloc_size_of::MallocSizeOfOps;
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::{Destination, RequestBuilder, RequestId};
@@ -32,7 +31,9 @@ use net_traits::{
     FetchChannels, FetchTaskTarget, ResourceFetchTiming, ResourceThreads, ResourceTimingType,
     WebSocketDomAction, WebSocketNetworkEvent,
 };
-use profile_traits::mem::{ProcessReports, ProfilerChan as MemProfilerChan, ReportsChan};
+use profile_traits::mem::{
+    ProcessReports, ProfilerChan as MemProfilerChan, ReportsChan, perform_memory_report,
+};
 use profile_traits::time::ProfilerChan;
 use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
@@ -280,10 +281,11 @@ impl ResourceChannelManager {
         public_http_state: &Arc<HttpState>,
         private_http_state: &Arc<HttpState>,
     ) {
-        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
-        let mut reports = public_http_state.memory_reports("public", &mut ops);
-        reports.extend(private_http_state.memory_reports("private", &mut ops));
-        msg.send(ProcessReports::new(reports));
+        perform_memory_report(|ops| {
+            let mut reports = public_http_state.memory_reports("public", ops);
+            reports.extend(private_http_state.memory_reports("private", ops));
+            msg.send(ProcessReports::new(reports));
+        })
     }
 
     fn cancellation_listener(&self, request_id: RequestId) -> Option<Arc<CancellationListener>> {

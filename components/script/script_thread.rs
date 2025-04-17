@@ -78,7 +78,7 @@ use net_traits::{
     ResourceFetchTiming, ResourceThreads, ResourceTimingType,
 };
 use percent_encoding::percent_decode;
-use profile_traits::mem::{ProcessReports, ReportsChan};
+use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use script_layout_interface::{
@@ -2435,13 +2435,19 @@ impl ScriptThread {
         let documents = self.documents.borrow();
         let urls = itertools::join(documents.iter().map(|(_, d)| d.url().to_string()), ", ");
 
-        let prefix = format!("url({urls})");
-        let mut reports = self.get_cx().get_reports(prefix.clone());
-        for (_, document) in documents.iter() {
-            document.window().layout().collect_reports(&mut reports);
-        }
+        let mut reports = vec![];
+        perform_memory_report(|ops| {
+            let prefix = format!("url({urls})");
+            reports.extend(self.get_cx().get_reports(prefix.clone(), ops));
+            for (_, document) in documents.iter() {
+                document
+                    .window()
+                    .layout()
+                    .collect_reports(&mut reports, ops);
+            }
 
-        reports.push(self.image_cache.memory_report(&prefix));
+            reports.push(self.image_cache.memory_report(&prefix, ops));
+        });
 
         reports_chan.send(ProcessReports::new(reports));
     }

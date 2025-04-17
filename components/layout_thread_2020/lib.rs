@@ -399,11 +399,7 @@ impl Layout for LayoutThread {
 
     fn exit_now(&mut self) {}
 
-    fn collect_reports(&self, reports: &mut Vec<Report>) {
-        // Servo uses vanilla jemalloc, which doesn't have a
-        // malloc_enclosing_size_of function.
-        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
-
+    fn collect_reports(&self, reports: &mut Vec<Report>, ops: &mut MallocSizeOfOps) {
         // TODO: Measure more than just display list, stylist, and font context.
         let formatted_url = &format!("url({})", self.url);
         reports.push(Report {
@@ -415,13 +411,13 @@ impl Layout for LayoutThread {
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "stylist"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: self.stylist.size_of(&mut ops),
+            size: self.stylist.size_of(ops),
         });
 
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "font-context"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: self.font_context.size_of(&mut ops),
+            size: self.font_context.size_of(ops),
         });
     }
 

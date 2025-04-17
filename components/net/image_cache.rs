@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{LazyCell, RefCell};
+use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::{HashMap, HashSet};
-use std::ffi::c_void;
 use std::sync::{Arc, Mutex};
 use std::{mem, thread};
 
@@ -453,15 +451,8 @@ impl ImageCache for ImageCacheImpl {
         }
     }
 
-    fn memory_report(&self, prefix: &str) -> Report {
-        let seen_pointer =
-            move |ptr| SEEN_POINTERS.with(|pointers| !pointers.borrow_mut().insert(ptr));
-        let mut ops = MallocSizeOfOps::new(
-            servo_allocator::usable_size,
-            None,
-            Some(Box::new(seen_pointer)),
-        );
-        let size = self.store.lock().unwrap().size_of(&mut ops);
+    fn memory_report(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Report {
+        let size = self.store.lock().unwrap().size_of(ops);
         Report {
             path: path![prefix, "image-cache"],
             kind: ReportKind::ExplicitSystemHeapSize,
@@ -671,7 +662,3 @@ impl ImageCacheImpl {
         warn!("Couldn't find cached entry for listener {:?}", id);
     }
 }
-
-thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {
-    LazyCell::new(|| RefCell::new(HashSet::new()))
-});
