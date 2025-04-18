@@ -6,6 +6,7 @@ use std::fmt::{Debug, Formatter};
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
+use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 
@@ -23,8 +24,10 @@ use crate::{ConstraintSpace, ContainingBlockSize};
 /// passes.
 ///
 /// In the future, this will hold layout results to support incremental layout.
+#[derive(MallocSizeOf)]
 pub(crate) struct LayoutBoxBase {
     pub base_fragment_info: BaseFragmentInfo,
+    #[conditional_malloc_size_of]
     pub style: Arc<ComputedValues>,
     pub cached_inline_content_size:
         AtomicRefCell<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
@@ -95,7 +98,7 @@ impl Debug for LayoutBoxBase {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct CacheableLayoutResult {
     pub fragments: Vec<Fragment>,
 
@@ -124,6 +127,7 @@ pub(crate) struct CacheableLayoutResult {
 }
 
 /// A collection of layout inputs and a cached layout result for a [`LayoutBoxBase`].
+#[derive(MallocSizeOf)]
 pub(crate) struct CacheableLayoutResultAndInputs {
     /// The [`CacheableLayoutResult`] for this layout.
     pub result: CacheableLayoutResult,

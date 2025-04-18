@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::color::AbsoluteColor;
 use style::computed_values::direction::T as Direction;
@@ -238,7 +239,7 @@ pub(crate) struct ContentBoxSizesAndPBM {
     pub preferred_size_computes_to_auto: LogicalVec2<bool>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub(crate) struct BorderStyleColor {
     pub style: BorderStyle,
     pub color: AbsoluteColor,

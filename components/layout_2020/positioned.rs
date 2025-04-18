@@ -5,6 +5,7 @@
 use std::mem;
 
 use app_units::Au;
+use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
 use style::Zero;
@@ -35,12 +36,12 @@ use crate::{
     PropagatedBoxTreeData, SizeConstraint,
 };
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct AbsolutelyPositionedBox {
     pub context: IndependentFormattingContext,
 }
 
-#[derive(Clone)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct PositioningContext {
     for_nearest_positioned_ancestor: Option<Vec<HoistedAbsolutelyPositionedBox>>,
 
@@ -50,7 +51,7 @@ pub(crate) struct PositioningContext {
     for_nearest_containing_block_for_all_descendants: Vec<HoistedAbsolutelyPositionedBox>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct HoistedAbsolutelyPositionedBox {
     absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
 

@@ -7,6 +7,7 @@
 
 use app_units::{Au, MAX_AU};
 use inline::InlineFormattingContext;
+use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
 use style::Zero;
@@ -53,13 +54,13 @@ mod root;
 pub(crate) use construct::BlockContainerBuilder;
 pub use root::{BoxTree, CanvasBackground};
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct BlockFormattingContext {
     pub contents: BlockContainer,
     pub contains_floats: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) enum BlockContainer {
     BlockLevelBoxes(Vec<ArcRefCell<BlockLevelBox>>),
     InlineFormattingContext(InlineFormattingContext),
@@ -76,7 +77,7 @@ impl BlockContainer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) enum BlockLevelBox {
     Independent(IndependentFormattingContext),
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
@@ -246,8 +247,9 @@ pub(crate) struct CollapsibleWithParentStartMargin(bool);
 
 /// The contentes of a BlockContainer created to render a list marker
 /// for a list that has `list-style-position: outside`.
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct OutsideMarker {
+    #[conditional_malloc_size_of]
     pub list_item_style: Arc<ComputedValues>,
     pub base: LayoutBoxBase,
     pub block_container: BlockContainer,

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use geom::{FlexAxis, MainStartCrossStart};
+use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
@@ -27,7 +28,7 @@ mod layout;
 
 /// A structure to hold the configuration of a flex container for use during layout
 /// and preferred width calculation.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct FlexContainerConfig {
     container_is_single_line: bool,
     writing_mode: WritingMode,
@@ -85,10 +86,11 @@ impl FlexContainerConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct FlexContainer {
     children: Vec<ArcRefCell<FlexLevelBox>>,
 
+    #[conditional_malloc_size_of]
     style: ServoArc<ComputedValues>,
 
     /// The configuration of this [`FlexContainer`].
@@ -137,7 +139,7 @@ impl FlexContainer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) enum FlexLevelBox {
     FlexItem(FlexItemBox),
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
@@ -171,6 +173,7 @@ impl FlexLevelBox {
     }
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct FlexItemBox {
     independent_formatting_context: IndependentFormattingContext,
 }

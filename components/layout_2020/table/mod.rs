@@ -75,6 +75,7 @@ use atomic_refcell::AtomicRef;
 pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
+use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font;
@@ -92,15 +93,17 @@ use crate::table::layout::TableLayout;
 
 pub type TableSize = Size2D<usize, UnknownUnit>;
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct Table {
     /// The style of this table. These are the properties that apply to the "wrapper" ie the element
     /// that contains both the grid and the captions. Not all properties are actually used on the
     /// wrapper though, such as background and borders, which apply to the grid.
+    #[conditional_malloc_size_of]
     style: Arc<ComputedValues>,
 
     /// The style of this table's grid. This is an anonymous style based on the table's style, but
     /// eliminating all the properties handled by the "wrapper."
+    #[conditional_malloc_size_of]
     grid_style: Arc<ComputedValues>,
 
     /// The [`BaseFragmentInfo`] for this table's grid. This is necessary so that when the
@@ -194,7 +197,7 @@ impl Table {
 type TableSlotCoordinates = Point2D<usize, UnknownUnit>;
 pub type TableSlotOffset = Vector2D<usize, UnknownUnit>;
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct TableSlotCell {
     /// The [`LayoutBoxBase`] of this table cell.
     base: LayoutBoxBase,
@@ -236,6 +239,7 @@ impl TableSlotCell {
 /// to a previous cell that is spanned here
 ///
 /// In case of table model errors, it may be multiple references
+#[derive(MallocSizeOf)]
 pub enum TableSlot {
     /// A table cell, with a colspan and a rowspan.
     Cell(ArcRefCell<TableSlotCell>),
@@ -272,7 +276,7 @@ impl TableSlot {
 }
 
 /// A row or column of a table.
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct TableTrack {
     /// The [`LayoutBoxBase`] of this [`TableTrack`].
     base: LayoutBoxBase,
@@ -286,7 +290,7 @@ pub struct TableTrack {
     is_anonymous: bool,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, MallocSizeOf, PartialEq)]
 pub enum TableTrackGroupType {
     HeaderGroup,
     FooterGroup,
@@ -294,7 +298,7 @@ pub enum TableTrackGroupType {
     ColumnGroup,
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct TableTrackGroup {
     /// The [`LayoutBoxBase`] of this [`TableTrackGroup`].
     base: LayoutBoxBase,
@@ -312,14 +316,14 @@ impl TableTrackGroup {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct TableCaption {
     /// The contents of this cell, with its own layout.
     context: IndependentFormattingContext,
 }
 
 /// A calculated collapsed border.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
 pub(crate) struct CollapsedBorder {
     pub style_color: BorderStyleColor,
     pub width: Au,
@@ -328,7 +332,7 @@ pub(crate) struct CollapsedBorder {
 /// Represents a piecewise sequence of collapsed borders along a line.
 pub(crate) type CollapsedBorderLine = Vec<CollapsedBorder>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SpecificTableGridInfo {
     pub collapsed_borders: PhysicalVec<Vec<CollapsedBorderLine>>,
     pub track_sizes: PhysicalVec<Vec<Au>>,
