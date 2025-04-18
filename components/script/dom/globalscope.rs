@@ -22,7 +22,7 @@ use constellation_traits::{
     ScriptToConstellationChan, ScriptToConstellationMessage,
 };
 use content_security_policy::{
-    CheckResult, CspList, PolicyDisposition, Violation, ViolationResource,
+    CheckResult, CspList, PolicyDisposition, PolicySource, Violation, ViolationResource,
 };
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
@@ -30,6 +30,8 @@ use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
 };
+use http::HeaderMap;
+use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
@@ -2415,6 +2417,27 @@ impl GlobalScope {
         unreachable!();
     }
 
+    /// <https://www.w3.org/TR/CSP/#initialize-document-csp>
+    pub(crate) fn parse_csp_list_from_metadata(
+        headers: &Option<Serde<HeaderMap>>,
+    ) -> Option<CspList> {
+        // TODO: Implement step 1 (local scheme special case)
+        let mut csp = headers.as_ref()?.get_all("content-security-policy").iter();
+        // This silently ignores the CSP if it contains invalid Unicode.
+        // We should probably report an error somewhere.
+        let c = csp.next().and_then(|c| c.to_str().ok())?;
+        let mut csp_list = CspList::parse(c, PolicySource::Header, PolicyDisposition::Enforce);
+        for c in csp {
+            let c = c.to_str().ok()?;
+            csp_list.append(CspList::parse(
+                c,
+                PolicySource::Header,
+                PolicyDisposition::Enforce,
+            ));
+        }
+        Some(csp_list)
+    }
+
     /// Get the [base url](https://html.spec.whatwg.org/multipage/#api-base-url)
     /// for this global scope.
     pub(crate) fn api_base_url(&self) -> ServoUrl {
@@ -3089,10 +3112,10 @@ impl GlobalScope {
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
     pub(crate) fn get_csp_list(&self) -> Option<CspList> {
-        if self.downcast::<Window>().is_some() {
+        if self.downcast::<Window>().is_some() || self.downcast::<WorkerGlobalScope>().is_some() {
             return self.policy_container().csp_list;
         }
-        // TODO: Worker and Worklet global scopes.
+        // TODO: Worklet global scopes.
         None
     }
 
