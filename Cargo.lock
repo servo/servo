@@ -5835,6 +5835,7 @@ dependencies = [
  "log",
  "malloc_size_of_derive",
  "serde",
+ "servo_allocator",
  "servo_config",
  "servo_malloc_size_of",
  "signpost",

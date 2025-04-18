@@ -8,6 +8,7 @@ use base::id::PipelineId;
 use compositing_traits::CrossProcessCompositorApi;
 use ipc_channel::ipc::IpcSender;
 use log::debug;
+use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::{Image, ImageMetadata};
 use profile_traits::mem::Report;
@@ -116,7 +117,7 @@ pub trait ImageCache: Sync + Send {
     where
         Self: Sized;
 
-    fn memory_report(&self, prefix: &str) -> Report;
+    fn memory_report(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Report;
 
     /// Definitively check whether there is a cached, fully loaded image available.
     fn get_image(

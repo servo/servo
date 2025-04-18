@@ -27,6 +27,7 @@ use fonts::{FontContext, SystemFontServiceProxy};
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
+use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use pixels::Image;
@@ -217,7 +218,7 @@ pub trait Layout {
 
     /// Requests that layout measure its memory usage. The resulting reports are sent back
     /// via the supplied channel.
-    fn collect_reports(&self, reports: &mut Vec<Report>);
+    fn collect_reports(&self, reports: &mut Vec<Report>, ops: &mut MallocSizeOfOps);
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
     fn set_quirks_mode(&mut self, quirks_mode: QuirksMode);

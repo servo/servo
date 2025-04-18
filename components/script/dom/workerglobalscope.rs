@@ -25,7 +25,7 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata,
     RequestBuilder as NetRequestInit,
 };
-use profile_traits::mem::ProcessReports;
+use profile_traits::mem::{ProcessReports, perform_memory_report};
 use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
 use uuid::Uuid;
@@ -546,8 +546,10 @@ impl WorkerGlobalScope {
             CommonScriptMsg::Task(_, task, _, _) => task.run_box(),
             CommonScriptMsg::CollectReports(reports_chan) => {
                 let cx = self.get_cx();
-                let reports = cx.get_reports(format!("url({})", self.get_url()));
-                reports_chan.send(ProcessReports::new(reports));
+                perform_memory_report(|ops| {
+                    let reports = cx.get_reports(format!("url({})", self.get_url()), ops);
+                    reports_chan.send(ProcessReports::new(reports));
+                });
             },
         }
         true

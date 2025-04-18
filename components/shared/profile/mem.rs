@@ -6,12 +6,16 @@
 
 #![deny(missing_docs)]
 
+use std::cell::{LazyCell, RefCell};
+use std::collections::HashSet;
+use std::ffi::c_void;
 use std::marker::Send;
 
 use crossbeam_channel::Sender;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
+use malloc_size_of::MallocSizeOfOps;
 use serde::{Deserialize, Serialize};
 
 /// A trait to abstract away the various kinds of message senders we use.
@@ -265,4 +269,22 @@ pub enum ProfilerMsg {
 
     /// Triggers sending back the memory profiling metrics,
     Report(IpcSender<MemoryReportResult>),
+}
+
+thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {
+    LazyCell::new(Default::default)
+});
+
+/// Invoke the provided function after initializing the memory profile tools.
+/// The function is expected to call all the desired [MallocSizeOf::size_of]
+/// for allocations reachable from the current thread.
+pub fn perform_memory_report<F: FnOnce(&mut MallocSizeOfOps)>(f: F) {
+    SEEN_POINTERS.with(|pointers| pointers.borrow_mut().clear());
+    let seen_pointer = move |ptr| SEEN_POINTERS.with(|pointers| !pointers.borrow_mut().insert(ptr));
+    let mut ops = MallocSizeOfOps::new(
+        servo_allocator::usable_size,
+        None,
+        Some(Box::new(seen_pointer)),
+    );
+    f(&mut ops);
 }
