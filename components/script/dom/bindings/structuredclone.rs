@@ -43,6 +43,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::types::DOMException;
+use crate::dom::writablestream::WritableStream;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -61,6 +62,7 @@ pub(super) enum StructuredCloneTags {
     DomPoint = 0xFFFF8005,
     ReadableStream = 0xFFFF8006,
     DomException = 0xFFFF8007,
+    WritableStream = 0xFFFF8008,
     Max = 0xFFFFFFFF,
 }
 
@@ -80,6 +82,7 @@ impl From<TransferrableInterface> for StructuredCloneTags {
         match v {
             TransferrableInterface::MessagePort => StructuredCloneTags::MessagePort,
             TransferrableInterface::ReadableStream => StructuredCloneTags::ReadableStream,
+            TransferrableInterface::WritableStream => StructuredCloneTags::WritableStream,
         }
     }
 }
@@ -259,6 +262,7 @@ fn receiver_for_type(
     match val {
         TransferrableInterface::MessagePort => receive_object::<MessagePort>,
         TransferrableInterface::ReadableStream => receive_object::<ReadableStream>,
+        TransferrableInterface::WritableStream => receive_object::<WritableStream>,
     }
 }
 
@@ -385,6 +389,7 @@ fn transfer_for_type(val: TransferrableInterface) -> TransferOperation {
     match val {
         TransferrableInterface::MessagePort => try_transfer::<MessagePort>,
         TransferrableInterface::ReadableStream => try_transfer::<ReadableStream>,
+        TransferrableInterface::WritableStream => try_transfer::<WritableStream>,
     }
 }
 
@@ -432,6 +437,7 @@ unsafe fn can_transfer_for_type(
     match transferable {
         TransferrableInterface::MessagePort => can_transfer::<MessagePort>(obj, cx),
         TransferrableInterface::ReadableStream => can_transfer::<ReadableStream>(obj, cx),
+        TransferrableInterface::WritableStream => can_transfer::<WritableStream>(obj, cx),
     }
 }
 
@@ -522,7 +528,12 @@ pub(crate) struct StructuredDataReader {
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// A map of serialized exceptions.
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
+
+    /// <https://streams.spec.whatwg.org/#rs-transfer>
     pub(crate) readable_streams: Option<Vec<DomRoot<ReadableStream>>>,
+
+    /// <https://streams.spec.whatwg.org/#ws-transfer>
+    pub(crate) writable_streams: Option<Vec<DomRoot<WritableStream>>>,
 }
 
 /// A data holder for transferred and serialized objects.
@@ -619,6 +630,7 @@ pub(crate) fn read(
         exceptions: data.exceptions.take(),
         errors: DOMErrorRecord { message: None },
         readable_streams: None,
+        writable_streams: None,
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {

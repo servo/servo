@@ -3,11 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::ptr::{self};
 use std::rc::Rc;
 
+use base::id::MessagePortId;
+use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
@@ -25,13 +27,15 @@ use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
+use crate::dom::bindings::transferable::Transferable;
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::readablestream::get_type_and_value_from_message;
+use crate::dom::readablestream::{ReadableStream, get_type_and_value_from_message};
 use crate::dom::writablestreamdefaultcontroller::{
     UnderlyingSinkType, WritableStreamDefaultController,
 };
@@ -1105,5 +1109,87 @@ impl CrossRealmTransformWritable {
 
         // Disentangle port.
         global.disentangle_port(port);
+    }
+}
+
+/// <https://streams.spec.whatwg.org/#ws-transfer>
+impl Transferable for WritableStream {
+    type Id = MessagePortId;
+    type Data = MessagePortImpl;
+
+    /// <https://streams.spec.whatwg.org/#ref-for-writablestream%E2%91%A0%E2%91%A4>
+    fn transfer(&self) -> Result<(MessagePortId, MessagePortImpl), ()> {
+        // If ! IsWritableStreamLocked(value) is true, throw a "DataCloneError" DOMException.
+        if self.is_locked() {
+            return Err(());
+        }
+
+        let global = self.global();
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+        let cx = GlobalScope::get_cx();
+        let can_gc = CanGc::note();
+
+        // Let port1 be a new MessagePort in the current Realm.
+        let port_1 = MessagePort::new(&global, can_gc);
+        global.track_message_port(&port_1, None);
+
+        // Let port2 be a new MessagePort in the current Realm.
+        let port_2 = MessagePort::new(&global, can_gc);
+        global.track_message_port(&port_2, None);
+
+        // Entangle port1 and port2.
+        global.entangle_ports(*port_1.message_port_id(), *port_2.message_port_id());
+
+        // Let readable be a new ReadableStream in the current Realm.
+        let readable = ReadableStream::new_with_proto(&global, None, can_gc);
+
+        // Perform ! SetUpCrossRealmTransformReadable(readable, port1).
+        readable.setup_cross_realm_transform_readable(cx, &port_1, can_gc);
+
+        // Let promise be ! ReadableStreamPipeTo(readable, value, false, false, false).
+        let promise = readable.pipe_to(cx, &global, self, false, false, false, comp, can_gc);
+
+        // Set promise.[[PromiseIsHandled]] to true.
+        promise.set_promise_is_handled();
+
+        // Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
+        port_2.transfer()
+    }
+
+    /// <https://streams.spec.whatwg.org/#ref-for-writablestream%E2%91%A0%E2%91%A4>
+    fn transfer_receive(
+        owner: &GlobalScope,
+        id: MessagePortId,
+        port_impl: MessagePortImpl,
+    ) -> Result<DomRoot<Self>, ()> {
+        let cx = GlobalScope::get_cx();
+        let can_gc = CanGc::note();
+
+        // Their transfer-receiving steps, given dataHolder and value, are:
+        // Note: dataHolder is used in `structuredclone.rs`, and value is created here.
+        let value = WritableStream::new_with_proto(owner, None, can_gc);
+
+        // Let deserializedRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[port]], the current Realm).
+        // Done with the `Deserialize` derive of `MessagePortImpl`.
+
+        // Let port be deserializedRecord.[[Deserialized]].
+        let transferred_port = MessagePort::transfer_receive(owner, id, port_impl)?;
+
+        // Perform ! SetUpCrossRealmTransformWritable(value, port).
+        value.setup_cross_realm_transform_writable(cx, &transferred_port, can_gc);
+        Ok(value)
+    }
+
+    /// Note: we are relying on the port transfer, so the data returned here are related to the port.
+    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+        match data {
+            StructuredData::Reader(r) => &mut r.port_impls,
+            StructuredData::Writer(w) => &mut w.ports,
+        }
+    }
+
+    fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>> {
+        &mut reader.writable_streams
     }
 }
