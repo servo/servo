@@ -933,6 +933,18 @@ pub enum NetworkError {
     SslValidation(String, Vec<u8>),
     /// Crash error, to be converted to Resource::Crash in the HTML parser.
     Crash(String),
+    UnsupportedScheme,
+    CorsViolation,
+    ConnectionFailure,
+    Timeout,
+    RedirectError,
+    InvalidMethod,
+    ResourceError,
+    SecurityBlock,
+    MixedContent,
+    CacheError,
+    InvalidPort,
+    LocalDirectoryError,
 }
 
 impl NetworkError {

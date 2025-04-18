@@ -47,9 +47,7 @@ impl ProtocolHandler for DataProtocolHander {
             },
             Err(_) => None,
         }
-        .unwrap_or_else(|| {
-            Response::network_error(NetworkError::Internal("Decoding data URL failed".into()))
-        });
+        .unwrap_or_else(|| Response::network_error(NetworkError::ResourceError));
 
         Box::pin(std::future::ready(response))
     }
