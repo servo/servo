@@ -2405,6 +2405,7 @@ class CGDOMJSClass(CGThing):
             "flags": "JSCLASS_FOREGROUND_FINALIZE",
             "name": str_to_cstr_ptr(self.descriptor.interface.identifier.name),
             "resolveHook": "None",
+            "mayResolveHook": "None",
             "slots": "1",
             "traceHook": f"{TRACE_HOOK_NAME}::<D>",
         }
@@ -2415,9 +2416,11 @@ class CGDOMJSClass(CGThing):
             if self.descriptor.interface.getExtendedAttribute("NeedResolve"):
                 args["enumerateHook"] = "Some(enumerate_window::<D>)"
                 args["resolveHook"] = "Some(resolve_window::<D>)"
+                args["mayResolveHook"] = "Some(may_resolve_window::<D>)"
             else:
                 args["enumerateHook"] = "Some(enumerate_global)"
                 args["resolveHook"] = "Some(resolve_global)"
+                args["mayResolveHook"] = "Some(may_resolve_global)"
             args["traceHook"] = "js::jsapi::JS_GlobalObjectTraceHook"
         elif self.descriptor.weakReferenceable:
             args["slots"] = "2"
@@ -2431,7 +2434,7 @@ pub(crate) fn init_class_ops<D: DomTypes>() {{
         enumerate: None,
         newEnumerate: {args['enumerateHook']},
         resolve: {args['resolveHook']},
-        mayResolve: None,
+        mayResolve: {args['mayResolveHook']},
         finalize: Some({args['finalizeHook']}),
         call: None,
         construct: None,
