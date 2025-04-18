@@ -9,7 +9,7 @@ use base::cross_process_instant::CrossProcessInstant;
 use base::id::PipelineId;
 use base64::Engine as _;
 use base64::engine::general_purpose;
-use content_security_policy::{self as csp, CspList};
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use encoding_rs::Encoding;
@@ -59,6 +59,7 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
@@ -850,29 +851,9 @@ impl FetchResponseListener for ParserContext {
             .map(Serde::into_inner)
             .map(Into::into);
 
-        // https://www.w3.org/TR/CSP/#initialize-document-csp
-        // TODO: Implement step 1 (local scheme special case)
-        let csp_list = metadata.as_ref().and_then(|m| {
-            let h = m.headers.as_ref()?;
-            let mut csp = h.get_all("content-security-policy").iter();
-            // This silently ignores the CSP if it contains invalid Unicode.
-            // We should probably report an error somewhere.
-            let c = csp.next().and_then(|c| c.to_str().ok())?;
-            let mut csp_list = CspList::parse(
-                c,
-                csp::PolicySource::Header,
-                csp::PolicyDisposition::Enforce,
-            );
-            for c in csp {
-                let c = c.to_str().ok()?;
-                csp_list.append(CspList::parse(
-                    c,
-                    csp::PolicySource::Header,
-                    csp::PolicyDisposition::Enforce,
-                ));
-            }
-            Some(csp_list)
-        });
+        let csp_list = metadata
+            .as_ref()
+            .and_then(|m| GlobalScope::parse_csp_list_from_metadata(&m.headers));
 
         let parser = match ScriptThread::page_headers_available(&self.id, metadata, CanGc::note()) {
             Some(parser) => parser,
