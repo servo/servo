@@ -54,6 +54,7 @@ webxr = ["libservo/webxr"]
 webgpu = ["libservo/webgpu"]
 
 [dependencies]
+servo_tracing = { workspace = true }
 dpi = { workspace = true }
 euclid = { workspace = true }
 libc = { workspace = true }
