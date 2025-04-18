@@ -50,6 +50,7 @@ impl AlphaMode {
 
 #[derive(Debug)]
 pub enum Data {
+    // TODO: https://github.com/servo/servo/issues/36594
     //IPC(IpcSharedMemory),
     Owned(Vec<u8>),
 }
@@ -76,6 +77,10 @@ impl DerefMut for Data {
 
 pub type IpcSnapshot = Snapshot<IpcSharedMemory>;
 
+/// Represents image bitmap with metadata, usually as snapshot of canvas
+///
+/// Inspired by snapshot for concept in WebGPU spec:
+/// <https://gpuweb.github.io/gpuweb/#abstract-opdef-get-a-copy-of-the-image-contents-of-a-context>
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Snapshot<T = Data> {
     size: Size2D<u64>,
@@ -121,6 +126,7 @@ impl Snapshot<Data> {
         }
     }
 
+    /// Returns snapshot with provided size that is black transparent alpha
     pub fn cleared(size: Size2D<u64>) -> Self {
         Self {
             size,
@@ -174,6 +180,7 @@ impl Snapshot<Data> {
         }
     }
 
+    // TODO: https://github.com/servo/servo/issues/36594
     /*
     /// # Safety
     ///
@@ -198,6 +205,8 @@ impl Snapshot<Data> {
         &self.data
     }
 
+    /// Convert inner data of snapshot to target format and alpha mode.
+    /// If data is already in target format and alpha mode no work will be done.
     pub fn transform(&mut self, target_alpha_mode: AlphaMode, target_format: PixelFormat) {
         let swap_rb = target_format != self.format;
         let multiply = match (self.alpha_mode, target_alpha_mode) {
@@ -261,6 +270,7 @@ impl Snapshot<Data> {
 }
 
 impl Snapshot<IpcSharedMemory> {
+    // TODO: https://github.com/servo/servo/issues/36594
     /*
     /// # Safety
     ///
