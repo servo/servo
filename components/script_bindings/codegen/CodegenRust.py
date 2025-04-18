@@ -2410,9 +2410,12 @@ class CGDOMJSClass(CGThing):
         }
         if self.descriptor.isGlobal():
             assert not self.descriptor.weakReferenceable
-            args["enumerateHook"] = "Some(enumerate_global::<D>)"
             args["flags"] = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL | JSCLASS_FOREGROUND_FINALIZE"
             args["slots"] = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
+            if self.descriptor.interface.getExtendedAttribute("NeedResolve"):
+                args["enumerateHook"] = "Some(enumerate_window::<D>)"
+            else:
+                args["enumerateHook"] = "Some(enumerate_global)"
             args["resolveHook"] = "Some(resolve_global::<D>)"
             args["traceHook"] = "js::jsapi::JS_GlobalObjectTraceHook"
         elif self.descriptor.weakReferenceable:
