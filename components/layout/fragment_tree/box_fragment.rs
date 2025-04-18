@@ -65,6 +65,10 @@ pub(crate) struct BoxFragment {
     /// does not include padding, border, or margin -- it only includes content.
     pub content_rect: PhysicalRect<Au>,
 
+    /// This [`BoxFragment`]'s containing block rectangle in coordinates relative to
+    /// the initial containing block, but not taking into account any transforms.
+    pub cumulative_containing_block_rect: PhysicalRect<Au>,
+
     pub padding: PhysicalSides<Au>,
     pub border: PhysicalSides<Au>,
     pub margin: PhysicalSides<Au>,
@@ -120,6 +124,7 @@ impl BoxFragment {
             style,
             children,
             content_rect,
+            cumulative_containing_block_rect: Default::default(),
             padding,
             border,
             margin,
@@ -195,6 +200,8 @@ impl BoxFragment {
         self
     }
 
+    /// Get the scrollable overflow for this [`BoxFragment`] relative to its
+    /// containing block.
     pub fn scrollable_overflow(&self) -> PhysicalRect<Au> {
         let physical_padding_rect = self.padding_rect();
         let content_origin = self.content_rect.origin.to_vector();
@@ -203,6 +210,10 @@ impl BoxFragment {
                 .scrollable_overflow_from_children
                 .translate(content_origin),
         )
+    }
+
+    pub fn offset_by_containing_block(&self, rect: &PhysicalRect<Au>) -> PhysicalRect<Au> {
+        rect.translate(self.cumulative_containing_block_rect.origin.to_vector())
     }
 
     pub(crate) fn padding_rect(&self) -> PhysicalRect<Au> {
@@ -278,10 +289,7 @@ impl BoxFragment {
         overflow
     }
 
-    pub(crate) fn calculate_resolved_insets_if_positioned(
-        &self,
-        containing_block: &PhysicalRect<Au>,
-    ) -> PhysicalSides<AuOrAuto> {
+    pub(crate) fn calculate_resolved_insets_if_positioned(&self) -> PhysicalSides<AuOrAuto> {
         let position = self.style.get_box().position;
         debug_assert_ne!(
             position,
@@ -309,7 +317,10 @@ impl BoxFragment {
         // used value. Otherwise the resolved value is the computed value."
         // https://drafts.csswg.org/cssom/#resolved-values
         let insets = self.style.physical_box_offsets();
-        let (cb_width, cb_height) = (containing_block.width(), containing_block.height());
+        let (cb_width, cb_height) = (
+            self.cumulative_containing_block_rect.width(),
+            self.cumulative_containing_block_rect.height(),
+        );
         if position == ComputedPosition::Relative {
             let get_resolved_axis = |start: &LengthPercentageOrAuto,
                                      end: &LengthPercentageOrAuto,
@@ -393,5 +404,9 @@ impl BoxFragment {
             Some(collapsed_block_margins) => *(collapsed_block_margins).clone(),
             _ => CollapsedBlockMargins::zero(),
         }
+    }
+
+    pub(crate) fn set_containing_block(&mut self, containing_block: &PhysicalRect<Au>) {
+        self.cumulative_containing_block_rect = *containing_block;
     }
 }

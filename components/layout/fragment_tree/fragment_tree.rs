@@ -13,6 +13,7 @@ use style::dom::OpaqueNode;
 use webrender_api::units;
 
 use super::{ContainingBlockManager, Fragment, Tag};
+use crate::context::LayoutContext;
 use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
 use crate::geom::{PhysicalPoint, PhysicalRect};
@@ -44,6 +45,58 @@ pub struct FragmentTree {
 }
 
 impl FragmentTree {
+    pub(crate) fn new(
+        layout_context: &LayoutContext,
+        root_fragments: Vec<Fragment>,
+        scrollable_overflow: PhysicalRect<Au>,
+        initial_containing_block: PhysicalRect<Au>,
+        canvas_background: CanvasBackground,
+        viewport_scroll_sensitivity: AxesScrollSensitivity,
+    ) -> Self {
+        let fragment_tree = Self {
+            root_fragments,
+            scrollable_overflow,
+            initial_containing_block,
+            canvas_background,
+            viewport_scroll_sensitivity,
+        };
+
+        // As part of building the fragment tree, we want to stop animating elements and
+        // pseudo-elements that used to be animating or had animating images attached to
+        // them. Create a set of all elements that used to be animating.
+        let mut animations = layout_context.style_context.animations.sets.write();
+        let mut invalid_animating_nodes: FxHashSet<_> = animations.keys().cloned().collect();
+        let mut image_animations = layout_context.node_image_animation_map.write().to_owned();
+        let mut invalid_image_animating_nodes: FxHashSet<_> = image_animations
+            .keys()
+            .cloned()
+            .map(|node| AnimationSetKey::new(node, None))
+            .collect();
+
+        fragment_tree.find(|fragment, _level, containing_block| {
+            if let Some(tag) = fragment.tag() {
+                invalid_animating_nodes.remove(&AnimationSetKey::new(tag.node, tag.pseudo));
+                invalid_image_animating_nodes.remove(&AnimationSetKey::new(tag.node, tag.pseudo));
+            }
+
+            fragment.set_containing_block(containing_block);
+            None::<()>
+        });
+
+        // Cancel animations for any elements and pseudo-elements that are no longer found
+        // in the fragment tree.
+        for node in &invalid_animating_nodes {
+            if let Some(state) = animations.get_mut(node) {
+                state.cancel_all_animations();
+            }
+        }
+        for node in &invalid_image_animating_nodes {
+            image_animations.remove(&node.node);
+        }
+
+        fragment_tree
+    }
+
     pub(crate) fn build_display_list(
         &self,
         builder: &mut crate::display_list::DisplayListBuilder,
@@ -84,14 +137,6 @@ impl FragmentTree {
         self.root_fragments
             .iter()
             .find_map(|child| child.find(&info, 0, &mut process_func))
-    }
-
-    pub fn remove_nodes_in_fragment_tree_from_set(&self, set: &mut FxHashSet<AnimationSetKey>) {
-        self.find(|fragment, _, _| {
-            let tag = fragment.tag()?;
-            set.remove(&AnimationSetKey::new(tag.node, tag.pseudo));
-            None::<()>
-        });
     }
 
     /// Get the vector of rectangles that surrounds the fragments of the node with the given address.
@@ -173,22 +218,8 @@ impl FragmentTree {
     pub fn get_scrolling_area_for_viewport(&self) -> PhysicalRect<Au> {
         let mut scroll_area = self.initial_containing_block;
         for fragment in self.root_fragments.iter() {
-            scroll_area = fragment
-                .scrolling_area(&self.initial_containing_block)
-                .union(&scroll_area);
+            scroll_area = fragment.scrolling_area().union(&scroll_area);
         }
         scroll_area
-    }
-
-    pub fn get_scrolling_area_for_node(&self, requested_node: OpaqueNode) -> PhysicalRect<Au> {
-        let tag_to_find = Tag::new(requested_node);
-        let scroll_area = self.find(|fragment, _, containing_block| {
-            if fragment.tag() == Some(tag_to_find) {
-                Some(fragment.scrolling_area(containing_block))
-            } else {
-                None
-            }
-        });
-        scroll_area.unwrap_or_else(PhysicalRect::<Au>::zero)
     }
 }
