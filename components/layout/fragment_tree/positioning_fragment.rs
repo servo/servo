@@ -20,12 +20,17 @@ pub(crate) struct PositioningFragment {
     pub base: BaseFragment,
     pub rect: PhysicalRect<Au>,
     pub children: Vec<Fragment>,
+
     /// The scrollable overflow of this anonymous fragment's children.
     pub scrollable_overflow: PhysicalRect<Au>,
 
     /// If this fragment was created with a style, the style of the fragment.
     #[conditional_malloc_size_of]
     pub style: Option<ServoArc<ComputedValues>>,
+
+    /// This [`PositioningFragment`]'s containing block rectangle in coordinates relative to
+    /// the initial containing block, but not taking into account any transforms.
+    pub cumulative_containing_block_rect: PhysicalRect<Au>,
 }
 
 impl PositioningFragment {
@@ -61,7 +66,16 @@ impl PositioningFragment {
             rect,
             children,
             scrollable_overflow,
+            cumulative_containing_block_rect: PhysicalRect::zero(),
         })
+    }
+
+    pub(crate) fn set_containing_block(&mut self, containing_block: &PhysicalRect<Au>) {
+        self.cumulative_containing_block_rect = *containing_block;
+    }
+
+    pub fn offset_by_containing_block(&self, rect: &PhysicalRect<Au>) -> PhysicalRect<Au> {
+        rect.translate(self.cumulative_containing_block_rect.origin.to_vector())
     }
 
     pub fn print(&self, tree: &mut PrintTree) {

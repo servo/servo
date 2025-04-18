@@ -212,6 +212,10 @@ impl BoxFragment {
         )
     }
 
+    pub(crate) fn set_containing_block(&mut self, containing_block: &PhysicalRect<Au>) {
+        self.cumulative_containing_block_rect = *containing_block;
+    }
+
     pub fn offset_by_containing_block(&self, rect: &PhysicalRect<Au>) -> PhysicalRect<Au> {
         rect.translate(self.cumulative_containing_block_rect.origin.to_vector())
     }
@@ -404,9 +408,5 @@ impl BoxFragment {
             Some(collapsed_block_margins) => *(collapsed_block_margins).clone(),
             _ => CollapsedBlockMargins::zero(),
         }
-    }
-
-    pub(crate) fn set_containing_block(&mut self, containing_block: &PhysicalRect<Au>) {
-        self.cumulative_containing_block_rect = *containing_block;
     }
 }

@@ -300,8 +300,9 @@ impl Layout for LayoutThread {
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn query_offset_parent(&self, node: OpaqueNode) -> OffsetParentResponse {
-        process_offset_parent_query(node, self.fragment_tree.borrow().clone())
+    fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse {
+        let node = unsafe { ServoLayoutNode::new(&node) };
+        process_offset_parent_query(node).unwrap_or_default()
     }
 
     #[cfg_attr(

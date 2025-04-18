@@ -132,11 +132,6 @@ impl Tag {
         Tag { node, pseudo }
     }
 
-    /// Returns true if this tag is for a pseudo element.
-    pub(crate) fn is_pseudo(&self) -> bool {
-        self.pseudo.is_some()
-    }
-
     pub(crate) fn to_display_list_fragment_id(self) -> u64 {
         combine_id_with_fragment_type(self.node.id(), self.pseudo.into())
     }
