@@ -43,7 +43,6 @@ pub struct BoxTree {
     canvas_background: CanvasBackground,
 
     /// Whether or not the viewport should be sensitive to scrolling input events in two axes
-    #[ignore_malloc_size_of = "compositing_traits type"]
     viewport_scroll_sensitivity: AxesScrollSensitivity,
 }
 
@@ -451,7 +450,7 @@ pub struct CanvasBackground {
     pub from_element: OpaqueNode,
 
     /// The computed styles to take background properties from.
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub style: Option<Arc<ComputedValues>>,
 }
 

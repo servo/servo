@@ -41,7 +41,7 @@ pub(crate) const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 42;
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct TextRun {
     pub base_fragment_info: BaseFragmentInfo,
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub parent_style: Arc<ComputedValues>,
     pub text_range: Range<usize>,
 
@@ -49,7 +49,7 @@ pub(crate) struct TextRun {
     /// segments, and shaped.
     pub shaped_text: Vec<TextRunSegment>,
     pub selection_range: Option<ServoRange<ByteIndex>>,
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub selected_style: Arc<ComputedValues>,
 }
 
@@ -74,11 +74,9 @@ pub(crate) struct TextRunSegment {
     pub font_index: usize,
 
     /// The [`Script`] of this segment.
-    #[ignore_malloc_size_of = "unicode-script type"]
     pub script: Script,
 
     /// The bidi Level of this segment.
-    #[ignore_malloc_size_of = "unicode-bidi type"]
     pub bidi_level: Level,
 
     /// The range of bytes in the parent [`super::InlineFormattingContext`]'s text content.

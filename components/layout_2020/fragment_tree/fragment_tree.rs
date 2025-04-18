@@ -40,7 +40,6 @@ pub struct FragmentTree {
     pub(crate) canvas_background: CanvasBackground,
 
     /// Whether or not the viewport is sensitive to scroll input events.
-    #[ignore_malloc_size_of = "compositing_traits type"]
     pub viewport_scroll_sensitivity: AxesScrollSensitivity,
 }
 

@@ -29,7 +29,7 @@ pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 pub type AuOrAuto = AutoOr<Au>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub struct LogicalVec2<T> {
     pub inline: T,
     pub block: T,

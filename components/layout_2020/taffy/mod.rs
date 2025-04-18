@@ -24,7 +24,7 @@ use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct TaffyContainer {
     children: Vec<ArcRefCell<TaffyItemBox>>,
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     style: Arc<ComputedValues>,
 }
 
@@ -73,11 +73,10 @@ impl TaffyContainer {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct TaffyItemBox {
-    #[ignore_malloc_size_of = "taffy type"]
     pub(crate) taffy_layout: taffy::Layout,
     pub(crate) child_fragments: Vec<Fragment>,
     pub(crate) positioning_context: PositioningContext,
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub(crate) style: Arc<ComputedValues>,
     pub(crate) taffy_level_box: TaffyItemBoxInner,
 }

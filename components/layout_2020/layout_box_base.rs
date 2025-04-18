@@ -27,7 +27,7 @@ use crate::{ConstraintSpace, ContainingBlockSize};
 #[derive(MallocSizeOf)]
 pub(crate) struct LayoutBoxBase {
     pub base_fragment_info: BaseFragmentInfo,
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub style: Arc<ComputedValues>,
     pub cached_inline_content_size:
         AtomicRefCell<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,

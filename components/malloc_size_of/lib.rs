@@ -52,6 +52,7 @@ use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
 use std::sync::Arc;
 
+use style::values::generics::length::GenericLengthPercentageOrAuto;
 pub use stylo_malloc_size_of::MallocSizeOfOps;
 use uuid::Uuid;
 
@@ -746,7 +747,11 @@ malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
 malloc_size_of_is_0!(style::font_face::SourceList);
+malloc_size_of_is_0!(style::properties::ComputedValues);
 malloc_size_of_is_0!(style::queries::values::PrefersColorScheme);
+malloc_size_of_is_0!(taffy::Layout);
+malloc_size_of_is_0!(unicode_bidi::Level);
+malloc_size_of_is_0!(unicode_script::Script);
 
 macro_rules! malloc_size_of_is_webrender_malloc_size_of(
     ($($ty:ty),+) => (
@@ -823,7 +828,15 @@ malloc_size_of_is_stylo_malloc_size_of!(style::color::AbsoluteColor);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_caps::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
 malloc_size_of_is_stylo_malloc_size_of!(style::invalidation::element::restyle_hints::RestyleHint);
+malloc_size_of_is_stylo_malloc_size_of!(style::logical_geometry::WritingMode);
 malloc_size_of_is_stylo_malloc_size_of!(style::media_queries::MediaList);
+malloc_size_of_is_stylo_malloc_size_of!(
+    style::properties::longhands::align_items::computed_value::T
+);
+malloc_size_of_is_stylo_malloc_size_of!(
+    style::properties::longhands::flex_direction::computed_value::T
+);
+malloc_size_of_is_stylo_malloc_size_of!(style::properties::longhands::flex_wrap::computed_value::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::properties::style_structs::Font);
 malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::PseudoElement);
 malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::RestyleDamage);
@@ -831,8 +844,22 @@ malloc_size_of_is_stylo_malloc_size_of!(style::selector_parser::Snapshot);
 malloc_size_of_is_stylo_malloc_size_of!(style::shared_lock::SharedRwLock);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylesheets::DocumentStyleSheet);
 malloc_size_of_is_stylo_malloc_size_of!(style::stylist::Stylist);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::AlignContent);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::BorderStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStretch);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::FontWeight);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::font::SingleFontFamily);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::JustifyContent);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::align::AlignFlags);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::TextDecorationLine);
 malloc_size_of_is_stylo_malloc_size_of!(stylo_dom::ElementState);
+
+impl<T> MallocSizeOf for GenericLengthPercentageOrAuto<T>
+where
+    T: stylo_malloc_size_of::MallocSizeOf,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        <GenericLengthPercentageOrAuto<T> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+    }
+}

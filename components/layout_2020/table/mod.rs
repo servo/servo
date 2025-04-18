@@ -98,12 +98,12 @@ pub struct Table {
     /// The style of this table. These are the properties that apply to the "wrapper" ie the element
     /// that contains both the grid and the captions. Not all properties are actually used on the
     /// wrapper though, such as background and borders, which apply to the grid.
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     style: Arc<ComputedValues>,
 
     /// The style of this table's grid. This is an anonymous style based on the table's style, but
     /// eliminating all the properties handled by the "wrapper."
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     grid_style: Arc<ComputedValues>,
 
     /// The [`BaseFragmentInfo`] for this table's grid. This is necessary so that when the
@@ -325,7 +325,6 @@ pub struct TableCaption {
 /// A calculated collapsed border.
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
 pub(crate) struct CollapsedBorder {
-    #[ignore_malloc_size_of = "stylo type"]
     pub style_color: BorderStyleColor,
     pub width: Au,
 }

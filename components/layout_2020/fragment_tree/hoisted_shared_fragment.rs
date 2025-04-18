@@ -25,13 +25,11 @@ pub(crate) struct HoistedSharedFragment {
     /// if the "static-position rect" ends up being the "inset-modified containing block".
     /// These values are dependent on the layout mode (currently only interesting for
     /// flexbox).
-    #[ignore_malloc_size_of = "stylo type"]
     pub resolved_alignment: LogicalVec2<AlignFlags>,
     /// This is the [`WritingMode`] of the original parent of the element that created this
     /// hoisted absolutely-positioned fragment. This helps to interpret the offset for
     /// static positioning. If the writing mode is right-to-left or bottom-to-top, the static
     /// offset needs to be adjusted by the absolutely positioned element's inline size.
-    #[ignore_malloc_size_of = "stylo type"]
     pub original_parent_writing_mode: WritingMode,
 }
 

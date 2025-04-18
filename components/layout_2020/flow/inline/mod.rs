@@ -156,7 +156,6 @@ pub(crate) struct InlineFormattingContext {
     /// context in order to avoid duplicating this information.
     pub font_metrics: Vec<FontKeyAndMetrics>,
 
-    #[ignore_malloc_size_of = "stylo type"]
     pub(super) text_decoration_line: TextDecorationLine,
 
     /// Whether this IFC contains the 1st formatted line of an element:
@@ -194,8 +193,8 @@ pub(crate) enum InlineItem {
     OutOfFlowFloatBox(#[conditional_malloc_size_of] Arc<FloatBox>),
     Atomic(
         #[conditional_malloc_size_of] Arc<IndependentFormattingContext>,
-        usize,                                                /* offset_in_text */
-        #[ignore_malloc_size_of = "unicode-bidi type"] Level, /* bidi_level */
+        usize, /* offset_in_text */
+        Level, /* bidi_level */
     ),
 }
 

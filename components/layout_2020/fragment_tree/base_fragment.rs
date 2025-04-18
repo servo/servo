@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use bitflags::bitflags;
+use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use script_layout_interface::combine_id_with_fragment_type;
 use style::dom::OpaqueNode;
@@ -20,7 +21,6 @@ pub(crate) struct BaseFragment {
 
     /// Flags which various information about this fragment used during
     /// layout.
-    #[ignore_malloc_size_of = "private bitflags type"]
     pub flags: FragmentFlags,
 }
 
@@ -46,7 +46,6 @@ pub(crate) struct BaseFragmentInfo {
     pub tag: Option<Tag>,
 
     /// The flags to use for the new BaseFragment.
-    #[ignore_malloc_size_of = "private bitflags type"]
     pub flags: FragmentFlags,
 }
 
@@ -110,12 +109,13 @@ bitflags! {
     }
 }
 
+malloc_size_of_is_0!(FragmentFlags);
+
 /// A data structure used to hold DOM and pseudo-element information about
 /// a particular layout object.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
 pub(crate) struct Tag {
     pub(crate) node: OpaqueNode,
-    #[ignore_malloc_size_of = "stylo type"]
     pub(crate) pseudo: Option<PseudoElement>,
 }
 

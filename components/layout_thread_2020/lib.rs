@@ -438,7 +438,8 @@ impl Layout for LayoutThread {
                 .fragment_tree
                 .borrow()
                 .as_ref()
-                .map_or(0, |tree| tree.conditional_size_of(ops)),
+                .map(|tree| tree.conditional_size_of(ops))
+                .unwrap_or_default(),
         });
     }
 

@@ -249,7 +249,7 @@ pub(crate) struct CollapsibleWithParentStartMargin(bool);
 /// for a list that has `list-style-position: outside`.
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct OutsideMarker {
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub list_item_style: Arc<ComputedValues>,
     pub base: LayoutBoxBase,
     pub block_container: BlockContainer,

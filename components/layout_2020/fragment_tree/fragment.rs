@@ -63,7 +63,7 @@ pub(crate) struct CollapsedMargin {
 #[derive(MallocSizeOf)]
 pub(crate) struct TextFragment {
     pub base: BaseFragment,
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub parent_style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
     pub font_metrics: FontMetrics,
@@ -72,20 +72,19 @@ pub(crate) struct TextFragment {
     pub glyphs: Vec<Arc<GlyphStore>>,
 
     /// A flag that represents the _used_ value of the text-decoration property.
-    #[ignore_malloc_size_of = "stylo type"]
     pub text_decoration_line: TextDecorationLine,
 
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
     pub selection_range: Option<ServoRange<ByteIndex>>,
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub selected_style: ServoArc<ComputedValues>,
 }
 
 #[derive(MallocSizeOf)]
 pub(crate) struct ImageFragment {
     pub base: BaseFragment,
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
     pub clip: PhysicalRect<Au>,
@@ -97,7 +96,7 @@ pub(crate) struct IFrameFragment {
     pub base: BaseFragment,
     pub pipeline_id: PipelineId,
     pub rect: PhysicalRect<Au>,
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub style: ServoArc<ComputedValues>,
 }
 

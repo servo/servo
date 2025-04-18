@@ -40,7 +40,7 @@ pub(crate) enum BackgroundMode {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct ExtraBackground {
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
 }
@@ -57,7 +57,7 @@ pub(crate) enum SpecificLayoutInfo {
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 
-    #[ignore_malloc_size_of = "stylo type"]
+    #[conditional_malloc_size_of]
     pub style: ServoArc<ComputedValues>,
     pub children: Vec<Fragment>,
 
@@ -90,7 +90,6 @@ pub(crate) struct BoxFragment {
     /// The resolved box insets if this box is `position: sticky`. These are calculated
     /// during stacking context tree construction because they rely on the size of the
     /// scroll container.
-    #[ignore_malloc_size_of = "stylo type"]
     pub(crate) resolved_sticky_insets: AtomicRefCell<Option<PhysicalSides<AuOrAuto>>>,
 
     pub background_mode: BackgroundMode,

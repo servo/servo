@@ -26,6 +26,8 @@ glow = { workspace = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 pixels = { path = '../../pixels' }
 profile_traits = { path = '../profile' }
 raw-window-handle = { version = "0.6" }

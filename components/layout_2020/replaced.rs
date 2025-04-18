@@ -66,7 +66,6 @@ pub(crate) struct ReplacedContents {
 pub(crate) struct NaturalSizes {
     pub width: Option<Au>,
     pub height: Option<Au>,
-    #[ignore_malloc_size_of = "stylo type"]
     pub ratio: Option<CSSFloat>,
 }
 
