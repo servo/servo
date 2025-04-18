@@ -105,7 +105,7 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
         to_frozen_array(&[self.Language()], cx, retval, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-navigator-online
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
     fn OnLine(&self) -> bool {
         true
     }
