@@ -14,7 +14,7 @@ on:
       wpt:
         required: true
         type: boolean
-      number-of-chunks:
+      number-of-wpt-chunks:
         required: true
         type: number
       unit-tests:
@@ -60,7 +60,7 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       wpt: ${{ inputs.wpt }}
-      number-of-chunks: ${{ inputs.number-of-chunks }}
+      number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
       unit-tests: ${{ inputs.unit-tests }}
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}

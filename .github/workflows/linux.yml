@@ -17,7 +17,7 @@ on:
       wpt:
         required: false
         type: boolean
-      number-of-chunks:
+      number-of-wpt-chunks:
         default: 20
         required: false
         type: number
@@ -62,7 +62,7 @@ on:
       wpt:
         required: false
         type: boolean
-      number-of-chunks:
+      number-of-wpt-chunks:
         default: 20
         required: false
         type: number
@@ -223,7 +223,7 @@ jobs:
       wpt-args: ${{ inputs.wpt-args }}
       profile: ${{ inputs.profile }}
       wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
-      number-of-chunks: ${{ inputs. number-of-chunks }}
+      number-of-wpt-chunks: ${{ inputs. number-of-wpt-chunks }}
     secrets: inherit
 
   bencher:
