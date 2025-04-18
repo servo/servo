@@ -4,16 +4,13 @@
 
 use std::cell::Cell;
 
-use cssparser::{Parser as CssParser, ParserInput};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use servo_arc::Arc;
-use style::media_queries::MediaList;
-use style::parser::ParserContext as CssParserContext;
-use style::stylesheets::{AllowImportRules, CssRuleType, Origin, Stylesheet, UrlExtraData};
-use style_traits::ParsingMode;
+use style::media_queries::MediaList as StyleMediaList;
+use style::stylesheets::{AllowImportRules, Origin, Stylesheet, UrlExtraData};
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -26,6 +23,7 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::medialist::MediaList;
 use crate::dom::node::{BindContext, ChildrenMutation, Node, NodeTraits, UnbindContext};
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -44,7 +42,6 @@ pub(crate) struct HTMLStyleElement {
     in_stack_of_open_elements: Cell<bool>,
     pending_loads: Cell<u32>,
     any_failed_load: Cell<bool>,
-    line_number: u64,
 }
 
 impl HTMLStyleElement {
@@ -62,7 +59,6 @@ impl HTMLStyleElement {
             in_stack_of_open_elements: Cell::new(creator.is_parser_created()),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
-            line_number: creator.return_line_number(),
         }
     }
 
@@ -85,26 +81,9 @@ impl HTMLStyleElement {
         )
     }
 
-    fn create_media_list(&self, mq_str: &str) -> MediaList {
-        if mq_str.is_empty() {
-            return MediaList::empty();
-        }
-
-        let window = self.owner_window();
-        let doc = self.owner_document();
-        let url_data = UrlExtraData(window.get_url().get_arc());
-        let context = CssParserContext::new(
-            Origin::Author,
-            &url_data,
-            Some(CssRuleType::Media),
-            ParsingMode::DEFAULT,
-            doc.quirks_mode(),
-            /* namespaces = */ Default::default(),
-            window.css_error_reporter(),
-            None,
-        );
-        let mut input = ParserInput::new(mq_str);
-        MediaList::parse(&context, &mut CssParser::new(&mut input))
+    #[inline]
+    fn create_media_list(&self, mq_str: &str) -> StyleMediaList {
+        MediaList::parse_media_list(mq_str, &self.owner_window())
     }
 
     pub(crate) fn parse_own_css(&self) {
@@ -172,11 +151,12 @@ impl HTMLStyleElement {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
                     &self.owner_window(),
-                    self.upcast::<Element>(),
+                    Some(self.upcast::<Element>()),
                     "text/css".into(),
                     None, // todo handle location
                     None, // todo handle title
                     sheet,
+                    false, // is_constructed
                     CanGc::note(),
                 )
             })
@@ -281,7 +261,7 @@ impl VirtualMethods for HTMLStyleElement {
                 let media = stylesheet.media.write_with(&mut guard);
                 match mutation {
                     AttributeMutation::Set(_) => *media = self.create_media_list(&attr.value()),
-                    AttributeMutation::Removed => *media = MediaList::empty(),
+                    AttributeMutation::Removed => *media = StyleMediaList::empty(),
                 };
                 self.owner_document().invalidate_stylesheets();
             }

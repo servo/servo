@@ -200,8 +200,10 @@ pub(crate) enum InlineItem {
 impl InlineItem {
     pub(crate) fn invalidate_cached_fragment(&self) {
         match self {
-            InlineItem::StartInlineBox(..) | InlineItem::EndInlineBox | InlineItem::TextRun(..) => {
+            InlineItem::StartInlineBox(inline_box) => {
+                inline_box.borrow().base.invalidate_cached_fragment()
             },
+            InlineItem::EndInlineBox | InlineItem::TextRun(..) => {},
             InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
                 positioned_box
                     .borrow()
@@ -216,6 +218,22 @@ impl InlineItem {
                 independent_formatting_context
                     .base
                     .invalidate_cached_fragment();
+            },
+        }
+    }
+
+    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+        match self {
+            InlineItem::StartInlineBox(inline_box) => inline_box.borrow().base.fragments(),
+            InlineItem::EndInlineBox | InlineItem::TextRun(..) => {
+                unreachable!("Should never have these kind of fragments attached to a DOM node")
+            },
+            InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
+                positioned_box.borrow().context.base.fragments()
+            },
+            InlineItem::OutOfFlowFloatBox(float_box) => float_box.contents.base.fragments(),
+            InlineItem::Atomic(independent_formatting_context, ..) => {
+                independent_formatting_context.base.fragments()
             },
         }
     }
@@ -732,6 +750,7 @@ impl InlineFormattingContextLayout<'_> {
         );
 
         self.depends_on_block_constraints |= inline_box
+            .base
             .style
             .depends_on_block_constraints_due_to_relative_positioning(
                 self.containing_block.style.writing_mode,
@@ -1078,8 +1097,8 @@ impl InlineFormattingContextLayout<'_> {
         float_item: &mut FloatLineItem,
         line_inline_size_without_trailing_whitespace: Au,
     ) {
-        let logical_margin_rect_size = float_item
-            .fragment
+        let mut float_fragment = float_item.fragment.borrow_mut();
+        let logical_margin_rect_size = float_fragment
             .margin_rect()
             .size
             .to_logical(self.containing_block.style.writing_mode);
@@ -1103,7 +1122,7 @@ impl InlineFormattingContextLayout<'_> {
         if needs_placement_later {
             self.current_line.has_floats_waiting_to_be_placed = true;
         } else {
-            self.place_float_fragment(&mut float_item.fragment);
+            self.place_float_fragment(&mut float_fragment);
             float_item.needs_placement = false;
         }
 
@@ -1603,7 +1622,7 @@ impl InlineFormattingContext {
                 InlineItem::StartInlineBox(inline_box) => {
                     let inline_box = &mut *inline_box.borrow_mut();
                     if let Some(font) = get_font_for_first_font_for_style(
-                        &inline_box.style,
+                        &inline_box.base.style,
                         &layout_context.font_context,
                     ) {
                         inline_box.default_font_index = Some(add_or_get_font(
@@ -1653,6 +1672,11 @@ impl InlineFormattingContext {
         } else {
             Au::zero()
         };
+
+        // Clear any cached inline fragments from previous layouts.
+        for inline_box in self.inline_boxes.iter() {
+            inline_box.borrow().base.clear_fragments();
+        }
 
         let style = containing_block.style;
 
@@ -2052,6 +2076,10 @@ impl IndependentFormattingContext {
             size.inline,
             SegmentContentFlags::empty(),
         );
+
+        let fragment = ArcRefCell::new(fragment);
+        self.base.set_fragment(Fragment::Box(fragment.clone()));
+
         layout.push_line_item_to_unbreakable_segment(LineItem::Atomic(
             layout.current_inline_box_identifier(),
             AtomicLineItem {
@@ -2128,11 +2156,15 @@ impl IndependentFormattingContext {
 
 impl FloatBox {
     fn layout_into_line_items(&self, layout: &mut InlineFormattingContextLayout) {
-        let fragment = self.layout(
+        let fragment = ArcRefCell::new(self.layout(
             layout.layout_context,
             layout.positioning_context,
             layout.containing_block,
-        );
+        ));
+
+        self.contents
+            .base
+            .set_fragment(Fragment::Box(fragment.clone()));
         layout.push_line_item_to_unbreakable_segment(LineItem::Float(
             layout.current_inline_box_identifier(),
             FloatLineItem {
@@ -2147,7 +2179,7 @@ fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &mu
     for item in line_items.iter_mut() {
         if let LineItem::Float(_, float_line_item) = item {
             if float_line_item.needs_placement {
-                ifc.place_float_fragment(&mut float_line_item.fragment);
+                ifc.place_float_fragment(&mut float_line_item.fragment.borrow_mut());
             }
         }
     }
@@ -2282,8 +2314,8 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         for inline_item in inline_formatting_context.inline_items.iter() {
             self.process_item(&inline_item.borrow(), inline_formatting_context);
         }
-
         self.forced_line_break();
+
         InlineContentSizesResult {
             sizes: self.paragraph,
             depends_on_block_constraints: self.depends_on_block_constraints,
@@ -2309,6 +2341,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     .percentages_relative_to(zero);
                 let border = layout_style.border_width(writing_mode);
                 let margin = inline_box
+                    .base
                     .style
                     .margin(writing_mode)
                     .percentages_relative_to(zero)

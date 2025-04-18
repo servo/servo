@@ -41,7 +41,15 @@ impl ImageData {
         mut data: Option<Vec<u8>>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
-        let len = width * height * 4;
+        // The color components of each pixel must be stored in four sequential
+        // elements in the order of red, green, blue, and then alpha.
+        let len = 4u32
+            .checked_mul(width)
+            .and_then(|v| v.checked_mul(height))
+            .ok_or(Error::Range(
+                "The requested image size exceeds the supported range".to_owned(),
+            ))?;
+
         unsafe {
             let cx = GlobalScope::get_cx();
             rooted!(in (*cx) let mut js_object = ptr::null_mut::<JSObject>());
@@ -119,8 +127,17 @@ impl ImageData {
         if width == 0 || height == 0 {
             return Err(Error::IndexSize);
         }
+
+        // The color components of each pixel must be stored in four sequential
+        // elements in the order of red, green, blue, and then alpha.
+        // Please note when a too-large ImageData is created using a constructor
+        // historically throwns an IndexSizeError, instead of RangeError.
+        let len = 4u32
+            .checked_mul(width)
+            .and_then(|v| v.checked_mul(height))
+            .ok_or(Error::IndexSize)?;
+
         let cx = GlobalScope::get_cx();
-        let len = width * height * 4;
 
         let heap_typed_array = match new_initialized_heap_buffer_source::<ClampedU8>(
             HeapTypedArrayInit::Info { len, cx },
@@ -173,7 +190,7 @@ impl ImageData {
 }
 
 impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
-    /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3>
+    /// <https://html.spec.whatwg.org/multipage/#dom-imagedata>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -184,7 +201,7 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
         Self::new_without_jsobject(global, proto, width, height, can_gc)
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4>
+    /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-with-data>
     fn Constructor_(
         _cx: JSContext,
         global: &GlobalScope,

@@ -41,7 +41,9 @@ use constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScriptToConstellationChan,
     ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
 };
+use content_security_policy::{self as csp};
 use crossbeam_channel::unbounded;
+use data_url::mime::Mime;
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
@@ -67,7 +69,6 @@ use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
-use mime::{self, Mime};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
@@ -77,7 +78,7 @@ use net_traits::{
     ResourceFetchTiming, ResourceThreads, ResourceTimingType,
 };
 use percent_encoding::percent_decode;
-use profile_traits::mem::{ProcessReports, ReportsChan};
+use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use script_layout_interface::{
@@ -144,6 +145,7 @@ use crate::messaging::{
     ScriptThreadReceivers, ScriptThreadSenders,
 };
 use crate::microtask::{Microtask, MicrotaskQueue};
+use crate::mime::{APPLICATION, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
@@ -2251,6 +2253,14 @@ impl ScriptThread {
             WebDriverScriptCommand::GetActiveElement(reply) => {
                 webdriver_handlers::handle_get_active_element(&documents, pipeline_id, reply)
             },
+            WebDriverScriptCommand::GetComputedRole(node_id, reply) => {
+                webdriver_handlers::handle_get_computed_role(
+                    &documents,
+                    pipeline_id,
+                    node_id,
+                    reply,
+                )
+            },
             WebDriverScriptCommand::GetPageSource(reply) => {
                 webdriver_handlers::handle_get_page_source(&documents, pipeline_id, reply, can_gc)
             },
@@ -2425,10 +2435,19 @@ impl ScriptThread {
         let documents = self.documents.borrow();
         let urls = itertools::join(documents.iter().map(|(_, d)| d.url().to_string()), ", ");
 
-        let mut reports = self.get_cx().get_reports(format!("url({})", urls));
-        for (_, document) in documents.iter() {
-            document.window().layout().collect_reports(&mut reports);
-        }
+        let mut reports = vec![];
+        perform_memory_report(|ops| {
+            let prefix = format!("url({urls})");
+            reports.extend(self.get_cx().get_reports(prefix.clone(), ops));
+            for (_, document) in documents.iter() {
+                document
+                    .window()
+                    .layout()
+                    .collect_reports(&mut reports, ops);
+            }
+
+            reports.push(self.image_cache.memory_report(&prefix, ops));
+        });
 
         reports_chan.send(ProcessReports::new(reports));
     }
@@ -3154,20 +3173,17 @@ impl ScriptThread {
             Some(final_url.clone()),
         );
 
-        let content_type: Option<Mime> =
-            metadata.content_type.map(Serde::into_inner).map(Into::into);
+        let content_type: Option<Mime> = metadata
+            .content_type
+            .map(Serde::into_inner)
+            .map(Mime::from_ct);
 
         let is_html_document = match content_type {
-            Some(ref mime)
-                if mime.type_() == mime::APPLICATION && mime.suffix() == Some(mime::XML) =>
-            {
+            Some(ref mime) if mime.type_ == APPLICATION && mime.has_suffix("xml") => {
                 IsHTMLDocument::NonHTMLDocument
             },
 
-            Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
-            {
+            Some(ref mime) if mime.matches(TEXT, XML) || mime.matches(APPLICATION, XML) => {
                 IsHTMLDocument::NonHTMLDocument
             },
             _ => IsHTMLDocument::HTMLDocument,
@@ -3420,8 +3436,11 @@ impl ScriptThread {
             FetchResponseMsg::ProcessResponseEOF(request_id, eof) => {
                 self.handle_fetch_eof(pipeline_id, request_id, eof)
             },
-            FetchResponseMsg::ProcessRequestBody(..) => {},
-            FetchResponseMsg::ProcessRequestEOF(..) => {},
+            FetchResponseMsg::ProcessCspViolations(request_id, violations) => {
+                self.handle_csp_violations(pipeline_id, request_id, violations)
+            },
+            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
+            },
         }
     }
 
@@ -3474,6 +3493,12 @@ impl ScriptThread {
         if let Some(idx) = idx {
             let (_, mut ctxt) = self.incomplete_parser_contexts.0.borrow_mut().remove(idx);
             ctxt.process_response_eof(request_id, eof);
+        }
+    }
+
+    fn handle_csp_violations(&self, id: PipelineId, _: RequestId, violations: Vec<csp::Violation>) {
+        if let Some(global) = self.documents.borrow().find_global(id) {
+            global.report_csp_violations(violations);
         }
     }
 

@@ -108,6 +108,7 @@ export class TestCaseRecorder {
   }
 
   info(ex) {
+    return;
     // We need this to use the lowest LogSeverity so it doesn't override the current severity for this test case.
     this.logImpl(LogSeverity.NotRun, 'INFO', ex);
   }

@@ -14,7 +14,6 @@ use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vec
 use keyboard_types::{Modifiers, ShortcutMatcher};
 use log::{debug, info};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
-use servo::compositing::windowing::{WebRenderDebugOption, WindowMethods};
 use servo::servo_config::pref;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
@@ -22,8 +21,8 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
 use servo::{
     Cursor, ImeEvent, InputEvent, Key, KeyState, KeyboardEvent, MouseButton as ServoMouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, OffscreenRenderingContext,
-    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, WebView,
-    WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
+    RenderingContext, ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId,
+    WebRenderDebugOption, WebView, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
 };
 use surfman::{Context, Device};
 use url::Url;
@@ -252,7 +251,7 @@ impl Window {
 
     /// Helper function to handle a click
     fn handle_mouse(&self, webview: &WebView, button: MouseButton, action: ElementState) {
-        let max_pixel_dist = 10.0 * self.hidpi_factor().get();
+        let max_pixel_dist = 10.0 * self.hidpi_scale_factor().get();
         let mouse_button = match &button {
             MouseButton::Left => ServoMouseButton::Left,
             MouseButton::Right => ServoMouseButton::Right,
@@ -443,8 +442,11 @@ impl Window {
 
 impl WindowPortsMethods for Window {
     fn screen_geometry(&self) -> ScreenGeometry {
-        let hidpi_factor = self.hidpi_factor();
-        let toolbar_size = Size2D::new(0.0, (self.toolbar_height.get() * self.hidpi_factor()).0);
+        let hidpi_factor = self.hidpi_scale_factor();
+        let toolbar_size = Size2D::new(
+            0.0,
+            (self.toolbar_height.get() * self.hidpi_scale_factor()).0,
+        );
 
         let screen_size = self.screen_size.to_f32() * hidpi_factor;
         let available_screen_size = screen_size - toolbar_size;
@@ -462,18 +464,18 @@ impl WindowPortsMethods for Window {
         }
     }
 
-    fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+    fn device_hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         Scale::new(self.winit_window.scale_factor() as f32)
     }
 
-    fn device_pixel_ratio_override(
-        &self,
-    ) -> Option<Scale<f32, DeviceIndependentPixel, DevicePixel>> {
-        self.device_pixel_ratio_override.map(Scale::new)
+    fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
+        self.device_pixel_ratio_override
+            .map(Scale::new)
+            .unwrap_or_else(|| self.device_hidpi_scale_factor())
     }
 
     fn page_height(&self) -> f32 {
-        let dpr = self.hidpi_factor();
+        let dpr = self.hidpi_scale_factor();
         let size = self.winit_window.inner_size();
         size.height as f32 * dpr.get()
     }
@@ -483,7 +485,7 @@ impl WindowPortsMethods for Window {
     }
 
     fn request_resize(&self, _: &WebView, size: DeviceIntSize) -> Option<DeviceIntSize> {
-        let toolbar_height = self.toolbar_height() * self.hidpi_factor();
+        let toolbar_height = self.toolbar_height() * self.hidpi_scale_factor();
         let toolbar_height = toolbar_height.get().ceil() as i32;
         let total_size = PhysicalSize::new(size.width, size.height + toolbar_height);
         self.winit_window
@@ -587,7 +589,7 @@ impl WindowPortsMethods for Window {
             },
             WindowEvent::CursorMoved { position, .. } => {
                 let mut point = winit_position_to_euclid_point(position).to_f32();
-                point.y -= (self.toolbar_height() * self.hidpi_factor()).0;
+                point.y -= (self.toolbar_height() * self.hidpi_scale_factor()).0;
 
                 self.webview_relative_mouse_point.set(point);
                 webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
@@ -598,7 +600,7 @@ impl WindowPortsMethods for Window {
                         (dx as f64, (dy * LINE_HEIGHT) as f64, WheelMode::DeltaLine)
                     },
                     MouseScrollDelta::PixelDelta(position) => {
-                        let scale_factor = self.device_hidpi_factor().inverse().get() as f64;
+                        let scale_factor = self.device_hidpi_scale_factor().inverse().get() as f64;
                         let position = position.to_logical(scale_factor);
                         (position.x, position.y, WheelMode::DeltaPixel)
                     },
@@ -728,7 +730,7 @@ impl WindowPortsMethods for Window {
         // this prevents a crash in the compositor due to invalid surface size
         self.winit_window.set_min_inner_size(Some(PhysicalSize::new(
             1.0,
-            1.0 + (self.toolbar_height() * self.hidpi_factor()).0,
+            1.0 + (self.toolbar_height() * self.hidpi_scale_factor()).0,
         )));
     }
 
@@ -758,13 +760,6 @@ impl WindowPortsMethods for Window {
 
     fn hide_ime(&self) {
         self.winit_window.set_ime_allowed(false);
-    }
-}
-
-impl WindowMethods for Window {
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.device_pixel_ratio_override()
-            .unwrap_or_else(|| self.device_hidpi_factor())
     }
 }
 

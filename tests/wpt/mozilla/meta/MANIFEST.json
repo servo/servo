@@ -16,8 +16,22 @@
       {}
      ]
     ],
+    "global-enumerate-crash.html": [
+     "a77e79b1465bf7555340dd5e9bf94a4c8caa85f2",
+     [
+      null,
+      {}
+     ]
+    ],
     "iframe_focus-crash.html": [
      "f991b1a563f3cc44870640ab194708fa239ad89d",
+     [
+      null,
+      {}
+     ]
+    ],
+    "location-set-crash.html": [
+     "0b1695df79b0437fb644bfcb3ef09bc0eb906f1e",
      [
       null,
       {}
@@ -13503,14 +13517,14 @@
      ]
     ],
     "interfaces.https.html": [
-     "fbbffae39a346f592fabfe5ad3d943936a51c868",
+     "76d746b0663ed73865816e678c2536eceff31f2d",
      [
       null,
       {}
      ]
     ],
     "interfaces.worker.js": [
-     "d028090d6a8e6637f5251d2a578e905751f88bf7",
+     "8af942c0f99218fb39770cdcf299eaa230339010",
      [
       "mozilla/interfaces.worker.html",
       {}

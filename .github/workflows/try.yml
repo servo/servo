@@ -108,6 +108,7 @@ jobs:
       unit-tests: ${{ matrix.unit_tests }}
       build-libservo: ${{ matrix.build_libservo }}
       wpt-args: ${{ matrix.wpt_args }}
+      number-of-wpt-chunks: ${{ matrix.number_of_wpt_chunks }}
       bencher: ${{ matrix.bencher }}
 
   build-result:

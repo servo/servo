@@ -91,23 +91,25 @@ pub(crate) enum BlockLevelBox {
 
 impl BlockLevelBox {
     pub(crate) fn invalidate_cached_fragment(&self) {
+        self.with_base(LayoutBoxBase::invalidate_cached_fragment);
+    }
+
+    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+        self.with_base(LayoutBoxBase::fragments)
+    }
+
+    pub(crate) fn with_base<T>(&self, callback: impl Fn(&LayoutBoxBase) -> T) -> T {
         match self {
             BlockLevelBox::Independent(independent_formatting_context) => {
-                &independent_formatting_context.base
+                callback(&independent_formatting_context.base)
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
-                positioned_box
-                    .borrow()
-                    .context
-                    .base
-                    .invalidate_cached_fragment();
-                return;
+                callback(&positioned_box.borrow().context.base)
             },
-            BlockLevelBox::OutOfFlowFloatBox(float_box) => &float_box.contents.base,
-            BlockLevelBox::OutsideMarker(outside_marker) => &outside_marker.base,
-            BlockLevelBox::SameFormattingContextBlock { base, .. } => base,
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => callback(&float_box.contents.base),
+            BlockLevelBox::OutsideMarker(outside_marker) => callback(&outside_marker.base),
+            BlockLevelBox::SameFormattingContextBlock { base, .. } => callback(base),
         }
-        .invalidate_cached_fragment();
     }
 
     fn contains_floats(&self) -> bool {
@@ -770,7 +772,7 @@ impl BlockLevelBox {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     ) -> Fragment {
-        match self {
+        let fragment = match self {
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => Fragment::Box(
                 ArcRefCell::new(positioning_context.layout_maybe_position_relative_fragment(
                     layout_context,
@@ -836,7 +838,11 @@ impl BlockLevelBox {
                 sequential_layout_state,
                 collapsible_with_parent_start_margin,
             ),
-        }
+        };
+
+        self.with_base(|base| base.set_fragment(fragment.clone()));
+
+        fragment
     }
 
     fn inline_content_sizes(

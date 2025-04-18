@@ -27,7 +27,7 @@ use constellation_traits::{
     ScriptToConstellationMessage, ScrollState, StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::{Sender, unbounded};
-use cssparser::{Parser, ParserInput, SourceLocation};
+use cssparser::SourceLocation;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
@@ -74,15 +74,13 @@ use servo_geometry::{DeviceIndependentIntRect, MaxRect, f32_rect_to_au_rect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
-use style::media_queries;
-use style::parser::ParserContext as CssParserContext;
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
-use style_traits::{CSSPixel, ParsingMode};
+use style::stylesheets::UrlExtraData;
+use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use url::Position;
 use webrender_api::units::{DevicePixel, LayoutPixel};
@@ -133,6 +131,7 @@ use crate::dom::history::History;
 use crate::dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::location::Location;
+use crate::dom::medialist::MediaList;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
 use crate::dom::messageevent::MessageEvent;
@@ -1457,21 +1456,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-matchmedia
     fn MatchMedia(&self, query: DOMString) -> DomRoot<MediaQueryList> {
-        let mut input = ParserInput::new(&query);
-        let mut parser = Parser::new(&mut input);
-        let url_data = UrlExtraData(self.get_url().get_arc());
-        let quirks_mode = self.Document().quirks_mode();
-        let context = CssParserContext::new(
-            Origin::Author,
-            &url_data,
-            Some(CssRuleType::Media),
-            ParsingMode::DEFAULT,
-            quirks_mode,
-            /* namespaces = */ Default::default(),
-            self.css_error_reporter(),
-            None,
-        );
-        let media_query_list = media_queries::MediaList::parse(&context, &mut parser);
+        let media_query_list = MediaList::parse_media_list(&query, self);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list, CanGc::note());
         self.media_query_lists.track(&*mql);

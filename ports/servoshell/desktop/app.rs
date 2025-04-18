@@ -11,20 +11,14 @@ use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
-use euclid::Scale;
+use ::servo::ServoBuilder;
 use log::{info, trace, warn};
-use servo::compositing::windowing::WindowMethods;
+use net::protocols::ProtocolRegistry;
+use servo::EventLoopWaker;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
-use servo::servo_config::pref;
-use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
-use servo::webrender_api::units::DevicePixel;
-use servo::webxr::glwindow::GlWindowDiscovery;
-#[cfg(target_os = "windows")]
-use servo::webxr::openxr::{AppInfo, OpenXrDiscovery};
-use servo::{EventLoopWaker, Servo};
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -36,8 +30,9 @@ use super::events_loop::{EventsLoop, WakerEvent};
 use super::minibrowser::{Minibrowser, MinibrowserEvent};
 use super::{headed_window, headless_window};
 use crate::desktop::app_state::RunningAppState;
-use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
+use crate::desktop::protocols;
 use crate::desktop::tracing::trace_winit_event;
+use crate::desktop::webxr::XrDiscoveryWebXrRegistry;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::{get_default_url, location_bar_input_to_url};
 use crate::prefs::ServoShellPreferences;
@@ -119,35 +114,6 @@ impl App {
         self.suspended.set(false);
         let (_, window) = self.windows.iter().next().unwrap();
 
-        let xr_discovery = if pref!(dom_webxr_openxr_enabled) && !headless {
-            #[cfg(target_os = "windows")]
-            let openxr = {
-                let app_info = AppInfo::new("Servoshell", 0, "Servo", 0);
-                Some(XrDiscovery::OpenXr(OpenXrDiscovery::new(None, app_info)))
-            };
-            #[cfg(not(target_os = "windows"))]
-            let openxr = None;
-
-            openxr
-        } else if pref!(dom_webxr_glwindow_enabled) && !headless {
-            let window = window.new_glwindow(event_loop.unwrap());
-            Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(window)))
-        } else {
-            None
-        };
-
-        // Implements embedder methods, used by libservo and constellation.
-        let embedder = Box::new(EmbedderCallbacks::new(self.waker.clone(), xr_discovery));
-
-        // TODO: Remove this once dyn upcasting coercion stabilises
-        // <https://github.com/rust-lang/rust/issues/65991>
-        struct UpcastedWindow(Rc<dyn WindowPortsMethods>);
-        impl WindowMethods for UpcastedWindow {
-            fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-                self.0.hidpi_factor()
-            }
-        }
-
         let mut user_content_manager = UserContentManager::new();
         for script in load_userscripts(self.servoshell_preferences.userscripts_directory.as_deref())
             .expect("Loading userscripts failed")
@@ -155,14 +121,32 @@ impl App {
             user_content_manager.add_script(script);
         }
 
-        let servo = Servo::new(
-            self.opts.clone(),
-            self.preferences.clone(),
-            window.rendering_context(),
-            embedder,
-            Rc::new(UpcastedWindow(window.clone())),
-            user_content_manager,
+        let mut protocol_registry = ProtocolRegistry::default();
+        protocol_registry.register(
+            "urlinfo",
+            protocols::urlinfo::UrlInfoProtocolHander::default(),
         );
+        protocol_registry.register("servo", protocols::servo::ServoProtocolHandler::default());
+        protocol_registry.register(
+            "resource",
+            protocols::resource::ResourceProtocolHandler::default(),
+        );
+
+        let servo_builder = ServoBuilder::new(window.rendering_context())
+            .opts(self.opts.clone())
+            .preferences(self.preferences.clone())
+            .user_content_manager(user_content_manager)
+            .protocol_registry(protocol_registry)
+            .event_loop_waker(self.waker.clone());
+
+        #[cfg(feature = "webxr")]
+        let servo_builder = servo_builder.webxr_registry(XrDiscoveryWebXrRegistry::new_boxed(
+            window.clone(),
+            event_loop,
+            &self.preferences,
+        ));
+
+        let servo = servo_builder.build();
         servo.setup_logging();
 
         let running_state = Rc::new(RunningAppState::new(
@@ -358,7 +342,7 @@ impl ApplicationHandler<WakerEvent> for App {
                     // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
                     // we can use our own logic for calculating the scale factor and set egui’s
                     // scale factor to that value manually.
-                    let desired_scale_factor = window.hidpi_factor().get();
+                    let desired_scale_factor = window.hidpi_scale_factor().get();
                     let effective_egui_zoom_factor = desired_scale_factor / scale_factor as f32;
 
                     info!(
@@ -370,6 +354,8 @@ impl ApplicationHandler<WakerEvent> for App {
                         .context
                         .egui_ctx
                         .set_zoom_factor(effective_egui_zoom_factor);
+
+                    state.hidpi_scale_factor_changed();
 
                     // Request a winit redraw event, so we can recomposite, update and paint
                     // the minibrowser, and present the new frame.

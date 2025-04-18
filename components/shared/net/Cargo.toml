@@ -32,6 +32,7 @@ mime = { workspace = true }
 num-traits = { workspace = true }
 percent-encoding = { workspace = true }
 pixels = { path = "../../pixels" }
+profile_traits = { path = "../profile" }
 rustls-pki-types = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
@@ -39,3 +40,6 @@ servo_rand = { path = "../../rand" }
 servo_url = { path = "../../url" }
 url = { workspace = true }
 uuid = { workspace = true }
+
+[dev-dependencies]
+embedder_traits = { workspace = true, features = ["baked-default-resources"] }

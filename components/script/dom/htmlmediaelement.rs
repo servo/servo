@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 use std::{f64, mem};
 
 use compositing_traits::{CrossProcessCompositorApi, ImageUpdate, SerializableImageData};
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource as EmbedderResource};
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
@@ -28,6 +29,7 @@ use net_traits::{
     ResourceTimingType,
 };
 use pixels::Image;
+use script_bindings::codegen::GenericBindings::TimeRangesBinding::TimeRangesMethods;
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
 };
@@ -892,15 +894,17 @@ impl HTMLMediaElement {
         };
 
         let cors_setting = cors_setting_for_element(self.upcast());
+        let global = self.global();
         let request = create_a_potential_cors_request(
             Some(document.webview_id()),
             url.clone(),
             destination,
             cors_setting,
             None,
-            self.global().get_referrer(),
+            global.get_referrer(),
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
+            global.policy_container(),
         )
         .headers(headers)
         .origin(document.origin().immutable().clone())
@@ -1274,15 +1278,40 @@ impl HTMLMediaElement {
         let time = f64::max(time, 0.);
 
         // Step 8.
-        // XXX(ferjm) seekable attribute: we need to get the information about
-        //            what's been decoded and buffered so far from servo-media
-        //            and add the seekable attribute as a TimeRange.
-        if let Some(ref current_fetch_context) = *self.current_fetch_context.borrow() {
-            if !current_fetch_context.is_seekable() {
-                self.seeking.set(false);
-                return;
+        let seekable = self.Seekable();
+        if seekable.Length() == 0 {
+            self.seeking.set(false);
+            return;
+        }
+        let mut nearest_seekable_position = 0.0;
+        let mut in_seekable_range = false;
+        let mut nearest_seekable_distance = f64::MAX;
+        for i in 0..seekable.Length() {
+            let start = seekable.Start(i).unwrap().abs();
+            let end = seekable.End(i).unwrap().abs();
+            if time >= start && time <= end {
+                nearest_seekable_position = time;
+                in_seekable_range = true;
+                break;
+            } else if time < start {
+                let distance = start - time;
+                if distance < nearest_seekable_distance {
+                    nearest_seekable_distance = distance;
+                    nearest_seekable_position = start;
+                }
+            } else {
+                let distance = time - end;
+                if distance < nearest_seekable_distance {
+                    nearest_seekable_distance = distance;
+                    nearest_seekable_position = end;
+                }
             }
         }
+        let time = if in_seekable_range {
+            time
+        } else {
+            nearest_seekable_position
+        };
 
         // Step 9.
         // servo-media with gstreamer does not support inaccurate seeking for now.
@@ -2399,6 +2428,19 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         )
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-media-seekable
+    fn Seekable(&self) -> DomRoot<TimeRanges> {
+        let mut seekable = TimeRangesContainer::default();
+        if let Some(ref player) = *self.player.borrow() {
+            if let Ok(ranges) = player.lock().unwrap().seekable() {
+                for range in ranges {
+                    let _ = seekable.add(range.start, range.end);
+                }
+            }
+        }
+        TimeRanges::new(self.global().as_window(), seekable, CanGc::note())
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-media-buffered
     fn Buffered(&self) -> DomRoot<TimeRanges> {
         let mut buffered = TimeRangesContainer::default();
@@ -2902,6 +2944,11 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
     }
 }
 

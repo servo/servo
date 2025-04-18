@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::{char, mem};
 
 use app_units::{AU_PER_PX, Au};
+use content_security_policy as csp;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
@@ -294,6 +295,11 @@ impl FetchResponseListener for ImageContext {
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
     }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
+    }
 }
 
 impl ResourceTimingListener for ImageContext {
@@ -416,15 +422,17 @@ impl HTMLImageElement {
 
         // https://html.spec.whatwg.org/multipage/#update-the-image-data steps 17-20
         // This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
+        let global = document.global();
         let mut request = create_a_potential_cors_request(
             Some(window.webview_id()),
             img_url.clone(),
             Destination::Image,
             cors_setting_for_element(self.upcast()),
             None,
-            document.global().get_referrer(),
+            global.get_referrer(),
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
+            global.policy_container(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(document.global().pipeline_id()))

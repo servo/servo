@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 
-use base::id::{BlobId, DomPointId, MessagePortId};
+use base::id::{BlobId, DomExceptionId, DomPointId, MessagePortId};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::filemanager_thread::RelativePos;
@@ -177,6 +177,8 @@ pub struct StructuredSerializedData {
     pub blobs: Option<HashMap<BlobId, BlobImpl>>,
     /// Serialized point objects.
     pub points: Option<HashMap<DomPointId, DomPoint>>,
+    /// Serialized exception objects.
+    pub exceptions: Option<HashMap<DomExceptionId, DomException>>,
     /// Transferred objects.
     pub ports: Option<HashMap<MessagePortId, MessagePortImpl>>,
 }
@@ -205,6 +207,8 @@ pub enum Serializable {
     DomPoint,
     /// The `DOMPointReadOnly` interface.
     DomPointReadOnly,
+    /// The `DOMException` interface.
+    DomException,
 }
 
 impl Serializable {
@@ -215,6 +219,9 @@ impl Serializable {
                 StructuredSerializedData::clone_all_of_type::<DomPoint>
             },
             Serializable::DomPoint => StructuredSerializedData::clone_all_of_type::<DomPoint>,
+            Serializable::DomException => {
+                StructuredSerializedData::clone_all_of_type::<DomException>
+            },
         }
     }
 }
@@ -224,6 +231,10 @@ impl Serializable {
 pub enum Transferrable {
     /// The `MessagePort` interface.
     MessagePort,
+    /// The `ReadableStream` interface.
+    ReadableStream,
+    /// The `WritableStream` interface.
+    WritableStream,
 }
 
 impl StructuredSerializedData {
@@ -233,6 +244,8 @@ impl StructuredSerializedData {
         }
         match val {
             Transferrable::MessagePort => is_field_empty(&self.ports),
+            Transferrable::ReadableStream => is_field_empty(&self.ports),
+            Transferrable::WritableStream => is_field_empty(&self.ports),
         }
     }
 
@@ -291,6 +304,7 @@ pub struct PortMessageTask {
 
 /// Messages for communication between the constellation and a global managing ports.
 #[derive(Debug, Deserialize, Serialize)]
+#[allow(clippy::large_enum_variant)]
 pub enum MessagePortMsg {
     /// Complete the transfer for a batch of ports.
     CompleteTransfer(HashMap<MessagePortId, VecDeque<PortMessageTask>>),
@@ -517,6 +531,33 @@ impl BroadcastClone for DomPoint {
         data: &mut StructuredSerializedData,
     ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
         &mut data.points
+    }
+
+    fn clone_for_broadcast(&self) -> Option<Self> {
+        Some(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// A serializable version of the DOMException interface.
+pub struct DomException {
+    pub message: String,
+    pub name: String,
+}
+
+impl BroadcastClone for DomException {
+    type Id = DomExceptionId;
+
+    fn source(
+        data: &StructuredSerializedData,
+    ) -> &Option<std::collections::HashMap<Self::Id, Self>> {
+        &data.exceptions
+    }
+
+    fn destination(
+        data: &mut StructuredSerializedData,
+    ) -> &mut Option<std::collections::HashMap<Self::Id, Self>> {
+        &mut data.exceptions
     }
 
     fn clone_for_broadcast(&self) -> Option<Self> {

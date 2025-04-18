@@ -14,6 +14,9 @@ on:
       wpt:
         required: true
         type: boolean
+      number-of-wpt-chunks:
+        required: true
+        type: number
       unit-tests:
         required: true
         type: boolean
@@ -57,6 +60,7 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       wpt: ${{ inputs.wpt }}
+      number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
       unit-tests: ${{ inputs.unit-tests }}
       build-libservo: ${{ inputs.build-libservo }}
       wpt-args: ${{ inputs.wpt-args }}

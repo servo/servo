@@ -10,19 +10,19 @@ use std::slice;
 use js::conversions::ToJSValConvertible;
 use js::gc::Handle;
 use js::glue::{
-    CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, JS_GetReservedSlot,
+    AppendToIdVector, CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, JS_GetReservedSlot,
     RUST_FUNCTION_VALUE_TO_JITINFO,
 };
 use js::jsapi::{
     AtomToLinearString, CallArgs, ExceptionStackBehavior, GetLinearStringCharAt,
     GetLinearStringLength, GetNonCCWObjectGlobal, HandleId as RawHandleId,
-    HandleObject as RawHandleObject, Heap, JS_ClearPendingException,
-    JS_DeprecatedStringHasLatin1Chars, JS_EnumerateStandardClasses,
-    JS_GetLatin1StringCharsAndLength, JS_IsExceptionPending, JS_IsGlobalObject,
-    JS_ResolveStandardClass, JSAtom, JSContext, JSJitInfo, JSObject, JSTracer,
-    MutableHandleIdVector as RawMutableHandleIdVector, MutableHandleValue as RawMutableHandleValue,
-    ObjectOpResult, StringIsArrayIndex,
+    HandleObject as RawHandleObject, Heap, JS_AtomizeStringN, JS_ClearPendingException,
+    JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength, JS_IsExceptionPending,
+    JS_IsGlobalObject, JS_NewEnumerateStandardClasses, JS_ResolveStandardClass, JSAtom, JSContext,
+    JSJitInfo, JSObject, JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
+    MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex,
 };
+use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{
     CallOriginalPromiseReject, JS_DeletePropertyById, JS_ForwardGetPropertyTo,
@@ -293,7 +293,7 @@ pub unsafe fn get_dictionary_property(
 /// # Safety
 /// `cx` must point to a valid, non-null JSContext.
 #[allow(clippy::result_unit_err)]
-pub(crate) unsafe fn set_dictionary_property(
+pub unsafe fn set_dictionary_property(
     cx: *mut JSContext,
     object: HandleObject,
     property: &str,
@@ -576,18 +576,36 @@ impl AsCCharPtrPtr for [u8] {
 }
 
 /// Enumerate lazy properties of a global object.
+/// Modeled after <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/bindings/BindingUtils.cpp#L2814>
+/// and <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/base/nsGlobalWindowInner.cpp#3297>
 pub(crate) unsafe extern "C" fn enumerate_global<D: DomTypes>(
     cx: *mut JSContext,
     obj: RawHandleObject,
-    _props: RawMutableHandleIdVector,
-    _enumerable_only: bool,
+    props: RawMutableHandleIdVector,
+    enumerable_only: bool,
 ) -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
-    if !JS_EnumerateStandardClasses(cx, obj) {
+    if !JS_NewEnumerateStandardClasses(cx, obj, props, enumerable_only) {
         return false;
     }
-    for init_fun in <D as DomHelpers<D>>::interface_map().values() {
-        init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
+
+    if enumerable_only {
+        // All WebIDL interface names are defined as non-enumerable, so there's
+        // no point in checking them if we're only returning enumerable names.
+        return true;
+    }
+
+    let cx = SafeJSContext::from_ptr(cx);
+    let obj = Handle::from_raw(obj);
+    for (name, interface) in <D as DomHelpers<D>>::interface_map() {
+        if !(interface.enabled)(cx, obj) {
+            continue;
+        }
+        let s = JS_AtomizeStringN(*cx, name.as_c_char_ptr(), name.len());
+        rooted!(in(*cx) let id = StringId(s));
+        if s.is_null() || !AppendToIdVector(props, id.handle().into()) {
+            return false;
+        }
     }
     true
 }
@@ -621,8 +639,8 @@ pub(crate) unsafe extern "C" fn resolve_global<D: DomTypes>(
     assert!(!ptr.is_null());
     let bytes = slice::from_raw_parts(ptr, length);
 
-    if let Some(init_fun) = <D as DomHelpers<D>>::interface_map().get(bytes) {
-        init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
+    if let Some(interface) = <D as DomHelpers<D>>::interface_map().get(bytes) {
+        (interface.define)(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
         *rval = true;
     } else {
         *rval = false;

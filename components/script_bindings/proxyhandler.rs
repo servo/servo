@@ -565,13 +565,18 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
         return false;
     }
 
+    let own_desc_handle = own_desc.handle().into();
     js::jsapi::SetPropertyIgnoringNamedGetter(
         *cx,
         proxy,
         id,
         v,
         receiver,
-        own_desc.handle().into(),
+        if is_none {
+            ptr::null()
+        } else {
+            &own_desc_handle
+        },
         result,
     )
 }

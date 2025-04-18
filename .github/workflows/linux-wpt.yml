@@ -13,6 +13,10 @@ on:
         default: false
         required: false
         type: boolean
+      number-of-wpt-chunks:
+        default: 20
+        required: false
+        type: number
 
 env:
   RUST_BACKTRACE: 1
@@ -24,15 +28,25 @@ env:
   WPT_ALWAYS_SUCCEED_ARG: "${{ inputs.wpt-sync-from-upstream && '--always-succeed' || '' }}"
 
 jobs:
+  chunks:
+    name: Generate chunks array
+    runs-on: ubuntu-22.04
+    outputs:
+      chunks-array: ${{ steps.generate-chunks-array.outputs.result }}
+    steps:
+      - uses: actions/github-script@v7
+        id: generate-chunks-array
+        with:
+          script: |
+            return Array.from({length: ${{ inputs.number-of-wpt-chunks }}}, (_, i) => i + 1)
   linux-wpt:
     name: WPT
     runs-on: ubuntu-22.04
-    env:
-      max_chunk_id: 20
+    needs: chunks
     strategy:
       fail-fast: false
       matrix:
-        chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        chunk_id: ${{ fromJson(needs.chunks.outputs.chunks-array) }}
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
@@ -66,7 +80,7 @@ jobs:
           ./mach test-wpt \
             $WPT_ALWAYS_SUCCEED_ARG \
             --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
-            --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
+            --total-chunks ${{ inputs.number-of-wpt-chunks }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/linux/raw/${{ matrix.chunk_id }}.log \
             --log-wptreport wpt-full-logs/linux/wptreport/${{ matrix.chunk_id }}.json \
             --log-raw-unexpected wpt-filtered-logs/linux/${{ matrix.chunk_id }}.log \

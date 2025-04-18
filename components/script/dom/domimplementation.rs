@@ -92,10 +92,12 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         let namespace = namespace_from_domstring(maybe_namespace.to_owned());
 
         let content_type = match namespace {
-            ns!(html) => "application/xhtml+xml".parse().unwrap(),
-            ns!(svg) => mime::IMAGE_SVG,
-            _ => "application/xml".parse().unwrap(),
-        };
+            ns!(html) => "application/xhtml+xml",
+            ns!(svg) => "image/svg+xml",
+            _ => "application/xml",
+        }
+        .parse()
+        .unwrap();
 
         // Step 1.
         let doc = XMLDocument::new(

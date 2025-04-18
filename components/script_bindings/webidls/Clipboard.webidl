@@ -2,7 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://w3c.github.io/clipboard-apis/#clipboard-item-interface
+// https://w3c.github.io/clipboard-apis
+
+typedef sequence<ClipboardItem> ClipboardItems;
+
+[SecureContext, Exposed=Window, Pref="dom_async_clipboard_enabled"]
+interface Clipboard : EventTarget {
+  // Promise<ClipboardItems> read();
+  // Promise<DOMString> readText();
+  // Promise<undefined> write(ClipboardItems data);
+  Promise<undefined> writeText(DOMString data);
+};
 
 typedef Promise<(DOMString or Blob)> ClipboardItemData;
 

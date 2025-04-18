@@ -19,3 +19,8 @@ pub type MainThreadRegistry = webxr_api::MainThreadRegistry<surfman_layer_manage
 pub type Discovery = Box<dyn webxr_api::DiscoveryAPI<SurfmanGL>>;
 
 pub(crate) mod gl_utils;
+
+pub trait WebXrRegistry {
+    /// Register services with a WebXR Registry.
+    fn register(&self, _: &mut MainThreadRegistry) {}
+}

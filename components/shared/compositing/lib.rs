@@ -7,6 +7,7 @@
 use std::fmt::{Debug, Error, Formatter};
 
 use base::id::{PipelineId, WebViewId};
+use crossbeam_channel::Sender;
 use embedder_traits::{
     AnimationState, EventLoopWaker, MouseButton, MouseButtonAction, TouchEventResult,
 };
@@ -28,6 +29,7 @@ use display_list::CompositorDisplayListInfo;
 use embedder_traits::{CompositorHitTestResult, ScreenGeometry};
 use euclid::default::Size2D as UntypedSize2D;
 use ipc_channel::ipc::{self, IpcSharedMemory};
+use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
 use webrender_api::units::{DevicePoint, LayoutPoint, TexelRect};
@@ -41,8 +43,18 @@ use webrender_api::{
 /// Sends messages to the compositor.
 #[derive(Clone)]
 pub struct CompositorProxy {
-    pub sender: IpcSender<CompositorMsg>,
+    pub sender: Sender<CompositorMsg>,
+    /// Access to [`Self::sender`] that is possible to send across an IPC
+    /// channel. These messages are routed via the router thread to
+    /// [`Self::sender`].
+    pub cross_process_compositor_api: CrossProcessCompositorApi,
     pub event_loop_waker: Box<dyn EventLoopWaker>,
+}
+
+impl OpaqueSender<CompositorMsg> for CompositorProxy {
+    fn send(&self, message: CompositorMsg) {
+        CompositorProxy::send(self, message)
+    }
 }
 
 impl CompositorProxy {
@@ -51,10 +63,6 @@ impl CompositorProxy {
             warn!("Failed to send response ({:?}).", err);
         }
         self.event_loop_waker.wake();
-    }
-
-    pub fn cross_process_compositor_api(&self) -> CrossProcessCompositorApi {
-        CrossProcessCompositorApi(self.sender.clone())
     }
 }
 
@@ -70,7 +78,11 @@ pub enum CompositorMsg {
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(WebViewId, TouchEventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
-    CreatePng(Option<Rect<f32, CSSPixel>>, IpcSender<Option<Image>>),
+    CreatePng(
+        WebViewId,
+        Option<Rect<f32, CSSPixel>>,
+        IpcSender<Option<Image>>,
+    ),
     /// A reply to the compositor asking if the output image is stable.
     IsReadyToSaveImageReply(bool),
     /// Set whether to use less resources by stopping animations.
@@ -149,6 +161,10 @@ pub enum CompositorMsg {
     /// Get the available screen size (without toolbars and docks) for the screen
     /// the client window inhabits.
     GetAvailableScreenSize(WebViewId, IpcSender<DeviceIndependentIntSize>),
+
+    /// Measure the current memory usage associated with the compositor.
+    /// The report must be sent on the provided channel once it's complete.
+    CollectMemoryReport(ReportsChan),
 }
 
 impl Debug for CompositorMsg {

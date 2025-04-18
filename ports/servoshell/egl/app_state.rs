@@ -11,18 +11,16 @@ use keyboard_types::{CompositionEvent, CompositionState};
 use log::{debug, error, info, warn};
 use raw_window_handle::{RawWindowHandle, WindowHandle};
 use servo::base::id::WebViewId;
-use servo::compositing::windowing::{EmbedderMethods, WindowMethods};
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize, DevicePixel};
 use servo::{
-    AllowOrDenyRequest, ContextMenuResult, EmbedderProxy, EventLoopWaker, ImeEvent, InputEvent,
-    InputMethodType, Key, KeyState, KeyboardEvent, LoadStatus, MediaSessionActionType,
-    MediaSessionEvent, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
-    NavigationRequest, PermissionRequest, RenderingContext, ScreenGeometry, Servo, ServoDelegate,
-    ServoError, SimpleDialog, TouchEvent, TouchEventType, TouchId, WebView, WebViewBuilder,
-    WebViewDelegate, WindowRenderingContext,
+    AllowOrDenyRequest, ContextMenuResult, ImeEvent, InputEvent, InputMethodType, Key, KeyState,
+    KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, NavigationRequest, PermissionRequest,
+    RenderingContext, ScreenGeometry, Servo, ServoDelegate, ServoError, SimpleDialog, TouchEvent,
+    TouchEventType, TouchId, WebView, WebViewBuilder, WebViewDelegate, WindowRenderingContext,
 };
 use url::Url;
 
@@ -45,19 +43,16 @@ impl Coordinates {
 pub(super) struct ServoWindowCallbacks {
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
-    hidpi_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 }
 
 impl ServoWindowCallbacks {
     pub(super) fn new(
         host_callbacks: Box<dyn HostTrait>,
         coordinates: RefCell<Coordinates>,
-        hidpi_factor: f32,
     ) -> Self {
         Self {
             host_callbacks,
             coordinates,
-            hidpi_factor: Scale::new(hidpi_factor),
         }
     }
 }
@@ -90,6 +85,9 @@ struct RunningAppStateInner {
     /// Whether or not the animation state has changed. This is used to trigger
     /// host callbacks indicating that animation state has changed.
     animating_state_changed: Rc<Cell<bool>>,
+
+    /// The HiDPI scaling factor to use for the display of [`WebView`]s.
+    hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 }
 
 struct ServoShellServoDelegate {
@@ -115,7 +113,7 @@ impl ServoDelegate for ServoShellServoDelegate {
 }
 
 impl WebViewDelegate for RunningAppState {
-    fn screen_geometry(&self, webview: WebView) -> Option<ScreenGeometry> {
+    fn screen_geometry(&self, _webview: WebView) -> Option<ScreenGeometry> {
         let coord = self.callbacks.coordinates.borrow();
         let screen_size = DeviceIntSize::new(coord.viewport.size.width, coord.viewport.size.height);
         Some(ScreenGeometry {
@@ -214,6 +212,7 @@ impl WebViewDelegate for RunningAppState {
     fn request_open_auxiliary_webview(&self, parent_webview: WebView) -> Option<WebView> {
         let webview = WebViewBuilder::new_auxiliary(&self.servo)
             .delegate(parent_webview.delegate())
+            .hidpi_scale_factor(self.inner().hidpi_scale_factor)
             .build();
         self.add(webview.clone());
         Some(webview)
@@ -275,6 +274,7 @@ impl WebViewDelegate for RunningAppState {
 impl RunningAppState {
     pub(super) fn new(
         initial_url: Option<String>,
+        hidpi_scale_factor: f32,
         rendering_context: Rc<WindowRenderingContext>,
         servo: Servo,
         callbacks: Rc<ServoWindowCallbacks>,
@@ -303,6 +303,7 @@ impl RunningAppState {
                 creation_order: vec![],
                 focused_webview_id: None,
                 animating_state_changed,
+                hidpi_scale_factor: Scale::new(hidpi_scale_factor),
             }),
         });
 
@@ -313,6 +314,7 @@ impl RunningAppState {
     pub(crate) fn new_toplevel_webview(self: &Rc<Self>, url: Url) {
         let webview = WebViewBuilder::new(&self.servo)
             .url(url)
+            .hidpi_scale_factor(self.inner().hidpi_scale_factor)
             .delegate(self.clone())
             .build();
 
@@ -678,46 +680,26 @@ impl RunningAppState {
     }
 }
 
-pub(super) struct ServoEmbedderCallbacks {
-    waker: Box<dyn EventLoopWaker>,
-    #[cfg(feature = "webxr")]
-    xr_discovery: Option<servo::webxr::Discovery>,
+#[cfg(feature = "webxr")]
+pub(crate) struct XrDiscoveryWebXrRegistry {
+    xr_discovery: RefCell<Option<servo::webxr::Discovery>>,
 }
 
-impl ServoEmbedderCallbacks {
-    pub(super) fn new(
-        waker: Box<dyn EventLoopWaker>,
-        #[cfg(feature = "webxr")] xr_discovery: Option<servo::webxr::Discovery>,
-    ) -> Self {
+#[cfg(feature = "webxr")]
+impl XrDiscoveryWebXrRegistry {
+    pub(crate) fn new(xr_discovery: Option<servo::webxr::Discovery>) -> Self {
         Self {
-            waker,
-            #[cfg(feature = "webxr")]
-            xr_discovery,
+            xr_discovery: RefCell::new(xr_discovery),
         }
     }
 }
 
-impl EmbedderMethods for ServoEmbedderCallbacks {
-    fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker> {
-        debug!("EmbedderMethods::create_event_loop_waker");
-        self.waker.clone()
-    }
-
-    #[cfg(feature = "webxr")]
-    fn register_webxr(
-        &mut self,
-        registry: &mut servo::webxr::MainThreadRegistry,
-        _embedder_proxy: EmbedderProxy,
-    ) {
-        debug!("EmbedderMethods::register_xr");
+#[cfg(feature = "webxr")]
+impl servo::webxr::WebXrRegistry for XrDiscoveryWebXrRegistry {
+    fn register(&self, registry: &mut servo::webxr::MainThreadRegistry) {
+        debug!("XrDiscoveryWebXrRegistry::register");
         if let Some(discovery) = self.xr_discovery.take() {
             registry.register(discovery);
         }
-    }
-}
-
-impl WindowMethods for ServoWindowCallbacks {
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.hidpi_factor
     }
 }

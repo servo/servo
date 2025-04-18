@@ -7,7 +7,7 @@ use std::cell::Cell;
 use std::default::Default;
 
 use base::id::WebViewId;
-use cssparser::{Parser as CssParser, ParserInput};
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
@@ -24,10 +24,7 @@ use net_traits::{
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
-use style::media_queries::MediaList;
-use style::parser::ParserContext as CssParserContext;
-use style::stylesheets::{CssRuleType, Origin, Stylesheet, UrlExtraData};
-use style_traits::ParsingMode;
+use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
 
 use crate::dom::attr::Attr;
@@ -49,6 +46,7 @@ use crate::dom::element::{
     set_cross_origin_attribute,
 };
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::medialist::MediaList;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::stylesheet::StyleSheet as DOMStyleSheet;
@@ -179,17 +177,18 @@ impl HTMLLinkElement {
         self.stylesheet.borrow().clone()
     }
 
-    pub(crate) fn get_cssom_stylesheet(&self) -> Option<DomRoot<CSSStyleSheet>> {
+    pub(crate) fn get_cssom_stylesheet(&self, can_gc: CanGc) -> Option<DomRoot<CSSStyleSheet>> {
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
                     &self.owner_window(),
-                    self.upcast::<Element>(),
+                    Some(self.upcast::<Element>()),
                     "text/css".into(),
                     None, // todo handle location
                     None, // todo handle title
                     sheet,
-                    CanGc::note(),
+                    false, // is_constructed
+                    can_gc,
                 )
             })
         })
@@ -448,24 +447,7 @@ impl HTMLLinkElement {
             None => "",
         };
 
-        let mut input = ParserInput::new(mq_str);
-        let mut css_parser = CssParser::new(&mut input);
-        let document_url_data = &UrlExtraData(document.url().get_arc());
-        let window = document.window();
-        // FIXME(emilio): This looks somewhat fishy, since we use the context
-        // only to parse the media query list, CssRuleType::Media doesn't make
-        // much sense.
-        let context = CssParserContext::new(
-            Origin::Author,
-            document_url_data,
-            Some(CssRuleType::Media),
-            ParsingMode::DEFAULT,
-            document.quirks_mode(),
-            /* namespaces = */ Default::default(),
-            window.css_error_reporter(),
-            None,
-        );
-        let media = MediaList::parse(&context, &mut css_parser);
+        let media = MediaList::parse_media_list(mq_str, document.window());
 
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
@@ -541,7 +523,7 @@ impl StylesheetOwner for HTMLLinkElement {
     }
 
     fn referrer_policy(&self) -> ReferrerPolicy {
-        if self.RelList().Contains("noreferrer".into()) {
+        if self.RelList(CanGc::note()).Contains("noreferrer".into()) {
             return ReferrerPolicy::NoReferrer;
         }
 
@@ -549,7 +531,7 @@ impl StylesheetOwner for HTMLLinkElement {
     }
 
     fn set_origin_clean(&self, origin_clean: bool) {
-        if let Some(stylesheet) = self.get_cssom_stylesheet() {
+        if let Some(stylesheet) = self.get_cssom_stylesheet(CanGc::note()) {
             stylesheet.set_origin_clean(origin_clean);
         }
     }
@@ -602,7 +584,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
-    fn RelList(&self) -> DomRoot<DOMTokenList> {
+    fn RelList(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
         self.rel_list.or_init(|| {
             DOMTokenList::new(
                 self.upcast(),
@@ -624,7 +606,7 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
                     Atom::from("prerender"),
                     Atom::from("stylesheet"),
                 ]),
-                CanGc::note(),
+                can_gc,
             )
         })
     }
@@ -666,8 +648,8 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
-    fn GetSheet(&self) -> Option<DomRoot<DOMStyleSheet>> {
-        self.get_cssom_stylesheet().map(DomRoot::upcast)
+    fn GetSheet(&self, can_gc: CanGc) -> Option<DomRoot<DOMStyleSheet>> {
+        self.get_cssom_stylesheet(can_gc).map(DomRoot::upcast)
     }
 }
 
@@ -706,9 +688,9 @@ impl LinkProcessingOptions {
             Referrer::NoReferrer,
             self.insecure_requests_policy,
             self.has_trustworthy_ancestor_origin,
+            self.policy_container,
         )
         .integrity_metadata(self.integrity)
-        .policy_container(self.policy_container)
         .cryptographic_nonce_metadata(self.cryptographic_nonce_metadata)
         .referrer_policy(self.referrer_policy);
 
@@ -787,6 +769,11 @@ impl FetchResponseListener for PrefetchContext {
 
     fn submit_resource_timing(&mut self) {
         submit_timing(self, CanGc::note())
+    }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
     }
 }
 

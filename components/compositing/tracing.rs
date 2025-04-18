@@ -57,6 +57,7 @@ mod from_constellation {
                 Self::GetClientWindowRect(..) => target!("GetClientWindowRect"),
                 Self::GetScreenSize(..) => target!("GetScreenSize"),
                 Self::GetAvailableScreenSize(..) => target!("GetAvailableScreenSize"),
+                Self::CollectMemoryReport(..) => target!("CollectMemoryReport"),
             }
         }
     }

@@ -21,7 +21,6 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use log::{debug, trace, warn};
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::{Destination, RequestBuilder, RequestId};
@@ -33,9 +32,8 @@ use net_traits::{
     WebSocketDomAction, WebSocketNetworkEvent,
 };
 use profile_traits::mem::{
-    ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
+    ProcessReports, ProfilerChan as MemProfilerChan, ReportsChan, perform_memory_report,
 };
-use profile_traits::path;
 use profile_traits::time::ProfilerChan;
 use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
@@ -257,7 +255,7 @@ impl ResourceChannelManager {
                 // If message is memory report, get the size_of of public and private http caches
                 if id == reporter_id {
                     if let Ok(msg) = data.to() {
-                        self.process_report(msg, &private_http_state, &public_http_state);
+                        self.process_report(msg, &public_http_state, &private_http_state);
                         continue;
                     }
                 } else {
@@ -283,23 +281,11 @@ impl ResourceChannelManager {
         public_http_state: &Arc<HttpState>,
         private_http_state: &Arc<HttpState>,
     ) {
-        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
-        let public_cache = public_http_state.http_cache.read().unwrap();
-        let private_cache = private_http_state.http_cache.read().unwrap();
-
-        let public_report = Report {
-            path: path!["memory-cache", "public"],
-            kind: ReportKind::ExplicitJemallocHeapSize,
-            size: public_cache.size_of(&mut ops),
-        };
-
-        let private_report = Report {
-            path: path!["memory-cache", "private"],
-            kind: ReportKind::ExplicitJemallocHeapSize,
-            size: private_cache.size_of(&mut ops),
-        };
-
-        msg.send(ProcessReports::new(vec![public_report, private_report]));
+        perform_memory_report(|ops| {
+            let mut reports = public_http_state.memory_reports("public", ops);
+            reports.extend(private_http_state.memory_reports("private", ops));
+            msg.send(ProcessReports::new(reports));
+        })
     }
 
     fn cancellation_listener(&self, request_id: RequestId) -> Option<Arc<CancellationListener>> {

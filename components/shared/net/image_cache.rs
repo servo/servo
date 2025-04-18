@@ -8,8 +8,10 @@ use base::id::PipelineId;
 use compositing_traits::CrossProcessCompositorApi;
 use ipc_channel::ipc::IpcSender;
 use log::debug;
+use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::{Image, ImageMetadata};
+use profile_traits::mem::Report;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -36,7 +38,7 @@ pub enum ImageOrMetadataAvailable {
 /// and image, and returned to the specified event loop when the
 /// image load completes. It is typically used to trigger a reflow
 /// and/or repaint.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ImageResponder {
     pipeline_id: PipelineId,
     pub id: PendingImageId,
@@ -73,11 +75,11 @@ impl ImageResponder {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImageResponse {
     /// The requested image was loaded.
-    Loaded(#[ignore_malloc_size_of = "Arc"] Arc<Image>, ServoUrl),
+    Loaded(#[conditional_malloc_size_of] Arc<Image>, ServoUrl),
     /// The request image metadata was loaded.
     MetadataLoaded(ImageMetadata),
     /// The requested image failed to load, so a placeholder was loaded instead.
-    PlaceholderLoaded(#[ignore_malloc_size_of = "Arc"] Arc<Image>, ServoUrl),
+    PlaceholderLoaded(#[conditional_malloc_size_of] Arc<Image>, ServoUrl),
     /// Neither the requested image nor the placeholder could be loaded.
     None,
 }
@@ -114,6 +116,8 @@ pub trait ImageCache: Sync + Send {
     fn new(compositor_api: CrossProcessCompositorApi, rippy_data: Vec<u8>) -> Self
     where
         Self: Sized;
+
+    fn memory_report(&self, prefix: &str, ops: &mut MallocSizeOfOps) -> Report;
 
     /// Definitively check whether there is a cached, fully loaded image available.
     fn get_image(

@@ -27,6 +27,7 @@ use constellation_traits::{
 use content_security_policy::{self as csp, CspList, PolicyDisposition};
 use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
+use data_url::mime::Mime;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
@@ -42,7 +43,6 @@ use ipc_channel::ipc;
 use js::rust::{HandleObject, HandleValue};
 use keyboard_types::{Code, Key, KeyState, Modifiers};
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
-use mime::{self, Mime};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::policy_container::PolicyContainer;
@@ -201,6 +201,7 @@ use crate::fetch::FetchCanceller;
 use crate::iframe_collection::IFrameCollection;
 use crate::image_animation::ImageAnimationManager;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
+use crate::mime::{APPLICATION, CHARSET, MimeExt};
 use crate::network_listener::{NetworkListener, PreInvoke};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, ScriptThreadEventCategory};
@@ -717,9 +718,7 @@ impl Document {
     }
 
     pub(crate) fn is_xhtml_document(&self) -> bool {
-        self.content_type.type_() == mime::APPLICATION &&
-            self.content_type.subtype().as_str() == "xhtml" &&
-            self.content_type.suffix() == Some(mime::XML)
+        self.content_type.matches(APPLICATION, "xhtml+xml")
     }
 
     pub(crate) fn set_https_state(&self, https_state: HttpsState) {
@@ -3787,15 +3786,17 @@ impl Document {
         let content_type = content_type.unwrap_or_else(|| {
             match is_html_document {
                 // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                IsHTMLDocument::HTMLDocument => mime::TEXT_HTML,
+                IsHTMLDocument::HTMLDocument => "text/html",
                 // https://dom.spec.whatwg.org/#concept-document-content-type
-                IsHTMLDocument::NonHTMLDocument => "application/xml".parse().unwrap(),
+                IsHTMLDocument::NonHTMLDocument => "application/xml",
             }
+            .parse()
+            .unwrap()
         });
 
         let encoding = content_type
-            .get_param(mime::CHARSET)
-            .and_then(|charset| Encoding::for_label(charset.as_str().as_bytes()))
+            .get_parameter(CHARSET)
+            .and_then(|charset| Encoding::for_label(charset.as_bytes()))
             .unwrap_or(UTF_8);
 
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
@@ -4016,13 +4017,18 @@ impl Document {
                 .get_attribute(&ns!(), &local_name!("nonce"))
                 .map(|attr| Cow::Owned(attr.value().to_string())),
         };
-        // TODO: Instead of ignoring violations, report them.
-        self.get_csp_list()
-            .map(|c| {
-                c.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
-                    .0
-            })
-            .unwrap_or(csp::CheckResult::Allowed)
+        let (result, violations) = match self.get_csp_list() {
+            None => {
+                return csp::CheckResult::Allowed;
+            },
+            Some(csp_list) => {
+                csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
+            },
+        };
+
+        self.global().report_csp_violations(violations);
+
+        result
     }
 
     /// Prevent any JS or layout from running until the corresponding call to

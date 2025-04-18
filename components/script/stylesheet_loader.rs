@@ -5,6 +5,7 @@
 use std::io::{Read, Seek, Write};
 use std::sync::atomic::AtomicBool;
 
+use content_security_policy as csp;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
 use mime::{self, Mime};
@@ -282,6 +283,11 @@ impl FetchResponseListener for StylesheetContext {
     fn submit_resource_timing(&mut self) {
         network_listener::submit_timing(self, CanGc::note())
     }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let global = &self.resource_timing_global();
+        global.report_csp_violations(violations);
+    }
 }
 
 impl ResourceTimingListener for StylesheetContext {
@@ -353,15 +359,17 @@ impl StylesheetLoader<'_> {
         }
 
         // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
+        let global = self.elem.global();
         let request = create_a_potential_cors_request(
             Some(document.webview_id()),
             url.clone(),
             Destination::Style,
             cors_setting,
             None,
-            self.elem.global().get_referrer(),
+            global.get_referrer(),
             document.insecure_requests_policy(),
             document.has_trustworthy_ancestor_or_current_origin(),
+            global.policy_container(),
         )
         .origin(document.origin().immutable().clone())
         .pipeline_id(Some(self.elem.global().pipeline_id()))

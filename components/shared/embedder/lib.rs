@@ -92,7 +92,7 @@ pub enum Cursor {
 
 pub trait EventLoopWaker: 'static + Send {
     fn clone_box(&self) -> Box<dyn EventLoopWaker>;
-    fn wake(&self);
+    fn wake(&self) {}
 }
 
 impl Clone for Box<dyn EventLoopWaker> {

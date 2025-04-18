@@ -1068,6 +1068,16 @@ impl FetchResponseListener for ParserContext {
             CanGc::note(),
         );
     }
+
+    fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
+        let parser = match self.parser.as_ref() {
+            Some(parser) => parser.root(),
+            None => return,
+        };
+        let document = &parser.document;
+        let global = &document.global();
+        global.report_csp_violations(violations);
+    }
 }
 
 impl PreInvoke for ParserContext {}

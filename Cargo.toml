@@ -41,7 +41,7 @@ chrono = { version = "0.4", features = ["serde"] }
 cipher = { version = "0.4.4", features = ["alloc"] }
 compositing_traits = { path = "components/shared/compositing" }
 constellation_traits = { path = "components/shared/constellation" }
-content-security-policy = { version = "0.5", features = ["serde"] }
+content-security-policy = { git = "https://github.com/servo/rust-content-security-policy/", branch = "servo-csp", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
 cssparser = { version = "0.35", features = ["serde"] }
@@ -167,8 +167,8 @@ webpki-roots = "0.26"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.66", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.66" }
 webxr-api = { path = "components/shared/webxr" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "2f255edc60e9669c8c737464c59af10d59a31126" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "2f255edc60e9669c8c737464c59af10d59a31126" }
+wgpu-core = "25"
+wgpu-types = "25"
 winapi = "0.3"
 windows-sys = "0.59"
 wio = "0.2"

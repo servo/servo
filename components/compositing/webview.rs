@@ -9,17 +9,21 @@ use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::{RendererWebView, SendableFrameTree};
-use constellation_traits::{EmbedderToConstellationMessage, ScrollState};
+use constellation_traits::{EmbedderToConstellationMessage, ScrollState, WindowSizeType};
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseMoveEvent, ShutdownState, TouchEvent, TouchEventResult, TouchEventType,
-    TouchId,
+    TouchId, ViewportDetails,
 };
-use euclid::{Point2D, Scale, Vector2D};
+use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashSet;
 use log::{debug, warn};
+use servo_geometry::DeviceIndependentPixel;
+use style_traits::{CSSPixel, PinchZoomFactor};
 use webrender::Transaction;
-use webrender_api::units::{DeviceIntPoint, DevicePoint, DeviceRect, LayoutVector2D};
+use webrender_api::units::{
+    DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D,
+};
 use webrender_api::{
     ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
 };
@@ -27,6 +31,10 @@ use webrender_api::{
 use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
+
+// Default viewport constraints
+const MAX_ZOOM: f32 = 8.0;
+const MIN_ZOOM: f32 = 0.1;
 
 #[derive(Clone, Copy)]
 struct ScrollEvent {
@@ -65,6 +73,16 @@ pub(crate) struct WebView {
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
     /// Touch input state machine
     touch_handler: TouchHandler,
+    /// "Desktop-style" zoom that resizes the viewport to fit the window.
+    pub page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
+    /// "Mobile-style" zoom that does not reflow the page.
+    viewport_zoom: PinchZoomFactor,
+    /// Viewport zoom constraints provided by @viewport.
+    min_viewport_zoom: Option<PinchZoomFactor>,
+    max_viewport_zoom: Option<PinchZoomFactor>,
+    /// The HiDPI scale factor for the `WebView` associated with this renderer. This is controlled
+    /// by the embedding layer.
+    hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 }
 
 impl Drop for WebView {
@@ -78,19 +96,26 @@ impl Drop for WebView {
 
 impl WebView {
     pub(crate) fn new(
-        renderer_webview: Box<dyn RendererWebView>,
-        rect: DeviceRect,
         global: Rc<RefCell<ServoRenderer>>,
+        renderer_webview: Box<dyn RendererWebView>,
+        viewport_details: ViewportDetails,
     ) -> Self {
+        let hidpi_scale_factor = viewport_details.hidpi_scale_factor;
+        let size = viewport_details.size * viewport_details.hidpi_scale_factor;
         Self {
             id: renderer_webview.id(),
             renderer_webview,
             root_pipeline_id: None,
-            rect,
+            rect: DeviceRect::from_origin_and_size(DevicePoint::origin(), size),
             pipelines: Default::default(),
             touch_handler: TouchHandler::new(),
             global,
             pending_scroll_zoom_events: Default::default(),
+            page_zoom: Scale::new(1.0),
+            viewport_zoom: PinchZoomFactor::new(1.0),
+            min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
+            max_viewport_zoom: None,
+            hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
         }
     }
 
@@ -265,7 +290,7 @@ impl WebView {
     }
 
     /// On a Window refresh tick (e.g. vsync)
-    pub fn on_vsync(&mut self) {
+    pub(crate) fn on_vsync(&mut self) {
         if let Some(fling_action) = self.touch_handler.on_vsync() {
             self.on_scroll_window_event(
                 ScrollLocation::Delta(fling_action.delta),
@@ -300,7 +325,7 @@ impl WebView {
         }
     }
 
-    pub fn notify_input_event(&mut self, event: InputEvent) {
+    pub(crate) fn notify_input_event(&mut self, event: InputEvent) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
@@ -313,27 +338,53 @@ impl WebView {
         if self.global.borrow().convert_mouse_to_touch {
             match event {
                 InputEvent::MouseButton(event) => {
-                    match event.action {
-                        MouseButtonAction::Click => {},
-                        MouseButtonAction::Down => self.on_touch_down(TouchEvent::new(
-                            TouchEventType::Down,
-                            TouchId(0),
-                            event.point,
-                        )),
-                        MouseButtonAction::Up => self.on_touch_up(TouchEvent::new(
-                            TouchEventType::Up,
-                            TouchId(0),
-                            event.point,
-                        )),
+                    match (event.button, event.action) {
+                        (MouseButton::Left, MouseButtonAction::Down) => self.on_touch_down(
+                            TouchEvent::new(TouchEventType::Down, TouchId(0), event.point),
+                        ),
+                        (MouseButton::Left, MouseButtonAction::Up) => self.on_touch_up(
+                            TouchEvent::new(TouchEventType::Up, TouchId(0), event.point),
+                        ),
+                        _ => {},
                     }
                     return;
                 },
                 InputEvent::MouseMove(event) => {
-                    self.on_touch_move(TouchEvent::new(
-                        TouchEventType::Move,
-                        TouchId(0),
-                        event.point,
-                    ));
+                    if let Some(state) = self.touch_handler.try_get_current_touch_sequence() {
+                        // We assume that the debug option `-Z convert-mouse-to-touch` will only
+                        // be used on devices without native touch input, so we can directly
+                        // reuse the touch handler for tracking the state of pressed buttons.
+                        match state.state {
+                            TouchSequenceState::Touching | TouchSequenceState::Panning { .. } => {
+                                self.on_touch_move(TouchEvent::new(
+                                    TouchEventType::Move,
+                                    TouchId(0),
+                                    event.point,
+                                ));
+                            },
+                            TouchSequenceState::MultiTouch => {
+                                // Multitouch simulation currently is not implemented.
+                                // Since we only get one mouse move event, we would need to
+                                // dispatch one mouse move event per currently pressed mouse button.
+                            },
+                            TouchSequenceState::Pinching => {
+                                // We only have one mouse button, so Pinching should be impossible.
+                                #[cfg(debug_assertions)]
+                                log::error!(
+                                    "Touch handler is in Pinching state, which should be unreachable with \
+                                -Z convert-mouse-to-touch debug option."
+                                );
+                            },
+                            TouchSequenceState::PendingFling { .. } |
+                            TouchSequenceState::Flinging { .. } |
+                            TouchSequenceState::PendingClick(_) |
+                            TouchSequenceState::Finished => {
+                                // Mouse movement without a button being pressed is not
+                                // translated to touch events.
+                            },
+                        }
+                    }
+                    // We don't want to (directly) dispatch mouse events when simulating touch input.
                     return;
                 },
                 _ => {},
@@ -365,7 +416,7 @@ impl WebView {
         }
     }
 
-    pub fn on_touch_event(&mut self, event: TouchEvent) {
+    pub(crate) fn on_touch_event(&mut self, event: TouchEvent) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
@@ -644,7 +695,7 @@ impl WebView {
         }));
     }
 
-    pub fn notify_scroll_event(
+    pub(crate) fn notify_scroll_event(
         &mut self,
         scroll_location: ScrollLocation,
         cursor: DeviceIntPoint,
@@ -727,13 +778,12 @@ impl WebView {
             }
         }
 
-        let zoom_changed = compositor
-            .set_pinch_zoom_level(compositor.pinch_zoom_level().get() * combined_magnification);
+        let zoom_changed =
+            self.set_pinch_zoom_level(self.pinch_zoom_level().get() * combined_magnification);
         let scroll_result = combined_scroll_event.and_then(|combined_event| {
             self.scroll_node_at_device_point(
                 combined_event.cursor.to_f32(),
                 combined_event.scroll_location,
-                compositor,
             )
         });
         if !zoom_changed && scroll_result.is_none() {
@@ -769,11 +819,10 @@ impl WebView {
         &mut self,
         cursor: DevicePoint,
         scroll_location: ScrollLocation,
-        compositor: &mut IOCompositor,
     ) -> Option<(PipelineId, ExternalScrollId, LayoutVector2D)> {
         let scroll_location = match scroll_location {
             ScrollLocation::Delta(delta) => {
-                let device_pixels_per_page = compositor.device_pixels_per_page_pixel();
+                let device_pixels_per_page = self.device_pixels_per_page_pixel();
                 let scaled_delta = (Vector2D::from_untyped(delta.to_untyped()) /
                     device_pixels_per_page)
                     .to_untyped();
@@ -818,8 +867,39 @@ impl WebView {
         None
     }
 
+    pub(crate) fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {
+        Scale::new(self.viewport_zoom.get())
+    }
+
+    fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
+        if let Some(min) = self.min_viewport_zoom {
+            zoom = f32::max(min.get(), zoom);
+        }
+        if let Some(max) = self.max_viewport_zoom {
+            zoom = f32::min(max.get(), zoom);
+        }
+
+        let old_zoom = std::mem::replace(&mut self.viewport_zoom, PinchZoomFactor::new(zoom));
+        old_zoom != self.viewport_zoom
+    }
+
+    pub(crate) fn set_page_zoom(&mut self, magnification: f32) {
+        self.page_zoom =
+            Scale::new((self.page_zoom.get() * magnification).clamp(MIN_ZOOM, MAX_ZOOM));
+    }
+
+    pub(crate) fn device_pixels_per_page_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
+        self.page_zoom * self.hidpi_scale_factor * self.pinch_zoom_level()
+    }
+
+    pub(crate) fn device_pixels_per_page_pixel_not_including_pinch_zoom(
+        &self,
+    ) -> Scale<f32, CSSPixel, DevicePixel> {
+        self.page_zoom * self.hidpi_scale_factor
+    }
+
     /// Simulate a pinch zoom
-    pub fn set_pinch_zoom(&mut self, magnification: f32) {
+    pub(crate) fn set_pinch_zoom(&mut self, magnification: f32) {
         if self.global.borrow().shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
@@ -827,6 +907,71 @@ impl WebView {
         // TODO: Scroll to keep the center in view?
         self.pending_scroll_zoom_events
             .push(ScrollZoomEvent::PinchZoom(magnification));
+    }
+
+    fn send_window_size_message(&self) {
+        // The device pixel ratio used by the style system should include the scale from page pixels
+        // to device pixels, but not including any pinch zoom.
+        let device_pixel_ratio = self.device_pixels_per_page_pixel_not_including_pinch_zoom();
+        let initial_viewport = self.rect.size().to_f32() / device_pixel_ratio;
+        let msg = EmbedderToConstellationMessage::ChangeViewportDetails(
+            self.id,
+            ViewportDetails {
+                hidpi_scale_factor: device_pixel_ratio,
+                size: initial_viewport,
+            },
+            WindowSizeType::Resize,
+        );
+        if let Err(e) = self.global.borrow().constellation_sender.send(msg) {
+            warn!("Sending window resize to constellation failed ({:?}).", e);
+        }
+    }
+
+    /// Set the `hidpi_scale_factor` for this renderer, returning `true` if the value actually changed.
+    pub(crate) fn set_hidpi_scale_factor(
+        &mut self,
+        new_scale: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    ) -> bool {
+        let old_scale_factor = std::mem::replace(&mut self.hidpi_scale_factor, new_scale);
+        if self.hidpi_scale_factor == old_scale_factor {
+            return false;
+        }
+
+        self.send_window_size_message();
+        true
+    }
+
+    /// Set the `rect` for this renderer, returning `true` if the value actually changed.
+    pub(crate) fn set_rect(&mut self, new_rect: DeviceRect) -> bool {
+        let old_rect = std::mem::replace(&mut self.rect, new_rect);
+        if old_rect.size() != self.rect.size() {
+            self.send_window_size_message();
+        }
+        old_rect != self.rect
+    }
+
+    pub(crate) fn client_window_rect(
+        &self,
+        rendering_context_size: Size2D<u32, DevicePixel>,
+    ) -> Box2D<i32, DeviceIndependentPixel> {
+        let screen_geometry = self.renderer_webview.screen_geometry().unwrap_or_default();
+        let rect = DeviceIntRect::from_origin_and_size(
+            screen_geometry.offset,
+            rendering_context_size.to_i32(),
+        )
+        .to_f32() /
+            self.hidpi_scale_factor;
+        rect.to_i32()
+    }
+
+    pub(crate) fn screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
+        let screen_geometry = self.renderer_webview.screen_geometry().unwrap_or_default();
+        (screen_geometry.size.to_f32() / self.hidpi_scale_factor).to_i32()
+    }
+
+    pub(crate) fn available_screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
+        let screen_geometry = self.renderer_webview.screen_geometry().unwrap_or_default();
+        (screen_geometry.available_size.to_f32() / self.hidpi_scale_factor).to_i32()
     }
 }
 

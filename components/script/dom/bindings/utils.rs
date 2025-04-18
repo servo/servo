@@ -13,7 +13,7 @@ use js::jsapi::{
     CallArgs, DOMCallbacks, HandleObject as RawHandleObject, JS_FreezeObject, JSContext, JSObject,
 };
 use js::rust::{HandleObject, MutableHandleValue, get_object_class, is_dom_class};
-use script_bindings::interfaces::DomHelpers;
+use script_bindings::interfaces::{DomHelpers, Interface};
 use script_bindings::settings_stack::StackEntry;
 
 use crate::DomTypes;
@@ -153,8 +153,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         unsafe { is_platform_object_same_origin(cx, obj) }
     }
 
-    fn interface_map() -> &'static phf::Map<&'static [u8], for<'a> fn(SafeJSContext, HandleObject)>
-    {
+    fn interface_map() -> &'static phf::Map<&'static [u8], Interface> {
         &InterfaceObjectMap::MAP
     }
 

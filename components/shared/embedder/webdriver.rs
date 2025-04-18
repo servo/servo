@@ -114,6 +114,7 @@ pub enum WebDriverScriptCommand {
     FocusElement(String, IpcSender<Result<(), ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
+    GetComputedRole(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetCookie(String, IpcSender<Vec<Serde<Cookie<'static>>>>),
     GetCookies(IpcSender<Vec<Serde<Cookie<'static>>>>),
     GetElementAttribute(

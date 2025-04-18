@@ -10,14 +10,13 @@ use std::rc::Rc;
 use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{CompositorMsg, CompositorProxy};
 use constellation_traits::EmbedderToConstellationMessage;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::ShutdownState;
-use ipc_channel::ipc::IpcReceiver;
 use profile_traits::{mem, time};
 use webrender::RenderApi;
 use webrender_api::DocumentId;
 
-pub use crate::compositor::IOCompositor;
+pub use crate::compositor::{IOCompositor, WebRenderDebugOption};
 
 #[macro_use]
 mod tracing;
@@ -26,14 +25,13 @@ mod compositor;
 mod touch;
 pub mod webview;
 pub mod webview_manager;
-pub mod windowing;
 
 /// Data used to construct a compositor.
 pub struct InitialCompositorState {
     /// A channel to the compositor.
     pub sender: CompositorProxy,
     /// A port on which messages inbound to the compositor can be received.
-    pub receiver: IpcReceiver<CompositorMsg>,
+    pub receiver: Receiver<CompositorMsg>,
     /// A channel to the constellation.
     pub constellation_chan: Sender<EmbedderToConstellationMessage>,
     /// A channel to the time profiler thread.
