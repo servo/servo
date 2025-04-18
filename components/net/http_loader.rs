@@ -963,7 +963,7 @@ pub async fn http_fetch(
                 (res.url_list.len() > 1 && request.redirect_mode != RedirectMode::Follow) ||
                 res.is_network_error()
             {
-                return Response::network_error(NetworkError::Internal("Request failed".into()));
+                return Response::network_error(NetworkError::ConnectionFailure);
             }
 
             // Subsubstep 4
@@ -1018,7 +1018,7 @@ pub async fn http_fetch(
 
         // Substep 4
         if cors_flag && cors_check(&fetch_params.request, &fetch_result).is_err() {
-            return Response::network_error(NetworkError::Internal("CORS check failed".into()));
+            return Response::network_error(NetworkError::CorsViolation);
         }
 
         fetch_result.return_internal = false;
@@ -1069,9 +1069,7 @@ pub async fn http_fetch(
 
         // Substep 5.
         response = match request.redirect_mode {
-            RedirectMode::Error => {
-                Response::network_error(NetworkError::Internal("Redirect mode error".into()))
-            },
+            RedirectMode::Error => Response::network_error(NetworkError::RedirectError),
             RedirectMode::Manual => response.to_filtered(ResponseType::OpaqueRedirect),
             RedirectMode::Follow => {
                 // set back to default
@@ -1149,15 +1147,13 @@ pub async fn http_redirect_fetch(
         None => return response,
         // Step 3
         Some(Err(err)) => {
-            return Response::network_error(NetworkError::Internal(
+            return Response::network_error(NetworkError::ResourceLoadError(
                 "Location URL parse failure: ".to_owned() + &err,
             ));
         },
         // Step 4
         Some(Ok(ref url)) if !matches!(url.scheme(), "http" | "https") => {
-            return Response::network_error(NetworkError::Internal(
-                "Location URL not an HTTP(S) scheme".into(),
-            ));
+            return Response::network_error(NetworkError::UnsupportedScheme);
         },
         Some(Ok(url)) => url,
     };
@@ -1191,7 +1187,7 @@ pub async fn http_redirect_fetch(
 
     // Step 7: If request’s redirect count is 20, then return a network error.
     if request.redirect_count >= 20 {
-        return Response::network_error(NetworkError::Internal("Too many redirects".into()));
+        return Response::network_error(NetworkError::RedirectError);
     }
 
     // Step 8: Increase request’s redirect count by 1.
@@ -1209,9 +1205,7 @@ pub async fn http_redirect_fetch(
     let has_credentials = has_credentials(&location_url);
 
     if request.mode == RequestMode::CorsMode && !same_origin && has_credentials {
-        return Response::network_error(NetworkError::Internal(
-            "Cross-origin credentials check failed".into(),
-        ));
+        return Response::network_error(NetworkError::CorsViolation);
     }
 
     // Step 9
@@ -1221,7 +1215,7 @@ pub async fn http_redirect_fetch(
 
     // Step 10
     if cors_flag && has_credentials {
-        return Response::network_error(NetworkError::Internal("Credentials check failed".into()));
+        return Response::network_error(NetworkError::CorsViolation);
     }
 
     // Step 11: If internalResponse’s status is not 303, request’s body is non-null, and request’s
@@ -1229,7 +1223,7 @@ pub async fn http_redirect_fetch(
     if response.actual_response().status != StatusCode::SEE_OTHER &&
         request.body.as_ref().is_some_and(|b| b.source_is_null())
     {
-        return Response::network_error(NetworkError::Internal("Request body is not done".into()));
+        return Response::network_error(NetworkError::ConnectionFailure);
     }
 
     // Step 12
@@ -1565,9 +1559,7 @@ async fn http_network_or_cache_fetch(
             // Step 10.1 If httpRequest’s cache mode is "only-if-cached", then return a network error.
             if http_request.cache_mode == CacheMode::OnlyIfCached {
                 // Exit critical section of cache entry.
-                return Response::network_error(NetworkError::Internal(
-                    "Couldn't find response in cache".into(),
-                ));
+                return Response::network_error(NetworkError::CacheError);
             }
 
             // Step 10.2 Let forwardResponse be the result of running HTTP-network fetch given httpFetchParams,
@@ -1649,9 +1641,7 @@ async fn http_network_or_cache_fetch(
         cross_origin_resource_policy_check(http_request, &response) ==
             CrossOriginResourcePolicy::Blocked
     {
-        return Response::network_error(NetworkError::Internal(
-            "Cross-origin resource policy check failed".into(),
-        ));
+        return Response::network_error(NetworkError::CorsViolation);
     }
 
     // TODO(#33616): Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
@@ -1726,7 +1716,7 @@ async fn http_network_or_cache_fetch(
         // Step 15.1 If request’s traversable for user prompts is "no-traversable", then return a network error.
 
         if request.traversable_for_user_prompts == TraversableForUserPrompts::NoTraversable {
-            return Response::network_error(NetworkError::Internal(
+            return Response::network_error(NetworkError::ResourceLoadError(
                 "Can't find Window object".into(),
             ));
         }
@@ -2106,9 +2096,7 @@ async fn http_network_fetch(
     //
     match fetch_terminated_receiver.recv().await {
         Some(true) => {
-            return Response::network_error(NetworkError::Internal(
-                "Request body streaming failed.".into(),
-            ));
+            return Response::network_error(NetworkError::ConnectionFailure);
         },
         Some(false) => {},
         _ => warn!("Failed to receive confirmation request was streamed without error."),
@@ -2182,7 +2170,7 @@ async fn http_network_fetch(
     let devtools_sender = context.devtools_chan.clone();
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.cancelled() {
-        return Response::network_error(NetworkError::Internal("Fetch aborted".into()));
+        return Response::network_error(NetworkError::ConnectionFailure);
     }
 
     *res_body.lock() = ResponseBody::Receiving(vec![]);
@@ -2392,9 +2380,7 @@ async fn cors_preflight_fetch(
                 Some(methods) => methods.iter().collect(),
                 // Step 7.3 If either methods or headerNames is failure, return a network error.
                 None => {
-                    return Response::network_error(NetworkError::Internal(
-                        "CORS ACAM check failed".into(),
-                    ));
+                    return Response::network_error(NetworkError::CorsViolation);
                 },
             }
         } else {
@@ -2411,9 +2397,7 @@ async fn cors_preflight_fetch(
                 Some(names) => names.iter().collect(),
                 // Step 7.3 If either methods or headerNames is failure, return a network error.
                 None => {
-                    return Response::network_error(NetworkError::Internal(
-                        "CORS ACAH check failed".into(),
-                    ));
+                    return Response::network_error(NetworkError::CorsViolation);
                 },
             }
         } else {
@@ -2440,9 +2424,7 @@ async fn cors_preflight_fetch(
             (request.credentials_mode == CredentialsMode::Include ||
                 methods.iter().all(|method| method.as_ref() != "*"))
         {
-            return Response::network_error(NetworkError::Internal(
-                "CORS method check failed".into(),
-            ));
+            return Response::network_error(NetworkError::CorsViolation);
         }
 
         debug!(
@@ -2456,9 +2438,7 @@ async fn cors_preflight_fetch(
             is_cors_non_wildcard_request_header_name(name) &&
                 header_names.iter().all(|header_name| header_name != name)
         }) {
-            return Response::network_error(NetworkError::Internal(
-                "CORS authorization check failed".into(),
-            ));
+            return Response::network_error(NetworkError::CorsViolation);
         }
 
         // Step 7.7 For each unsafeName of the CORS-unsafe request-header names with request’s header list,
@@ -2474,9 +2454,7 @@ async fn cors_preflight_fetch(
                 (request.credentials_mode == CredentialsMode::Include ||
                     !header_names_contains_star)
             {
-                return Response::network_error(NetworkError::Internal(
-                    "CORS headers check failed".into(),
-                ));
+                return Response::network_error(NetworkError::CorsViolation);
             }
         }
 
@@ -2517,7 +2495,7 @@ async fn cors_preflight_fetch(
     }
 
     // Step 8. Otherwise, return a network error.
-    Response::network_error(NetworkError::Internal("CORS check failed".into()))
+    Response::network_error(NetworkError::CorsViolation)
 }
 
 /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)

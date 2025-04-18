@@ -338,9 +338,7 @@ pub async fn main_fetch(
             "about" | "blob" | "data" | "filesystem"
         )
     {
-        response = Some(Response::network_error(NetworkError::Internal(
-            "Non-local scheme".into(),
-        )));
+        response = Some(Response::network_error(NetworkError::UnsupportedScheme));
     }
 
     // The request should have a valid policy_container associated with it.
@@ -402,15 +400,11 @@ pub async fn main_fetch(
 
         if check_result == csp::CheckResult::Blocked {
             warn!("Request blocked by CSP");
-            response = Some(Response::network_error(NetworkError::Internal(
-                "Blocked by Content-Security-Policy".into(),
-            )))
+            response = Some(Response::network_error(NetworkError::ContentSecurityPolicyViolation));
         }
     };
     if should_request_be_blocked_due_to_a_bad_port(&request.current_url()) {
-        response = Some(Response::network_error(NetworkError::Internal(
-            "Request attempted on bad port".into(),
-        )));
+        response = Some(Response::network_error(NetworkError::InvalidPort));
     }
     if should_request_be_blocked_as_mixed_content(request, &context.protocols) {
         response = Some(Response::network_error(NetworkError::Internal(
@@ -501,13 +495,11 @@ pub async fn main_fetch(
                 // Substep 2. Return the result of running scheme fetch given fetchParams.
                 scheme_fetch(fetch_params, cache, target, done_chan, context).await
             } else if request.mode == RequestMode::SameOrigin {
-                Response::network_error(NetworkError::Internal("Cross-origin response".into()))
+                Response::network_error(NetworkError::CorsViolation)
             } else if request.mode == RequestMode::NoCors {
                 // Substep 1. If request's redirect mode is not "follow", then return a network error.
                 if request.redirect_mode != RedirectMode::Follow {
-                    Response::network_error(NetworkError::Internal(
-                        "NoCors requests must follow redirects".into(),
-                    ))
+                    Response::network_error(NetworkError::CorsViolation)
                 } else {
                     // Substep 2. Set request's response tainting to "opaque".
                     request.response_tainting = ResponseTainting::Opaque;
@@ -516,7 +508,7 @@ pub async fn main_fetch(
                     scheme_fetch(fetch_params, cache, target, done_chan, context).await
                 }
             } else if !matches!(current_scheme, "http" | "https") {
-                Response::network_error(NetworkError::Internal("Non-http scheme".into()))
+                Response::network_error(NetworkError::UnsupportedScheme)
             } else if request.use_cors_preflight ||
                 (request.unsafe_request &&
                     (!is_cors_safelisted_method(&request.method) ||
@@ -659,21 +651,18 @@ pub async fn main_fetch(
 
         let internal_response = if should_replace_with_nosniff_error {
             // Defer rebinding result
-            blocked_error_response =
-                Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
+            blocked_error_response = Response::network_error(NetworkError::SecurityBlock);
             &blocked_error_response
         } else if should_replace_with_mime_type_error {
             // Defer rebinding result
-            blocked_error_response =
-                Response::network_error(NetworkError::Internal("Blocked by mime type".into()));
+            blocked_error_response = Response::network_error(NetworkError::SecurityBlock);
             &blocked_error_response
         } else if should_replace_with_mixed_content {
-            blocked_error_response =
-                Response::network_error(NetworkError::Internal("Blocked as mixed content".into()));
+            blocked_error_response = Response::network_error(NetworkError::MixedContent);
             &blocked_error_response
         } else if should_replace_with_csp_error {
             blocked_error_response =
-                Response::network_error(NetworkError::Internal("Blocked due to CSP".into()));
+                Response::network_error(NetworkError::ContentSecurityPolicyViolation);
             &blocked_error_response
         } else {
             internal_response
@@ -691,9 +680,7 @@ pub async fn main_fetch(
             !request.headers.contains_key(RANGE)
         {
             // Defer rebinding result
-            blocked_error_response = Response::network_error(NetworkError::Internal(
-                PARTIAL_RESPONSE_TO_NON_RANGE_REQUEST_ERROR.into(),
-            ));
+            blocked_error_response = Response::network_error(NetworkError::CacheError);
             &blocked_error_response
         } else {
             internal_response
@@ -736,9 +723,7 @@ pub async fn main_fetch(
         if response.termination_reason.is_none() &&
             !is_response_integrity_valid(integrity_metadata, &response)
         {
-            Response::network_error(NetworkError::Internal(
-                "Subresource integrity validation failed".into(),
-            ))
+            Response::network_error(NetworkError::SecurityBlock)
         } else {
             response
         }
@@ -983,7 +968,7 @@ async fn scheme_fetch(
 
         _ => match context.protocols.get(scheme) {
             Some(handler) => handler.load(request, done_chan, context).await,
-            None => Response::network_error(NetworkError::Internal("Unexpected scheme".into())),
+            None => Response::network_error(NetworkError::UnsupportedScheme),
         },
     }
 }

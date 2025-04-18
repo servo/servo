@@ -33,9 +33,7 @@ impl ProtocolHandler for BlobProtocolHander {
 
         // Step 2.
         if request.method != Method::GET {
-            return Box::pin(ready(Response::network_error(NetworkError::Internal(
-                "Unexpected method for blob".into(),
-            ))));
+            return Box::pin(ready(Response::network_error(NetworkError::InvalidMethod)));
         }
 
         let range_header = request.headers.typed_get::<Range>();

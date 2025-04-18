@@ -1126,7 +1126,29 @@ pub enum NetworkError {
     /// SSL validation error, to be converted to Resource::BadCertHTML in the HTML parser.
     SslValidation(String, Vec<u8>),
     /// Crash error, to be converted to Resource::Crash in the HTML parser.
-    Crash(String),
+    Crash(String), 
+    UnsupportedScheme, 
+    CorsGeneral, 
+    CrossOriginResponse, 
+    CorsCredentials, 
+    CorsAllowMethods, 
+    CorsAllowHeaders, 
+    CorsMethod, 
+    CorsAuthorization, 
+    CorsHeaders, 
+    ConnectionFailure, 
+    RedirectError, 
+    TooManyRedirects, 
+    InvalidMethod, 
+    ResourceError, 
+    ContentSecurityPolicy, 
+    Nosniff, 
+    MimeType, 
+    SubresourceIntegrity, 
+    MixedContent, 
+    CacheError, 
+    InvalidPort, 
+    LocalDirectoryError,
 }
 
 impl NetworkError {
