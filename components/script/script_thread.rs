@@ -3361,7 +3361,9 @@ impl ScriptThread {
             {
                 let pixel_dist = self.relative_mouse_down_point.get() - mouse_button_event.point;
                 let pixel_dist = (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
-                if mouse_down_button == mouse_button_event.button && pixel_dist < 10.0 {
+                if mouse_down_button == mouse_button_event.button &&
+                    pixel_dist < 10.0 * document.window().device_pixel_ratio().get()
+                {
                     document.note_pending_input_event(ConstellationInputEvent {
                         hit_test_result: event.hit_test_result,
                         pressed_mouse_buttons: event.pressed_mouse_buttons,
