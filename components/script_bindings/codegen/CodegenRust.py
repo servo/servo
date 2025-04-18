@@ -2414,9 +2414,10 @@ class CGDOMJSClass(CGThing):
             args["slots"] = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
             if self.descriptor.interface.getExtendedAttribute("NeedResolve"):
                 args["enumerateHook"] = "Some(enumerate_window::<D>)"
+                args["resolveHook"] = "Some(resolve_window::<D>)"
             else:
                 args["enumerateHook"] = "Some(enumerate_global)"
-            args["resolveHook"] = "Some(resolve_global::<D>)"
+                args["resolveHook"] = "Some(resolve_global)"
             args["traceHook"] = "js::jsapi::JS_GlobalObjectTraceHook"
         elif self.descriptor.weakReferenceable:
             args["slots"] = "2"
