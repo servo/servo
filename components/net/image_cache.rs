@@ -608,16 +608,18 @@ impl ImageCache for ImageCacheImpl {
                 pending_load.bytes.extend_from_slice(&data);
 
                 //jmr0 TODO: possibly move to another task?
-                let mut reader = std::io::Cursor::new(pending_load.bytes.as_slice());
-                if let Ok(info) = imsz_from_reader(&mut reader) {
-                    let img_metadata = ImageMetadata {
-                        width: info.width as u32,
-                        height: info.height as u32,
-                    };
-                    for listener in &pending_load.listeners {
-                        listener.respond(ImageResponse::MetadataLoaded(img_metadata.clone()));
+                if pending_load.metadata.is_none() {
+                    let mut reader = std::io::Cursor::new(pending_load.bytes.as_slice());
+                    if let Ok(info) = imsz_from_reader(&mut reader) {
+                        let img_metadata = ImageMetadata {
+                            width: info.width as u32,
+                            height: info.height as u32,
+                        };
+                        for listener in &pending_load.listeners {
+                            listener.respond(ImageResponse::MetadataLoaded(img_metadata.clone()));
+                        }
+                        pending_load.metadata = Some(img_metadata);
                     }
-                    pending_load.metadata = Some(img_metadata);
                 }
             },
             (FetchResponseMsg::ProcessResponseEOF(_, result), key) => {
