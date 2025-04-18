@@ -57,11 +57,11 @@ struct FrameUpdateMsg {
 }
 
 #[derive(Serialize)]
-struct ResourceAvailableReply<T: Serialize> {
-    from: String,
+pub struct ResourceAvailableReply<T: Serialize> {
+    pub from: String,
     #[serde(rename = "type")]
-    type_: String,
-    array: Vec<(String, Vec<T>)>,
+    pub type_: String,
+    pub array: Vec<(String, Vec<T>)>,
 }
 
 #[derive(Serialize)]

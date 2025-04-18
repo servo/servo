@@ -1012,9 +1012,11 @@ impl HTMLScriptElement {
             let source_info = SourceInfo {
                 url: script.url.clone(),
                 external: script.external,
+                display_url: None,
             };
             let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                 pipeline_id,
+                None,
                 source_info,
             ));
         }

@@ -8,12 +8,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use constellation_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Sender, unbounded};
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
+use net_traits::blob_url_store::parse_blob_url;
 use net_traits::request::Referrer;
 use uuid::Uuid;
 
@@ -212,6 +213,28 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                     (browsing_context, pipeline_id, Some(worker_id), webview_id),
                     devtools_sender.clone(),
                     page_info,
+                ));
+
+                // Use uuid if it's a blob url, else use the original script url
+                let display_url = if worker_url.as_str().starts_with("blob:") {
+                    match parse_blob_url(&worker_url) {
+                        Ok((uuid, _)) => format!("{}", uuid),
+                        Err(_) => worker_url.to_string(),
+                    }
+                } else {
+                    script_url.to_string()
+                };
+
+                // send worker source info to devtools
+                let worker_source_info = SourceInfo {
+                    url: worker_url.clone(),
+                    external: true, // worker scripts are always external
+                    display_url: Some(display_url),
+                };
+                let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                    pipeline_id,
+                    Some(worker_id),
+                    worker_source_info,
                 ));
             }
         }

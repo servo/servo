@@ -250,8 +250,9 @@ impl DevtoolsInstance {
                 )) => self.handle_console_message(pipeline_id, worker_id, console_message),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                     pipeline_id,
+                    worker_id,
                     source_info,
-                )) => self.handle_script_source_info(pipeline_id, source_info),
+                )) => self.handle_script_source_info(pipeline_id, worker_id, source_info),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
                     pipeline_id,
                     page_error,
@@ -334,7 +335,7 @@ impl DevtoolsInstance {
             assert!(self.pipelines.contains_key(&pipeline_id));
             assert!(self.browsing_contexts.contains_key(&browsing_context_id));
 
-            let thread = ThreadActor::new(actors.new_name("context"));
+            let thread = ThreadActor::new(actors.new_name("thread"));
             let thread_name = thread.name();
             actors.register(Box::new(thread));
 
@@ -504,36 +505,64 @@ impl DevtoolsInstance {
         }
     }
 
-    fn handle_script_source_info(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
+    fn handle_script_source_info(
+        &mut self,
+        pipeline_id: PipelineId,
+        worker_id: Option<WorkerId>,
+        source_info: SourceInfo,
+    ) {
         let mut actors = self.actors.lock().unwrap();
 
-        let browsing_context_id = match self.pipelines.get(&pipeline_id) {
-            Some(id) => id,
-            None => return,
-        };
+        if let Some(worker_id) = worker_id {
+            let worker_actor_name = match self.actor_workers.get(&worker_id) {
+                Some(name) => name,
+                None => return,
+            };
 
-        let actor_name = match self.browsing_contexts.get(browsing_context_id) {
-            Some(name) => name,
-            None => return,
-        };
+            let thread_actor_name = actors.find::<WorkerActor>(worker_actor_name).thread.clone();
 
-        let thread_actor_name = actors
-            .find::<BrowsingContextActor>(actor_name)
-            .thread
-            .clone();
+            let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
+            thread_actor.add_source(source_info.url.clone(), source_info.display_url.clone());
 
-        let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
-        thread_actor.add_source(source_info.url.clone());
+            let source = Source {
+                actor: thread_actor_name.clone(),
+                url: source_info.url.to_string(),
+                is_black_boxed: false,
+                display_url: source_info.display_url,
+            };
 
-        let source = Source {
-            actor: thread_actor_name.clone(),
-            url: source_info.url.to_string(),
-            is_black_boxed: false,
-        };
+            let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
+            worker_actor.resource_available(source, "source".into());
+        } else {
+            let browsing_context_id = match self.pipelines.get(&pipeline_id) {
+                Some(id) => id,
+                None => return,
+            };
 
-        // Notify browsing context about the new source
-        let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
-        browsing_context.resource_available(source, "source".into());
+            let actor_name = match self.browsing_contexts.get(browsing_context_id) {
+                Some(name) => name,
+                None => return,
+            };
+
+            let thread_actor_name = actors
+                .find::<BrowsingContextActor>(actor_name)
+                .thread
+                .clone();
+
+            let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
+            thread_actor.add_source(source_info.url.clone(), None);
+
+            let source = Source {
+                actor: thread_actor_name.clone(),
+                url: source_info.url.to_string(),
+                is_black_boxed: false,
+                display_url: None,
+            };
+
+            // Notify browsing context about the new source
+            let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
+            browsing_context.resource_available(source, "source".into());
+        }
     }
 }
 
