@@ -24,6 +24,7 @@ use crate::context::LayoutContext;
 use crate::flexbox::FlexLevelBox;
 use crate::flow::BlockLevelBox;
 use crate::flow::inline::InlineItem;
+use crate::fragment_tree::Fragment;
 use crate::geom::PhysicalSize;
 use crate::replaced::{CanvasInfo, CanvasSource};
 use crate::table::TableLevelBox;
@@ -36,6 +37,20 @@ pub struct InnerDOMLayoutData {
     pub(super) pseudo_before_box: ArcRefCell<Option<LayoutBox>>,
     pub(super) pseudo_after_box: ArcRefCell<Option<LayoutBox>>,
     pub(super) pseudo_marker_box: ArcRefCell<Option<LayoutBox>>,
+}
+
+impl InnerDOMLayoutData {
+    pub(crate) fn for_pseudo(
+        &self,
+        pseudo_element: Option<PseudoElement>,
+    ) -> AtomicRef<Option<LayoutBox>> {
+        match pseudo_element {
+            Some(PseudoElement::Before) => self.pseudo_before_box.borrow(),
+            Some(PseudoElement::After) => self.pseudo_after_box.borrow(),
+            Some(PseudoElement::Marker) => self.pseudo_marker_box.borrow(),
+            _ => self.self_box.borrow(),
+        }
+    }
 }
 
 /// A box that is stored in one of the `DOMLayoutData` slots.
@@ -65,6 +80,17 @@ impl LayoutBox {
                 taffy_item_box.borrow_mut().invalidate_cached_fragment()
             },
             LayoutBox::TableLevelBox(table_box) => table_box.invalidate_cached_fragment(),
+        }
+    }
+
+    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+        match self {
+            LayoutBox::DisplayContents => vec![],
+            LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().fragments(),
+            LayoutBox::InlineLevel(inline_item) => inline_item.borrow().fragments(),
+            LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().fragments(),
+            LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().fragments(),
+            LayoutBox::TableLevelBox(table_box) => table_box.fragments(),
         }
     }
 }
@@ -138,6 +164,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
     /// Remove boxes for the element itself, and its `:before` and `:after` if any.
     fn unset_all_boxes(self);
 
+    fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
     fn invalidate_cached_fragment(self);
 }
 
@@ -286,5 +313,16 @@ where
         if let Some(data) = data.self_box.borrow_mut().as_mut() {
             data.invalidate_cached_fragment();
         }
+    }
+
+    fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment> {
+        NodeExt::layout_data(*self)
+            .and_then(|layout_data| {
+                layout_data
+                    .for_pseudo(pseudo_element)
+                    .as_ref()
+                    .map(LayoutBox::fragments)
+            })
+            .unwrap_or_default()
     }
 }
