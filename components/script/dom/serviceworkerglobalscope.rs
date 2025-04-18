@@ -38,6 +38,7 @@ use crate::dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots}
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::CustomTraceable;
+use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -379,6 +380,11 @@ impl ServiceWorkerGlobalScope {
                 {
                     // TODO: use AutoWorkerReset as in dedicated worker?
                     let realm = enter_realm(scope);
+                    define_all_exposed_interfaces(
+                        scope.upcast(),
+                        InRealm::entered(&realm),
+                        CanGc::note(),
+                    );
                     scope.execute_script(DOMString::from(source), CanGc::note());
                     global.dispatch_activate(CanGc::note(), InRealm::entered(&realm));
                 }

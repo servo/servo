@@ -118,6 +118,19 @@ pub(crate) const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
 
+/// Eagerly define all relevant WebIDL interface constructors on the
+/// provided global object.
+pub(crate) fn define_all_exposed_interfaces(
+    global: &GlobalScope,
+    _in_realm: InRealm,
+    _can_gc: CanGc,
+) {
+    let cx = GlobalScope::get_cx();
+    for (_, interface) in &InterfaceObjectMap::MAP {
+        (interface.define)(cx, global.reflector().get_jsobject());
+    }
+}
+
 impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
     fn throw_dom_exception(
         cx: SafeJSContext,

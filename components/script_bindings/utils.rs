@@ -577,15 +577,25 @@ impl AsCCharPtrPtr for [u8] {
 
 /// Enumerate lazy properties of a global object.
 /// Modeled after <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/bindings/BindingUtils.cpp#L2814>
-/// and <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/base/nsGlobalWindowInner.cpp#3297>
-pub(crate) unsafe extern "C" fn enumerate_global<D: DomTypes>(
+pub(crate) unsafe extern "C" fn enumerate_global(
     cx: *mut JSContext,
     obj: RawHandleObject,
     props: RawMutableHandleIdVector,
     enumerable_only: bool,
 ) -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
-    if !JS_NewEnumerateStandardClasses(cx, obj, props, enumerable_only) {
+    JS_NewEnumerateStandardClasses(cx, obj, props, enumerable_only)
+}
+
+/// Enumerate lazy properties of a global object that is a Window.
+/// <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/base/nsGlobalWindowInner.cpp#3297>
+pub(crate) unsafe extern "C" fn enumerate_window<D: DomTypes>(
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    props: RawMutableHandleIdVector,
+    enumerable_only: bool,
+) -> bool {
+    if !enumerate_global(cx, obj, props, enumerable_only) {
         return false;
     }
 
