@@ -53,8 +53,6 @@ pub struct Window {
     screen_size: Size2D<u32, DeviceIndependentPixel>,
     inner_size: Cell<PhysicalSize<u32>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
-    mouse_down_button: Cell<Option<MouseButton>>,
-    webview_relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
     monitor: winit::monitor::MonitorHandle,
     webview_relative_mouse_point: Cell<Point2D<f32, DevicePixel>>,
     last_pressed: Cell<Option<(KeyboardEvent, Option<LogicalKey>)>>,
@@ -144,8 +142,6 @@ impl Window {
         debug!("Created window {:?}", winit_window.id());
         Window {
             winit_window,
-            mouse_down_button: Cell::new(None),
-            webview_relative_mouse_down_point: Cell::new(Point2D::zero()),
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
             last_pressed: Cell::new(None),
             keys_down: RefCell::new(HashMap::new()),
@@ -251,7 +247,6 @@ impl Window {
 
     /// Helper function to handle a click
     fn handle_mouse(&self, webview: &WebView, button: MouseButton, action: ElementState) {
-        let max_pixel_dist = 10.0 * self.hidpi_scale_factor().get();
         let mouse_button = match &button {
             MouseButton::Left => ServoMouseButton::Left,
             MouseButton::Right => ServoMouseButton::Right,
@@ -263,11 +258,7 @@ impl Window {
 
         let point = self.webview_relative_mouse_point.get();
         let action = match action {
-            ElementState::Pressed => {
-                self.webview_relative_mouse_down_point.set(point);
-                self.mouse_down_button.set(Some(button));
-                MouseButtonAction::Down
-            },
+            ElementState::Pressed => MouseButtonAction::Down,
             ElementState::Released => MouseButtonAction::Up,
         };
 
@@ -276,26 +267,6 @@ impl Window {
             button: mouse_button,
             point,
         }));
-
-        // Also send a 'click' event if this is release and the press was recorded
-        // to be within a 10 pixels.
-        //
-        // TODO: This should be happening within the ScriptThread.
-        if action != MouseButtonAction::Up {
-            return;
-        }
-
-        if let Some(mouse_down_button) = self.mouse_down_button.get() {
-            let pixel_dist = self.webview_relative_mouse_down_point.get() - point;
-            let pixel_dist = (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
-            if mouse_down_button == button && pixel_dist < max_pixel_dist {
-                webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
-                    action: MouseButtonAction::Click,
-                    button: mouse_button,
-                    point,
-                }));
-            }
-        }
     }
 
     /// Handle key events before sending them to Servo.
