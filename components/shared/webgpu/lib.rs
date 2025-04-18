@@ -20,7 +20,7 @@ pub use wgpu_core::id::{
     ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,
 };
 use wgpu_core::id::{ComputePipelineId, DeviceId, QueueId, RenderPipelineId};
-use wgpu_core::instance::{RequestAdapterError, RequestDeviceError};
+use wgpu_core::instance::FailedLimit;
 use wgpu_core::pipeline::CreateShaderModuleError;
 use wgpu_types::{AdapterInfo, DeviceDescriptor, Features, Limits, TextureFormat};
 
@@ -31,7 +31,7 @@ pub use crate::render_commands::*;
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
-pub type WebGPUAdapterResponse = Option<Result<Adapter, RequestAdapterError>>;
+pub type WebGPUAdapterResponse = Option<Result<Adapter, String>>;
 pub type WebGPUComputePipelineResponse = Result<Pipeline<ComputePipelineId>, Error>;
 pub type WebGPUPoppedErrorScopeResponse = Result<Option<Error>, PopError>;
 pub type WebGPURenderPipelineResponse = Result<Pipeline<RenderPipelineId>, Error>;
@@ -142,3 +142,24 @@ pub type WebGPUDeviceResponse = (
     WebGPUQueue,
     Result<DeviceDescriptor<Option<String>>, RequestDeviceError>,
 );
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum RequestDeviceError {
+    LimitsExceeded(FailedLimit),
+    UnsupportedFeature(Features),
+    Other(String),
+}
+
+impl From<wgpu_core::instance::RequestDeviceError> for RequestDeviceError {
+    fn from(value: wgpu_core::instance::RequestDeviceError) -> Self {
+        match value {
+            wgpu_core::instance::RequestDeviceError::LimitsExceeded(failed_limit) => {
+                RequestDeviceError::LimitsExceeded(failed_limit)
+            },
+            wgpu_core::instance::RequestDeviceError::UnsupportedFeature(features) => {
+                RequestDeviceError::UnsupportedFeature(features)
+            },
+            e => RequestDeviceError::Other(e.to_string()),
+        }
+    }
+}
