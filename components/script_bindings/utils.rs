@@ -621,16 +621,27 @@ pub(crate) unsafe extern "C" fn enumerate_window<D: DomTypes>(
 }
 
 /// Resolve a lazy global property, for interface objects and named constructors.
-pub(crate) unsafe extern "C" fn resolve_global<D: DomTypes>(
+pub(crate) unsafe extern "C" fn resolve_global(
     cx: *mut JSContext,
     obj: RawHandleObject,
     id: RawHandleId,
     rval: *mut bool,
 ) -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
-    if !JS_ResolveStandardClass(cx, obj, id, rval) {
+    JS_ResolveStandardClass(cx, obj, id, rval)
+}
+
+/// Resolve a lazy global property for a Window global.
+pub(crate) unsafe extern "C" fn resolve_window<D: DomTypes>(
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    id: RawHandleId,
+    rval: *mut bool,
+) -> bool {
+    if !resolve_global(cx, obj, id, rval) {
         return false;
     }
+
     if *rval {
         return true;
     }
