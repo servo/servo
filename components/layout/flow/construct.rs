@@ -458,15 +458,14 @@ where
                     self.propagated_data.without_text_decorations(),
                 ),
             );
-            box_slot.set(LayoutBox::InlineLevel(atomic));
+            box_slot.set(LayoutBox::InlineLevel(vec![atomic]));
             return;
         };
 
         // Otherwise, this is just a normal inline box. Whatever happened before, all we need to do
         // before recurring is to remember this ongoing inline level box.
-        let inline_item = self
-            .inline_formatting_context_builder
-            .start_inline_box(InlineBox::new(info));
+        self.inline_formatting_context_builder
+            .start_inline_box(InlineBox::new(info), None);
 
         if is_list_item {
             if let Some((marker_info, marker_contents)) =
@@ -486,8 +485,14 @@ where
 
         self.finish_anonymous_table_if_needed();
 
-        self.inline_formatting_context_builder.end_inline_box();
-        box_slot.set(LayoutBox::InlineLevel(inline_item));
+        // As we are ending this inline box, during the course of the `traverse()` above, the ongoing
+        // inline formatting context may have been split around block-level elements. In that case,
+        // more than a single inline box tree item may have been produced for this inline-level box.
+        // `InlineFormattingContextBuilder::end_inline_box()` is returning all of those box tree
+        // items.
+        box_slot.set(LayoutBox::InlineLevel(
+            self.inline_formatting_context_builder.end_inline_box(),
+        ));
     }
 
     fn handle_block_level_element(
@@ -574,7 +579,7 @@ where
                     display_inside,
                     contents,
                 ));
-            box_slot.set(LayoutBox::InlineLevel(inline_level_box));
+            box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
             return;
         }
 
@@ -607,7 +612,7 @@ where
                         contents,
                         self.propagated_data,
                     ));
-            box_slot.set(LayoutBox::InlineLevel(inline_level_box));
+            box_slot.set(LayoutBox::InlineLevel(vec![inline_level_box]));
             return;
         }
 

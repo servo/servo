@@ -744,7 +744,7 @@ impl InlineFormattingContextLayout<'_> {
             self.containing_block,
             self.layout_context,
             self.current_inline_container_state(),
-            inline_box.is_last_fragment,
+            inline_box.is_last_split,
             inline_box
                 .default_font_index
                 .map(|index| &self.ifc.font_metrics[index].metrics),
@@ -773,7 +773,7 @@ impl InlineFormattingContextLayout<'_> {
             );
         }
 
-        if inline_box.is_first_fragment {
+        if inline_box.is_first_split {
             self.current_line_segment.inline_size += inline_box_state.pbm.padding.inline_start +
                 inline_box_state.pbm.border.inline_start +
                 inline_box_state.pbm.margin.inline_start.auto_is(Au::zero);
@@ -2349,10 +2349,10 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                     .auto_is(Au::zero);
 
                 let pbm = margin + padding + border;
-                if inline_box.is_first_fragment {
+                if inline_box.is_first_split {
                     self.add_inline_size(pbm.inline_start);
                 }
-                if inline_box.is_last_fragment {
+                if inline_box.is_last_split {
                     self.ending_inline_pbm_stack.push(pbm.inline_end);
                 } else {
                     self.ending_inline_pbm_stack.push(Au::zero());

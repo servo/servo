@@ -57,7 +57,7 @@ impl InnerDOMLayoutData {
 pub(super) enum LayoutBox {
     DisplayContents,
     BlockLevel(ArcRefCell<BlockLevelBox>),
-    InlineLevel(ArcRefCell<InlineItem>),
+    InlineLevel(Vec<ArcRefCell<InlineItem>>),
     FlexLevel(ArcRefCell<FlexLevelBox>),
     TableLevelBox(TableLevelBox),
     TaffyItemBox(ArcRefCell<TaffyItemBox>),
@@ -70,8 +70,10 @@ impl LayoutBox {
             LayoutBox::BlockLevel(block_level_box) => {
                 block_level_box.borrow().invalidate_cached_fragment()
             },
-            LayoutBox::InlineLevel(inline_item) => {
-                inline_item.borrow().invalidate_cached_fragment()
+            LayoutBox::InlineLevel(inline_items) => {
+                for inline_item in inline_items.iter() {
+                    inline_item.borrow().invalidate_cached_fragment()
+                }
             },
             LayoutBox::FlexLevel(flex_level_box) => {
                 flex_level_box.borrow().invalidate_cached_fragment()
@@ -87,7 +89,10 @@ impl LayoutBox {
         match self {
             LayoutBox::DisplayContents => vec![],
             LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().fragments(),
-            LayoutBox::InlineLevel(inline_item) => inline_item.borrow().fragments(),
+            LayoutBox::InlineLevel(inline_items) => inline_items
+                .iter()
+                .flat_map(|inline_item| inline_item.borrow().fragments())
+                .collect(),
             LayoutBox::FlexLevel(flex_level_box) => flex_level_box.borrow().fragments(),
             LayoutBox::TaffyItemBox(taffy_item_box) => taffy_item_box.borrow().fragments(),
             LayoutBox::TableLevelBox(table_box) => table_box.fragments(),

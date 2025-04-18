@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
 
 use icu_segmenter::WordSegmenter;
+use itertools::izip;
 use servo_arc::Arc;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::values::specified::text::TextTransformCase;
@@ -66,6 +67,16 @@ pub(crate) struct InlineFormattingContextBuilder {
     ///
     /// When an inline box ends, it's removed from this stack.
     inline_box_stack: Vec<InlineBoxIdentifier>,
+
+    /// Normally, an inline box produces a single box tree [`InlineItem`]. When a block
+    /// element causes an inline box [to be split], it can produce multiple
+    /// [`InlineItem`]s, all inserted into different [`InlineFormattingContext`]s.
+    /// [`Self::block_in_inline_splits`] is responsible for tracking all of these split
+    /// inline box results, so that they can be inserted into the [`crate::dom::BoxSlot`]
+    /// for the DOM element once it has been processed for BoxTree construction.
+    ///
+    /// [to be split]: https://www.w3.org/TR/CSS2/visuren.html#anonymous-block-level
+    block_in_inline_splits: Vec<Vec<ArcRefCell<InlineItem>>>,
 
     /// Whether or not the inline formatting context under construction has any
     /// uncollapsible text content.
@@ -162,29 +173,42 @@ impl InlineFormattingContextBuilder {
         inline_level_box
     }
 
-    pub(crate) fn start_inline_box(&mut self, inline_box: InlineBox) -> ArcRefCell<InlineItem> {
+    pub(crate) fn start_inline_box(
+        &mut self,
+        inline_box: InlineBox,
+        block_in_inline_splits: Option<Vec<ArcRefCell<InlineItem>>>,
+    ) {
         self.push_control_character_string(inline_box.base.style.bidi_control_chars().0);
 
         let (identifier, inline_box) = self.inline_boxes.start_inline_box(inline_box);
         let inline_level_box = ArcRefCell::new(InlineItem::StartInlineBox(inline_box));
         self.inline_items.push(inline_level_box.clone());
         self.inline_box_stack.push(identifier);
-        inline_level_box
+
+        let mut block_in_inline_splits = block_in_inline_splits.unwrap_or_default();
+        block_in_inline_splits.push(inline_level_box);
+        self.block_in_inline_splits.push(block_in_inline_splits);
     }
 
-    pub(crate) fn end_inline_box(&mut self) -> ArcRefCell<InlineBox> {
-        let identifier = self.end_inline_box_internal();
+    /// End the ongoing inline box in this [`InlineFormattingContextBuilder`], returning
+    /// shared references to all of the box tree items that were created for it. More than
+    /// a single box tree items may be produced for a single inline box when that inline
+    /// box is split around a block-level element.
+    pub(crate) fn end_inline_box(&mut self) -> Vec<ArcRefCell<InlineItem>> {
+        let (identifier, block_in_inline_splits) = self.end_inline_box_internal();
         let inline_level_box = self.inline_boxes.get(&identifier);
-        inline_level_box.borrow_mut().is_last_fragment = true;
+        {
+            let mut inline_level_box = inline_level_box.borrow_mut();
+            inline_level_box.is_last_split = true;
+            self.push_control_character_string(inline_level_box.base.style.bidi_control_chars().1);
+        }
 
-        self.push_control_character_string(
-            inline_level_box.borrow().base.style.bidi_control_chars().1,
-        );
-
-        inline_level_box
+        block_in_inline_splits.unwrap_or_default()
     }
 
-    fn end_inline_box_internal(&mut self) -> InlineBoxIdentifier {
+    fn end_inline_box_internal(
+        &mut self,
+    ) -> (InlineBoxIdentifier, Option<Vec<ArcRefCell<InlineItem>>>) {
         let identifier = self
             .inline_box_stack
             .pop()
@@ -193,7 +217,12 @@ impl InlineFormattingContextBuilder {
             .push(ArcRefCell::new(InlineItem::EndInlineBox));
 
         self.inline_boxes.end_inline_box(identifier);
-        identifier
+
+        // This might be `None` if this builder has already drained its block-in-inline-splits
+        // into the new builder on the other side of a new block-in-inline split.
+        let block_in_inline_splits = self.block_in_inline_splits.pop();
+
+        (identifier, block_in_inline_splits)
     }
 
     pub(crate) fn push_text<'dom, Node: NodeExt<'dom>>(
@@ -295,12 +324,21 @@ impl InlineFormattingContextBuilder {
         // marked as not being the first fragment. No inline content is carried over to this new
         // builder.
         let mut new_builder = InlineFormattingContextBuilder::new();
-        for identifier in self.inline_box_stack.iter() {
+        let block_in_inline_splits = std::mem::take(&mut self.block_in_inline_splits);
+        for (identifier, historical_inline_boxes) in
+            izip!(self.inline_box_stack.iter(), block_in_inline_splits)
+        {
+            // Start a new inline box for every ongoing inline box in this
+            // InlineFormattingContext once we are done processing this block element,
+            // being sure to give the block-in-inline-split to the new
+            // InlineFormattingContext. These will finally be inserted into the DOM's
+            // BoxSlot once the inline box has been fully processed.
             new_builder.start_inline_box(
                 self.inline_boxes
                     .get(identifier)
                     .borrow()
                     .split_around_block(),
+                Some(historical_inline_boxes),
             );
         }
         let mut inline_builder_from_before_split = std::mem::replace(self, new_builder);

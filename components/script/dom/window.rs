@@ -2250,7 +2250,9 @@ impl Window {
 
     // Query content box without considering any reflow
     pub(crate) fn content_box_query_unchecked(&self, node: &Node) -> Option<UntypedRect<Au>> {
-        self.layout.borrow().query_content_box(node.to_opaque())
+        self.layout
+            .borrow()
+            .query_content_box(node.to_trusted_node_address())
     }
 
     pub(crate) fn content_box_query(&self, node: &Node, can_gc: CanGc) -> Option<UntypedRect<Au>> {
@@ -2264,14 +2266,18 @@ impl Window {
         if !self.layout_reflow(QueryMsg::ContentBoxes, can_gc) {
             return vec![];
         }
-        self.layout.borrow().query_content_boxes(node.to_opaque())
+        self.layout
+            .borrow()
+            .query_content_boxes(node.to_trusted_node_address())
     }
 
     pub(crate) fn client_rect_query(&self, node: &Node, can_gc: CanGc) -> UntypedRect<i32> {
         if !self.layout_reflow(QueryMsg::ClientRectQuery, can_gc) {
             return Rect::zero();
         }
-        self.layout.borrow().query_client_rect(node.to_opaque())
+        self.layout
+            .borrow()
+            .query_client_rect(node.to_trusted_node_address())
     }
 
     /// Find the scroll area of the given node, if it is not None. If the node

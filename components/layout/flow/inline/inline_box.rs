@@ -23,8 +23,12 @@ pub(crate) struct InlineBox {
     pub base: LayoutBoxBase,
     /// The identifier of this inline box in the containing [`super::InlineFormattingContext`].
     pub(super) identifier: InlineBoxIdentifier,
-    pub is_first_fragment: bool,
-    pub is_last_fragment: bool,
+    /// Whether or not this is the first instance of an [`InlineBox`] before a possible
+    /// block-in-inline split. When no split occurs, this is always true.
+    pub is_first_split: bool,
+    /// Whether or not this is the last instance of an [`InlineBox`] before a possible
+    /// block-in-inline split. When no split occurs, this is always true.
+    pub is_last_split: bool,
     /// The index of the default font in the [`super::InlineFormattingContext`]'s font metrics store.
     /// This is initialized during IFC shaping.
     pub default_font_index: Option<usize>,
@@ -36,8 +40,8 @@ impl InlineBox {
             base: LayoutBoxBase::new(info.into(), info.style.clone()),
             // This will be assigned later, when the box is actually added to the IFC.
             identifier: InlineBoxIdentifier::default(),
-            is_first_fragment: true,
-            is_last_fragment: false,
+            is_first_split: true,
+            is_last_split: false,
             default_font_index: None,
         }
     }
@@ -45,8 +49,8 @@ impl InlineBox {
     pub(crate) fn split_around_block(&self) -> Self {
         Self {
             base: LayoutBoxBase::new(self.base.base_fragment_info, self.base.style.clone()),
-            is_first_fragment: false,
-            is_last_fragment: false,
+            is_first_split: false,
+            is_last_split: false,
             ..*self
         }
     }

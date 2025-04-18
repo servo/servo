@@ -5,18 +5,17 @@
 use app_units::Au;
 use base::print_tree::PrintTree;
 use compositing_traits::display_list::AxesScrollSensitivity;
-use euclid::default::{Point2D, Rect, Size2D};
+use euclid::default::Size2D;
 use fxhash::FxHashSet;
 use malloc_size_of_derive::MallocSizeOf;
 use style::animation::AnimationSetKey;
-use style::dom::OpaqueNode;
 use webrender_api::units;
 
-use super::{ContainingBlockManager, Fragment, Tag};
+use super::{ContainingBlockManager, Fragment};
 use crate::context::LayoutContext;
 use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
-use crate::geom::{PhysicalPoint, PhysicalRect};
+use crate::geom::PhysicalRect;
 
 #[derive(MallocSizeOf)]
 pub struct FragmentTree {
@@ -137,82 +136,6 @@ impl FragmentTree {
         self.root_fragments
             .iter()
             .find_map(|child| child.find(&info, 0, &mut process_func))
-    }
-
-    /// Get the vector of rectangles that surrounds the fragments of the node with the given address.
-    /// This function answers the `getClientRects()` query and the union of the rectangles answers
-    /// the `getBoundingClientRect()` query.
-    ///
-    /// TODO: This function is supposed to handle scroll offsets, but that isn't happening at all.
-    pub fn get_content_boxes_for_node(&self, requested_node: OpaqueNode) -> Vec<Rect<Au>> {
-        let mut content_boxes = Vec::new();
-        let tag_to_find = Tag::new(requested_node);
-        self.find(|fragment, _, containing_block| {
-            if fragment.tag() != Some(tag_to_find) {
-                return None::<()>;
-            }
-
-            let fragment_relative_rect = match fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                    fragment.borrow().border_rect()
-                },
-                Fragment::Positioning(fragment) => fragment.borrow().rect,
-                Fragment::Text(fragment) => fragment.borrow().rect,
-                Fragment::AbsoluteOrFixedPositioned(_) |
-                Fragment::Image(_) |
-                Fragment::IFrame(_) => return None,
-            };
-
-            let rect = fragment_relative_rect.translate(containing_block.origin.to_vector());
-
-            content_boxes.push(rect.to_untyped());
-            None::<()>
-        });
-        content_boxes
-    }
-
-    pub fn get_border_dimensions_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {
-        let tag_to_find = Tag::new(requested_node);
-        self.find(|fragment, _, _containing_block| {
-            if fragment.tag() != Some(tag_to_find) {
-                return None;
-            }
-
-            let rect = match fragment {
-                Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                    // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
-                    // " If the element has no associated CSS layout box or if the
-                    //   CSS layout box is inline, return zero." For this check we
-                    // also explicitly ignore the list item portion of the display
-                    // style.
-                    let fragment = fragment.borrow();
-                    if fragment.is_inline_box() {
-                        return Some(Rect::zero());
-                    }
-                    if fragment.is_table_wrapper() {
-                        // For tables the border actually belongs to the table grid box,
-                        // so we need to include it in the dimension of the table wrapper box.
-                        let mut rect = fragment.border_rect();
-                        rect.origin = PhysicalPoint::zero();
-                        rect
-                    } else {
-                        let mut rect = fragment.padding_rect();
-                        rect.origin = PhysicalPoint::new(fragment.border.left, fragment.border.top);
-                        rect
-                    }
-                },
-                Fragment::Positioning(fragment) => fragment.borrow().rect.cast_unit(),
-                Fragment::Text(text_fragment) => text_fragment.borrow().rect,
-                _ => return None,
-            };
-
-            let rect = Rect::new(
-                Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
-                Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
-            );
-            Some(rect.round().to_i32().to_untyped())
-        })
-        .unwrap_or_else(Rect::zero)
     }
 
     pub fn get_scrolling_area_for_viewport(&self) -> PhysicalRect<Au> {

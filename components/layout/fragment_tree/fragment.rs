@@ -7,6 +7,7 @@ use std::sync::Arc;
 use app_units::Au;
 use base::id::PipelineId;
 use base::print_tree::PrintTree;
+use euclid::{Point2D, Rect, Size2D, UnknownUnit};
 use fonts::{ByteIndex, FontMetrics, GlyphStore};
 use malloc_size_of_derive::MallocSizeOf;
 use range::Range as ServoRange;
@@ -21,7 +22,7 @@ use super::{
     Tag,
 };
 use crate::cell::ArcRefCell;
-use crate::geom::{LogicalSides, PhysicalRect};
+use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
 #[derive(Clone, MallocSizeOf)]
@@ -188,6 +189,56 @@ impl Fragment {
             Fragment::Image(fragment) => fragment.borrow().rect,
             Fragment::IFrame(fragment) => fragment.borrow().rect,
         }
+    }
+
+    pub(crate) fn cumulative_content_box_rect(&self) -> Option<PhysicalRect<Au>> {
+        match self {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                let fragment = fragment.borrow();
+                Some(fragment.offset_by_containing_block(&fragment.border_rect()))
+            },
+            Fragment::Positioning(_) |
+            Fragment::Text(_) |
+            Fragment::AbsoluteOrFixedPositioned(_) |
+            Fragment::Image(_) |
+            Fragment::IFrame(_) => None,
+        }
+    }
+
+    pub(crate) fn client_rect(&self) -> Rect<i32, UnknownUnit> {
+        let rect = match self {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
+                // " If the element has no associated CSS layout box or if the
+                //   CSS layout box is inline, return zero." For this check we
+                // also explicitly ignore the list item portion of the display
+                // style.
+                let fragment = fragment.borrow();
+                if fragment.is_inline_box() {
+                    return Rect::zero();
+                }
+
+                if fragment.is_table_wrapper() {
+                    // For tables the border actually belongs to the table grid box,
+                    // so we need to include it in the dimension of the table wrapper box.
+                    let mut rect = fragment.border_rect();
+                    rect.origin = PhysicalPoint::zero();
+                    rect
+                } else {
+                    let mut rect = fragment.padding_rect();
+                    rect.origin = PhysicalPoint::new(fragment.border.left, fragment.border.top);
+                    rect
+                }
+            },
+            _ => return Rect::zero(),
+        }
+        .to_untyped();
+
+        let rect = Rect::new(
+            Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
+            Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
+        );
+        rect.round().to_i32()
     }
 
     pub(crate) fn find<T>(
