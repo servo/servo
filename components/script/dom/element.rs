@@ -3018,7 +3018,6 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
     fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
-
         // Step 2. Let target be this's template contents if this is a template element; otherwise this.
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             DomRoot::upcast(template.Content(can_gc))
