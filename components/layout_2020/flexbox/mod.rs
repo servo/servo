@@ -19,7 +19,7 @@ use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::BaseFragmentInfo;
+use crate::fragment_tree::{BaseFragmentInfo, Fragment};
 use crate::positioned::AbsolutelyPositionedBox;
 
 mod geom;
@@ -155,6 +155,18 @@ impl FlexLevelBox {
                 .context
                 .base
                 .invalidate_cached_fragment(),
+        }
+    }
+
+    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+        match self {
+            FlexLevelBox::FlexItem(flex_item_box) => flex_item_box
+                .independent_formatting_context
+                .base
+                .fragments(),
+            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                positioned_box.borrow().context.base.fragments()
+            },
         }
     }
 }

@@ -131,6 +131,17 @@ impl TaffyItemBox {
             },
         }
     }
+
+    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+        match self.taffy_level_box {
+            TaffyItemBoxInner::InFlowBox(ref independent_formatting_context) => {
+                independent_formatting_context.base.fragments()
+            },
+            TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ref positioned_box) => {
+                positioned_box.borrow().context.base.fragments()
+            },
+        }
+    }
 }
 
 /// Details from Taffy grid layout that will be stored

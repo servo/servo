@@ -29,6 +29,7 @@ pub(crate) struct LayoutBoxBase {
     pub cached_inline_content_size:
         AtomicRefCell<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
     pub cached_layout_result: AtomicRefCell<Option<Box<CacheableLayoutResultAndInputs>>>,
+    pub fragments: AtomicRefCell<Vec<Fragment>>,
 }
 
 impl LayoutBoxBase {
@@ -38,6 +39,7 @@ impl LayoutBoxBase {
             style,
             cached_inline_content_size: AtomicRefCell::default(),
             cached_layout_result: AtomicRefCell::default(),
+            fragments: AtomicRefCell::default(),
         }
     }
 
@@ -68,6 +70,22 @@ impl LayoutBoxBase {
 
     pub(crate) fn invalidate_cached_fragment(&self) {
         let _ = self.cached_layout_result.borrow_mut().take();
+    }
+
+    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+        self.fragments.borrow().clone()
+    }
+
+    pub(crate) fn add_fragment(&self, fragment: Fragment) {
+        self.fragments.borrow_mut().push(fragment);
+    }
+
+    pub(crate) fn set_fragment(&self, fragment: Fragment) {
+        *self.fragments.borrow_mut() = vec![fragment];
+    }
+
+    pub(crate) fn clear_fragments(&self) {
+        self.fragments.borrow_mut().clear();
     }
 }
 

@@ -550,7 +550,7 @@ impl TaffyContainer {
                         false
                     };
 
-                match &mut child.taffy_level_box {
+                let fragment = match &mut child.taffy_level_box {
                     TaffyItemBoxInner::InFlowBox(independent_box) => {
                         let mut fragment_info = independent_box.base_fragment_info();
                         fragment_info
@@ -594,7 +594,6 @@ impl TaffyContainer {
                         container_ctx
                             .positioning_context
                             .append(child_positioning_context);
-
                         fragment
                     },
                     TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(abs_pos_box) => {
@@ -628,7 +627,16 @@ impl TaffyContainer {
                         container_ctx.positioning_context.push(hoisted_box);
                         Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
                     },
+                };
+
+                if let TaffyItemBoxInner::InFlowBox(independent_formatting_context) =
+                    &child.taffy_level_box
+                {
+                    independent_formatting_context
+                        .base
+                        .set_fragment(fragment.clone());
                 }
+                fragment
             })
             .collect();
 

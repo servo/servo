@@ -84,7 +84,7 @@ use super::flow::BlockFormattingContext;
 use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::BaseFragmentInfo;
+use crate::fragment_tree::{BaseFragmentInfo, Fragment};
 use crate::geom::PhysicalVec;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::BorderStyleColor;
@@ -272,13 +272,10 @@ impl TableSlot {
 }
 
 /// A row or column of a table.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct TableTrack {
-    /// The [`BaseFragmentInfo`] of this cell.
-    base_fragment_info: BaseFragmentInfo,
-
-    /// The style of this table column.
-    style: Arc<ComputedValues>,
+    /// The [`LayoutBoxBase`] of this [`TableTrack`].
+    base: LayoutBoxBase,
 
     /// The index of the table row or column group parent in the table's list of row or column
     /// groups.
@@ -299,11 +296,8 @@ pub enum TableTrackGroupType {
 
 #[derive(Debug)]
 pub struct TableTrackGroup {
-    /// The [`BaseFragmentInfo`] of this [`TableTrackGroup`].
-    base_fragment_info: BaseFragmentInfo,
-
-    /// The style of this [`TableTrackGroup`].
-    style: Arc<ComputedValues>,
+    /// The [`LayoutBoxBase`] of this [`TableTrackGroup`].
+    base: LayoutBoxBase,
 
     /// The type of this [`TableTrackGroup`].
     group_type: TableTrackGroupType,
@@ -366,8 +360,19 @@ impl TableLevelBox {
             TableLevelBox::Cell(cell) => {
                 cell.borrow().base.invalidate_cached_fragment();
             },
-            TableLevelBox::TrackGroup(..) => {},
-            TableLevelBox::Track(..) => {},
+            TableLevelBox::TrackGroup(track_group) => {
+                track_group.borrow().base.invalidate_cached_fragment()
+            },
+            TableLevelBox::Track(track) => track.borrow().base.invalidate_cached_fragment(),
+        }
+    }
+
+    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+        match self {
+            TableLevelBox::Caption(caption) => caption.borrow().context.base.fragments(),
+            TableLevelBox::Cell(cell) => cell.borrow().base.fragments(),
+            TableLevelBox::TrackGroup(track_group) => track_group.borrow().base.fragments(),
+            TableLevelBox::Track(track) => track.borrow().base.fragments(),
         }
     }
 }

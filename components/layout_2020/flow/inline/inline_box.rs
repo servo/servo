@@ -73,6 +73,10 @@ impl InlineBoxes {
         self.inline_boxes.len()
     }
 
+    pub(super) fn iter(&self) -> impl Iterator<Item = &ArcRefCell<InlineBox>> {
+        self.inline_boxes.iter()
+    }
+
     pub(super) fn get(&self, identifier: &InlineBoxIdentifier) -> ArcRefCell<InlineBox> {
         self.inline_boxes[identifier.index_in_inline_boxes as usize].clone()
     }

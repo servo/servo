@@ -214,7 +214,7 @@ impl FlexLineItem<'_> {
         flex_context: &mut FlexContext,
         all_baselines: &mut Baselines,
         main_position_cursor: &mut Au,
-    ) -> (BoxFragment, PositioningContext) {
+    ) -> (ArcRefCell<BoxFragment>, PositioningContext) {
         // https://drafts.csswg.org/css-flexbox/#algo-main-align
         // “Align the items along the main-axis”
         *main_position_cursor +=
@@ -312,6 +312,12 @@ impl FlexLineItem<'_> {
                 .to_physical_size(containing_block.style.writing_mode)
         }
 
+        let fragment = ArcRefCell::new(fragment);
+        self.item
+            .box_
+            .independent_formatting_context
+            .base
+            .set_fragment(Fragment::Box(fragment.clone()));
         (fragment, self.layout_result.positioning_context)
     }
 }
@@ -323,7 +329,7 @@ struct FinalFlexLineLayout {
     cross_size: Au,
     /// The [`BoxFragment`]s and [`PositioningContext`]s of all flex items,
     /// one per flex item in "order-modified document order."
-    item_fragments: Vec<(BoxFragment, PositioningContext)>,
+    item_fragments: Vec<(ArcRefCell<BoxFragment>, PositioningContext)>,
     /// The 'shared alignment baseline' of this flex line. This is the baseline used for
     /// baseline-aligned items if there are any, otherwise `None`.
     shared_alignment_baseline: Option<Au>,
@@ -935,7 +941,7 @@ impl FlexContainer {
                 let physical_line_position =
                     flow_relative_line_position.to_physical_size(self.style.writing_mode);
                 for (fragment, _) in &mut final_line_layout.item_fragments {
-                    fragment.content_rect.origin += physical_line_position;
+                    fragment.borrow_mut().content_rect.origin += physical_line_position;
                 }
                 final_line_layout.item_fragments
             })
@@ -957,7 +963,7 @@ impl FlexContainer {
                     // per flex item, in the original order.
                     let (fragment, mut child_positioning_context) =
                         flex_item_fragments.next().unwrap();
-                    let fragment = Fragment::Box(ArcRefCell::new(fragment));
+                    let fragment = Fragment::Box(fragment);
                     child_positioning_context.adjust_static_position_of_hoisted_fragments(
                         &fragment,
                         PositioningContextLength::zero(),
