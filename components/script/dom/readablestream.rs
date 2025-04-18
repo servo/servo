@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::ptr::{self};
 use std::rc::Rc;
-use std::collections::HashMap;
 
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
@@ -20,7 +20,8 @@ use js::typedarray::ArrayBufferViewU8;
 
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
-    ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode, StreamPipeOptions
+    ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode,
+    StreamPipeOptions,
 };
 use script_bindings::str::DOMString;
 
@@ -38,6 +39,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_w
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
+use crate::dom::byteteeunderlyingsource::{ByteTeeCancelAlgorithm, ByteTeePullAlgorithm, ByteTeeUnderlyingSource};
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::globalscope::GlobalScope;
@@ -46,7 +48,7 @@ use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
-use crate::dom::defaultteeunderlyingsource::TeeCancelAlgorithm;
+use crate::dom::defaultteeunderlyingsource::DefaultTeeCancelAlgorithm;
 use crate::dom::types::DefaultTeeUnderlyingSource;
 use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
@@ -62,7 +64,6 @@ use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
 
 use super::bindings::buffer_source::HeapBufferSource;
-use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
 use super::readablestreambyobreader::ReadIntoRequest;
 
 /// State Machine for `PipeTo`.
@@ -753,17 +754,6 @@ pub(crate) enum ReaderType {
     Default(MutNullableDom<ReadableStreamDefaultReader>),
 }
 
-impl Eq for ReaderType {}
-impl PartialEq for ReaderType {
-    fn eq(&self, other: &Self) -> bool {
-        matches!(
-            (self, other),
-            (ReaderType::BYOB(_), ReaderType::BYOB(_)) |
-                (ReaderType::Default(_), ReaderType::Default(_))
-        )
-    }
-}
-
 /// <https://streams.spec.whatwg.org/#create-readable-stream>
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
 fn create_readable_stream(
@@ -968,14 +958,14 @@ impl ReadableStream {
         cx: SafeJSContext,
         read_into_request: &ReadIntoRequest,
         view: HeapBufferSource<ArrayBufferViewU8>,
-        options: &ReadableStreamBYOBReaderReadOptions,
+        min: u64,
         can_gc: CanGc,
     ) {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Byte(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .perform_pull_into(cx, read_into_request, view, options, can_gc),
+                .perform_pull_into(cx, read_into_request, view, min, can_gc),
             _ => {
                 unreachable!(
                     "Pulling a chunk from a stream with a default controller using a BYOB reader"
@@ -1186,6 +1176,17 @@ impl ReadableStream {
         }
     }
 
+    pub(crate) fn get_byte_controller(&self) -> DomRoot<ReadableByteStreamController> {
+        match self.controller.borrow().as_ref() {
+            Some(ControllerType::Byte(controller)) => {
+                controller.get().expect("Stream should have controller.")
+            },
+            _ => {
+                unreachable!("Getting byte controller for a stream with a non-byte controller")
+            },
+        }
+    }
+
     pub(crate) fn get_default_reader(&self) -> DomRoot<ReadableStreamDefaultReader> {
         match self.reader.borrow().as_ref() {
             Some(ReaderType::Default(reader)) => reader.get().expect("Stream should have reader."),
@@ -1349,7 +1350,7 @@ impl ReadableStream {
                     // step 7 - Otherwise, perform readRequest’s chunk steps, given chunk.
                     let result = RootedTraceableBox::new(Heap::default());
                     result.set(*chunk);
-                    request.chunk_steps(result, can_gc);
+                    request.chunk_steps(result, &self.global(), can_gc);
                 }
             },
             _ => {
@@ -1513,6 +1514,102 @@ impl ReadableStream {
         *self.reader.borrow_mut() = new_reader;
     }
 
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee>
+    fn byte_tee(&self, can_gc: CanGc) -> Fallible<Vec<DomRoot<ReadableStream>>> {
+        // Assert: stream implements ReadableStream.
+        // Assert: stream.[[controller]] implements ReadableByteStreamController.
+
+        // Let reader be ? AcquireReadableStreamDefaultReader(stream).
+        let reader = self.acquire_default_reader(can_gc)?;
+        let reader = Rc::new(RefCell::new(ReaderType::Default(MutNullableDom::new(
+            Some(&reader),
+        ))));
+
+        // Let reading be false.
+        let reading = Rc::new(Cell::new(false));
+
+        // Let readAgainForBranch1 be false.
+        let read_again_for_branch_1 = Rc::new(Cell::new(false));
+
+        // Let readAgainForBranch2 be false.
+        let read_again_for_branch_2 = Rc::new(Cell::new(false));
+
+        // Let canceled1 be false.
+        let canceled_1 = Rc::new(Cell::new(false));
+
+        // Let canceled2 be false.
+        let canceled_2 = Rc::new(Cell::new(false));
+
+        // Let reason1 be undefined.
+        let reason_1 = Rc::new(Heap::boxed(UndefinedValue()));
+
+        // Let reason2 be undefined.
+        let reason_2 = Rc::new(Heap::boxed(UndefinedValue()));
+
+        // Let cancelPromise be a new promise.
+        let cancel_promise = Promise::new(&self.global(), can_gc);
+
+        let byte_tee_source_1 = ByteTeeUnderlyingSource::new(
+            reader.clone(),
+            self,
+            reading.clone(),
+            read_again_for_branch_1.clone(),
+            read_again_for_branch_2.clone(),
+            canceled_1.clone(),
+            canceled_2.clone(),
+            reason_1.clone(),
+            reason_2.clone(),
+            cancel_promise.clone(),
+            ByteTeeCancelAlgorithm::Cancel1Algorithm,
+            ByteTeePullAlgorithm::Pull1Algorithm,
+            can_gc,
+        );
+
+        let byte_tee_source_2 = ByteTeeUnderlyingSource::new(
+            reader.clone(),
+            self,
+            reading,
+            read_again_for_branch_1,
+            read_again_for_branch_2,
+            canceled_1,
+            canceled_2,
+            reason_1,
+            reason_2,
+            cancel_promise.clone(),
+            ByteTeeCancelAlgorithm::Cancel2Algorithm,
+            ByteTeePullAlgorithm::Pull2Algorithm,
+            can_gc,
+        );
+
+        // Set branch1 to ! CreateReadableByteStream(startAlgorithm, pull1Algorithm, cancel1Algorithm).
+        let branch_1 = create_readable_stream(
+            &self.global(),
+            UnderlyingSourceType::TeeByte(Dom::from_ref(&byte_tee_source_1)),
+            QueuingStrategy::empty(),
+            can_gc,
+        );
+        byte_tee_source_1.set_branch_1(&branch_1);
+        byte_tee_source_2.set_branch_1(&branch_1);
+
+        // Set branch2 to ! CreateReadableByteStream(startAlgorithm, pull2Algorithm, cancel2Algorithm).
+        let branch_2 = create_readable_stream(
+            &self.global(),
+            UnderlyingSourceType::TeeByte(Dom::from_ref(&byte_tee_source_2)),
+            QueuingStrategy::empty(),
+            can_gc,
+        );
+        byte_tee_source_1.set_branch_2(&branch_2);
+        byte_tee_source_2.set_branch_2(&branch_2);
+
+        // Perform forwardReaderError, given reader.
+        byte_tee_source_1.forward_reader_error(reader.clone(), can_gc);
+        byte_tee_source_2.forward_reader_error(reader, can_gc);
+
+        // Return « branch1, branch2 ».
+        Ok(vec![branch_1, branch_2])
+    }
+
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     fn default_tee(
@@ -1527,9 +1624,6 @@ impl ReadableStream {
 
         // Let reader be ? AcquireReadableStreamDefaultReader(stream).
         let reader = self.acquire_default_reader(can_gc)?;
-        self.set_reader(Some(ReaderType::Default(MutNullableDom::new(Some(
-            &reader,
-        )))));
 
         // Let reading be false.
         let reading = Rc::new(Cell::new(false));
@@ -1558,7 +1652,7 @@ impl ReadableStream {
             reason_1.clone(),
             reason_2.clone(),
             cancel_promise.clone(),
-            TeeCancelAlgorithm::Cancel1Algorithm,
+            DefaultTeeCancelAlgorithm::Cancel1Algorithm,
             can_gc,
         );
 
@@ -1576,7 +1670,7 @@ impl ReadableStream {
             reason_1,
             reason_2,
             cancel_promise.clone(),
-            TeeCancelAlgorithm::Cancel2Algorithm,
+            DefaultTeeCancelAlgorithm::Cancel2Algorithm,
             can_gc,
         );
 
@@ -1604,7 +1698,7 @@ impl ReadableStream {
         tee_source_2.set_branch_2(&branch_2);
 
         // Upon rejection of reader.[[closedPromise]] with reason r,
-        reader.append_native_handler_to_closed_promise(
+        reader.default_tee_append_native_handler_to_closed_promise(
             &branch_1,
             &branch_2,
             canceled_1,
@@ -1726,9 +1820,7 @@ impl ReadableStream {
             Some(ControllerType::Byte(_)) => {
                 // If stream.[[controller]] implements ReadableByteStreamController,
                 // return ? ReadableByteStreamTee(stream).
-                Err(Error::Type(
-                    "Teeing is not yet supported for byte streams".to_owned(),
-                ))
+                self.byte_tee(can_gc)
             },
             None => {
                 unreachable!("Stream should have a controller.");
