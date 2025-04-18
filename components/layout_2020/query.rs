@@ -46,40 +46,34 @@ use crate::fragment_tree::{
 use crate::geom::{PhysicalRect, PhysicalVec};
 use crate::taffy::SpecificTaffyGridInfo;
 
-pub fn process_content_box_request(
-    requested_node: OpaqueNode,
-    fragment_tree: Option<Arc<FragmentTree>>,
-) -> Option<Rect<Au>> {
-    let rects = fragment_tree?.get_content_boxes_for_node(requested_node);
+pub fn process_content_box_request<'dom>(node: impl LayoutNode<'dom> + 'dom) -> Option<Rect<Au>> {
+    let rects: Vec<_> = node
+        .fragments_for_pseudo(None)
+        .iter()
+        .filter_map(Fragment::cumulative_content_box_rect)
+        .collect();
     if rects.is_empty() {
         return None;
     }
 
-    Some(
-        rects
-            .iter()
-            .fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect)),
-    )
+    Some(rects.iter().fold(Rect::zero(), |unioned_rect, rect| {
+        rect.to_untyped().union(&unioned_rect)
+    }))
 }
 
-pub fn process_content_boxes_request(
-    requested_node: OpaqueNode,
-    fragment_tree: Option<Arc<FragmentTree>>,
-) -> Vec<Rect<Au>> {
-    fragment_tree
-        .map(|tree| tree.get_content_boxes_for_node(requested_node))
+pub fn process_content_boxes_request<'dom>(node: impl LayoutNode<'dom> + 'dom) -> Vec<Rect<Au>> {
+    node.fragments_for_pseudo(None)
+        .iter()
+        .filter_map(Fragment::cumulative_content_box_rect)
+        .map(|rect| rect.to_untyped())
+        .collect()
+}
+
+pub fn process_client_rect_request<'dom>(node: impl LayoutNode<'dom> + 'dom) -> Rect<i32> {
+    node.fragments_for_pseudo(None)
+        .first()
+        .map(Fragment::client_rect)
         .unwrap_or_default()
-}
-
-pub fn process_node_geometry_request(
-    requested_node: OpaqueNode,
-    fragment_tree: Option<Arc<FragmentTree>>,
-) -> Rect<i32> {
-    if let Some(fragment_tree) = fragment_tree {
-        fragment_tree.get_border_dimensions_for_node(requested_node)
-    } else {
-        Rect::zero()
-    }
 }
 
 /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
