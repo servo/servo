@@ -80,7 +80,10 @@ use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
-use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
+use crate::fetch::methods::{
+    Data, DoneChannel, FetchContext, Target, main_fetch,
+    should_request_be_blocked_due_to_a_bad_port,
+};
 use crate::hosts::replace_host;
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
@@ -1920,7 +1923,13 @@ async fn http_network_fetch(
                 Origin::Origin(ref origin) => origin,
             };
 
-            // FIXME(pylbrecht): should_request_be_blocked_due_to_a_bad_port()
+            if should_request_be_blocked_due_to_a_bad_port(&req_url) {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("port blocked");
+            }
+
             // FIXME(pylbrecht): should_request_be_blocked_by_csp()
 
             let Ok(client) = create_request(
