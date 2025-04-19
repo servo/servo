@@ -2,15 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use content_security_policy as csp;
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
-use async_tungstenite::tokio::client_async_tls_with_connector_and_config;
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel;
 use base::id::{BrowsingContextId, HistoryStateId, PipelineId};
@@ -46,7 +43,6 @@ use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::http_status::HttpStatus;
-use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
@@ -67,14 +63,11 @@ use profile_traits::path;
 use rustc_hash::FxHashMap;
 use servo_arc::Arc;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
-use tokio::net::TcpStream;
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
     unbounded_channel,
 };
-use tokio_rustls::TlsConnector;
 use tokio_stream::wrappers::ReceiverStream;
-use url::Url;
 
 use crate::async_runtime::spawn_task;
 use crate::connector::{CertificateErrorOverrideManager, Connector, create_tls_config};
@@ -84,17 +77,11 @@ use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
-use crate::fetch::methods::{
-    Data, DoneChannel, FetchContext, Target, convert_request_to_csp_request, main_fetch,
-    should_request_be_blocked_by_csp, should_request_be_blocked_due_to_a_bad_port,
-};
-use crate::hosts::replace_host;
+use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
-use crate::websocket_loader::{
-    create_request, process_ws_response, run_ws_loop, setup_dom_listener, start_websocket,
-};
+use crate::websocket_loader::{create_request, start_websocket};
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
