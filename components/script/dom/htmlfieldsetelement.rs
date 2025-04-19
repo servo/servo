@@ -223,7 +223,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status(can_gc);
+                        element.update_sequentially_focusable_status();
                     }
                 } else {
                     for field in fields {
@@ -244,10 +244,10 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status(can_gc);
+                        element.update_sequentially_focusable_status();
                     }
                 }
-                element.update_sequentially_focusable_status(can_gc);
+                element.update_sequentially_focusable_status();
             },
             local_name!("form") => {
                 self.form_attribute_mutated(mutation, can_gc);
