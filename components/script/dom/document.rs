@@ -1131,11 +1131,16 @@ impl Document {
         if Some(not_focusable) != self.focused.get().as_deref() {
             return;
         }
-        self.request_focus(
-            self.GetBody().as_ref().map(|e| e.upcast()),
-            FocusType::Element,
-            can_gc,
-        )
+        let document = Trusted::new(self);
+        self.owner_document().add_delayed_task(task!(
+            RequestFocus: move || {
+                let document = document.root();
+                if document.focused.get().is_none() {
+                    return;
+                }
+                document.request_focus(document.GetBody().as_ref().map(|e| e.upcast()), FocusType::Element, CanGc::note());
+            }
+        ));
     }
 
     /// Request that the given element receive focus once the current transaction is complete.
