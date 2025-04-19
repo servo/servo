@@ -748,17 +748,15 @@ impl CoreResourceManager {
         spawn_task(async move {
             let mut event_sender = event_sender;
 
-            let mut url = request.url;
-            if url.scheme() == "wss" {
-                url.as_mut_url()
-                    .set_scheme("https")
-                    .expect("Can't set scheme from wss to https");
-            } else {
-                url.as_mut_url()
-                    .set_scheme("http")
-                    .expect("Can't set scheme from ws to http");
+            let scheme = match request.url.scheme() {
+                "ws" => "http",
+                _ => "https",
             };
-            request.url = url;
+            request
+                .url
+                .as_mut_url()
+                .set_scheme(scheme)
+                .expect(&format!("Can't set scheme to {scheme}"));
 
             match create_handshake_request(request, http_state.clone()) {
                 Ok(request) => {
