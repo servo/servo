@@ -59,7 +59,7 @@ use crate::http_cache::HttpCache;
 use crate::http_loader::{HttpState, http_redirect_fetch};
 use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
-use crate::websocket_loader::create_request;
+use crate::websocket_loader::create_handshake_request;
 
 /// Load a file with CA certificate and produce a RootCertStore with the results.
 fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore> {
@@ -760,7 +760,7 @@ impl CoreResourceManager {
             };
             request.url = url;
 
-            match create_request(request, http_state.clone()) {
+            match create_handshake_request(request, http_state.clone()) {
                 Ok(request) => {
                     let context = FetchContext {
                         state: http_state,
