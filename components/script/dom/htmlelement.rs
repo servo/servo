@@ -1144,7 +1144,7 @@ impl VirtualMethods for HTMLElement {
             super_type.bind_to_tree(context, can_gc);
         }
         let element = self.as_element();
-        element.update_sequentially_focusable_status(can_gc);
+        element.update_sequentially_focusable_status();
 
         // Binding to a tree can disable a form control if one of the new
         // ancestors is a fieldset.

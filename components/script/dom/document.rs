@@ -1127,7 +1127,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
-    pub(crate) fn perform_focus_fixup_rule(&self, not_focusable: &Element, can_gc: CanGc) {
+    pub(crate) fn perform_focus_fixup_rule(&self, not_focusable: &Element) {
         if Some(not_focusable) != self.focused.get().as_deref() {
             return;
         }
@@ -1138,7 +1138,11 @@ impl Document {
                 if document.focused.get().is_none() {
                     return;
                 }
-                document.request_focus(document.GetBody().as_ref().map(|e| e.upcast()), FocusType::Element, CanGc::note());
+                document.request_focus(
+                    document.GetBody().as_ref().map(|e| e.upcast()),
+                    FocusType::Element,
+                    CanGc::note()
+                );
             }
         ));
     }
