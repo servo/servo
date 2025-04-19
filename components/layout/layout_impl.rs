@@ -2,11 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// Work around https://github.com/rust-lang/rust/issues/62132
-#![recursion_limit = "128"]
-
-//! Layout. Performs layout on the DOM, builds display lists and sends them to be
-//! painted.
+#![allow(unsafe_code)]
 
 use std::cell::{Cell, LazyCell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -29,15 +25,6 @@ use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::{FxHashMap, FxHashSet};
 use ipc_channel::ipc::IpcSender;
-use layout::context::LayoutContext;
-use layout::display_list::{DisplayList, WebRenderImageInfo};
-use layout::query::{
-    get_the_text_steps, process_content_box_request, process_content_boxes_request,
-    process_node_geometry_request, process_node_scroll_area_request, process_offset_parent_query,
-    process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
-};
-use layout::traversal::RecalcStyle;
-use layout::{BoxTree, FragmentTree};
 use log::{debug, error};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
@@ -87,8 +74,18 @@ use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use url::Url;
-use webrender_api::units::{DevicePixel, LayoutPixel};
-use webrender_api::{ExternalScrollId, HitTestFlags, units};
+use webrender_api::units::{DevicePixel, DevicePoint, LayoutPixel, LayoutPoint, LayoutSize};
+use webrender_api::{ExternalScrollId, HitTestFlags};
+
+use crate::context::LayoutContext;
+use crate::display_list::{DisplayList, WebRenderImageInfo};
+use crate::query::{
+    get_the_text_steps, process_content_box_request, process_content_boxes_request,
+    process_node_geometry_request, process_node_scroll_area_request, process_offset_parent_query,
+    process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
+};
+use crate::traversal::RecalcStyle;
+use crate::{BoxTree, FragmentTree};
 
 // This mutex is necessary due to syncronisation issues between two different types of thread-local storage
 // which manifest themselves when the layout thread tries to layout iframes in parallel with the main page
@@ -283,7 +280,7 @@ impl Layout for LayoutThread {
         // particular pipeline, so we need to tell WebRender about that.
         flags.insert(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-        let client_point = units::DevicePoint::from_untyped(point);
+        let client_point = DevicePoint::from_untyped(point);
         let results = self
             .compositor_api
             .hit_test(Some(self.id.into()), client_point, flags);
@@ -838,7 +835,7 @@ impl LayoutThread {
         self.compositor_api.send_scroll_node(
             self.webview_id,
             self.id.into(),
-            units::LayoutPoint::from_untyped(point),
+            LayoutPoint::from_untyped(point),
             state.scroll_id,
         );
     }
@@ -867,7 +864,7 @@ impl LayoutThread {
         epoch.next();
         self.epoch.set(epoch);
 
-        let viewport_size = units::LayoutSize::from_untyped(Size2D::new(
+        let viewport_size = LayoutSize::from_untyped(Size2D::new(
             self.viewport_size.width.to_f32_px(),
             self.viewport_size.height.to_f32_px(),
         ));

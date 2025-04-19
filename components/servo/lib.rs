@@ -84,6 +84,7 @@ use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 pub use keyboard_types::*;
+use layout::LayoutFactoryImpl;
 use log::{Log, Metadata, Record, debug, warn};
 use media::{GlApi, NativeDisplay, WindowGLContext};
 use net::protocols::ProtocolRegistry;
@@ -109,9 +110,9 @@ use webview::WebViewInner;
 pub use webxr;
 pub use {
     background_hang_monitor, base, canvas, canvas_traits, devtools, devtools_traits, euclid, fonts,
-    ipc_channel, layout_thread_2020, media, net, net_traits, profile, profile_traits, script,
-    script_layout_interface, script_traits, servo_config as config, servo_config, servo_geometry,
-    servo_url, style, style_traits, webrender_api,
+    ipc_channel, media, net, net_traits, profile, profile_traits, script, script_layout_interface,
+    script_traits, servo_config as config, servo_config, servo_geometry, servo_url, style,
+    style_traits, webrender_api,
 };
 #[cfg(feature = "bluetooth")]
 pub use {bluetooth, bluetooth_traits};
@@ -1079,7 +1080,7 @@ fn create_constellation(
         user_content_manager,
     };
 
-    let layout_factory = Arc::new(layout_thread_2020::LayoutFactoryImpl());
+    let layout_factory = Arc::new(LayoutFactoryImpl());
 
     Constellation::<script::ScriptThread, script::ServiceWorkerManager>::start(
         initial_state,
@@ -1156,7 +1157,7 @@ pub fn run_content_process(token: String) {
             set_logger(content.script_to_constellation_chan().clone());
 
             let background_hang_monitor_register = content.register_with_background_hang_monitor();
-            let layout_factory = Arc::new(layout_thread_2020::LayoutFactoryImpl());
+            let layout_factory = Arc::new(LayoutFactoryImpl());
 
             content.register_system_memory_reporter();
 

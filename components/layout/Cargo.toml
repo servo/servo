@@ -1,5 +1,5 @@
 [package]
-name = "layout_2020"
+name = "layout"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -8,7 +8,7 @@ publish.workspace = true
 rust-version.workspace = true
 
 [lib]
-name = "layout_2020"
+name = "layout"
 path = "lib.rs"
 test = true
 doctest = false
@@ -23,6 +23,7 @@ base = { workspace = true }
 bitflags = { workspace = true }
 canvas_traits = { workspace = true }
 compositing_traits = { workspace = true }
+constellation_traits = { workspace = true }
 data-url = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
@@ -41,15 +42,19 @@ malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
 parking_lot = { workspace = true }
 pixels = { path = "../pixels" }
+profile_traits = { workspace = true }
 range = { path = "../range" }
 rayon = { workspace = true }
+script = { path = "../script" }
 script_layout_interface = { workspace = true }
+script_traits = { workspace = true }
 selectors = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 stylo = { workspace = true }
+stylo_atoms = { workspace = true }
 stylo_traits = { workspace = true }
 taffy = { workspace = true }
 tracing = { workspace = true, optional = true }

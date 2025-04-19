@@ -11,11 +11,11 @@ use std::sync::{Mutex, MutexGuard};
 use std::{thread, u32};
 
 use app_units::Au;
-use layout_2020::flow::float::{
+use layout::flow::float::{
     Clear, ContainingBlockPositionInfo, FloatBand, FloatBandNode, FloatBandTree, FloatContext,
     FloatSide, PlacementInfo,
 };
-use layout_2020::geom::{LogicalRect, LogicalVec2};
+use layout::geom::{LogicalRect, LogicalVec2};
 use num_traits::identities::Zero;
 use quickcheck::{Arbitrary, Gen};
 

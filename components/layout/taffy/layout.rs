@@ -133,7 +133,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         with_independant_formatting_context(
             &mut child.taffy_level_box,
             |independent_context| -> taffy::LayoutOutput {
-                // TODO: re-evaluate sizing constraint conversions in light of recent layout_2020 changes
+                // TODO: re-evaluate sizing constraint conversions in light of recent layout changes
                 let containing_block = &self.content_box_size_override;
                 let style = independent_context.style();
 
