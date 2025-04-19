@@ -23,6 +23,7 @@ use futures::future::TryFutureExt;
 use futures::stream::StreamExt;
 use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use log::{debug, trace, warn};
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
@@ -43,7 +44,7 @@ use crate::async_runtime::HANDLE;
 use crate::connector::{CACertificates, TlsConfig, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::fetch::methods::{
-    should_request_be_blocked_by_csp, should_request_be_blocked_due_to_a_bad_port, FetchContext
+    fetch, should_request_be_blocked_by_csp, should_request_be_blocked_due_to_a_bad_port, FetchContext
 };
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
@@ -328,6 +329,9 @@ async fn start_websocket(
     let connector = TlsConnector::from(Arc::new(tls_config));
 
     // TODO(pylbrecht): call fetch() instead of client_async_tls_with_connector_and_config()
+    let (sender, receiver) = ipc::channel().unwrap();
+    fetch(client, &mut sender, &context).await;
+
     let (stream, response) =
         client_async_tls_with_connector_and_config(client, socket, Some(connector), None).await?;
 
