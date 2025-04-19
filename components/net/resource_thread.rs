@@ -357,6 +357,7 @@ impl ResourceChannelManager {
                 } => {
                     let cancellation_listener =
                         self.get_or_create_cancellation_listener(request_builder.id);
+
                     self.resource_manager.websocket_connect(
                         request_builder,
                         event_sender,
