@@ -888,7 +888,6 @@ impl CoreResourceManager {
             request,
             event_sender,
             action_receiver,
-            http_state.clone(),
             self.ca_certificates.clone(),
             self.ignore_certificate_errors,
             context,
