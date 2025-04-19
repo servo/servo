@@ -2003,7 +2003,7 @@ async fn http_network_fetch(
             let response = match start_websocket(
                 context.state.clone(),
                 resource_event_sender,
-                &protocols,
+                protocols,
                 request,
                 tls_config,
                 dom_action_receiver,
