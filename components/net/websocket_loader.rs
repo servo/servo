@@ -12,6 +12,7 @@
 //! the need for a dedicated thread per websocket.
 
 use std::mem;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -27,6 +28,7 @@ use ipc_channel::router::ROUTER;
 use log::{debug, trace, warn};
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{Origin, RequestBuilder, RequestMode};
+use net_traits::response::Response;
 use net_traits::{CookieSource, MessageData, WebSocketDomAction, WebSocketNetworkEvent};
 use servo_url::ServoUrl;
 use tokio::net::TcpStream;
@@ -35,7 +37,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
 use tokio_rustls::TlsConnector;
 use tungstenite::Message;
 use tungstenite::error::{Error, ProtocolError, Result as WebSocketResult, UrlError};
-use tungstenite::handshake::client::{Request, Response};
+use tungstenite::handshake::client::{Request, Response as TungsteniteResponse};
 use tungstenite::protocol::CloseFrame;
 use url::Url;
 
@@ -111,7 +113,7 @@ pub fn create_request(
 /// match the list of provided protocols in the original request.
 pub fn process_ws_response(
     http_state: &HttpState,
-    response: &Response,
+    response: &TungsteniteResponse,
     resource_url: &ServoUrl,
     protocols: &[String],
 ) -> Result<Option<String>, Error> {
@@ -192,6 +194,57 @@ pub fn setup_dom_listener(
     );
 
     receiver
+}
+
+pub async fn perform_handshake(
+    request: &net_traits::request::Request,
+    protocols: &Vec<String>,
+    context: &FetchContext,
+    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
+    dom_action_receiver: IpcReceiver<WebSocketDomAction>,
+) -> Result<_, tungstenite::Error> {
+    let url = request.current_url();
+    let req_origin = match request.origin {
+        Origin::Client => unreachable!(),
+        Origin::Origin(ref origin) => origin,
+    };
+
+    let client = create_request(
+        &request.url(),
+        &req_origin.ascii_serialization(),
+        &protocols,
+        &context.state,
+    )?;
+
+    trace!("starting WS connection to {}", url);
+
+    let initiated_close = std::sync::Arc::new(AtomicBool::new(false));
+    let dom_receiver = setup_dom_listener(dom_action_receiver, initiated_close.clone());
+
+    let host_str = client.uri().host()?;
+    let host = replace_host(host_str);
+    let mut net_url = Url::parse(&client.uri().to_string())?;
+    net_url.set_host(Some(&host))?;
+
+    let domain = net_url.host()?;
+    let port = net_url.port_or_known_default()?;
+
+    let socket = TcpStream::connect((&*domain.to_string(), port)).await?;
+
+    let mut tls_config = create_tls_config(
+        context.ca_certificates.clone(),
+        context.ignore_certificate_errors,
+        context.state.override_manager.clone(),
+    );
+    tls_config.alpn_protocols = vec!["http/1.1".to_string().into()];
+    let connector = TlsConnector::from(std::sync::Arc::new(tls_config));
+
+    let (stream, response) =
+        client_async_tls_with_connector_and_config(client, socket, Some(connector), None).await?;
+
+    let protocol_in_use = process_ws_response(&context.state, &response, &url, &protocols).unwrap();
+
+    todo!("return an async closure executing run_ws_loop()")
 }
 
 /// Listen for WS events from the DOM and the network until one side

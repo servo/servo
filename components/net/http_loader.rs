@@ -91,7 +91,7 @@ use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use crate::websocket_loader::{
-    create_request, process_ws_response, run_ws_loop, setup_dom_listener,
+    create_request, perform_handshake, process_ws_response, run_ws_loop, setup_dom_listener,
 };
 
 /// The various states an entry of the HttpCache can be in.
@@ -1970,6 +1970,38 @@ async fn http_network_fetch(
                 let mut websocket_chan = context.websocket_chan.as_ref().unwrap().lock().unwrap();
                 (websocket_chan.0.clone(), websocket_chan.1.take().unwrap())
             };
+
+            let initiated_close = std::sync::Arc::new(AtomicBool::new(false));
+            let start_ws_loop = match perform_handshake(
+                request,
+                protocols,
+                context,
+                resource_event_sender,
+                dom_action_receiver,
+            )
+            .await
+            {
+                Ok(f) => f,
+                Err(e) => {
+                    // TODO(pylbrecht): maybe we need more fine-grained errors here
+                    let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                    return Response::network_internal_error(e.into());
+                },
+            };
+
+            if !initiated_close.load(Ordering::SeqCst) {
+                if resource_event_sender
+                    .send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use })
+                    .is_err()
+                {
+                    todo!("maybe return network error?");
+                }
+
+                trace!("about to start ws loop for {}", url);
+                HANDLE.spawn(start_ws_loop());
+            } else {
+                trace!("client closed connection for {}, not running loop", url);
+            }
 
             let req_origin = match request.origin {
                 Origin::Client => unreachable!(),
