@@ -730,7 +730,7 @@ impl CoreResourceManager {
 
     fn websocket_connect(
         &self,
-        request: RequestBuilder,
+        mut request: RequestBuilder,
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
@@ -766,6 +766,19 @@ impl CoreResourceManager {
             };
 
             let mut event_sender = event_sender;
+
+            let mut url = request.url;
+            if url.scheme() == "wss" {
+                url.as_mut_url()
+                    .set_scheme("https")
+                    .expect("Can't set scheme from wss to https");
+            } else {
+                url.as_mut_url()
+                    .set_scheme("http")
+                    .expect("Can't set scheme from ws to http");
+            };
+            request.url = url;
+
             fetch(request.build(), &mut event_sender, &context).await;
         });
     }
