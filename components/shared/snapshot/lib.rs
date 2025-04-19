@@ -79,6 +79,9 @@ pub type IpcSnapshot = Snapshot<IpcSharedMemory>;
 
 /// Represents image bitmap with metadata, usually as snapshot of canvas
 ///
+/// This allows us to hold off conversions (BGRA <-> RGBA, (un)premultiply)
+/// to when/if they are actually needed (WebGL/WebGPU can load both BGRA and RGBA).
+///
 /// Inspired by snapshot for concept in WebGPU spec:
 /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-get-a-copy-of-the-image-contents-of-a-context>
 #[derive(Debug, Deserialize, Serialize)]
