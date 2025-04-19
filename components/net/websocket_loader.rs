@@ -56,14 +56,28 @@ use crate::http_loader::HttpState;
 /// Returns an error if any header values are invalid or tungstenite cannot create
 /// the desired request.
 pub fn create_request(
-    resource_url: &ServoUrl,
-    origin: &str,
+    request: &net_traits::request::Request,
     protocols: &[String],
     http_state: &HttpState,
 ) -> WebSocketResult<Request> {
+    let origin = match request.origin {
+        Origin::Client => unreachable!(),
+        Origin::Origin(ref origin) => origin,
+    };
+
+    let mut resource_url = request.url();
+    if resource_url.scheme() == "https" {
+        resource_url.as_mut_url().set_scheme("wss").unwrap();
+    } else {
+        resource_url.as_mut_url().set_scheme("ws").unwrap();
+    };
+
     let mut builder = Request::get(resource_url.as_str());
     let headers = builder.headers_mut().unwrap();
-    headers.insert("Origin", HeaderValue::from_str(origin)?);
+    headers.insert(
+        "Origin",
+        HeaderValue::from_str(&origin.ascii_serialization())?,
+    );
 
     let origin = resource_url.origin();
     let host = format!(
@@ -86,8 +100,8 @@ pub fn create_request(
     }
 
     let mut cookie_jar = http_state.cookie_jar.write().unwrap();
-    cookie_jar.remove_expired_cookies_for_url(resource_url);
-    if let Some(cookie_list) = cookie_jar.cookies_for_url(resource_url, CookieSource::HTTP) {
+    cookie_jar.remove_expired_cookies_for_url(&resource_url);
+    if let Some(cookie_list) = cookie_jar.cookies_for_url(&resource_url, CookieSource::HTTP) {
         headers.insert("Cookie", HeaderValue::from_str(&cookie_list)?);
     }
 
@@ -382,10 +396,6 @@ fn connect(
     let request = req_builder.build();
 
     let req_url = request.url();
-    let req_origin = match request.origin {
-        Origin::Client => unreachable!(),
-        Origin::Origin(ref origin) => origin,
-    };
 
     if should_request_be_blocked_due_to_a_bad_port(&req_url) {
         return Err("Port blocked".to_string());
@@ -410,12 +420,7 @@ fn connect(
         }
     }
 
-    let client = match create_request(
-        &req_url,
-        &req_origin.ascii_serialization(),
-        &protocols,
-        &http_state,
-    ) {
+    let client = match create_request(&request, &protocols, &http_state) {
         Ok(c) => c,
         Err(e) => return Err(e.to_string()),
     };
