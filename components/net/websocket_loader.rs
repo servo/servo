@@ -306,14 +306,13 @@ async fn run_ws_loop(
 /// listening loop will be started.
 pub async fn start_websocket(
     http_state: Arc<HttpState>,
-    url: ServoUrl,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     protocols: Vec<String>,
     client: &net_traits::request::Request,
     tls_config: TlsConfig,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
 ) -> Result<Response, Error> {
-    trace!("starting WS connection to {}", url);
+    trace!("starting WS connection to {}", client.url());
 
     let initiated_close = Arc::new(AtomicBool::new(false));
     let dom_receiver = setup_dom_listener(dom_action_receiver, initiated_close.clone());

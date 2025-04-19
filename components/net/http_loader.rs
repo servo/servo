@@ -2002,7 +2002,6 @@ async fn http_network_fetch(
 
             let response = match start_websocket(
                 context.state.clone(),
-                url.clone(), // FIXME(pylbrecht): remove clone()
                 resource_event_sender,
                 protocols.clone(), // FIXME(pylbrecht): remove clone()
                 request,
