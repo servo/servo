@@ -112,7 +112,7 @@ pub fn create_request(
 /// This ensures that any `Cookie` or HSTS headers are recognized.
 /// Returns an error if the protocol selected by the handshake doesn't
 /// match the list of provided protocols in the original request.
-pub fn process_ws_response(
+fn process_ws_response(
     http_state: &HttpState,
     response: &Response,
     resource_url: &ServoUrl,
@@ -152,14 +152,14 @@ pub fn process_ws_response(
 }
 
 #[derive(Debug)]
-pub(crate) enum DomMsg {
+enum DomMsg {
     Send(Message),
     Close(Option<(u16, String)>),
 }
 
 /// Initialize a listener for DOM actions. These are routed from the IPC channel
 /// to a tokio channel that the main WS client task uses to receive them.
-pub fn setup_dom_listener(
+fn setup_dom_listener(
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
     initiated_close: Arc<AtomicBool>,
 ) -> UnboundedReceiver<DomMsg> {
@@ -201,7 +201,7 @@ pub fn setup_dom_listener(
 /// closes the connection or an error occurs. Since this is an async
 /// function that uses the select operation, it will run as a task
 /// on the WS tokio runtime.
-pub async fn run_ws_loop(
+async fn run_ws_loop(
     mut dom_receiver: UnboundedReceiver<DomMsg>,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     mut stream: WebSocketStream<ConnectStream>,
@@ -295,7 +295,7 @@ pub async fn run_ws_loop(
 /// Initiate a new async WS connection. Returns an error if the connection fails
 /// for any reason, or if the response isn't valid. Otherwise, the endless WS
 /// listening loop will be started.
-async fn start_websocket(
+pub async fn start_websocket(
     http_state: Arc<HttpState>,
     url: ServoUrl,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
@@ -303,7 +303,7 @@ async fn start_websocket(
     client: Request,
     tls_config: TlsConfig,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
-) -> Result<(), Error> {
+) -> Result<Response, Error> {
     trace!("starting WS connection to {}", url);
 
     let initiated_close = Arc::new(AtomicBool::new(false));
@@ -341,15 +341,15 @@ async fn start_websocket(
             .send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use })
             .is_err()
         {
-            return Ok(());
+            return Ok(response);
         }
 
         trace!("about to start ws loop for {}", url);
-        run_ws_loop(dom_receiver, resource_event_sender, stream).await;
+        spawn_task(run_ws_loop(dom_receiver, resource_event_sender, stream));
     } else {
         trace!("client closed connection for {}, not running loop", url);
     }
-    Ok(())
+    Ok(response)
 }
 
 /// Create a new websocket connection for the given request.
