@@ -122,6 +122,32 @@ macro_rules! make_url_setter(
 );
 
 #[macro_export]
+macro_rules! make_trusted_type_url_getter(
+    ( $attr:ident, $htmlname:tt ) => (
+        fn $attr(&self) -> TrustedScriptURLOrUSVString {
+            use $crate::dom::bindings::inheritance::Castable;
+            use $crate::dom::element::Element;
+            let element = self.upcast::<Element>();
+            element.get_trusted_type_url_attribute(&html5ever::local_name!($htmlname))
+        }
+    );
+);
+
+#[macro_export]
+macro_rules! make_trusted_type_url_setter(
+    ( $attr:ident, $htmlname:tt ) => (
+        fn $attr(&self, value: TrustedScriptURLOrUSVString, can_gc: CanGc) -> Fallible<()> {
+            use $crate::dom::bindings::inheritance::Castable;
+            use $crate::dom::element::Element;
+            use $crate::script_runtime::CanGc;
+            let element = self.upcast::<Element>();
+            element.set_trusted_type_url_attribute(&html5ever::local_name!($htmlname),
+                                         value, can_gc)
+        }
+    );
+);
+
+#[macro_export]
 macro_rules! make_form_action_getter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self) -> DOMString {

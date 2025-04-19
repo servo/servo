@@ -59,6 +59,13 @@ impl TrustedTypePolicy {
         reflect_dom_object(Box::new(Self::new_inherited(name, options)), global, can_gc)
     }
 
+    // TODO(36258): Remove when we refactor get_trusted_type_policy_value to take an enum
+    // value to handle which callback to call. The callback should not be exposed outside
+    // of the policy object, but is currently used in TrustedPolicyFactory::process_value_with_default_policy
+    pub(crate) fn create_script_url(&self) -> Option<Rc<CreateScriptURLCallback>> {
+        self.create_script_url.clone()
+    }
+
     /// This does not take all arguments as specified. That's because the return type of the
     /// trusted type function and object are not the same. 2 of the 3 string callbacks return
     /// a DOMString, while the other one returns an USVString. Additionally, all three callbacks

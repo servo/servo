@@ -44,6 +44,8 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElement_Binding::HTMLElementMethods;
+use crate::dom::bindings::codegen::UnionTypes::TrustedScriptURLOrUSVString;
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -1342,10 +1344,10 @@ impl VirtualMethods for HTMLScriptElement {
 
 impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-src
-    make_url_getter!(Src, "src");
+    make_trusted_type_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-script-src
-    make_url_setter!(SetSrc, "src");
+    make_trusted_type_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-script-type
     make_getter!(Type, "type");
