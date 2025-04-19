@@ -1991,23 +1991,7 @@ async fn http_network_fetch(
                 (websocket_chan.0.clone(), websocket_chan.1.take().unwrap())
             };
 
-            let mut req_url = request.url();
-            if req_url.scheme() == "https" {
-                req_url.as_mut_url().set_scheme("wss").unwrap();
-            } else {
-                req_url.as_mut_url().set_scheme("ws").unwrap();
-            };
-            let req_origin = match request.origin {
-                Origin::Client => unreachable!(),
-                Origin::Origin(ref origin) => origin,
-            };
-
-            let Ok(client) = create_request(
-                &req_url,
-                &req_origin.ascii_serialization(),
-                &protocols,
-                &context.state,
-            ) else {
+            let Ok(client) = create_request(request, &protocols, &context.state) else {
                 let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
                 // TODO(pylbrecht): not sure if we should return a network error here, but we
                 // have to early return something.
