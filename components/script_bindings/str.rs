@@ -10,13 +10,18 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::LazyLock;
-use std::{fmt, ops, str};
+use std::{fmt, ops, slice, str};
 
 use cssparser::CowRcStr;
 use html5ever::{LocalName, Namespace};
+use js::rust::wrappers::ToJSON;
+use js::rust::{HandleObject, HandleValue};
 use num_traits::Zero;
 use regex::Regex;
 use stylo_atoms::Atom;
+
+use crate::error::Error;
+use crate::script_runtime::JSContext as SafeJSContext;
 
 /// Encapsulates the IDL `ByteString` type.
 #[derive(Clone, Debug, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]
@@ -291,6 +296,62 @@ impl DOMString {
             self.0 = parsed_value.to_string()
         }
     }
+}
+
+/// Because this converts to a DOMString it become UTF-8 encoded which is closer to
+/// the spec definition of <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-json-bytes>
+/// but we generally do not operate on anything that is truly a WTF-16 string.
+///
+/// <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-a-json-string>
+pub fn serialize_jsval_to_json_utf8(
+    cx: SafeJSContext,
+    jsval: HandleValue,
+) -> Result<DOMString, Error> {
+    #[repr(C)]
+    struct VoidableString {
+        is_void: bool,
+        data: String,
+    }
+
+    let mut out_str = VoidableString {
+        is_void: true,
+        data: String::new(),
+    };
+
+    #[allow(unsafe_code)]
+    unsafe extern "C" fn stringified(
+        string: *const u16,
+        len: u32,
+        data: *mut std::ffi::c_void,
+    ) -> bool {
+        let s = data as *mut VoidableString;
+        let string_chars = slice::from_raw_parts(string, len as usize);
+        (*s).is_void = false;
+        (*s).data.push_str(&String::from_utf16_lossy(string_chars));
+        true
+    }
+    rooted!(in(*cx) let mut data = jsval.get());
+
+    unsafe {
+        let stringify_result = ToJSON(
+            *cx,
+            data.handle(),
+            HandleObject::null(),
+            HandleValue::null(),
+            Some(stringified),
+            &mut out_str as *mut VoidableString as *mut _,
+        );
+        if !stringify_result {
+            return Err(Error::JSFailed);
+        }
+    }
+
+    // ToJSON will not call the callback if the data cannot be serialized
+    if out_str.is_void {
+        return Err(Error::Type("unable to serialize JSON".to_owned()));
+    }
+
+    Ok(out_str.data.into())
 }
 
 impl Borrow<str> for DOMString {

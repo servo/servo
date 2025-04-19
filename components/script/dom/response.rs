@@ -3,13 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
-use std::slice;
 use std::str::FromStr;
 
 use dom_struct::dom_struct;
 use http::header::HeaderMap as HyperHeaders;
 use hyper_serde::Serde;
-use js::rust::wrappers::ToJSON;
 use js::rust::{HandleObject, HandleValue};
 use net_traits::http_status::HttpStatus;
 use servo_url::ServoUrl;
@@ -26,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{ByteString, USVString};
+use crate::dom::bindings::str::{ByteString, USVString, serialize_jsval_to_json_utf8};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers, is_obs_text, is_vchar};
 use crate::dom::promise::Promise;
@@ -74,7 +72,7 @@ impl Response {
         }
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response
+    /// <https://fetch.spec.whatwg.org/#dom-response>
     pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
         Self::new_with_proto(global, None, can_gc)
     }
@@ -144,7 +142,7 @@ fn is_null_body_status(status: u16) -> bool {
 }
 
 impl ResponseMethods<crate::DomTypeHolder> for Response {
-    // https://fetch.spec.whatwg.org/#dom-response
+    /// <https://fetch.spec.whatwg.org/#dom-response>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -153,21 +151,25 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         init: &ResponseBinding::ResponseInit,
     ) -> Fallible<DomRoot<Response>> {
         // 1. Set this’s response to a new response.
+        // Our Response/Body types don't actually hold onto an internal fetch Response.
         let r = Response::new_with_proto(global, proto, can_gc);
+
         // 2. Set this’s headers to a new Headers object with this’s relevant realm,
         // whose header list is this’s response’s header list and guard is "response".
         r.Headers(can_gc).set_guard(Guard::Response);
 
+        // 3. Let bodyWithType be null.
         // 4. If body is non-null, then set bodyWithType to the result of extracting body.
-        let body = match body_init {
+        let body_with_type = match body_init {
             Some(body) => Some(body.extract(global, can_gc)?),
             None => None,
         };
+
         // 5. Perform *initialize a response* given this, init, and bodyWithType.
-        initialize_response(global, can_gc, body, init, r)
+        initialize_response(global, can_gc, body_with_type, init, r)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response-error
+    /// <https://fetch.spec.whatwg.org/#dom-response-error>
     fn Error(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
         let r = Response::new(global, can_gc);
         *r.response_type.borrow_mut() = DOMResponseType::Error;
@@ -176,7 +178,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         r
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response-redirect
+    /// <https://fetch.spec.whatwg.org/#dom-response-redirect>
     fn Redirect(
         global: &GlobalScope,
         url: USVString,
@@ -219,7 +221,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         Ok(r)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response-json
+    /// <https://fetch.spec.whatwg.org/#dom-response-json>
     #[allow(unsafe_code)]
     fn CreateFromJson(
         cx: JSContext,
@@ -228,50 +230,13 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         init: &ResponseBinding::ResponseInit,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Response>> {
-        #[repr(C)]
-        struct VoidableString {
-            is_void: bool,
-            data: String,
-        }
-
-        let mut out_str = VoidableString {
-            is_void: true,
-            data: String::new(),
-        };
-
-        #[allow(unsafe_code)]
-        unsafe extern "C" fn stringified(
-            string: *const u16,
-            len: u32,
-            data: *mut std::ffi::c_void,
-        ) -> bool {
-            let s = data as *mut VoidableString;
-            let string_chars = slice::from_raw_parts(string, len as usize);
-            (*s).is_void = false;
-            (*s).data.push_str(&String::from_utf16_lossy(string_chars));
-            true
-        }
-        rooted!(in(*cx) let mut data = data.get());
         // 1. Let bytes the result of running serialize a JavaScript value to JSON bytes on data.
-        unsafe {
-            let stringify_result = ToJSON(
-                *cx,
-                data.handle(),
-                HandleObject::null(),
-                HandleValue::null(),
-                Some(stringified),
-                &mut out_str as *mut VoidableString as *mut _,
-            );
-            if !stringify_result {
-                return Err(Error::JSFailed);
-            }
-        }
-        // ToJSON will not call the callback if the data cannot be serialized
-        if out_str.is_void {
-            return Err(Error::Type("unable to serialize JSON".to_owned()));
-        }
+        let json_str = serialize_jsval_to_json_utf8(cx, data)?;
+
         // 2. Let body be the result of extracting bytes
-        let body_init = BodyInit::String(out_str.data.into());
+        // The spec's definition of JSON bytes is a UTF-8 encoding so using a DOMString here handles
+        // the encoding part.
+        let body_init = BodyInit::String(json_str);
         let mut body = body_init.extract(global, can_gc)?;
 
         // 3. Let responseObject be the result of creating a Response object, given a new response,
@@ -284,12 +249,12 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         initialize_response(global, can_gc, Some(body), init, r)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response-type
+    /// <https://fetch.spec.whatwg.org/#dom-response-type>
     fn Type(&self) -> DOMResponseType {
         *self.response_type.borrow() //into()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response-url
+    /// <https://fetch.spec.whatwg.org/#dom-response-url>
     fn Url(&self) -> USVString {
         USVString(String::from(
             (*self.url.borrow())
@@ -299,33 +264,33 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         ))
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response-redirected
+    /// <https://fetch.spec.whatwg.org/#dom-response-redirected>
     fn Redirected(&self) -> bool {
         return *self.redirected.borrow();
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response-status
+    /// <https://fetch.spec.whatwg.org/#dom-response-status>
     fn Status(&self) -> u16 {
         self.status.borrow().raw_code()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response-ok
+    /// <https://fetch.spec.whatwg.org/#dom-response-ok>
     fn Ok(&self) -> bool {
         self.status.borrow().is_success()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response-statustext
+    /// <https://fetch.spec.whatwg.org/#dom-response-statustext>
     fn StatusText(&self) -> ByteString {
         ByteString::new(self.status.borrow().message().to_vec())
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response-headers
+    /// <https://fetch.spec.whatwg.org/#dom-response-headers>
     fn Headers(&self, can_gc: CanGc) -> DomRoot<Headers> {
         self.headers_reflector
             .or_init(|| Headers::for_response(&self.global(), can_gc))
     }
 
-    // https://fetch.spec.whatwg.org/#dom-response-clone
+    /// <https://fetch.spec.whatwg.org/#dom-response-clone>
     fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Response>> {
         // Step 1
         if self.is_locked() || self.is_disturbed() {
@@ -366,7 +331,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         Ok(new_response)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-bodyused
+    /// <https://fetch.spec.whatwg.org/#dom-body-bodyused>
     fn BodyUsed(&self) -> bool {
         self.is_disturbed()
     }
@@ -376,27 +341,27 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         self.body()
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-text
+    /// <https://fetch.spec.whatwg.org/#dom-body-text>
     fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Text, can_gc)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-blob
+    /// <https://fetch.spec.whatwg.org/#dom-body-blob>
     fn Blob(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Blob, can_gc)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-formdata
+    /// <https://fetch.spec.whatwg.org/#dom-body-formdata>
     fn FormData(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::FormData, can_gc)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-json
+    /// <https://fetch.spec.whatwg.org/#dom-body-json>
     fn Json(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::Json, can_gc)
     }
 
-    // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
+    /// <https://fetch.spec.whatwg.org/#dom-body-arraybuffer>
     fn ArrayBuffer(&self, can_gc: CanGc) -> Rc<Promise> {
         consume_body(self, BodyType::ArrayBuffer, can_gc)
     }
@@ -407,7 +372,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     }
 }
 
-// https://fetch.spec.whatwg.org/#initialize-a-response
+/// <https://fetch.spec.whatwg.org/#initialize-a-response>
 fn initialize_response(
     global: &GlobalScope,
     can_gc: CanGc,
@@ -469,7 +434,8 @@ fn initialize_response(
         };
     } else {
         // Reset FetchResponse to an in-memory stream with empty byte sequence here for
-        // no-init-body case
+        // no-init-body case. This is because the Response/Body types here do not hold onto a
+        // fetch Response object.
         let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0), can_gc)?;
         r.body_stream.set(Some(&*stream));
     }
