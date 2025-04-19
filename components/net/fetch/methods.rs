@@ -346,7 +346,7 @@ pub async fn main_fetch(
     // TODO: handle request abort.
 
     // Step 4. Upgrade request to a potentially trustworthy URL, if appropriate.
-    if should_upgrade_request_to_potentially_trustworty(request, context) ||
+    if should_upgrade_request_to_potentially_trustworthy(request, context) ||
         should_upgrade_mixed_content_request(request, &context.protocols)
     {
         trace!(
@@ -1157,7 +1157,7 @@ pub fn is_form_submission_request(request: &Request) -> bool {
 }
 
 /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-request>
-fn should_upgrade_request_to_potentially_trustworty(
+fn should_upgrade_request_to_potentially_trustworthy(
     request: &mut Request,
     context: &FetchContext,
 ) -> bool {
