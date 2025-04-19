@@ -896,6 +896,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         block_sizes,
         depends_on_block_constraints,
         available_block_size,
+        justify_self,
     } = solve_containing_block_padding_and_border_for_in_flow_box(
         containing_block,
         &layout_style,
@@ -909,6 +910,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         containing_block,
         &pbm,
         containing_block_for_children.size.inline,
+        justify_self,
     );
 
     let computed_block_size = style.content_block_size();
@@ -1154,6 +1156,7 @@ impl IndependentNonReplacedContents {
             block_sizes,
             depends_on_block_constraints,
             available_block_size,
+            justify_self,
         } = solve_containing_block_padding_and_border_for_in_flow_box(
             containing_block,
             &layout_style,
@@ -1185,7 +1188,7 @@ impl IndependentNonReplacedContents {
         let ResolvedMargins {
             margin,
             effective_margin_inline_start,
-        } = solve_margins(containing_block, &pbm, inline_size);
+        } = solve_margins(containing_block, &pbm, inline_size, justify_self);
 
         let content_rect = LogicalRect {
             start_corner: LogicalVec2 {
@@ -1300,17 +1303,12 @@ impl IndependentNonReplacedContents {
                 .sizes
         };
 
-        // TODO: the automatic inline size should take `justify-self` into account.
+        let justify_self = resolve_justify_self(style, containing_block.style);
         let is_table = self.is_table();
-        let automatic_inline_size = if is_table {
-            Size::FitContent
-        } else {
-            Size::Stretch
-        };
         let compute_inline_size = |stretch_size| {
             content_box_sizes.inline.resolve(
                 Direction::Inline,
-                automatic_inline_size,
+                automatic_inline_size(justify_self, is_table),
                 Au::zero,
                 Some(stretch_size),
                 get_inline_content_sizes,
@@ -1472,6 +1470,7 @@ impl IndependentNonReplacedContents {
                 &pbm,
                 content_size.inline + pbm.padding_border_sums.inline,
                 placement_rect,
+                justify_self,
             );
 
         let margin = LogicalSides {
@@ -1558,6 +1557,7 @@ impl ReplacedContents {
         let effective_margin_inline_start;
         let (margin_block_start, margin_block_end) =
             solve_block_margins_for_in_flow_block_level(pbm);
+        let justify_self = resolve_justify_self(&base.style, containing_block.style);
 
         let containing_block_writing_mode = containing_block.style.writing_mode;
         let physical_content_size = content_size.to_physical_size(containing_block_writing_mode);
@@ -1597,6 +1597,7 @@ impl ReplacedContents {
                 pbm,
                 size.inline,
                 placement_rect,
+                justify_self,
             );
 
             // Clearance prevents margin collapse between this block and previous ones,
@@ -1620,6 +1621,7 @@ impl ReplacedContents {
                 containing_block,
                 pbm,
                 content_size.inline,
+                justify_self,
             );
         };
 
@@ -1671,6 +1673,7 @@ struct ContainingBlockPaddingAndBorder<'a> {
     block_sizes: Sizes,
     depends_on_block_constraints: bool,
     available_block_size: Option<Au>,
+    justify_self: AlignFlags,
 }
 
 struct ResolvedMargins {
@@ -1719,6 +1722,9 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             // The available block size may actually be definite, but it should be irrelevant
             // since the sizing properties are set to their initial value.
             available_block_size: None,
+            // The initial `justify-self` is `auto`, but use `normal` (behaving as `stretch`).
+            // This is being discussed in <https://github.com/w3c/csswg-drafts/issues/11461>.
+            justify_self: AlignFlags::NORMAL,
         };
     }
 
@@ -1755,16 +1761,11 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             None, /* TODO: support preferred aspect ratios on non-replaced boxes */
         ))
     };
-    // TODO: the automatic inline size should take `justify-self` into account.
+    let justify_self = resolve_justify_self(style, containing_block.style);
     let is_table = layout_style.is_table();
-    let automatic_inline_size = if is_table {
-        Size::FitContent
-    } else {
-        Size::Stretch
-    };
     let inline_size = content_box_sizes.inline.resolve(
         Direction::Inline,
-        automatic_inline_size,
+        automatic_inline_size(justify_self, is_table),
         Au::zero,
         Some(available_inline_size),
         get_inline_content_sizes,
@@ -1793,6 +1794,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         block_sizes: content_box_sizes.block,
         depends_on_block_constraints,
         available_block_size,
+        justify_self,
     }
 }
 
@@ -1804,9 +1806,15 @@ fn solve_margins(
     containing_block: &ContainingBlock<'_>,
     pbm: &PaddingBorderMargin,
     inline_size: Au,
+    justify_self: AlignFlags,
 ) -> ResolvedMargins {
     let (inline_margins, effective_margin_inline_start) =
-        solve_inline_margins_for_in_flow_block_level(containing_block, pbm, inline_size);
+        solve_inline_margins_for_in_flow_block_level(
+            containing_block,
+            pbm,
+            inline_size,
+            justify_self,
+        );
     let block_margins = solve_block_margins_for_in_flow_block_level(pbm);
     ResolvedMargins {
         margin: LogicalSides {
@@ -1829,14 +1837,63 @@ fn solve_block_margins_for_in_flow_block_level(pbm: &PaddingBorderMargin) -> (Au
     )
 }
 
-/// This is supposed to handle 'justify-self', but no browser supports it on block boxes.
-/// Instead, `<center>` and `<div align>` are implemented via internal 'text-align' values.
+/// Resolves the `justify-self` value, preserving flags.
+fn resolve_justify_self(style: &ComputedValues, parent_style: &ComputedValues) -> AlignFlags {
+    let is_ltr = |style: &ComputedValues| style.writing_mode.line_left_is_inline_start();
+    let alignment = match style.clone_justify_self().0.0 {
+        AlignFlags::AUTO => parent_style.clone_justify_items().computed.0,
+        alignment => alignment,
+    };
+    let alignment_value = match alignment.value() {
+        AlignFlags::LEFT if is_ltr(parent_style) => AlignFlags::START,
+        AlignFlags::LEFT => AlignFlags::END,
+        AlignFlags::RIGHT if is_ltr(parent_style) => AlignFlags::END,
+        AlignFlags::RIGHT => AlignFlags::START,
+        AlignFlags::SELF_START if is_ltr(parent_style) == is_ltr(style) => AlignFlags::START,
+        AlignFlags::SELF_START => AlignFlags::END,
+        AlignFlags::SELF_END if is_ltr(parent_style) == is_ltr(style) => AlignFlags::END,
+        AlignFlags::SELF_END => AlignFlags::START,
+        alignment_value => alignment_value,
+    };
+    alignment.flags() | alignment_value
+}
+
+/// Determines the automatic size for the inline axis of a block-level box.
+/// <https://drafts.csswg.org/css-sizing-3/#automatic-size>
+#[inline]
+fn automatic_inline_size<T>(justify_self: AlignFlags, is_table: bool) -> Size<T> {
+    match justify_self {
+        AlignFlags::STRETCH => Size::Stretch,
+        AlignFlags::NORMAL if !is_table => Size::Stretch,
+        _ => Size::FitContent,
+    }
+}
+
+/// Justifies a block-level box, distributing the free space according to `justify-self`.
+/// Note `<center>` and `<div align>` are implemented via internal 'text-align' values,
+/// which are also handled here.
 /// The provided free space should already take margins into account. In particular,
 /// it should be zero if there is an auto margin.
 /// <https://drafts.csswg.org/css-align/#justify-block>
-fn justify_self_alignment(containing_block: &ContainingBlock, free_space: Au) -> Au {
+fn justify_self_alignment(
+    containing_block: &ContainingBlock,
+    free_space: Au,
+    justify_self: AlignFlags,
+) -> Au {
+    let mut alignment = justify_self.value();
+    let is_safe = justify_self.flags() == AlignFlags::SAFE || alignment == AlignFlags::NORMAL;
+    if is_safe && free_space <= Au::zero() {
+        alignment = AlignFlags::START
+    }
+    match alignment {
+        AlignFlags::NORMAL => {},
+        AlignFlags::CENTER => return free_space / 2,
+        AlignFlags::END => return free_space,
+        _ => return Au::zero(),
+    }
+
+    // For `justify-self: normal`, fall back to the special 'text-align' values.
     let style = containing_block.style;
-    debug_assert!(free_space >= Au::zero());
     match style.clone_text_align() {
         TextAlignKeyword::MozCenter => free_space / 2,
         TextAlignKeyword::MozLeft if !style.writing_mode.line_left_is_inline_start() => free_space,
@@ -1861,6 +1918,7 @@ fn solve_inline_margins_for_in_flow_block_level(
     containing_block: &ContainingBlock,
     pbm: &PaddingBorderMargin,
     inline_size: Au,
+    justify_self: AlignFlags,
 ) -> ((Au, Au), Au) {
     let free_space = containing_block.size.inline - pbm.padding_border_sums.inline - inline_size;
     let mut justification = Au::zero();
@@ -1878,8 +1936,8 @@ fn solve_inline_margins_for_in_flow_block_level(
             // But here we may still have some free space to perform 'justify-self' alignment.
             // This aligns the margin box within the containing block, or in other words,
             // aligns the border box within the margin-shrunken containing block.
-            let free_space = Au::zero().max(free_space - start - end);
-            justification = justify_self_alignment(containing_block, free_space);
+            justification =
+                justify_self_alignment(containing_block, free_space - start - end, justify_self);
             (start, end)
         },
     };
@@ -1902,6 +1960,7 @@ fn solve_inline_margins_avoiding_floats(
     pbm: &PaddingBorderMargin,
     inline_size: Au,
     placement_rect: LogicalRect<Au>,
+    justify_self: AlignFlags,
 ) -> ((Au, Au), Au) {
     let free_space = placement_rect.size.inline - inline_size;
     debug_assert!(free_space >= Au::zero());
@@ -1922,7 +1981,7 @@ fn solve_inline_margins_avoiding_floats(
             // and Blink and WebKit are broken anyways. So we match Gecko instead: this aligns
             // the border box within the instersection of the float-shrunken containing-block
             // and the margin-shrunken containing-block.
-            justification = justify_self_alignment(containing_block, free_space);
+            justification = justify_self_alignment(containing_block, free_space, justify_self);
             (start, end)
         },
     };
