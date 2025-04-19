@@ -20,7 +20,7 @@ use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
-use log::{debug, warn};
+use log::{debug, trace, warn};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::pub_domains::public_suffix_list_size_of;
@@ -59,6 +59,7 @@ use crate::http_cache::HttpCache;
 use crate::http_loader::{HttpState, http_redirect_fetch};
 use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
+use crate::websocket_loader::create_request;
 
 /// Load a file with CA certificate and produce a RootCertStore with the results.
 fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore> {
@@ -746,7 +747,7 @@ impl CoreResourceManager {
 
         spawn_task(async move {
             let context = FetchContext {
-                state: http_state,
+                state: http_state.clone(),
                 user_agent: servo_config::pref!(user_agent),
                 devtools_chan: None,
                 filemanager: Arc::new(Mutex::new(filemanager)),
@@ -756,7 +757,7 @@ impl CoreResourceManager {
                 timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
                     ResourceTimingType::None, // FIXME(pylbrecht)
                 ))),
-                protocols,
+                protocols: protocols.clone(),
                 websocket_chan: Some(Arc::new(Mutex::new((
                     event_sender.clone(),
                     Some(action_receiver),
@@ -779,7 +780,13 @@ impl CoreResourceManager {
             };
             request.url = url;
 
-            fetch(request.build(), &mut event_sender, &context).await;
+            match create_request(request, http_state) {
+                Ok(request) => fetch(request, &mut event_sender, &context).await,
+                Err(e) => {
+                    trace!("unable to create websocket handshake request {:?}", e);
+                    let _ = event_sender.send(WebSocketNetworkEvent::Fail);
+                },
+            }
         });
     }
 }

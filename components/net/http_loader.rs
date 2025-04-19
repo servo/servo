@@ -40,7 +40,7 @@ use hyper_serde::Serde;
 use hyper_util::client::legacy::Client;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
-use log::{debug, error, info, log_enabled, trace, warn};
+use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::http_status::HttpStatus;
 use net_traits::pub_domains::reg_suffix;
@@ -56,7 +56,6 @@ use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, FetchMetadata, NetworkError, RedirectEndValue,
     RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming, ResourceTimeValue,
-    WebSocketNetworkEvent,
 };
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -81,7 +80,7 @@ use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch}
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
-use crate::websocket_loader::{create_request, start_websocket};
+use crate::websocket_loader::start_websocket;
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1991,13 +1990,6 @@ async fn http_network_fetch(
                 (websocket_chan.0.clone(), websocket_chan.1.take().unwrap())
             };
 
-            let Ok(client) = create_request(request, &protocols, &context.state) else {
-                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
-                // TODO(pylbrecht): not sure if we should return a network error here, but we
-                // have to early return something.
-                return Response::network_internal_error("cannot create request");
-            };
-
             let mut tls_config = create_tls_config(
                 context.ca_certificates.clone(),
                 context.ignore_certificate_errors,
@@ -2010,7 +2002,7 @@ async fn http_network_fetch(
                 url.clone(), // FIXME(pylbrecht): remove clone()
                 resource_event_sender,
                 protocols.clone(), // FIXME(pylbrecht): remove clone()
-                client,
+                &request,
                 tls_config,
                 dom_action_receiver,
             )
