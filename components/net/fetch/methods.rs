@@ -191,21 +191,8 @@ pub(crate) fn convert_request_to_csp_request(request: &Request) -> Option<csp::R
         Origin::Origin(origin) => origin,
     };
 
-    let url = match request.mode {
-        RequestMode::WebSocket { .. } => {
-            let mut req_url = request.url();
-            if req_url.scheme() == "https" {
-                req_url.as_mut_url().set_scheme("wss").unwrap();
-            } else {
-                req_url.as_mut_url().set_scheme("ws").unwrap();
-            };
-            req_url
-        },
-        _ => request.url(),
-    };
-
     let csp_request = csp::Request {
-        url: url.into_url(),
+        url: request.original_url().into_url(),
         origin: origin.clone().into_url_origin(),
         redirect_count: request.redirect_count,
         destination: request.destination,
@@ -264,6 +251,7 @@ fn should_response_be_blocked_by_csp(
             .actual_response()
             .url()
             .cloned()
+            // TODO(pylbrecht): can we make this simpler or remove it entirely?
             .map(|mut url| {
                 match csp_request.url.scheme() {
                     "ws" | "wss" => {
@@ -356,6 +344,17 @@ pub async fn main_fetch(
         } {
             request
                 .current_url_mut()
+                .as_mut_url()
+                .set_scheme(new_scheme)
+                .unwrap();
+        }
+        if let Some(new_scheme) = match request.original_url().scheme() {
+            "http" => Some("https"),
+            "ws" => Some("wss"),
+            _ => None,
+        } {
+            request
+                .original_url_mut()
                 .as_mut_url()
                 .set_scheme(new_scheme)
                 .unwrap();

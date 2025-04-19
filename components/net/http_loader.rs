@@ -1982,7 +1982,10 @@ async fn http_network_fetch(
     let browsing_context_id = request.target_webview_id.map(Into::into);
 
     let (res, msg) = match &request.mode {
-        RequestMode::WebSocket { protocols } => {
+        RequestMode::WebSocket {
+            protocols,
+            original_url: _,
+        } => {
             // https://fetch.spec.whatwg.org/#websocket-opening-handshake
 
             let (resource_event_sender, dom_action_receiver) = {
