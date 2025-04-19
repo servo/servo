@@ -307,7 +307,7 @@ async fn run_ws_loop(
 pub async fn start_websocket(
     http_state: Arc<HttpState>,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
-    protocols: Vec<String>,
+    protocols: &[String],
     client: &net_traits::request::Request,
     tls_config: TlsConfig,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
@@ -355,7 +355,7 @@ pub async fn start_websocket(
     let (stream, response) =
         client_async_tls_with_connector_and_config(builder, socket, Some(connector), None).await?;
 
-    let protocol_in_use = process_ws_response(&http_state, &response, &url, &protocols)?;
+    let protocol_in_use = process_ws_response(&http_state, &response, &url, protocols)?;
 
     if !initiated_close.load(Ordering::SeqCst) {
         if resource_event_sender
