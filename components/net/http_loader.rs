@@ -1990,8 +1990,6 @@ async fn http_network_fetch(
                 return Response::network_internal_error("cannot create request");
             };
 
-            trace!("starting WS connection to {}", url);
-
             let mut tls_config = create_tls_config(
                 context.ca_certificates.clone(),
                 context.ignore_certificate_errors,
