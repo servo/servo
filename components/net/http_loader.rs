@@ -2017,13 +2017,6 @@ async fn http_network_fetch(
                 Origin::Origin(ref origin) => origin,
             };
 
-            if should_request_be_blocked_due_to_a_bad_port(&req_url) {
-                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
-                // TODO(pylbrecht): not sure if we should return a network error here, but we
-                // have to early return something.
-                return Response::network_internal_error("port blocked");
-            }
-
             let Ok(client) = create_request(
                 &req_url,
                 &req_origin.ascii_serialization(),
