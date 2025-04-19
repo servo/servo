@@ -759,7 +759,7 @@ impl CoreResourceManager {
                 .url
                 .as_mut_url()
                 .set_scheme(scheme)
-                .expect(&format!("Can't set scheme to {scheme}"));
+                .unwrap_or_else(|_| panic!("Can't set scheme to {scheme}"));
 
             match create_handshake_request(request, http_state.clone()) {
                 Ok(request) => {
