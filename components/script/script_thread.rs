@@ -57,7 +57,7 @@ use euclid::Point2D;
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
-use html5ever::{local_name, namespace_url, ns};
+use html5ever::{local_name, ns};
 use http::header::REFRESH;
 use hyper_serde::Serde;
 use ipc_channel::ipc;

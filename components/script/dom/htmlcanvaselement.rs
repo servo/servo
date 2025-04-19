@@ -12,7 +12,7 @@ use constellation_traits::BlobImpl;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::codecs::webp::WebPEncoder;

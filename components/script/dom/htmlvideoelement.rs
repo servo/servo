@@ -8,7 +8,7 @@ use std::sync::Arc;
 use content_security_policy as csp;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use ipc_channel::ipc;
 use js::rust::HandleObject;
 use net_traits::image_cache::{

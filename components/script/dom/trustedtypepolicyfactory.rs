@@ -5,7 +5,7 @@ use std::cell::RefCell;
 
 use content_security_policy::CheckResult;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Namespace, QualName, local_name, namespace_url, ns};
+use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use js::rust::HandleValue;
 
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{

@@ -14,7 +14,7 @@ use std::{f64, ptr};
 use dom_struct::dom_struct;
 use embedder_traits::{FilterPattern, InputMethodType};
 use encoding_rs::Encoding;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_UnicodeSets, RegExpFlags,

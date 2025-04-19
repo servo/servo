@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use base::id::{BrowsingContextId, PipelineId};
-use html5ever::{local_name, namespace_url, ns};
+use html5ever::{local_name, ns};
 use pixels::Image;
 use script_layout_interface::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,

@@ -5,7 +5,7 @@
 use std::ptr;
 
 use html5ever::interface::QualName;
-use html5ever::{LocalName, local_name, namespace_url, ns};
+use html5ever::{LocalName, local_name, ns};
 use js::conversions::ToJSValConvertible;
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, CurrentGlobalOrNull, JSAutoRealm, JSObject};

@@ -13,7 +13,7 @@ use constellation_traits::{
 };
 use dom_struct::dom_struct;
 use embedder_traits::ViewportDetails;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use profile_traits::ipc as ProfiledIpc;

@@ -7,7 +7,7 @@ use std::default::Default;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use script_layout_interface::QueryMsg;
 use style::attr::AttrValue;

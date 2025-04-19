@@ -17,7 +17,7 @@ use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::fmt::UTF8;
 use html5ever::tendril::{ByteTendril, StrTendril, TendrilSink};
 use html5ever::tree_builder::{ElementFlags, NodeOrText, QuirksMode, TreeSink};
-use html5ever::{Attribute, ExpandedName, LocalName, QualName, local_name, namespace_url, ns};
+use html5ever::{Attribute, ExpandedName, LocalName, QualName, local_name, ns};
 use hyper_serde::Serde;
 use markup5ever::TokenizerResult;
 use mime::{self, Mime};
