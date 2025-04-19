@@ -746,26 +746,6 @@ impl CoreResourceManager {
         let ignore_certificate_errors = self.ignore_certificate_errors;
 
         spawn_task(async move {
-            let context = FetchContext {
-                state: http_state.clone(),
-                user_agent: servo_config::pref!(user_agent),
-                devtools_chan: None,
-                filemanager: Arc::new(Mutex::new(filemanager)),
-                file_token: FileTokenCheck::NotRequired,
-                request_interceptor: Arc::new(Mutex::new(request_interceptor)),
-                cancellation_listener,
-                timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
-                    ResourceTimingType::None, // FIXME(pylbrecht)
-                ))),
-                protocols: protocols.clone(),
-                websocket_chan: Some(Arc::new(Mutex::new((
-                    event_sender.clone(),
-                    Some(action_receiver),
-                )))),
-                ca_certificates,
-                ignore_certificate_errors,
-            };
-
             let mut event_sender = event_sender;
 
             let mut url = request.url;
@@ -780,8 +760,29 @@ impl CoreResourceManager {
             };
             request.url = url;
 
-            match create_request(request, http_state) {
-                Ok(request) => fetch(request, &mut event_sender, &context).await,
+            match create_request(request, http_state.clone()) {
+                Ok(request) => {
+                    let context = FetchContext {
+                        state: http_state,
+                        user_agent: servo_config::pref!(user_agent),
+                        devtools_chan: None,
+                        filemanager: Arc::new(Mutex::new(filemanager)),
+                        file_token: FileTokenCheck::NotRequired,
+                        request_interceptor: Arc::new(Mutex::new(request_interceptor)),
+                        cancellation_listener,
+                        timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
+                            request.timing_type(),
+                        ))),
+                        protocols: protocols.clone(),
+                        websocket_chan: Some(Arc::new(Mutex::new((
+                            event_sender.clone(),
+                            Some(action_receiver),
+                        )))),
+                        ca_certificates,
+                        ignore_certificate_errors,
+                    };
+                    fetch(request, &mut event_sender, &context).await;
+                },
                 Err(e) => {
                     trace!("unable to create websocket handshake request {:?}", e);
                     let _ = event_sender.send(WebSocketNetworkEvent::Fail);
