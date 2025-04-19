@@ -233,8 +233,10 @@ impl HTMLVideoElement {
         .credentials_mode(CredentialsMode::Include)
         .use_url_credentials(true)
         .origin(document.origin().immutable().clone())
-        .pipeline_id(Some(document.global().pipeline_id()));
-
+        .pipeline_id(Some(document.global().pipeline_id()))
+        .insecure_requests_policy(document.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(document.has_trustworthy_ancestor_origin())
+        .policy_container(document.policy_container().to_owned());
         // Step 5.
         // This delay must be independent from the ones created by HTMLMediaElement during
         // its media load algorithm, otherwise a code like
