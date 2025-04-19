@@ -9,13 +9,15 @@ use std::vec::Vec;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
-use js::jsapi::{Heap, JSObject};
+use js::gc::{CustomAutoRooter, CustomAutoRooterGuard};
+use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
 
 use super::bindings::buffer_source::{
-    BufferSource, HeapBufferSource, HeapTypedArrayInit, new_initialized_heap_buffer_source,
+    HeapBufferSource, HeapTypedArrayInit, new_initialized_heap_buffer_source,
 };
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
@@ -55,31 +57,37 @@ impl ImageData {
             rooted!(in (*cx) let mut js_object = ptr::null_mut::<JSObject>());
             if let Some(ref mut d) = data {
                 d.resize(len as usize, 0);
+
+                let typed_array =
+                    create_buffer_source::<ClampedU8>(cx, &d[..], js_object.handle_mut(), can_gc)
+                        .map_err(|_| Error::JSFailed)?;
+
                 let data = CreateWith::Slice(&d[..]);
                 Uint8ClampedArray::create(*cx, data, js_object.handle_mut()).unwrap();
-                Self::new_with_jsobject(global, None, width, Some(height), js_object.get(), can_gc)
+                Self::new_with_data(
+                    global,
+                    None,
+                    width,
+                    Some(height),
+                    CustomAutoRooterGuard::new(*cx, &mut CustomAutoRooter::new(typed_array)),
+                    can_gc,
+                )
             } else {
-                Self::new_without_jsobject(global, None, width, height, can_gc)
+                Self::new_without_data(global, None, width, height, can_gc)
             }
         }
     }
 
     #[allow(unsafe_code)]
-    fn new_with_jsobject(
+    fn new_with_data(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u32,
         opt_height: Option<u32>,
-        jsobject: *mut JSObject,
+        data: CustomAutoRooterGuard<Uint8ClampedArray>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
-        let heap_typed_array = match new_initialized_heap_buffer_source::<ClampedU8>(
-            HeapTypedArrayInit::Buffer(BufferSource::ArrayBufferView(Heap::boxed(jsobject))),
-            can_gc,
-        ) {
-            Ok(heap_typed_array) => heap_typed_array,
-            Err(_) => return Err(Error::JSFailed),
-        };
+        let heap_typed_array = HeapBufferSource::<ClampedU8>::from_view(data);
 
         let typed_array = match heap_typed_array.get_typed_array() {
             Ok(array) => array,
@@ -117,13 +125,14 @@ impl ImageData {
         ))
     }
 
-    fn new_without_jsobject(
+    fn new_without_data(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u32,
         height: u32,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
+        // If one or both of sw and sh are zero, then throw an "IndexSizeError" DOMException.
         if width == 0 || height == 0 {
             return Err(Error::IndexSize);
         }
@@ -198,20 +207,19 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
         width: u32,
         height: u32,
     ) -> Fallible<DomRoot<Self>> {
-        Self::new_without_jsobject(global, proto, width, height, can_gc)
+        Self::new_without_data(global, proto, width, height, can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-with-data>
     fn Constructor_(
-        _cx: JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        jsobject: *mut JSObject,
+        data: CustomAutoRooterGuard<Uint8ClampedArray>,
         width: u32,
         opt_height: Option<u32>,
     ) -> Fallible<DomRoot<Self>> {
-        Self::new_with_jsobject(global, proto, width, opt_height, jsobject, can_gc)
+        Self::new_with_data(global, proto, width, opt_height, data, can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-width>

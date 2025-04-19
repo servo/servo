@@ -131,11 +131,11 @@ where
     }
 
     pub(crate) fn from_view(
-        chunk: CustomAutoRooterGuard<ArrayBufferView>,
-    ) -> HeapBufferSource<ArrayBufferViewU8> {
-        HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(Heap::boxed(
-            unsafe { *chunk.underlying_object() },
-        )))
+        chunk: CustomAutoRooterGuard<TypedArray<T, *mut JSObject>>,
+    ) -> HeapBufferSource<T> {
+        HeapBufferSource::<T>::new(BufferSource::ArrayBufferView(Heap::boxed(unsafe {
+            *chunk.underlying_object()
+        })))
     }
 
     pub(crate) fn default() -> Self {
