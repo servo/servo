@@ -6,9 +6,12 @@ use std::fmt;
 use std::ops::Deref;
 
 use atomic_refcell::AtomicRefCell;
+use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc;
 
+#[derive(MallocSizeOf)]
 pub struct ArcRefCell<T> {
+    #[conditional_malloc_size_of]
     value: Arc<AtomicRefCell<T>>,
 }
 

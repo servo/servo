@@ -16,7 +16,7 @@ use profile_traits::{mem, time};
 use webrender::RenderApi;
 use webrender_api::DocumentId;
 
-pub use crate::compositor::IOCompositor;
+pub use crate::compositor::{IOCompositor, WebRenderDebugOption};
 
 #[macro_use]
 mod tracing;
@@ -25,7 +25,6 @@ mod compositor;
 mod touch;
 pub mod webview;
 pub mod webview_manager;
-pub mod windowing;
 
 /// Data used to construct a compositor.
 pub struct InitialCompositorState {

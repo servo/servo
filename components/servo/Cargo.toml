@@ -96,6 +96,7 @@ serde = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }
 servo-media-gstreamer = { workspace = true, optional = true }
+servo_allocator = { path = "../allocator" }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
@@ -124,6 +125,7 @@ gaol = "0.2.1"
 webxr = { path = "../webxr", features = ["ipc", "glwindow", "headless", "openxr-api"] }
 
 [dev-dependencies]
+anyhow = "1.0.97"
 http = { workspace = true }
 libservo = { path = ".", features = ["tracing"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }

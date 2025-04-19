@@ -6,6 +6,7 @@ use std::vec::IntoIter;
 
 use app_units::Au;
 use fonts::FontMetrics;
+use malloc_size_of_derive::MallocSizeOf;
 
 use super::{InlineContainerState, InlineContainerStateFlags, inline_container_needs_strut};
 use crate::ContainingBlock;
@@ -17,7 +18,7 @@ use crate::fragment_tree::BaseFragmentInfo;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{LayoutStyle, PaddingBorderMargin};
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct InlineBox {
     pub base: LayoutBoxBase,
     /// The identifier of this inline box in the containing [`super::InlineFormattingContext`].
@@ -56,7 +57,7 @@ impl InlineBox {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, MallocSizeOf)]
 pub(crate) struct InlineBoxes {
     /// A collection of all inline boxes in a particular [`super::InlineFormattingContext`].
     inline_boxes: Vec<ArcRefCell<InlineBox>>,
@@ -71,6 +72,10 @@ pub(crate) struct InlineBoxes {
 impl InlineBoxes {
     pub(super) fn len(&self) -> usize {
         self.inline_boxes.len()
+    }
+
+    pub(super) fn iter(&self) -> impl Iterator<Item = &ArcRefCell<InlineBox>> {
+        self.inline_boxes.iter()
     }
 
     pub(super) fn get(&self, identifier: &InlineBoxIdentifier) -> ArcRefCell<InlineBox> {
@@ -158,7 +163,7 @@ impl InlineBoxes {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
 pub(super) enum InlineBoxTreePathToken {
     Start(InlineBoxIdentifier),
     End(InlineBoxIdentifier),
@@ -179,7 +184,7 @@ impl InlineBoxTreePathToken {
 /// [`u32`] is used for the index, in order to save space. The value refers to the token
 /// in the start tree data structure which can be fetched to find the actual index of
 /// of the [`InlineBox`] in [`InlineBoxes::inline_boxes`].
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, MallocSizeOf, PartialEq)]
 pub(crate) struct InlineBoxIdentifier {
     pub index_of_start_in_tree: u32,
     pub index_in_inline_boxes: u32,

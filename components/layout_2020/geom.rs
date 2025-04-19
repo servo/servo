@@ -8,6 +8,7 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 use app_units::{Au, MAX_AU};
+use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::logical_geometry::{BlockFlowDirection, Direction, InlineBaseDirection, WritingMode};
 use style::values::computed::{
@@ -28,7 +29,7 @@ pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 pub type AuOrAuto = AutoOr<Au>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub struct LogicalVec2<T> {
     pub inline: T,
     pub block: T,
@@ -950,7 +951,7 @@ impl Size<Au> {
 
 /// Represents the sizing constraint that the preferred, min and max sizing properties
 /// impose on one axis.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
 pub(crate) enum SizeConstraint {
     /// Represents a definite preferred size, clamped by minimum and maximum sizes (if any).
     Definite(Au),

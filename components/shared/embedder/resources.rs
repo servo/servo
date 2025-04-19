@@ -3,30 +3,42 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::PathBuf;
-use std::sync::{LazyLock, RwLock};
+use std::sync::RwLock;
 
-use cfg_if::cfg_if;
+static RES: RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>> = RwLock::new(None);
 
-static RES: LazyLock<RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>>> =
-    LazyLock::new(|| {
-        cfg_if! {
-            if #[cfg(any(servo_production, target_env = "ohos"))] {
-                RwLock::new(None)
-            } else {
-                // Static assert that this is really a non-production build, rather
-                // than a failure of the build script’s production check.
-                const _: () = assert!(cfg!(servo_do_not_use_in_production));
+#[cfg(feature = "baked-default-resources")]
+static INIT_TEST_RESOURCES: std::sync::Once = std::sync::Once::new();
 
-                RwLock::new(Some(resources_for_tests()))
-            }
-        }
-    });
+#[cfg(all(feature = "baked-default-resources", servo_production))]
+const _: () = assert!(
+    false,
+    "baked-default-resources should not be used in production"
+);
 
+/// The Embedder should initialize the ResourceReader early.
 pub fn set(reader: Box<dyn ResourceReaderMethods + Sync + Send>) {
     *RES.write().unwrap() = Some(reader);
 }
 
+#[cfg(not(feature = "baked-default-resources"))]
 pub fn read_bytes(res: Resource) -> Vec<u8> {
+    if let Some(reader) = RES.read().unwrap().as_ref() {
+        reader.read(res)
+    } else {
+        log::error!("Resource reader not set.");
+        vec![]
+    }
+}
+
+#[cfg(feature = "baked-default-resources")]
+pub fn read_bytes(res: Resource) -> Vec<u8> {
+    INIT_TEST_RESOURCES.call_once(|| {
+        let mut reader = RES.write().unwrap();
+        if reader.is_none() {
+            *reader = Some(resources_for_tests())
+        }
+    });
     RES.read()
         .unwrap()
         .as_ref()
@@ -42,16 +54,16 @@ pub fn sandbox_access_files() -> Vec<PathBuf> {
     RES.read()
         .unwrap()
         .as_ref()
-        .expect("Resource reader not set.")
-        .sandbox_access_files()
+        .map(|reader| reader.sandbox_access_files())
+        .unwrap_or_default()
 }
 
 pub fn sandbox_access_files_dirs() -> Vec<PathBuf> {
     RES.read()
         .unwrap()
         .as_ref()
-        .expect("Resource reader not set.")
-        .sandbox_access_files_dirs()
+        .map(|reader| reader.sandbox_access_files_dirs())
+        .unwrap_or_default()
 }
 
 pub enum Resource {
@@ -93,10 +105,10 @@ pub enum Resource {
     QuirksModeCSS,
     /// A placeholder image to display if we couldn't get the requested image.
     ///
-    /// ## Safety
+    /// ## Panic
     ///
-    /// Servo will crash if this is an invalid image. Check `resources/rippy.png` in Servo codebase to see what
-    /// a default rippy png should look like.
+    /// If the resource is not provided, servo will fallback to a baked in default (See resources/rippy.png).
+    /// However, if the image is provided but invalid, Servo will crash.
     RippyPNG,
     /// A CSS file to style the media controls.
     /// It can be empty but then media controls will not be styled.
@@ -145,12 +157,10 @@ pub trait ResourceReaderMethods {
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf>;
 }
 
-/// Bake all of our resources into this crate for tests, unless we are `cfg!(servo_production)`.
+/// Provides baked in resources for tests.
 ///
-/// Local non-production embedder builds (e.g. servoshell) can still override these with [`set`].
-/// On OpenHarmony we never want to include files, since we ship all the files in the application
-/// bundle anyway.
-#[cfg(not(any(servo_production, target_env = "ohos")))]
+/// Embedder builds (e.g. servoshell) should use [`set`] and ship the resources themselves.
+#[cfg(feature = "baked-default-resources")]
 fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
     struct ResourceReader;
     impl ResourceReaderMethods for ResourceReader {

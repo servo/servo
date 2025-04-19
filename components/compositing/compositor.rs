@@ -34,8 +34,9 @@ use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
 use log::{debug, info, trace, warn};
 use pixels::{CorsStatus, Image, ImageFrame, PixelFormat};
+use profile_traits::mem::{ProcessReports, ProfilerRegistration, Report, ReportKind};
 use profile_traits::time::{self as profile_time, ProfilerCategory};
-use profile_traits::time_profile;
+use profile_traits::{path, time_profile};
 use servo_config::opts;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
@@ -55,7 +56,6 @@ use webrender_api::{
 use crate::InitialCompositorState;
 use crate::webview::{UnknownWebView, WebView};
 use crate::webview_manager::WebViewManager;
-use crate::windowing::WebRenderDebugOption;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -76,6 +76,14 @@ enum ReadyState {
     Unknown,
     WaitingForConstellationReply,
     ReadyToSaveImage,
+}
+
+/// An option to control what kind of WebRender debugging is enabled while Servo is running.
+#[derive(Clone)]
+pub enum WebRenderDebugOption {
+    Profiler,
+    TextureCacheDebug,
+    RenderTargetDebug,
 }
 /// Data that is shared by all WebView renderers.
 pub struct ServoRenderer {
@@ -147,6 +155,10 @@ pub struct IOCompositor {
     /// The [`Instant`] of the last animation tick, used to avoid flooding the Constellation and
     /// ScriptThread with a deluge of animation ticks.
     last_animation_tick: Instant,
+
+    /// A handle to the memory profiler which will automatically unregister
+    /// when it's dropped.
+    _mem_profiler_registration: ProfilerRegistration,
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -391,6 +403,11 @@ impl ServoRenderer {
 
 impl IOCompositor {
     pub fn new(state: InitialCompositorState, convert_mouse_to_touch: bool) -> Self {
+        let registration = state.mem_profiler_chan.prepare_memory_reporting(
+            "compositor".into(),
+            state.sender.clone(),
+            CompositorMsg::CollectMemoryReport,
+        );
         let compositor = IOCompositor {
             global: Rc::new(RefCell::new(ServoRenderer {
                 shutdown_state: state.shutdown_state,
@@ -414,6 +431,7 @@ impl IOCompositor {
             rendering_context: state.rendering_context,
             pending_frames: 0,
             last_animation_tick: Instant::now(),
+            _mem_profiler_registration: registration,
         };
 
         {
@@ -496,6 +514,30 @@ impl IOCompositor {
         }
 
         match msg {
+            CompositorMsg::CollectMemoryReport(sender) => {
+                let ops =
+                    wr_malloc_size_of::MallocSizeOfOps::new(servo_allocator::usable_size, None);
+                let report = self.global.borrow().webrender_api.report_memory(ops);
+                let reports = vec![
+                    Report {
+                        path: path!["webrender", "fonts"],
+                        kind: ReportKind::ExplicitJemallocHeapSize,
+                        size: report.fonts,
+                    },
+                    Report {
+                        path: path!["webrender", "images"],
+                        kind: ReportKind::ExplicitJemallocHeapSize,
+                        size: report.images,
+                    },
+                    Report {
+                        path: path!["webrender", "display-list"],
+                        kind: ReportKind::ExplicitJemallocHeapSize,
+                        size: report.display_list,
+                    },
+                ];
+                sender.send(ProcessReports::new(reports));
+            },
+
             CompositorMsg::ChangeRunningAnimationsState(
                 webview_id,
                 pipeline_id,

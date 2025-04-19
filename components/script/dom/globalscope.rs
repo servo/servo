@@ -3450,12 +3450,15 @@ impl GlobalScope {
 
     pub(crate) fn report_csp_violations(&self, violations: Vec<Violation>) {
         for violation in violations {
-            let sample = match violation.resource {
-                ViolationResource::Inline { .. } | ViolationResource::Url(_) => None,
-                ViolationResource::TrustedTypePolicy { sample } => Some(sample),
+            let (sample, resource) = match violation.resource {
+                ViolationResource::Inline { .. } => (None, "inline".to_owned()),
+                ViolationResource::Url(url) => (None, url.into()),
+                ViolationResource::TrustedTypePolicy { sample } => {
+                    (Some(sample), "trusted-types-policy".to_owned())
+                },
             };
             let report = CSPViolationReportBuilder::default()
-                .resource("eval".to_owned())
+                .resource(resource)
                 .sample(sample)
                 .effective_directive(violation.directive.name)
                 .build(self);

@@ -123,7 +123,6 @@ pub struct Image {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
-    #[ignore_malloc_size_of = "Defined in webrender_api"]
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
     pub frames: Vec<ImageFrame>,
@@ -132,7 +131,6 @@ pub struct Image {
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct ImageFrame {
     pub delay: Option<Duration>,
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
     pub bytes: IpcSharedMemory,
     pub width: u32,
     pub height: u32,

@@ -50,9 +50,10 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, EmbedderMsg, InputEvent, MediaSessionActionType, Theme,
-    ViewportDetails, WebDriverScriptCommand,
+    CompositorHitTestResult, EmbedderMsg, InputEvent, MediaSessionActionType, MouseButton,
+    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
 };
+use euclid::Point2D;
 use euclid::default::Rect;
 use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
@@ -78,7 +79,7 @@ use net_traits::{
     ResourceFetchTiming, ResourceThreads, ResourceTimingType,
 };
 use percent_encoding::percent_decode;
-use profile_traits::mem::{ProcessReports, ReportsChan};
+use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use script_layout_interface::{
@@ -98,6 +99,7 @@ use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
+use webrender_api::units::DevicePixel;
 
 use crate::document_collection::DocumentCollection;
 use crate::document_loader::DocumentLoader;
@@ -333,6 +335,16 @@ pub struct ScriptThread {
     /// A factory for making new layouts. This allows layout to depend on script.
     #[no_trace]
     layout_factory: Arc<dyn LayoutFactory>,
+
+    // Mouse down button: TO BE REMOVED. Not needed as click event should only
+    // triggered for primary button
+    #[no_trace]
+    mouse_down_button: Cell<Option<MouseButton>>,
+
+    // Mouse down point.
+    // In future, this shall be mouse_down_point for primary button
+    #[no_trace]
+    relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
 }
 
 struct BHMExitSignal {
@@ -947,6 +959,8 @@ impl ScriptThread {
             gpu_id_hub: Arc::new(IdentityHub::default()),
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
+            mouse_down_button: Cell::new(None),
+            relative_mouse_down_point: Cell::new(Point2D::zero()),
         }
     }
 
@@ -2435,10 +2449,19 @@ impl ScriptThread {
         let documents = self.documents.borrow();
         let urls = itertools::join(documents.iter().map(|(_, d)| d.url().to_string()), ", ");
 
-        let mut reports = self.get_cx().get_reports(format!("url({})", urls));
-        for (_, document) in documents.iter() {
-            document.window().layout().collect_reports(&mut reports);
-        }
+        let mut reports = vec![];
+        perform_memory_report(|ops| {
+            let prefix = format!("url({urls})");
+            reports.extend(self.get_cx().get_reports(prefix.clone(), ops));
+            for (_, document) in documents.iter() {
+                document
+                    .window()
+                    .layout()
+                    .collect_reports(&mut reports, ops);
+            }
+
+            reports.push(self.image_cache.memory_report(&prefix, ops));
+        });
 
         reports_chan.send(ProcessReports::new(reports));
     }
@@ -3330,7 +3353,47 @@ impl ScriptThread {
             warn!("Compositor event sent to closed pipeline {pipeline_id}.");
             return;
         };
-        document.note_pending_input_event(event);
+
+        if let InputEvent::MouseButton(mouse_button_event) = event.event {
+            if mouse_button_event.action == MouseButtonAction::Down {
+                self.mouse_down_button.set(Some(mouse_button_event.button));
+                self.relative_mouse_down_point.set(mouse_button_event.point)
+            }
+        }
+        document.note_pending_input_event(event.clone());
+
+        // Also send a 'click' event with same hit-test result if this is release
+
+        // MAYBE? TODO: https://developer.mozilla.org/en-US/docs/Web/API/Element/click_event
+        // If the button is pressed on one element and the pointer is moved outside the element
+        // before the button is released, the event is fired on the most specific ancestor element
+        // that contained both elements.
+
+        // But spec doesn't specify this https://w3c.github.io/uievents/#event-type-click
+
+        // Servo-specific: Trigger if within 10px of the down point
+        if let InputEvent::MouseButton(mouse_button_event) = event.event {
+            if let (Some(mouse_down_button), MouseButtonAction::Up) =
+                (self.mouse_down_button.get(), mouse_button_event.action)
+            {
+                let pixel_dist = self.relative_mouse_down_point.get() - mouse_button_event.point;
+                let pixel_dist = (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
+                if mouse_down_button == mouse_button_event.button &&
+                    pixel_dist < 10.0 * document.window().device_pixel_ratio().get()
+                {
+                    document.note_pending_input_event(ConstellationInputEvent {
+                        hit_test_result: event.hit_test_result,
+                        pressed_mouse_buttons: event.pressed_mouse_buttons,
+                        active_keyboard_modifiers: event.active_keyboard_modifiers,
+                        event: InputEvent::MouseButton(MouseButtonEvent {
+                            action: MouseButtonAction::Click,
+                            button: mouse_button_event.button,
+                            point: mouse_button_event.point,
+                        }),
+                    });
+                }
+            }
+        }
     }
 
     /// Handle a "navigate an iframe" message from the constellation.

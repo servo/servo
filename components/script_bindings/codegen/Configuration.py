@@ -353,8 +353,8 @@ class Descriptor(DescriptorProvider):
                     add('all', [config], attribute)
 
         self._binaryNames = desc.get('binaryNames', {})
-        self._binaryNames.setdefault('__legacycaller', 'LegacyCall')
-        self._binaryNames.setdefault('__stringifier', 'Stringifier')
+        self._binaryNames.setdefault(('__legacycaller', False), 'LegacyCall')
+        self._binaryNames.setdefault(('__stringifier', False), 'Stringifier')
 
         self._internalNames = desc.get('internalNames', {})
 
@@ -365,7 +365,7 @@ class Descriptor(DescriptorProvider):
             if binaryName:
                 assert isinstance(binaryName, list)
                 assert len(binaryName) == 1
-                self._binaryNames.setdefault(member.identifier.name,
+                self._binaryNames.setdefault((member.identifier.name, member.isStatic()),
                                              binaryName[0])
             self._internalNames.setdefault(member.identifier.name,
                                            member.identifier.name.replace('-', '_'))
@@ -391,8 +391,8 @@ class Descriptor(DescriptorProvider):
             return filename
         return None
 
-    def binaryNameFor(self, name):
-        return self._binaryNames.get(name, name)
+    def binaryNameFor(self, name, isStatic):
+        return self._binaryNames.get((name, isStatic), name)
 
     def internalNameFor(self, name):
         return self._internalNames.get(name, name)

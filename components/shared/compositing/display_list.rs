@@ -6,6 +6,7 @@
 
 use base::id::ScrollTreeNodeId;
 use embedder_traits::Cursor;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::values::specified::Overflow;
 use webrender_api::units::{LayoutSize, LayoutVector2D};
@@ -13,7 +14,7 @@ use webrender_api::{Epoch, ExternalScrollId, PipelineId, ScrollLocation, Spatial
 
 /// The scroll sensitivity of a scroll node in a particular axis ie whether it can be scrolled due to
 /// input events and script events or only script events.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ScrollSensitivity {
     /// This node can be scrolled by input and script events.
     ScriptAndInputEvents,
@@ -35,7 +36,7 @@ impl From<Overflow> for ScrollSensitivity {
 }
 
 /// The [ScrollSensitivity] of particular node in the vertical and horizontal axes.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct AxesScrollSensitivity {
     pub x: ScrollSensitivity,
     pub y: ScrollSensitivity,

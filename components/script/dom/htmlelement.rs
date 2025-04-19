@@ -1084,14 +1084,14 @@ impl VirtualMethods for HTMLElement {
         let element = self.as_element();
         match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
+                let source = &**attr.value();
                 let evtarget = self.upcast::<EventTarget>();
                 let source_line = 1; //TODO(#9604) get current JS execution line
                 evtarget.set_event_handler_uncompiled(
                     self.owner_window().get_url(),
                     source_line,
                     &name[2..],
-                    // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
-                    DOMString::from(&**attr.value()),
+                    source,
                 );
             },
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {

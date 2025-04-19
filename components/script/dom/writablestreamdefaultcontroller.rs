@@ -851,13 +851,13 @@ impl WritableStreamDefaultController {
         chunk: SafeHandleValue,
         can_gc: CanGc,
     ) -> f64 {
-        // If controller.[[strategySizeAlgorithm]] is undefined,
+        // If controller.[[strategySizeAlgorithm]] is undefined, then:
         let Some(strategy_size) = self.strategy_size.borrow().clone() else {
-            // Assert: controller.[[stream]].[[state]] is "erroring" or "errored".
+            // Assert: controller.[[stream]].[[state]] is not "writable".
             let Some(stream) = self.stream.get() else {
                 unreachable!("Controller should have a stream");
             };
-            assert!(stream.is_erroring() || stream.is_errored());
+            assert!(!stream.is_writable());
 
             // Return 1.
             return 1.0;

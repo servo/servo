@@ -8,8 +8,9 @@
 //! Layout. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::cell::{Cell, LazyCell, RefCell};
+use std::collections::{HashMap, HashSet};
+use std::ffi::c_void;
 use std::fmt::Debug;
 use std::process;
 use std::sync::{Arc, LazyLock};
@@ -38,7 +39,7 @@ use layout::query::{
 use layout::traversal::RecalcStyle;
 use layout::{BoxTree, FragmentTree};
 use log::{debug, error};
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
@@ -399,11 +400,7 @@ impl Layout for LayoutThread {
 
     fn exit_now(&mut self) {}
 
-    fn collect_reports(&self, reports: &mut Vec<Report>) {
-        // Servo uses vanilla jemalloc, which doesn't have a
-        // malloc_enclosing_size_of function.
-        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
-
+    fn collect_reports(&self, reports: &mut Vec<Report>, ops: &mut MallocSizeOfOps) {
         // TODO: Measure more than just display list, stylist, and font context.
         let formatted_url = &format!("url({})", self.url);
         reports.push(Report {
@@ -415,13 +412,34 @@ impl Layout for LayoutThread {
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "stylist"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: self.stylist.size_of(&mut ops),
+            size: self.stylist.size_of(ops),
         });
 
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "font-context"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: self.font_context.size_of(&mut ops),
+            size: self.font_context.conditional_size_of(ops),
+        });
+
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "box-tree"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: self
+                .box_tree
+                .borrow()
+                .as_ref()
+                .map_or(0, |tree| tree.conditional_size_of(ops)),
+        });
+
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "fragment-tree"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: self
+                .fragment_tree
+                .borrow()
+                .as_ref()
+                .map(|tree| tree.conditional_size_of(ops))
+                .unwrap_or_default(),
         });
     }
 
@@ -1214,3 +1232,7 @@ impl Debug for LayoutFontMetricsProvider {
         f.debug_tuple("LayoutFontMetricsProvider").finish()
     }
 }
+
+thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {
+    LazyCell::new(|| RefCell::new(HashSet::new()))
+});

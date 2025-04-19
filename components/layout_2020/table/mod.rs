@@ -75,6 +75,7 @@ use atomic_refcell::AtomicRef;
 pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
+use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font;
@@ -84,7 +85,7 @@ use super::flow::BlockFormattingContext;
 use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::BaseFragmentInfo;
+use crate::fragment_tree::{BaseFragmentInfo, Fragment};
 use crate::geom::PhysicalVec;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::BorderStyleColor;
@@ -92,15 +93,17 @@ use crate::table::layout::TableLayout;
 
 pub type TableSize = Size2D<usize, UnknownUnit>;
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct Table {
     /// The style of this table. These are the properties that apply to the "wrapper" ie the element
     /// that contains both the grid and the captions. Not all properties are actually used on the
     /// wrapper though, such as background and borders, which apply to the grid.
+    #[conditional_malloc_size_of]
     style: Arc<ComputedValues>,
 
     /// The style of this table's grid. This is an anonymous style based on the table's style, but
     /// eliminating all the properties handled by the "wrapper."
+    #[conditional_malloc_size_of]
     grid_style: Arc<ComputedValues>,
 
     /// The [`BaseFragmentInfo`] for this table's grid. This is necessary so that when the
@@ -194,7 +197,7 @@ impl Table {
 type TableSlotCoordinates = Point2D<usize, UnknownUnit>;
 pub type TableSlotOffset = Vector2D<usize, UnknownUnit>;
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct TableSlotCell {
     /// The [`LayoutBoxBase`] of this table cell.
     base: LayoutBoxBase,
@@ -236,6 +239,7 @@ impl TableSlotCell {
 /// to a previous cell that is spanned here
 ///
 /// In case of table model errors, it may be multiple references
+#[derive(MallocSizeOf)]
 pub enum TableSlot {
     /// A table cell, with a colspan and a rowspan.
     Cell(ArcRefCell<TableSlotCell>),
@@ -272,13 +276,10 @@ impl TableSlot {
 }
 
 /// A row or column of a table.
-#[derive(Clone, Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct TableTrack {
-    /// The [`BaseFragmentInfo`] of this cell.
-    base_fragment_info: BaseFragmentInfo,
-
-    /// The style of this table column.
-    style: Arc<ComputedValues>,
+    /// The [`LayoutBoxBase`] of this [`TableTrack`].
+    base: LayoutBoxBase,
 
     /// The index of the table row or column group parent in the table's list of row or column
     /// groups.
@@ -289,7 +290,7 @@ pub struct TableTrack {
     is_anonymous: bool,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, MallocSizeOf, PartialEq)]
 pub enum TableTrackGroupType {
     HeaderGroup,
     FooterGroup,
@@ -297,13 +298,10 @@ pub enum TableTrackGroupType {
     ColumnGroup,
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct TableTrackGroup {
-    /// The [`BaseFragmentInfo`] of this [`TableTrackGroup`].
-    base_fragment_info: BaseFragmentInfo,
-
-    /// The style of this [`TableTrackGroup`].
-    style: Arc<ComputedValues>,
+    /// The [`LayoutBoxBase`] of this [`TableTrackGroup`].
+    base: LayoutBoxBase,
 
     /// The type of this [`TableTrackGroup`].
     group_type: TableTrackGroupType,
@@ -318,14 +316,14 @@ impl TableTrackGroup {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct TableCaption {
     /// The contents of this cell, with its own layout.
     context: IndependentFormattingContext,
 }
 
 /// A calculated collapsed border.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
 pub(crate) struct CollapsedBorder {
     pub style_color: BorderStyleColor,
     pub width: Au,
@@ -334,7 +332,7 @@ pub(crate) struct CollapsedBorder {
 /// Represents a piecewise sequence of collapsed borders along a line.
 pub(crate) type CollapsedBorderLine = Vec<CollapsedBorder>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SpecificTableGridInfo {
     pub collapsed_borders: PhysicalVec<Vec<CollapsedBorderLine>>,
     pub track_sizes: PhysicalVec<Vec<Au>>,
@@ -366,8 +364,19 @@ impl TableLevelBox {
             TableLevelBox::Cell(cell) => {
                 cell.borrow().base.invalidate_cached_fragment();
             },
-            TableLevelBox::TrackGroup(..) => {},
-            TableLevelBox::Track(..) => {},
+            TableLevelBox::TrackGroup(track_group) => {
+                track_group.borrow().base.invalidate_cached_fragment()
+            },
+            TableLevelBox::Track(track) => track.borrow().base.invalidate_cached_fragment(),
+        }
+    }
+
+    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+        match self {
+            TableLevelBox::Caption(caption) => caption.borrow().context.base.fragments(),
+            TableLevelBox::Cell(cell) => cell.borrow().base.fragments(),
+            TableLevelBox::TrackGroup(track_group) => track_group.borrow().base.fragments(),
+            TableLevelBox::Track(track) => track.borrow().base.fragments(),
         }
     }
 }

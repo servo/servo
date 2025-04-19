@@ -23,6 +23,17 @@ use crate::script_runtime::{CanGc, JSContext};
 use crate::settings_stack::StackEntry;
 use crate::utils::ProtoOrIfaceArray;
 
+/// Operations that can be invoked for a WebIDL interface against
+/// a global object.
+///
+/// <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/bindings/WebIDLGlobalNameHash.h#L24>
+pub struct Interface {
+    /// Define the JS object for this interface on the given global.
+    pub define: fn(JSContext, HandleObject),
+    /// Returns true if this interface's conditions are met for the given global.
+    pub enabled: fn(JSContext, HandleObject) -> bool,
+}
+
 /// Operations that must be invoked from the generated bindings.
 pub trait DomHelpers<D: DomTypes> {
     fn throw_dom_exception(cx: JSContext, global: &D::GlobalScope, result: Error, can_gc: CanGc);
@@ -42,7 +53,7 @@ pub trait DomHelpers<D: DomTypes> {
 
     fn is_platform_object_same_origin(cx: JSContext, obj: RawHandleObject) -> bool;
 
-    fn interface_map() -> &'static phf::Map<&'static [u8], for<'a> fn(JSContext, HandleObject)>;
+    fn interface_map() -> &'static phf::Map<&'static [u8], Interface>;
 
     fn push_new_element_queue();
     fn pop_current_element_queue(can_gc: CanGc);

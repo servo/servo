@@ -7,6 +7,7 @@ use base::print_tree::PrintTree;
 use compositing_traits::display_list::AxesScrollSensitivity;
 use euclid::default::{Point2D, Rect, Size2D};
 use fxhash::FxHashSet;
+use malloc_size_of_derive::MallocSizeOf;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use webrender_api::units;
@@ -16,6 +17,7 @@ use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
 use crate::geom::{PhysicalPoint, PhysicalRect};
 
+#[derive(MallocSizeOf)]
 pub struct FragmentTree {
     /// Fragments at the top-level of the tree.
     ///

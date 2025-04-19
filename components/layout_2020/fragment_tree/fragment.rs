@@ -8,6 +8,7 @@ use app_units::Au;
 use base::id::PipelineId;
 use base::print_tree::PrintTree;
 use fonts::{ByteIndex, FontMetrics, GlyphStore};
+use malloc_size_of_derive::MallocSizeOf;
 use range::Range as ServoRange;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
@@ -23,7 +24,7 @@ use crate::cell::ArcRefCell;
 use crate::geom::{LogicalSides, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
-#[derive(Clone)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) enum Fragment {
     Box(ArcRefCell<BoxFragment>),
     /// Floating content. A floated fragment is very similar to a normal
@@ -46,25 +47,28 @@ pub(crate) enum Fragment {
     IFrame(ArcRefCell<IFrameFragment>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct CollapsedBlockMargins {
     pub collapsed_through: bool,
     pub start: CollapsedMargin,
     pub end: CollapsedMargin,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub(crate) struct CollapsedMargin {
     max_positive: Au,
     min_negative: Au,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct TextFragment {
     pub base: BaseFragment,
+    #[conditional_malloc_size_of]
     pub parent_style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
     pub font_metrics: FontMetrics,
     pub font_key: FontInstanceKey,
+    #[conditional_malloc_size_of]
     pub glyphs: Vec<Arc<GlyphStore>>,
 
     /// A flag that represents the _used_ value of the text-decoration property.
@@ -73,21 +77,26 @@ pub(crate) struct TextFragment {
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
     pub selection_range: Option<ServoRange<ByteIndex>>,
+    #[conditional_malloc_size_of]
     pub selected_style: ServoArc<ComputedValues>,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct ImageFragment {
     pub base: BaseFragment,
+    #[conditional_malloc_size_of]
     pub style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
     pub clip: PhysicalRect<Au>,
     pub image_key: Option<ImageKey>,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct IFrameFragment {
     pub base: BaseFragment,
     pub pipeline_id: PipelineId,
     pub rect: PhysicalRect<Au>,
+    #[conditional_malloc_size_of]
     pub style: ServoArc<ComputedValues>,
 }
 

@@ -14,16 +14,10 @@ use raw_window_handle::{
     DisplayHandle, OhosDisplayHandle, OhosNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
     WindowHandle,
 };
-/// The EventLoopWaker::wake function will be called from any thread.
-/// It will be called to notify embedder that some events are available,
-/// and that perform_updates need to be called
-pub use servo::EventLoopWaker;
-use servo::{self, Servo, WindowRenderingContext, resources};
+use servo::{self, EventLoopWaker, ServoBuilder, WindowRenderingContext, resources};
 use xcomponent_sys::OH_NativeXComponent;
 
-use crate::egl::app_state::{
-    Coordinates, RunningAppState, ServoEmbedderCallbacks, ServoWindowCallbacks,
-};
+use crate::egl::app_state::{Coordinates, RunningAppState, ServoWindowCallbacks};
 use crate::egl::host_trait::HostTrait;
 use crate::egl::ohos::InitOpts;
 use crate::egl::ohos::resources::ResourceReaderInstance;
@@ -128,19 +122,11 @@ pub fn init(
         RefCell::new(coordinates),
     ));
 
-    let embedder_callbacks = Box::new(ServoEmbedderCallbacks::new(
-        waker,
-        #[cfg(feature = "webxr")]
-        None,
-    ));
-
-    let servo = Servo::new(
-        opts,
-        preferences,
-        rendering_context.clone(),
-        embedder_callbacks,
-        Default::default(),
-    );
+    let servo = ServoBuilder::new(rendering_context.clone())
+        .opts(opts)
+        .preferences(preferences)
+        .event_loop_waker(waker)
+        .build();
 
     let app_state = RunningAppState::new(
         Some(options.url),

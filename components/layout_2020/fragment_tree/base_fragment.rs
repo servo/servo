@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use bitflags::bitflags;
+use malloc_size_of::malloc_size_of_is_0;
+use malloc_size_of_derive::MallocSizeOf;
 use script_layout_interface::combine_id_with_fragment_type;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
@@ -10,7 +12,7 @@ use style::selector_parser::PseudoElement;
 /// This data structure stores fields that are common to all non-base
 /// Fragment types and should generally be the first member of all
 /// concrete fragments.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct BaseFragment {
     /// A tag which identifies the DOM node and pseudo element of this
     /// Fragment's content. If this fragment is for an anonymous box,
@@ -38,7 +40,7 @@ impl BaseFragment {
 }
 
 /// Information necessary to construct a new BaseFragment.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub(crate) struct BaseFragmentInfo {
     /// The tag to use for the new BaseFragment, if it is not an anonymous Fragment.
     pub tag: Option<Tag>,
@@ -107,9 +109,11 @@ bitflags! {
     }
 }
 
+malloc_size_of_is_0!(FragmentFlags);
+
 /// A data structure used to hold DOM and pseudo-element information about
 /// a particular layout object.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
 pub(crate) struct Tag {
     pub(crate) node: OpaqueNode,
     pub(crate) pseudo: Option<PseudoElement>,

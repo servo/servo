@@ -7,6 +7,7 @@
 
 use app_units::{Au, MAX_AU};
 use inline::InlineFormattingContext;
+use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
 use style::Zero;
@@ -53,13 +54,13 @@ mod root;
 pub(crate) use construct::BlockContainerBuilder;
 pub use root::{BoxTree, CanvasBackground};
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct BlockFormattingContext {
     pub contents: BlockContainer,
     pub contains_floats: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) enum BlockContainer {
     BlockLevelBoxes(Vec<ArcRefCell<BlockLevelBox>>),
     InlineFormattingContext(InlineFormattingContext),
@@ -76,7 +77,7 @@ impl BlockContainer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) enum BlockLevelBox {
     Independent(IndependentFormattingContext),
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
@@ -91,23 +92,25 @@ pub(crate) enum BlockLevelBox {
 
 impl BlockLevelBox {
     pub(crate) fn invalidate_cached_fragment(&self) {
+        self.with_base(LayoutBoxBase::invalidate_cached_fragment);
+    }
+
+    pub(crate) fn fragments(&self) -> Vec<Fragment> {
+        self.with_base(LayoutBoxBase::fragments)
+    }
+
+    pub(crate) fn with_base<T>(&self, callback: impl Fn(&LayoutBoxBase) -> T) -> T {
         match self {
             BlockLevelBox::Independent(independent_formatting_context) => {
-                &independent_formatting_context.base
+                callback(&independent_formatting_context.base)
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
-                positioned_box
-                    .borrow()
-                    .context
-                    .base
-                    .invalidate_cached_fragment();
-                return;
+                callback(&positioned_box.borrow().context.base)
             },
-            BlockLevelBox::OutOfFlowFloatBox(float_box) => &float_box.contents.base,
-            BlockLevelBox::OutsideMarker(outside_marker) => &outside_marker.base,
-            BlockLevelBox::SameFormattingContextBlock { base, .. } => base,
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => callback(&float_box.contents.base),
+            BlockLevelBox::OutsideMarker(outside_marker) => callback(&outside_marker.base),
+            BlockLevelBox::SameFormattingContextBlock { base, .. } => callback(base),
         }
-        .invalidate_cached_fragment();
     }
 
     fn contains_floats(&self) -> bool {
@@ -244,8 +247,9 @@ pub(crate) struct CollapsibleWithParentStartMargin(bool);
 
 /// The contentes of a BlockContainer created to render a list marker
 /// for a list that has `list-style-position: outside`.
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct OutsideMarker {
+    #[conditional_malloc_size_of]
     pub list_item_style: Arc<ComputedValues>,
     pub base: LayoutBoxBase,
     pub block_container: BlockContainer,
@@ -770,7 +774,7 @@ impl BlockLevelBox {
         collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     ) -> Fragment {
-        match self {
+        let fragment = match self {
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => Fragment::Box(
                 ArcRefCell::new(positioning_context.layout_maybe_position_relative_fragment(
                     layout_context,
@@ -836,7 +840,11 @@ impl BlockLevelBox {
                 sequential_layout_state,
                 collapsible_with_parent_start_margin,
             ),
-        }
+        };
+
+        self.with_base(|base| base.set_fragment(fragment.clone()));
+
+        fragment
     }
 
     fn inline_content_sizes(

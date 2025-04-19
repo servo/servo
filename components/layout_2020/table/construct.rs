@@ -728,8 +728,7 @@ where
 
         let style = anonymous_info.style.clone();
         self.push_table_row(ArcRefCell::new(TableTrack {
-            base_fragment_info: (&anonymous_info).into(),
-            style,
+            base: LayoutBoxBase::new((&anonymous_info).into(), style),
             group_index: self.current_row_group_index,
             is_anonymous: true,
         }));
@@ -773,8 +772,7 @@ where
 
                     let next_row_index = self.builder.table.rows.len();
                     let row_group = ArcRefCell::new(TableTrackGroup {
-                        base_fragment_info: info.into(),
-                        style: info.style.clone(),
+                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
                         group_type: internal.into(),
                         track_range: next_row_index..next_row_index,
                     });
@@ -816,8 +814,7 @@ where
                     row_builder.finish();
 
                     let row = ArcRefCell::new(TableTrack {
-                        base_fragment_info: info.into(),
-                        style: info.style.clone(),
+                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
                         group_index: self.current_row_group_index,
                         is_anonymous: false,
                     });
@@ -862,8 +859,7 @@ where
                     }
 
                     let column_group = ArcRefCell::new(TableTrackGroup {
-                        base_fragment_info: info.into(),
-                        style: info.style.clone(),
+                        base: LayoutBoxBase::new(info.into(), info.style.clone()),
                         group_type: internal.into(),
                         track_range: first_column..self.builder.table.columns.len(),
                     });
@@ -1155,8 +1151,7 @@ fn add_column<'dom, Node: NodeExt<'dom>>(
     };
 
     let column = ArcRefCell::new(TableTrack {
-        base_fragment_info: column_info.into(),
-        style: column_info.style.clone(),
+        base: LayoutBoxBase::new(column_info.into(), column_info.style.clone()),
         group_index,
         is_anonymous,
     });
