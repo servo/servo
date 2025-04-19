@@ -33,10 +33,8 @@ use strum_macros::IntoStaticStr;
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
 use webrender_api::ImageKey;
 
-use crate::message_port::{
-    BroadcastMsg, MessagePortMsg, PortMessageTask, StructuredSerializedData,
-};
-use crate::{LogEntry, TraversalDirection, WindowSizeType};
+use crate::structured_data::{BroadcastMsg, StructuredSerializedData};
+use crate::{LogEntry, MessagePortMsg, PortMessageTask, TraversalDirection, WindowSizeType};
 
 /// A Script to Constellation channel.
 #[derive(Clone, Debug, Deserialize, Serialize)]
