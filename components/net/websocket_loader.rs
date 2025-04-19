@@ -75,7 +75,10 @@ pub fn create_request(
     headers.insert("Sec-WebSocket-Key", key);
 
     let protocols = match request.mode {
-        RequestMode::WebSocket { ref protocols } => protocols,
+        RequestMode::WebSocket {
+            ref protocols,
+            original_url: _,
+        } => protocols,
         _ => todo!("which error to return here?"),
     };
 
@@ -324,19 +327,10 @@ pub async fn start_websocket(
     let socket = try_socket.map_err(Error::Io)?;
     let connector = TlsConnector::from(Arc::new(tls_config));
 
-    let mut url = client.url();
-    if url.scheme() == "https" {
-        url.as_mut_url()
-            .set_scheme("wss")
-            .expect("Can't set scheme from https to wss");
-    } else {
-        url.as_mut_url()
-            .set_scheme("ws")
-            .expect("Can't set scheme from http to ws");
-    };
     // TODO(pylbrecht): move request conversion to a separate function
     let mut builder = ClientRequestBuilder::new(
-        url.clone() // FIXME(pylbrecht): deal with clone()
+        client
+            .original_url()
             .into_string()
             .parse()
             .expect("unable to parse URI"),
