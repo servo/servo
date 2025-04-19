@@ -751,7 +751,7 @@ impl CoreResourceManager {
                 user_agent: servo_config::pref!(user_agent),
                 devtools_chan: None,
                 filemanager: Arc::new(Mutex::new(filemanager)),
-                file_token: FileTokenCheck::NotRequired, // FIXME(pylbrecht)
+                file_token: FileTokenCheck::NotRequired,
                 request_interceptor: Arc::new(Mutex::new(request_interceptor)),
                 cancellation_listener,
                 timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
