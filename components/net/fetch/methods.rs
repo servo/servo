@@ -64,6 +64,11 @@ pub enum Data {
     Cancelled,
 }
 
+type WebsocketChannel = (
+    IpcSender<WebSocketNetworkEvent>,
+    Option<IpcReceiver<WebSocketDomAction>>,
+);
+
 pub struct FetchContext {
     pub state: Arc<HttpState>,
     pub user_agent: String,
@@ -74,14 +79,7 @@ pub struct FetchContext {
     pub cancellation_listener: Arc<CancellationListener>,
     pub timing: ServoArc<Mutex<ResourceFetchTiming>>,
     pub protocols: Arc<ProtocolRegistry>,
-    pub websocket_chan: Option<
-        Arc<
-            Mutex<(
-                IpcSender<WebSocketNetworkEvent>,
-                Option<IpcReceiver<WebSocketDomAction>>,
-            )>,
-        >,
-    >,
+    pub websocket_chan: Option<Arc<Mutex<WebsocketChannel>>>,
     pub ca_certificates: CACertificates,
     pub ignore_certificate_errors: bool,
 }

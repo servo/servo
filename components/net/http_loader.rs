@@ -2005,7 +2005,7 @@ async fn http_network_fetch(
                 url.clone(), // FIXME(pylbrecht): remove clone()
                 resource_event_sender,
                 protocols.clone(), // FIXME(pylbrecht): remove clone()
-                &request,
+                request,
                 tls_config,
                 dom_action_receiver,
             )
