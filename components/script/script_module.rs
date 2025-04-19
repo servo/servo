@@ -80,6 +80,7 @@ use crate::network_listener::{
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
 use crate::task::TaskBox;
+use crate::task_source::SendableTaskSource;
 
 fn gen_type_error(global: &GlobalScope, string: String, can_gc: CanGc) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
@@ -940,6 +941,7 @@ impl ModuleTree {
                         // TODO: is this correct?
                         Some(IntroductionType::IMPORTED_MODULE),
                         can_gc,
+                        global.task_manager().networking_task_source().to_sendable(),
                     );
                 }
             },
@@ -1579,6 +1581,7 @@ fn fetch_an_import_module_script_graph(
         Some(dynamic_module),
         Some(IntroductionType::IMPORTED_MODULE),
         can_gc,
+        global.task_manager().networking_task_source().to_sendable(),
     );
     Ok(())
 }
@@ -1675,6 +1678,7 @@ pub(crate) fn fetch_external_module_script(
     destination: Destination,
     options: ScriptFetchOptions,
     can_gc: CanGc,
+    task_source: SendableTaskSource,
 ) {
     let mut visited_urls = HashSet::new();
     visited_urls.insert(url.clone());
@@ -1691,6 +1695,7 @@ pub(crate) fn fetch_external_module_script(
         None,
         Some(IntroductionType::SRC_SCRIPT),
         can_gc,
+        task_source,
     )
 }
 
@@ -1755,6 +1760,7 @@ fn fetch_single_module_script(
     dynamic_module: Option<RootedTraceableBox<DynamicModule>>,
     introduction_type: Option<&'static CStr>,
     can_gc: CanGc,
+    task_source: SendableTaskSource,
 ) {
     {
         // Step 1.
@@ -1875,10 +1881,7 @@ fn fetch_single_module_script(
         introduction_type,
     };
 
-    let network_listener = NetworkListener::new(
-        context,
-        global.task_manager().networking_task_source().to_sendable(),
-    );
+    let network_listener = NetworkListener::new(context, task_source);
     match document {
         Some(document) => {
             let request = document.prepare_request(request);
