@@ -3664,7 +3664,7 @@ impl GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
     pub(crate) fn run_a_module_script(
         &self,
-        script_id: ScriptId,
+        script_id: Option<ScriptId>,
         script: &ScriptOrigin,
         _rethrow_errors: bool,
         can_gc: CanGc,
@@ -3686,7 +3686,7 @@ impl GlobalScope {
         } else {
             self.get_inline_module_map()
                 .borrow()
-                .get(&script_id)
+                .get(&script_id.unwrap())
                 .cloned()
         };
 

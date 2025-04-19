@@ -1040,9 +1040,12 @@ impl HTMLScriptElement {
                     document.set_current_script(None);
 
                     // Step 6."module".2. Run the module script given by el's result.
-                    self.owner_window()
-                        .as_global_scope()
-                        .run_a_module_script(self.id, &script, false, can_gc);
+                    self.owner_window().as_global_scope().run_a_module_script(
+                        Some(self.id),
+                        &script,
+                        false,
+                        can_gc,
+                    );
                 } else if let ScriptType::ImportMap = script_type {
                     // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
                     register_import_map(&self.owner_global(), script.import_map, can_gc);
