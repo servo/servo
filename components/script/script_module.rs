@@ -1055,7 +1055,7 @@ impl ModuleOwner {
         can_gc: CanGc,
     ) {
         match &self {
-            ModuleOwner::Worker(_) => unimplemented!(),
+            ModuleOwner::Worker(_) => {}, // TODO(pylbrecht)
             ModuleOwner::DynamicModule(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
                 let global = self.global();
