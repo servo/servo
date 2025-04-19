@@ -729,6 +729,7 @@ impl CoreResourceManager {
         });
     }
 
+    // https://websockets.spec.whatwg.org/#concept-websocket-establish
     fn websocket_connect(
         &self,
         mut request: RequestBuilder,
@@ -748,6 +749,8 @@ impl CoreResourceManager {
         spawn_task(async move {
             let mut event_sender = event_sender;
 
+            // Let requestURL be a copy of url, with its scheme set to "http", if url’s scheme is
+            // "ws"; otherwise to "https"
             let scheme = match request.url.scheme() {
                 "ws" => "http",
                 _ => "https",

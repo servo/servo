@@ -67,13 +67,24 @@ pub fn create_handshake_request(
             .ok_or_else(|| Error::Url(UrlError::NoHostName))?
     );
     headers.insert("Host", HeaderValue::from_str(&host)?);
-    headers.insert("Connection", HeaderValue::from_static("upgrade"));
+    // Append (`Upgrade`, `websocket`) to request’s header list.
     headers.insert("Upgrade", HeaderValue::from_static("websocket"));
-    headers.insert("Sec-Websocket-Version", HeaderValue::from_static("13"));
 
+    // Append (`Connection`, `Upgrade`) to request’s header list.
+    headers.insert("Connection", HeaderValue::from_static("upgrade"));
+
+    // Let keyValue be a nonce consisting of a randomly selected 16-byte value that has been
+    // forgiving-base64-encoded and isomorphic encoded.
     let key = HeaderValue::from_str(&tungstenite::handshake::client::generate_key()).unwrap();
+
+    // Append (`Sec-WebSocket-Key`, keyValue) to request’s header list.
     headers.insert("Sec-WebSocket-Key", key);
 
+    // Append (`Sec-WebSocket-Version`, `13`) to request’s header list.
+    headers.insert("Sec-Websocket-Version", HeaderValue::from_static("13"));
+
+    // For each protocol in protocols, combine (`Sec-WebSocket-Protocol`, protocol) in request’s
+    // header list.
     let protocols = match request.mode {
         RequestMode::WebSocket {
             ref protocols,
@@ -81,7 +92,6 @@ pub fn create_handshake_request(
         } => protocols,
         _ => todo!("which error to return here?"),
     };
-
     if !protocols.is_empty() {
         let protocols = protocols.join(",");
         headers.insert("Sec-WebSocket-Protocol", HeaderValue::from_str(&protocols)?);

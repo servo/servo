@@ -259,6 +259,9 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender, can_gc);
         let address = Trusted::new(&*ws);
 
+        // Let request be a new request, whose URL is requestURL, client is client, service-workers
+        // mode is "none", referrer is "no-referrer", mode is "websocket", credentials mode is
+        // "include", cache mode is "no-store" , and redirect mode is "error"
         let request = RequestBuilder::new(
             global.webview_id(),
             url_record.clone(),
