@@ -259,17 +259,6 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender, can_gc);
         let address = Trusted::new(&*ws);
 
-        if url_record.scheme() == "wss" {
-            url_record
-                .as_mut_url()
-                .set_scheme("https")
-                .expect("Can't set scheme from wss to https");
-        } else {
-            url_record
-                .as_mut_url()
-                .set_scheme("http")
-                .expect("Can't set scheme from ws to http");
-        };
         let request = RequestBuilder::new(global.webview_id(), url_record, Referrer::NoReferrer)
             .origin(global.origin().immutable().clone())
             .insecure_requests_policy(global.insecure_requests_policy())
