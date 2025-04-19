@@ -18,9 +18,10 @@ use js::jsapi::{
     GetLinearStringLength, GetNonCCWObjectGlobal, HandleId as RawHandleId,
     HandleObject as RawHandleObject, Heap, JS_AtomizeStringN, JS_ClearPendingException,
     JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength, JS_IsExceptionPending,
-    JS_IsGlobalObject, JS_NewEnumerateStandardClasses, JS_ResolveStandardClass, JSAtom, JSContext,
-    JSJitInfo, JSObject, JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
-    MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex,
+    JS_IsGlobalObject, JS_MayResolveStandardClass, JS_NewEnumerateStandardClasses,
+    JS_ResolveStandardClass, JSAtom, JSAtomState, JSContext, JSJitInfo, JSObject, JSTracer,
+    MutableHandleIdVector as RawMutableHandleIdVector, MutableHandleValue as RawMutableHandleValue,
+    ObjectOpResult, PropertyKey, StringIsArrayIndex, jsid,
 };
 use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
@@ -30,7 +31,7 @@ use js::rust::wrappers::{
     JS_SetPendingException, JS_SetProperty,
 };
 use js::rust::{
-    HandleId, HandleObject, HandleValue, MutableHandleValue, ToString, get_object_class,
+    HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, ToString, get_object_class,
 };
 use js::{JS_CALLEE, rooted};
 use malloc_size_of::MallocSizeOfOps;
@@ -577,15 +578,25 @@ impl AsCCharPtrPtr for [u8] {
 
 /// Enumerate lazy properties of a global object.
 /// Modeled after <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/bindings/BindingUtils.cpp#L2814>
-/// and <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/base/nsGlobalWindowInner.cpp#3297>
-pub(crate) unsafe extern "C" fn enumerate_global<D: DomTypes>(
+pub(crate) unsafe extern "C" fn enumerate_global(
     cx: *mut JSContext,
     obj: RawHandleObject,
     props: RawMutableHandleIdVector,
     enumerable_only: bool,
 ) -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
-    if !JS_NewEnumerateStandardClasses(cx, obj, props, enumerable_only) {
+    JS_NewEnumerateStandardClasses(cx, obj, props, enumerable_only)
+}
+
+/// Enumerate lazy properties of a global object that is a Window.
+/// <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/base/nsGlobalWindowInner.cpp#3297>
+pub(crate) unsafe extern "C" fn enumerate_window<D: DomTypes>(
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    props: RawMutableHandleIdVector,
+    enumerable_only: bool,
+) -> bool {
+    if !enumerate_global(cx, obj, props, enumerable_only) {
         return false;
     }
 
@@ -610,34 +621,68 @@ pub(crate) unsafe extern "C" fn enumerate_global<D: DomTypes>(
     true
 }
 
+/// Returns true if the resolve hook for this global may resolve the provided id.
+/// <https://searchfox.org/mozilla-central/rev/f3c8c63a097b61bb1f01e13629b9514e09395947/dom/bindings/BindingUtils.cpp#2809>
+/// <https://searchfox.org/mozilla-central/rev/f3c8c63a097b61bb1f01e13629b9514e09395947/js/public/Class.h#283-291>
+pub(crate) unsafe extern "C" fn may_resolve_global(
+    names: *const JSAtomState,
+    id: PropertyKey,
+    maybe_obj: *mut JSObject,
+) -> bool {
+    JS_MayResolveStandardClass(names, id, maybe_obj)
+}
+
+/// Returns true if the resolve hook for this window may resolve the provided id.
+/// <https://searchfox.org/mozilla-central/rev/f3c8c63a097b61bb1f01e13629b9514e09395947/dom/base/nsGlobalWindowInner.cpp#3275>
+/// <https://searchfox.org/mozilla-central/rev/f3c8c63a097b61bb1f01e13629b9514e09395947/js/public/Class.h#283-291>
+pub(crate) unsafe extern "C" fn may_resolve_window<D: DomTypes>(
+    names: *const JSAtomState,
+    id: PropertyKey,
+    maybe_obj: *mut JSObject,
+) -> bool {
+    if may_resolve_global(names, id, maybe_obj) {
+        return true;
+    }
+
+    let cx = Runtime::get()
+        .expect("There must be a JSContext active")
+        .as_ptr();
+    let Ok(bytes) = latin1_bytes_from_id(cx, id) else {
+        return false;
+    };
+
+    <D as DomHelpers<D>>::interface_map().contains_key(bytes)
+}
+
 /// Resolve a lazy global property, for interface objects and named constructors.
-pub(crate) unsafe extern "C" fn resolve_global<D: DomTypes>(
+pub(crate) unsafe extern "C" fn resolve_global(
     cx: *mut JSContext,
     obj: RawHandleObject,
     id: RawHandleId,
     rval: *mut bool,
 ) -> bool {
     assert!(JS_IsGlobalObject(obj.get()));
-    if !JS_ResolveStandardClass(cx, obj, id, rval) {
+    JS_ResolveStandardClass(cx, obj, id, rval)
+}
+
+/// Resolve a lazy global property for a Window global.
+pub(crate) unsafe extern "C" fn resolve_window<D: DomTypes>(
+    cx: *mut JSContext,
+    obj: RawHandleObject,
+    id: RawHandleId,
+    rval: *mut bool,
+) -> bool {
+    if !resolve_global(cx, obj, id, rval) {
         return false;
     }
+
     if *rval {
         return true;
     }
-    if !id.is_string() {
+    let Ok(bytes) = latin1_bytes_from_id(cx, *id) else {
         *rval = false;
         return true;
-    }
-
-    let string = id.to_string();
-    if !JS_DeprecatedStringHasLatin1Chars(string) {
-        *rval = false;
-        return true;
-    }
-    let mut length = 0;
-    let ptr = JS_GetLatin1StringCharsAndLength(cx, ptr::null(), string, &mut length);
-    assert!(!ptr.is_null());
-    let bytes = slice::from_raw_parts(ptr, length);
+    };
 
     if let Some(interface) = <D as DomHelpers<D>>::interface_map().get(bytes) {
         (interface.define)(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));
@@ -646,4 +691,23 @@ pub(crate) unsafe extern "C" fn resolve_global<D: DomTypes>(
         *rval = false;
     }
     true
+}
+
+/// Returns a slice of bytes corresponding to the bytes in the provided string id.
+/// Returns an error if the id is not a string, or the string contains non-latin1 characters.
+/// # Safety
+/// The slice is only valid as long as the original id is not garbage collected.
+unsafe fn latin1_bytes_from_id(cx: *mut JSContext, id: jsid) -> Result<&'static [u8], ()> {
+    if !id.is_string() {
+        return Err(());
+    }
+
+    let string = id.to_string();
+    if !JS_DeprecatedStringHasLatin1Chars(string) {
+        return Err(());
+    }
+    let mut length = 0;
+    let ptr = JS_GetLatin1StringCharsAndLength(cx, ptr::null(), string, &mut length);
+    assert!(!ptr.is_null());
+    Ok(slice::from_raw_parts(ptr, length))
 }
