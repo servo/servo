@@ -541,7 +541,7 @@ impl From<SerializableImageData> for ImageData {
 /// A trait that exposes the embedding layer's `WebView` to the Servo renderer.
 /// This is to prevent a dependency cycle between the renderer and the embedding
 /// layer.
-pub trait RendererWebView {
+pub trait WebViewTrait {
     fn id(&self) -> WebViewId;
     fn screen_geometry(&self) -> Option<ScreenGeometry>;
     fn set_animating(&self, new_value: bool);
