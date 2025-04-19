@@ -2019,8 +2019,7 @@ impl Window {
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
-            let nodes = images.entry(id).or_default();
-            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
+            if !images.contains_key(&id) {
                 let trusted_node = Trusted::new(&*node);
                 let sender = self.register_image_cache_listener(id, move |response| {
                     trusted_node
@@ -2031,6 +2030,10 @@ impl Window {
 
                 self.image_cache
                     .add_listener(ImageResponder::new(sender, self.pipeline_id(), id));
+            }
+
+            let nodes = images.entry(id).or_default();
+            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
                 nodes.push(Dom::from_ref(&*node));
             }
         }
