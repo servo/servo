@@ -575,6 +575,7 @@ pub(crate) mod touch;
 pub(crate) mod touchevent;
 pub(crate) mod touchlist;
 pub(crate) mod trackevent;
+pub(crate) mod transformunderlyingsource;
 pub(crate) mod transitionevent;
 pub(crate) mod treewalker;
 pub(crate) mod trustedhtml;
@@ -631,6 +632,8 @@ pub(crate) mod webgpu;
 pub(crate) use self::webgpu::*;
 #[cfg(not(feature = "webgpu"))]
 pub(crate) mod gpucanvascontext;
+pub(crate) mod transformstream;
+pub(crate) mod transformstreamdefaultcontroller;
 pub(crate) mod wheelevent;
 #[allow(dead_code)]
 pub(crate) mod window;
