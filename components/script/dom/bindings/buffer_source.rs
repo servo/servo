@@ -63,6 +63,17 @@ pub(crate) enum BufferSource {
     ArrayBuffer(Box<Heap<*mut JSObject>>),
 }
 
+impl Clone for BufferSource {
+    fn clone(&self) -> Self {
+        match self {
+            BufferSource::ArrayBufferView(heap) => {
+                BufferSource::ArrayBufferView(Heap::boxed(heap.get()))
+            },
+            BufferSource::ArrayBuffer(heap) => BufferSource::ArrayBuffer(Heap::boxed(heap.get())),
+        }
+    }
+}
+
 pub(crate) fn new_initialized_heap_buffer_source<T>(
     init: HeapTypedArrayInit,
     can_gc: CanGc,
@@ -115,6 +126,18 @@ where
                     heap.handle() == from_heap.handle()
                 },
             },
+        }
+    }
+}
+
+impl<T> Clone for HeapBufferSource<T>
+where
+    T: TypedArrayElement,
+{
+    fn clone(&self) -> Self {
+        HeapBufferSource {
+            buffer_source: self.buffer_source.clone(),
+            phantom: PhantomData,
         }
     }
 }
@@ -326,6 +349,102 @@ where
             },
         }
     }
+
+    /// <https://tc39.es/ecma262/#sec-clonearraybuffer>
+    pub(crate) fn clone_array_buffer(
+        &self,
+        cx: JSContext,
+        byte_offset: usize,
+        byte_length: usize,
+    ) -> Fallible<HeapBufferSource<ArrayBufferU8>> {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(heap) => {
+                let mut is_shared = false;
+                unsafe {
+                    assert!(JS_IsArrayBufferViewObject(*heap.handle()));
+                    rooted!(in (*cx) let view_buffer =
+                                JS_GetArrayBufferViewBuffer(*cx, heap.handle(), &mut is_shared));
+
+                    let result = ArrayBufferClone(
+                        *cx,
+                        view_buffer.handle().into(),
+                        byte_offset,
+                        byte_length,
+                    );
+
+                    if result.is_null() {
+                        rooted!(in(*cx) let mut rval = UndefinedValue());
+
+                        assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                        JS_ClearPendingException(*cx);
+
+                        Err(Error::Type("can't clone array buffer".to_owned()))
+                    } else {
+                        Ok(HeapBufferSource::<ArrayBufferU8>::new(
+                            BufferSource::ArrayBuffer(Heap::boxed(result)),
+                        ))
+                    }
+                }
+            },
+            BufferSource::ArrayBuffer(heap) => {
+                let result =
+                    unsafe { ArrayBufferClone(*cx, heap.handle(), byte_offset, byte_length) };
+                if result.is_null() {
+                    rooted!(in(*cx) let mut rval = UndefinedValue());
+                    unsafe {
+                        assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                        JS_ClearPendingException(*cx)
+                    };
+
+                    Err(Error::Type("can't clone array buffer".to_owned()))
+                } else {
+                    Ok(HeapBufferSource::<ArrayBufferU8>::new(
+                        BufferSource::ArrayBuffer(Heap::boxed(result)),
+                    ))
+                }
+            },
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-cloneasuint8array>
+    #[allow(unsafe_code)]
+    pub(crate) fn clone_as_uint8_array(
+        &self,
+        cx: JSContext,
+    ) -> Fallible<HeapBufferSource<ArrayBufferViewU8>> {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(buffer) => {
+                // Assert: O is an Object.
+                // Assert: O has an [[ViewedArrayBuffer]] internal slot.
+                assert!(unsafe { JS_IsArrayBufferViewObject(*buffer.handle()) });
+
+                // Assert: ! IsDetachedBuffer(O.[[ViewedArrayBuffer]]) is false.
+                assert!(self.is_detached_buffer(cx));
+
+                // Let buffer be ? CloneArrayBuffer(O.[[ViewedArrayBuffer]],
+                // O.[[ByteOffset]], O.[[ByteLength]], %ArrayBuffer%).
+                let byte_offset = self.get_byte_offset();
+                let byte_length = self.byte_length();
+
+                let buffer = self.clone_array_buffer(cx, byte_offset, byte_length)?;
+
+                // Let array be ! Construct(%Uint8Array%, « buffer »).
+                // Return array.
+                construct_typed_array(cx, &Type::Uint8, &buffer, 0, byte_length as i64)
+            },
+            BufferSource::ArrayBuffer(_buffer) => {
+                unreachable!("BufferSource::ArrayBuffer does not have a view buffer.")
+            },
+        }
+    }
+
+    pub(crate) fn is_undefined(&self) -> bool {
+        match &self.buffer_source {
+            BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
+                buffer.get().is_null()
+            },
+        }
+    }
 }
 
 impl<T> HeapBufferSource<T>
@@ -429,28 +548,6 @@ where
             },
         }
         Ok(())
-    }
-
-    /// <https://tc39.es/ecma262/#sec-clonearraybuffer>
-    pub(crate) fn clone_array_buffer(
-        &self,
-        cx: JSContext,
-        byte_offset: usize,
-        byte_length: usize,
-    ) -> Option<HeapBufferSource<ArrayBufferU8>> {
-        match &self.buffer_source {
-            BufferSource::ArrayBufferView(heap) | BufferSource::ArrayBuffer(heap) => {
-                let result =
-                    unsafe { ArrayBufferClone(*cx, heap.handle(), byte_offset, byte_length) };
-                if result.is_null() {
-                    None
-                } else {
-                    Some(HeapBufferSource::<ArrayBufferU8>::new(
-                        BufferSource::ArrayBuffer(Heap::boxed(result)),
-                    ))
-                }
-            },
-        }
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-cancopydatablockbytes>
@@ -612,7 +709,7 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> 
     unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
         match &self.buffer_source {
             BufferSource::ArrayBufferView(buffer) | BufferSource::ArrayBuffer(buffer) => {
-                buffer.trace(tracer);
+                unsafe { buffer.trace(tracer) };
             },
         }
     }
@@ -765,9 +862,20 @@ fn construct_typed_array(
                 }
             };
 
-            Ok(HeapBufferSource::new(BufferSource::ArrayBufferView(
-                Heap::boxed(array_view),
-            )))
+            if array_view.is_null() {
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+
+                unsafe {
+                    assert!(JS_GetPendingException(*cx, rval.handle_mut().into()));
+                    JS_ClearPendingException(*cx);
+                }
+
+                Err(Error::Type("can't create typed array".to_owned()))
+            } else {
+                Ok(HeapBufferSource::new(BufferSource::ArrayBufferView(
+                    Heap::boxed(array_view),
+                )))
+            }
         },
         BufferSource::ArrayBufferView(_) => {
             unreachable!("Can not create a new ArrayBufferView from an existing ArrayBufferView");
@@ -854,7 +962,7 @@ impl DataBlock {
             // the exact same line to fix it. Doing the cast is tricky because of the use of
             // a generic type in this parameter.
             #[allow(clippy::from_raw_with_void_ptr)]
-            drop(Arc::from_raw(free_user_data as *const _));
+            drop(unsafe { Arc::from_raw(free_user_data as *const _) });
         }
         let raw: *mut Box<[u8]> = Arc::into_raw(Arc::clone(&self.data)) as _;
         rooted!(in(*cx) let object = unsafe {

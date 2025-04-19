@@ -10,6 +10,7 @@ use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
+use super::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
@@ -43,6 +44,8 @@ pub(crate) enum UnderlyingSourceType {
     Tee(Dom<DefaultTeeUnderlyingSource>),
     /// Transfer, with the port used in some of the algorithms.
     Transfer(Dom<MessagePort>),
+    // Tee Byte
+    TeeByte(Dom<ByteTeeUnderlyingSource>),
 }
 
 impl UnderlyingSourceType {
@@ -154,6 +157,10 @@ impl UnderlyingSourceContainer {
                 }
                 Some(Ok(promise))
             },
+            UnderlyingSourceType::TeeByte(tee_underlyin_source) => {
+                // Call the cancel algorithm for the appropriate branch.
+                tee_underlyin_source.cancel_algorithm(reason, can_gc)
+            },
             _ => None,
         }
     }
@@ -199,6 +206,10 @@ impl UnderlyingSourceContainer {
                 let promise = Promise::new(&self.global(), can_gc);
                 promise.resolve_native(&(), can_gc);
                 Some(Ok(promise))
+            },
+            UnderlyingSourceType::TeeByte(tee_underlyin_source) => {
+                // Call the pull algorithm for the appropriate branch.
+                Some(Ok(tee_underlyin_source.pull_algorithm(None, can_gc)))
             },
             // Note: other source type have no pull steps for now.
             _ => None,
