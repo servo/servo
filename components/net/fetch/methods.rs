@@ -191,21 +191,8 @@ pub(crate) fn convert_request_to_csp_request(request: &Request) -> Option<csp::R
         Origin::Origin(origin) => origin,
     };
 
-    let url = match request.mode {
-        RequestMode::WebSocket { .. } => {
-            let mut req_url = request.url();
-            if req_url.scheme() == "https" {
-                req_url.as_mut_url().set_scheme("wss").unwrap();
-            } else {
-                req_url.as_mut_url().set_scheme("ws").unwrap();
-            };
-            req_url
-        },
-        _ => request.url(),
-    };
-
     let csp_request = csp::Request {
-        url: url.into_url(),
+        url: request.url().into_url(),
         origin: origin.clone().into_url_origin(),
         redirect_count: request.redirect_count,
         destination: request.destination,
@@ -264,17 +251,6 @@ fn should_response_be_blocked_by_csp(
             .actual_response()
             .url()
             .cloned()
-            .map(|mut url| {
-                match csp_request.url.scheme() {
-                    "ws" | "wss" => {
-                        url.as_mut_url()
-                            .set_scheme(csp_request.url.scheme())
-                            .expect("failed to set URL scheme");
-                    },
-                    _ => {},
-                };
-                url
-            })
             .expect("response must have a url")
             .into_url(),
         redirect_count: csp_request.redirect_count,

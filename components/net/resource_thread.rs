@@ -25,7 +25,10 @@ use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::indexeddb_thread::IndexedDBThreadMsg;
 use net_traits::pub_domains::public_suffix_list_size_of;
-use net_traits::request::{Destination, RequestBuilder, RequestId};
+use net_traits::request::{
+    CacheMode, CredentialsMode, Destination, RedirectMode, Referrer, RequestBuilder, RequestId,
+    RequestMode,
+};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{
@@ -842,15 +845,32 @@ impl CoreResourceManager {
         });
     }
 
+    // https://websockets.spec.whatwg.org/#concept-websocket-establish
     fn websocket_connect(
         &self,
-        request: RequestBuilder,
+        mut request: RequestBuilder,
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: IpcReceiver<WebSocketDomAction>,
         http_state: &Arc<HttpState>,
         cancellation_listener: Arc<CancellationListener>,
         protocols: Arc<ProtocolRegistry>,
     ) {
+        // Let requestURL be a copy of url, with its scheme set to "http", if url’s scheme is "ws"; otherwise to "https".
+        let mut url = request.url.clone();
+        if request.url.scheme() == "ws" {
+            url.as_mut_url()
+                .set_scheme("http")
+                .expect("Can't set URL scheme");
+        } else {
+            url.as_mut_url()
+                .set_scheme("https")
+                .expect("Can't set URL scheme");
+        }
+
+        // Let request be a new request, whose URL is requestURL, client is client, service-workers
+        // NOTE(pylbrecht): request is already constructed according to spec.
+        request.url = url;
+
         let http_state = http_state.clone();
         let filemanager = self.filemanager.clone();
         let request_interceptor = self.request_interceptor.clone();
