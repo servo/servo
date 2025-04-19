@@ -42,7 +42,7 @@ use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
 
 #[allow(clippy::result_large_err)]
-/// Create a tungstenite Request object for the initial HTTP request.
+/// Create a Request object for the initial HTTP request.
 /// This request contains `Origin`, `Sec-WebSocket-Protocol`, `Authorization`,
 /// and `Cookie` headers as appropriate.
 /// Returns an error if any header values are invalid or tungstenite cannot create
