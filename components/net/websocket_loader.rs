@@ -43,7 +43,7 @@ use crate::async_runtime::HANDLE;
 use crate::connector::{CACertificates, TlsConfig, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::fetch::methods::{
-    should_request_be_blocked_by_csp, should_request_be_blocked_due_to_a_bad_port, FetchContext,
+    should_request_be_blocked_by_csp, should_request_be_blocked_due_to_a_bad_port, FetchContext
 };
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
@@ -292,13 +292,13 @@ async fn run_ws_loop(
 /// for any reason, or if the response isn't valid. Otherwise, the endless WS
 /// listening loop will be started.
 async fn start_websocket(
-    http_state: Arc<HttpState>,
     url: ServoUrl,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     protocols: Vec<String>,
     client: Request,
     tls_config: TlsConfig,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
+    context: FetchContext,
 ) -> Result<(), Error> {
     trace!("starting WS connection to {}", url);
 
@@ -327,10 +327,11 @@ async fn start_websocket(
     let socket = try_socket.map_err(Error::Io)?;
     let connector = TlsConnector::from(Arc::new(tls_config));
 
+    // TODO(pylbrecht): call fetch() instead of client_async_tls_with_connector_and_config()
     let (stream, response) =
         client_async_tls_with_connector_and_config(client, socket, Some(connector), None).await?;
 
-    let protocol_in_use = process_ws_response(&http_state, &response, &url, &protocols)?;
+    let protocol_in_use = process_ws_response(&context.state, &response, &url, &protocols)?;
 
     if !initiated_close.load(Ordering::SeqCst) {
         if resource_event_sender
@@ -353,9 +354,9 @@ fn connect(
     mut req_builder: RequestBuilder,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
-    http_state: Arc<HttpState>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
+    context: FetchContext,
 ) -> Result<(), String> {
     let protocols = match req_builder.mode {
         RequestMode::WebSocket { ref mut protocols } => mem::take(protocols),
@@ -368,11 +369,6 @@ fn connect(
     };
 
     // https://fetch.spec.whatwg.org/#websocket-opening-handshake
-    http_state
-        .hsts_list
-        .read()
-        .unwrap()
-        .apply_hsts_rules(&mut req_builder.url);
     let request = req_builder.build();
 
     let req_url = request.url();
@@ -404,7 +400,7 @@ fn connect(
         &req_url,
         &req_origin.ascii_serialization(),
         &protocols,
-        &http_state,
+        &context.state,
     ) {
         Ok(c) => c,
         Err(e) => return Err(e.to_string()),
@@ -413,7 +409,7 @@ fn connect(
     let mut tls_config = create_tls_config(
         ca_certificates,
         ignore_certificate_errors,
-        http_state.override_manager.clone(),
+        context.state.override_manager.clone(),
     );
     tls_config.alpn_protocols = vec!["http/1.1".to_string().into()];
 
@@ -421,13 +417,13 @@ fn connect(
     match HANDLE.lock().unwrap().as_mut() {
         Some(handle) => handle.spawn(
             start_websocket(
-                http_state,
                 req_url.clone(),
                 resource_event_sender,
                 protocols,
                 client,
                 tls_config,
                 dom_action_receiver,
+                context,
             )
             .map_err(move |e| {
                 warn!("Failed to establish a WebSocket connection: {:?}", e);
@@ -444,19 +440,18 @@ pub fn init(
     req_builder: RequestBuilder,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
-    http_state: Arc<HttpState>,
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,
-    _context: FetchContext,
+    context: FetchContext,
 ) {
     let resource_event_sender2 = resource_event_sender.clone();
     if let Err(e) = connect(
         req_builder,
         resource_event_sender,
         dom_action_receiver,
-        http_state,
         ca_certificates,
         ignore_certificate_errors,
+        context,
     ) {
         warn!("Error starting websocket: {}", e);
         let _ = resource_event_sender2.send(WebSocketNetworkEvent::Fail);
