@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use content_security_policy as csp;
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -44,6 +45,7 @@ use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::http_status::HttpStatus;
+use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::pub_domains::reg_suffix;
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
@@ -81,8 +83,8 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
 use crate::fetch::methods::{
-    Data, DoneChannel, FetchContext, Target, main_fetch,
-    should_request_be_blocked_due_to_a_bad_port,
+    Data, DoneChannel, FetchContext, Target, convert_request_to_csp_request, main_fetch,
+    should_request_be_blocked_by_csp, should_request_be_blocked_due_to_a_bad_port,
 };
 use crate::hosts::replace_host;
 use crate::hsts::HstsList;
@@ -1942,8 +1944,6 @@ async fn http_network_fetch(
                 // have to early return something.
                 return Response::network_internal_error("port blocked");
             }
-
-            // FIXME(pylbrecht): should_request_be_blocked_by_csp()
 
             let Ok(client) = create_request(
                 &req_url,

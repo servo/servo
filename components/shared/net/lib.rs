@@ -336,7 +336,9 @@ impl FetchTaskTarget for IpcSender<WebSocketNetworkEvent> {
     fn process_response(&mut self, _: &Request, _: &Response) {}
     fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
     fn process_response_eof(&mut self, _: &Request, _: &Response) {}
-    fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
+    fn process_csp_violations(&mut self, _: &Request, violations: Vec<csp::Violation>) {
+        let _ = self.send(WebSocketNetworkEvent::ReportCSPViolations(violations));
+    }
 }
 
 /// A fetch task that discards all data it's sent,
