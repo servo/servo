@@ -168,7 +168,7 @@ class MachCommands(CommandBase):
             "devtools",
             "fonts",
             "hyper_serde",
-            "layout_2020",
+            "layout",
             "libservo",
             "metrics",
             "net",

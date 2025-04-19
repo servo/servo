@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod text {
-    use layout_2020::flow::inline::construct::WhitespaceCollapse;
+    use layout::flow::inline::construct::WhitespaceCollapse;
     use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 
     #[test]

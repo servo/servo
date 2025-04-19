@@ -4,6 +4,9 @@
 
 #![deny(unsafe_code)]
 
+//! Layout. Performs layout on the DOM, builds display lists and sends them to be
+//! painted.
+
 mod cell;
 pub mod context;
 pub mod display_list;
@@ -15,6 +18,7 @@ mod formatting_contexts;
 mod fragment_tree;
 pub mod geom;
 mod layout_box_base;
+mod layout_impl;
 mod taffy;
 #[macro_use]
 mod construct_modern;
@@ -32,6 +36,7 @@ use app_units::Au;
 pub use cell::ArcRefCell;
 pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
+pub use layout_impl::LayoutFactoryImpl;
 use malloc_size_of_derive::MallocSizeOf;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;

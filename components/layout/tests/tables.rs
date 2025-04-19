@@ -6,8 +6,8 @@
 
 mod tables {
     use euclid::Vector2D;
-    use layout_2020::ArcRefCell;
-    use layout_2020::table::{Table, TableBuilder, TableSlot, TableSlotCell, TableSlotOffset};
+    use layout::ArcRefCell;
+    use layout::table::{Table, TableBuilder, TableSlot, TableSlotCell, TableSlotOffset};
 
     fn row_lengths(table: &Table) -> Vec<usize> {
         table.slots.iter().map(|row| row.len()).collect()

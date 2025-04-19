@@ -4142,7 +4142,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
-name = "layout_2020"
+name = "layout"
 version = "0.0.1"
 dependencies = [
  "app_units",
@@ -4151,6 +4151,7 @@ dependencies = [
  "bitflags 2.9.0",
  "canvas_traits",
  "compositing_traits",
+ "constellation_traits",
  "data-url",
  "embedder_traits",
  "euclid",
@@ -4169,10 +4170,13 @@ dependencies = [
  "num-traits",
  "parking_lot",
  "pixels",
+ "profile_traits",
  "quickcheck",
  "range",
  "rayon",
+ "script",
  "script_layout_interface",
+ "script_traits",
  "selectors",
  "servo_arc",
  "servo_config",
@@ -4180,6 +4184,7 @@ dependencies = [
  "servo_malloc_size_of",
  "servo_url",
  "stylo",
+ "stylo_atoms",
  "stylo_traits",
  "taffy",
  "tracing",
@@ -4188,43 +4193,6 @@ dependencies = [
  "url",
  "webrender_api",
  "xi-unicode",
-]
-
-[[package]]
-name = "layout_thread_2020"
-version = "0.0.1"
-dependencies = [
- "app_units",
- "base",
- "compositing_traits",
- "constellation_traits",
- "embedder_traits",
- "euclid",
- "fnv",
- "fonts",
- "fonts_traits",
- "fxhash",
- "ipc-channel",
- "layout_2020",
- "log",
- "metrics",
- "net_traits",
- "parking_lot",
- "profile_traits",
- "script",
- "script_layout_interface",
- "script_traits",
- "servo_allocator",
- "servo_arc",
- "servo_config",
- "servo_malloc_size_of",
- "servo_url",
- "stylo",
- "stylo_atoms",
- "stylo_traits",
- "tracing",
- "url",
- "webrender_api",
 ]
 
 [[package]]
@@ -4334,7 +4302,7 @@ dependencies = [
  "http 1.3.1",
  "ipc-channel",
  "keyboard-types",
- "layout_thread_2020",
+ "layout",
  "libservo",
  "log",
  "media",
