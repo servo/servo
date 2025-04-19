@@ -31,6 +31,7 @@ use glow::{
     bytes_per_type, components_per_format,
 };
 use half::f16;
+use ipc_channel::ipc::IpcSharedMemory;
 use log::{debug, error, trace, warn};
 use pixels::{self, PixelFormat, unmultiply_inplace};
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
@@ -1212,7 +1213,13 @@ impl WebGLImpl {
                         glow::PixelPackData::Slice(Some(&mut pixels)),
                     )
                 };
-                sender.send(&pixels).unwrap();
+                let alpha_mode = match (attributes.alpha, attributes.premultiplied_alpha) {
+                    (true, premultiplied) => snapshot::AlphaMode::Transparent { premultiplied },
+                    (false, _) => snapshot::AlphaMode::Opaque,
+                };
+                sender
+                    .send((IpcSharedMemory::from_bytes(&pixels), alpha_mode))
+                    .unwrap();
             },
             WebGLCommand::ReadPixelsPP(rect, format, pixel_type, offset) => unsafe {
                 gl.read_pixels(
