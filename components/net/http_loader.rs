@@ -1925,8 +1925,6 @@ async fn http_network_fetch(
                  websocket_chan.1.take().unwrap())
             };
 
-            // FIXME(pylbrecht): apply_hsts_rules()
-
             let mut req_url = request.url();
             if req_url.scheme() == "https" {
                 req_url.as_mut_url().set_scheme("wss").unwrap();
