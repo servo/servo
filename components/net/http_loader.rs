@@ -1936,29 +1936,62 @@ async fn http_network_fetch(
             // FIXME(pylbrecht): should_request_be_blocked_due_to_a_bad_port()
             // FIXME(pylbrecht): should_request_be_blocked_by_csp()
 
-            let client = create_request(
+            let Ok(client) = create_request(
                 &req_url,
                 &req_origin.ascii_serialization(),
                 &protocols,
                 &context.state,
-            )
-            .unwrap();
+            ) else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("cannot create request");
+            };
 
             trace!("starting WS connection to {}", url);
 
             let initiated_close = std::sync::Arc::new(AtomicBool::new(false));
             let dom_receiver = setup_dom_listener(dom_action_receiver, initiated_close.clone());
 
-            let host_str = client.uri().host().unwrap();
+            let Some(host_str) = client.uri().host() else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("no host");
+            };
             let host = replace_host(host_str);
-            let mut net_url = Url::parse(&client.uri().to_string()).unwrap();
-            net_url.set_host(Some(&host)).unwrap();
+            let Ok(mut net_url) = Url::parse(&client.uri().to_string()) else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("URL parse error");
+            };
+            let Ok(_) = net_url.set_host(Some(&host)) else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("failed to set host in URL");
+            };
 
-            let domain = net_url.host().unwrap();
-            let port = net_url.port_or_known_default().unwrap();
+            let Some(domain) = net_url.host() else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("no host in net_url");
+            };
+            let Some(port) = net_url.port_or_known_default() else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("no port");
+            };
 
-            let try_socket = TcpStream::connect((&*domain.to_string(), port)).await;
-            let socket = try_socket.unwrap();
+            let Ok(socket) = TcpStream::connect((&*domain.to_string(), port)).await else {
+                let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                // TODO(pylbrecht): not sure if we should return a network error here, but we
+                // have to early return something.
+                return Response::network_internal_error("failed to create socket");
+            };
 
             let mut tls_config = create_tls_config(
                 context.ca_certificates.clone(),
@@ -1967,10 +2000,25 @@ async fn http_network_fetch(
             );
             tls_config.alpn_protocols = vec!["http/1.1".to_string().into()];
             let connector = TlsConnector::from(std::sync::Arc::new(tls_config));
-            let (stream, response) =
-                client_async_tls_with_connector_and_config(client, socket, Some(connector), None)
-                    .await
-                    .unwrap();
+
+            let (stream, response) = match client_async_tls_with_connector_and_config(
+                client,
+                socket,
+                Some(connector),
+                None,
+            )
+            .await
+            {
+                Ok(handshake_result) => handshake_result,
+                Err(e) => {
+                    let msg = format!("Failed to establish a WebSocket connection: {:?}", e);
+                    warn!("{msg}");
+                    let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
+                    // TODO(pylbrecht): not sure if we should return a network error here, but we
+                    // have to early return something.
+                    return Response::network_internal_error(msg);
+                },
+            };
 
             let protocol_in_use =
                 process_ws_response(&context.state, &response, &url, &protocols).unwrap();
