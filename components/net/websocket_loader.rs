@@ -43,7 +43,7 @@ use crate::async_runtime::spawn_task;
 use crate::connector::{CACertificates, TlsConfig, create_tls_config};
 use crate::cookie::ServoCookie;
 use crate::fetch::methods::{
-    FetchContext, convert_request_to_csp_request, should_request_be_blocked_by_csp,
+    convert_request_to_csp_request, should_request_be_blocked_by_csp,
     should_request_be_blocked_due_to_a_bad_port,
 };
 use crate::hosts::replace_host;
@@ -353,6 +353,8 @@ pub async fn start_websocket(
 }
 
 /// Create a new websocket connection for the given request.
+// NOTE(pylbrecht): we will repurpose this function in upcoming commits
+#[allow(dead_code)]
 fn connect(
     mut req_builder: RequestBuilder,
     resource_event_sender: IpcSender<WebSocketNetworkEvent>,
@@ -442,28 +444,4 @@ fn connect(
         }),
     );
     Ok(())
-}
-
-/// Create a new websocket connection for the given request.
-pub fn init(
-    req_builder: RequestBuilder,
-    resource_event_sender: IpcSender<WebSocketNetworkEvent>,
-    dom_action_receiver: IpcReceiver<WebSocketDomAction>,
-    http_state: Arc<HttpState>,
-    ca_certificates: CACertificates,
-    ignore_certificate_errors: bool,
-    _context: FetchContext,
-) {
-    let resource_event_sender2 = resource_event_sender.clone();
-    if let Err(e) = connect(
-        req_builder,
-        resource_event_sender,
-        dom_action_receiver,
-        http_state,
-        ca_certificates,
-        ignore_certificate_errors,
-    ) {
-        warn!("Error starting websocket: {}", e);
-        let _ = resource_event_sender2.send(WebSocketNetworkEvent::Fail);
-    }
 }
