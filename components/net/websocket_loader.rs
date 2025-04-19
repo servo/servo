@@ -51,13 +51,12 @@ pub fn create_handshake_request(
     request: RequestBuilder,
     http_state: Arc<HttpState>,
 ) -> Result<net_traits::request::Request, Error> {
-    let resource_url = request.url.clone(); // FIXME(pylbrecht): remove clone()
-    let origin = resource_url.origin();
+    let origin = request.url.origin();
 
     let mut headers = HeaderMap::new();
     headers.insert(
         "Origin",
-        HeaderValue::from_str(&resource_url.origin().ascii_serialization())?,
+        HeaderValue::from_str(&request.url.origin().ascii_serialization())?,
     );
 
     let host = format!(
@@ -98,16 +97,16 @@ pub fn create_handshake_request(
     }
 
     let mut cookie_jar = http_state.cookie_jar.write().unwrap();
-    cookie_jar.remove_expired_cookies_for_url(&resource_url);
-    if let Some(cookie_list) = cookie_jar.cookies_for_url(&resource_url, CookieSource::HTTP) {
+    cookie_jar.remove_expired_cookies_for_url(&request.url);
+    if let Some(cookie_list) = cookie_jar.cookies_for_url(&request.url, CookieSource::HTTP) {
         headers.insert("Cookie", HeaderValue::from_str(&cookie_list)?);
     }
 
-    if resource_url.password().is_some() || resource_url.username() != "" {
+    if request.url.password().is_some() || request.url.username() != "" {
         let basic = base64::engine::general_purpose::STANDARD.encode(format!(
             "{}:{}",
-            resource_url.username(),
-            resource_url.password().unwrap_or("")
+            request.url.username(),
+            request.url.password().unwrap_or("")
         ));
         headers.insert(
             "Authorization",
