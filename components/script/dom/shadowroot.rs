@@ -453,6 +453,15 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         self.slot_assignment_mode
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-sethtmlunsafe>
+    fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+        // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
+        let target = self.upcast::<Node>();
+        let context_element = self.Host();
+
+        Node::unsafely_set_html(target, &context_element, html, can_gc);
+    }
+
     // https://dom.spec.whatwg.org/#dom-shadowroot-onslotchange
     event_handler!(onslotchange, GetOnslotchange, SetOnslotchange);
 }
