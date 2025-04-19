@@ -1062,7 +1062,35 @@ impl ModuleOwner {
         can_gc: CanGc,
     ) {
         match &self {
-            ModuleOwner::Worker(_) => unimplemented!(),
+            ModuleOwner::Worker(global) => {
+                // execute the script here
+                let global = global.root();
+                let global = global.upcast::<GlobalScope>();
+                let module_tree = module_identity.get_module_tree(global);
+                match module_identity {
+                    ModuleIdentity::ScriptId(id) => {
+                        let script = ScriptOrigin::internal(
+                            Rc::clone(&module_tree.get_text().borrow()),
+                            global.get_url(),
+                            fetch_options,
+                            ScriptType::Module,
+                            global.unminified_js_dir(),
+                            Err(Error::NotFound(None)),
+                        );
+                        global.run_a_module_script(Some(id), &script, false, can_gc);
+                    },
+                    ModuleIdentity::ModuleUrl(url) => {
+                        let script = ScriptOrigin::external(
+                            Rc::clone(&module_tree.get_text().borrow()),
+                            url,
+                            fetch_options,
+                            ScriptType::Module,
+                            global.unminified_js_dir(),
+                        );
+                        global.run_a_module_script(None, &script, false, can_gc);
+                    },
+                };
+            },
             ModuleOwner::DynamicModule(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
                 let global = self.global();
