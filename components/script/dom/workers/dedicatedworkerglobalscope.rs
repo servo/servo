@@ -516,6 +516,7 @@ impl DedicatedWorkerGlobalScope {
                             Destination::Worker,
                             options,
                             CanGc::note(),
+                            task_source,
                         );
                     },
                 };
