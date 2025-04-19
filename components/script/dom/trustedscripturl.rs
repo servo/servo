@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::fmt;
+
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::TrustedScriptURLBinding::TrustedScriptURLMethods;
@@ -29,6 +31,13 @@ impl TrustedScriptURL {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(data: String, global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
         reflect_dom_object(Box::new(Self::new_inherited(data)), global, can_gc)
+    }
+}
+
+impl fmt::Display for TrustedScriptURL {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(&self.data)
     }
 }
 

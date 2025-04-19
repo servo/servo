@@ -62,6 +62,8 @@ pub(crate) struct CSPViolationReportBuilder {
     pub source_file: String,
     /// <https://www.w3.org/TR/CSP3/#violation-effective-directive>
     pub effective_directive: String,
+    /// <https://www.w3.org/TR/CSP3/#violation-policy>
+    pub original_policy: String,
 }
 
 impl CSPViolationReportBuilder {
@@ -106,6 +108,12 @@ impl CSPViolationReportBuilder {
         self
     }
 
+    /// <https://www.w3.org/TR/CSP3/#violation-policy>
+    pub fn original_policy(mut self, original_policy: String) -> CSPViolationReportBuilder {
+        self.original_policy = original_policy;
+        self
+    }
+
     /// <https://w3c.github.io/webappsec-csp/#strip-url-for-use-in-reports>
     fn strip_url_for_reports(&self, mut url: ServoUrl) -> String {
         let scheme = url.scheme();
@@ -141,7 +149,7 @@ impl CSPViolationReportBuilder {
             sample: self.sample,
             blocked_url: self.resource,
             source_file: self.source_file,
-            original_policy: "".to_owned(),
+            original_policy: self.original_policy,
             line_number: self.line_number,
             column_number: self.column_number,
             status_code: global.status_code().unwrap_or(0),
