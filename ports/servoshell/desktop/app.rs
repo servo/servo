@@ -393,6 +393,9 @@ impl ApplicationHandler<WakerEvent> for App {
             event_loop.set_control_flow(ControlFlow::Wait);
         } else {
             event_loop.set_control_flow(ControlFlow::Poll);
+            // Even when using polling, we still need to ensure there's an event in the queue
+            // that will make us spin the event loop.
+            window.winit_window().unwrap().request_redraw();
         }
 
         // Consume and handle any events from the servoshell UI.
@@ -425,6 +428,9 @@ impl ApplicationHandler<WakerEvent> for App {
             event_loop.set_control_flow(ControlFlow::Wait);
         } else {
             event_loop.set_control_flow(ControlFlow::Poll);
+            // Even when using polling, we still need to ensure there's an event in the queue
+            // that will make us spin the event loop.
+            window.winit_window().unwrap().request_redraw();
         }
 
         // Consume and handle any events from the Minibrowser.
