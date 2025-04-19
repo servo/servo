@@ -1760,7 +1760,10 @@ fn fetch_single_module_script(
         .integrity_metadata(options.integrity_metadata.clone())
         .credentials_mode(options.credentials_mode)
         .referrer_policy(options.referrer_policy)
-        .mode(mode);
+        .mode(mode)
+        .insecure_requests_policy(global.insecure_requests_policy())
+        .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_origin())
+        .policy_container(global.policy_container().to_owned());
 
     let context = Arc::new(Mutex::new(ModuleContext {
         owner,
