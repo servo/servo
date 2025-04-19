@@ -222,6 +222,11 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         to_frozen_array(&[self.Language()], cx, retval, can_gc)
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
+    fn OnLine(&self) -> bool {
+        true
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins
     fn Plugins(&self) -> DomRoot<PluginArray> {
         self.plugins

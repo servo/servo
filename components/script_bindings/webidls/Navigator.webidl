@@ -9,7 +9,7 @@ interface Navigator {
 };
 Navigator includes NavigatorID;
 Navigator includes NavigatorLanguage;
-//Navigator includes NavigatorOnLine;
+Navigator includes NavigatorOnLine;
 //Navigator includes NavigatorContentUtils;
 //Navigator includes NavigatorStorageUtils;
 Navigator includes NavigatorPlugins;
@@ -41,6 +41,12 @@ partial interface Navigator {
 interface mixin NavigatorLanguage {
   readonly attribute DOMString language;
   readonly attribute any languages;
+};
+
+// https://html.spec.whatwg.org/multipage/#dom-navigator-online
+[Exposed=(Window,Worker)]
+interface mixin NavigatorOnLine {
+  readonly attribute boolean onLine;
 };
 
 // https://html.spec.whatwg.org/multipage/#navigatorplugins
