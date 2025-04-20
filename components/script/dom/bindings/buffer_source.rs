@@ -37,7 +37,7 @@ use js::rust::{
 #[cfg(feature = "webgpu")]
 use js::typedarray::{ArrayBuffer, HeapArrayBuffer};
 use js::typedarray::{
-    ArrayBufferU8, ArrayBufferView, ArrayBufferViewU8, CreateWith, TypedArray, TypedArrayElement,
+    ArrayBufferU8, ArrayBufferViewU8, CreateWith, TypedArray, TypedArrayElement,
     TypedArrayElementCreator,
 };
 
@@ -63,36 +63,25 @@ pub(crate) enum BufferSource {
     ArrayBuffer(Box<Heap<*mut JSObject>>),
 }
 
-pub(crate) fn new_initialized_heap_buffer_source<T>(
-    init: HeapTypedArrayInit,
+pub(crate) fn create_heap_buffer_source_with_length<T>(
+    cx: JSContext,
+    len: u32,
     can_gc: CanGc,
-) -> Result<HeapBufferSource<T>, ()>
+) -> Fallible<HeapBufferSource<T>>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
-    let heap_buffer_source = match init {
-        HeapTypedArrayInit::Buffer(buffer_source) => HeapBufferSource {
-            buffer_source,
-            phantom: PhantomData,
-        },
-        HeapTypedArrayInit::Info { len, cx } => {
-            rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-            let typed_array_result =
-                create_buffer_source_with_length::<T>(cx, len as usize, array.handle_mut(), can_gc);
-            if typed_array_result.is_err() {
-                return Err(());
-            }
+    rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+    let typed_array_result =
+        create_buffer_source_with_length::<T>(cx, len as usize, array.handle_mut(), can_gc);
+    if typed_array_result.is_err() {
+        return Err(Error::JSFailed);
+    }
 
-            HeapBufferSource::<T>::new(BufferSource::ArrayBufferView(Heap::boxed(*array.handle())))
-        },
-    };
-    Ok(heap_buffer_source)
-}
-
-pub(crate) enum HeapTypedArrayInit {
-    Buffer(BufferSource),
-    Info { len: u32, cx: JSContext },
+    Ok(HeapBufferSource::<T>::new(BufferSource::ArrayBufferView(
+        Heap::boxed(*array.handle()),
+    )))
 }
 
 pub(crate) struct HeapBufferSource<T> {

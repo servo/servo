@@ -14,9 +14,7 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
 
-use super::bindings::buffer_source::{
-    HeapBufferSource, HeapTypedArrayInit, new_initialized_heap_buffer_source,
-};
+use super::bindings::buffer_source::{HeapBufferSource, create_heap_buffer_source_with_length};
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -64,14 +62,9 @@ impl ImageData {
 
                 let data = CreateWith::Slice(&d[..]);
                 Uint8ClampedArray::create(*cx, data, js_object.handle_mut()).unwrap();
-                Self::new_with_data(
-                    global,
-                    None,
-                    width,
-                    Some(height),
-                    CustomAutoRooterGuard::new(*cx, &mut CustomAutoRooter::new(typed_array)),
-                    can_gc,
-                )
+                let mut rooted_typed_array = CustomAutoRooter::new(typed_array);
+                let data = CustomAutoRooterGuard::new(*cx, &mut rooted_typed_array);
+                Self::new_with_data(global, None, width, Some(height), data, can_gc)
             } else {
                 Self::new_without_data(global, None, width, height, can_gc)
             }
@@ -148,13 +141,8 @@ impl ImageData {
 
         let cx = GlobalScope::get_cx();
 
-        let heap_typed_array = match new_initialized_heap_buffer_source::<ClampedU8>(
-            HeapTypedArrayInit::Info { len, cx },
-            can_gc,
-        ) {
-            Ok(heap_typed_array) => heap_typed_array,
-            Err(_) => return Err(Error::JSFailed),
-        };
+        let heap_typed_array = create_heap_buffer_source_with_length::<ClampedU8>(cx, len, can_gc)?;
+
         let imagedata = Box::new(ImageData {
             reflector_: Reflector::new(),
             width,
