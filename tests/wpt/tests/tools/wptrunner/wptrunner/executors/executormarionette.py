@@ -46,6 +46,7 @@ from .protocol import (AccessibilityProtocolPart,
                        VirtualSensorProtocolPart,
                        DevicePostureProtocolPart,
                        VirtualPressureSourceProtocolPart,
+                       DisplayFeaturesProtocolPart,
                        merge_dicts)
 
 
@@ -727,6 +728,15 @@ class MarionetteVirtualPressureSourceProtocolPart(VirtualPressureSourceProtocolP
     def remove_virtual_pressure_source(self, source_type):
         raise NotImplementedError("remove_virtual_pressure_source not yet implemented")
 
+class MarionetteDisplayFeaturesProtocolPart(DisplayFeaturesProtocolPart):
+    def setup(self):
+        self.marionette = self.parent.marionette
+
+    def set_display_features(self, features):
+        raise NotImplementedError("set_display_features not yet implemented")
+
+    def clear_display_features(self):
+        raise NotImplementedError("clear_display_features not yet implemented")
 
 class MarionetteProtocol(Protocol):
     implements = [MarionetteBaseProtocolPart,
@@ -750,7 +760,8 @@ class MarionetteProtocol(Protocol):
                   MarionetteAccessibilityProtocolPart,
                   MarionetteVirtualSensorProtocolPart,
                   MarionetteDevicePostureProtocolPart,
-                  MarionetteVirtualPressureSourceProtocolPart]
+                  MarionetteVirtualPressureSourceProtocolPart,
+                  MarionetteDisplayFeaturesProtocolPart]
 
     def __init__(self, executor, browser, capabilities=None, timeout_multiplier=1, e10s=True, ccov=False):
         do_delayed_imports()

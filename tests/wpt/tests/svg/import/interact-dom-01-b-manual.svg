@@ -24,7 +24,7 @@
       </p>
       <p>
         At the end of the test, the start test button is changed to green,
-        and the click event listener is removed from the the start button.
+        and the click event listener is removed from the start button.
       </p>
       <p>
         Subsequent clicks on the start button should cause no effect if

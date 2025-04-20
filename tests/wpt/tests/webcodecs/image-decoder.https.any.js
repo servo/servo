@@ -310,7 +310,7 @@ promise_test(t => {
           assert_equals(result.image.displayHeight, 240);
           assert_equals(result.image.timestamp, 0);
 
-          // Swap to the the other track.
+          // Swap to the other track.
           let newIndex = (decoder.tracks.selectedIndex + 1) % 2;
           decoder.tracks[newIndex].selected = true;
           return decoder.decode()

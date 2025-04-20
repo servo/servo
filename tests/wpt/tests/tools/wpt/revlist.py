@@ -43,7 +43,7 @@ def get_tagged_revisions(pattern: str) -> Iterator[Tuple[str, str, int]]:
 
 
 def get_epoch_revisions(epoch: int, until: int, max_count: int) -> Iterator[str]:
-    # Set an offset to start to count the the weekly epoch from
+    # Set an offset to start to count the weekly epoch from
     # Monday 00:00:00. This is particularly important for the weekly epoch
     # because fix the start of the epoch to Monday. This offset is calculated
     # from Thursday, 1 January 1970 0:00:00 to Monday, 5 January 1970 0:00:00

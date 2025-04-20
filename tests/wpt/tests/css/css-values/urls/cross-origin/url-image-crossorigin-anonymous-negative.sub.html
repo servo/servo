@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Request URL Modifiers: crossorigin(anonymous)</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#typedef-request-url-modifier-crossorigin-modifier">
+<link rel="author" title="Sam Weinig" href="mailto:weinig@webkit.org">
+<link rel="match" href="../url-image-ref.html">
+<meta name="assert" content="A url with the request URL modifier crossorigin(anonymous) requires a response with the appropriate headers.">
+<style>
+  .test {
+    width: 200px;
+    height: 200px;
+    background-color: green;
+    background-image: url("http://{{hosts[][]}}:{{ports[http][1]}}/css/support/1x1-red.png" crossorigin(anonymous));
+  }
+</style>
+</head>
+<body>
+<p>Test passes if there is a green square.</p>
+<div class="test"></div>
+</body>
+</html>

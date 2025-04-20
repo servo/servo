@@ -14,12 +14,26 @@
       assert_implements(window.LargestContentfulPaint,
                         "LargestContentfulPaint is not implemented");
       const beforeLoad = performance.now();
-      // 262 is the size of the animated PNG up until the first frame,
-      // including the chunk that starts the second frame (indicating that
-      //the first frame data is done).
+      // Offsets inside `anim-gr.png`:
+      //   IHDR: 8..33
+      //   acTL: 33..53
+      //   fcTL (1st frame): 53..91
+      //   IDAT (1st frame): 91..254
+      //   fcTL (2nd frame): 254..292
+      //      fcTL payload starts at offset 262
+      //   fdAT (2nd frame): 292..448
+      //      fdAT payload starts at offset 304
+      //
+      // The HTTP request below will stall for 2 seconds after all pixels of
+      // the 1st frame are available, but before any 2nd frame pixels are
+      // available.  The test will verify that LargestContentfulPaint fires
+      // "immediately", without waiting for the rest of the bytes.
+      //
+      // See https://crbug.com/393205780 why this offset (and not an earlier
+      // one) is used in the test.
       const {REMOTE_ORIGIN} = get_host_info();
       const url = REMOTE_ORIGIN +
-                  '/images/anim-tao.png?pipe=trickle(262:d1)';
+                  '/images/anim-tao.png?pipe=trickle(304:d1)';
       const entry = await load_and_observe(url);
       // anim-gr.png is 100 by 50.
       const size = 100 * 50;

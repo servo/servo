@@ -7,7 +7,7 @@ from ... import get_context_origin
 async def set_geolocation_permission(bidi_session):
     data_to_cleanup = {}
 
-    async def set_geolocation_permission(context, user_context=None):
+    async def set_geolocation_permission(context, user_context="default"):
         nonlocal data_to_cleanup
 
         origin = await get_context_origin(bidi_session, context)

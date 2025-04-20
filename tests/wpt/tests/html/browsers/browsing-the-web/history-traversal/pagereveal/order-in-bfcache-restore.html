@@ -15,7 +15,7 @@ runBfcacheTest({
   funcBeforeNavigation: async () => {
     // This function executes in pageA
 
-    // Wait for an animation frame to ensure the the initial-load
+    // Wait for an animation frame to ensure the initial-load
     // `pagereveal` has already been fired so it doesn't get recorded
     // below.
     const raf = new Promise(resolve => requestAnimationFrame(resolve));

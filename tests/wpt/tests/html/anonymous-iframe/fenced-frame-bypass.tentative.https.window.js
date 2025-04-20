@@ -26,7 +26,7 @@ promise_test(async test => {
   const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
   const msg_queue = token();
 
-  // Create the the 3 actors.
+  // Create the 3 actors.
   const iframe_credentialless_1 = newIframeCredentialless(cross_origin);
   const fenced_frame = await newFencedFrame(cross_origin);
   send(fenced_frame, `

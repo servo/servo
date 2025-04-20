@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test sequence of effects of errors
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/media-source/mediasource-util.js"></script>
+</head>
+<body>
+</body>
+<script>
+'use strict';
+
+function create_audio(t) {
+  const audio = document.createElement('audio');
+  audio.controls = true;
+  audio.watcher = new EventWatcher(
+    t, audio,
+    [
+      'loadstart',
+      'waiting',
+      'error',
+      'ended',
+      'loadedmetadata',
+      'canplay',
+      'volumechange',
+      'playing',
+      'pause',
+    ]);
+  document.body.appendChild(audio);
+  return audio;
+}
+
+promise_test(async t => {
+  const audio = create_audio(t);
+  audio.src = '';
+  assert_equals(audio.error, null, 'initial error attribute');
+  // Queue a volumechange event on the media element task source.
+  audio.volume = 0;
+  // The dedicated media source failure steps are described as queued, but
+  // browsers do not make state changes asynchronously.
+  // https://github.com/whatwg/html/issues/11155
+  audio.onvolumechange = t.step_func(() => {
+    assert_equals(audio.error?.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED,
+                  'error code');
+    // Queue a second volumechange.  This arrives after the error event
+    // because the error event is queued immediately after the resource
+    // selection algorithm synchronous steps.
+    audio.volume = 1;
+  });
+  await audio.watcher.wait_for(
+    ['volumechange', 'loadstart', 'error', 'volumechange']);
+}, 'empty src attribute');
+
+promise_test(async t => {
+  const audio = create_audio(t);
+  // src is such that "the result of encoding-parsing a URL" is failure.
+  audio.src = 'https://#fragment';
+  assert_equals(audio.error, null, 'initial error attribute');
+  // Queue a volumechange event on the media element task source.
+  audio.volume = 0;
+  // The dedicated media source failure steps are described as queued from
+  // parallel steps in the resource selection algorithm, but browsers do not
+  // make state changes asynchronously, and they queue the error event
+  // immediately after the resource selection algorithm synchronous steps.
+  // https://github.com/whatwg/html/issues/11155
+  audio.onvolumechange = t.step_func(() => {
+    assert_equals(audio.error?.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED,
+                  'error code');
+    audio.volume = 1;
+  });
+  await audio.watcher.wait_for(
+    ['volumechange', 'loadstart', 'error', 'volumechange']);
+}, 'urlRecord failure');
+
+let resource;
+promise_test(async t => {
+  resource = await MediaSourceUtil.fetchResourceOfManifest(
+    t,
+    '/media-source/webm/test-a-128k-44100Hz-1ch-manifest.json');
+}, 'fetch resource');
+
+async function create_audio_with_source_buffer(t) {
+  const audio = create_audio(t);
+
+  audio.source = new MediaSource();
+  audio.source.watcher = new EventWatcher(t, audio.source, ['sourceopen']);
+  audio.src = URL.createObjectURL(audio.source);
+  await audio.watcher.wait_for('loadstart');
+  await audio.source.watcher.wait_for('sourceopen');
+
+  assert_implements_optional(MediaSource.isTypeSupported(resource.type),
+                             `${resource.type} supported`);
+
+  audio.buffer = audio.source.addSourceBuffer(resource.type);
+  assert_equals(audio.buffer.mode, 'segments',
+                `${resource.type} buffer.mode`);
+  audio.buffer.watcher =
+    new EventWatcher(t, audio.buffer, ['updateend']);
+  return audio;
+}
+
+// While different browsers pass different HAVE_NOTHING subtests, the four
+// subtests are helpful to identify the different interactions.
+
+promise_test(async t => {
+  const audio = await create_audio_with_source_buffer(t);
+  assert_equals(audio.readyState, audio.HAVE_NOTHING, 'readyState');
+
+  // Queue a volumechange event on the media element task source to check that
+  // the event named 'error' is fired from the same task source.
+  audio.volume = 0;
+  audio.source.endOfStream("decode");
+  audio.volume = 1;
+  await audio.watcher.wait_for(['volumechange', 'error', 'volumechange']);
+}, 'error event while HAVE_NOTHING');
+
+// This subtest is arranged to demonstrate that the specification does not
+// describe what browsers do.  Please do not adjust implementations to make
+// this pass as https://github.com/whatwg/html/issues/11155 proposes changing
+// the spec.
+promise_test(async t => {
+  const audio = await create_audio_with_source_buffer(t);
+  assert_equals(audio.readyState, audio.HAVE_NOTHING, 'readyState');
+
+  // Queue a volumechange event on the media element task source
+  audio.volume = 0;
+  audio.source.endOfStream("decode");
+  // The dedicated media source failure steps are described as queued so state
+  // would not change until the task runs.
+  await audio.watcher.wait_for('volumechange');
+  assert_equals(audio.error, null, 'error attribute');
+  await audio.watcher.wait_for('error');
+  assert_equals(audio.error?.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED,
+                'error code');
+}, 'error attribute while HAVE_NOTHING');
+
+// This subtest is arranged to demonstrate that the specification does not
+// describe what browsers do.  Please do not adjust implementations to make
+// this pass as https://github.com/whatwg/html/issues/11155 proposes changing
+// the spec.
+promise_test(async t => {
+  const audio = await create_audio_with_source_buffer(t);
+  assert_equals(audio.readyState, audio.HAVE_NOTHING, 'readyState');
+
+  const play_promise = audio.play();
+  await audio.watcher.wait_for('waiting');
+  assert_false(audio.paused, 'paused attribute');
+
+  // 'error event while HAVE_NOTHING' checks the order of events.
+  audio.watcher.stop_watching();
+
+  // Queue a volumechange event on the media element task source to see
+  // whether the play promise is rejected from a task on same task source.
+  audio.volume = 0;
+  audio.source.endOfStream("decode");
+  audio.volume = 1;
+  const sequence = [];
+  const events_promise = new Promise(resolve => {
+    audio.onvolumechange = t.step_func(() => {
+      sequence.push('volumechange');
+      if (sequence.filter(_ => _ == 'volumechange').length == 2) {
+        resolve();
+      }
+    });
+  });
+  try {
+    await play_promise;
+    assert_unreached('promise should reject');
+  } catch {
+    sequence.push('rejection');
+  }
+  await events_promise;
+  assert_array_equals(sequence, ['volumechange', 'rejection', 'volumechange'],
+                      'sequence');
+}, 'play() promise while HAVE_NOTHING');
+
+// This subtest is arranged to demonstrate inconsistencies between
+// implementations.  Please do not adjust implementations to make this pass as
+// https://github.com/whatwg/html/issues/11155 proposes changing the spec.
+promise_test(async t => {
+  const audio = await create_audio_with_source_buffer(t);
+  assert_equals(audio.readyState, audio.HAVE_NOTHING, 'readyState');
+
+  const play_promise = audio.play();
+  await audio.watcher.wait_for('waiting');
+  assert_false(audio.paused, 'paused attribute');
+
+  // 'error event while HAVE_NOTHING' checks the order of events.
+  audio.watcher.stop_watching();
+
+  // The resource selection algorithm describes the dedicated media source
+  // failure steps as queued and the event named "error" as fired
+  // synchronously from those steps.
+  // https://html.spec.whatwg.org/multipage/media.html#concept-media-load-algorithm
+  // That is not what browsers do, but, as described, the error event would
+  // arrive before the pending play promise rejection.
+  audio.source.endOfStream("decode");
+  const sequence = [];
+  const event_promise = new Promise(resolve => {
+    audio.onerror = t.step_func(() => {
+      sequence.push('event');
+      assert_equals(audio.error?.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED,
+                    'error code on event');
+      resolve();
+    });
+  });
+  try {
+    await play_promise;
+    assert_unreached('promise should reject');
+  } catch {
+    sequence.push('rejection');
+  }
+  assert_equals(audio.error?.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED,
+                'error code on rejection');
+  await event_promise;
+  assert_array_equals(sequence, ['event', 'rejection'], 'sequence');
+}, 'play() promise after error event while HAVE_NOTHING');
+
+promise_test(async t => {
+  const audio = await create_audio_with_source_buffer(t);
+  // Truncate at the end of the metadata.
+  audio.buffer.appendBuffer(
+    resource.data.subarray(0, resource.cluster_start[0]));
+  await Promise.all([
+    audio.watcher.wait_for('loadedmetadata'),
+    audio.buffer.watcher.wait_for('updateend'),
+  ]);
+  assert_equals(audio.readyState, audio.HAVE_METADATA, 'loadedmetadata');
+
+  const play_promise1 = audio.play();
+  await audio.watcher.wait_for('waiting');
+  assert_false(audio.paused, 'paused attribute');
+
+  let settled = 'NOT SETTLED';
+  play_promise1.catch(_ => _).then(_ => settled = _);
+
+  assert_equals(audio.error, null, 'error attribute');
+  // Trigger "If the media data is corrupted" in the media data processing
+  // steps list.
+  // https://html.spec.whatwg.org/multipage/media.html#media-data-processing-steps-list
+  audio.source.endOfStream("decode");
+  // The error event is described as firing synchronously during endOfStream(),
+  // but no browsers do this.  https://github.com/whatwg/html/issues/11155
+  await audio.watcher.wait_for('error');
+  // The error attribute should be set synchronously, but this checked late
+  // just for Blink.
+  assert_equals(audio.error?.code, MediaError.MEDIA_ERR_DECODE, 'error code');
+  // The end of stream algorithm does not change duration on error
+  // https://w3c.github.io/media-source/#dfn-end-of-stream
+  assert_equals(audio.duration, 2.023, 'duration');
+  // MEDIA_ERR_DECODE does not reject the pending play promise
+  // https://github.com/whatwg/html/issues/505#issuecomment-178046408
+  // because playback is sometimes possible after such errors,
+  // https://github.com/whatwg/html/pull/509#issuecomment-174967812
+  // as in the 'error after HAVE_FUTURE_DATA' subtest below.
+  // Trigger volumechange for media element task source tasks.
+  // Await 2 tasks to check that the play() promise is not about to be
+  // rejected.
+  // 2 is the number of tasks necessary to wait for the spurious promise
+  // rejection with Blink.
+  for (const i of Array(2).keys()) {
+    audio.volume = i % 2;
+    await audio.watcher.wait_for('volumechange');
+  }
+  assert_equals(settled, 'NOT SETTLED', 'play(() promise should not settle');
+
+  // Check that the promise is rejected when appropriate.
+  audio.pause();
+  const sequence = [];
+  const play_promise2 = new Promise(resolve => {
+    audio.onpause = () => {
+      sequence.push('pause');
+      if (sequence.filter(_ => _ == 'pause').length == 2) {
+        audio.onpause = null;
+        return;
+      }
+      resolve(audio.play());
+      audio.pause();
+    }
+  });
+  audio.onwaiting = () => {
+    sequence.push('waiting');
+  }
+  assert_true(audio.paused, 'paused attribute');
+  await Promise.all([
+    audio.watcher.wait_for(['pause', 'waiting', 'pause']),
+    play_promise1.catch(() => sequence.push('promise1')),
+    play_promise2.catch(() => sequence.push('promise2')),
+  ]);
+  assert_array_equals(sequence,
+                      ['pause', 'promise1', 'waiting', 'pause', 'promise2'],
+                      'sequence');
+  promise_rejects_dom(
+    t, 'AbortError', play_promise1, 'play promise rejection');
+}, 'error event while HAVE_METADATA');
+
+async function create_audio_with_full_resource(t) {
+  const audio = await create_audio_with_source_buffer(t);
+  // Just to reduce sound impacts
+  audio.volume = 0;
+  audio.buffer.appendBuffer(resource.data);
+  await Promise.all([
+    audio.watcher.wait_for(['volumechange', 'loadedmetadata', 'canplay']),
+    audio.buffer.watcher.wait_for('updateend'),
+  ]);
+  assert_greater_than(audio.readyState, audio.HAVE_CURRENT_DATA,
+                      'readyState');
+
+  assert_equals(audio.error, null, 'error attribute');
+  return audio;
+}
+
+promise_test(async t => {
+  const audio = await create_audio_with_full_resource(t);
+  audio.source.endOfStream("decode");
+  // The error event is specified to fire synchronously during endOfStream(),
+  // but no browsers do this.  https://github.com/whatwg/html/issues/11155
+  await audio.watcher.wait_for('error');
+  // The error attribute should be set synchronously, but this is checked late
+  // just for Blink.  It is checked synchronously in the 'error attribute
+  // after DECODE_ERROR' subtest below.
+  assert_equals(audio.error?.code, MediaError.MEDIA_ERR_DECODE, 'error code');
+
+  const sequence = [];
+  const play_promise1 = audio.play().then(() => sequence.push('promise1'));
+  const play_promise2 = new Promise(resolve => {
+    audio.onplaying = () => {
+      sequence.push('event');
+      resolve(audio.play().then(() => sequence.push('promise2')));
+    };
+  });
+  assert_false(audio.paused, 'paused attribute');
+  await Promise.all([
+    audio.watcher.wait_for('playing'),
+    play_promise1,
+    play_promise2,
+  ]);
+  assert_array_equals(sequence, ['event', 'promise1', 'promise2'], 'sequence');
+}, 'error event after HAVE_FUTURE_DATA');
+
+// This subtest could be merged into 'error event after HAVE_FUTURE_DATA' and
+// 'error event while HAVE_METADATA' if/when Blink conforms with the synchronous
+// attribute change.
+promise_test(async t => {
+  const audio = await create_audio_with_full_resource(t);
+  audio.source.endOfStream("decode");
+  // The error attribute is set synchronously.
+  assert_equals(audio.error?.code, MediaError.MEDIA_ERR_DECODE, 'error code');
+}, 'error attribute after DECODE_ERROR');
+</script>
+</html>

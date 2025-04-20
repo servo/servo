@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<body>
+  <script>
+    'use strict';
+
+    // Create a blob and get its URL.
+    const blob = new Blob(["TEST"], { type: "text/plain" });
+    const blob_url = URL.createObjectURL(blob);
+
+    // Send the blob URL back to the opener.
+    window.parent.postMessage({ type: "blobURL", message: blob_url }, "*");
+  </script>
+</body>

@@ -1261,6 +1261,7 @@ interface HTMLTemplateElement : HTMLElement {
   [CEReactions] attribute boolean shadowRootDelegatesFocus;
   [CEReactions] attribute boolean shadowRootClonable;
   [CEReactions] attribute boolean shadowRootSerializable;
+  [CEReactions] attribute DOMString shadowRootCustomElementRegistry;
 };
 
 [Exposed=Window]
@@ -1629,11 +1630,14 @@ OffscreenCanvasRenderingContext2D includes CanvasPath;
 
 [Exposed=Window]
 interface CustomElementRegistry {
+  constructor();
+
   [CEReactions] undefined define(DOMString name, CustomElementConstructor constructor, optional ElementDefinitionOptions options = {});
   (CustomElementConstructor or undefined) get(DOMString name);
   DOMString? getName(CustomElementConstructor constructor);
   Promise<CustomElementConstructor> whenDefined(DOMString name);
   [CEReactions] undefined upgrade(Node root);
+  undefined initialize(Node root);
 };
 
 callback CustomElementConstructor = HTMLElement ();

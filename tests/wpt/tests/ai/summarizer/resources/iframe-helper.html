@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<script>
+window.onmessage = async message => {
+  switch (message.data.type) {
+    case 'SummarizerCreate':
+      Summarizer.create()
+        .then(t => parent.postMessage('Success', '*'))
+        .catch(err => parent.postMessage('Failure: ' + err.name, '*'));
+      break;
+    case 'SummarizerAvailability':
+        Summarizer.availability({
+          type: "tl;dr",
+          format: "plain-text",
+          length: "medium"})
+        .then(availability => parent.postMessage(availability, '*'))
+        .catch(err => parent.postMessage('Failure: ' + err.name, '*'));
+      break;
+  };
+};
+</script>

@@ -866,7 +866,7 @@ test(() => {
 }, "from(): Errors thrown in Symbol.asyncIterator() are propagated synchronously");
 
 // AsyncIterable: next() throws exception instead of return Promise. Any errors
-// that occur during the the retrieval of `next()` always result in a rejected
+// that occur during the retrieval of `next()` always result in a rejected
 // Promise. Therefore, the error makes it to the Observer with microtask timing.
 promise_test(async () => {
   const nextError = new Error('next error');

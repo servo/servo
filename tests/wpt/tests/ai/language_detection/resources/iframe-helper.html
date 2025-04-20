@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<script>
+window.onmessage = async message => {
+  switch (message.data.type) {
+    case 'LanguageDetectorCreate':
+      LanguageDetector.create()
+        .then(t => parent.postMessage({success: 'Success'}))
+        .catch(err => parent.postMessage({err}));
+      break;
+    case 'LanguageDetectorAvailability':
+      LanguageDetector.availability()
+        .then(t => parent.postMessage({success: availability}))
+        .catch(err => parent.postMessage({err}));
+      break;
+  };
+};
+</script>

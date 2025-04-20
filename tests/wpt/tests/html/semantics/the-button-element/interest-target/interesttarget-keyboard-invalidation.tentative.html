@@ -17,13 +17,19 @@
 
 <style>
   :has-interest {
+    background-color: purple;
+  }
+  :has-interest:has-partial-interest {
     background-color: red;
   }
-  :has-interest + button {
+  :has-partial-interest + button {
     background-color: green;
   }
   :root:has(:has-interest) #b5 {
     background-color: green;
+  }
+  :target-of-interest:target-of-partial-interest {
+    background-color: yellow;
   }
   [interesttarget] {
     interest-target-delay: 0s;

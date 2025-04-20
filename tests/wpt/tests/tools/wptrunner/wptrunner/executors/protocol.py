@@ -1025,3 +1025,17 @@ class ProtectedAudienceProtocolPart(ProtocolPart):
     @abstractmethod
     def set_k_anonymity(self, owner, name, hashes):
         pass
+
+class DisplayFeaturesProtocolPart(ProtocolPart):
+    """Protocol part for Display Features/Viewport Segments"""
+    __metaclass__ = ABCMeta
+
+    name = "display_features"
+
+    @abstractmethod
+    def set_display_features(self, features):
+        pass
+
+    @abstractmethod
+    def clear_display_features(self):
+        pass
