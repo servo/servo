@@ -1462,7 +1462,7 @@ impl TreeSink for Sink {
             clonable,
             serializable,
             delegatesfocus,
-            SlotAssignmentMode::Manual,
+            SlotAssignmentMode::Named,
             CanGc::note(),
         ) {
             Ok(shadow_root) => {
