@@ -1,7 +1,6 @@
 # flake8: noqa
 
 from .client import (
-    Cookies,
     Find,
     Session,
     ShadowRoot,

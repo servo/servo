@@ -62,6 +62,7 @@ Possible members of a request object:
 - expected_response_headers - An array of `[header_name_string, header_value_string]` representing
                               headers to check the response for. See also response_headers.
 - expected_response_text - A string to check the response body against. If not present, `response_body` will be checked if present and non-null; otherwise the response body will be checked for the test uuid (unless the status code disallows a body). Set to `null` to disable all response body checking.
+- url_params - A string of url parameters that will be appended to the end of the url, separated by "&" and without leading "&".
 
 Some headers in `response_headers` are treated specially:
 
@@ -69,4 +70,3 @@ Some headers in `response_headers` are treated specially:
 * For URL-carrying headers, the value will be appended as a query parameter for `target`.
 
 See the source for exact details.
-

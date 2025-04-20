@@ -379,7 +379,7 @@ async def test_client_window(bidi_session, wait_for_event, wait_for_future_safe,
     assert_browsing_context(
         context_info,
         top_level_context["context"],
-        children=None,
+        children=0,
         url="about:blank",
         parent=None,
         user_context="default",

@@ -1011,13 +1011,13 @@
         /**
          * Stop listening for events
          */
-        function stop_watching() {
+        this.stop_watching = function() {
             for (var i = 0; i < eventTypes.length; i++) {
                 watchedNode.removeEventListener(eventTypes[i], eventHandler, false);
             }
         };
 
-        test._add_cleanup(stop_watching);
+        test._add_cleanup(this.stop_watching);
 
         return this;
     }

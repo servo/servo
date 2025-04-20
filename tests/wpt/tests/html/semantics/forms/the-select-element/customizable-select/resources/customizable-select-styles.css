@@ -70,8 +70,10 @@
   /* min-size rules ensure that we meet accessibility guidelines for minimum target size.
    * https://github.com/openui/open-ui/issues/1026
    * https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html */
-  min-inline-size: 24px;
-  min-block-size: max(24px, 1lh);
+  min-inline-size: 24px; /* fallback for lack of calc-size() support */
+  min-inline-size: calc-size(auto, max(size, 24px));
+  min-block-size: max(24px, 1lh); /* fallback for lack of calc-size() support */
+  min-block-size: calc-size(auto, max(size, 24px, 1lh));
 }
 
 .customizable-select-button.disabled {

@@ -21,7 +21,7 @@
 </style>
 <script>
 
-const properties = ["column-rule-width", "row-rule-width"];
+const properties = ["column-rule-width", "row-rule-width", "rule-width"];
 for (let property of properties) {
   test_computed_value(property, "calc(10px + 0.5em)", "30px");
   test_computed_value(property, "calc(10px - 0.5em)", "0px");

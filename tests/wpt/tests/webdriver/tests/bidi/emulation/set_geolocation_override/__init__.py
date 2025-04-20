@@ -16,9 +16,10 @@ async def get_current_geolocation(bidi_session, context):
         function_declaration="""() =>
             new Promise(
                 resolve => window.navigator.geolocation.getCurrentPosition(
-                    position => resolve(position.coords.toJSON())
-                )
-            )
+                    position => resolve(position.coords.toJSON()),
+                    error => resolve({code: error.code, message: error.message}),
+                    {timeout: 500}
+            ))
         """,
         target=ContextTarget(context["context"]),
         await_promise=True,

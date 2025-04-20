@@ -480,5 +480,13 @@
         owner, name, hashes, context=null) {
       return create_context_action(
           'set_protected_audience_k_anonymity', context, {owner, name, hashes});
+    };
+
+    window.test_driver_internal.set_display_features = function(features, context=null) {
+        return create_context_action("set_display_features", context, {features});
+    };
+
+    window.test_driver_internal.clear_display_features = function(context=null) {
+        return create_context_action("clear_display_features", context, {});
     }
 })();

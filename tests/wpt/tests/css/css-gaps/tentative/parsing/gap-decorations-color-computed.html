@@ -18,7 +18,7 @@
   }
 </style>
 <script>
-const properties = ["column-rule-color", "row-rule-color"];
+const properties = ["column-rule-color", "row-rule-color", "rule-color"];
 for (let property of properties) {
   test_computed_value(property, "currentcolor", "rgb(0, 255, 0)");
   test_computed_value(property, "red", "rgb(255, 0, 0)");

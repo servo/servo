@@ -14,7 +14,7 @@
 //     2.1 |a.p| is weakly equal to |b.p| for all own properties |p| of |a|.
 //     2.2 Every own property of |b| is an own property of |a|.
 //
-// This is a replacement for the the version of assert_object_equals() in
+// This is a replacement for the version of assert_object_equals() in
 // testharness.js. The latter doesn't handle own properties correctly. I.e. if
 // |a.p| is not an own property, it still requires that |b.p| be an own
 // property.

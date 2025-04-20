@@ -372,6 +372,19 @@
         }
         break;
       }
+      case "ThirdPartyBlobURL": {
+        await MaybeSetStorageAccess("*", "*", "allowed");
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({all: true}));
+        try {
+          const blob = await fetch(atob(id)).then(response => response.blob());
+          await blob.text();
+        } catch (e) {
+          message = "Third Party Blob URL tests completed successfully.";
+          break;
+        }
+        message = "Cross-partition third-party blob URL was accessible after granting storage access";
+        break;
+      }
       case "unpartitioned": {
         await MaybeSetStorageAccess("*", "*", "allowed");
         await test_driver.set_permission({ name: 'storage-access' }, 'denied');

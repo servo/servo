@@ -629,7 +629,7 @@
         /**
          * Minimizes the browser window.
          *
-         * Matches the the behaviour of the `Minimize
+         * Matches the behaviour of the `Minimize
          * <https://www.w3.org/TR/webdriver/#minimize-window>`_
          * WebDriver command
          *
@@ -1497,6 +1497,48 @@
          */
         set_protected_audience_k_anonymity: function(owner, name, hashes, context = null) {
             return window.test_driver_internal.set_protected_audience_k_anonymity(owner, name, hashes, context);
+        },
+
+        /**
+         * Overrides the display features provided by the hardware so the viewport segments
+         * can be emulated.
+         *
+         * Matches the `Set display features
+         * <https://drafts.csswg.org/css-viewport/#set-display-features>`_
+         * WebDriver command.
+         *
+         * @param {Array} features - An array of `DisplayFeatureOverride
+         *                           <https://drafts.csswg.org/css-viewport/#display-feature-override>`.
+         * @param {WindowProxy} [context=null] - Browsing context in which to
+         *                                       run the call, or null for the
+         *                                       current browsing context.
+         *
+         * @returns {Promise} Fulfilled when the display features are set.
+         *                    Rejected in case the WebDriver command errors out
+         *                    (including if the array is malformed).
+         */
+        set_display_features: function(features, context=null) {
+            return window.test_driver_internal.set_display_features(features, context);
+        },
+
+        /**
+         * Removes display features override and returns the control
+         * back to hardware.
+         *
+         * Matches the `Clear display features
+         * <https://drafts.csswg.org/css-viewport/#clear-display-features>`_
+         * WebDriver command.
+         *
+         * @param {WindowProxy} [context=null] - Browsing context in which to
+         *                                       run the call, or null for the
+         *                                       current browsing context.
+         *
+         * @returns {Promise} Fulfilled after the display features override has
+         *                    been removed. Rejected in case the WebDriver
+         *                    command errors out.
+         */
+        clear_display_features: function(context=null) {
+            return window.test_driver_internal.clear_display_features(context);
         }
     };
 
@@ -1758,6 +1800,14 @@
 
         async set_protected_audience_k_anonymity(owner, name, hashes, context=null) {
             throw new Error("set_protected_audience_k_anonymity() is not implemented by testdriver-vendor.js");
+        },
+
+        async set_display_features(features, context=null) {
+            throw new Error("set_display_features() is not implemented by testdriver-vendor.js");
+        },
+
+        async clear_display_features(context=null) {
+            throw new Error("clear_display_features() is not implemented by testdriver-vendor.js");
         }
     };
 })();

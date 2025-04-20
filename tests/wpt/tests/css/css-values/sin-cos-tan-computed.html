@@ -38,4 +38,12 @@ test_math_used('calc(sin(0.25turn) )', '1', {type:'number', approx:0.1});
 //Test nesting
 test_math_used('calc(cos(sin(cos(pi) + 1)))', '1', {type:'number', approx:0.1});
 test_math_used('calc(sin(tan(pi/4)*pi/2) )', '1', {type:'number', approx:0.1});
+
+//Test unresolved at parse time
+test_math_used('calc(sin(pi * sibling-index())', '0', {type:'number', approx:0.1});
+test_math_used('calc(cos(pi * sibling-index())', '-1', {type:'number', approx:0.1});
+test_math_used('calc(tan(pi * sibling-index())', '0', {type:'number', approx:0.1});
+test_math_used('calc(sin(180deg * sibling-index())', '0', {type:'number', approx:0.1});
+test_math_used('calc(cos(180deg * sibling-index())', '-1', {type:'number', approx:0.1});
+test_math_used('calc(tan(180deg * sibling-index())', '0', {type:'number', approx:0.1});
 </script>

@@ -99,7 +99,9 @@ async def test_multiple_contexts(
         contexts=[new_tab["context"], new_context["context"]], coordinates=None
     )
 
-    assert await get_current_geolocation(bidi_session, new_tab) == default_coordinates
+    # The new coordinates can be different from the initial ones if the position
+    # was not available at the beginning.
+    assert await get_current_geolocation(bidi_session, new_tab) != TEST_COORDINATES
     assert (
-        await get_current_geolocation(bidi_session, new_context) == default_coordinates
+        await get_current_geolocation(bidi_session, new_context) != TEST_COORDINATES
     )

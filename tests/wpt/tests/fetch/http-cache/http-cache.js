@@ -255,6 +255,9 @@ function makeTestUrl (uuid, config) {
   if ('query_arg' in config) {
     arg = `&target=${config.query_arg}`
   }
+  if ('url_params' in config) {
+    arg = `${arg}&${config.url_params}`
+  }
   return `${base_url}resources/http-cache.py?dispatch=test&uuid=${uuid}${arg}`
 }
 

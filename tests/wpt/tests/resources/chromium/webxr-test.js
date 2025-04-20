@@ -1207,6 +1207,11 @@ class MockRuntime {
 
         this.enabledFeatures_ = enabled_features;
 
+        let selectedDepthType;
+        if (sessionOptions.depthOptions && sessionOptions.depthOptions.depthTypeRequest.length != 0) {
+          selectedDepthType = sessionOptions.depthOptions.depthTypeRequest[0];
+        }
+
         return Promise.resolve({
           session: {
             submitFrameSink: submit_frame_sink,
@@ -1219,9 +1224,12 @@ class MockRuntime {
               depthConfiguration: enabled_features.includes(
                                       xrSessionMojom.XRSessionFeature.DEPTH) ?
                   {
+                    // TODO(https://crbug.com/409806803): Update support via
+                    // a webxr-test-api method.
                     depthUsage: xrSessionMojom.XRDepthUsage.kCPUOptimized,
                     depthDataFormat:
                         xrSessionMojom.XRDepthDataFormat.kLuminanceAlpha,
+                    depthType: selectedDepthType,
                   } :
                   null,
               views: this._getDefaultViews(),
@@ -1251,6 +1259,7 @@ class MockRuntime {
     switch (feature) {
       case xrSessionMojom.XRSessionFeature.DEPTH:
         // This matches what Chrome can currently support.
+        // TODO(https://crbug.com/409806803): Add a webxr-test-api for this.
         return options.depthOptions &&
                (options.depthOptions.usagePreferences.length == 0 ||
                 options.depthOptions.usagePreferences.includes(

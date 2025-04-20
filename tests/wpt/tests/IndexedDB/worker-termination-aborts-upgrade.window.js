@@ -50,7 +50,7 @@ promise_test(async t => {
 
   // At this point we know that the open request was issued on the worker
   // worker thread.  An ordering concern at this point is that IDB only
-  // specifies that the the connection opening algorithm is run in parallel and
+  // specifies that the connection opening algorithm is run in parallel and
   // we are not guaranteed that when we go "in parallel" here that our operation
   // won't run first.  As such, it may be necessary to add some kind of
   // arbitrary delay in the future if implementations do not effectively

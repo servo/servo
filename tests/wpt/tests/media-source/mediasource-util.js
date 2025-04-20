@@ -161,22 +161,35 @@
         loadData_(test, url, callback, true);
     };
 
-    MediaSourceUtil.fetchManifestAndData = function(test, manifestFilename, callback)
+    /**
+     * Return a promise that resolves to an object having the properties
+     * specified in the manifest plus a 'data' property with the media data.
+     */
+    MediaSourceUtil.fetchResourceOfManifest = function(test, manifestFilename)
     {
         var baseURL = '';
         var manifestURL = baseURL + manifestFilename;
-        MediaSourceUtil.loadTextData(test, manifestURL, function(manifestText)
-        {
-            var manifest = JSON.parse(manifestText);
-
-            assert_true(MediaSource.isTypeSupported(manifest.type), manifest.type + " is supported.");
-
-            var mediaURL = baseURL + manifest.url;
-            MediaSourceUtil.loadBinaryData(test, mediaURL, function(mediaData)
+        return new Promise(resolve => {
+            MediaSourceUtil.loadTextData(test, manifestURL, function(manifestText)
             {
-                callback(manifest.type, mediaData);
+                 var manifest = JSON.parse(manifestText);
+
+                 assert_true(MediaSource.isTypeSupported(manifest.type), manifest.type + " is supported.");
+
+                 var mediaURL = manifest.url;
+                 MediaSourceUtil.loadBinaryData(test, mediaURL, function(mediaData)
+                 {
+                     manifest.data = mediaData;
+                     resolve(manifest);
+                 });
             });
         });
+    };
+
+    MediaSourceUtil.fetchManifestAndData = async function(test, manifestFilename, callback)
+    {
+        const resource = await MediaSourceUtil.fetchResourceOfManifest(test, manifestFilename);
+        test.step(() => callback(resource.type, resource.data));
     };
 
     MediaSourceUtil.extractSegmentData = function(mediaData, info)

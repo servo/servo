@@ -81,6 +81,12 @@ const makeTestForUpdate = ({
     };
     interestGroupOverrides.updateURL = createUpdateURL(updateParams);
     await joinInterestGroup(test, uuid, interestGroupOverrides);
+    if (interestGroupFieldName === `ads`) {
+      let interestGroup = createInterestGroupForOrigin(
+          uuid, window.location.origin, interestGroupOverrides);
+      interestGroup.ads = responseOverride;
+      await makeInterestGroupKAnonymous(interestGroup);
+    }
 
     // Run an auction until there's a winner, which means update occurred.
     let auctionResult = await runBasicFledgeAuction(test, uuid, auctionConfigOverrides);
@@ -404,4 +410,3 @@ makeTestForNoUpdate({
     trustedBiddingSignalsKeys: ['key'],
   },
 });
-

@@ -17,8 +17,10 @@ window.requestHeaders = {
   sec_fetch_mode: "{{header_or_default(Sec-Fetch-Mode, )}}",
   // Convert to the raw string to avoid backslashes from being processed as
   // escape sequences.
+  // TODO(crbug.com/404573971): Remove `header_or_default` to reflect
+  // `__no_tags__` properly.
   sec_speculation_tags: reverse_html_escape(
-      String.raw`{{header_or_default(Sec-Speculation-Tags, )}}`),
+      String.raw`{{header_or_default(Sec-Speculation-Tags, __no_tags__)}}`),
 };
 
 const uuid = new URLSearchParams(location.search).get('uuid');

@@ -46,6 +46,7 @@ from .protocol import (BaseProtocolPart,
                        StorageProtocolPart,
                        VirtualPressureSourceProtocolPart,
                        ProtectedAudienceProtocolPart,
+                       DisplayFeaturesProtocolPart,
                        merge_dicts)
 
 from typing import Any, List, Optional, Tuple
@@ -700,6 +701,17 @@ class WebDriverProtectedAudienceProtocolPart(ProtectedAudienceProtocolPart):
         body = {"owner": owner, "name": name, "hashes": hashes}
         return self.webdriver.send_session_command("POST", "protected_audience/set_k_anonymity", body)
 
+class WebDriverDisplayFeaturesProtocolPart(DisplayFeaturesProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def set_display_features(self, features):
+        body = {"features": features}
+        return self.webdriver.send_session_command("POST", "displayfeatures", body)
+
+    def clear_display_features(self):
+        return self.webdriver.send_session_command("DELETE", "displayfeatures")
+
 class WebDriverProtocol(Protocol):
     enable_bidi = False
     implements = [WebDriverBaseProtocolPart,
@@ -724,7 +736,8 @@ class WebDriverProtocol(Protocol):
                   WebDriverDevicePostureProtocolPart,
                   WebDriverStorageProtocolPart,
                   WebDriverVirtualPressureSourceProtocolPart,
-                  WebDriverProtectedAudienceProtocolPart]
+                  WebDriverProtectedAudienceProtocolPart,
+                  WebDriverDisplayFeaturesProtocolPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         super().__init__(executor, browser)
