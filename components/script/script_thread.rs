@@ -336,11 +336,6 @@ pub struct ScriptThread {
     #[no_trace]
     layout_factory: Arc<dyn LayoutFactory>,
 
-    // Mouse down button: TO BE REMOVED. Not needed as click event should only
-    // triggered for primary button
-    #[no_trace]
-    mouse_down_button: Cell<Option<MouseButton>>,
-
     // Mouse down point.
     // In future, this shall be mouse_down_point for primary button
     #[no_trace]
@@ -959,7 +954,6 @@ impl ScriptThread {
             gpu_id_hub: Arc::new(IdentityHub::default()),
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
-            mouse_down_button: Cell::new(None),
             relative_mouse_down_point: Cell::new(Point2D::zero()),
         }
     }
@@ -3354,14 +3348,6 @@ impl ScriptThread {
             return;
         };
 
-        if let InputEvent::MouseButton(mouse_button_event) = event.event {
-            if mouse_button_event.action == MouseButtonAction::Down {
-                self.mouse_down_button.set(Some(mouse_button_event.button));
-                self.relative_mouse_down_point.set(mouse_button_event.point)
-            }
-        }
-        document.note_pending_input_event(event.clone());
-
         // Also send a 'click' event with same hit-test result if this is release
 
         // MAYBE? TODO: https://developer.mozilla.org/en-US/docs/Web/API/Element/click_event
@@ -3370,30 +3356,42 @@ impl ScriptThread {
         // that contained both elements.
 
         // But spec doesn't specify this https://w3c.github.io/uievents/#event-type-click
+        // "The click event type MUST be dispatched on the topmost event target indicated by
+        // the pointer, when the user presses down and releases the primary pointer button"
 
         // Servo-specific: Trigger if within 10px of the down point
         if let InputEvent::MouseButton(mouse_button_event) = event.event {
-            if let (Some(mouse_down_button), MouseButtonAction::Up) =
-                (self.mouse_down_button.get(), mouse_button_event.action)
-            {
-                let pixel_dist = self.relative_mouse_down_point.get() - mouse_button_event.point;
-                let pixel_dist = (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
-                if mouse_down_button == mouse_button_event.button &&
-                    pixel_dist < 10.0 * document.window().device_pixel_ratio().get()
-                {
-                    document.note_pending_input_event(ConstellationInputEvent {
-                        hit_test_result: event.hit_test_result,
-                        pressed_mouse_buttons: event.pressed_mouse_buttons,
-                        active_keyboard_modifiers: event.active_keyboard_modifiers,
-                        event: InputEvent::MouseButton(MouseButtonEvent {
-                            action: MouseButtonAction::Click,
-                            button: mouse_button_event.button,
-                            point: mouse_button_event.point,
-                        }),
-                    });
+            if let MouseButton::Left = mouse_button_event.button {
+                match mouse_button_event.action {
+                    MouseButtonAction::Up => {
+                        let pixel_dist =
+                            self.relative_mouse_down_point.get() - mouse_button_event.point;
+                        let pixel_dist =
+                            (pixel_dist.x * pixel_dist.x + pixel_dist.y * pixel_dist.y).sqrt();
+                        if pixel_dist < 10.0 * document.window().device_pixel_ratio().get() {
+                            document.note_pending_input_event(event.clone());
+                            document.note_pending_input_event(ConstellationInputEvent {
+                                hit_test_result: event.hit_test_result,
+                                pressed_mouse_buttons: event.pressed_mouse_buttons,
+                                active_keyboard_modifiers: event.active_keyboard_modifiers,
+                                event: InputEvent::MouseButton(MouseButtonEvent {
+                                    action: MouseButtonAction::Click,
+                                    button: mouse_button_event.button,
+                                    point: mouse_button_event.point,
+                                }),
+                            });
+                            return;
+                        }
+                    },
+                    MouseButtonAction::Down => {
+                        self.relative_mouse_down_point.set(mouse_button_event.point)
+                    },
+                    MouseButtonAction::Click => {},
                 }
             }
         }
+
+        document.note_pending_input_event(event);
     }
 
     /// Handle a "navigate an iframe" message from the constellation.
