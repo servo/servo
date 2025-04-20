@@ -421,8 +421,7 @@ impl JsTimers {
     ) -> i32 {
         let callback = match callback {
             TimerCallback::StringTimerCallback(code_str) => {
-                let cx = GlobalScope::get_cx();
-                if global.is_js_evaluation_allowed(cx) {
+                if global.is_js_evaluation_allowed(code_str.as_ref()) {
                     InternalTimerCallback::StringTimerCallback(code_str)
                 } else {
                     return 0;

@@ -241,5 +241,6 @@ codegen-units = 1
 #
 # Or for another Git dependency:
 #
-# [patch."https://github.com/servo/<repository>"]
-# <crate> = { path = "/path/to/local/checkout" }
+# [patch."https://github.com/servo/rust-content-security-policy"]
+# content-security-policy = { path = "../rust-content-security-policy/" }
+# content-security-policy = { git = "https://github.com/timvdlippe/rust-content-security-policy/", branch = "fix-report-checks", features = ["serde"] }
