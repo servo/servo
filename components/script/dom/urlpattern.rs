@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericUnionTypes::USVStringOrURLPatternInit;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::reflector::Reflector;
 use script_bindings::root::DomRoot;
@@ -14,9 +15,6 @@ use crate::dom::bindings::codegen::Bindings::URLPatternBinding;
 use crate::dom::bindings::codegen::Bindings::URLPatternBinding::URLPatternMethods;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::globalscope::GlobalScope;
-
-/// <https://urlpattern.spec.whatwg.org/#full-wildcard-regexp-value>
-const FULL_WILDCARD_REGEXP_VALUE: &str = ".*";
 
 /// <https://urlpattern.spec.whatwg.org/#urlpattern>
 #[dom_struct]
@@ -31,33 +29,39 @@ pub(crate) struct URLPattern {
 
 impl URLPattern {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn new_inherited(
-        init: urlpattern::UrlPatternInit,
-        options: urlpattern::UrlPatternOptions,
-    ) -> Fallible<URLPattern> {
-        let associated_url_pattern =
-            urlpattern::UrlPattern::parse(init, options).map_err(|error| {
-                log::warn!("Failed to parse URLPattern: {error}");
-                Error::Type(format!("{error}"))
-            })?;
-
-        let pattern = URLPattern {
+    fn new_inherited(associated_url_pattern: urlpattern::UrlPattern) -> URLPattern {
+        URLPattern {
             reflector: Reflector::new(),
             associated_url_pattern,
-        };
-        Ok(pattern)
+        }
     }
 
-    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub(crate) fn new_with_proto(
+    /// <https://urlpattern.spec.whatwg.org/#urlpattern-initialize>
+    pub(crate) fn initialize(
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        init: urlpattern::UrlPatternInit,
-        options: urlpattern::UrlPatternOptions,
+        input: USVStringOrURLPatternInit,
+        base_url: Option<USVString>,
+        options: &URLPatternBinding::URLPatternOptions,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<URLPattern>> {
+        // The section below converts from servos types to the types used in the urlpattern crate
+        let base_url = base_url.map(|usv_string| usv_string.0);
+        let input = bindings_to_third_party::map_urlpattern_input(input, base_url.clone());
+        let options = urlpattern::UrlPatternOptions {
+            ignore_case: options.ignoreCase,
+        };
+
+        // Parse and initialize the URL pattern.
+        let pattern_init =
+            urlpattern::quirks::process_construct_pattern_input(input, base_url.as_deref())
+                .map_err(|error| Error::Type(format!("{error}")))?;
+
+        let pattern = urlpattern::UrlPattern::parse(pattern_init, options)
+            .map_err(|error| Error::Type(format!("{error}")))?;
+
         let url_pattern = reflect_dom_object_with_proto(
-            Box::new(URLPattern::new_inherited(init, options)?),
+            Box::new(URLPattern::new_inherited(pattern)),
             global,
             proto,
             can_gc,
@@ -67,66 +71,28 @@ impl URLPattern {
 }
 
 impl URLPatternMethods<crate::DomTypeHolder> for URLPattern {
-    // // <https://urlpattern.spec.whatwg.org/#dom-urlpattern-urlpattern>
-    // fn Constructor(
-    //     global: &GlobalScope,
-    //     proto: Option<HandleObject>,
-    //     can_gc: CanGc,
-    //     input: &URLPatternBinding::URLPatternInit,
-    //     base_url: USVString,
-    //     options: &URLPatternBinding::URLPatternOptions,
-    // ) -> Fallible<DomRoot<URLPattern>> {
-    //     // Step 1. Run initialize given this, input, baseURL, and options.
-    //     URLPattern::new_with_proto(global, proto, input, Some(base_url), options, can_gc)
-    // }
-    /// <https://urlpattern.spec.whatwg.org/#dom-urlpattern-urlpattern-input-options>
+    // <https://urlpattern.spec.whatwg.org/#dom-urlpattern-urlpattern>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        input: &URLPatternBinding::URLPatternInit,
+        input: USVStringOrURLPatternInit,
+        base_url: USVString,
+        options: &URLPatternBinding::URLPatternOptions,
+    ) -> Fallible<DomRoot<URLPattern>> {
+        URLPattern::initialize(global, proto, input, Some(base_url), options, can_gc)
+    }
+
+    /// <https://urlpattern.spec.whatwg.org/#dom-urlpattern-urlpattern-input-options>
+    fn Constructor_(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+        input: USVStringOrURLPatternInit,
         options: &URLPatternBinding::URLPatternOptions,
     ) -> Fallible<DomRoot<URLPattern>> {
         // Step 1. Run initialize given this, input, null, and options.
-        let base_url = input
-            .baseURL
-            .as_ref()
-            .map(|base_url| base_url.parse().map_err(|e| Error::Type(format!("{e}"))))
-            .transpose()?;
-
-        let input = urlpattern::UrlPatternInit {
-            protocol: input
-                .protocol
-                .as_ref()
-                .map(|usv_string| usv_string.to_string()),
-            username: input
-                .username
-                .as_ref()
-                .map(|usv_string| usv_string.to_string()),
-            password: input
-                .password
-                .as_ref()
-                .map(|usv_string| usv_string.to_string()),
-            hostname: input
-                .hostname
-                .as_ref()
-                .map(|usv_string| usv_string.to_string()),
-            port: input.port.as_ref().map(|usv_string| usv_string.to_string()),
-            pathname: input
-                .pathname
-                .as_ref()
-                .map(|usv_string| usv_string.to_string()),
-            search: input
-                .search
-                .as_ref()
-                .map(|usv_string| usv_string.to_string()),
-            hash: input.hash.as_ref().map(|usv_string| usv_string.to_string()),
-            base_url,
-        };
-        let options = urlpattern::UrlPatternOptions {
-            ignore_case: options.ignoreCase,
-        };
-        URLPattern::new_with_proto(global, proto, input, options, can_gc)
+        URLPattern::initialize(global, proto, input, None, options, can_gc)
     }
 
     /// <https://urlpattern.spec.whatwg.org/#dom-urlpattern-protocol>
@@ -182,5 +148,58 @@ impl URLPatternMethods<crate::DomTypeHolder> for URLPattern {
         // Step 1. If this’s associated URL pattern’s has regexp groups, then return true.
         // Step 2. Return false.
         self.associated_url_pattern.has_regexp_groups()
+    }
+}
+
+mod bindings_to_third_party {
+    use crate::dom::urlpattern::USVStringOrURLPatternInit;
+
+    pub(super) fn map_urlpattern_input(
+        input: USVStringOrURLPatternInit,
+        base_url: Option<String>,
+    ) -> urlpattern::quirks::StringOrInit {
+        match input {
+            USVStringOrURLPatternInit::USVString(usv_string) => {
+                urlpattern::quirks::StringOrInit::String(usv_string.0)
+            },
+            USVStringOrURLPatternInit::URLPatternInit(pattern_init) => {
+                let pattern_init = urlpattern::quirks::UrlPatternInit {
+                    protocol: pattern_init
+                        .protocol
+                        .as_ref()
+                        .map(|usv_string| usv_string.to_string()),
+                    username: pattern_init
+                        .username
+                        .as_ref()
+                        .map(|usv_string| usv_string.to_string()),
+                    password: pattern_init
+                        .password
+                        .as_ref()
+                        .map(|usv_string| usv_string.to_string()),
+                    hostname: pattern_init
+                        .hostname
+                        .as_ref()
+                        .map(|usv_string| usv_string.to_string()),
+                    port: pattern_init
+                        .port
+                        .as_ref()
+                        .map(|usv_string| usv_string.to_string()),
+                    pathname: pattern_init
+                        .pathname
+                        .as_ref()
+                        .map(|usv_string| usv_string.to_string()),
+                    search: pattern_init
+                        .search
+                        .as_ref()
+                        .map(|usv_string| usv_string.to_string()),
+                    hash: pattern_init
+                        .hash
+                        .as_ref()
+                        .map(|usv_string| usv_string.to_string()),
+                    base_url,
+                };
+                urlpattern::quirks::StringOrInit::Init(pattern_init)
+            },
+        }
     }
 }

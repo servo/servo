@@ -2227,6 +2227,7 @@ dependencies = [
 [[package]]
 name = "fontsan"
 version = "0.5.2"
+source = "git+https://github.com/servo/fontsan#c0d0b5333117901e1c31bc3c502c384115b93e6f"
 dependencies = [
  "cc",
  "glob",
