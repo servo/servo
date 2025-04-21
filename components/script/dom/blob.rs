@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::ptr;
 use std::rc::Rc;
 
-use base::id::BlobId;
+use base::id::{BlobId, BlobIndex};
 use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
@@ -93,7 +93,7 @@ impl Blob {
 }
 
 impl Serializable for Blob {
-    type Id = BlobId;
+    type Index = BlobIndex;
     type Data = BlobImpl;
 
     /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
@@ -119,9 +119,7 @@ impl Serializable for Blob {
         Ok(deserialized_blob)
     }
 
-    fn serialized_storage(
-        reader: StructuredData<'_>,
-    ) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage(reader: StructuredData<'_>) -> &mut Option<HashMap<BlobId, Self::Data>> {
         match reader {
             StructuredData::Reader(r) => &mut r.blob_impls,
             StructuredData::Writer(w) => &mut w.blobs,

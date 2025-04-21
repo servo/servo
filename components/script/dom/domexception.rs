@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use base::id::DomExceptionId;
+use base::id::{DomExceptionId, DomExceptionIndex};
 use constellation_traits::DomException;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
@@ -223,11 +223,11 @@ impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
 }
 
 impl Serializable for DOMException {
-    type Id = DomExceptionId;
+    type Index = DomExceptionIndex;
     type Data = DomException;
 
     // https://webidl.spec.whatwg.org/#idl-DOMException
-    fn serialize(&self) -> Result<(Self::Id, Self::Data), ()> {
+    fn serialize(&self) -> Result<(DomExceptionId, Self::Data), ()> {
         let serialized = DomException {
             message: self.message.to_string(),
             name: self.name.to_string(),
@@ -252,7 +252,9 @@ impl Serializable for DOMException {
         ))
     }
 
-    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage(
+        data: StructuredData<'_>,
+    ) -> &mut Option<HashMap<DomExceptionId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.exceptions,
             StructuredData::Writer(writer) => &mut writer.exceptions,

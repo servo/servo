@@ -8,7 +8,7 @@ use std::mem;
 use std::ptr::{self};
 use std::rc::Rc;
 
-use base::id::MessagePortId;
+use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
@@ -1114,7 +1114,7 @@ impl CrossRealmTransformWritable {
 
 /// <https://streams.spec.whatwg.org/#ws-transfer>
 impl Transferable for WritableStream {
-    type Id = MessagePortId;
+    type Index = MessagePortIndex;
     type Data = MessagePortImpl;
 
     /// <https://streams.spec.whatwg.org/#ref-for-writablestream%E2%91%A0%E2%91%A4>
@@ -1182,7 +1182,9 @@ impl Transferable for WritableStream {
     }
 
     /// Note: we are relying on the port transfer, so the data returned here are related to the port.
-    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage(
+        data: StructuredData<'_>,
+    ) -> &mut Option<HashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
             StructuredData::Writer(w) => &mut w.ports,

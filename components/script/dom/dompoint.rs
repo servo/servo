@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use base::id::DomPointId;
+use base::id::{DomPointId, DomPointIndex};
 use constellation_traits::DomPoint;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
@@ -132,10 +132,10 @@ impl DOMPointMethods<crate::DomTypeHolder> for DOMPoint {
 }
 
 impl Serializable for DOMPoint {
-    type Id = DomPointId;
+    type Index = DomPointIndex;
     type Data = DomPoint;
 
-    fn serialize(&self) -> Result<(Self::Id, Self::Data), ()> {
+    fn serialize(&self) -> Result<(DomPointId, Self::Data), ()> {
         let serialized = DomPoint {
             x: self.X(),
             y: self.Y(),
@@ -163,7 +163,9 @@ impl Serializable for DOMPoint {
         ))
     }
 
-    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage(
+        data: StructuredData<'_>,
+    ) -> &mut Option<HashMap<DomPointId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.points,
             StructuredData::Writer(writer) => &mut writer.points,

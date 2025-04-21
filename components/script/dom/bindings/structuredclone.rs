@@ -6,11 +6,12 @@
 
 use std::collections::HashMap;
 use std::ffi::CStr;
-use std::num::NonZeroU32;
 use std::os::raw;
 use std::ptr;
 
-use base::id::{BlobId, DomExceptionId, DomPointId, MessagePortId, PipelineNamespaceId};
+use base::id::{
+    BlobId, DomExceptionId, DomPointId, Index, MessagePortId, NamespaceIndex, PipelineNamespaceId,
+};
 use constellation_traits::{
     BlobImpl, DomException, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
     StructuredSerializedData, Transferrable as TransferrableInterface,
@@ -34,8 +35,8 @@ use strum::IntoEnumIterator;
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_object};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
-use crate::dom::bindings::transferable::{ExtractComponents, IdFromComponents, Transferable};
+use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
@@ -120,7 +121,7 @@ unsafe fn read_object<T: Serializable>(
 
     // 1. Re-build the key for the storage location
     // of the serialized object.
-    let id = T::Id::from(storage_key);
+    let id: NamespaceIndex<T::Index> = storage_key.into();
 
     // 2. Get the transferred object from its storage, using the key.
     let objects = T::serialized_storage(StructuredData::Reader(sc_reader));
@@ -155,7 +156,7 @@ unsafe fn write_object<T: Serializable>(
         let objects = T::serialized_storage(StructuredData::Writer(sc_writer))
             .get_or_insert_with(HashMap::new);
         objects.insert(new_id, serialized);
-        let storage_key = new_id.into_storage_key();
+        let storage_key = StorageKey::new(new_id);
 
         assert!(JS_WriteUint32Pair(
             w,
@@ -282,13 +283,13 @@ fn receive_object<T: Transferable>(
             .try_into()
             .expect("name_space to be a slice of four."),
     ));
-    let id = <T::Id as IdFromComponents>::from(
+    let id: NamespaceIndex<T::Index> = NamespaceIndex {
         namespace_id,
-        NonZeroU32::new(u32::from_ne_bytes(
+        index: Index::new(u32::from_ne_bytes(
             index.try_into().expect("index to be a slice of four."),
         ))
         .expect("Index to be non-zero"),
-    );
+    };
 
     // 2. Get the transferred object from its storage, using the key.
     let storage = T::serialized_storage(StructuredData::Reader(sc_reader));
@@ -356,11 +357,10 @@ unsafe fn try_transfer<T: Transferable + IDLInterface>(
                 .get_or_insert_with(HashMap::new);
             objects.insert(id, object);
 
-            let (PipelineNamespaceId(name_space), index) = id.components();
-            let index = index.get();
+            let index = id.index.0.get();
 
             let mut big: [u8; 8] = [0; 8];
-            let name_space = name_space.to_ne_bytes();
+            let name_space = id.namespace_id.0.to_ne_bytes();
             let index = index.to_ne_bytes();
 
             let (left, right) = big.split_at_mut(4);

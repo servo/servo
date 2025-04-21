@@ -6,7 +6,6 @@
 //! (<https://html.spec.whatwg.org/multipage/#serializable-objects>).
 
 use std::collections::HashMap;
-use std::num::NonZeroU32;
 
 use base::id::{Index, NamespaceIndex, PipelineNamespaceId};
 
@@ -25,9 +24,9 @@ pub(crate) struct StorageKey {
 }
 
 impl StorageKey {
-    pub(crate) fn new(name_space: PipelineNamespaceId, index: NonZeroU32) -> StorageKey {
-        let name_space = name_space.0.to_ne_bytes();
-        let index = index.get().to_ne_bytes();
+    pub(crate) fn new<T>(index: NamespaceIndex<T>) -> StorageKey {
+        let name_space = index.namespace_id.0.to_ne_bytes();
+        let index = index.index.0.get().to_ne_bytes();
         StorageKey {
             index: u32::from_ne_bytes(index),
             name_space: u32::from_ne_bytes(name_space),
@@ -44,30 +43,17 @@ impl<T> From<StorageKey> for NamespaceIndex<T> {
     }
 }
 
-pub(crate) trait IntoStorageKey
-where
-    Self: Sized,
-{
-    fn into_storage_key(self) -> StorageKey;
-}
-
-impl<T> IntoStorageKey for NamespaceIndex<T> {
-    fn into_storage_key(self) -> StorageKey {
-        StorageKey::new(self.namespace_id, self.index.0)
-    }
-}
-
 /// Interface for serializable platform objects.
 /// <https://html.spec.whatwg.org/multipage/#serializable>
 pub(crate) trait Serializable: DomObject
 where
     Self: Sized,
 {
-    type Id: Copy + Eq + std::hash::Hash + IntoStorageKey + From<StorageKey>;
+    type Index: Copy + Eq + std::hash::Hash;
     type Data;
 
     /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
-    fn serialize(&self) -> Result<(Self::Id, Self::Data), ()>;
+    fn serialize(&self) -> Result<(NamespaceIndex<Self::Index>, Self::Data), ()>;
     /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>
     fn deserialize(
         owner: &GlobalScope,
@@ -79,7 +65,9 @@ where
 
     /// Returns the field of [StructuredDataReader]/[StructuredDataWriter] that
     /// should be used to read/store serialized instances of this type.
-    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>>;
+    fn serialized_storage(
+        data: StructuredData<'_>,
+    ) -> &mut Option<HashMap<NamespaceIndex<Self::Index>, Self::Data>>;
 
     /// Returns the field of [StructuredDataReader] that should be used to store
     /// deserialized instances of this type.

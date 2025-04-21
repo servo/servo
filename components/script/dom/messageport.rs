@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::ptr;
 use std::rc::Rc;
 
-use base::id::MessagePortId;
+use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::{MessagePortImpl, PortMessageTask};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewObject, JSObject};
@@ -239,7 +239,7 @@ impl MessagePort {
 }
 
 impl Transferable for MessagePort {
-    type Id = MessagePortId;
+    type Index = MessagePortIndex;
     type Data = MessagePortImpl;
 
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
@@ -269,7 +269,9 @@ impl Transferable for MessagePort {
         Ok(transferred_port)
     }
 
-    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage(
+        data: StructuredData<'_>,
+    ) -> &mut Option<HashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
             StructuredData::Writer(w) => &mut w.ports,
