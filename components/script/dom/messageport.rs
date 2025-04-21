@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
     MessagePortMethods, StructuredSerializeOptions,
 };
 use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::error::{Error, ErrorResult, ErrorToJsval};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
@@ -180,14 +180,13 @@ impl MessagePort {
         let result = self.pack_and_post_message(type_, value, can_gc);
 
         // If result is an abrupt completion,
-        if result.is_err() {
+        if let Err(error) = result.as_ref() {
             // Perform ! CrossRealmTransformSendError(port, result.[[Value]]).
-            // Note: we send UndefinedValue across,
-            // because somehow sending an error results in another error.
-            // The Error::DataClone, which is the only one that is sent across,
-            // will be created upon receipt.
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
+            error
+                .clone()
+                .to_jsval(cx, &self.global(), rooted_error.handle_mut(), can_gc);
             self.cross_realm_transform_send_error(rooted_error.handle(), can_gc);
         }
 
