@@ -40,18 +40,14 @@ impl ServoCookie {
         request: &ServoUrl,
         source: CookieSource,
     ) -> Option<ServoCookie> {
-        let expiry_date = extract_expiry(&cookie_str);
-        let mut cookie = Cookie::parse(cookie_str).ok()?;
+        let mut cookie = Cookie::parse(cookie_str.clone()).ok()?;
 
-        // Cookie::parse from cookie-rs parses the expiry date in a stricter
-        // way different from the parsing algorithm from RFC6265 Section 5.1.1
+        // If Cookie::parse fails to parse the expiry date, fallback to parse
+        // the expiry date again with the more relaxed parsing algorithm
+        // from RFC6265.
         // <https://datatracker.ietf.org/doc/html/rfc6265#section-5.1.1>
-        //
-        // If Cookie::parse doesn't parse the expiry date successfully, use
-        // expiry_date extracted by extract_expiry using the algorithm from
-        // RFC6265.
         if cookie.expires_datetime().is_none() {
-            cookie.set_expires(expiry_date);
+            cookie.set_expires(extract_expiry(&cookie_str));
         }
 
         ServoCookie::new_wrapped(cookie, request, source)
