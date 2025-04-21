@@ -1108,6 +1108,12 @@ impl Document {
         self.scripting_enabled
     }
 
+    /// Return whether scripting is enabled or not
+    /// <https://html.spec.whatwg.org/multipage/#concept-n-noscript>
+    pub(crate) fn scripting_enabled(&self) -> bool {
+        self.has_browsing_context()
+    }
+
     /// Return the element that currently has focus.
     // https://w3c.github.io/uievents/#events-focusevent-doc-focus
     pub(crate) fn get_focused_element(&self) -> Option<DomRoot<Element>> {
