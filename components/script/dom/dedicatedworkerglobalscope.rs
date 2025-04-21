@@ -479,6 +479,7 @@ impl DedicatedWorkerGlobalScope {
                     Ok((metadata, bytes)) => (metadata, bytes),
                 };
                 scope.set_url(metadata.final_url);
+                scope.set_csp_list(GlobalScope::parse_csp_list_from_metadata(&metadata.headers));
                 global_scope.set_https_state(metadata.https_state);
                 let source = String::from_utf8_lossy(&bytes);
 
