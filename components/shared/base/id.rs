@@ -27,17 +27,6 @@ macro_rules! size_of_test {
     };
 }
 
-macro_rules! namespace_id_method {
-    ($func_name:ident, $func_return_data_type:ident, $self:ident, $index_name:ident) => {
-        fn $func_name(&mut $self) -> NamespaceIndex<$index_name> {
-            NamespaceIndex {
-                namespace_id: $self.id,
-                index: Index($self.next_index(), PhantomData),
-            }
-        }
-    };
-}
-
 /// A type that implements this trait is expected to be used as part of
 /// the [NamespaceIndex] type.
 pub trait Indexable {
@@ -112,6 +101,16 @@ macro_rules! namespace_id {
             const DISPLAY_PREFIX: &'static str = $display_prefix;
         }
         pub type $id_name = NamespaceIndex<$index_name>;
+        impl $id_name {
+            pub fn new() -> $id_name {
+                PIPELINE_NAMESPACE.with(|tls| {
+                    let mut namespace = tls.get().expect("No namespace set for this thread!");
+                    let next_id = namespace.next_namespace_index();
+                    tls.set(Some(namespace));
+                    next_id
+                })
+            }
+        }
     };
 }
 
@@ -231,18 +230,12 @@ impl PipelineNamespace {
         NonZeroU32::new(self.index).expect("pipeline id index wrapped!")
     }
 
-    namespace_id_method! {next_pipeline_id, PipelineId, self, PipelineIndex}
-    namespace_id_method! {next_browsing_context_id, BrowsingContextId, self, BrowsingContextIndex}
-    namespace_id_method! {next_history_state_id, HistoryStateId, self, HistoryStateIndex}
-    namespace_id_method! {next_message_port_id, MessagePortId, self, MessagePortIndex}
-    namespace_id_method! {next_message_port_router_id, MessagePortRouterId, self, MessagePortRouterIndex}
-    namespace_id_method! {next_broadcast_channel_router_id, BroadcastChannelRouterId, self, BroadcastChannelRouterIndex}
-    namespace_id_method! {next_service_worker_id, ServiceWorkerId, self, ServiceWorkerIndex}
-    namespace_id_method! {next_service_worker_registration_id, ServiceWorkerRegistrationId,
-    self, ServiceWorkerRegistrationIndex}
-    namespace_id_method! {next_blob_id, BlobId, self, BlobIndex}
-    namespace_id_method! {next_dom_point_id, DomPointId, self, DomPointIndex}
-    namespace_id_method! {next_dom_exception_id, DomExceptionId, self, DomExceptionIndex}
+    fn next_namespace_index<T>(&mut self) -> NamespaceIndex<T> {
+        NamespaceIndex {
+            namespace_id: self.id,
+            index: Index(self.next_index(), PhantomData),
+        }
+    }
 }
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = const { Cell::new(None) });
@@ -258,15 +251,6 @@ size_of_test!(PipelineId, 8);
 size_of_test!(Option<PipelineId>, 8);
 
 impl PipelineId {
-    pub fn new() -> PipelineId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let new_pipeline_id = namespace.next_pipeline_id();
-            tls.set(Some(namespace));
-            new_pipeline_id
-        })
-    }
-
     pub fn root_scroll_id(&self) -> webrender_api::ExternalScrollId {
         ExternalScrollId(0, self.into())
     }
@@ -303,17 +287,6 @@ namespace_id! {BrowsingContextId, BrowsingContextIndex, "BrowsingContext"}
 
 size_of_test!(BrowsingContextId, 8);
 size_of_test!(Option<BrowsingContextId>, 8);
-
-impl BrowsingContextId {
-    pub fn new() -> Self {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let new_browsing_context_id = namespace.next_browsing_context_id();
-            tls.set(Some(namespace));
-            new_browsing_context_id
-        })
-    }
-}
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct BrowsingContextGroupId(pub u32);
@@ -382,121 +355,21 @@ impl PartialEq<BrowsingContextId> for WebViewId {
 
 namespace_id! {MessagePortId, MessagePortIndex, "MessagePort"}
 
-impl MessagePortId {
-    pub fn new() -> MessagePortId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_message_port_id = namespace.next_message_port_id();
-            tls.set(Some(namespace));
-            next_message_port_id
-        })
-    }
-}
-
 namespace_id! {MessagePortRouterId, MessagePortRouterIndex, "MessagePortRouter"}
-
-impl MessagePortRouterId {
-    pub fn new() -> MessagePortRouterId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_message_port_router_id = namespace.next_message_port_router_id();
-            tls.set(Some(namespace));
-            next_message_port_router_id
-        })
-    }
-}
 
 namespace_id! {BroadcastChannelRouterId, BroadcastChannelRouterIndex, "BroadcastChannelRouter"}
 
-impl BroadcastChannelRouterId {
-    pub fn new() -> BroadcastChannelRouterId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_broadcast_channel_router_id = namespace.next_broadcast_channel_router_id();
-            tls.set(Some(namespace));
-            next_broadcast_channel_router_id
-        })
-    }
-}
-
 namespace_id! {ServiceWorkerId, ServiceWorkerIndex, "ServiceWorker"}
-
-impl ServiceWorkerId {
-    pub fn new() -> ServiceWorkerId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_service_worker_id = namespace.next_service_worker_id();
-            tls.set(Some(namespace));
-            next_service_worker_id
-        })
-    }
-}
 
 namespace_id! {ServiceWorkerRegistrationId, ServiceWorkerRegistrationIndex, "ServiceWorkerRegistration"}
 
-impl ServiceWorkerRegistrationId {
-    pub fn new() -> ServiceWorkerRegistrationId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_service_worker_registration_id =
-                namespace.next_service_worker_registration_id();
-            tls.set(Some(namespace));
-            next_service_worker_registration_id
-        })
-    }
-}
-
 namespace_id! {BlobId, BlobIndex, "Blob"}
-
-impl BlobId {
-    pub fn new() -> BlobId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_blob_id = namespace.next_blob_id();
-            tls.set(Some(namespace));
-            next_blob_id
-        })
-    }
-}
 
 namespace_id! {DomPointId, DomPointIndex, "DomPoint"}
 
-impl DomPointId {
-    pub fn new() -> DomPointId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_point_id = namespace.next_dom_point_id();
-            tls.set(Some(namespace));
-            next_point_id
-        })
-    }
-}
-
 namespace_id! {DomExceptionId, DomExceptionIndex, "DomException"}
 
-impl DomExceptionId {
-    pub fn new() -> DomExceptionId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_exception_id = namespace.next_dom_exception_id();
-            tls.set(Some(namespace));
-            next_exception_id
-        })
-    }
-}
-
 namespace_id! {HistoryStateId, HistoryStateIndex, "HistoryState"}
-
-impl HistoryStateId {
-    pub fn new() -> HistoryStateId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_history_state_id = namespace.next_history_state_id();
-            tls.set(Some(namespace));
-            next_history_state_id
-        })
-    }
-}
 
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
