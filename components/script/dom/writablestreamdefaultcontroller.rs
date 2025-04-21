@@ -555,7 +555,7 @@ impl WritableStreamDefaultController {
                     promise.reject_error(error, can_gc);
                 } else {
                     // Otherwise, return a promise resolved with undefined.
-                    promise.reject_native(&(), can_gc);
+                    promise.resolve_native(&(), can_gc);
                 }
                 promise
             },
