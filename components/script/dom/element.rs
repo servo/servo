@@ -1933,7 +1933,7 @@ impl Element {
         &self,
         local_name: &LocalName,
     ) -> TrustedScriptURLOrUSVString {
-        assert!(*local_name == local_name.to_ascii_lowercase());
+        assert_eq!(*local_name, local_name.to_ascii_lowercase());
         let attr = match self.get_attribute(&ns!(), local_name) {
             Some(attr) => attr,
             None => return TrustedScriptURLOrUSVString::USVString(USVString::default()),
@@ -1953,7 +1953,7 @@ impl Element {
         value: TrustedScriptURLOrUSVString,
         can_gc: CanGc,
     ) -> Fallible<()> {
-        assert!(*local_name == local_name.to_ascii_lowercase());
+        assert_eq!(*local_name, local_name.to_ascii_lowercase());
         let value = match value {
             TrustedScriptURLOrUSVString::USVString(url) => {
                 let global = self.owner_global();
