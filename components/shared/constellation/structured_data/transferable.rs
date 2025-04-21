@@ -77,7 +77,12 @@ impl MessagePortImpl {
         self.entangled_port
     }
 
-    /// Entanged this port with another.
+    /// <https://html.spec.whatwg.org/multipage/#disentangle>
+    pub fn disentangle(&mut self) -> Option<MessagePortId> {
+        self.entangled_port.take()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#entangle>
     pub fn entangle(&mut self, other_id: MessagePortId) {
         self.entangled_port = Some(other_id);
     }

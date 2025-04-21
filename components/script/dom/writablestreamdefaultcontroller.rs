@@ -173,11 +173,11 @@ impl Callback for TransferBackPressurePromiseReaction {
             self.port
                 .pack_and_post_message_handling_error("chunk", chunk.handle(), can_gc);
 
-        // Disentangle port.
-        global.disentangle_port(&self.port);
-
         // If result is an abrupt completion,
         if let Err(error) = result {
+            // Disentangle port.
+            global.disentangle_port(&self.port, can_gc);
+
             // Return a promise rejected with result.[[Value]].
             self.result_promise.reject_error(error, can_gc);
         } else {
@@ -546,7 +546,7 @@ impl WritableStreamDefaultController {
                 let result = port.pack_and_post_message_handling_error("error", reason, can_gc);
 
                 // Disentangle port.
-                global.disentangle_port(port);
+                global.disentangle_port(port, can_gc);
 
                 let promise = Promise::new(global, can_gc);
 
@@ -672,7 +672,7 @@ impl WritableStreamDefaultController {
                     .expect("Sending close should not fail.");
 
                 // Disentangle port.
-                global.disentangle_port(port);
+                global.disentangle_port(port, can_gc);
 
                 // Return a promise resolved with undefined.
                 Promise::new_resolved(global, cx, (), can_gc)

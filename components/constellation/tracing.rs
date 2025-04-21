@@ -123,8 +123,8 @@ mod from_script {
                 Self::RemoveMessagePortRouter(..) => target!("RemoveMessagePortRouter"),
                 Self::RerouteMessagePort(..) => target!("RerouteMessagePort"),
                 Self::MessagePortShipped(..) => target!("MessagePortShipped"),
-                Self::RemoveMessagePort(..) => target!("RemoveMessagePort"),
                 Self::EntanglePorts(..) => target!("EntanglePorts"),
+                Self::DisentanglePorts(..) => target!("DisentanglePorts"),
                 Self::NewBroadcastChannelRouter(..) => target!("NewBroadcastChannelRouter"),
                 Self::RemoveBroadcastChannelRouter(..) => target!("RemoveBroadcastChannelRouter"),
                 Self::NewBroadcastChannelNameInRouter(..) => {

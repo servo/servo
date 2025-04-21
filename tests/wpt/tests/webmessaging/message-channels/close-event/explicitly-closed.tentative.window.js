@@ -33,3 +33,13 @@ promise_test(async t => {
   });
   await closeEventPromise;
 }, 'Close event on port2 is fired when port1, which is in a different window, is explicitly closed.')
+
+promise_test(async t => {
+  const rc = await addWindow();
+  const waitForPort = expectMessagePortFromWindowWithoutStartingIt(window);
+  await createMessageChannelAndSendPortFollowedByClose(rc);
+  const port = await waitForPort;
+  const closeEventPromise = createCloseEventPromise(port);
+  port.start();
+  await closeEventPromise;
+}, 'Close event on port2 is fired when port1, in a different window, is closed during the transfer of port2.')
