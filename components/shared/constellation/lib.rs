@@ -9,15 +9,15 @@
 //! on other parts of Servo.
 
 mod from_script_message;
-mod message_port;
+mod structured_data;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::time::Duration;
 
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
-use base::id::{PipelineId, WebViewId};
+use base::id::{MessagePortId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use embedder_traits::{
     CompositorHitTestResult, Cursor, InputEvent, MediaSessionActionType, Theme, ViewportDetails,
@@ -27,9 +27,9 @@ use euclid::Vector2D;
 pub use from_script_message::*;
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
-pub use message_port::*;
 use serde::{Deserialize, Serialize};
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
+pub use structured_data::*;
 use strum_macros::IntoStaticStr;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::LayoutPixel;
@@ -157,4 +157,29 @@ pub enum TraversalDirection {
     Forward(usize),
     /// Travel backward the given number of documents.
     Back(usize),
+}
+
+/// A task on the <https://html.spec.whatwg.org/multipage/#port-message-queue>
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct PortMessageTask {
+    /// The origin of this task.
+    pub origin: ImmutableOrigin,
+    /// A data-holder for serialized data and transferred objects.
+    pub data: StructuredSerializedData,
+}
+
+/// Messages for communication between the constellation and a global managing ports.
+#[derive(Debug, Deserialize, Serialize)]
+#[allow(clippy::large_enum_variant)]
+pub enum MessagePortMsg {
+    /// Complete the transfer for a batch of ports.
+    CompleteTransfer(HashMap<MessagePortId, VecDeque<PortMessageTask>>),
+    /// Complete the transfer of a single port,
+    /// whose transfer was pending because it had been requested
+    /// while a previous failed transfer was being rolled-back.
+    CompletePendingTransfer(MessagePortId, VecDeque<PortMessageTask>),
+    /// Remove a port, the entangled one doesn't exists anymore.
+    RemoveMessagePort(MessagePortId),
+    /// Handle a new port-message-task.
+    NewTask(MessagePortId, PortMessageTask),
 }
