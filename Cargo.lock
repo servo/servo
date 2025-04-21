@@ -4821,6 +4821,7 @@ dependencies = [
  "mime",
  "mime_guess",
  "net_traits",
+ "nom",
  "pixels",
  "profile_traits",
  "rayon",
