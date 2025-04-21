@@ -6,9 +6,10 @@
 //! (<https://html.spec.whatwg.org/multipage/#transferable-objects>).
 
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::num::NonZeroU32;
 
-use base::id::PipelineNamespaceId;
+use base::id::{Index, NamespaceIndex, PipelineNamespaceId};
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -22,8 +23,23 @@ where
     fn from(namespace_id: PipelineNamespaceId, index: NonZeroU32) -> Self;
 }
 
+impl<T> IdFromComponents for NamespaceIndex<T> {
+    fn from(namespace_id: PipelineNamespaceId, index: NonZeroU32) -> NamespaceIndex<T> {
+        NamespaceIndex {
+            namespace_id,
+            index: Index(index, PhantomData),
+        }
+    }
+}
+
 pub(crate) trait ExtractComponents {
     fn components(&self) -> (PipelineNamespaceId, NonZeroU32);
+}
+
+impl<T> ExtractComponents for NamespaceIndex<T> {
+    fn components(&self) -> (PipelineNamespaceId, NonZeroU32) {
+        (self.namespace_id, self.index.0)
+    }
 }
 
 pub(crate) trait Transferable: DomObject

@@ -81,18 +81,14 @@ impl<WebView> WebViewManager<WebView> {
 
 #[cfg(test)]
 mod test {
-    use std::num::NonZeroU32;
-
-    use base::id::{
-        BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId, WebViewId,
-    };
+    use base::id::{BrowsingContextId, Index, PipelineNamespace, PipelineNamespaceId, WebViewId};
 
     use crate::webview_manager::WebViewManager;
 
     fn id(namespace_id: u32, index: u32) -> WebViewId {
         WebViewId(BrowsingContextId {
             namespace_id: PipelineNamespaceId(namespace_id),
-            index: BrowsingContextIndex(NonZeroU32::new(index).expect("Incorrect test case")),
+            index: Index::new(index).expect("Incorrect test case"),
         })
     }
 

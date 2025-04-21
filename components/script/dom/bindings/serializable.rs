@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::num::NonZeroU32;
 
-use base::id::PipelineNamespaceId;
+use base::id::{Index, NamespaceIndex, PipelineNamespaceId};
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
@@ -35,11 +35,26 @@ impl StorageKey {
     }
 }
 
+impl<T> From<StorageKey> for NamespaceIndex<T> {
+    fn from(key: StorageKey) -> NamespaceIndex<T> {
+        NamespaceIndex {
+            namespace_id: PipelineNamespaceId(key.name_space),
+            index: Index::new(key.index).expect("Index must not be zero"),
+        }
+    }
+}
+
 pub(crate) trait IntoStorageKey
 where
     Self: Sized,
 {
     fn into_storage_key(self) -> StorageKey;
+}
+
+impl<T> IntoStorageKey for NamespaceIndex<T> {
+    fn into_storage_key(self) -> StorageKey {
+        StorageKey::new(self.namespace_id, self.index.0)
+    }
 }
 
 /// Interface for serializable platform objects.

@@ -3,9 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::num::NonZeroU32;
 
-use base::id::{DomExceptionId, DomExceptionIndex, PipelineNamespaceId};
+use base::id::DomExceptionId;
 use constellation_traits::DomException;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
@@ -18,7 +17,7 @@ use crate::dom::bindings::reflector::{
     Reflector, reflect_dom_object, reflect_dom_object_with_proto,
 };
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
+use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
 use crate::dom::globalscope::GlobalScope;
@@ -264,26 +263,5 @@ impl Serializable for DOMException {
         reader: &mut StructuredDataReader,
     ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
         &mut reader.dom_exceptions
-    }
-}
-
-impl From<StorageKey> for DomExceptionId {
-    fn from(storage_key: StorageKey) -> DomExceptionId {
-        let namespace_id = PipelineNamespaceId(storage_key.name_space);
-        let index = DomExceptionIndex(
-            NonZeroU32::new(storage_key.index).expect("Deserialized exception index is zero"),
-        );
-
-        DomExceptionId {
-            namespace_id,
-            index,
-        }
-    }
-}
-
-impl IntoStorageKey for DomExceptionId {
-    fn into_storage_key(self) -> StorageKey {
-        let DomExceptionIndex(index) = self.index;
-        StorageKey::new(self.namespace_id, index)
     }
 }

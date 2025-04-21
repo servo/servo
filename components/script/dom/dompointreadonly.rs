@@ -4,9 +4,8 @@
 
 use std::cell::Cell;
 use std::collections::HashMap;
-use std::num::NonZeroU32;
 
-use base::id::{DomPointId, DomPointIndex, PipelineNamespaceId};
+use base::id::DomPointId;
 use constellation_traits::DomPoint;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
@@ -16,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointRe
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
+use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
@@ -184,26 +183,5 @@ impl Serializable for DOMPointReadOnly {
         reader: &mut StructuredDataReader,
     ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
         &mut reader.points_read_only
-    }
-}
-
-impl From<StorageKey> for DomPointId {
-    fn from(storage_key: StorageKey) -> DomPointId {
-        let namespace_id = PipelineNamespaceId(storage_key.name_space);
-        let index = DomPointIndex(
-            NonZeroU32::new(storage_key.index).expect("Deserialized point index is zero"),
-        );
-
-        DomPointId {
-            namespace_id,
-            index,
-        }
-    }
-}
-
-impl IntoStorageKey for DomPointId {
-    fn into_storage_key(self) -> StorageKey {
-        let DomPointIndex(index) = self.index;
-        StorageKey::new(self.namespace_id, index)
     }
 }

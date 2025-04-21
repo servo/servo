@@ -8,11 +8,12 @@
 
 use std::cell::Cell;
 use std::fmt;
+use std::marker::PhantomData;
 use std::num::NonZeroU32;
 use std::sync::{Arc, LazyLock};
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use malloc_size_of::malloc_size_of_is_0;
+use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
@@ -28,44 +29,89 @@ macro_rules! size_of_test {
 
 macro_rules! namespace_id_method {
     ($func_name:ident, $func_return_data_type:ident, $self:ident, $index_name:ident) => {
-        fn $func_name(&mut $self) -> $func_return_data_type {
-            $func_return_data_type {
+        fn $func_name(&mut $self) -> NamespaceIndex<$index_name> {
+            NamespaceIndex {
                 namespace_id: $self.id,
-                index: $index_name($self.next_index()),
+                index: Index($self.next_index(), PhantomData),
             }
         }
     };
 }
 
+/// A type that implements this trait is expected to be used as part of
+/// the [NamespaceIndex] type.
+pub trait Indexable {
+    /// The string prefix to display when debug printing an instance of
+    /// this type.
+    const DISPLAY_PREFIX: &'static str;
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+/// A non-zero index, associated with a particular type.
+pub struct Index<T>(pub NonZeroU32, pub PhantomData<T>);
+
+#[derive(Debug)]
+/// An attempt to create a new [Index] value failed because the index value
+/// was zero.
+pub struct ZeroIndex;
+
+impl<T> Index<T> {
+    /// Creates a new instance of [Index] with the given value.
+    /// Returns an error if the value is zero.
+    pub fn new(value: u32) -> Result<Index<T>, ZeroIndex> {
+        Ok(Index(NonZeroU32::new(value).ok_or(ZeroIndex)?, PhantomData))
+    }
+}
+
+impl<T> malloc_size_of::MallocSizeOf for Index<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
+#[derive(
+    Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+/// A pipeline-namespaced index associated with a particular type.
+pub struct NamespaceIndex<T> {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: Index<T>,
+}
+
+impl<T> fmt::Debug for NamespaceIndex<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let Index(index, _) = self.index;
+        write!(fmt, "({},{})", namespace_id, index.get())
+    }
+}
+
+impl<T: Indexable> fmt::Display for NamespaceIndex<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}{:?}", T::DISPLAY_PREFIX, self)
+    }
+}
+
 macro_rules! namespace_id {
     ($id_name:ident, $index_name:ident, $display_prefix:literal) => {
         #[derive(
-            Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
+            Clone,
+            Copy,
+            Debug,
+            Deserialize,
+            Eq,
+            Hash,
+            Ord,
+            PartialEq,
+            PartialOrd,
+            Serialize,
+            MallocSizeOf,
         )]
-        pub struct $index_name(pub NonZeroU32);
-        malloc_size_of_is_0!($index_name);
-
-        #[derive(
-            Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-        )]
-        pub struct $id_name {
-            pub namespace_id: PipelineNamespaceId,
-            pub index: $index_name,
+        pub struct $index_name;
+        impl Indexable for $index_name {
+            const DISPLAY_PREFIX: &'static str = $display_prefix;
         }
-
-        impl fmt::Debug for $id_name {
-            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                let PipelineNamespaceId(namespace_id) = self.namespace_id;
-                let $index_name(index) = self.index;
-                write!(fmt, "({},{})", namespace_id, index.get())
-            }
-        }
-
-        impl fmt::Display for $id_name {
-            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                write!(fmt, "{}{:?}", $display_prefix, self)
-            }
-        }
+        pub type $id_name = NamespaceIndex<$index_name>;
     };
 }
 
@@ -233,7 +279,7 @@ impl From<WebRenderPipelineId> for PipelineId {
         unsafe {
             PipelineId {
                 namespace_id: PipelineNamespaceId(namespace_id),
-                index: PipelineIndex(NonZeroU32::new_unchecked(index)),
+                index: Index(NonZeroU32::new_unchecked(index), PhantomData),
             }
         }
     }
@@ -242,7 +288,7 @@ impl From<WebRenderPipelineId> for PipelineId {
 impl From<PipelineId> for WebRenderPipelineId {
     fn from(value: PipelineId) -> Self {
         let PipelineNamespaceId(namespace_id) = value.namespace_id;
-        let PipelineIndex(index) = value.index;
+        let Index(index, _) = value.index;
         WebRenderPipelineId(namespace_id, index.get())
     }
 }
@@ -455,15 +501,15 @@ impl HistoryStateId {
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 #[allow(unsafe_code)]
-pub const TEST_PIPELINE_INDEX: PipelineIndex =
-    unsafe { PipelineIndex(NonZeroU32::new_unchecked(5678)) };
+pub const TEST_PIPELINE_INDEX: Index<PipelineIndex> =
+    unsafe { Index(NonZeroU32::new_unchecked(5678), PhantomData) };
 pub const TEST_PIPELINE_ID: PipelineId = PipelineId {
     namespace_id: TEST_NAMESPACE,
     index: TEST_PIPELINE_INDEX,
 };
 #[allow(unsafe_code)]
-pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex =
-    unsafe { BrowsingContextIndex(NonZeroU32::new_unchecked(8765)) };
+pub const TEST_BROWSING_CONTEXT_INDEX: Index<BrowsingContextIndex> =
+    unsafe { Index(NonZeroU32::new_unchecked(8765), PhantomData) };
 pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
     namespace_id: TEST_NAMESPACE,
     index: TEST_BROWSING_CONTEXT_INDEX,
