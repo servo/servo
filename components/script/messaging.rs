@@ -73,7 +73,7 @@ impl MixedMessage {
                 ScriptThreadMessage::RemoveHistoryStates(id, ..) => Some(*id),
                 ScriptThreadMessage::FocusIFrame(id, ..) => Some(*id),
                 ScriptThreadMessage::WebDriverScriptCommand(id, ..) => Some(*id),
-                ScriptThreadMessage::TickAllAnimations(id, ..) => Some(*id),
+                ScriptThreadMessage::TickAllAnimations(..) => None,
                 ScriptThreadMessage::WebFontLoaded(id, ..) => Some(*id),
                 ScriptThreadMessage::DispatchIFrameLoadEvent {
                     target: _,

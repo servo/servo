@@ -18,7 +18,6 @@ use std::time::Duration;
 use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
-use bitflags::bitflags;
 use embedder_traits::{
     CompositorHitTestResult, Cursor, InputEvent, MediaSessionActionType, Theme, ViewportDetails,
     WebDriverCommandMsg,
@@ -57,8 +56,9 @@ pub enum EmbedderToConstellationMessage {
     ChangeViewportDetails(WebViewId, ViewportDetails, WindowSizeType),
     /// Inform the constellation of a theme change.
     ThemeChange(Theme),
-    /// Requests that the constellation instruct layout to begin a new tick of the animation.
-    TickAnimation(PipelineId, AnimationTickType),
+    /// Requests that the constellation instruct script/layout to try to layout again and tick
+    /// animations.
+    TickAnimation(Vec<WebViewId>),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
     /// Reload a top-level browsing context.
@@ -128,17 +128,6 @@ pub enum WindowSizeType {
     Initial,
     /// Window resize.
     Resize,
-}
-
-bitflags! {
-    #[derive(Debug, Default, Deserialize, Serialize)]
-    /// Specifies if rAF should be triggered and/or CSS Animations and Transitions.
-    pub struct AnimationTickType: u8 {
-        /// Trigger a call to requestAnimationFrame.
-        const REQUEST_ANIMATION_FRAME = 0b001;
-        /// Trigger restyles for CSS Animations and Transitions.
-        const CSS_ANIMATIONS_AND_TRANSITIONS = 0b010;
-    }
 }
 
 /// The scroll state of a stacking context.

@@ -21,12 +21,12 @@ use compositing_traits::rendering_context::RenderingContext;
 use compositing_traits::{
     CompositionPipeline, CompositorMsg, ImageUpdate, SendableFrameTree, WebViewTrait,
 };
-use constellation_traits::{AnimationTickType, EmbedderToConstellationMessage, PaintMetricEvent};
+use constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use crossbeam_channel::{Receiver, Sender};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    AnimationState, CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent,
-    ShutdownState, TouchEventType, UntrustedNodeAddress, ViewportDetails,
+    CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ShutdownState,
+    TouchEventType, UntrustedNodeAddress, ViewportDetails,
 };
 use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
 use fnv::FnvHashMap;
@@ -197,9 +197,6 @@ pub(crate) struct PipelineDetails {
     /// The pipeline associated with this PipelineDetails object.
     pub pipeline: Option<CompositionPipeline>,
 
-    /// The [`PipelineId`] of this pipeline.
-    pub id: PipelineId,
-
     /// The id of the parent pipeline, if any.
     pub parent_pipeline_id: Option<PipelineId>,
 
@@ -243,32 +240,12 @@ impl PipelineDetails {
     pub(crate) fn animating(&self) -> bool {
         !self.throttled && (self.animation_callbacks_running || self.animations_running)
     }
-
-    pub(crate) fn tick_animations(&self, compositor: &IOCompositor) {
-        if !self.animating() {
-            return;
-        }
-
-        let mut tick_type = AnimationTickType::empty();
-        if self.animations_running {
-            tick_type.insert(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
-        }
-        if self.animation_callbacks_running {
-            tick_type.insert(AnimationTickType::REQUEST_ANIMATION_FRAME);
-        }
-
-        let msg = EmbedderToConstellationMessage::TickAnimation(self.id, tick_type);
-        if let Err(e) = compositor.global.borrow().constellation_sender.send(msg) {
-            warn!("Sending tick to constellation failed ({:?}).", e);
-        }
-    }
 }
 
 impl PipelineDetails {
-    pub(crate) fn new(id: PipelineId) -> PipelineDetails {
+    pub(crate) fn new() -> PipelineDetails {
         PipelineDetails {
             pipeline: None,
-            id,
             parent_pipeline_id: None,
             most_recent_display_list_epoch: None,
             animations_running: false,
@@ -543,22 +520,14 @@ impl IOCompositor {
                 pipeline_id,
                 animation_state,
             ) => {
-                let mut throttled = true;
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-                    throttled = webview_renderer
-                        .change_running_animations_state(pipeline_id, animation_state);
-                }
-
-                // These operations should eventually happen per-WebView, but they are global now as rendering
-                // is still global to all WebViews.
-                if !throttled && animation_state == AnimationState::AnimationsPresent {
-                    self.set_needs_repaint(RepaintReason::ChangedAnimationState);
-                }
-
-                if !throttled && animation_state == AnimationState::AnimationCallbacksPresent {
-                    // We need to fetch the WebView again in order to avoid a double borrow.
-                    if let Some(webview_renderer) = self.webview_renderers.get(webview_id) {
-                        webview_renderer.tick_animations_for_pipeline(pipeline_id, self);
+                    if webview_renderer
+                        .change_pipeline_running_animations_state(pipeline_id, animation_state) &&
+                        webview_renderer.animating()
+                    {
+                        // These operations should eventually happen per-WebView, but they are
+                        // global now as rendering is still global to all WebViews.
+                        self.process_animations(true);
                     }
                 }
             },
@@ -605,8 +574,13 @@ impl IOCompositor {
 
             CompositorMsg::SetThrottled(webview_id, pipeline_id, throttled) => {
                 if let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) {
-                    webview_renderer.set_throttled(pipeline_id, throttled);
-                    self.process_animations(true);
+                    if webview_renderer.set_throttled(pipeline_id, throttled) &&
+                        webview_renderer.animating()
+                    {
+                        // These operations should eventually happen per-WebView, but they are
+                        // global now as rendering is still global to all WebViews.
+                        self.process_animations(true);
+                    }
                 }
             },
 
@@ -1283,8 +1257,23 @@ impl IOCompositor {
         }
         self.last_animation_tick = Instant::now();
 
-        for webview_renderer in self.webview_renderers.iter() {
-            webview_renderer.tick_all_animations(self);
+        let animating_webviews: Vec<_> = self
+            .webview_renderers
+            .iter()
+            .filter_map(|webview_renderer| {
+                if webview_renderer.animating() {
+                    Some(webview_renderer.id)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        if !animating_webviews.is_empty() {
+            if let Err(error) = self.global.borrow().constellation_sender.send(
+                EmbedderToConstellationMessage::TickAnimation(animating_webviews),
+            ) {
+                warn!("Sending tick to constellation failed ({error:?}).");
+            }
         }
     }
 

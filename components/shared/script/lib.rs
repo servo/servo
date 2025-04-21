@@ -20,7 +20,7 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{
-    AnimationTickType, LoadData, NavigationHistoryBehavior, ScriptToConstellationChan, ScrollState,
+    LoadData, NavigationHistoryBehavior, ScriptToConstellationChan, ScrollState,
     StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::{RecvTimeoutError, Sender};
@@ -195,7 +195,7 @@ pub enum ScriptThreadMessage {
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
-    TickAllAnimations(PipelineId, AnimationTickType),
+    TickAllAnimations(Vec<WebViewId>),
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId, bool /* success */),
