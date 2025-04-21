@@ -43,7 +43,7 @@ impl WorkerActor {
             actor: self.name.clone(),
             console_actor: self.console.clone(),
             thread_actor: self.thread.clone(),
-            worker_id: self.worker_id.0.to_string(),
+            id: self.worker_id.0.to_string(),
             url: self.url.to_string(),
             traits: WorkerTraits {
                 is_parent_intercept_enabled: false,
@@ -157,7 +157,7 @@ pub(crate) struct WorkerMsg {
     actor: String,
     console_actor: String,
     thread_actor: String,
-    worker_id: String,
+    id: String,
     url: String,
     traits: WorkerTraits,
     #[serde(rename = "type")]
