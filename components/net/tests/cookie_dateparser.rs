@@ -9,7 +9,7 @@ use time::{Date, Month, OffsetDateTime, Time};
 #[test]
 fn test_extract_expiry() -> Result<(), ComponentRange> {
     assert_eq!(
-        extract_expiry("test=1; expires=01 jan 2024 12:59:59 GMT; Path=/"),
+        extract_expiry("test=1; expires=1 jan 2024 12:59:59 GMT; Path=/"),
         Some(OffsetDateTime::new_utc(
             Date::from_calendar_date(2024, Month::January, 1)?,
             Time::from_hms(12, 59, 59)?,
