@@ -8,7 +8,7 @@ use std::collections::hash_map::Keys;
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
-use compositing_traits::{RendererWebView, SendableFrameTree};
+use compositing_traits::{SendableFrameTree, WebViewTrait};
 use constellation_traits::{EmbedderToConstellationMessage, ScrollState, WindowSizeType};
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, InputEvent, MouseButton, MouseButtonAction,
@@ -55,13 +55,16 @@ enum ScrollZoomEvent {
     Scroll(ScrollEvent),
 }
 
-pub(crate) struct WebView {
+/// A renderer for a libservo `WebView`. This is essentially the [`ServoRenderer`]'s interface to a
+/// libservo `WebView`, but the code here cannot depend on libservo in order to prevent circular
+/// dependencies, which is why we store a `dyn WebViewTrait` here instead of the `WebView` itself.
+pub(crate) struct WebViewRenderer {
     /// The [`WebViewId`] of the `WebView` associated with this [`WebViewDetails`].
     pub id: WebViewId,
     /// The renderer's view of the embedding layer `WebView` as a trait implementation,
     /// so that the renderer doesn't need to depend on the embedding layer. This avoids
     /// a dependency cycle.
-    pub renderer_webview: Box<dyn RendererWebView>,
+    pub webview: Box<dyn WebViewTrait>,
     /// The root [`PipelineId`] of the currently displayed page in this WebView.
     pub root_pipeline_id: Option<PipelineId>,
     pub rect: DeviceRect,
@@ -85,7 +88,7 @@ pub(crate) struct WebView {
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
 }
 
-impl Drop for WebView {
+impl Drop for WebViewRenderer {
     fn drop(&mut self) {
         self.global
             .borrow_mut()
@@ -94,17 +97,17 @@ impl Drop for WebView {
     }
 }
 
-impl WebView {
+impl WebViewRenderer {
     pub(crate) fn new(
         global: Rc<RefCell<ServoRenderer>>,
-        renderer_webview: Box<dyn RendererWebView>,
+        renderer_webview: Box<dyn WebViewTrait>,
         viewport_details: ViewportDetails,
     ) -> Self {
         let hidpi_scale_factor = viewport_details.hidpi_scale_factor;
         let size = viewport_details.size * viewport_details.hidpi_scale_factor;
         Self {
             id: renderer_webview.id(),
-            renderer_webview,
+            webview: renderer_webview,
             root_pipeline_id: None,
             rect: DeviceRect::from_origin_and_size(DevicePoint::origin(), size),
             pipelines: Default::default(),
@@ -269,7 +272,7 @@ impl WebView {
         };
 
         let animating = self.pipelines.values().any(PipelineDetails::animating);
-        self.renderer_webview.set_animating(animating);
+        self.webview.set_animating(animating);
         throttled
     }
 
@@ -954,7 +957,7 @@ impl WebView {
         &self,
         rendering_context_size: Size2D<u32, DevicePixel>,
     ) -> Box2D<i32, DeviceIndependentPixel> {
-        let screen_geometry = self.renderer_webview.screen_geometry().unwrap_or_default();
+        let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
         let rect = DeviceIntRect::from_origin_and_size(
             screen_geometry.offset,
             rendering_context_size.to_i32(),
@@ -965,12 +968,12 @@ impl WebView {
     }
 
     pub(crate) fn screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
-        let screen_geometry = self.renderer_webview.screen_geometry().unwrap_or_default();
+        let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
         (screen_geometry.size.to_f32() / self.hidpi_scale_factor).to_i32()
     }
 
     pub(crate) fn available_screen_size(&self) -> Size2D<i32, DeviceIndependentPixel> {
-        let screen_geometry = self.renderer_webview.screen_geometry().unwrap_or_default();
+        let screen_geometry = self.webview.screen_geometry().unwrap_or_default();
         (screen_geometry.available_size.to_f32() / self.hidpi_scale_factor).to_i32()
     }
 }

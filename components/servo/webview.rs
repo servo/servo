@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use base::id::WebViewId;
 use compositing::IOCompositor;
-use compositing_traits::RendererWebView;
+use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -558,7 +558,7 @@ struct ServoRendererWebView {
     weak_handle: Weak<RefCell<WebViewInner>>,
 }
 
-impl RendererWebView for ServoRendererWebView {
+impl WebViewTrait for ServoRendererWebView {
     fn id(&self) -> WebViewId {
         self.id
     }
