@@ -4321,6 +4321,7 @@ dependencies = [
  "servo-media",
  "servo-media-dummy",
  "servo-media-gstreamer",
+ "servo-tracing",
  "servo_allocator",
  "servo_config",
  "servo_geometry",
@@ -6735,6 +6736,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo-tracing"
+version = "0.0.1"
+dependencies = [
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "servo_allocator"
 version = "0.0.1"
 dependencies = [
@@ -6891,6 +6902,7 @@ dependencies = [
  "raw-window-handle",
  "rustls",
  "serde_json",
+ "servo-tracing",
  "servo_allocator",
  "shellwords",
  "sig",

@@ -125,6 +125,7 @@ serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
+servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
 smallbitvec = "2.6.0"
 smallvec = "1.15"
