@@ -378,7 +378,7 @@ fn initialize_response(
     can_gc: CanGc,
     body: Option<ExtractedBody>,
     init: &ResponseBinding::ResponseInit,
-    r: DomRoot<Response>,
+    response: DomRoot<Response>,
 ) -> Result<DomRoot<Response>, Error> {
     // 1. If init["status"] is not in the range 200 to 599, inclusive, then throw a RangeError.
     if init.status < 200 || init.status > 599 {
@@ -399,11 +399,14 @@ fn initialize_response(
 
     // 3. Set response’s response’s status to init["status"].
     // 4. Set response’s response’s status message to init["statusText"].
-    *r.status.borrow_mut() = HttpStatus::new_raw(init.status, init.statusText.clone().into());
+    *response.status.borrow_mut() =
+        HttpStatus::new_raw(init.status, init.statusText.clone().into());
 
     // 5. If init["headers"] exists, then fill response’s headers with init["headers"].
     if let Some(ref headers_member) = init.headers {
-        r.Headers(can_gc).fill(Some(headers_member.clone()))?;
+        response
+            .Headers(can_gc)
+            .fill(Some(headers_member.clone()))?;
     }
 
     // 6. If body is non-null, then:
@@ -416,17 +419,17 @@ fn initialize_response(
         };
 
         // 6.2 Set response’s body to body’s body.
-        r.body_stream.set(Some(&*body.stream));
+        response.body_stream.set(Some(&*body.stream));
 
         // 6.3 If body’s type is non-null and response’s header list does not contain `Content-Type`,
         // then append (`Content-Type`, body’s type) to response’s header list.
         if let Some(content_type_contents) = &body.content_type {
-            if !r
+            if !response
                 .Headers(can_gc)
                 .Has(ByteString::new(b"Content-Type".to_vec()))
                 .unwrap()
             {
-                r.Headers(can_gc).Append(
+                response.Headers(can_gc).Append(
                     ByteString::new(b"Content-Type".to_vec()),
                     ByteString::new(content_type_contents.as_bytes().to_vec()),
                 )?;
@@ -437,10 +440,10 @@ fn initialize_response(
         // no-init-body case. This is because the Response/Body types here do not hold onto a
         // fetch Response object.
         let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0), can_gc)?;
-        r.body_stream.set(Some(&*stream));
+        response.body_stream.set(Some(&*stream));
     }
 
-    Ok(r)
+    Ok(response)
 }
 
 fn serialize_without_fragment(url: &ServoUrl) -> &str {
