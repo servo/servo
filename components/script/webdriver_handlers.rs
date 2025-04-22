@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cmp;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::NonNull;
 
@@ -183,12 +183,38 @@ unsafe fn is_arguments_object(cx: *mut JSContext, value: HandleValue) -> bool {
     jsstring_to_str(cx, class_name) == "[object Arguments]"
 }
 
+#[derive(Eq, Hash, PartialEq)]
+struct HashableJSVal(u64);
+
+impl From<HandleValue<'_>> for HashableJSVal {
+    fn from(v: HandleValue<'_>) -> HashableJSVal {
+        HashableJSVal(v.get().asBits_)
+    }
+}
+
 #[allow(unsafe_code)]
 pub(crate) unsafe fn jsval_to_webdriver(
     cx: *mut JSContext,
     global_scope: &GlobalScope,
     val: HandleValue,
 ) -> WebDriverJSResult {
+    let mut seen = HashSet::new();
+    jsval_to_webdriver_inner(cx, global_scope, val, &mut seen)
+}
+
+#[allow(unsafe_code)]
+unsafe fn jsval_to_webdriver_inner(
+    cx: *mut JSContext,
+    global_scope: &GlobalScope,
+    val: HandleValue,
+    seen: &mut HashSet<HashableJSVal>,
+) -> WebDriverJSResult {
+    let hashable = val.into();
+    if seen.contains(&hashable) {
+        return Err(WebDriverJSError::JSError);
+    }
+    seen.insert(hashable);
+
     let _ac = enter_realm(global_scope);
     if val.get().is_undefined() {
         Ok(WebDriverJSValue::Undefined)
@@ -254,9 +280,11 @@ pub(crate) unsafe fn jsval_to_webdriver(
             for i in 0..length {
                 rooted!(in(cx) let mut item = UndefinedValue());
                 match get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut()) {
-                    Ok(_) => match jsval_to_webdriver(cx, global_scope, item.handle()) {
-                        Ok(converted_item) => result.push(converted_item),
-                        err @ Err(_) => return err,
+                    Ok(_) => {
+                        match jsval_to_webdriver_inner(cx, global_scope, item.handle(), seen) {
+                            Ok(converted_item) => result.push(converted_item),
+                            err @ Err(_) => return err,
+                        }
                     },
                     Err(error) => {
                         throw_dom_exception(
@@ -298,7 +326,7 @@ pub(crate) unsafe fn jsval_to_webdriver(
                 &HandleValueArray::empty(),
                 value.handle_mut(),
             ) {
-                jsval_to_webdriver(cx, global_scope, value.handle())
+                jsval_to_webdriver_inner(cx, global_scope, value.handle(), seen)
             } else {
                 throw_dom_exception(
                     SafeJSContext::from_ptr(cx),
@@ -349,7 +377,9 @@ pub(crate) unsafe fn jsval_to_webdriver(
                         return Err(WebDriverJSError::JSError);
                     };
 
-                    if let Ok(value) = jsval_to_webdriver(cx, global_scope, property.handle()) {
+                    if let Ok(value) =
+                        jsval_to_webdriver_inner(cx, global_scope, property.handle(), seen)
+                    {
                         result.insert(name.into(), value);
                     } else {
                         return Err(WebDriverJSError::JSError);
@@ -421,9 +451,7 @@ pub(crate) fn handle_execute_async_script(
                 global_scope.api_base_url(),
                 can_gc,
             ) {
-                reply_sender
-                    .send(Err(WebDriverJSError::JSError))
-                    .unwrap();
+                reply_sender.send(Err(WebDriverJSError::JSError)).unwrap();
             }
         },
         None => {
