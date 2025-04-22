@@ -8,11 +8,12 @@
 
 use std::cell::Cell;
 use std::fmt;
+use std::marker::PhantomData;
 use std::num::NonZeroU32;
 use std::sync::{Arc, LazyLock};
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use malloc_size_of::malloc_size_of_is_0;
+use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
@@ -26,44 +27,88 @@ macro_rules! size_of_test {
     };
 }
 
-macro_rules! namespace_id_method {
-    ($func_name:ident, $func_return_data_type:ident, $self:ident, $index_name:ident) => {
-        fn $func_name(&mut $self) -> $func_return_data_type {
-            $func_return_data_type {
-                namespace_id: $self.id,
-                index: $index_name($self.next_index()),
-            }
-        }
-    };
+/// A type that implements this trait is expected to be used as part of
+/// the [NamespaceIndex] type.
+pub trait Indexable {
+    /// The string prefix to display when debug printing an instance of
+    /// this type.
+    const DISPLAY_PREFIX: &'static str;
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+/// A non-zero index, associated with a particular type.
+pub struct Index<T>(pub NonZeroU32, pub PhantomData<T>);
+
+#[derive(Debug)]
+/// An attempt to create a new [Index] value failed because the index value
+/// was zero.
+pub struct ZeroIndex;
+
+impl<T> Index<T> {
+    /// Creates a new instance of [Index] with the given value.
+    /// Returns an error if the value is zero.
+    pub fn new(value: u32) -> Result<Index<T>, ZeroIndex> {
+        Ok(Index(NonZeroU32::new(value).ok_or(ZeroIndex)?, PhantomData))
+    }
+}
+
+impl<T> malloc_size_of::MallocSizeOf for Index<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
+#[derive(
+    Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+/// A pipeline-namespaced index associated with a particular type.
+pub struct NamespaceIndex<T> {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: Index<T>,
+}
+
+impl<T> fmt::Debug for NamespaceIndex<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let Index(index, _) = self.index;
+        write!(fmt, "({},{})", namespace_id, index.get())
+    }
+}
+
+impl<T: Indexable> fmt::Display for NamespaceIndex<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}{:?}", T::DISPLAY_PREFIX, self)
+    }
 }
 
 macro_rules! namespace_id {
     ($id_name:ident, $index_name:ident, $display_prefix:literal) => {
         #[derive(
-            Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
+            Clone,
+            Copy,
+            Debug,
+            Deserialize,
+            Eq,
+            Hash,
+            Ord,
+            PartialEq,
+            PartialOrd,
+            Serialize,
+            MallocSizeOf,
         )]
-        pub struct $index_name(pub NonZeroU32);
-        malloc_size_of_is_0!($index_name);
-
-        #[derive(
-            Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-        )]
-        pub struct $id_name {
-            pub namespace_id: PipelineNamespaceId,
-            pub index: $index_name,
+        pub struct $index_name;
+        impl Indexable for $index_name {
+            const DISPLAY_PREFIX: &'static str = $display_prefix;
         }
-
-        impl fmt::Debug for $id_name {
-            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                let PipelineNamespaceId(namespace_id) = self.namespace_id;
-                let $index_name(index) = self.index;
-                write!(fmt, "({},{})", namespace_id, index.get())
-            }
-        }
-
-        impl fmt::Display for $id_name {
-            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                write!(fmt, "{}{:?}", $display_prefix, self)
+        pub type $id_name = NamespaceIndex<$index_name>;
+        impl $id_name {
+            pub fn new() -> $id_name {
+                PIPELINE_NAMESPACE.with(|tls| {
+                    let mut namespace = tls.get().expect("No namespace set for this thread!");
+                    let next_id = namespace.next_namespace_index();
+                    tls.set(Some(namespace));
+                    next_id
+                })
             }
         }
     };
@@ -185,18 +230,12 @@ impl PipelineNamespace {
         NonZeroU32::new(self.index).expect("pipeline id index wrapped!")
     }
 
-    namespace_id_method! {next_pipeline_id, PipelineId, self, PipelineIndex}
-    namespace_id_method! {next_browsing_context_id, BrowsingContextId, self, BrowsingContextIndex}
-    namespace_id_method! {next_history_state_id, HistoryStateId, self, HistoryStateIndex}
-    namespace_id_method! {next_message_port_id, MessagePortId, self, MessagePortIndex}
-    namespace_id_method! {next_message_port_router_id, MessagePortRouterId, self, MessagePortRouterIndex}
-    namespace_id_method! {next_broadcast_channel_router_id, BroadcastChannelRouterId, self, BroadcastChannelRouterIndex}
-    namespace_id_method! {next_service_worker_id, ServiceWorkerId, self, ServiceWorkerIndex}
-    namespace_id_method! {next_service_worker_registration_id, ServiceWorkerRegistrationId,
-    self, ServiceWorkerRegistrationIndex}
-    namespace_id_method! {next_blob_id, BlobId, self, BlobIndex}
-    namespace_id_method! {next_dom_point_id, DomPointId, self, DomPointIndex}
-    namespace_id_method! {next_dom_exception_id, DomExceptionId, self, DomExceptionIndex}
+    fn next_namespace_index<T>(&mut self) -> NamespaceIndex<T> {
+        NamespaceIndex {
+            namespace_id: self.id,
+            index: Index(self.next_index(), PhantomData),
+        }
+    }
 }
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = const { Cell::new(None) });
@@ -212,15 +251,6 @@ size_of_test!(PipelineId, 8);
 size_of_test!(Option<PipelineId>, 8);
 
 impl PipelineId {
-    pub fn new() -> PipelineId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let new_pipeline_id = namespace.next_pipeline_id();
-            tls.set(Some(namespace));
-            new_pipeline_id
-        })
-    }
-
     pub fn root_scroll_id(&self) -> webrender_api::ExternalScrollId {
         ExternalScrollId(0, self.into())
     }
@@ -233,7 +263,7 @@ impl From<WebRenderPipelineId> for PipelineId {
         unsafe {
             PipelineId {
                 namespace_id: PipelineNamespaceId(namespace_id),
-                index: PipelineIndex(NonZeroU32::new_unchecked(index)),
+                index: Index(NonZeroU32::new_unchecked(index), PhantomData),
             }
         }
     }
@@ -242,7 +272,7 @@ impl From<WebRenderPipelineId> for PipelineId {
 impl From<PipelineId> for WebRenderPipelineId {
     fn from(value: PipelineId) -> Self {
         let PipelineNamespaceId(namespace_id) = value.namespace_id;
-        let PipelineIndex(index) = value.index;
+        let Index(index, _) = value.index;
         WebRenderPipelineId(namespace_id, index.get())
     }
 }
@@ -257,17 +287,6 @@ namespace_id! {BrowsingContextId, BrowsingContextIndex, "BrowsingContext"}
 
 size_of_test!(BrowsingContextId, 8);
 size_of_test!(Option<BrowsingContextId>, 8);
-
-impl BrowsingContextId {
-    pub fn new() -> Self {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let new_browsing_context_id = namespace.next_browsing_context_id();
-            tls.set(Some(namespace));
-            new_browsing_context_id
-        })
-    }
-}
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct BrowsingContextGroupId(pub u32);
@@ -336,134 +355,34 @@ impl PartialEq<BrowsingContextId> for WebViewId {
 
 namespace_id! {MessagePortId, MessagePortIndex, "MessagePort"}
 
-impl MessagePortId {
-    pub fn new() -> MessagePortId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_message_port_id = namespace.next_message_port_id();
-            tls.set(Some(namespace));
-            next_message_port_id
-        })
-    }
-}
-
 namespace_id! {MessagePortRouterId, MessagePortRouterIndex, "MessagePortRouter"}
-
-impl MessagePortRouterId {
-    pub fn new() -> MessagePortRouterId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_message_port_router_id = namespace.next_message_port_router_id();
-            tls.set(Some(namespace));
-            next_message_port_router_id
-        })
-    }
-}
 
 namespace_id! {BroadcastChannelRouterId, BroadcastChannelRouterIndex, "BroadcastChannelRouter"}
 
-impl BroadcastChannelRouterId {
-    pub fn new() -> BroadcastChannelRouterId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_broadcast_channel_router_id = namespace.next_broadcast_channel_router_id();
-            tls.set(Some(namespace));
-            next_broadcast_channel_router_id
-        })
-    }
-}
-
 namespace_id! {ServiceWorkerId, ServiceWorkerIndex, "ServiceWorker"}
-
-impl ServiceWorkerId {
-    pub fn new() -> ServiceWorkerId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_service_worker_id = namespace.next_service_worker_id();
-            tls.set(Some(namespace));
-            next_service_worker_id
-        })
-    }
-}
 
 namespace_id! {ServiceWorkerRegistrationId, ServiceWorkerRegistrationIndex, "ServiceWorkerRegistration"}
 
-impl ServiceWorkerRegistrationId {
-    pub fn new() -> ServiceWorkerRegistrationId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_service_worker_registration_id =
-                namespace.next_service_worker_registration_id();
-            tls.set(Some(namespace));
-            next_service_worker_registration_id
-        })
-    }
-}
-
 namespace_id! {BlobId, BlobIndex, "Blob"}
-
-impl BlobId {
-    pub fn new() -> BlobId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_blob_id = namespace.next_blob_id();
-            tls.set(Some(namespace));
-            next_blob_id
-        })
-    }
-}
 
 namespace_id! {DomPointId, DomPointIndex, "DomPoint"}
 
-impl DomPointId {
-    pub fn new() -> DomPointId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_point_id = namespace.next_dom_point_id();
-            tls.set(Some(namespace));
-            next_point_id
-        })
-    }
-}
-
 namespace_id! {DomExceptionId, DomExceptionIndex, "DomException"}
 
-impl DomExceptionId {
-    pub fn new() -> DomExceptionId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_exception_id = namespace.next_dom_exception_id();
-            tls.set(Some(namespace));
-            next_exception_id
-        })
-    }
-}
-
 namespace_id! {HistoryStateId, HistoryStateIndex, "HistoryState"}
-
-impl HistoryStateId {
-    pub fn new() -> HistoryStateId {
-        PIPELINE_NAMESPACE.with(|tls| {
-            let mut namespace = tls.get().expect("No namespace set for this thread!");
-            let next_history_state_id = namespace.next_history_state_id();
-            tls.set(Some(namespace));
-            next_history_state_id
-        })
-    }
-}
 
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 #[allow(unsafe_code)]
-pub const TEST_PIPELINE_INDEX: PipelineIndex =
-    unsafe { PipelineIndex(NonZeroU32::new_unchecked(5678)) };
+pub const TEST_PIPELINE_INDEX: Index<PipelineIndex> =
+    unsafe { Index(NonZeroU32::new_unchecked(5678), PhantomData) };
 pub const TEST_PIPELINE_ID: PipelineId = PipelineId {
     namespace_id: TEST_NAMESPACE,
     index: TEST_PIPELINE_INDEX,
 };
 #[allow(unsafe_code)]
-pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex =
-    unsafe { BrowsingContextIndex(NonZeroU32::new_unchecked(8765)) };
+pub const TEST_BROWSING_CONTEXT_INDEX: Index<BrowsingContextIndex> =
+    unsafe { Index(NonZeroU32::new_unchecked(8765), PhantomData) };
 pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId = BrowsingContextId {
     namespace_id: TEST_NAMESPACE,
     index: TEST_BROWSING_CONTEXT_INDEX,

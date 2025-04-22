@@ -4,11 +4,10 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::num::NonZeroU32;
 use std::ptr;
 use std::rc::Rc;
 
-use base::id::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
+use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::{MessagePortImpl, PortMessageTask};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JS_NewObject, JSObject};
@@ -26,7 +25,7 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::{self, StructuredData, StructuredDataReader};
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::transferable::{ExtractComponents, IdFromComponents, Transferable};
+use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -239,7 +238,7 @@ impl MessagePort {
 }
 
 impl Transferable for MessagePort {
-    type Id = MessagePortId;
+    type Index = MessagePortIndex;
     type Data = MessagePortImpl;
 
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
@@ -269,7 +268,9 @@ impl Transferable for MessagePort {
         Ok(transferred_port)
     }
 
-    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage(
+        data: StructuredData<'_>,
+    ) -> &mut Option<HashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
             StructuredData::Writer(w) => &mut w.ports,
@@ -278,21 +279,6 @@ impl Transferable for MessagePort {
 
     fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>> {
         &mut reader.message_ports
-    }
-}
-
-impl IdFromComponents for MessagePortId {
-    fn from(namespace_id: PipelineNamespaceId, index: NonZeroU32) -> MessagePortId {
-        MessagePortId {
-            namespace_id,
-            index: MessagePortIndex(index),
-        }
-    }
-}
-
-impl ExtractComponents for MessagePortId {
-    fn components(&self) -> (PipelineNamespaceId, NonZeroU32) {
-        (self.namespace_id, self.index.0)
     }
 }
 

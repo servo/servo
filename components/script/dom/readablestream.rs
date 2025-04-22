@@ -8,6 +8,8 @@ use std::ptr::{self};
 use std::rc::Rc;
 use std::collections::HashMap;
 
+use base::id::{MessagePortId, MessagePortIndex};
+use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
@@ -56,8 +58,6 @@ use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use base::id::MessagePortId;
-use constellation_traits::MessagePortImpl;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
 
@@ -2179,7 +2179,7 @@ pub(crate) fn get_read_promise_bytes(
 
 /// <https://streams.spec.whatwg.org/#rs-transfer>
 impl Transferable for ReadableStream {
-    type Id = MessagePortId;
+    type Index = MessagePortIndex;
     type Data = MessagePortImpl;
 
     /// <https://streams.spec.whatwg.org/#ref-for-readablestream%E2%91%A1%E2%91%A0>
@@ -2247,7 +2247,9 @@ impl Transferable for ReadableStream {
     }
 
     /// Note: we are relying on the port transfer, so the data returned here are related to the port.
-    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage(
+        data: StructuredData<'_>,
+    ) -> &mut Option<HashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
             StructuredData::Writer(w) => &mut w.ports,

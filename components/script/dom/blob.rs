@@ -3,11 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::num::NonZeroU32;
 use std::ptr;
 use std::rc::Rc;
 
-use base::id::{BlobId, BlobIndex, PipelineNamespaceId};
+use base::id::{BlobId, BlobIndex};
 use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
@@ -25,7 +24,7 @@ use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlo
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{IntoStorageKey, Serializable, StorageKey};
+use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
 use crate::dom::globalscope::GlobalScope;
@@ -94,7 +93,7 @@ impl Blob {
 }
 
 impl Serializable for Blob {
-    type Id = BlobId;
+    type Index = BlobIndex;
     type Data = BlobImpl;
 
     /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
@@ -120,9 +119,7 @@ impl Serializable for Blob {
         Ok(deserialized_blob)
     }
 
-    fn serialized_storage(
-        reader: StructuredData<'_>,
-    ) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage(reader: StructuredData<'_>) -> &mut Option<HashMap<BlobId, Self::Data>> {
         match reader {
             StructuredData::Reader(r) => &mut r.blob_impls,
             StructuredData::Writer(w) => &mut w.blobs,
@@ -133,26 +130,6 @@ impl Serializable for Blob {
         data: &mut StructuredDataReader,
     ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
         &mut data.blobs
-    }
-}
-
-impl From<StorageKey> for BlobId {
-    fn from(storage_key: StorageKey) -> BlobId {
-        let namespace_id = PipelineNamespaceId(storage_key.name_space);
-        let index =
-            BlobIndex(NonZeroU32::new(storage_key.index).expect("Deserialized blob index is zero"));
-
-        BlobId {
-            namespace_id,
-            index,
-        }
-    }
-}
-
-impl IntoStorageKey for BlobId {
-    fn into_storage_key(self) -> StorageKey {
-        let BlobIndex(index) = self.index;
-        StorageKey::new(self.namespace_id, index)
     }
 }
 
