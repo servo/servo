@@ -290,6 +290,32 @@ pub trait FetchResponseListener {
     fn process_csp_violations(&mut self, request_id: RequestId, violations: Vec<csp::Violation>);
 }
 
+impl FetchTaskTarget for IpcSender<WebSocketNetworkEvent> {
+    fn process_request_body(&mut self, _request: &Request) {
+        unreachable!()
+    }
+
+    fn process_request_eof(&mut self, _request: &Request) {
+        unreachable!()
+    }
+
+    fn process_response(&mut self, _request: &Request, _response: &Response) {
+        unreachable!()
+    }
+
+    fn process_response_chunk(&mut self, _request: &Request, _chunk: Vec<u8>) {
+        unreachable!()
+    }
+
+    fn process_response_eof(&mut self, _request: &Request, _response: &Response) {
+        unreachable!()
+    }
+
+    fn process_csp_violations(&mut self, _request: &Request, _violations: Vec<csp::Violation>) {
+        todo!()
+    }
+}
+
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     fn process_request_body(&mut self, request: &Request) {
         let _ = self.send(FetchResponseMsg::ProcessRequestBody(request.id));
