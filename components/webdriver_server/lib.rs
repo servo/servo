@@ -1915,6 +1915,15 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
     }
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-web-element-identifier>
+const ELEMENT_IDENTIFIER: &str = "element-6066-11e4-a52e-4f735466cecf";
+/// <https://w3c.github.io/webdriver/#dfn-web-frame-identifier>
+const FRAME_IDENTIFIER: &str = "frame-075b-4da1-b6ba-e579c2d3230a";
+/// <https://w3c.github.io/webdriver/#dfn-web-window-identifier>
+const WINDOW_IDENTIFIER: &str = "window-fcc6-11e5-b4f8-330a88ab9d7f";
+/// <https://w3c.github.io/webdriver/#dfn-shadow-root-identifier>
+const SHADOW_ROOT_IDENTIFIER: &str = "shadow-6066-11e4-a52e-4f735466cecf";
+
 fn webdriver_value_to_js_argument(v: &Value) -> String {
     match v {
         Value::String(s) => format!("\"{}\"", s),
@@ -1929,6 +1938,22 @@ fn webdriver_value_to_js_argument(v: &Value) -> String {
             format!("[{}]", elems.join(", "))
         },
         Value::Object(map) => {
+            let key = map.keys().next().map(String::as_str);
+            match (key, map.values().next()) {
+                (Some(ELEMENT_IDENTIFIER), Some(id)) => {
+                    return format!("window.webdriverElement({})", id);
+                },
+                (Some(FRAME_IDENTIFIER), Some(id)) => {
+                    return format!("window.webdriverFrame({})", id);
+                },
+                (Some(WINDOW_IDENTIFIER), Some(id)) => {
+                    return format!("window.webdriverWindow({})", id);
+                },
+                (Some(SHADOW_ROOT_IDENTIFIER), Some(id)) => {
+                    return format!("window.webdriverShadowRoot({})", id);
+                },
+                _ => {},
+            }
             let elems = map
                 .iter()
                 .map(|(k, v)| format!("{}: {}", k, webdriver_value_to_js_argument(v)))
