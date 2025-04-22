@@ -31,7 +31,7 @@ updates:
     servo-media-related:
       patterns:
         - "servo-media*"
-     objc2-related:
+    objc2-related:
       patterns:
         - "objc2*"
   ignore:
