@@ -19,17 +19,21 @@ impl From<MetaList> for Fields {
 }
 
 impl Fields {
+    fn create_with_servo_profiling() -> Self {
+        Fields(parse_quote! { fields(servo_profiling = true) })
+    }
+
     fn inject_servo_profiling(&mut self) -> syn::Result<()> {
-        let mut servo_profiling_given = false;
-        let metalist = std::mem::replace(&mut self.0, parse_quote! {fields()});
+        let metalist = std::mem::replace(&mut self.0, parse_quote! {field()});
 
         let arguments: Punctuated<Meta, Comma> =
             Punctuated::parse_terminated.parse2(metalist.tokens)?;
-        for arg in arguments.iter() {
-            servo_profiling_given |= arg.path().is_ident("servo_profiling");
-        }
 
-        let metalist = if servo_profiling_given {
+        let servo_profile_given = arguments
+            .iter()
+            .any(|arg| arg.path().is_ident("servo_profiling"));
+
+        let metalist = if servo_profile_given {
             parse_quote! {
                 fields(#arguments)
             }
@@ -57,11 +61,13 @@ enum Directive {
     Fields(Fields),
 }
 
-impl Directive {
-    fn is_fields(&self) -> bool {
-        matches!(self, Directive::Fields(..))
+impl From<Fields> for Directive {
+    fn from(value: Fields) -> Self {
+        Directive::Fields(value)
     }
+}
 
+impl Directive {
     fn is_level(&self) -> bool {
         matches!(self, Directive::Level(..))
     }
@@ -94,23 +100,15 @@ struct InstrumentConfiguration(Vec<Directive>);
 
 impl InstrumentConfiguration {
     fn inject_servo_profiling(&mut self) -> syn::Result<()> {
-        // establish invariant that self.0 has a Directive::Fields.
-
-        let contains = self.0.iter().any(|a| a.is_fields());
-        if !contains {
-            self.0.push(Directive::Fields(Fields(
-                parse_quote! { fields(servo_profiling = true) },
-            )));
+        let fields = self.0.iter_mut().find_map(Directive::fields_mut);
+        match fields {
+            None => {
+                self.0
+                    .push(Directive::from(Fields::create_with_servo_profiling()));
+                Ok(())
+            },
+            Some(fields) => fields.inject_servo_profiling(),
         }
-        let component = self.0.iter_mut().find(|a| a.is_fields()).unwrap();
-
-        assert!(matches!(component, Directive::Fields(..)));
-        // this will always be Some(fields);
-        let Some(fields) = component.fields_mut() else {
-            unreachable!("We have established that there is always a Directive::fields")
-        };
-
-        fields.inject_servo_profiling()
     }
 
     fn inject_level(&mut self) {
@@ -172,6 +170,8 @@ fn instrument_internal(
 ///  - setting the attribute behind the "tracing" flag
 ///  - adding `servo_profiling = true` in the `tracing::instrument(fields(...))` argument.
 ///  - setting `level = "trace"` if it is not given.
+///
+/// This macro assumes the consuming crate has a `tracing` feature flag.
 ///
 /// We need to be able to set the following
 /// ```

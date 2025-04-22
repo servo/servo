@@ -1,5 +1,5 @@
 [package]
-name = "servo_tracing"
+name = "servo-tracing"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true
@@ -13,7 +13,6 @@ proc-macro2 = { workspace = true }
 syn = { version = "2", features = ["full"] }
 
 [lib]
-name = "servo_tracing"
 path = "lib.rs"
 proc-macro = true
 doctest = false
