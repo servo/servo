@@ -2247,9 +2247,6 @@ impl Node {
         };
 
         // Step 4.
-        Node::adopt(node, &parent.owner_document(), can_gc);
-
-        // Step 5.
         Node::insert(
             node,
             parent,
@@ -2258,7 +2255,7 @@ impl Node {
             can_gc,
         );
 
-        // Step 6.
+        // Step 5.
         Ok(DomRoot::from_ref(node))
     }
 
@@ -2270,49 +2267,64 @@ impl Node {
         suppress_observers: SuppressObserver,
         can_gc: CanGc,
     ) {
-        node.owner_doc().add_script_and_layout_blocker();
-        debug_assert!(*node.owner_doc() == *parent.owner_doc());
         debug_assert!(child.is_none_or(|child| Some(parent) == child.GetParentNode().as_deref()));
 
-        // Step 1.
-        let count = if node.is::<DocumentFragment>() {
-            node.children_count()
-        } else {
-            1
-        };
-        // Step 2.
-        if let Some(child) = child {
-            if !parent.ranges_is_empty() {
-                let index = child.index();
-                // Steps 2.1-2.
-                parent.ranges().increase_above(parent, index, count);
-            }
-        }
+        // Step 1. Let nodes be node’s children, if node is a DocumentFragment node; otherwise « node ».
         rooted_vec!(let mut new_nodes);
         let new_nodes = if let NodeTypeId::DocumentFragment(_) = node.type_id() {
-            // Step 3.
-            new_nodes.extend(node.children().map(|kid| Dom::from_ref(&*kid)));
-            // Step 4.
-            for kid in &*new_nodes {
+            new_nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
+            new_nodes.r()
+        } else {
+            from_ref(&node)
+        };
+
+        // Step 2. Let count be nodes’s size.
+        let count = new_nodes.len();
+
+        // Step 3. If count is 0, then return.
+        if count == 0 {
+            return;
+        }
+
+        // Script and layout blockers must be added after any early return.
+        // `node.owner_doc()` may change during the algorithm.
+        let parent_document = parent.owner_doc();
+        let from_document = node.owner_doc();
+        from_document.add_script_and_layout_blocker();
+        parent_document.add_script_and_layout_blocker();
+
+        // Step 4. If node is a DocumentFragment node:
+        if let NodeTypeId::DocumentFragment(_) = node.type_id() {
+            // Step 4.1. Remove its children with the suppress observers flag set.
+            for kid in new_nodes {
                 Node::remove(kid, node, SuppressObserver::Suppressed, can_gc);
             }
-            // Step 5.
-            vtable_for(node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
+            vtable_for(node).children_changed(&ChildrenMutation::replace_all(new_nodes, &[]));
 
+            // Step 4.2. Queue a tree mutation record for node with « », nodes, null, and null.
             let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: None,
-                removed: Some(new_nodes.r()),
+                removed: Some(new_nodes),
                 prev: None,
                 next: None,
             });
             MutationObserver::queue_a_mutation_record(node, mutation);
+        }
 
-            new_nodes.r()
-        } else {
-            // Step 3.
-            from_ref(&node)
-        };
-        // Step 6.
+        // Step 5. If child is non-null:
+	    //     1. For each live range whose start node is parent and start offset is
+	    //        greater than child’s index, increase its start offset by count.
+	    //     2. For each live range whose end node is parent and end offset is
+	    //        greater than child’s index, increase its end offset by count.
+        if let Some(child) = child {
+            if !parent.ranges_is_empty() {
+                parent
+                    .ranges()
+                    .increase_above(parent, child.index(), count.try_into().unwrap());
+            }
+        }
+
+        // Step 6. Let previousSibling be child’s previous sibling or parent’s last child if child is null.
         let previous_sibling = match suppress_observers {
             SuppressObserver::Unsuppressed => match child {
                 Some(child) => child.GetPreviousSibling(),
@@ -2320,9 +2332,14 @@ impl Node {
             },
             SuppressObserver::Suppressed => None,
         };
-        // Step 7.
+
+        // Step 7. For each node in nodes, in tree order:
         for kid in new_nodes {
-            // Step 7.1.
+            // Step 7.1. Adopt node into parent’s node document.
+            Node::adopt(kid, &parent.owner_document(), can_gc);
+
+            // Step 7.2. If child is null, then append node to parent’s children.
+            // Step 7.3. Otherwise, insert node into parent’s children before child’s index.
             parent.add_child(kid, child, can_gc);
 
             // Step 7.4 If parent is a shadow host whose shadow root’s slot assignment is "named"
@@ -2351,12 +2368,17 @@ impl Node {
             kid.GetRootNode(&GetRootNodeOptions::empty())
                 .assign_slottables_for_a_tree();
 
-            // Step 7.7.
+            // Step 7.7. For each shadow-including inclusive descendant inclusiveDescendant of node,
+            // in shadow-including tree order:
             for descendant in kid
                 .traverse_preorder(ShadowIncluding::Yes)
                 .filter_map(DomRoot::downcast::<Element>)
             {
+                // Step 7.7.1. Run the insertion steps with inclusiveDescendant.
+                // This is done in `parent.add_child()`.
+
                 // Step 7.7.2, whatwg/dom#833
+                // Enqueue connected reactions for custom elements or try upgrade.
                 if descendant.is_custom() {
                     if descendant.is_connected() {
                         ScriptThread::enqueue_callback_reaction(
@@ -2370,13 +2392,18 @@ impl Node {
                 }
             }
         }
+
         if let SuppressObserver::Unsuppressed = suppress_observers {
+            // Step 9. Run the children changed steps for parent.
+            // TODO(xiaochengh): If we follow the spec and move it out of the if block, some WPT fail. Investigate.
             vtable_for(parent).children_changed(&ChildrenMutation::insert(
                 previous_sibling.as_deref(),
                 new_nodes,
                 child,
             ));
 
+            // Step 8. If suppress observers flag is unset, then queue a tree mutation record for parent
+            // with nodes, « », previousSibling, and child.
             let mutation = LazyCell::new(|| Mutation::ChildList {
                 added: Some(new_nodes),
                 removed: None,
@@ -2409,7 +2436,7 @@ impl Node {
         // 2) post_connection_steps from Node::insert,
         // we use a delayed task that will run as soon as Node::insert removes its
         // script/layout blocker.
-        node.owner_doc().add_delayed_task(task!(PostConnectionSteps: move || {
+        parent_document.add_delayed_task(task!(PostConnectionSteps: move || {
             // Step 12. For each node of staticNodeList, if node is connected, then run the
             //          post-connection steps with node.
             for node in static_node_list.iter().map(Trusted::root).filter(|n| n.is_connected()) {
@@ -2417,7 +2444,8 @@ impl Node {
             }
         }));
 
-        node.owner_doc().remove_script_and_layout_blocker();
+        parent_document.remove_script_and_layout_blocker();
+        from_document.remove_script_and_layout_blocker();
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
@@ -3240,10 +3268,16 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         // Step 9.
         let previous_sibling = child.GetPreviousSibling();
 
-        // Step 10.
+        // NOTE: All existing browsers assume that adoption is performed here, which does not follow the DOM spec.
+        // However, if we follow the spec and delay adoption to inside `Node::insert()`, then the mutation records will
+        // be different, and we will fail WPT dom/nodes/MutationObserver-childList.html.
         let document = self.owner_document();
         Node::adopt(node, &document, can_gc);
 
+        // Step 10. Let removedNodes be the empty set.
+        // Step 11. If child’s parent is non-null:
+        //     1. Set removedNodes to « child ».
+        //     2. Remove child with the suppress observers flag set.
         let removed_child = if node != child {
             // Step 11.
             Node::remove(child, self, SuppressObserver::Suppressed, can_gc);
