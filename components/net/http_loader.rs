@@ -1018,7 +1018,7 @@ pub async fn http_fetch(
 
         // Substep 4
         if cors_flag && cors_check(&fetch_params.request, &fetch_result).is_err() {
-            return Response::network_error(NetworkError::CorsViolation);
+            return Response::network_error(NetworkError::CorsGeneral);
         }
 
         fetch_result.return_internal = false;
@@ -1205,7 +1205,7 @@ pub async fn http_redirect_fetch(
     let has_credentials = has_credentials(&location_url);
 
     if request.mode == RequestMode::CorsMode && !same_origin && has_credentials {
-        return Response::network_error(NetworkError::CorsViolation);
+        return Response::network_error(NetworkError::CorsCredentials);
     }
 
     // Step 9
@@ -1215,7 +1215,7 @@ pub async fn http_redirect_fetch(
 
     // Step 10
     if cors_flag && has_credentials {
-        return Response::network_error(NetworkError::CorsViolation);
+        return Response::network_error(NetworkError::CorsCredentials);
     }
 
     // Step 11: If internalResponse’s status is not 303, request’s body is non-null, and request’s
@@ -1641,7 +1641,7 @@ async fn http_network_or_cache_fetch(
         cross_origin_resource_policy_check(http_request, &response) ==
             CrossOriginResourcePolicy::Blocked
     {
-        return Response::network_error(NetworkError::CorsViolation);
+        return Response::network_error(NetworkError::CorsGeneral);
     }
 
     // TODO(#33616): Step 11. Set response’s URL list to a clone of httpRequest’s URL list.
@@ -2380,7 +2380,7 @@ async fn cors_preflight_fetch(
                 Some(methods) => methods.iter().collect(),
                 // Step 7.3 If either methods or headerNames is failure, return a network error.
                 None => {
-                    return Response::network_error(NetworkError::CorsViolation);
+                    return Response::network_error(NetworkError::CorsAllowMethods);
                 },
             }
         } else {
@@ -2397,7 +2397,7 @@ async fn cors_preflight_fetch(
                 Some(names) => names.iter().collect(),
                 // Step 7.3 If either methods or headerNames is failure, return a network error.
                 None => {
-                    return Response::network_error(NetworkError::CorsViolation);
+                    return Response::network_error(NetworkError::CorsAllowHeaders);
                 },
             }
         } else {
@@ -2424,7 +2424,7 @@ async fn cors_preflight_fetch(
             (request.credentials_mode == CredentialsMode::Include ||
                 methods.iter().all(|method| method.as_ref() != "*"))
         {
-            return Response::network_error(NetworkError::CorsViolation);
+            return Response::network_error(NetworkError::CorsMethod);
         }
 
         debug!(
@@ -2438,7 +2438,7 @@ async fn cors_preflight_fetch(
             is_cors_non_wildcard_request_header_name(name) &&
                 header_names.iter().all(|header_name| header_name != name)
         }) {
-            return Response::network_error(NetworkError::CorsViolation);
+            return Response::network_error(NetworkError::CorsAuthorization);
         }
 
         // Step 7.7 For each unsafeName of the CORS-unsafe request-header names with request’s header list,
@@ -2454,7 +2454,7 @@ async fn cors_preflight_fetch(
                 (request.credentials_mode == CredentialsMode::Include ||
                     !header_names_contains_star)
             {
-                return Response::network_error(NetworkError::CorsViolation);
+                return Response::network_error(NetworkError::CorsHeaders);
             }
         }
 
@@ -2494,7 +2494,7 @@ async fn cors_preflight_fetch(
         return response;
     }
 
-    // Step 8. Otherwise, return a network error.
+    // Step 8 Return a network error.
     Response::network_error(NetworkError::CorsViolation)
 }
 

@@ -398,11 +398,10 @@ pub async fn main_fetch(
             target.process_csp_violations(request, violations);
         }
 
-        if check_result == csp::CheckResult::Blocked {
-            warn!("Request blocked by CSP");
-            response = Some(Response::network_error(NetworkError::ContentSecurityPolicyViolation));
-        }
-    };
+    if check_result == csp::CheckResult::Blocked {
+        warn!("Request blocked by CSP");
+        response = Some(Response::network_error(NetworkError::ContentSecurityPolicy))
+    }
     if should_request_be_blocked_due_to_a_bad_port(&request.current_url()) {
         response = Some(Response::network_error(NetworkError::InvalidPort));
     }
@@ -495,11 +494,11 @@ pub async fn main_fetch(
                 // Substep 2. Return the result of running scheme fetch given fetchParams.
                 scheme_fetch(fetch_params, cache, target, done_chan, context).await
             } else if request.mode == RequestMode::SameOrigin {
-                Response::network_error(NetworkError::CorsViolation)
+                Response::network_error(NetworkError::CrossOriginResponse)
             } else if request.mode == RequestMode::NoCors {
                 // Substep 1. If request's redirect mode is not "follow", then return a network error.
                 if request.redirect_mode != RedirectMode::Follow {
-                    Response::network_error(NetworkError::CorsViolation)
+                    Response::network_error(NetworkError::RedirectError)
                 } else {
                     // Substep 2. Set request's response tainting to "opaque".
                     request.response_tainting = ResponseTainting::Opaque;
@@ -651,11 +650,11 @@ pub async fn main_fetch(
 
         let internal_response = if should_replace_with_nosniff_error {
             // Defer rebinding result
-            blocked_error_response = Response::network_error(NetworkError::SecurityBlock);
+            blocked_error_response = Response::network_error(NetworkError::Nosniff);
             &blocked_error_response
         } else if should_replace_with_mime_type_error {
             // Defer rebinding result
-            blocked_error_response = Response::network_error(NetworkError::SecurityBlock);
+            blocked_error_response = Response::network_error(NetworkError::MimeType);
             &blocked_error_response
         } else if should_replace_with_mixed_content {
             blocked_error_response = Response::network_error(NetworkError::MixedContent);
@@ -723,7 +722,7 @@ pub async fn main_fetch(
         if response.termination_reason.is_none() &&
             !is_response_integrity_valid(integrity_metadata, &response)
         {
-            Response::network_error(NetworkError::SecurityBlock)
+            Response::network_error(NetworkError::SubresourceIntegrity)
         } else {
             response
         }
