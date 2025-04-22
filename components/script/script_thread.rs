@@ -98,7 +98,6 @@ use timers::{TimerEventRequest, TimerScheduler};
 use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
-use webrender_api::DocumentId;
 use webrender_api::units::DevicePixel;
 
 use crate::document_collection::DocumentCollection;
@@ -283,10 +282,6 @@ pub struct ScriptThread {
 
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
     custom_element_reaction_stack: CustomElementReactionStack,
-
-    /// The Webrender Document ID associated with this thread.
-    #[no_trace]
-    webrender_document: DocumentId,
 
     /// Cross-process access to the compositor's API.
     #[no_trace]
@@ -938,7 +933,6 @@ impl ScriptThread {
             worklet_thread_pool: Default::default(),
             docs_with_no_blocking_loads: Default::default(),
             custom_element_reaction_stack: CustomElementReactionStack::new(),
-            webrender_document: state.webrender_document,
             compositor_api: state.compositor_api,
             profile_script_events: opts.debug.profile_script_events,
             print_pwm: opts.print_pwm,
@@ -3136,7 +3130,6 @@ impl ScriptThread {
             #[cfg(feature = "webxr")]
             self.webxr_registry.clone(),
             self.microtask_queue.clone(),
-            self.webrender_document,
             self.compositor_api.clone(),
             self.relayout_event,
             self.unminify_js,

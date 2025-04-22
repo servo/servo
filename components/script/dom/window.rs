@@ -83,8 +83,8 @@ use style::stylesheets::UrlExtraData;
 use style_traits::CSSPixel;
 use stylo_atoms::Atom;
 use url::Position;
+use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutPixel};
-use webrender_api::{DocumentId, ExternalScrollId};
 
 use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
@@ -353,10 +353,6 @@ pub(crate) struct Window {
     test_worklet: MutNullableDom<Worklet>,
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
     paint_worklet: MutNullableDom<Worklet>,
-    /// The Webrender Document id associated with this window.
-    #[ignore_malloc_size_of = "defined in webrender_api"]
-    #[no_trace]
-    webrender_document: DocumentId,
 
     /// Flag to identify whether mutation observers are present(true)/absent(false)
     exists_mut_observer: Cell<bool>,
@@ -2775,10 +2771,6 @@ impl Window {
             .unwrap();
     }
 
-    pub(crate) fn webrender_document(&self) -> DocumentId {
-        self.webrender_document
-    }
-
     #[cfg(feature = "webxr")]
     pub(crate) fn in_immersive_xr_session(&self) -> bool {
         self.navigator
@@ -2821,7 +2813,6 @@ impl Window {
         webgl_chan: Option<WebGLChan>,
         #[cfg(feature = "webxr")] webxr_registry: Option<webxr_api::Registry>,
         microtask_queue: Rc<MicrotaskQueue>,
-        webrender_document: DocumentId,
         compositor_api: CrossProcessCompositorApi,
         relayout_event: bool,
         unminify_js: bool,
@@ -2906,7 +2897,6 @@ impl Window {
             local_script_source,
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
-            webrender_document,
             exists_mut_observer: Cell::new(false),
             compositor_api,
             has_sent_idle_message: Cell::new(false),

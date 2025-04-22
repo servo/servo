@@ -973,7 +973,6 @@ where
             event_loop,
             load_data,
             prev_throttled: throttled,
-            webrender_document: self.webrender_document,
             webgl_chan: self
                 .webgl_threads
                 .as_ref()

@@ -47,8 +47,8 @@ use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUMsg;
+use webrender_api::ImageKey;
 use webrender_api::units::DevicePixel;
-use webrender_api::{DocumentId, ImageKey};
 
 /// The initial data required to create a new layout attached to an existing script thread.
 #[derive(Debug, Deserialize, Serialize)]
@@ -318,8 +318,6 @@ pub struct InitialScriptState {
     pub webgl_chan: Option<WebGLPipeline>,
     /// The XR device registry
     pub webxr_registry: Option<webxr_api::Registry>,
-    /// The Webrender document ID associated with this thread.
-    pub webrender_document: DocumentId,
     /// Access to the compositor across a process boundary.
     pub compositor_api: CrossProcessCompositorApi,
     /// Application window's GL Context for Media player

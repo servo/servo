@@ -47,7 +47,6 @@ use serde::{Deserialize, Serialize};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{self, Preferences};
 use servo_url::ServoUrl;
-use webrender_api::DocumentId;
 
 use crate::event_loop::EventLoop;
 use crate::process_manager::Process;
@@ -184,9 +183,6 @@ pub struct InitialPipelineState {
     /// compositor threads after spawning a pipeline.
     pub prev_throttled: bool,
 
-    /// The ID of the document processed by this script thread.
-    pub webrender_document: DocumentId,
-
     /// A channel to the WebGL thread.
     pub webgl_chan: Option<WebGLPipeline>,
 
@@ -288,7 +284,6 @@ impl Pipeline {
                     opts: (*opts::get()).clone(),
                     prefs: Box::new(prefs::get().clone()),
                     pipeline_namespace_id: state.pipeline_namespace_id,
-                    webrender_document: state.webrender_document,
                     cross_process_compositor_api: state
                         .compositor_proxy
                         .cross_process_compositor_api
@@ -503,7 +498,6 @@ pub struct UnprivilegedPipelineContent {
     prefs: Box<Preferences>,
     pipeline_namespace_id: PipelineNamespaceId,
     cross_process_compositor_api: CrossProcessCompositorApi,
-    webrender_document: DocumentId,
     webgl_chan: Option<WebGLPipeline>,
     webxr_registry: Option<webxr_api::Registry>,
     player_context: WindowGLContext,
@@ -551,7 +545,6 @@ impl UnprivilegedPipelineContent {
                 content_process_shutdown_sender: content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
                 webxr_registry: self.webxr_registry,
-                webrender_document: self.webrender_document,
                 compositor_api: self.cross_process_compositor_api.clone(),
                 player_context: self.player_context.clone(),
                 inherited_secure_context: self.load_data.inherited_secure_context,
