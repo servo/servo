@@ -4255,9 +4255,9 @@ dependencies = [
 
 [[package]]
 name = "libm"
-version = "0.2.12"
+version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6d154aedcb0b7a1e91a3fddbe2a8350d3da76ac9d0220ae20da5c7aa8269612"
+checksum = "c9627da5196e5d8ed0b0495e61e518847578da83483c37288316d9b2e03a7f72"
 
 [[package]]
 name = "libredox"
