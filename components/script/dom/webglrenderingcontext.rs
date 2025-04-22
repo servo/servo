@@ -1953,7 +1953,7 @@ impl CanvasContext for WebGLRenderingContext {
             sender,
         ));
         let (data, alpha_mode) = receiver.recv().unwrap();
-        Some(Snapshot::new(
+        Some(Snapshot::from_vec(
             size.cast(),
             snapshot::PixelFormat::RGBA,
             alpha_mode,

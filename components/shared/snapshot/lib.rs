@@ -91,7 +91,7 @@ pub struct Snapshot<T = Data> {
     data: T,
     /// RGBA/BGRA (reflect internal data)
     format: PixelFormat,
-    /// How to threat alpha channel
+    /// How to treat alpha channel
     alpha_mode: AlphaMode,
 }
 
@@ -141,20 +141,6 @@ impl Snapshot<Data> {
         }
     }
 
-    pub fn new(
-        size: Size2D<u64>,
-        format: PixelFormat,
-        alpha_mode: AlphaMode,
-        data: Vec<u8>,
-    ) -> Self {
-        Self {
-            size,
-            data: Data::Owned(data),
-            format,
-            alpha_mode,
-        }
-    }
-
     pub fn from_vec(
         size: Size2D<u64>,
         format: PixelFormat,
@@ -169,7 +155,7 @@ impl Snapshot<Data> {
         }
     }
 
-    pub fn from_ism(
+    pub fn from_shared_memory(
         size: Size2D<u64>,
         format: PixelFormat,
         alpha_mode: AlphaMode,
@@ -187,9 +173,9 @@ impl Snapshot<Data> {
     /*
     /// # Safety
     ///
-    /// This is safe is data is owned by this proces only
+    /// This is safe if data is owned by this process only
     /// (ownership is transferred on send)
-    pub unsafe fn from_ism(
+    pub unsafe fn from_shared_memory(
         size: Size2D<u64>,
         format: PixelFormat,
         alpha_mode: AlphaMode,
@@ -277,7 +263,7 @@ impl Snapshot<IpcSharedMemory> {
     /*
     /// # Safety
     ///
-    /// This is safe is data is owned by this proces only
+    /// This is safe if data is owned by this process only
     /// (ownership is transferred on send)
     pub unsafe fn to_data(self) -> Snapshot<Data> {
         let Snapshot {

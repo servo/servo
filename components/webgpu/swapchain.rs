@@ -375,8 +375,8 @@ impl crate::WGPU {
             .and_then(|swap_chain| swap_chain.data.as_ref())
         {
             let format = match context_data.image_desc.0.format {
-                ImageFormat::BGRA8 => snapshot::PixelFormat::RGBA,
-                ImageFormat::RGBA8 => snapshot::PixelFormat::BGRA,
+                ImageFormat::RGBA8 => snapshot::PixelFormat::RGBA,
+                ImageFormat::BGRA8 => snapshot::PixelFormat::BGRA,
                 _ => unimplemented!(),
             };
             let alpha_mode = if context_data.image_desc.0.is_opaque() {

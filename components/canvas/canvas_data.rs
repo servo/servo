@@ -1546,7 +1546,7 @@ impl<'a> CanvasData<'a> {
             self.drawtarget.snapshot_data().to_vec()
         };
 
-        Snapshot::new(
+        Snapshot::from_vec(
             canvas_size,
             snapshot::PixelFormat::BGRA,
             snapshot::AlphaMode::Transparent {

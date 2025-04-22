@@ -318,7 +318,7 @@ impl CanvasState {
             premultiplied: false,
         };
 
-        Some(snapshot::Snapshot::from_ism(
+        Some(snapshot::Snapshot::from_shared_memory(
             size.cast(),
             format,
             alpha_mode,
