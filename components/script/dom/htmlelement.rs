@@ -32,7 +32,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::customelementregistry::CallbackReaction;
-use crate::dom::document::{Document, FocusType};
+use crate::dom::document::{Document, FocusInitiator};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domstringmap::DOMStringMap;
 use crate::dom::element::{AttributeMutation, Element};
@@ -415,18 +415,19 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
         let document = self.owner_document();
-        document.request_focus(Some(self.upcast()), FocusType::Element, can_gc);
+        document.request_focus(Some(self.upcast()), FocusInitiator::Local, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(&self, can_gc: CanGc) {
-        // TODO: Run the unfocusing steps.
+        // TODO: Run the unfocusing steps. Focus the top-level document, not
+        //       the current document.
         if !self.as_element().focus_state() {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
         let document = self.owner_document();
-        document.request_focus(None, FocusType::Element, can_gc);
+        document.request_focus(None, FocusInitiator::Local, can_gc);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent

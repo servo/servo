@@ -72,6 +72,8 @@ impl MixedMessage {
                 ScriptThreadMessage::UpdateHistoryState(id, ..) => Some(*id),
                 ScriptThreadMessage::RemoveHistoryStates(id, ..) => Some(*id),
                 ScriptThreadMessage::FocusIFrame(id, ..) => Some(*id),
+                ScriptThreadMessage::FocusDocument(id, ..) => Some(*id),
+                ScriptThreadMessage::Unfocus(id, ..) => Some(*id),
                 ScriptThreadMessage::WebDriverScriptCommand(id, ..) => Some(*id),
                 ScriptThreadMessage::TickAllAnimations(..) => None,
                 ScriptThreadMessage::WebFontLoaded(id, ..) => Some(*id),
@@ -89,6 +91,7 @@ impl MixedMessage {
                 #[cfg(feature = "webgpu")]
                 ScriptThreadMessage::SetWebGPUPort(..) => None,
                 ScriptThreadMessage::SetScrollStates(id, ..) => Some(*id),
+                ScriptThreadMessage::SystemFocus(id, ..) => Some(*id),
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {

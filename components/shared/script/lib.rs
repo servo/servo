@@ -27,8 +27,8 @@ use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, InputEvent, MediaSessionActionType, Theme, ViewportDetails,
-    WebDriverScriptCommand,
+    CompositorHitTestResult, FocusSequenceNumber, InputEvent, MediaSessionActionType, Theme,
+    ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::{Rect, Scale, Size2D, UnknownUnit};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -189,9 +189,24 @@ pub enum ScriptThreadMessage {
     UpdateHistoryState(PipelineId, Option<HistoryStateId>, ServoUrl),
     /// Removes inaccesible history states.
     RemoveHistoryStates(PipelineId, Vec<HistoryStateId>),
+    /// Advertises the top-level browsing context's system focus state.
+    ///
+    /// This is sent regardless of the pipeline's focus state. While this seems
+    /// like extra work, this makes it possible to handle `Element#focus`
+    /// without consulting the constellation about the current system focus
+    /// state.
+    SystemFocus(PipelineId, bool),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
-    FocusIFrame(PipelineId, BrowsingContextId),
+    FocusIFrame(PipelineId, BrowsingContextId, FocusSequenceNumber),
+    /// Focus the document. Used when the container gains focus.
+    FocusDocument(PipelineId, FocusSequenceNumber),
+    /// Notifies that the document's container (e.g., an iframe) is not included
+    /// in the top-level browsing context's focus chain (not considering system
+    /// focus) anymore.
+    ///
+    /// Obviously, this message is invalid for a top-level document.
+    Unfocus(PipelineId, FocusSequenceNumber),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
