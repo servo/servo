@@ -1237,7 +1237,7 @@ impl Document {
     ) {
         // If an element is specified, and it's non-focusable, ignore the
         // request.
-        if !elem.map_or(true, |e| e.is_focusable_area()) {
+        if !elem.is_none_or(|e| e.is_focusable_area()) {
             return;
         }
 
@@ -1385,20 +1385,16 @@ impl Document {
             }
         }
 
-        if old_doc_filtered != new_doc_filtered {
-            if !new_doc_filtered {
-                self.fire_focus_event(FocusEventType::Blur, self.global().upcast(), None, can_gc);
-            }
+        if old_doc_filtered != new_doc_filtered && !new_doc_filtered {
+            self.fire_focus_event(FocusEventType::Blur, self.global().upcast(), None, can_gc);
         }
 
-        self.focused.set(new_focused.as_ref().map(|e| &**e));
+        self.focused.set(new_focused.as_deref());
         self.has_system_focus.set(new_system_focus_state);
         self.has_focus.set(new_focus_state);
 
-        if old_doc_filtered != new_doc_filtered {
-            if new_doc_filtered {
-                self.fire_focus_event(FocusEventType::Focus, self.global().upcast(), None, can_gc);
-            }
+        if old_doc_filtered != new_doc_filtered && new_doc_filtered {
+            self.fire_focus_event(FocusEventType::Focus, self.global().upcast(), None, can_gc);
         }
 
         if old_focused_filtered != new_focused_filtered {
@@ -1419,7 +1415,7 @@ impl Document {
                     {
                         (
                             Some((
-                                (&input.Value()).to_string(),
+                                (input.Value()).to_string(),
                                 input.GetSelectionEnd().unwrap_or(0) as i32,
                             )),
                             false,
@@ -1427,7 +1423,7 @@ impl Document {
                     } else if let Some(textarea) = elem.downcast::<HTMLTextAreaElement>() {
                         (
                             Some((
-                                (&textarea.Value()).to_string(),
+                                (textarea.Value()).to_string(),
                                 textarea.GetSelectionEnd().unwrap_or(0) as i32,
                             )),
                             true,
