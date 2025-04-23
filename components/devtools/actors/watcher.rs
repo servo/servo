@@ -29,6 +29,7 @@ use crate::actors::watcher::thread_configuration::{
     ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
 use crate::protocol::JsonPacketStream;
+use crate::resource::ResourceAvailable;
 use crate::{EmptyReplyMsg, StreamId};
 
 pub mod network_parent;
