@@ -112,6 +112,11 @@ impl ProtocolRegistry {
             .get(scheme)
             .is_some_and(|handler| handler.is_secure())
     }
+
+    /// Test if the URL is potentially trustworthy or the custom protocol is registered as secure
+    pub fn is_url_potentially_trustworthy(&self, url: &ServoUrl) -> bool {
+        url.is_potentially_trustworthy() || self.is_secure(url.scheme())
+    }
 }
 
 pub fn range_not_satisfiable_error(response: &mut Response) {
@@ -140,21 +145,4 @@ pub fn get_range_request_bounds(range: Option<Range>, len: u64) -> RangeRequestB
 
 pub fn partial_content(response: &mut Response) {
     response.status = StatusCode::PARTIAL_CONTENT.into();
-}
-
-pub trait ProtocolUrlExt {
-    /// Checks if the URL is potentially trustworthy with the registered custom protocols
-    fn is_potentially_trustworthy_with_custom_protocols(
-        &self,
-        protocol_registry: &ProtocolRegistry,
-    ) -> bool;
-}
-
-impl ProtocolUrlExt for ServoUrl {
-    fn is_potentially_trustworthy_with_custom_protocols(
-        &self,
-        protocol_registry: &ProtocolRegistry,
-    ) -> bool {
-        self.is_potentially_trustworthy() || protocol_registry.is_secure(self.scheme())
-    }
 }

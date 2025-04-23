@@ -42,7 +42,7 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{HttpState, determine_requests_referrer, http_fetch, set_default_accept};
-use crate::protocols::{ProtocolRegistry, ProtocolUrlExt};
+use crate::protocols::ProtocolRegistry;
 use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;
 
@@ -947,10 +947,7 @@ pub fn should_request_be_blocked_as_mixed_content(
     }
 
     // 1.2. request’s URL is a potentially trustworthy URL.
-    if request
-        .url()
-        .is_potentially_trustworthy_with_custom_protocols(protocol_registry)
-    {
+    if protocol_registry.is_url_potentially_trustworthy(&request.url()) {
         return false;
     }
 
@@ -985,9 +982,7 @@ pub fn should_response_be_blocked_as_mixed_content(
     if response
         .actual_response()
         .url()
-        .is_some_and(|response_url| {
-            response_url.is_potentially_trustworthy_with_custom_protocols(protocol_registry)
-        })
+        .is_some_and(|response_url| protocol_registry.is_url_potentially_trustworthy(response_url))
     {
         return false;
     }
@@ -1053,9 +1048,9 @@ fn should_upgrade_request_to_potentially_trustworty(
         // request’s header list if any of the following criteria are met:
         // * request’s URL is not a potentially trustworthy URL
         // * request’s URL's host is not a preloadable HSTS host
-        if !request
-            .current_url()
-            .is_potentially_trustworthy_with_custom_protocols(&context.protocols) ||
+        if !context
+            .protocols
+            .is_url_potentially_trustworthy(&request.current_url()) ||
             !request.current_url().host_str().is_some_and(|host| {
                 !context.state.hsts_list.read().unwrap().is_host_secure(host)
             })
@@ -1114,7 +1109,7 @@ fn should_upgrade_mixed_content_request(
 ) -> bool {
     let url = request.url();
     // Step 1.1 : request’s URL is a potentially trustworthy URL.
-    if url.is_potentially_trustworthy_with_custom_protocols(protocol_registry) {
+    if protocol_registry.is_url_potentially_trustworthy(&url) {
         return false;
     }
 
