@@ -59,6 +59,8 @@ pub enum Error {
     Data,
     /// OperationError DOMException
     Operation,
+    /// NotAllowedError DOMException
+    NotAllowed,
 
     /// TypeError JavaScript Error
     Type(String),
