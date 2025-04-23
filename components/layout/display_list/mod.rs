@@ -39,6 +39,7 @@ use webrender_api::{
 use wr::units::LayoutVector2D;
 
 use crate::context::{LayoutContext, ResolvedImage};
+pub use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
     BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
@@ -57,7 +58,6 @@ mod gradient;
 mod stacking_context;
 
 use background::BackgroundPainter;
-pub use conversions::*;
 pub use stacking_context::*;
 
 #[derive(Clone, Copy)]

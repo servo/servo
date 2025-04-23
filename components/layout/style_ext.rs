@@ -994,9 +994,8 @@ impl ComputedValuesExt for ComputedValues {
 
     // <https://drafts.csswg.org/cssom-view/#overflow-directions>
     fn overflow_direction(&self) -> OverflowDirection {
-        let writing_mode: WritingMode = self.writing_mode;
-        let inline_end_direction = writing_mode.inline_end_physical_side();
-        let block_end_direction = writing_mode.block_end_physical_side();
+        let inline_end_direction = self.writing_mode.inline_end_physical_side();
+        let block_end_direction = self.writing_mode.block_end_physical_side();
 
         let rightward = inline_end_direction == PhysicalSide::Right ||
             block_end_direction == PhysicalSide::Right;
