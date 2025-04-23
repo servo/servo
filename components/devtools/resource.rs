@@ -12,7 +12,7 @@ use crate::StreamId;
 use crate::protocol::JsonPacketStream;
 
 #[derive(Serialize)]
-pub struct ResourceAvailableReply<T: Serialize> {
+pub(crate) struct ResourceAvailableReply<T: Serialize> {
     pub from: String,
     #[serde(rename = "type")]
     pub type_: String,
