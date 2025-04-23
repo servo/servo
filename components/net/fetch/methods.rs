@@ -357,7 +357,9 @@ pub async fn main_fetch(
             // request's current URL's origin is same origin with request's origin, and request's
             // response tainting is "basic"
             if (same_origin && request.response_tainting == ResponseTainting::Basic) ||
-                // request's current URL's scheme is "data" or is a fetchable custom protocol
+                // request's current URL's scheme is "data"
+                current_scheme == "data" ||
+                // or is a fetchable custom protocol
                 context.protocols.is_fetchable(current_scheme) ||
                 // request's mode is "navigate" or "websocket"
                 matches!(
