@@ -14,6 +14,7 @@ use log::error;
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::Request;
 use net_traits::response::Response;
+use servo_url::ServoUrl;
 
 use crate::fetch::methods::{DoneChannel, FetchContext, RangeRequestBounds};
 
@@ -45,6 +46,13 @@ pub trait ProtocolHandler: Send + Sync {
     /// with `fetch()` without no-cors mode to allow the caller direct
     /// access to the resource content.
     fn is_fetchable(&self) -> bool {
+        false
+    }
+
+    /// Specify if this custom protocol is considered secure context
+    ///
+    /// Note: this only works for bypassing mixed content checks right now
+    fn is_secure(&self) -> bool {
         false
     }
 }
@@ -96,8 +104,13 @@ impl ProtocolRegistry {
     pub fn is_fetchable(&self, scheme: &str) -> bool {
         self.handlers
             .get(scheme)
-            .map(|handler| handler.is_fetchable())
-            .unwrap_or(false)
+            .is_some_and(|handler| handler.is_fetchable())
+    }
+
+    pub fn is_secure(&self, scheme: &str) -> bool {
+        self.handlers
+            .get(scheme)
+            .is_some_and(|handler| handler.is_secure())
     }
 }
 
@@ -127,4 +140,21 @@ pub fn get_range_request_bounds(range: Option<Range>, len: u64) -> RangeRequestB
 
 pub fn partial_content(response: &mut Response) {
     response.status = StatusCode::PARTIAL_CONTENT.into();
+}
+
+pub trait ProtocolUrlExt {
+    /// Checks if the URL is potentially trustworthy with the registered custom protocols
+    fn is_potentially_trustworthy_with_custom_protocols(
+        &self,
+        protocol_registry: &ProtocolRegistry,
+    ) -> bool;
+}
+
+impl ProtocolUrlExt for ServoUrl {
+    fn is_potentially_trustworthy_with_custom_protocols(
+        &self,
+        protocol_registry: &ProtocolRegistry,
+    ) -> bool {
+        self.is_potentially_trustworthy() || protocol_registry.is_secure(self.scheme())
+    }
 }

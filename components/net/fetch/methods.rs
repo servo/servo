@@ -42,7 +42,7 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{HttpState, determine_requests_referrer, http_fetch, set_default_accept};
-use crate::protocols::ProtocolRegistry;
+use crate::protocols::{ProtocolRegistry, ProtocolUrlExt};
 use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;
 
@@ -247,7 +247,7 @@ pub async fn main_fetch(
 
     // Step 4. Upgrade request to a potentially trustworthy URL, if appropriate.
     if should_upgrade_request_to_potentially_trustworty(request, context) ||
-        should_upgrade_mixed_content_request(request)
+        should_upgrade_mixed_content_request(request, &context.protocols)
     {
         trace!(
             "upgrading {} targeting {:?}",
@@ -294,7 +294,7 @@ pub async fn main_fetch(
             "Request attempted on bad port".into(),
         )));
     }
-    if should_request_be_blocked_as_mixed_content(request) {
+    if should_request_be_blocked_as_mixed_content(request, &context.protocols) {
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked as mixed content".into(),
         )));
@@ -357,15 +357,15 @@ pub async fn main_fetch(
             // request's current URL's origin is same origin with request's origin, and request's
             // response tainting is "basic"
             if (same_origin && request.response_tainting == ResponseTainting::Basic) ||
-                // request's current URL's scheme is "data"
-                current_scheme == "data" ||
+                // request's current URL's scheme is "data" or is a fetchable custom protocol
+                context.protocols.is_fetchable(current_scheme) ||
                 // request's mode is "navigate" or "websocket"
                 matches!(
                     request.mode,
                     RequestMode::Navigate | RequestMode::WebSocket { .. }
                 )
             {
-                // Substep 1. Set request’s response tainting to "basic".
+                // Substep 1. Set request's response tainting to "basic".
                 request.response_tainting = ResponseTainting::Basic;
 
                 // Substep 2. Return the result of running scheme fetch given fetchParams.
@@ -373,13 +373,13 @@ pub async fn main_fetch(
             } else if request.mode == RequestMode::SameOrigin {
                 Response::network_error(NetworkError::Internal("Cross-origin response".into()))
             } else if request.mode == RequestMode::NoCors {
-                // Substep 1. If request’s redirect mode is not "follow", then return a network error.
+                // Substep 1. If request's redirect mode is not "follow", then return a network error.
                 if request.redirect_mode != RedirectMode::Follow {
                     Response::network_error(NetworkError::Internal(
                         "NoCors requests must follow redirects".into(),
                     ))
                 } else {
-                    // Substep 2. Set request’s response tainting to "opaque".
+                    // Substep 2. Set request's response tainting to "opaque".
                     request.response_tainting = ResponseTainting::Opaque;
 
                     // Substep 3. Return the result of running scheme fetch given fetchParams.
@@ -490,7 +490,7 @@ pub async fn main_fetch(
         let should_replace_with_mime_type_error = !response_is_network_error &&
             should_be_blocked_due_to_mime_type(request.destination, &response.headers);
         let should_replace_with_mixed_content = !response_is_network_error &&
-            should_response_be_blocked_as_mixed_content(request, &response);
+            should_response_be_blocked_as_mixed_content(request, &response, &context.protocols);
 
         // Step 15.
         let mut network_error_response = response
@@ -933,7 +933,10 @@ pub fn should_request_be_blocked_due_to_a_bad_port(url: &ServoUrl) -> bool {
 }
 
 /// <https://w3c.github.io/webappsec-mixed-content/#should-block-fetch>
-pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
+pub fn should_request_be_blocked_as_mixed_content(
+    request: &Request,
+    protocol_registry: &ProtocolRegistry,
+) -> bool {
     // Step 1. Return allowed if one or more of the following conditions are met:
     // 1.1. Does settings prohibit mixed security contexts?
     // returns "Does Not Restrict Mixed Security Contexts" when applied to request’s client.
@@ -944,7 +947,10 @@ pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
     }
 
     // 1.2. request’s URL is a potentially trustworthy URL.
-    if request.url().is_potentially_trustworthy() {
+    if request
+        .url()
+        .is_potentially_trustworthy_with_custom_protocols(protocol_registry)
+    {
         return false;
     }
 
@@ -961,7 +967,11 @@ pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
 }
 
 /// <https://w3c.github.io/webappsec-mixed-content/#should-block-response>
-pub fn should_response_be_blocked_as_mixed_content(request: &Request, response: &Response) -> bool {
+pub fn should_response_be_blocked_as_mixed_content(
+    request: &Request,
+    response: &Response,
+    protocol_registry: &ProtocolRegistry,
+) -> bool {
     // Step 1. Return allowed if one or more of the following conditions are met:
     // 1.1. Does settings prohibit mixed security contexts? returns Does Not Restrict Mixed Content
     // when applied to request’s client.
@@ -975,7 +985,9 @@ pub fn should_response_be_blocked_as_mixed_content(request: &Request, response: 
     if response
         .actual_response()
         .url()
-        .is_some_and(|response_url| response_url.is_potentially_trustworthy())
+        .is_some_and(|response_url| {
+            response_url.is_potentially_trustworthy_with_custom_protocols(protocol_registry)
+        })
     {
         return false;
     }
@@ -1041,7 +1053,9 @@ fn should_upgrade_request_to_potentially_trustworty(
         // request’s header list if any of the following criteria are met:
         // * request’s URL is not a potentially trustworthy URL
         // * request’s URL's host is not a preloadable HSTS host
-        if !request.current_url().is_potentially_trustworthy() ||
+        if !request
+            .current_url()
+            .is_potentially_trustworthy_with_custom_protocols(&context.protocols) ||
             !request.current_url().host_str().is_some_and(|host| {
                 !context.state.hsts_list.read().unwrap().is_host_secure(host)
             })
@@ -1094,10 +1108,13 @@ fn do_settings_prohibit_mixed_security_contexts(request: &Request) -> MixedSecur
 }
 
 /// <https://w3c.github.io/webappsec-mixed-content/#upgrade-algorithm>
-fn should_upgrade_mixed_content_request(request: &Request) -> bool {
+fn should_upgrade_mixed_content_request(
+    request: &Request,
+    protocol_registry: &ProtocolRegistry,
+) -> bool {
     let url = request.url();
     // Step 1.1 : request’s URL is a potentially trustworthy URL.
-    if url.is_potentially_trustworthy() {
+    if url.is_potentially_trustworthy_with_custom_protocols(protocol_registry) {
         return false;
     }
 
