@@ -49,9 +49,11 @@ pub trait ProtocolHandler: Send + Sync {
         false
     }
 
-    /// Specify if this custom protocol is considered secure context
+    /// Specify if this custom protocol can be used in a [secure context]
     ///
     /// Note: this only works for bypassing mixed content checks right now
+    ///
+    /// [secure context]: https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts
     fn is_secure(&self) -> bool {
         false
     }
