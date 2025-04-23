@@ -30,6 +30,7 @@ use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::object::ObjectActor;
 use crate::actors::worker::WorkerActor;
 use crate::protocol::JsonPacketStream;
+use crate::resource::ResourceAvailable;
 use crate::{StreamId, UniqueId};
 
 trait EncodableConsoleMessage {
