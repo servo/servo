@@ -295,7 +295,7 @@ impl BoxFragment {
         // > the element that establishes its 3D rendering context. [CSS3-TRANSFORMS]
         // Both boxes and its scrollable overflow (if it is included) should be transformed accordingly.
         //
-        // FIXME: We are supposed to handle perspective transform and 3d context, but it is yet to happen.
+        // TODO(stevennovaryo): We are supposed to handle perspective transform and 3d context, but it is yet to happen.
         if self.style.has_transform_or_perspective(self.base.flags) {
             if let Some(transform) =
                 self.calculate_transform_matrix(&self.border_rect().to_untyped())
