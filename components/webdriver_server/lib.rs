@@ -29,7 +29,7 @@ use embedder_traits::{
 use euclid::{Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcError, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::send_keys;
 use log::{debug, info};
@@ -1595,65 +1595,82 @@ impl Handler {
     fn handle_element_click(&mut self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        // Steps 1 - 7
         let command = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
         self.browsing_context_script_command(command)?;
 
-        match receiver.recv().unwrap() {
-            Ok(element_id) => match element_id {
-                Some(element_id) => {
-                    let id = Uuid::new_v4().to_string();
-
-                    // Step 8.1
-                    self.session_mut()?.input_state_table.insert(
-                        id.clone(),
-                        InputSourceState::Pointer(PointerInputState::new(&PointerType::Mouse)),
-                    );
-
-                    // Steps 8.3 - 8.6
-                    let pointer_move_action = PointerMoveAction {
-                        duration: None,
-                        origin: PointerOrigin::Element(WebElement(element_id)),
-                        x: 0,
-                        y: 0,
-                        ..Default::default()
-                    };
-
-                    // Steps 8.7 - 8.8
-                    let pointer_down_action = PointerDownAction {
-                        button: 1,
-                        ..Default::default()
-                    };
-
-                    // Steps 8.9 - 8.10
-                    let pointer_up_action = PointerUpAction {
-                        button: 1,
-                        ..Default::default()
-                    };
-
-                    // Step 8.11
-                    if let Err(error) =
-                        self.dispatch_pointermove_action(&id, &pointer_move_action, 0)
-                    {
-                        return Err(WebDriverError::new(error, ""));
-                    }
-
-                    // Steps 8.12
-                    self.dispatch_pointerdown_action(&id, &pointer_down_action);
-
-                    // Steps 8.13
-                    self.dispatch_pointerup_action(&id, &pointer_up_action);
-
-                    // Step 8.14
-                    self.session_mut()?.input_state_table.remove(&id);
-
-                    // Step 13
-                    Ok(WebDriverResponse::Void)
+        let res = match receiver.recv() {
+            Ok(value) => value,
+            Err(error) => match error {
+                IpcError::Disconnected => {
+                    return Err(WebDriverError::new(
+                        ErrorStatus::NoSuchWindow,
+                        "ErrorStatus::NoSuchWindow",
+                    ));
                 },
-                // Step 13
-                None => Ok(WebDriverResponse::Void),
+                _ => {
+                    return Err(WebDriverError::new(
+                        ErrorStatus::UnknownError,
+                        "Unknown error",
+                    ));
+                },
             },
-            Err(error) => Err(WebDriverError::new(error, "")),
+        };
+
+        let element_id = match res {
+            Ok(value) => value,
+            Err(error) => return Err(WebDriverError::new(error, "")),
+        };
+
+        match element_id {
+            Some(element_id) => {
+                let id = Uuid::new_v4().to_string();
+
+                // Step 8.1
+                self.session_mut()?.input_state_table.insert(
+                    id.clone(),
+                    InputSourceState::Pointer(PointerInputState::new(&PointerType::Mouse)),
+                );
+
+                // Steps 8.3 - 8.6
+                let pointer_move_action = PointerMoveAction {
+                    duration: None,
+                    origin: PointerOrigin::Element(WebElement(element_id)),
+                    x: 0,
+                    y: 0,
+                    ..Default::default()
+                };
+
+                // Steps 8.7 - 8.8
+                let pointer_down_action = PointerDownAction {
+                    button: 1,
+                    ..Default::default()
+                };
+
+                // Steps 8.9 - 8.10
+                let pointer_up_action = PointerUpAction {
+                    button: 1,
+                    ..Default::default()
+                };
+
+                // Step 8.11
+                if let Err(error) = self.dispatch_pointermove_action(&id, &pointer_move_action, 0) {
+                    return Err(WebDriverError::new(error, ""));
+                }
+
+                // Steps 8.12
+                self.dispatch_pointerdown_action(&id, &pointer_down_action);
+
+                // Steps 8.13
+                self.dispatch_pointerup_action(&id, &pointer_up_action);
+
+                // Step 8.14
+                self.session_mut()?.input_state_table.remove(&id);
+
+                // Step 13
+                Ok(WebDriverResponse::Void)
+            },
+            // Step 13
+            None => Ok(WebDriverResponse::Void),
         }
     }
 

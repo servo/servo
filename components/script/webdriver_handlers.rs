@@ -1251,6 +1251,10 @@ pub(crate) fn handle_element_click(
         .send(
             // Step 3
             find_node_by_unique_id(documents, pipeline, element_id).and_then(|node| {
+                if !node.is::<Element>() {
+                    return Err(ErrorStatus::NoSuchElement);
+                }
+
                 // Step 4
                 if let Some(input_element) = node.downcast::<HTMLInputElement>() {
                     if input_element.input_type() == InputType::File {
