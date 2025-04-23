@@ -8,7 +8,7 @@ use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanva
 use canvas_traits::canvas::Canvas2dMsg;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use ipc_channel::ipc::IpcSharedMemory;
+use snapshot::Snapshot;
 
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
@@ -76,8 +76,8 @@ impl OffscreenCanvasRenderingContext2D {
         self.context.origin_is_clean()
     }
 
-    pub(crate) fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
-        self.context.get_image_data_as_shared_memory()
+    pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
+        self.context.get_image_data()
     }
 }
 

@@ -20,3 +20,4 @@ serde = { workspace = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }
 wgpu-types = { workspace = true }
+snapshot = { workspace = true }

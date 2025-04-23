@@ -38,4 +38,3 @@ stylo = { workspace = true }
 stylo_traits = { workspace = true }
 surfman = { workspace = true, features = ["sm-x11"] }
 webrender_api = { workspace = true }
-

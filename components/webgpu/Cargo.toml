@@ -22,6 +22,7 @@ malloc_size_of = { workspace = true }
 serde = { workspace = true, features = ["serde_derive"] }
 servo_config = { path = "../config" }
 webgpu_traits = { workspace = true }
+snapshot = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }

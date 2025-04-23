@@ -5,8 +5,8 @@
 //! Common interfaces for Canvas Contexts
 
 use euclid::default::Size2D;
-use ipc_channel::ipc::IpcSharedMemory;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
+use snapshot::Snapshot;
 
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::inheritance::Castable;
@@ -30,11 +30,10 @@ pub(crate) trait CanvasContext {
 
     fn resize(&self);
 
-    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory>;
-
-    fn get_image_data(&self) -> Option<Vec<u8>> {
-        self.get_image_data_as_shared_memory().map(|sm| sm.to_vec())
-    }
+    /// Returns none if area of canvas is zero.
+    ///
+    /// In case of other errors it returns cleared snapshot
+    fn get_image_data(&self) -> Option<Snapshot>;
 
     fn origin_is_clean(&self) -> bool {
         true

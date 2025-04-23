@@ -76,7 +76,11 @@ impl<'a> CanvasPaintThread<'a> {
                                 },
                                 Ok(CanvasMsg::FromScript(message, canvas_id)) => match message {
                                     FromScriptMsg::SendPixels(chan) => {
-                                        canvas_paint_thread.canvas(canvas_id).send_pixels(chan);
+                                        chan.send(canvas_paint_thread
+                                            .canvas(canvas_id)
+                                            .read_pixels(None, None)
+                                            .as_ipc()
+                                        ).unwrap();
                                     },
                                 },
                                 Err(e) => {
@@ -159,24 +163,21 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::IsPointInPath(path, x, y, fill_rule, chan) => self
                 .canvas(canvas_id)
                 .is_point_in_path_(&path[..], x, y, fill_rule, chan),
-            Canvas2dMsg::DrawImage(
-                ref image_data,
-                image_size,
-                dest_rect,
-                source_rect,
-                smoothing_enabled,
-            ) => self.canvas(canvas_id).draw_image(
-                image_data,
-                image_size,
-                dest_rect,
-                source_rect,
-                smoothing_enabled,
-                true,
-            ),
+            Canvas2dMsg::DrawImage(snapshot, dest_rect, source_rect, smoothing_enabled) => {
+                let snapshot = snapshot.to_owned();
+                self.canvas(canvas_id).draw_image(
+                    snapshot.data(),
+                    snapshot.size(),
+                    dest_rect,
+                    source_rect,
+                    smoothing_enabled,
+                    !snapshot.alpha_mode().is_premultiplied(),
+                )
+            },
             Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect) => {
                 self.canvas(canvas_id).draw_image(
                     &vec![0; image_size.area() as usize * 4],
-                    image_size,
+                    image_size.to_u64(),
                     dest_rect,
                     source_rect,
                     false,
@@ -192,10 +193,10 @@ impl<'a> CanvasPaintThread<'a> {
             ) => {
                 let image_data = self
                     .canvas(canvas_id)
-                    .read_pixels(source_rect.to_u64(), image_size.to_u64());
+                    .read_pixels(Some(source_rect.to_u64()), Some(image_size.to_u64()));
                 self.canvas(other_canvas_id).draw_image(
-                    &image_data,
-                    source_rect.size,
+                    image_data.data(),
+                    source_rect.size.to_u64(),
                     dest_rect,
                     source_rect,
                     smoothing,
@@ -244,8 +245,10 @@ impl<'a> CanvasPaintThread<'a> {
                 self.canvas(canvas_id).set_global_composition(op)
             },
             Canvas2dMsg::GetImageData(dest_rect, canvas_size, sender) => {
-                let pixels = self.canvas(canvas_id).read_pixels(dest_rect, canvas_size);
-                sender.send(&pixels).unwrap();
+                let snapshot = self
+                    .canvas(canvas_id)
+                    .read_pixels(Some(dest_rect), Some(canvas_size));
+                sender.send(snapshot.as_ipc()).unwrap();
             },
             Canvas2dMsg::PutImageData(rect, receiver) => {
                 self.canvas(canvas_id)

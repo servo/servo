@@ -34,6 +34,7 @@ use pixels::{self, PixelFormat};
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
+use snapshot::Snapshot;
 use webrender_api::ImageKey;
 
 use crate::canvas_context::CanvasContext;
@@ -628,11 +629,15 @@ impl WebGLRenderingContext {
                 if !canvas.origin_is_clean() {
                     return Err(Error::Security);
                 }
-                if let Some((data, size)) = canvas.fetch_all_data() {
-                    let data = data.unwrap_or_else(|| {
-                        IpcSharedMemory::from_bytes(&vec![0; size.area() as usize * 4])
-                    });
-                    TexPixels::new(data, size, PixelFormat::BGRA8, true)
+                if let Some(snapshot) = canvas.get_image_data() {
+                    let snapshot = snapshot.as_ipc();
+                    let size = snapshot.size().cast();
+                    let format = match snapshot.format() {
+                        snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
+                        snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                    };
+                    let premultiply = snapshot.alpha_mode().is_premultiplied();
+                    TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
                 } else {
                     return Ok(None);
                 }
@@ -1922,18 +1927,13 @@ impl CanvasContext for WebGLRenderingContext {
         }
     }
 
-    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
-        // TODO: add a method in WebGLRenderingContext to get the pixels.
-        None
-    }
-
     // Used by HTMLCanvasElement.toDataURL
     //
     // This emits errors quite liberally, but the spec says that this operation
     // can fail and that it is UB what happens in that case.
     //
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
-    fn get_image_data(&self) -> Option<Vec<u8>> {
+    fn get_image_data(&self) -> Option<Snapshot> {
         handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
         let mut size = self.size().cast();
 
@@ -1945,14 +1945,20 @@ impl CanvasContext for WebGLRenderingContext {
         size.width = cmp::min(size.width, fb_width as u32);
         size.height = cmp::min(size.height, fb_height as u32);
 
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.send_command(WebGLCommand::ReadPixels(
             Rect::from_size(size),
             constants::RGBA,
             constants::UNSIGNED_BYTE,
             sender,
         ));
-        Some(receiver.recv().unwrap())
+        let (data, alpha_mode) = receiver.recv().unwrap();
+        Some(Snapshot::from_vec(
+            size.cast(),
+            snapshot::PixelFormat::RGBA,
+            alpha_mode,
+            data.to_vec(),
+        ))
     }
 
     fn mark_as_dirty(&self) {
@@ -3826,11 +3832,11 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             dest_offset += -y * row_len;
         }
 
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.send_command(WebGLCommand::ReadPixels(
             src_rect, format, pixel_type, sender,
         ));
-        let src = receiver.recv().unwrap();
+        let (src, _) = receiver.recv().unwrap();
 
         let src_row_len = src_rect.size.width as usize * bytes_per_pixel as usize;
         for i in 0..src_rect.size.height {

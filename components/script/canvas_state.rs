@@ -17,7 +17,7 @@ use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSender};
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::PixelFormat;
@@ -298,7 +298,7 @@ impl CanvasState {
         &self,
         url: ServoUrl,
         cors_setting: Option<CorsSettings>,
-    ) -> Option<(IpcSharedMemory, Size2D<u32>)> {
+    ) -> Option<snapshot::Snapshot> {
         let img = match self.request_image_from_cache(url, cors_setting) {
             ImageResponse::Loaded(img, _) => img,
             ImageResponse::PlaceholderLoaded(_, _) |
@@ -308,13 +308,22 @@ impl CanvasState {
             },
         };
 
-        let image_size = Size2D::new(img.width, img.height);
-        let image_data = match img.format {
-            PixelFormat::BGRA8 => img.bytes(),
+        let size = Size2D::new(img.width, img.height);
+        let format = match img.format {
+            PixelFormat::BGRA8 => snapshot::PixelFormat::BGRA,
+            PixelFormat::RGBA8 => snapshot::PixelFormat::RGBA,
             pixel_format => unimplemented!("unsupported pixel format ({:?})", pixel_format),
         };
+        let alpha_mode = snapshot::AlphaMode::Transparent {
+            premultiplied: false,
+        };
 
-        Some((image_data, image_size))
+        Some(snapshot::Snapshot::from_shared_memory(
+            size.cast(),
+            format,
+            alpha_mode,
+            img.bytes(),
+        ))
     }
 
     fn request_image_from_cache(
@@ -341,13 +350,16 @@ impl CanvasState {
 
         assert!(Rect::from_size(canvas_size).contains_rect(&rect));
 
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.send_canvas_2d_msg(Canvas2dMsg::GetImageData(rect, canvas_size, sender));
-        let mut pixels = receiver.recv().unwrap().to_vec();
-
-        pixels::unmultiply_inplace::<true>(&mut pixels);
-
-        pixels
+        let mut snapshot = receiver.recv().unwrap().to_owned();
+        snapshot.transform(
+            snapshot::AlphaMode::Transparent {
+                premultiplied: false,
+            },
+            snapshot::PixelFormat::RGBA,
+        );
+        snapshot.to_vec()
     }
 
     ///
@@ -594,10 +606,10 @@ impl CanvasState {
         dh: Option<f64>,
     ) -> ErrorResult {
         debug!("Fetching image {}.", url);
-        let (image_data, image_size) = self
+        let snapshot = self
             .fetch_image_data(url, cors_setting)
             .ok_or(Error::InvalidState)?;
-        let image_size = image_size.to_f64();
+        let image_size = snapshot.size().to_f64();
 
         let dw = dw.unwrap_or(image_size.width);
         let dh = dh.unwrap_or(image_size.height);
@@ -614,8 +626,7 @@ impl CanvasState {
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
         self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-            image_data,
-            image_size,
+            snapshot.as_ipc(),
             dest_rect,
             source_rect,
             smoothing_enabled,
@@ -929,7 +940,7 @@ impl CanvasState {
         mut repetition: DOMString,
         can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
-        let (image_data, image_size) = match image {
+        let snapshot = match image {
             CanvasImageSource::HTMLImageElement(ref image) => {
                 // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
                 if !image.is_usable()? {
@@ -941,27 +952,17 @@ impl CanvasState {
                     .and_then(|url| {
                         self.fetch_image_data(url, cors_setting_for_element(image.upcast()))
                     })
-                    .map(|data| (data.0.to_vec(), data.1))
                     .ok_or(Error::InvalidState)?
             },
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
-                let (data, size) = canvas.fetch_all_data().ok_or(Error::InvalidState)?;
-                let data = data
-                    .map(|data| data.to_vec())
-                    .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
-                (data, size)
+                canvas.get_image_data().ok_or(Error::InvalidState)?
             },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
-                let (data, size) = canvas.fetch_all_data().ok_or(Error::InvalidState)?;
-                let data = data
-                    .map(|data| data.to_vec())
-                    .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
-                (data, size)
+                canvas.get_image_data().ok_or(Error::InvalidState)?
             },
             CanvasImageSource::CSSStyleValue(ref value) => value
                 .get_url(self.base_url.clone())
                 .and_then(|url| self.fetch_image_data(url, None))
-                .map(|data| (data.0.to_vec(), data.1))
                 .ok_or(Error::InvalidState)?,
         };
 
@@ -970,10 +971,11 @@ impl CanvasState {
         }
 
         if let Ok(rep) = RepetitionStyle::from_str(&repetition) {
+            let size = snapshot.size();
             Ok(Some(CanvasPattern::new(
                 global,
-                image_data,
-                image_size,
+                snapshot.to_vec(),
+                size.cast(),
                 rep,
                 self.is_origin_clean(image),
                 can_gc,
