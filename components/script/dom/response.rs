@@ -152,11 +152,11 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     ) -> Fallible<DomRoot<Response>> {
         // 1. Set this’s response to a new response.
         // Our Response/Body types don't actually hold onto an internal fetch Response.
-        let r = Response::new_with_proto(global, proto, can_gc);
+        let response = Response::new_with_proto(global, proto, can_gc);
 
         // 2. Set this’s headers to a new Headers object with this’s relevant realm,
         // whose header list is this’s response’s header list and guard is "response".
-        r.Headers(can_gc).set_guard(Guard::Response);
+        response.Headers(can_gc).set_guard(Guard::Response);
 
         // 3. Let bodyWithType be null.
         // 4. If body is non-null, then set bodyWithType to the result of extracting body.
@@ -166,16 +166,16 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         };
 
         // 5. Perform *initialize a response* given this, init, and bodyWithType.
-        initialize_response(global, can_gc, body_with_type, init, r)
+        initialize_response(global, can_gc, body_with_type, init, response)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-error>
     fn Error(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Response> {
-        let r = Response::new(global, can_gc);
-        *r.response_type.borrow_mut() = DOMResponseType::Error;
-        r.Headers(can_gc).set_guard(Guard::Immutable);
-        *r.status.borrow_mut() = HttpStatus::new_error();
-        r
+        let response = Response::new(global, can_gc);
+        *response.response_type.borrow_mut() = DOMResponseType::Error;
+        response.Headers(can_gc).set_guard(Guard::Immutable);
+        *response.status.borrow_mut() = HttpStatus::new_error();
+        response
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-redirect>
@@ -202,23 +202,24 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
         // Step 4
         // see Step 4 continued
-        let r = Response::new(global, can_gc);
+        let response = Response::new(global, can_gc);
 
         // Step 5
-        *r.status.borrow_mut() = HttpStatus::new_raw(status, vec![]);
+        *response.status.borrow_mut() = HttpStatus::new_raw(status, vec![]);
 
         // Step 6
         let url_bytestring =
             ByteString::from_str(url.as_str()).unwrap_or(ByteString::new(b"".to_vec()));
-        r.Headers(can_gc)
+        response
+            .Headers(can_gc)
             .Set(ByteString::new(b"Location".to_vec()), url_bytestring)?;
 
         // Step 4 continued
         // Headers Guard is set to Immutable here to prevent error in Step 6
-        r.Headers(can_gc).set_guard(Guard::Immutable);
+        response.Headers(can_gc).set_guard(Guard::Immutable);
 
         // Step 7
-        Ok(r)
+        Ok(response)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-json>
@@ -241,12 +242,12 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
 
         // 3. Let responseObject be the result of creating a Response object, given a new response,
         // "response", and the current realm.
-        let r = Response::new(global, can_gc);
-        r.Headers(can_gc).set_guard(Guard::Response);
+        let response = Response::new(global, can_gc);
+        response.Headers(can_gc).set_guard(Guard::Response);
 
         // 4. Perform initialize a response given responseObject, init, and (body, "application/json").
         body.content_type = Some("application/json".into());
-        initialize_response(global, can_gc, Some(body), init, r)
+        initialize_response(global, can_gc, Some(body), init, response)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-response-type>

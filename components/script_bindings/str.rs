@@ -4,7 +4,6 @@
 
 //! The `ByteString` struct.
 use std::borrow::{Borrow, Cow, ToOwned};
-use std::cell::OnceCell;
 use std::default::Default;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
@@ -310,12 +309,10 @@ pub fn serialize_jsval_to_json_utf8(
 ) -> Result<DOMString, Error> {
     #[repr(C)]
     struct ToJSONCallbackData {
-        string: OnceCell<String>,
+        string: Option<String>,
     }
 
-    let mut out_str = ToJSONCallbackData {
-        string: OnceCell::new(),
-    };
+    let mut out_str = ToJSONCallbackData { string: None };
 
     #[allow(unsafe_code)]
     unsafe extern "C" fn write_callback(
@@ -325,8 +322,10 @@ pub fn serialize_jsval_to_json_utf8(
     ) -> bool {
         let data = data as *mut ToJSONCallbackData;
         let string_chars = slice::from_raw_parts(string, len as usize);
-        // ToJSON promises it will only ever call the write_callback at most once.
-        let _ = (*data).string.set(String::from_utf16_lossy(string_chars));
+        (*data)
+            .string
+            .get_or_insert_with(Default::default)
+            .push_str(&String::from_utf16_lossy(string_chars));
         true
     }
 
@@ -353,7 +352,6 @@ pub fn serialize_jsval_to_json_utf8(
     // 4. Return result.
     out_str
         .string
-        .take()
         .map(Into::into)
         .ok_or_else(|| Error::Type("unable to serialize JSON".to_owned()))
 }
