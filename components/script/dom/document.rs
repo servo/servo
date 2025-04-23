@@ -270,18 +270,9 @@ pub(crate) enum IsHTMLDocument {
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-// enum FocusTransaction {
-//     /// No focus operation is in effect.
-//     NotInTransaction,
-//     /// A focus operation is in effect.
-//     /// Contains the element that has most recently requested focus for itself.
-//     InTransaction(Option<Dom<Element>>),
-// }
 struct FocusTransaction {
     /// The focused element of this document.
     element: Option<Dom<Element>>,
-    /// The top-level browsing context's system focus state.
-    has_system_focus: bool,
     /// See [`Document::has_focus`].
     has_focus: bool,
 }
@@ -355,8 +346,6 @@ pub(crate) struct Document {
     /// The last sequence number sent to the constellation.
     #[no_trace]
     focus_sequence: Cell<FocusSequenceNumber>,
-    /// The top-level browsing context's system focus state.
-    has_system_focus: Cell<bool>,
     /// Indicates whether the container is included in the top-level browsing
     /// context's focus chain (not considering system focus). Permanently `true`
     /// for a top-level document.
@@ -1157,35 +1146,6 @@ impl Document {
         self.focus_sequence.get()
     }
 
-    /// Respond to a possible change in the top-level browsing context's [system
-    /// focus][1] state.
-    ///
-    /// [1]: https://html.spec.whatwg.org/multipage/#tlbc-system-focus
-    pub fn set_has_system_focus(&self, new_system_focus_state: bool, can_gc: CanGc) {
-        if self.has_system_focus.get() == new_system_focus_state {
-            return;
-        }
-
-        // Since this method is called from an event loop, there mustn't be
-        // an in-progress focus transaction
-        assert!(
-            self.focus_transaction.borrow().is_none(),
-            "there mustn't be an in-progress focus transaction at this point"
-        );
-
-        // Start an implicit focus transaction
-        self.begin_focus_transaction();
-
-        // Update the transaction
-        {
-            let mut focus_transaction = self.focus_transaction.borrow_mut();
-            focus_transaction.as_mut().unwrap().has_system_focus = new_system_focus_state;
-        }
-
-        // Commit the implicit focus transaction
-        self.commit_focus_transaction(FocusInitiator::Remote, can_gc);
-    }
-
     /// Initiate a new round of checking for elements requesting focus. The last element to call
     /// `request_focus` before `commit_focus_transaction` is called will receive focus.
     fn begin_focus_transaction(&self) {
@@ -1193,7 +1153,6 @@ impl Document {
         // Initialize it with the current state
         *self.focus_transaction.borrow_mut() = Some(FocusTransaction {
             element: self.focused.get().as_deref().map(Dom::from_ref),
-            has_system_focus: self.has_system_focus.get(),
             has_focus: self.has_focus.get(),
         });
     }
@@ -1291,7 +1250,7 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
     fn commit_focus_transaction(&self, focus_initiator: FocusInitiator, can_gc: CanGc) {
-        let (mut new_focused, new_system_focus_state, new_focus_state) = {
+        let (mut new_focused, new_focus_state) = {
             let focus_transaction = self.focus_transaction.borrow();
             let focus_transaction = focus_transaction
                 .as_ref()
@@ -1301,7 +1260,6 @@ impl Document {
                     .element
                     .as_ref()
                     .map(|e| DomRoot::from_ref(&**e)),
-                focus_transaction.has_system_focus,
                 focus_transaction.has_focus,
             )
         };
@@ -1320,39 +1278,18 @@ impl Document {
         }
 
         let old_focused = self.focused.get();
-        let old_system_focus_state = self.has_system_focus.get();
         let old_focus_state = self.has_focus.get();
 
         debug!(
             "Committing focus transaction: {:?} → {:?}",
-            (&old_focused, old_system_focus_state, old_focus_state),
-            (&new_focused, new_system_focus_state, new_focus_state),
+            (&old_focused, old_focus_state),
+            (&new_focused, new_focus_state),
         );
-
-        // The document's focused area won't be reflected to the top-level
-        // BC's currently focused area and current focus chain [if the top-level
-        // BC doesn't have system focus, or there is no path that leads from
-        // the top-level BC's active document to the current document through
-        // browsing context containers that are designated as the focused areas
-        // of their respective documents][1].
-        //
-        // [1]: https://html.spec.whatwg.org/multipage/#currently-focused-area-of-a-top-level-browsing-context
-        //
-        // `*_doc_filtered` indicates whether the document is included in
-        // the top-level BC's focus chain.
-        let old_doc_filtered = old_system_focus_state && old_focus_state;
-        let new_doc_filtered = new_system_focus_state && new_focus_state;
 
         // `*_focused_filtered` indicates the local element (if any) included in
         // the top-level BC's focus chain.
-        let old_focused_filtered = old_focused.as_ref().filter(|_| old_doc_filtered);
-        let new_focused_filtered = new_focused.as_ref().filter(|_| new_doc_filtered);
-
-        // debug!(
-        //     "Committing focus old_focused_filtered: {:?} new_focused_filtered {:?}",
-        //     (&old_focused_filtered),
-        //     (&new_focused_filtered),
-        // );
+        let old_focused_filtered = old_focused.as_ref().filter(|_| old_focus_state);
+        let new_focused_filtered = new_focused.as_ref().filter(|_| new_focus_state);
 
         let trace_focus_chain = |name, element, doc| {
             trace!(
@@ -1366,8 +1303,8 @@ impl Document {
             );
         };
 
-        trace_focus_chain("Old", old_focused_filtered, old_doc_filtered);
-        trace_focus_chain("New", new_focused_filtered, new_doc_filtered);
+        trace_focus_chain("Old", old_focused_filtered, old_focus_state);
+        trace_focus_chain("New", new_focused_filtered, new_focus_state);
 
         if old_focused_filtered != new_focused_filtered {
             if let Some(elem) = &old_focused_filtered {
@@ -1385,15 +1322,14 @@ impl Document {
             }
         }
 
-        if old_doc_filtered != new_doc_filtered && !new_doc_filtered {
+        if old_focus_state != new_focus_state && !new_focus_state {
             self.fire_focus_event(FocusEventType::Blur, self.global().upcast(), None, can_gc);
         }
 
         self.focused.set(new_focused.as_deref());
-        self.has_system_focus.set(new_system_focus_state);
         self.has_focus.set(new_focus_state);
 
-        if old_doc_filtered != new_doc_filtered && new_doc_filtered {
+        if old_focus_state != new_focus_state && new_focus_state {
             self.fire_focus_event(FocusEventType::Focus, self.global().upcast(), None, can_gc);
         }
 
@@ -4121,7 +4057,6 @@ impl Document {
             focus_transaction: DomRefCell::new(None),
             focused: Default::default(),
             focus_sequence: Cell::new(FocusSequenceNumber::default()),
-            has_system_focus: Cell::new(false),
             has_focus: Cell::new(has_focus),
             current_script: Default::default(),
             pending_parsing_blocking_script: Default::default(),
@@ -5275,9 +5210,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // >
         // > 1. If `target`'s browsing context's top-level browsing context does
         // >    not have system focus, then return false.
-        if !self.has_system_focus.get() {
-            return false;
-        }
 
         // > 2. Let `candidate` be `target`'s browsing context's top-level
         // >    browsing context's active document.

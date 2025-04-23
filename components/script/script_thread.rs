@@ -1859,9 +1859,6 @@ impl ScriptThread {
                 *self.receivers.webgpu_receiver.borrow_mut() =
                     ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
             },
-            ScriptThreadMessage::SystemFocus(pipeline_id, new_system_focus_state) => {
-                self.handle_system_focus(pipeline_id, new_system_focus_state)
-            },
             msg @ ScriptThreadMessage::AttachLayout(..) |
             msg @ ScriptThreadMessage::Viewport(..) |
             msg @ ScriptThreadMessage::Resize(..) |
@@ -3762,13 +3759,6 @@ impl ScriptThread {
         } else {
             warn!("No MediaSession for this pipeline ID");
         };
-    }
-
-    fn handle_system_focus(&self, pipeline_id: PipelineId, new_system_focus_state: bool) {
-        let document = self.documents.borrow().find_document(pipeline_id);
-        if let Some(document) = document {
-            document.set_has_system_focus(new_system_focus_state, CanGc::note());
-        }
     }
 
     pub(crate) fn enqueue_microtask(job: Microtask) {

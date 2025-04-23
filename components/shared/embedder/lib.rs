@@ -851,13 +851,6 @@ pub enum AnimationState {
     PartialOrd,
 )]
 pub struct FocusSequenceNumber(pub u64);
-// use u64 as FocusSequenceNumber;
-
-// impl Debug for FocusSequenceNumber {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-//         Debug::fmt(&self.0, f)
-//     }
-// }
 
 impl Display for FocusSequenceNumber {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {

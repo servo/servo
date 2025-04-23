@@ -238,9 +238,6 @@ struct WebView {
     /// context.
     focused_browsing_context_id: BrowsingContextId,
 
-    /// The system focus state for this browser.
-    has_system_focus: bool,
-
     /// The joint session history for this webview.
     session_history: JointSessionHistory,
 }
@@ -1668,7 +1665,6 @@ where
                     focused_child_browsing_context_id,
                     sequence,
                 );
-                // self.handle_focus_msg(source_pipeline_id);
             },
             ScriptToConstellationMessage::FocusRemoteDocument(focused_browsing_context_id) => {
                 self.handle_focus_remote_document_msg(focused_browsing_context_id);
@@ -2915,28 +2911,8 @@ where
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
     fn handle_focus_web_view(&mut self, webview_id: WebViewId) {
-        if let Some(webview) = self.webviews.get_mut(webview_id) {
-            webview.has_system_focus = true;
-            // webview.has_system_focus = new_system_focus_state;
-        } else {
+        if self.webviews.get(webview_id).is_none() {
             return warn!("{webview_id}: FocusWebView on unknown top-level browsing context");
-        }
-        for browsing_context in self.fully_active_browsing_contexts_iter(webview_id) {
-            let pipeline_id = browsing_context.pipeline_id;
-            trace!(
-                "Sending SystemFocus(_, {}) to pipeline {}.",
-                browsing_context.id, pipeline_id
-            );
-
-            let pipeline = match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) => pipeline,
-                None => {
-                    warn!("Pipeline {} is already closed", pipeline_id);
-                    continue;
-                },
-            };
-
-            pipeline.notify_system_focus(true);
         }
         self.webviews.focus(webview_id);
         self.embedder_proxy
@@ -3128,7 +3104,6 @@ where
             webview_id,
             WebView {
                 focused_browsing_context_id: browsing_context_id,
-                has_system_focus: true,
                 session_history: JointSessionHistory::new(),
             },
         );
@@ -3523,7 +3498,6 @@ where
             new_webview_id,
             WebView {
                 focused_browsing_context_id: new_browsing_context_id,
-                has_system_focus: true,
                 session_history: JointSessionHistory::new(),
             },
         );
@@ -5180,11 +5154,10 @@ where
             None => return warn!("Pipeline {} is closed", pipeline_id),
         };
 
-        let (system_focus_state, is_focused);
+        let is_focused;
 
         match self.webviews.get(pipeline.webview_id) {
             Some(webview) => {
-                system_focus_state = webview.has_system_focus;
                 is_focused = webview.focused_browsing_context_id == pipeline.browsing_context_id;
             },
             None => {
@@ -5194,9 +5167,6 @@ where
                 );
             },
         }
-
-        // Advertise the system focus state of its top-level browsing context
-        pipeline.notify_system_focus(system_focus_state);
 
         // If the browsing context is focused, focus the document
         let msg = if is_focused {
