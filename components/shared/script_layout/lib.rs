@@ -265,7 +265,7 @@ pub trait Layout {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>>;
-    fn query_scrolling_area(&self, node: Option<OpaqueNode>) -> Rect<i32>;
+    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32>;
     fn query_text_indext(&self, node: OpaqueNode, point: Point2D<f32>) -> Option<usize>;
 }
 

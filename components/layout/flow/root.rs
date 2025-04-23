@@ -428,13 +428,14 @@ impl BoxTree {
                 acc.union(&child_overflow)
             });
 
-        FragmentTree {
+        FragmentTree::new(
+            layout_context,
             root_fragments,
             scrollable_overflow,
-            initial_containing_block: physical_containing_block,
-            canvas_background: self.canvas_background.clone(),
-            viewport_scroll_sensitivity: self.viewport_scroll_sensitivity,
-        }
+            physical_containing_block,
+            self.canvas_background.clone(),
+            self.viewport_scroll_sensitivity,
+        )
     }
 }
 

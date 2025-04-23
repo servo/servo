@@ -2281,11 +2281,12 @@ impl Window {
         node: Option<&Node>,
         can_gc: CanGc,
     ) -> UntypedRect<i32> {
-        let opaque = node.map(|node| node.to_opaque());
         if !self.layout_reflow(QueryMsg::ScrollingAreaQuery, can_gc) {
             return Rect::zero();
         }
-        self.layout.borrow().query_scrolling_area(opaque)
+        self.layout
+            .borrow()
+            .query_scrolling_area(node.map(Node::to_trusted_node_address))
     }
 
     pub(crate) fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {

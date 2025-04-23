@@ -23,7 +23,7 @@ use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
-use fxhash::{FxHashMap, FxHashSet};
+use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use log::{debug, error};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -37,15 +37,15 @@ use profile_traits::{path, time_profile};
 use rayon::ThreadPool;
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::{
-    ImageAnimationState, Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType,
-    OffsetParentResponse, ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
+    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, ReflowGoal,
+    ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::{self, DebugOptions};
 use servo_config::pref;
 use servo_url::ServoUrl;
-use style::animation::{AnimationSetKey, DocumentAnimationSet};
+use style::animation::DocumentAnimationSet;
 use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
 };
@@ -330,14 +330,7 @@ impl Layout for LayoutThread {
             TraversalFlags::empty(),
         );
 
-        let fragment_tree = self.fragment_tree.borrow().clone();
-        process_resolved_style_request(
-            &shared_style_context,
-            node,
-            &pseudo,
-            &property_id,
-            fragment_tree,
-        )
+        process_resolved_style_request(&shared_style_context, node, &pseudo, &property_id)
     }
 
     #[cfg_attr(
@@ -380,7 +373,8 @@ impl Layout for LayoutThread {
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn query_scrolling_area(&self, node: Option<OpaqueNode>) -> UntypedRect<i32> {
+    fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> UntypedRect<i32> {
+        let node = node.map(|node| unsafe { ServoLayoutNode::new(&node) });
         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
     }
 
@@ -790,18 +784,6 @@ impl LayoutThread {
             run_layout()
         });
 
-        Self::cancel_animations_for_nodes_not_in_fragment_tree(
-            &recalc_style_traversal.context().style_context.animations,
-            &fragment_tree,
-        );
-        Self::cancel_image_animation_for_nodes_not_in_fragment_tree(
-            recalc_style_traversal
-                .context()
-                .node_image_animation_map
-                .clone(),
-            &fragment_tree,
-        );
-
         *self.fragment_tree.borrow_mut() = Some(fragment_tree);
 
         if self.debug.dump_style_tree {
@@ -920,42 +902,6 @@ impl LayoutThread {
                 TimerMetadataReflowType::Incremental
             },
         })
-    }
-
-    /// Cancel animations for any nodes which have been removed from fragment tree.
-    /// TODO(mrobinson): We should look into a way of doing this during flow tree construction.
-    /// This also doesn't yet handles nodes that have been reparented.
-    fn cancel_animations_for_nodes_not_in_fragment_tree(
-        animations: &DocumentAnimationSet,
-        root: &FragmentTree,
-    ) {
-        // Assume all nodes have been removed until proven otherwise.
-        let mut animations = animations.sets.write();
-        let mut invalid_nodes = animations.keys().cloned().collect();
-        root.remove_nodes_in_fragment_tree_from_set(&mut invalid_nodes);
-
-        // Cancel animations for any nodes that are no longer in the fragment tree.
-        for node in &invalid_nodes {
-            if let Some(state) = animations.get_mut(node) {
-                state.cancel_all_animations();
-            }
-        }
-    }
-
-    fn cancel_image_animation_for_nodes_not_in_fragment_tree(
-        image_animation_set: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
-        root: &FragmentTree,
-    ) {
-        let mut image_animations = image_animation_set.write().to_owned();
-        let mut invalid_nodes: FxHashSet<AnimationSetKey> = image_animations
-            .keys()
-            .cloned()
-            .map(|node| AnimationSetKey::new(node, None))
-            .collect();
-        root.remove_nodes_in_fragment_tree_from_set(&mut invalid_nodes);
-        for node in &invalid_nodes {
-            image_animations.remove(&node.node);
-        }
     }
 
     fn viewport_did_change(&mut self, viewport_details: ViewportDetails) -> bool {
