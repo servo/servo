@@ -32,6 +32,7 @@ use net_traits::{
 };
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use stylo_atoms::Atom;
 use uuid::Uuid;
@@ -44,7 +45,9 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElement_Binding::HTMLElementMethods;
-use crate::dom::bindings::codegen::UnionTypes::TrustedScriptURLOrUSVString;
+use crate::dom::bindings::codegen::UnionTypes::{
+    TrustedScriptOrString, TrustedScriptURLOrUSVString,
+};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -64,6 +67,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits};
 use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::trustedscript::TrustedScript;
+use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
@@ -667,7 +672,7 @@ impl HTMLScriptElement {
 
         // Step 5. Let source text be el's child text content.
         // Step 6. If el has no src attribute, and source text is the empty string, then return.
-        let text = self.Text();
+        let text = self.text();
         if text.is_empty() && !element.has_attribute(&local_name!("src")) {
             return;
         }
@@ -1272,6 +1277,15 @@ impl HTMLScriptElement {
         let event = Event::new(window.upcast(), type_, bubbles, cancelable, can_gc);
         event.fire(self.upcast(), can_gc)
     }
+
+    fn text(&self) -> DOMString {
+        match self.Text() {
+            TrustedScriptOrString::String(value) => value,
+            TrustedScriptOrString::TrustedScript(trusted_script) => {
+                DOMString::from(trusted_script.to_string())
+            },
+        }
+    }
 }
 
 impl VirtualMethods for HTMLScriptElement {
@@ -1286,7 +1300,7 @@ impl VirtualMethods for HTMLScriptElement {
         if *attr.local_name() == local_name!("src") {
             if let AttributeMutation::Set(_) = mutation {
                 if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-                    self.prepare(CanGc::note());
+                    self.prepare(can_gc);
                 }
             }
         }
@@ -1344,10 +1358,25 @@ impl VirtualMethods for HTMLScriptElement {
 
 impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-src
-    make_trusted_type_url_getter!(Src, "src");
+    fn Src(&self) -> TrustedScriptURLOrUSVString {
+        let element = self.upcast::<Element>();
+        element.get_trusted_type_url_attribute(&local_name!("src"))
+    }
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-src
-    make_trusted_type_url_setter!(SetSrc, "src");
+    /// <https://w3c.github.io/trusted-types/dist/spec/#the-src-idl-attribute>
+    fn SetSrc(&self, value: TrustedScriptURLOrUSVString, can_gc: CanGc) -> Fallible<()> {
+        let element = self.upcast::<Element>();
+        let local_name = &local_name!("src");
+        let value = TrustedScriptURL::get_trusted_script_url_compliant_string(
+            &element.owner_global(),
+            value,
+            "HTMLScriptElement",
+            local_name,
+            can_gc,
+        )?;
+        element.set_attribute(local_name, AttrValue::String(value), can_gc);
+        Ok(())
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-type
     make_getter!(Type, "type");
@@ -1416,14 +1445,77 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy
     make_setter!(SetReferrerPolicy, "referrerpolicy");
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-text
-    fn Text(&self) -> DOMString {
-        self.upcast::<Node>().child_text_content()
+    /// <https://w3c.github.io/trusted-types/dist/spec/#dom-htmlscriptelement-innertext>
+    fn InnerText(&self, can_gc: CanGc) -> TrustedScriptOrString {
+        // Step 1: Return the result of running get the text steps with this.
+        TrustedScriptOrString::String(self.upcast::<HTMLElement>().get_inner_outer_text(can_gc))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-script-text
-    fn SetText(&self, value: DOMString, can_gc: CanGc) {
-        self.upcast::<Node>().SetTextContent(Some(value), can_gc)
+    /// <https://w3c.github.io/trusted-types/dist/spec/#the-innerText-idl-attribute>
+    fn SetInnerText(&self, input: TrustedScriptOrString, can_gc: CanGc) -> Fallible<()> {
+        // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
+        // this's relevant global object, the given value, HTMLScriptElement innerText, and script.
+        let value = TrustedScript::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            input,
+            "HTMLScriptElement",
+            "innerText",
+            can_gc,
+        )?;
+        // Step 3: Run set the inner text steps with this and value.
+        self.upcast::<HTMLElement>()
+            .set_inner_text(DOMString::from(value), can_gc);
+        Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-text>
+    fn Text(&self) -> TrustedScriptOrString {
+        TrustedScriptOrString::String(self.upcast::<Node>().child_text_content())
+    }
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#the-text-idl-attribute>
+    fn SetText(&self, value: TrustedScriptOrString, can_gc: CanGc) -> Fallible<()> {
+        // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
+        // this's relevant global object, the given value, HTMLScriptElement text, and script.
+        let value = TrustedScript::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            value,
+            "HTMLScriptElement",
+            "text",
+            can_gc,
+        )?;
+        // Step 2: Set this's script text value to the given value.
+        // TODO: Implement for https://w3c.github.io/trusted-types/dist/spec/#prepare-script-text
+        // Step 3: String replace all with the given value within this.
+        Node::string_replace_all(DOMString::from(value), self.upcast::<Node>(), can_gc);
+        Ok(())
+    }
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#the-textContent-idl-attribute>
+    fn GetTextContent(&self) -> Option<TrustedScriptOrString> {
+        // Step 1: Return the result of running get text content with this.
+        Some(TrustedScriptOrString::String(
+            self.upcast::<Node>().GetTextContent()?,
+        ))
+    }
+
+    /// <https://w3c.github.io/trusted-types/dist/spec/#the-textContent-idl-attribute>
+    fn SetTextContent(&self, value: Option<TrustedScriptOrString>, can_gc: CanGc) -> Fallible<()> {
+        // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
+        // this's relevant global object, the given value, HTMLScriptElement textContent, and script.
+        let value = TrustedScript::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            value.unwrap_or(TrustedScriptOrString::String(DOMString::from(""))),
+            "HTMLScriptElement",
+            "textContent",
+            can_gc,
+        )?;
+        // Step 2: Set this's script text value to value.
+        // TODO: Implement for https://w3c.github.io/trusted-types/dist/spec/#prepare-script-text
+        // Step 3: Run set text content with this and value.
+        self.upcast::<Node>()
+            .SetTextContent(Some(DOMString::from(value)), can_gc);
+        Ok(())
     }
 }
 

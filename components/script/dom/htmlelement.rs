@@ -116,7 +116,7 @@ impl HTMLElement {
     /// `.outerText` in JavaScript.`
     ///
     /// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
-    fn get_inner_outer_text(&self, can_gc: CanGc) -> DOMString {
+    pub(crate) fn get_inner_outer_text(&self, can_gc: CanGc) -> DOMString {
         let node = self.upcast::<Node>();
         let window = node.owner_window();
         let element = self.as_element();
@@ -133,6 +133,16 @@ impl HTMLElement {
             .query_element_inner_outer_text(node.to_trusted_node_address());
 
         DOMString::from(text)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
+    pub(crate) fn set_inner_text(&self, input: DOMString, can_gc: CanGc) {
+        // Step 1: Let fragment be the rendered text fragment for value given element's node
+        // document.
+        let fragment = self.rendered_text_fragment(input, can_gc);
+
+        // Step 2: Replace all with fragment within element.
+        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>(), can_gc);
     }
 }
 
@@ -494,12 +504,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
     fn SetInnerText(&self, input: DOMString, can_gc: CanGc) {
-        // Step 1: Let fragment be the rendered text fragment for value given element's node
-        // document.
-        let fragment = self.rendered_text_fragment(input, can_gc);
-
-        // Step 2: Replace all with fragment within element.
-        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>(), can_gc);
+        self.set_inner_text(input, can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-outertext>

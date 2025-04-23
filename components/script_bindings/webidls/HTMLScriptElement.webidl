@@ -21,8 +21,12 @@ interface HTMLScriptElement : HTMLElement {
            attribute boolean defer;
   [CEReactions]
            attribute DOMString? crossOrigin;
-  [CEReactions, Pure]
-           attribute DOMString text;
+  [CEReactions, SetterThrows]
+           attribute (TrustedScript or DOMString) innerText;
+  [CEReactions, Pure, SetterThrows]
+           attribute (TrustedScript or DOMString) text;
+  [CEReactions, SetterThrows]
+           attribute (TrustedScript or DOMString)? textContent;
   [CEReactions]
            attribute DOMString integrity;
   [CEReactions]
