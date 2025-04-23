@@ -5154,19 +5154,15 @@ where
             None => return warn!("Pipeline {} is closed", pipeline_id),
         };
 
-        let is_focused;
-
-        match self.webviews.get(pipeline.webview_id) {
-            Some(webview) => {
-                is_focused = webview.focused_browsing_context_id == pipeline.browsing_context_id;
-            },
+        let is_focused = match self.webviews.get(pipeline.webview_id) {
+            Some(webview) => webview.focused_browsing_context_id == pipeline.browsing_context_id,
             None => {
                 return warn!(
                     "Pipeline {}'s top-level browsing context {} is closed",
                     pipeline_id, pipeline.webview_id
                 );
             },
-        }
+        };
 
         // If the browsing context is focused, focus the document
         let msg = if is_focused {
