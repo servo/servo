@@ -346,6 +346,7 @@ pub(crate) struct TableLayoutStyle<'a> {
 /// Table parts that are stored in the DOM. This is used in order to map from
 /// the DOM to the box tree and will eventually be important for incremental
 /// layout.
+#[derive(MallocSizeOf)]
 pub(crate) enum TableLevelBox {
     Caption(ArcRefCell<TableCaption>),
     Cell(ArcRefCell<TableSlotCell>),

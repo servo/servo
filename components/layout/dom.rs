@@ -2,18 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use base::id::{BrowsingContextId, PipelineId};
 use html5ever::{local_name, ns};
+use malloc_size_of_derive::MallocSizeOf;
 use pixels::Image;
 use script_layout_interface::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{
-    HTMLCanvasDataSource, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
+    GenericLayoutDataTrait, HTMLCanvasDataSource, LayoutElementType,
+    LayoutNodeType as ScriptLayoutNodeType,
 };
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
@@ -31,7 +34,7 @@ use crate::table::TableLevelBox;
 use crate::taffy::TaffyItemBox;
 
 /// The data that is stored in each DOM node that is used by layout.
-#[derive(Default)]
+#[derive(Default, MallocSizeOf)]
 pub struct InnerDOMLayoutData {
     pub(super) self_box: ArcRefCell<Option<LayoutBox>>,
     pub(super) pseudo_before_box: ArcRefCell<Option<LayoutBox>>,
@@ -54,6 +57,7 @@ impl InnerDOMLayoutData {
 }
 
 /// A box that is stored in one of the `DOMLayoutData` slots.
+#[derive(MallocSizeOf)]
 pub(super) enum LayoutBox {
     DisplayContents,
     BlockLevel(ArcRefCell<BlockLevelBox>),
@@ -98,11 +102,16 @@ impl LayoutBox {
 /// A wrapper for [`InnerDOMLayoutData`]. This is necessary to give the entire data
 /// structure interior mutability, as we will need to mutate the layout data of
 /// non-mutable DOM nodes.
-#[derive(Default)]
+#[derive(Default, MallocSizeOf)]
 pub struct DOMLayoutData(AtomicRefCell<InnerDOMLayoutData>);
 
 // The implementation of this trait allows the data to be stored in the DOM.
 impl LayoutDataTrait for DOMLayoutData {}
+impl GenericLayoutDataTrait for DOMLayoutData {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
 
 pub struct BoxSlot<'dom> {
     pub(crate) slot: Option<ArcRefCell<Option<LayoutBox>>>,
@@ -255,6 +264,7 @@ where
         }
         LayoutNode::layout_data(&self)
             .unwrap()
+            .as_any()
             .downcast_ref::<DOMLayoutData>()
             .unwrap()
             .0
@@ -262,8 +272,13 @@ where
     }
 
     fn layout_data(self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>> {
-        LayoutNode::layout_data(&self)
-            .map(|data| data.downcast_ref::<DOMLayoutData>().unwrap().0.borrow())
+        LayoutNode::layout_data(&self).map(|data| {
+            data.as_any()
+                .downcast_ref::<DOMLayoutData>()
+                .unwrap()
+                .0
+                .borrow()
+        })
     }
 
     fn element_box_slot(&self) -> BoxSlot<'dom> {

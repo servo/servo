@@ -167,7 +167,6 @@ pub struct Node {
 
     /// Layout data for this node. This is populated during layout and can
     /// be used for incremental relayout and script queries.
-    #[ignore_malloc_size_of = "trait object"]
     #[no_trace]
     layout_data: DomRefCell<Option<Box<GenericLayoutData>>>,
 }

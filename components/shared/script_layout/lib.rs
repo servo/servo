@@ -27,7 +27,7 @@ use fonts::{FontContext, SystemFontServiceProxy};
 use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
-use malloc_size_of::MallocSizeOfOps;
+use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use pixels::Image;
@@ -51,7 +51,11 @@ use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
 use webrender_api::ImageKey;
 
-pub type GenericLayoutData = dyn Any + Send + Sync;
+pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
+    fn as_any(&self) -> &dyn Any;
+}
+
+pub type GenericLayoutData = dyn GenericLayoutDataTrait + Send + Sync;
 
 #[derive(MallocSizeOf)]
 pub struct StyleData {
@@ -59,7 +63,6 @@ pub struct StyleData {
     /// style system is being used standalone, this is all that hangs
     /// off the node. This must be first to permit the various
     /// transmutations between ElementData and PersistentLayoutData.
-    #[ignore_malloc_size_of = "This probably should not be ignored"]
     pub element_data: AtomicRefCell<ElementData>,
 
     /// Information needed during parallel traversals.

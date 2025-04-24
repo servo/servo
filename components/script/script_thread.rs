@@ -2439,14 +2439,15 @@ impl ScriptThread {
 
         let mut reports = vec![];
         perform_memory_report(|ops| {
-            let prefix = format!("url({urls})");
-            reports.extend(self.get_cx().get_reports(prefix.clone(), ops));
             for (_, document) in documents.iter() {
                 document
                     .window()
                     .layout()
                     .collect_reports(&mut reports, ops);
             }
+
+            let prefix = format!("url({urls})");
+            reports.extend(self.get_cx().get_reports(prefix.clone(), ops));
 
             reports.push(self.image_cache.memory_report(&prefix, ops));
         });
