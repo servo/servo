@@ -29,7 +29,7 @@ use embedder_traits::{
 use euclid::{Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::send_keys;
 use log::{debug, info};
@@ -1583,8 +1583,7 @@ impl Handler {
             .unwrap();
 
         // TODO: distinguish the not found and not focusable cases
-        wait_for_script_response(receiver)?
-            .map_err(|error| WebDriverError::new(error, ""))?;
+        wait_for_script_response(receiver)?.map_err(|error| WebDriverError::new(error, ""))?;
 
         let input_events = send_keys(&keys.text);
 
@@ -1937,7 +1936,11 @@ fn webdriver_value_to_js_argument(v: &Value) -> String {
     }
 }
 
-fn wait_for_script_response<T>(receiver: IpcReceiver<T>) -> Result<T, WebDriverError> where T: for <'de> Deserialize<'de> + Serialize {
-    receiver.recv()
+fn wait_for_script_response<T>(receiver: IpcReceiver<T>) -> Result<T, WebDriverError>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    receiver
+        .recv()
         .map_err(|_| WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
 }
