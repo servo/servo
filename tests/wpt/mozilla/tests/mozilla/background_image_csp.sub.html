@@ -1,0 +1,34 @@
+<!doctype html>
+<meta http-equiv="content-security-policy" content="img-src 'self'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+    background-size: cover;
+  }
+</style>
+<div id="target"></div>
+<img id="control">
+<script>
+  // This test sets up a cross-origin background-image on a div and checks that it's blocked by CSP.
+  // It also uses a regular <img> to control when the test should end.
+  async_test(t => {
+      const pathparts = location.pathname.split('/');
+      const testfile = pathparts[pathparts.length - 1];
+      const url = location.href.replace(location.hostname, "{{hosts[alt][]}}").replace(testfile, "poster.png");
+
+      const target = document.getElementById("target");
+      target.style.backgroundImage = `url('${url}')`;
+
+      // control image load
+      const control = document.getElementById("control");
+      control.src = url;
+      control.onload = t.unreached_func("Control image should not load (CSP should block it)");
+      control.onerror = t.step_timeout(() => {
+          // No way to assert background-image load failure directly, just ensure no crash / test timeout
+          t.done();
+      }, 500);
+  });
+</script>
