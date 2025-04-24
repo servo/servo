@@ -5,7 +5,7 @@
 #![deny(unsafe_code)]
 
 use std::collections::HashMap;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{self, Debug, Display};
 use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
 
@@ -1119,7 +1119,7 @@ pub struct CookieAsyncResponse {
 }
 
 /// Network errors that have to be exported out of the loaders
-#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum NetworkError {
     /// Could be any of the internal errors, like unsupported scheme, connection errors, etc.
     Internal(String),
@@ -1154,6 +1154,7 @@ pub enum NetworkError {
 impl fmt::Debug for NetworkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            NetworkError::Internal(s) => write!(f, "{}", s),
             NetworkError::UnsupportedScheme => write!(f, "Unsupported scheme"),
             NetworkError::CorsGeneral => write!(f, "CORS check failed"),
             NetworkError::CrossOriginResponse => write!(f, "Cross-origin response"),
