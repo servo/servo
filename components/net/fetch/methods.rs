@@ -42,7 +42,7 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManager;
 use crate::http_loader::{HttpState, determine_requests_referrer, http_fetch, set_default_accept};
-use crate::protocols::ProtocolRegistry;
+use crate::protocols::{ProtocolRegistry, is_url_potentially_trustworthy};
 use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;
 
@@ -949,7 +949,7 @@ pub fn should_request_be_blocked_as_mixed_content(
     }
 
     // 1.2. request’s URL is a potentially trustworthy URL.
-    if protocol_registry.is_url_potentially_trustworthy(&request.url()) {
+    if is_url_potentially_trustworthy(&protocol_registry, &request.url()) {
         return false;
     }
 
@@ -984,7 +984,7 @@ pub fn should_response_be_blocked_as_mixed_content(
     if response
         .actual_response()
         .url()
-        .is_some_and(|response_url| protocol_registry.is_url_potentially_trustworthy(response_url))
+        .is_some_and(|response_url| is_url_potentially_trustworthy(protocol_registry, response_url))
     {
         return false;
     }
@@ -1050,9 +1050,7 @@ fn should_upgrade_request_to_potentially_trustworty(
         // request’s header list if any of the following criteria are met:
         // * request’s URL is not a potentially trustworthy URL
         // * request’s URL's host is not a preloadable HSTS host
-        if !context
-            .protocols
-            .is_url_potentially_trustworthy(&request.current_url()) ||
+        if !is_url_potentially_trustworthy(&context.protocols, &request.current_url()) ||
             !request.current_url().host_str().is_some_and(|host| {
                 !context.state.hsts_list.read().unwrap().is_host_secure(host)
             })
@@ -1111,7 +1109,7 @@ fn should_upgrade_mixed_content_request(
 ) -> bool {
     let url = request.url();
     // Step 1.1 : request’s URL is a potentially trustworthy URL.
-    if protocol_registry.is_url_potentially_trustworthy(&url) {
+    if is_url_potentially_trustworthy(protocol_registry, &url) {
         return false;
     }
 

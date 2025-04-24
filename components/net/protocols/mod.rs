@@ -114,11 +114,14 @@ impl ProtocolRegistry {
             .get(scheme)
             .is_some_and(|handler| handler.is_secure())
     }
+}
 
-    /// Test if the URL is potentially trustworthy or the custom protocol is registered as secure
-    pub fn is_url_potentially_trustworthy(&self, url: &ServoUrl) -> bool {
-        url.is_potentially_trustworthy() || self.is_secure(url.scheme())
-    }
+/// Test if the URL is potentially trustworthy or the custom protocol is registered as secure
+pub fn is_url_potentially_trustworthy(
+    protocol_registry: &ProtocolRegistry,
+    url: &ServoUrl,
+) -> bool {
+    url.is_potentially_trustworthy() || protocol_registry.is_secure(url.scheme())
 }
 
 pub fn range_not_satisfiable_error(response: &mut Response) {
