@@ -265,7 +265,7 @@ impl Actor for WatcherActor {
                         },
                         "source" => {
                             let thread_actor = registry.find::<ThreadActor>(&target.thread);
-                            let sources = thread_actor.sources();
+                            let sources = thread_actor.source_manager.sources();
                             target.resources_available(sources.iter().collect(), "source".into());
                         },
                         "console-message" | "error-message" => {},

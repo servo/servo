@@ -19,7 +19,7 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use actors::thread::Source;
+use actors::source::SourceData;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
@@ -66,6 +66,7 @@ mod actors {
     pub mod process;
     pub mod reflow;
     pub mod root;
+    pub mod source;
     pub mod stylesheets;
     pub mod tab;
     pub mod thread;
@@ -525,9 +526,11 @@ impl DevtoolsInstance {
             .clone();
 
         let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
-        thread_actor.add_source(source_info.url.clone());
+        thread_actor
+            .source_manager
+            .add_source(source_info.url.clone());
 
-        let source = Source {
+        let source = SourceData {
             actor: thread_actor_name.clone(),
             url: source_info.url.to_string(),
             is_black_boxed: false,
