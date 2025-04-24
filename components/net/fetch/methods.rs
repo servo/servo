@@ -53,6 +53,7 @@ use crate::protocols::{ProtocolRegistry, is_url_potentially_trustworthy};
 use crate::request_interceptor::RequestInterceptor;
 use crate::subresource_integrity::is_response_integrity_valid;
 
+#[allow(dead_code)]
 const PARTIAL_RESPONSE_TO_NON_RANGE_REQUEST_ERROR: &str = "Refusing to provide partial response\
 from earlier ranged request to API that did not make a range request";
 
