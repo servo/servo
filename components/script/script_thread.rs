@@ -1147,14 +1147,6 @@ impl ScriptThread {
             return;
         }
 
-        // Run rafs for all pipeline, if a raf tick was received for any.
-        // This ensures relative ordering of rafs between parent doc and iframes.
-        let should_run_rafs = self
-            .documents
-            .borrow()
-            .iter()
-            .any(|(_, doc)| doc.is_fully_active() && doc.has_received_raf_tick());
-
         let any_animations_running = self.documents.borrow().iter().any(|(_, document)| {
             document.is_fully_active() && document.animations().running_animation_count() != 0
         });
@@ -1242,7 +1234,7 @@ impl ScriptThread {
             // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
             // > in the relative high resolution time given frameTimestamp and doc's
             // > relevant global object as the timestamp.
-            if should_run_rafs {
+            if requested_by_compositor {
                 document.run_the_animation_frame_callbacks(can_gc);
             }
 
@@ -1421,18 +1413,9 @@ impl ScriptThread {
                         self.handle_viewport(id, rect);
                     }),
                 MixedMessage::FromConstellation(ScriptThreadMessage::TickAllAnimations(
-                    pipeline_id,
-                    tick_type,
+                    _webviews,
                 )) => {
-                    if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
-                        document.note_pending_animation_tick(tick_type);
-                        compositor_requested_update_the_rendering = true;
-                    } else {
-                        warn!(
-                            "Trying to note pending animation tick for closed pipeline {}.",
-                            pipeline_id
-                        )
-                    }
+                    compositor_requested_update_the_rendering = true;
                 },
                 MixedMessage::FromConstellation(ScriptThreadMessage::SendInputEvent(id, event)) => {
                     self.handle_input_event(id, event)

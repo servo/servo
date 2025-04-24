@@ -21,9 +21,7 @@ use base::id::WebViewId;
 use canvas_traits::canvas::CanvasId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use chrono::Local;
-use constellation_traits::{
-    AnimationTickType, NavigationHistoryBehavior, ScriptToConstellationMessage,
-};
+use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use content_security_policy::{self as csp, CspList, PolicyDisposition};
 use cookie::Cookie;
 use cssparser::match_ignore_ascii_case;
@@ -516,10 +514,6 @@ pub(crate) struct Document {
     pending_input_events: DomRefCell<Vec<ConstellationInputEvent>>,
     /// The index of the last mouse move event in the pending compositor events queue.
     mouse_move_event_index: DomRefCell<Option<usize>>,
-    /// Pending animation ticks, to be handled at the next rendering opportunity.
-    #[no_trace]
-    #[ignore_malloc_size_of = "AnimationTickType contains data from an outside crate"]
-    pending_animation_ticks: DomRefCell<AnimationTickType>,
     /// <https://drafts.csswg.org/resize-observer/#dom-document-resizeobservers-slot>
     ///
     /// Note: we are storing, but never removing, resize observers.
@@ -2397,10 +2391,6 @@ impl Document {
     pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
         let _realm = enter_realm(self);
 
-        self.pending_animation_ticks
-            .borrow_mut()
-            .remove(AnimationTickType::REQUEST_ANIMATION_FRAME);
-
         self.running_animation_callbacks.set(true);
         let was_faking_animation_frames = self.is_faking_animation_frames();
         let timing = self.global().performance().Now();
@@ -3916,7 +3906,6 @@ impl Document {
             image_animation_manager: DomRefCell::new(ImageAnimationManager::new()),
             dirty_root: Default::default(),
             declarative_refresh: Default::default(),
-            pending_animation_ticks: Default::default(),
             pending_input_events: Default::default(),
             mouse_move_event_index: Default::default(),
             resize_observers: Default::default(),
@@ -4687,18 +4676,6 @@ impl Document {
                 Some((node.to_trusted_node_address(), restyle.0))
             })
             .collect()
-    }
-
-    /// Note a pending animation tick, to be processed at the next `update_the_rendering` task.
-    pub(crate) fn note_pending_animation_tick(&self, tick_type: AnimationTickType) {
-        self.pending_animation_ticks.borrow_mut().extend(tick_type);
-    }
-
-    /// Whether this document has received an animation tick for rafs.
-    pub(crate) fn has_received_raf_tick(&self) -> bool {
-        self.pending_animation_ticks
-            .borrow()
-            .contains(AnimationTickType::REQUEST_ANIMATION_FRAME)
     }
 
     pub(crate) fn advance_animation_timeline_for_testing(&self, delta: f64) {
@@ -6437,10 +6414,7 @@ impl FakeRequestAnimationFrameCallback {
     pub(crate) fn invoke(self, can_gc: CanGc) {
         // TODO: Once there is a more generic mechanism to trigger `update_the_rendering` when
         // not driven by the compositor, it should be used here.
-        self.document
-            .root()
-            .note_pending_animation_tick(AnimationTickType::REQUEST_ANIMATION_FRAME);
-        with_script_thread(|script_thread| script_thread.update_the_rendering(false, can_gc))
+        with_script_thread(|script_thread| script_thread.update_the_rendering(true, can_gc))
     }
 }
 

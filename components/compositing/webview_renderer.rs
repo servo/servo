@@ -86,6 +86,9 @@ pub(crate) struct WebViewRenderer {
     /// The HiDPI scale factor for the `WebView` associated with this renderer. This is controlled
     /// by the embedding layer.
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
+    /// Whether or not this [`WebViewRenderer`] isn't throttled and has a pipeline with
+    /// active animations or animation frame callbacks.
+    animating: bool,
 }
 
 impl Drop for WebViewRenderer {
@@ -119,6 +122,7 @@ impl WebViewRenderer {
             min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
             max_viewport_zoom: None,
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
+            animating: false,
         }
     }
 
@@ -138,6 +142,10 @@ impl WebViewRenderer {
         self.pipelines.keys()
     }
 
+    pub(crate) fn animating(&self) -> bool {
+        self.animating
+    }
+
     /// Returns the [`PipelineDetails`] for the given [`PipelineId`], creating it if needed.
     pub(crate) fn ensure_pipeline_details(
         &mut self,
@@ -148,12 +156,8 @@ impl WebViewRenderer {
                 .borrow_mut()
                 .pipeline_to_webview_map
                 .insert(pipeline_id, self.id);
-            PipelineDetails::new(pipeline_id)
+            PipelineDetails::new()
         })
-    }
-
-    pub(crate) fn set_throttled(&mut self, pipeline_id: PipelineId, throttled: bool) {
-        self.ensure_pipeline_details(pipeline_id).throttled = throttled;
     }
 
     pub(crate) fn remove_pipeline(&mut self, pipeline_id: PipelineId) {
@@ -245,51 +249,45 @@ impl WebViewRenderer {
             })
     }
 
-    /// Sets or unsets the animations-running flag for the given pipeline. Returns true if
-    /// the pipeline is throttled.
-    pub(crate) fn change_running_animations_state(
+    /// Sets or unsets the animations-running flag for the given pipeline. Returns
+    /// true if the [`WebViewRenderer`]'s overall animating state changed.
+    pub(crate) fn change_pipeline_running_animations_state(
         &mut self,
         pipeline_id: PipelineId,
         animation_state: AnimationState,
     ) -> bool {
-        let throttled = {
-            let pipeline_details = self.ensure_pipeline_details(pipeline_id);
-            match animation_state {
-                AnimationState::AnimationsPresent => {
-                    pipeline_details.animations_running = true;
-                },
-                AnimationState::AnimationCallbacksPresent => {
-                    pipeline_details.animation_callbacks_running = true;
-                },
-                AnimationState::NoAnimationsPresent => {
-                    pipeline_details.animations_running = false;
-                },
-                AnimationState::NoAnimationCallbacksPresent => {
-                    pipeline_details.animation_callbacks_running = false;
-                },
-            }
-            pipeline_details.throttled
-        };
+        let pipeline_details = self.ensure_pipeline_details(pipeline_id);
+        match animation_state {
+            AnimationState::AnimationsPresent => {
+                pipeline_details.animations_running = true;
+            },
+            AnimationState::AnimationCallbacksPresent => {
+                pipeline_details.animation_callbacks_running = true;
+            },
+            AnimationState::NoAnimationsPresent => {
+                pipeline_details.animations_running = false;
+            },
+            AnimationState::NoAnimationCallbacksPresent => {
+                pipeline_details.animation_callbacks_running = false;
+            },
+        }
+        self.update_animation_state()
+    }
 
+    /// Sets or unsets the throttled flag for the given pipeline. Returns
+    /// true if the [`WebViewRenderer`]'s overall animating state changed.
+    pub(crate) fn set_throttled(&mut self, pipeline_id: PipelineId, throttled: bool) -> bool {
+        self.ensure_pipeline_details(pipeline_id).throttled = throttled;
+
+        // Throttling a pipeline can cause it to be taken into the "not-animating" state.
+        self.update_animation_state()
+    }
+
+    pub(crate) fn update_animation_state(&mut self) -> bool {
         let animating = self.pipelines.values().any(PipelineDetails::animating);
-        self.webview.set_animating(animating);
-        throttled
-    }
-
-    pub(crate) fn tick_all_animations(&self, compositor: &IOCompositor) {
-        for pipeline_details in self.pipelines.values() {
-            pipeline_details.tick_animations(compositor)
-        }
-    }
-
-    pub(crate) fn tick_animations_for_pipeline(
-        &self,
-        pipeline_id: PipelineId,
-        compositor: &IOCompositor,
-    ) {
-        if let Some(pipeline_details) = self.pipelines.get(&pipeline_id) {
-            pipeline_details.tick_animations(compositor);
-        }
+        let old_animating = std::mem::replace(&mut self.animating, animating);
+        self.webview.set_animating(self.animating);
+        old_animating != self.animating
     }
 
     /// On a Window refresh tick (e.g. vsync)

@@ -112,13 +112,12 @@ use compositing_traits::{
     CompositorMsg, CompositorProxy, SendableFrameTree, WebrenderExternalImageRegistry,
 };
 use constellation_traits::{
-    AnimationTickType, AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse,
-    BroadcastMsg, DocumentState, EmbedderToConstellationMessage, IFrameLoadInfo,
-    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LoadData, LoadOrigin, LogEntry,
-    MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent, PortMessageTask, SWManagerMsg,
-    SWManagerSenders, ScriptToConstellationChan, ScriptToConstellationMessage, ScrollState,
-    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TraversalDirection,
-    WindowSizeType,
+    AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, BroadcastMsg, DocumentState,
+    EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState,
+    IFrameSizeMsg, Job, LoadData, LoadOrigin, LogEntry, MessagePortMsg, NavigationHistoryBehavior,
+    PaintMetricEvent, PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptToConstellationChan,
+    ScriptToConstellationMessage, ScrollState, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    StructuredSerializedData, TraversalDirection, WindowSizeType,
 };
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
 use devtools_traits::{
@@ -1398,8 +1397,8 @@ where
             EmbedderToConstellationMessage::ThemeChange(theme) => {
                 self.handle_theme_change(theme);
             },
-            EmbedderToConstellationMessage::TickAnimation(pipeline_id, tick_type) => {
-                self.handle_tick_animation(pipeline_id, tick_type)
+            EmbedderToConstellationMessage::TickAnimation(webview_ids) => {
+                self.handle_tick_animation(webview_ids)
             },
             EmbedderToConstellationMessage::WebDriverCommand(command) => {
                 self.handle_webdriver_msg(command);
@@ -3528,15 +3527,24 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_tick_animation(&mut self, pipeline_id: PipelineId, tick_type: AnimationTickType) {
-        let pipeline = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline,
-            None => return warn!("{}: Got script tick after closure", pipeline_id),
-        };
+    fn handle_tick_animation(&mut self, webview_ids: Vec<WebViewId>) {
+        let mut animating_event_loops = HashSet::new();
 
-        let message = ScriptThreadMessage::TickAllAnimations(pipeline_id, tick_type);
-        if let Err(e) = pipeline.event_loop.send(message) {
-            self.handle_send_error(pipeline_id, e);
+        for webview_id in webview_ids.iter() {
+            for browsing_context in self.fully_active_browsing_contexts_iter(*webview_id) {
+                let Some(pipeline) = self.pipelines.get(&browsing_context.pipeline_id) else {
+                    continue;
+                };
+                animating_event_loops.insert(pipeline.event_loop.clone());
+            }
+        }
+
+        for event_loop in animating_event_loops {
+            // No error handling here. It's unclear what to do when this fails as the error isn't associated
+            // with a particular pipeline. In addition, the danger of not progressing animations is pretty
+            // low, so it's probably safe to ignore this error and handle the crashed ScriptThread on
+            // some other message.
+            let _ = event_loop.send(ScriptThreadMessage::TickAllAnimations(webview_ids.clone()));
         }
     }
 
