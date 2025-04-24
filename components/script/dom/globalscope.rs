@@ -457,6 +457,9 @@ pub(crate) struct ManagedMessagePort {
     /// and only add them, and ask the constellation to complete the transfer,
     /// in a subsequent task if the port hasn't been re-transfered.
     pending: bool,
+    /// Whether the port has been closed by script in this global,
+    /// so it can be removed.
+    explicitly_closed: bool,
     /// Note: it may seem strange to use a pair of options, versus for example an enum.
     /// But it looks like tranform streams will require both of those in their transfer.
     /// This will be resolved when we reach that point of the implementation.
@@ -934,8 +937,6 @@ impl GlobalScope {
                 // in which case the disentanglement will complete along with the transfer.
                 return;
             };
-            // Note: removing the port, allowing it to be GC'd.
-            let _ = message_ports.remove(&port_id);
             dom_port
         } else {
             return;
@@ -1039,8 +1040,6 @@ impl GlobalScope {
                     },
                 }
             }
-            // Note: removing the port, allowing it to be GC'd.
-            let _ = message_ports.remove(initiator_port);
             dom_port
         } else {
             panic!("entangled_ports called on a global not managing any ports.");
@@ -1134,10 +1133,6 @@ impl GlobalScope {
                     }
                 },
             };
-            if dom_port.disentangled() {
-                // Note: removing the port, allowing it to be GC'd.
-                let _ = message_ports.remove(port_id);
-            }
             (message_buffer, dom_port)
         } else {
             return warn!("start_message_port called on a global not managing any ports.");
@@ -1171,6 +1166,7 @@ impl GlobalScope {
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
                         port_impl.close();
+                        managed_port.explicitly_closed = true;
                     } else {
                         panic!("managed-port has no port-impl.");
                     }
@@ -1548,9 +1544,22 @@ impl GlobalScope {
         let is_empty = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            // Note: ports are removed when they are disentangled,
-            // but not when they have been garbage collected without explicit closure.
+            let to_be_removed: Vec<MessagePortId> = message_ports
+                .iter()
+                .filter_map(|(id, managed_port)| {
+                    if managed_port.explicitly_closed {
+                        Some(*id)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            for id in to_be_removed {
+                message_ports.remove(&id);
+            }
+            // Note: ports are only removed throught explicit closure by script in this global.
             // TODO: #25772
+            // TODO: remove ports when we can be sure their port message queue is empty(via the constellation).
             message_ports.is_empty()
         } else {
             false
@@ -1681,6 +1690,7 @@ impl GlobalScope {
                         port_impl: Some(port_impl),
                         dom_port: Dom::from_ref(dom_port),
                         pending: true,
+                        explicitly_closed: false,
                         cross_realm_transform_readable: None,
                         cross_realm_transform_writable: None,
                     },
@@ -1704,6 +1714,7 @@ impl GlobalScope {
                         port_impl: Some(port_impl),
                         dom_port: Dom::from_ref(dom_port),
                         pending: false,
+                        explicitly_closed: false,
                         cross_realm_transform_readable: None,
                         cross_realm_transform_writable: None,
                     },
