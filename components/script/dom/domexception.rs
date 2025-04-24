@@ -17,9 +17,9 @@ use crate::dom::bindings::reflector::{
     Reflector, reflect_dom_object, reflect_dom_object_with_proto,
 };
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -53,6 +53,7 @@ pub(crate) enum DOMErrorName {
     NotReadableError,
     DataError,
     OperationError,
+    NotAllowedError,
 }
 
 impl DOMErrorName {
@@ -84,6 +85,7 @@ impl DOMErrorName {
             "NotReadableError" => Some(DOMErrorName::NotReadableError),
             "DataError" => Some(DOMErrorName::DataError),
             "OperationError" => Some(DOMErrorName::OperationError),
+            "NotAllowedError" => Some(DOMErrorName::NotAllowedError),
             _ => None,
         }
     }
@@ -134,6 +136,10 @@ impl DOMException {
             DOMErrorName::DataError => "Provided data is inadequate.",
             DOMErrorName::OperationError => {
                 "The operation failed for an operation-specific reason."
+            },
+            DOMErrorName::NotAllowedError => {
+                r#"The request is not allowed by the user agent or the platform in the current context,
+                possibly because the user denied permission."#
             },
         };
 
@@ -252,18 +258,12 @@ impl Serializable for DOMException {
         ))
     }
 
-    fn serialized_storage(
-        data: StructuredData<'_>,
-    ) -> &mut Option<HashMap<DomExceptionId, Self::Data>> {
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<DomExceptionId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.exceptions,
             StructuredData::Writer(writer) => &mut writer.exceptions,
         }
-    }
-
-    fn deserialized_storage(
-        reader: &mut StructuredDataReader,
-    ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
-        &mut reader.dom_exceptions
     }
 }

@@ -23,7 +23,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, ErrorToJsval};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{self, StructuredData, StructuredDataReader};
+use crate::dom::bindings::structuredclone::{self, StructuredData};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::utils::set_dictionary_property;
@@ -268,17 +268,13 @@ impl Transferable for MessagePort {
         Ok(transferred_port)
     }
 
-    fn serialized_storage(
-        data: StructuredData<'_>,
-    ) -> &mut Option<HashMap<MessagePortId, Self::Data>> {
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
             StructuredData::Writer(w) => &mut w.ports,
         }
-    }
-
-    fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>> {
-        &mut reader.message_ports
     }
 }
 

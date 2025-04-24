@@ -31,6 +31,7 @@ use crate::actors::thread::ThreadActor;
 use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
 use crate::id::{DevtoolsBrowserId, DevtoolsBrowsingContextId, DevtoolsOuterWindowId, IdMap};
 use crate::protocol::JsonPacketStream;
+use crate::resource::ResourceAvailable;
 use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
@@ -54,14 +55,6 @@ struct FrameUpdateMsg {
     is_top_level: bool,
     url: String,
     title: String,
-}
-
-#[derive(Serialize)]
-struct ResourceAvailableReply<T: Serialize> {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    array: Vec<(String, Vec<T>)>,
 }
 
 #[derive(Serialize)]
@@ -150,6 +143,16 @@ pub(crate) struct BrowsingContextActor {
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub streams: RefCell<HashMap<StreamId, TcpStream>>,
     pub watcher: String,
+}
+
+impl ResourceAvailable for BrowsingContextActor {
+    fn actor_name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn get_streams(&self) -> &RefCell<HashMap<StreamId, TcpStream>> {
+        &self.streams
+    }
 }
 
 impl Actor for BrowsingContextActor {
@@ -356,26 +359,6 @@ impl BrowsingContextActor {
                 url: self.url.borrow().clone(),
             }],
         });
-    }
-
-    pub(crate) fn resource_available<T: Serialize>(&self, resource: T, resource_type: String) {
-        self.resources_available(vec![resource], resource_type);
-    }
-
-    pub(crate) fn resources_available<T: Serialize>(
-        &self,
-        resources: Vec<T>,
-        resource_type: String,
-    ) {
-        let msg = ResourceAvailableReply::<T> {
-            from: self.name(),
-            type_: "resources-available-array".into(),
-            array: vec![(resource_type, resources)],
-        };
-
-        for stream in self.streams.borrow_mut().values_mut() {
-            let _ = stream.write_json_packet(&msg);
-        }
     }
 
     pub fn simulate_color_scheme(&self, theme: Theme) -> Result<(), ()> {

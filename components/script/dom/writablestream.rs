@@ -27,7 +27,7 @@ use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -1182,16 +1182,12 @@ impl Transferable for WritableStream {
     }
 
     /// Note: we are relying on the port transfer, so the data returned here are related to the port.
-    fn serialized_storage(
-        data: StructuredData<'_>,
-    ) -> &mut Option<HashMap<MessagePortId, Self::Data>> {
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
             StructuredData::Writer(w) => &mut w.ports,
         }
-    }
-
-    fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>> {
-        &mut reader.writable_streams
     }
 }

@@ -24,9 +24,9 @@ use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlo
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
@@ -119,17 +119,13 @@ impl Serializable for Blob {
         Ok(deserialized_blob)
     }
 
-    fn serialized_storage(reader: StructuredData<'_>) -> &mut Option<HashMap<BlobId, Self::Data>> {
+    fn serialized_storage<'a>(
+        reader: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<BlobId, Self::Data>> {
         match reader {
             StructuredData::Reader(r) => &mut r.blob_impls,
             StructuredData::Writer(w) => &mut w.blobs,
         }
-    }
-
-    fn deserialized_storage(
-        data: &mut StructuredDataReader,
-    ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
-        &mut data.blobs
     }
 }
 

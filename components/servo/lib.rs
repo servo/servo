@@ -246,10 +246,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
 }
 
 impl Servo {
-    #[cfg_attr(
-        feature = "tracing",
-        tracing::instrument(skip(builder), fields(servo_profiling = true), level = "trace",)
-    )]
+    #[servo_tracing::instrument(skip(builder))]
     fn new(builder: ServoBuilder) -> Self {
         // Global configuration options, parsed from the command line.
         let opts = builder.opts.map(|opts| *opts);

@@ -1,0 +1,21 @@
+[package]
+name = "servo-tracing"
+edition.workspace = true
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+quote = { workspace = true }
+proc-macro2 = { workspace = true }
+syn = { version = "2", features = ["full"] }
+
+[lib]
+path = "lib.rs"
+proc-macro = true
+doctest = false
+
+[dev-dependencies]
+prettyplease = "0.2.32"

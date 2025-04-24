@@ -19,6 +19,7 @@ use log::warn;
 use num_traits::ToPrimitive;
 use range::Range;
 use servo_arc::Arc as ServoArc;
+use snapshot::Snapshot;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use unicode_script::Script;
@@ -521,8 +522,7 @@ pub trait GenericDrawTarget {
         stroke_options: &StrokeOptions,
         draw_options: &DrawOptions,
     );
-    fn snapshot_data(&self, f: &dyn Fn(&[u8]) -> Vec<u8>) -> Vec<u8>;
-    fn snapshot_data_owned(&self) -> Vec<u8>;
+    fn snapshot_data(&self) -> &[u8];
 }
 
 pub enum GradientStop {
@@ -605,9 +605,8 @@ impl<'a> CanvasData<'a> {
             offset: 0,
             flags: ImageDescriptorFlags::empty(),
         };
-        let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(
-            &draw_target.snapshot_data_owned(),
-        ));
+        let data =
+            SerializableImageData::Raw(IpcSharedMemory::from_bytes(draw_target.snapshot_data()));
         compositor_api.update_images(vec![ImageUpdate::AddImage(image_key, descriptor, data)]);
         CanvasData {
             backend,
@@ -628,7 +627,7 @@ impl<'a> CanvasData<'a> {
     pub fn draw_image(
         &mut self,
         image_data: &[u8],
-        image_size: Size2D<f64>,
+        image_size: Size2D<u64>,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
         smoothing_enabled: bool,
@@ -637,8 +636,8 @@ impl<'a> CanvasData<'a> {
         // We round up the floating pixel values to draw the pixels
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
-        let image_data = if Rect::from_size(image_size).contains_rect(&source_rect) {
-            pixels::rgba8_get_rect(image_data, image_size.to_u64(), source_rect.to_u64()).into()
+        let image_data = if Rect::from_size(image_size.to_f64()).contains_rect(&source_rect) {
+            pixels::rgba8_get_rect(image_data, image_size, source_rect.to_u64()).into()
         } else {
             image_data.into()
         };
@@ -1412,12 +1411,8 @@ impl<'a> CanvasData<'a> {
         self.update_image_rendering();
     }
 
-    pub fn send_pixels(&mut self, chan: IpcSender<IpcSharedMemory>) {
-        self.drawtarget.snapshot_data(&|bytes| {
-            let data = IpcSharedMemory::from_bytes(bytes);
-            chan.send(data).unwrap();
-            vec![]
-        });
+    pub fn snapshot(&self) {
+        self.drawtarget.snapshot_data();
     }
 
     /// Update image in WebRender
@@ -1430,7 +1425,7 @@ impl<'a> CanvasData<'a> {
             flags: ImageDescriptorFlags::empty(),
         };
         let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(
-            &self.drawtarget.snapshot_data_owned(),
+            self.drawtarget.snapshot_data(),
         ));
 
         self.compositor_api
@@ -1529,18 +1524,36 @@ impl<'a> CanvasData<'a> {
     /// canvas_size: The size of the canvas we're reading from
     /// read_rect: The area of the canvas we want to read from
     #[allow(unsafe_code)]
-    pub fn read_pixels(&self, read_rect: Rect<u64>, canvas_size: Size2D<u64>) -> Vec<u8> {
-        let canvas_rect = Rect::from_size(canvas_size);
-        if canvas_rect
-            .intersection(&read_rect)
-            .is_none_or(|rect| rect.is_empty())
-        {
-            return vec![];
-        }
+    pub fn read_pixels(
+        &self,
+        read_rect: Option<Rect<u64>>,
+        canvas_size: Option<Size2D<u64>>,
+    ) -> Snapshot {
+        let canvas_size = canvas_size.unwrap_or(self.drawtarget.get_size().cast());
 
-        self.drawtarget.snapshot_data(&|bytes| {
-            pixels::rgba8_get_rect(bytes, canvas_size, read_rect).into_owned()
-        })
+        let data = if let Some(read_rect) = read_rect {
+            let canvas_rect = Rect::from_size(canvas_size);
+            if canvas_rect
+                .intersection(&read_rect)
+                .is_none_or(|rect| rect.is_empty())
+            {
+                vec![]
+            } else {
+                let bytes = self.drawtarget.snapshot_data();
+                pixels::rgba8_get_rect(bytes, canvas_size, read_rect).to_vec()
+            }
+        } else {
+            self.drawtarget.snapshot_data().to_vec()
+        };
+
+        Snapshot::from_vec(
+            canvas_size,
+            snapshot::PixelFormat::BGRA,
+            snapshot::AlphaMode::Transparent {
+                premultiplied: true,
+            },
+            data,
+        )
     }
 }
 

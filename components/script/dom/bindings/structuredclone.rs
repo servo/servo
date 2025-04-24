@@ -16,13 +16,14 @@ use constellation_traits::{
     BlobImpl, DomException, DomPoint, MessagePortImpl, Serializable as SerializableInterface,
     StructuredSerializedData, Transferrable as TransferrableInterface,
 };
+use js::gc::RootedVec;
 use js::glue::{
     CopyJSStructuredCloneData, DeleteJSAutoStructuredCloneBuffer, GetLengthOfJSStructuredCloneData,
     NewJSAutoStructuredCloneBuffer, WriteBytesToJSStructuredCloneData,
 };
 use js::jsapi::{
-    CloneDataPolicy, HandleObject as RawHandleObject, JS_ClearPendingException, JS_ReadUint32Pair,
-    JS_STRUCTURED_CLONE_VERSION, JS_WriteUint32Pair, JSContext, JSObject,
+    CloneDataPolicy, HandleObject as RawHandleObject, Heap, JS_ClearPendingException,
+    JS_ReadUint32Pair, JS_STRUCTURED_CLONE_VERSION, JS_WriteUint32Pair, JSContext, JSObject,
     JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter,
     MutableHandleObject as RawMutableHandleObject, StructuredCloneScope, TransferableOwnership,
 };
@@ -93,7 +94,7 @@ fn reader_for_type(
 ) -> unsafe fn(
     &GlobalScope,
     *mut JSStructuredCloneReader,
-    &mut StructuredDataReader,
+    &mut StructuredDataReader<'_>,
     CanGc,
 ) -> *mut JSObject {
     match val {
@@ -107,7 +108,7 @@ fn reader_for_type(
 unsafe fn read_object<T: Serializable>(
     owner: &GlobalScope,
     r: *mut JSStructuredCloneReader,
-    sc_reader: &mut StructuredDataReader,
+    sc_reader: &mut StructuredDataReader<'_>,
     can_gc: CanGc,
 ) -> *mut JSObject {
     let mut name_space: u32 = 0;
@@ -136,9 +137,8 @@ unsafe fn read_object<T: Serializable>(
     }
 
     if let Ok(obj) = T::deserialize(owner, serialized, can_gc) {
-        let destination = T::deserialized_storage(sc_reader).get_or_insert_with(HashMap::new);
         let reflector = obj.reflector().get_jsobject().get();
-        destination.insert(storage_key, obj);
+        sc_reader.roots.push(Heap::boxed(reflector));
         return reflector;
     }
     warn!("Reading structured data failed in {:?}.", owner.get_url());
@@ -191,7 +191,7 @@ unsafe extern "C" fn read_callback(
         "tag should be higher than StructuredCloneTags::Min"
     );
 
-    let sc_reader = &mut *(closure as *mut StructuredDataReader);
+    let sc_reader = &mut *(closure as *mut StructuredDataReader<'_>);
     let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
     let global = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
     for serializable in SerializableInterface::iter() {
@@ -259,7 +259,8 @@ unsafe extern "C" fn write_callback(
 
 fn receiver_for_type(
     val: TransferrableInterface,
-) -> fn(&GlobalScope, &mut StructuredDataReader, u64, RawMutableHandleObject) -> Result<(), ()> {
+) -> fn(&GlobalScope, &mut StructuredDataReader<'_>, u64, RawMutableHandleObject) -> Result<(), ()>
+{
     match val {
         TransferrableInterface::MessagePort => receive_object::<MessagePort>,
         TransferrableInterface::ReadableStream => receive_object::<ReadableStream>,
@@ -269,7 +270,7 @@ fn receiver_for_type(
 
 fn receive_object<T: Transferable>(
     owner: &GlobalScope,
-    sc_reader: &mut StructuredDataReader,
+    sc_reader: &mut StructuredDataReader<'_>,
     extra_data: u64,
     return_object: RawMutableHandleObject,
 ) -> Result<(), ()> {
@@ -305,13 +306,12 @@ fn receive_object<T: Transferable>(
         );
     };
 
-    if let Ok(received) = T::transfer_receive(owner, id, serialized) {
-        return_object.set(received.reflector().rootable().get());
-        let storage = T::deserialized_storage(sc_reader).get_or_insert_with(Vec::new);
-        storage.push(received);
-        return Ok(());
-    }
-    Err(())
+    let Ok(received) = T::transfer_receive(owner, id, serialized) else {
+        return Err(());
+    };
+    return_object.set(received.reflector().rootable().get());
+    sc_reader.roots.push(Heap::boxed(return_object.get()));
+    Ok(())
 }
 
 unsafe extern "C" fn read_transfer_callback(
@@ -324,7 +324,7 @@ unsafe extern "C" fn read_transfer_callback(
     closure: *mut raw::c_void,
     return_object: RawMutableHandleObject,
 ) -> bool {
-    let sc_reader = &mut *(closure as *mut StructuredDataReader);
+    let sc_reader = &mut *(closure as *mut StructuredDataReader<'_>);
     let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
     let owner = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
 
@@ -489,8 +489,8 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     sabCloned: Some(sab_cloned_callback),
 };
 
-pub(crate) enum StructuredData<'a> {
-    Reader(&'a mut StructuredDataReader),
+pub(crate) enum StructuredData<'a, 'b> {
+    Reader(&'a mut StructuredDataReader<'b>),
     Writer(&'a mut StructuredDataWriter),
 }
 
@@ -503,19 +503,11 @@ pub(crate) struct DOMErrorRecord {
 /// Reader and writer structs for results from, and inputs to, structured-data read/write operations.
 /// <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
 #[repr(C)]
-pub(crate) struct StructuredDataReader {
+pub(crate) struct StructuredDataReader<'a> {
     /// A struct of error message.
-    pub(crate) errors: DOMErrorRecord,
-    /// A map of deserialized blobs, stored temporarily here to keep them rooted.
-    pub(crate) blobs: Option<HashMap<StorageKey, DomRoot<Blob>>>,
-    /// A map of deserialized points, stored temporarily here to keep them rooted.
-    pub(crate) points_read_only: Option<HashMap<StorageKey, DomRoot<DOMPointReadOnly>>>,
-    pub(crate) dom_points: Option<HashMap<StorageKey, DomRoot<DOMPoint>>>,
-    /// A map of deserialized exceptions, stored temporarily here to keep them rooted.
-    pub(crate) dom_exceptions: Option<HashMap<StorageKey, DomRoot<DOMException>>>,
-    /// A vec of transfer-received DOM ports,
-    /// to be made available to script through a message event.
-    pub(crate) message_ports: Option<Vec<DomRoot<MessagePort>>>,
+    errors: DOMErrorRecord,
+    /// Rooted copies of every deserialized object to ensure they are not garbage collected.
+    roots: RootedVec<'a, Box<Heap<*mut JSObject>>>,
     /// A map of port implementations,
     /// used as part of the "transfer-receiving" steps of ports,
     /// to produce the DOM ports stored in `message_ports` above.
@@ -528,12 +520,6 @@ pub(crate) struct StructuredDataReader {
     pub(crate) points: Option<HashMap<DomPointId, DomPoint>>,
     /// A map of serialized exceptions.
     pub(crate) exceptions: Option<HashMap<DomExceptionId, DomException>>,
-
-    /// <https://streams.spec.whatwg.org/#rs-transfer>
-    pub(crate) readable_streams: Option<Vec<DomRoot<ReadableStream>>>,
-
-    /// <https://streams.spec.whatwg.org/#ws-transfer>
-    pub(crate) writable_streams: Option<Vec<DomRoot<WritableStream>>>,
 }
 
 /// A data holder for transferred and serialized objects.
@@ -618,19 +604,14 @@ pub(crate) fn read(
 ) -> Fallible<Vec<DomRoot<MessagePort>>> {
     let cx = GlobalScope::get_cx();
     let _ac = enter_realm(global);
+    rooted_vec!(let mut roots);
     let mut sc_reader = StructuredDataReader {
-        blobs: None,
-        message_ports: None,
-        points_read_only: None,
-        dom_points: None,
-        dom_exceptions: None,
+        roots,
         port_impls: data.ports.take(),
         blob_impls: data.blobs.take(),
         points: data.points.take(),
         exceptions: data.exceptions.take(),
         errors: DOMErrorRecord { message: None },
-        readable_streams: None,
-        writable_streams: None,
     };
     let sc_reader_ptr = &mut sc_reader as *mut _;
     unsafe {
@@ -666,8 +647,15 @@ pub(crate) fn read(
 
         DeleteJSAutoStructuredCloneBuffer(scbuf);
 
+        let mut message_ports = vec![];
+        for reflector in sc_reader.roots.iter() {
+            let Ok(message_port) = root_from_object::<MessagePort>(reflector.get(), *cx) else {
+                continue;
+            };
+            message_ports.push(message_port);
+        }
         // Any transfer-received port-impls should have been taken out.
         assert!(sc_reader.port_impls.is_none());
-        Ok(sc_reader.message_ports.take().unwrap_or_default())
+        Ok(message_ports)
     }
 }

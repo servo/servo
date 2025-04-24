@@ -17,6 +17,7 @@ use servo_url::ServoUrl;
 use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
+use crate::resource::ResourceAvailable;
 
 #[derive(Clone, Copy)]
 #[allow(dead_code)]
@@ -50,6 +51,16 @@ impl WorkerActor {
             },
             type_: self.type_ as u32,
         }
+    }
+}
+
+impl ResourceAvailable for WorkerActor {
+    fn actor_name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn get_streams(&self) -> &RefCell<HashMap<StreamId, TcpStream>> {
+        &self.streams
     }
 }
 

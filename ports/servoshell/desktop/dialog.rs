@@ -449,32 +449,34 @@ impl Dialog {
 
                 let modal = Modal::new("select_element_picker".into()).area(area);
                 modal.show(ctx, |ui| {
-                    for option_or_optgroup in prompt.options() {
-                        match &option_or_optgroup {
-                            SelectElementOptionOrOptgroup::Option(option) => {
-                                display_option(
-                                    ui,
-                                    option,
-                                    &mut selected_option,
-                                    &mut is_open,
-                                    false,
-                                );
-                            },
-                            SelectElementOptionOrOptgroup::Optgroup { label, options } => {
-                                ui.label(egui::RichText::new(label).strong());
-
-                                for option in options {
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        for option_or_optgroup in prompt.options() {
+                            match &option_or_optgroup {
+                                SelectElementOptionOrOptgroup::Option(option) => {
                                     display_option(
                                         ui,
                                         option,
                                         &mut selected_option,
                                         &mut is_open,
-                                        true,
+                                        false,
                                     );
-                                }
-                            },
+                                },
+                                SelectElementOptionOrOptgroup::Optgroup { label, options } => {
+                                    ui.label(egui::RichText::new(label).strong());
+
+                                    for option in options {
+                                        display_option(
+                                            ui,
+                                            option,
+                                            &mut selected_option,
+                                            &mut is_open,
+                                            true,
+                                        );
+                                    }
+                                },
+                            }
                         }
-                    }
+                    });
                 });
 
                 prompt.select(selected_option);

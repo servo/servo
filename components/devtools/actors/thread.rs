@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Ref, RefCell};
-use std::collections::BTreeSet;
 use std::net::TcpStream;
 
 use serde::Serialize;
 use serde_json::{Map, Value};
-use servo_url::ServoUrl;
 
+use super::source::{Source, SourcesReply};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
@@ -52,44 +50,17 @@ struct ThreadInterruptedReply {
     type_: String,
 }
 
-#[derive(Serialize)]
-struct SourcesReply {
-    from: String,
-    sources: Vec<Source>,
-}
-
-#[derive(Eq, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Source {
-    pub actor: String,
-    /// URL of the script, or URL of the page for inline scripts.
-    pub url: String,
-    pub is_black_boxed: bool,
-}
-
 pub struct ThreadActor {
-    name: String,
-    source_urls: RefCell<BTreeSet<Source>>,
+    pub name: String,
+    pub source_manager: Source,
 }
 
 impl ThreadActor {
     pub fn new(name: String) -> ThreadActor {
         ThreadActor {
-            name,
-            source_urls: RefCell::new(BTreeSet::default()),
+            name: name.clone(),
+            source_manager: Source::new(name),
         }
-    }
-
-    pub fn add_source(&self, url: ServoUrl) {
-        self.source_urls.borrow_mut().insert(Source {
-            actor: self.name.clone(),
-            url: url.to_string(),
-            is_black_boxed: false,
-        });
-    }
-
-    pub fn sources(&self) -> Ref<BTreeSet<Source>> {
-        self.source_urls.borrow()
     }
 }
 

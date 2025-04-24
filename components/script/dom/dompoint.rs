@@ -14,8 +14,8 @@ use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointRe
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{Serializable, StorageKey};
-use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
+use crate::dom::bindings::serializable::Serializable;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
@@ -163,18 +163,12 @@ impl Serializable for DOMPoint {
         ))
     }
 
-    fn serialized_storage(
-        data: StructuredData<'_>,
-    ) -> &mut Option<HashMap<DomPointId, Self::Data>> {
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<DomPointId, Self::Data>> {
         match data {
             StructuredData::Reader(reader) => &mut reader.points,
             StructuredData::Writer(writer) => &mut writer.points,
         }
-    }
-
-    fn deserialized_storage(
-        reader: &mut StructuredDataReader,
-    ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>> {
-        &mut reader.dom_points
     }
 }

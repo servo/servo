@@ -104,6 +104,7 @@ serde = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }
 servo-media-gstreamer = { workspace = true, optional = true }
+servo-tracing = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }

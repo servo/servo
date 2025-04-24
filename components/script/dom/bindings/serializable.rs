@@ -11,7 +11,7 @@ use base::id::{Index, NamespaceIndex, PipelineNamespaceId};
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{StructuredData, StructuredDataReader};
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -65,13 +65,7 @@ where
 
     /// Returns the field of [StructuredDataReader]/[StructuredDataWriter] that
     /// should be used to read/store serialized instances of this type.
-    fn serialized_storage(
-        data: StructuredData<'_>,
-    ) -> &mut Option<HashMap<NamespaceIndex<Self::Index>, Self::Data>>;
-
-    /// Returns the field of [StructuredDataReader] that should be used to store
-    /// deserialized instances of this type.
-    fn deserialized_storage(
-        reader: &mut StructuredDataReader,
-    ) -> &mut Option<HashMap<StorageKey, DomRoot<Self>>>;
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<NamespaceIndex<Self::Index>, Self::Data>>;
 }

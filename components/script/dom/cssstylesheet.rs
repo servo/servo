@@ -24,7 +24,7 @@ use crate::dom::bindings::reflector::{
     DomGlobal, reflect_dom_object, reflect_dom_object_with_proto,
 };
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::element::Element;
 use crate::dom::medialist::MediaList;
@@ -289,5 +289,33 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
 
         // > 8. Return -1.
         Ok(-1)
+    }
+
+    /// <https://drafts.csswg.org/cssom/#synchronously-replace-the-rules-of-a-cssstylesheet>
+    fn ReplaceSync(&self, text: USVString) -> Result<(), Error> {
+        // Step 1. If the constructed flag is not set throw a NotAllowedError
+        if !self.is_constructed {
+            return Err(Error::NotAllowed);
+        }
+
+        // Step 2. Let rules be the result of running parse a stylesheet’s contents from text.
+        let global = self.global();
+        let window = global.as_window();
+
+        StyleStyleSheet::update_from_str(
+            &self.style_stylesheet,
+            &text,
+            UrlExtraData(window.get_url().get_arc()),
+            None,
+            window.css_error_reporter(),
+            AllowImportRules::No, // Step 3.If rules contains one or more @import rules, remove those rules from rules.
+        );
+
+        // Step 4. Set sheet’s CSS rules to rules.
+        // We reset our rule list, which will be initialized properly
+        // at the next getter access.
+        self.rulelist.set(None);
+
+        Ok(())
     }
 }

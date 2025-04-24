@@ -112,6 +112,7 @@ impl Fragment {
             Fragment::Float(fragment) => fragment.borrow().base.clone(),
         })
     }
+
     pub(crate) fn mutate_content_rect(&mut self, callback: impl FnOnce(&mut PhysicalRect<Au>)) {
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
@@ -121,6 +122,26 @@ impl Fragment {
             Fragment::Text(text_fragment) => callback(&mut text_fragment.borrow_mut().rect),
             Fragment::Image(image_fragment) => callback(&mut image_fragment.borrow_mut().rect),
             Fragment::IFrame(iframe_fragment) => callback(&mut iframe_fragment.borrow_mut().rect),
+        }
+    }
+
+    pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
+        match self {
+            Fragment::Box(box_fragment) => box_fragment
+                .borrow_mut()
+                .set_containing_block(containing_block),
+            Fragment::Float(float_fragment) => float_fragment
+                .borrow_mut()
+                .set_containing_block(containing_block),
+            Fragment::Positioning(_) => {},
+            Fragment::AbsoluteOrFixedPositioned(hoisted_shared_fragment) => {
+                if let Some(ref fragment) = hoisted_shared_fragment.borrow().fragment {
+                    fragment.set_containing_block(containing_block);
+                }
+            },
+            Fragment::Text(_) => {},
+            Fragment::Image(_) => {},
+            Fragment::IFrame(_) => {},
         }
     }
 
@@ -146,12 +167,12 @@ impl Fragment {
         }
     }
 
-    pub fn scrolling_area(&self, containing_block: &PhysicalRect<Au>) -> PhysicalRect<Au> {
+    pub fn scrolling_area(&self) -> PhysicalRect<Au> {
         match self {
-            Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
-                .borrow()
-                .scrollable_overflow()
-                .translate(containing_block.origin.to_vector()),
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                let fragment = fragment.borrow();
+                fragment.offset_by_containing_block(&fragment.scrollable_overflow())
+            },
             _ => self.scrollable_overflow(),
         }
     }

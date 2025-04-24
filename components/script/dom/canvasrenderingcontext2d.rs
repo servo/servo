@@ -5,11 +5,11 @@
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg, FromScriptMsg};
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::IpcSharedMemory;
 use profile_traits::ipc;
 use script_bindings::inheritance::Castable;
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_url::ServoUrl;
+use snapshot::Snapshot;
 
 use crate::canvas_context::{CanvasContext, CanvasHelpers, LayoutCanvasRenderingContextHelpers};
 use crate::canvas_state::CanvasState;
@@ -142,16 +142,18 @@ impl CanvasContext for CanvasRenderingContext2D {
         self.set_bitmap_dimensions(self.size().cast())
     }
 
-    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
+    fn get_image_data(&self) -> Option<Snapshot> {
+        let size = self.size();
+
+        if size.is_empty() {
+            return None;
+        }
+
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender), self.get_canvas_id());
         self.canvas_state.get_ipc_renderer().send(msg).unwrap();
 
-        Some(receiver.recv().unwrap())
-    }
-
-    fn get_image_data(&self) -> Option<Vec<u8>> {
-        Some(self.get_rect(Rect::from_size(self.size().cast())))
+        Some(receiver.recv().unwrap().to_owned())
     }
 
     fn origin_is_clean(&self) -> bool {

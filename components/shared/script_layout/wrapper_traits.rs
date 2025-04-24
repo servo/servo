@@ -25,11 +25,11 @@ use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorIm
 use style::stylist::RuleInclusion;
 
 use crate::{
-    FragmentType, GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData,
-    StyleData,
+    FragmentType, GenericLayoutData, GenericLayoutDataTrait, HTMLCanvasData, HTMLMediaData,
+    LayoutNodeType, SVGSVGData, StyleData,
 };
 
-pub trait LayoutDataTrait: Default + Send + Sync + 'static {}
+pub trait LayoutDataTrait: GenericLayoutDataTrait + Default + Send + Sync + 'static {}
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutDom`.
