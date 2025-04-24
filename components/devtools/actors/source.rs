@@ -10,7 +10,7 @@ use servo_url::ServoUrl;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SourceData {
+pub(crate) struct SourceData {
     pub actor: String,
     /// URL of the script, or URL of the page for inline scripts.
     pub url: String,
@@ -18,12 +18,12 @@ pub struct SourceData {
 }
 
 #[derive(Serialize)]
-pub struct SourcesReply {
+pub(crate) struct SourcesReply {
     pub from: String,
     pub sources: Vec<SourceData>,
 }
 
-pub struct Source {
+pub(crate) struct Source {
     actor_name: String,
     source_urls: RefCell<BTreeSet<SourceData>>,
 }
