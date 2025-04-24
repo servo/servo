@@ -562,7 +562,7 @@ impl FetchResponseListener for FetchContext {
             // p with a TypeError and abort these steps.
             Err(_) => {
                 promise.reject_error(
-                    Error::Type("Network error occurred".to_string()),
+                    Error::Type(format!("Network error: {:?}", error)),
                     CanGc::note(),
                 );
                 self.fetch_promise = Some(TrustedPromise::new(promise));
