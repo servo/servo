@@ -2392,7 +2392,10 @@ impl Window {
             return (None, Rect::zero());
         }
 
-        let response = self.layout.borrow().query_offset_parent(node.to_opaque());
+        let response = self
+            .layout
+            .borrow()
+            .query_offset_parent(node.to_trusted_node_address());
         let element = response.node_address.and_then(|parent_node_address| {
             let node = unsafe { from_untrusted_node_address(parent_node_address) };
             DomRoot::downcast(node)

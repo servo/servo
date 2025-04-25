@@ -134,7 +134,9 @@ impl Fragment {
             Fragment::Float(float_fragment) => float_fragment
                 .borrow_mut()
                 .set_containing_block(containing_block),
-            Fragment::Positioning(_) => {},
+            Fragment::Positioning(positioning_fragment) => positioning_fragment
+                .borrow_mut()
+                .set_containing_block(containing_block),
             Fragment::AbsoluteOrFixedPositioned(hoisted_shared_fragment) => {
                 if let Some(ref fragment) = hoisted_shared_fragment.borrow().fragment {
                     fragment.set_containing_block(containing_block);
@@ -191,13 +193,16 @@ impl Fragment {
         }
     }
 
-    pub(crate) fn cumulative_content_box_rect(&self) -> Option<PhysicalRect<Au>> {
+    pub(crate) fn cumulative_border_box_rect(&self) -> Option<PhysicalRect<Au>> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 let fragment = fragment.borrow();
                 Some(fragment.offset_by_containing_block(&fragment.border_rect()))
             },
-            Fragment::Positioning(_) |
+            Fragment::Positioning(fragment) => {
+                let fragment = fragment.borrow();
+                Some(fragment.offset_by_containing_block(&fragment.rect))
+            },
             Fragment::Text(_) |
             Fragment::AbsoluteOrFixedPositioned(_) |
             Fragment::Image(_) |

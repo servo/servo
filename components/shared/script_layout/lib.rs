@@ -252,7 +252,7 @@ pub trait Layout {
         point: Point2D<f32>,
         query_type: NodesFromPointQueryType,
     ) -> Vec<UntrustedNodeAddress>;
-    fn query_offset_parent(&self, node: OpaqueNode) -> OffsetParentResponse;
+    fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse;
     fn query_resolved_style(
         &self,
         node: TrustedNodeAddress,

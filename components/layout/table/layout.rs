@@ -2142,23 +2142,27 @@ impl<'a> TableLayout<'a> {
         for column_group in self.table.column_groups.iter() {
             let column_group = column_group.borrow();
             if !column_group.is_empty() {
-                fragments.push(Fragment::Positioning(PositioningFragment::new_empty(
+                let fragment = Fragment::Positioning(PositioningFragment::new_empty(
                     column_group.base.base_fragment_info,
                     dimensions
                         .get_column_group_rect(&column_group)
                         .as_physical(None),
                     column_group.base.style.clone(),
-                )));
+                ));
+                column_group.base.set_fragment(fragment.clone());
+                fragments.push(fragment);
             }
         }
 
         for (column_index, column) in self.table.columns.iter().enumerate() {
             let column = column.borrow();
-            fragments.push(Fragment::Positioning(PositioningFragment::new_empty(
+            let fragment = Fragment::Positioning(PositioningFragment::new_empty(
                 column.base.base_fragment_info,
                 dimensions.get_column_rect(column_index).as_physical(None),
                 column.base.style.clone(),
-            )));
+            ));
+            column.base.set_fragment(fragment.clone());
+            fragments.push(fragment);
         }
     }
 
