@@ -61,6 +61,20 @@ impl Drop for LayoutContext<'_> {
     }
 }
 
+#[derive(Debug)]
+pub enum ResolveImageError {
+    LoadError,
+    ImagePending,
+    ImageRequested,
+    OnlyMetadata,
+    InvalidUrl,
+    MissingNode,
+    ImageMissingFromImageSet,
+    FailedToResolveImageFromImageSet,
+    NotImplementedYet(&'static str),
+    None,
+}
+
 impl LayoutContext<'_> {
     #[inline(always)]
     pub fn shared_context(&self) -> &SharedStyleContext {
@@ -72,7 +86,7 @@ impl LayoutContext<'_> {
         node: OpaqueNode,
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
-    ) -> Option<ImageOrMetadataAvailable> {
+    ) -> Result<ImageOrMetadataAvailable, ResolveImageError> {
         // Check for available image or start tracking.
         let cache_result = self.image_cache.get_cached_image_status(
             url.clone(),
@@ -82,7 +96,7 @@ impl LayoutContext<'_> {
         );
 
         match cache_result {
-            ImageCacheResult::Available(img_or_meta) => Some(img_or_meta),
+            ImageCacheResult::Available(img_or_meta) => Ok(img_or_meta),
             // Image has been requested, is still pending. Return no image for this paint loop.
             // When the image loads it will trigger a reflow and/or repaint.
             ImageCacheResult::Pending(id) => {
@@ -93,7 +107,7 @@ impl LayoutContext<'_> {
                     origin: self.origin.clone(),
                 };
                 self.pending_images.lock().push(image);
-                None
+                Result::Err(ResolveImageError::ImagePending)
             },
             // Not yet requested - request image or metadata from the cache
             ImageCacheResult::ReadyForRequest(id) => {
@@ -104,10 +118,10 @@ impl LayoutContext<'_> {
                     origin: self.origin.clone(),
                 };
                 self.pending_images.lock().push(image);
-                None
+                Result::Err(ResolveImageError::ImageRequested)
             },
             // Image failed to load, so just return nothing
-            ImageCacheResult::LoadError => None,
+            ImageCacheResult::LoadError => Result::Err(ResolveImageError::LoadError),
         }
     }
 
@@ -136,31 +150,34 @@ impl LayoutContext<'_> {
         node: OpaqueNode,
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
-    ) -> Option<WebRenderImageInfo> {
+    ) -> Result<WebRenderImageInfo, ResolveImageError> {
         if let Some(existing_webrender_image) = self
             .webrender_image_cache
             .read()
             .get(&(url.clone(), use_placeholder))
         {
-            return Some(*existing_webrender_image);
+            return Ok(*existing_webrender_image);
         }
-
-        match self.get_or_request_image_or_meta(node, url.clone(), use_placeholder) {
-            Some(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {
+        let image_or_meta =
+            self.get_or_request_image_or_meta(node, url.clone(), use_placeholder)?;
+        match image_or_meta {
+            ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
                 self.handle_animated_image(node, image.clone());
                 let image_info = WebRenderImageInfo {
                     size: Size2D::new(image.width, image.height),
                     key: image.id,
                 };
                 if image_info.key.is_none() {
-                    Some(image_info)
+                    Ok(image_info)
                 } else {
                     let mut webrender_image_cache = self.webrender_image_cache.write();
                     webrender_image_cache.insert((url, use_placeholder), image_info);
-                    Some(image_info)
+                    Ok(image_info)
                 }
             },
-            None | Some(ImageOrMetadataAvailable::MetadataAvailable(..)) => None,
+            ImageOrMetadataAvailable::MetadataAvailable(..) => {
+                Result::Err(ResolveImageError::OnlyMetadata)
+            },
         }
     }
 
@@ -168,11 +185,15 @@ impl LayoutContext<'_> {
         &self,
         node: Option<OpaqueNode>,
         image: &'a Image,
-    ) -> Option<ResolvedImage<'a>> {
+    ) -> Result<ResolvedImage<'a>, ResolveImageError> {
         match image {
             // TODO: Add support for PaintWorklet and CrossFade rendering.
-            Image::None | Image::CrossFade(_) | Image::PaintWorklet(_) => None,
-            Image::Gradient(gradient) => Some(ResolvedImage::Gradient(gradient)),
+            Image::None => Result::Err(ResolveImageError::None),
+            Image::CrossFade(_) => Result::Err(ResolveImageError::NotImplementedYet("CrossFade")),
+            Image::PaintWorklet(_) => {
+                Result::Err(ResolveImageError::NotImplementedYet("PaintWorklet"))
+            },
+            Image::Gradient(gradient) => Ok(ResolvedImage::Gradient(gradient)),
             Image::Url(image_url) => {
                 // FIXME: images won’t always have in intrinsic width or
                 // height when support for SVG is added, or a WebRender
@@ -180,18 +201,20 @@ impl LayoutContext<'_> {
                 //
                 // FIXME: It feels like this should take into account the pseudo
                 // element and not just the node.
-                let image_url = image_url.url()?;
+                let image_url = image_url.url().ok_or(ResolveImageError::InvalidUrl)?;
+                let node = node.ok_or(ResolveImageError::MissingNode)?;
                 let webrender_info = self.get_webrender_image_for_url(
-                    node?,
+                    node,
                     image_url.clone().into(),
                     UsePlaceholder::No,
                 )?;
-                Some(ResolvedImage::Image(webrender_info))
+                Ok(ResolvedImage::Image(webrender_info))
             },
             Image::ImageSet(image_set) => {
                 image_set
                     .items
                     .get(image_set.selected_index)
+                    .ok_or(ResolveImageError::ImageMissingFromImageSet)
                     .and_then(|image| {
                         self.resolve_image(node, &image.image)
                             .map(|info| match info {

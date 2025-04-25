@@ -838,8 +838,8 @@ impl<'a> BuilderForBoxFragment<'a> {
         // Reverse because the property is top layer first, we want to paint bottom layer first.
         for (index, image) in b.background_image.0.iter().enumerate().rev() {
             match builder.context.resolve_image(node, image) {
-                None => {},
-                Some(ResolvedImage::Gradient(gradient)) => {
+                Err(_) => {},
+                Ok(ResolvedImage::Gradient(gradient)) => {
                     let intrinsic = NaturalSizes::empty();
                     let Some(layer) =
                         &background::layout_layer(self, painter, builder, index, intrinsic)
@@ -875,7 +875,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         },
                     }
                 },
-                Some(ResolvedImage::Image(image_info)) => {
+                Ok(ResolvedImage::Image(image_info)) => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
                     let dppx = 1.0;
                     let intrinsic = NaturalSizes::from_width_and_height(
@@ -1063,8 +1063,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             .context
             .resolve_image(node, &border.border_image_source)
         {
-            None => return false,
-            Some(ResolvedImage::Image(image_info)) => {
+            Err(_) => return false,
+            Ok(ResolvedImage::Image(image_info)) => {
                 let Some(key) = image_info.key else {
                     return false;
                 };
@@ -1073,7 +1073,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 height = image_info.size.height as f32;
                 NinePatchBorderSource::Image(key, ImageRendering::Auto)
             },
-            Some(ResolvedImage::Gradient(gradient)) => {
+            Ok(ResolvedImage::Gradient(gradient)) => {
                 match gradient::build(&self.fragment.style, gradient, border_image_size, builder) {
                     WebRenderGradient::Linear(gradient) => {
                         NinePatchBorderSource::Gradient(gradient)
