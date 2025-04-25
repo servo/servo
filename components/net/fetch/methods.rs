@@ -23,8 +23,8 @@ use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
-    InsecureRequestsPolicy, Origin, RedirectMode, Referrer, Request, RequestMode, ResponseTainting,
-    Window, is_cors_safelisted_method, is_cors_safelisted_request_header,
+    InsecureRequestsPolicy, Origin, ParserMetadata, RedirectMode, Referrer, Request, RequestMode,
+    ResponseTainting, Window, is_cors_safelisted_method, is_cors_safelisted_request_header,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -169,6 +169,29 @@ pub async fn fetch_with_cors_cache(
     // TODO: We don't implement fetchParams as defined in the spec
 }
 
+fn convert_request_to_csp_request(request: &Request, origin: &ImmutableOrigin) -> csp::Request {
+    csp::Request {
+        url: request.url().into_url(),
+        origin: origin.clone().into_url_origin(),
+        redirect_count: request.redirect_count,
+        destination: request.destination,
+        initiator: match request.initiator {
+            Initiator::Download => csp::Initiator::Download,
+            Initiator::ImageSet => csp::Initiator::ImageSet,
+            Initiator::Manifest => csp::Initiator::Manifest,
+            Initiator::Prefetch => csp::Initiator::Prefetch,
+            _ => csp::Initiator::None,
+        },
+        nonce: request.cryptographic_nonce_metadata.clone(),
+        integrity_metadata: request.integrity_metadata.clone(),
+        parser_metadata: match request.parser_metadata {
+            ParserMetadata::ParserInserted => csp::ParserMetadata::ParserInserted,
+            ParserMetadata::NotParserInserted => csp::ParserMetadata::NotParserInserted,
+            ParserMetadata::Default => csp::ParserMetadata::None,
+        },
+    }
+}
+
 /// <https://www.w3.org/TR/CSP/#should-block-request>
 pub fn should_request_be_blocked_by_csp(
     request: &Request,
@@ -178,23 +201,31 @@ pub fn should_request_be_blocked_by_csp(
         Origin::Client => return (csp::CheckResult::Allowed, Vec::new()),
         Origin::Origin(origin) => origin,
     };
-
-    let csp_request = csp::Request {
-        url: request.url().into_url(),
-        origin: origin.clone().into_url_origin(),
-        redirect_count: request.redirect_count,
-        destination: request.destination,
-        initiator: csp::Initiator::None,
-        nonce: request.cryptographic_nonce_metadata.clone(),
-        integrity_metadata: request.integrity_metadata.clone(),
-        parser_metadata: csp::ParserMetadata::None,
-    };
+    let csp_request = convert_request_to_csp_request(request, origin);
 
     policy_container
         .csp_list
         .as_ref()
         .map(|c| c.should_request_be_blocked(&csp_request))
         .unwrap_or((csp::CheckResult::Allowed, Vec::new()))
+}
+
+/// <https://www.w3.org/TR/CSP/#report-for-request>
+pub fn report_violations_for_request_by_csp(
+    request: &Request,
+    policy_container: &PolicyContainer,
+) -> Vec<csp::Violation> {
+    let origin = match &request.origin {
+        Origin::Client => return Vec::new(),
+        Origin::Origin(origin) => origin,
+    };
+    let csp_request = convert_request_to_csp_request(request, origin);
+
+    policy_container
+        .csp_list
+        .as_ref()
+        .map(|c| c.report_violations_for_request(&csp_request))
+        .unwrap_or_default()
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
@@ -232,15 +263,19 @@ pub async fn main_fetch(
         )));
     }
 
-    // Step 2.2.
-    // TODO: Report violations.
-
     // The request should have a valid policy_container associated with it.
     // TODO: This should not be `Client` here
     let policy_container = match &request.policy_container {
         RequestPolicyContainer::Client => PolicyContainer::default(),
         RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
     };
+
+    // Step 2.2.
+    let violations = report_violations_for_request_by_csp(request, &policy_container);
+
+    if !violations.is_empty() {
+        target.process_csp_violations(request, violations);
+    }
 
     // Step 3.
     // TODO: handle request abort.

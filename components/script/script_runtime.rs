@@ -19,7 +19,7 @@ use std::time::{Duration, Instant};
 use std::{os, ptr, thread};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
-use content_security_policy::{CheckResult, PolicyDisposition};
+use content_security_policy::CheckResult;
 use js::conversions::jsstr_to_string;
 use js::glue::{
     CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JobQueueTraps,
@@ -45,7 +45,7 @@ pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::{
     Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine, JSEngineHandle, ParentRuntime,
-    Runtime as RustRuntime, describe_scripted_caller,
+    Runtime as RustRuntime,
 };
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
@@ -82,7 +82,6 @@ use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
-use crate::security_manager::{CSPViolationReportBuilder, CSPViolationReportTask};
 use crate::task_source::SendableTaskSource;
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
@@ -373,10 +372,6 @@ unsafe extern "C" fn content_security_policy_allows(
     let cx = JSContext::from_ptr(cx);
     wrap_panic(&mut || {
         // SpiderMonkey provides null pointer when executing webassembly.
-        let sample = match sample {
-            sample if !sample.is_null() => Some(jsstr_to_string(*cx, *sample)),
-            _ => None,
-        };
         let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
         let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
         let Some(csp_list) = global.get_csp_list() else {
@@ -384,43 +379,19 @@ unsafe extern "C" fn content_security_policy_allows(
             return;
         };
 
-        let is_js_evaluation_allowed = csp_list.is_js_evaluation_allowed() == CheckResult::Allowed;
-        let is_wasm_evaluation_allowed =
-            csp_list.is_wasm_evaluation_allowed() == CheckResult::Allowed;
-        let scripted_caller = describe_scripted_caller(*cx).unwrap_or_default();
-
-        let resource = match runtime_code {
-            RuntimeCode::JS => "eval".to_owned(),
-            RuntimeCode::WASM => "wasm-eval".to_owned(),
+        let (is_evaluation_allowed, violations) = match runtime_code {
+            RuntimeCode::JS => {
+                let source = match sample {
+                    sample if !sample.is_null() => &jsstr_to_string(*cx, *sample),
+                    _ => "",
+                };
+                csp_list.is_js_evaluation_allowed(source)
+            },
+            RuntimeCode::WASM => csp_list.is_wasm_evaluation_allowed(),
         };
 
-        allowed = match runtime_code {
-            RuntimeCode::JS if is_js_evaluation_allowed => true,
-            RuntimeCode::WASM if is_wasm_evaluation_allowed => true,
-            _ => false,
-        };
-
-        if !allowed {
-            // FIXME: Don't fire event if `script-src` and `default-src`
-            // were not passed.
-            for policy in csp_list.0 {
-                let report = CSPViolationReportBuilder::default()
-                    .resource(resource.clone())
-                    .sample(sample.clone())
-                    .report_only(policy.disposition == PolicyDisposition::Report)
-                    .source_file(scripted_caller.filename.clone())
-                    .line_number(scripted_caller.line)
-                    .column_number(scripted_caller.col)
-                    .effective_directive("script-src".to_owned())
-                    .build(&global);
-                let task = CSPViolationReportTask::new(&global, report);
-
-                global
-                    .task_manager()
-                    .dom_manipulation_task_source()
-                    .queue(task);
-            }
-        }
+        global.report_csp_violations(violations);
+        allowed = is_evaluation_allowed == CheckResult::Allowed;
     });
     allowed
 }
