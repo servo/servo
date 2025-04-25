@@ -109,13 +109,15 @@ serde_json = { workspace = true }
 servo_allocator = { path = "../../components/allocator" }
 dirs = "5.0"
 egui = { version = "0.31.1" }
+egui_extras = { version = "0.31", features = ["all_loaders"] }
 egui_glow = { version = "0.31.1", features = ["winit"] }
-egui-winit = { version = "0.31.1", default-features = false, features = ["clipboard", "wayland"] }
+egui-winit = { version = "0.31.1", default-features = false, features = ["clipboard", "wayland"] } #
 gilrs = "0.11.0"
 gleam = { workspace = true }
 glow = "0.16.0"
 headers = { workspace = true }
 http = { workspace = true }
+image = "0.25"
 net = { path = "../../components/net" }
 net_traits = { workspace = true }
 serde_json = { workspace = true }

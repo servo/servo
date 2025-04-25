@@ -90,6 +90,8 @@ impl Minibrowser {
             .egui_ctx
             .options_mut(|options| options.zoom_with_keyboard = false);
 
+        egui_extras::install_image_loaders(&context.egui_ctx);
+
         Self {
             rendering_context,
             context,
@@ -182,75 +184,69 @@ impl Minibrowser {
             _ => "New Tab".into(),
         };
 
-        let old_item_spacing = ui.spacing().item_spacing;
-        let old_visuals = ui.visuals().clone();
-        let active_bg_color = old_visuals.widgets.active.weak_bg_fill;
-        let inactive_bg_color = old_visuals.window_fill;
-        ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
-
-        let visuals = ui.visuals_mut();
-        // Remove the stroke so we don't see the border between the close button and the label
-        visuals.widgets.active.bg_stroke.width = 0.0;
-        visuals.widgets.hovered.bg_stroke.width = 0.0;
-        // Now we make sure the fill color is always the same, irrespective of state, that way
-        // we can make sure that both the label and close button have the same background color
-        visuals.widgets.noninteractive.weak_bg_fill = inactive_bg_color;
-        visuals.widgets.inactive.weak_bg_fill = inactive_bg_color;
-        visuals.widgets.hovered.weak_bg_fill = active_bg_color;
-        visuals.widgets.active.weak_bg_fill = active_bg_color;
-        visuals.selection.bg_fill = active_bg_color;
-        visuals.selection.stroke.color = visuals.widgets.active.fg_stroke.color;
-        visuals.widgets.hovered.fg_stroke.color = visuals.widgets.active.fg_stroke.color;
-
-        // Expansion would also show that they are 2 separate widgets
-        visuals.widgets.active.expansion = 0.0;
-        visuals.widgets.hovered.expansion = 0.0;
-        // The rounding is changed so it looks as though the 2 widgets are a single widget
-        // with a uniform rounding
-        let corner_radius = egui::CornerRadius {
-            ne: 0,
-            nw: 4,
-            sw: 4,
-            se: 0,
-        };
-        visuals.widgets.active.corner_radius = corner_radius;
-        visuals.widgets.hovered.corner_radius = corner_radius;
-        visuals.widgets.inactive.corner_radius = corner_radius;
-
+        let inactive_bg_color = ui.visuals().window_fill;
+        let active_bg_color = ui.visuals().widgets.active.weak_bg_fill;
         let selected = webview.focused();
-        let tab = ui.add(SelectableLabel::new(
-            selected,
-            truncate_with_ellipsis(&label, 20),
-        ));
-        let tab = tab.on_hover_ui(|ui| {
-            ui.label(label);
-        });
 
-        let corner_radius = egui::CornerRadius {
-            ne: 4,
-            nw: 0,
-            sw: 0,
-            se: 4,
-        };
-        let visuals = ui.visuals_mut();
-        visuals.widgets.active.corner_radius = corner_radius;
-        visuals.widgets.hovered.corner_radius = corner_radius;
-        visuals.widgets.inactive.corner_radius = corner_radius;
+        // Setup a tab frame that will contain the favicon, title and close button
+        let mut tab_frame = egui::Frame::NONE.corner_radius(4).begin(ui);
+        {
+            tab_frame.content_ui.add_space(5.0);
 
-        let fill_color = if selected || tab.hovered() {
+            let visuals = tab_frame.content_ui.visuals_mut();
+            // Remove the stroke so we don't see the border between the close button and the label
+            visuals.widgets.active.bg_stroke.width = 0.0;
+            visuals.widgets.hovered.bg_stroke.width = 0.0;
+            // Now we make sure the fill color is always the same, irrespective of state, that way
+            // we can make sure that both the label and close button have the same background color
+            visuals.widgets.noninteractive.weak_bg_fill = inactive_bg_color;
+            visuals.widgets.inactive.weak_bg_fill = inactive_bg_color;
+            visuals.widgets.hovered.weak_bg_fill = active_bg_color;
+            visuals.widgets.active.weak_bg_fill = active_bg_color;
+            visuals.selection.bg_fill = active_bg_color;
+            visuals.selection.stroke.color = visuals.widgets.active.fg_stroke.color;
+            visuals.widgets.hovered.fg_stroke.color = visuals.widgets.active.fg_stroke.color;
+
+            // Expansion would also show that they are 2 separate widgets
+            visuals.widgets.active.expansion = 0.0;
+            visuals.widgets.hovered.expansion = 0.0;
+
+            if let Some(favicon_url) = webview.favicon_url() {
+                tab_frame.content_ui.add(
+                    egui::Image::new(favicon_url.to_string())
+                        .fit_to_exact_size(egui::vec2(16.0, 16.0))
+                        .bg_fill(egui::Color32::TRANSPARENT),
+                );
+            }
+
+            let tab = tab_frame
+                .content_ui
+                .add(SelectableLabel::new(
+                    selected,
+                    truncate_with_ellipsis(&label, 20),
+                ))
+                .on_hover_ui(|ui| {
+                    ui.label(label);
+                });
+
+            let close_button = tab_frame
+                .content_ui
+                .add(egui::Button::new("X").fill(egui::Color32::TRANSPARENT));
+            if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
+                event_queue.push(MinibrowserEvent::CloseWebView(webview.id()))
+            } else if !selected && tab.clicked() {
+                webview.focus();
+            }
+        }
+
+        let response = tab_frame.allocate_space(ui);
+        let fill_color = if selected || response.hovered() {
             active_bg_color
         } else {
             inactive_bg_color
         };
-
-        ui.spacing_mut().item_spacing = old_item_spacing;
-        let close_button = ui.add(egui::Button::new("X").fill(fill_color));
-        *ui.visuals_mut() = old_visuals;
-        if close_button.clicked() || close_button.middle_clicked() || tab.middle_clicked() {
-            event_queue.push(MinibrowserEvent::CloseWebView(webview.id()))
-        } else if !selected && tab.clicked() {
-            webview.focus();
-        }
+        tab_frame.frame.fill = fill_color;
+        tab_frame.end(ui);
     }
 
     /// Update the minibrowser, but don’t paint.
