@@ -34,9 +34,7 @@ impl ProtocolHandler for FileProtocolHander {
         let url = request.current_url();
 
         if request.method != Method::GET {
-            return Box::pin(ready(Response::network_error(NetworkError::Internal(
-                "Unexpected method for file".into(),
-            ))));
+            return Box::pin(ready(Response::network_error(NetworkError::InvalidMethod)));
         }
         let response = if let Ok(file_path) = url.to_file_path() {
             if file_path.is_dir() {
@@ -66,9 +64,7 @@ impl ProtocolHandler for FileProtocolHander {
                 };
                 let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
                 if reader.seek(SeekFrom::Start(range.start as u64)).is_err() {
-                    return Box::pin(ready(Response::network_error(NetworkError::Internal(
-                        "Unexpected method for file".into(),
-                    ))));
+                    return Box::pin(ready(Response::network_error(NetworkError::InvalidMethod)));
                 }
 
                 // Set response status to 206 if Range header is present.
@@ -98,12 +94,10 @@ impl ProtocolHandler for FileProtocolHander {
 
                 response
             } else {
-                Response::network_error(NetworkError::Internal("Opening file failed".into()))
+                Response::network_error(NetworkError::ResourceError)
             }
         } else {
-            Response::network_error(NetworkError::Internal(
-                "Constructing file path failed".into(),
-            ))
+            Response::network_error(NetworkError::ResourceError)
         };
 
         Box::pin(ready(response))
