@@ -58,7 +58,7 @@ TOML_GLOBS = [
     "*.toml",
     ".cargo/*.toml",
     "components/*/*.toml",
-    "components/shared/*.toml",
+    "components/shared/*/*.toml",
     "ports/*/*.toml",
     "support/*/*.toml",
 ]
