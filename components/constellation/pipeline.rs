@@ -33,8 +33,8 @@ use ipc_channel::router::ROUTER;
 use log::{debug, error, warn};
 use media::WindowGLContext;
 use net::image_cache::ImageCacheImpl;
-use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
+use net_traits::{Protocols, ResourceThreads};
 use profile::system_reporter;
 use profile_traits::mem::{ProfilerMsg, Reporter};
 use profile_traits::{mem as profile_mem, time};
@@ -197,6 +197,9 @@ pub struct InitialPipelineState {
 
     /// User content manager
     pub user_content_manager: UserContentManager,
+
+    /// Registered custom protocols
+    pub protocols: Protocols,
 }
 
 pub struct NewPipeline {
@@ -294,6 +297,7 @@ impl Pipeline {
                     rippy_data: state.rippy_data,
                     user_content_manager: state.user_content_manager,
                     lifeline_sender: None,
+                    protocols: state.protocols,
                 };
 
                 // Spawn the child process.
@@ -503,6 +507,7 @@ pub struct UnprivilegedPipelineContent {
     player_context: WindowGLContext,
     rippy_data: Vec<u8>,
     user_content_manager: UserContentManager,
+    protocols: Protocols,
     lifeline_sender: Option<IpcSender<()>>,
 }
 
@@ -549,6 +554,7 @@ impl UnprivilegedPipelineContent {
                 player_context: self.player_context.clone(),
                 inherited_secure_context: self.load_data.inherited_secure_context,
                 user_content_manager: self.user_content_manager,
+                protocols: self.protocols.clone(),
             },
             layout_factory,
             Arc::new(self.system_font_service.to_proxy()),

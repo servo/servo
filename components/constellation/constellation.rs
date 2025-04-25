@@ -142,10 +142,11 @@ use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::{Key, KeyState, KeyboardEvent, Modifiers};
 use log::{debug, error, info, trace, warn};
 use media::WindowGLContext;
+use net::protocols::ProtocolRegistry;
 use net_traits::pub_domains::reg_host;
 use net_traits::request::Referrer;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use net_traits::{self, IpcSend, ReferrerPolicy, ResourceThreads};
+use net_traits::{self, IpcSend, Protocol, Protocols, ReferrerPolicy, ResourceThreads};
 use profile_traits::{mem, time};
 use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::{
@@ -474,6 +475,9 @@ pub struct Constellation<STF, SWF> {
 
     /// The process manager.
     process_manager: ProcessManager,
+
+    /// Registered custom protocols
+    pub protocols: Arc<ProtocolRegistry>,
 }
 
 /// State needed to construct a constellation.
@@ -526,6 +530,9 @@ pub struct InitialConstellationState {
 
     /// User content manager
     pub user_content_manager: UserContentManager,
+
+    /// Registered custom protocols
+    pub protocols: Arc<ProtocolRegistry>,
 }
 
 /// Data needed for webdriver
@@ -741,6 +748,7 @@ where
                     rippy_data,
                     user_content_manager: state.user_content_manager,
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
+                    protocols: state.protocols,
                 };
 
                 constellation.run();
@@ -980,6 +988,19 @@ where
             player_context: WindowGLContext::get(),
             rippy_data: self.rippy_data.clone(),
             user_content_manager: self.user_content_manager.clone(),
+            protocols: Protocols::new(
+                self.protocols
+                    .iter()
+                    .map(|(protocol, handler)| {
+                        (
+                            protocol.to_string(),
+                            Protocol {
+                                is_secure: handler.is_secure(),
+                            },
+                        )
+                    })
+                    .collect(),
+            ),
         });
 
         let pipeline = match result {

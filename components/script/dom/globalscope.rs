@@ -57,7 +57,7 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::{
-    CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend, ReferrerPolicy,
+    CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend, Protocols, ReferrerPolicy,
     ResourceThreads, fetch_async,
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
@@ -376,6 +376,11 @@ pub(crate) struct GlobalScope {
     #[ignore_malloc_size_of = "Rc<T> is hard"]
     notification_permission_request_callback_map:
         DomRefCell<HashMap<String, Rc<NotificationPermissionCallback>>>,
+
+    /// Registered custom protocols
+    #[no_trace]
+    #[ignore_malloc_size_of = "Arc"]
+    protocols: Arc<Protocols>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -731,6 +736,7 @@ impl GlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
+        protocols: Arc<Protocols>,
     ) -> Self {
         Self {
             task_manager: Default::default(),
@@ -775,6 +781,7 @@ impl GlobalScope {
             byte_length_queuing_strategy_size_function: OnceCell::new(),
             count_queuing_strategy_size_function: OnceCell::new(),
             notification_permission_request_callback_map: Default::default(),
+            protocols,
         }
     }
 
@@ -2383,6 +2390,11 @@ impl GlobalScope {
         &self.creation_url
     }
 
+    /// Get registered custom protocols
+    pub(crate) fn registered_protocols(&self) -> &Arc<Protocols> {
+        &self.protocols
+    }
+
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
         if let Some(window) = self.downcast::<Window>() {
             return window.image_cache();
@@ -3098,7 +3110,7 @@ impl GlobalScope {
             if creation_url.scheme() == "blob" && Some(true) == self.inherited_secure_context {
                 return true;
             }
-            return creation_url.is_potentially_trustworthy();
+            return self.protocols.is_url_potentially_trustworthy(creation_url);
         }
         false
     }

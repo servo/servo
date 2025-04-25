@@ -75,7 +75,7 @@ use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::storage_thread::StorageType;
 use net_traits::{
-    FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError,
+    FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError, Protocols,
     ResourceFetchTiming, ResourceThreads, ResourceTimingType,
 };
 use percent_encoding::percent_decode;
@@ -335,6 +335,10 @@ pub struct ScriptThread {
     // In future, this shall be mouse_down_point for primary button
     #[no_trace]
     relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
+
+    /// Registered custom protocols
+    #[no_trace]
+    protocols: Arc<Protocols>,
 }
 
 struct BHMExitSignal {
@@ -744,6 +748,7 @@ impl ScriptThread {
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
                         inherited_secure_context: script_thread.inherited_secure_context,
+                        protocols: script_thread.protocols.clone(),
                     };
                     Rc::new(WorkletThreadPool::spawn(init))
                 })
@@ -949,6 +954,7 @@ impl ScriptThread {
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
+            protocols: Arc::new(state.protocols),
         }
     }
 
@@ -3125,6 +3131,7 @@ impl ScriptThread {
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
+            self.protocols.clone(),
         );
 
         let _realm = enter_realm(&*window);

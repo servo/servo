@@ -35,9 +35,9 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
-use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use net_traits::storage_thread::StorageType;
+use net_traits::{Protocols, ResourceThreads};
 use pixels::PixelFormat;
 use profile_traits::mem;
 use serde::{Deserialize, Serialize};
@@ -324,6 +324,8 @@ pub struct InitialScriptState {
     pub player_context: WindowGLContext,
     /// User content manager
     pub user_content_manager: UserContentManager,
+    /// Registered custom protocols
+    pub protocols: Protocols,
 }
 
 /// Errors from executing a paint worklet
