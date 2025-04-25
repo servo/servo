@@ -2274,6 +2274,7 @@ impl ScriptThread {
                     node_id,
                     name,
                     reply,
+                    can_gc,
                 )
             },
             WebDriverScriptCommand::GetElementCSS(node_id, name, reply) => {

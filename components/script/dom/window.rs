@@ -1216,12 +1216,23 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    #[allow(unsafe_code)]
-    fn WebdriverCallback(&self, cx: JSContext, val: HandleValue) {
-        let rv = unsafe { jsval_to_webdriver(*cx, &self.globalscope, val) };
+    fn WebdriverCallback(&self, cx: JSContext, val: HandleValue, realm: InRealm, can_gc: CanGc) {
+        let rv = jsval_to_webdriver(cx, &self.globalscope, val, realm, can_gc);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
             chan.send(rv).unwrap();
+        }
+    }
+
+    fn WebdriverException(&self, cx: JSContext, val: HandleValue, realm: InRealm, can_gc: CanGc) {
+        let rv = jsval_to_webdriver(cx, &self.globalscope, val, realm, can_gc);
+        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
+        if let Some(chan) = opt_chan {
+            if let Ok(rv) = rv {
+                chan.send(Err(WebDriverJSError::JSException(rv))).unwrap();
+            } else {
+                chan.send(rv).unwrap();
+            }
         }
     }
 
