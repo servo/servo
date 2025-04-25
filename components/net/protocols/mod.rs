@@ -14,6 +14,7 @@ use log::error;
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::Request;
 use net_traits::response::Response;
+use servo_url::ServoUrl;
 
 use crate::fetch::methods::{DoneChannel, FetchContext, RangeRequestBounds};
 
@@ -45,6 +46,15 @@ pub trait ProtocolHandler: Send + Sync {
     /// with `fetch()` without no-cors mode to allow the caller direct
     /// access to the resource content.
     fn is_fetchable(&self) -> bool {
+        false
+    }
+
+    /// Specify if this custom protocol can be used in a [secure context]
+    ///
+    /// Note: this only works for bypassing mixed content checks right now
+    ///
+    /// [secure context]: https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts
+    fn is_secure(&self) -> bool {
         false
     }
 }
@@ -114,9 +124,22 @@ impl ProtocolRegistry {
     pub fn is_fetchable(&self, scheme: &str) -> bool {
         self.handlers
             .get(scheme)
-            .map(|handler| handler.is_fetchable())
-            .unwrap_or(false)
+            .is_some_and(|handler| handler.is_fetchable())
     }
+
+    pub fn is_secure(&self, scheme: &str) -> bool {
+        self.handlers
+            .get(scheme)
+            .is_some_and(|handler| handler.is_secure())
+    }
+}
+
+/// Test if the URL is potentially trustworthy or the custom protocol is registered as secure
+pub fn is_url_potentially_trustworthy(
+    protocol_registry: &ProtocolRegistry,
+    url: &ServoUrl,
+) -> bool {
+    url.is_potentially_trustworthy() || protocol_registry.is_secure(url.scheme())
 }
 
 pub fn range_not_satisfiable_error(response: &mut Response) {
