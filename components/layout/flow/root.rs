@@ -195,16 +195,17 @@ impl BoxTree {
                         },
                         _ => return None,
                     },
-                    LayoutBox::InlineLevel(inline_level_box) => match &*inline_level_box.borrow() {
-                        InlineItem::OutOfFlowAbsolutelyPositionedBox(_, text_offset_index)
-                            if box_style.position.is_absolutely_positioned() =>
-                        {
-                            UpdatePoint::AbsolutelyPositionedInlineLevelBox(
-                                inline_level_box.clone(),
-                                *text_offset_index,
-                            )
-                        },
-                        _ => return None,
+                    LayoutBox::InlineLevel(inline_level_items) => {
+                        let inline_level_box = inline_level_items.first()?;
+                        let InlineItem::OutOfFlowAbsolutelyPositionedBox(_, text_offset_index) =
+                            &*inline_level_box.borrow()
+                        else {
+                            return None;
+                        };
+                        UpdatePoint::AbsolutelyPositionedInlineLevelBox(
+                            inline_level_box.clone(),
+                            *text_offset_index,
+                        )
                     },
                     LayoutBox::FlexLevel(flex_level_box) => match &*flex_level_box.borrow() {
                         FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_)

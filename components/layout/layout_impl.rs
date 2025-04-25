@@ -81,8 +81,8 @@ use webrender_api::{ExternalScrollId, HitTestFlags};
 use crate::context::LayoutContext;
 use crate::display_list::{DisplayList, WebRenderImageInfo};
 use crate::query::{
-    get_the_text_steps, process_content_box_request, process_content_boxes_request,
-    process_node_geometry_request, process_node_scroll_area_request, process_offset_parent_query,
+    get_the_text_steps, process_client_rect_request, process_content_box_request,
+    process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
     process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
 };
 use crate::traversal::RecalcStyle;
@@ -235,24 +235,27 @@ impl Layout for LayoutThread {
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn query_content_box(&self, node: OpaqueNode) -> Option<UntypedRect<Au>> {
-        process_content_box_request(node, self.fragment_tree.borrow().clone())
+    fn query_content_box(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
+        let node = unsafe { ServoLayoutNode::new(&node) };
+        process_content_box_request(node)
     }
 
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn query_content_boxes(&self, node: OpaqueNode) -> Vec<UntypedRect<Au>> {
-        process_content_boxes_request(node, self.fragment_tree.borrow().clone())
+    fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<UntypedRect<Au>> {
+        let node = unsafe { ServoLayoutNode::new(&node) };
+        process_content_boxes_request(node)
     }
 
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn query_client_rect(&self, node: OpaqueNode) -> UntypedRect<i32> {
-        process_node_geometry_request(node, self.fragment_tree.borrow().clone())
+    fn query_client_rect(&self, node: TrustedNodeAddress) -> UntypedRect<i32> {
+        let node = unsafe { ServoLayoutNode::new(&node) };
+        process_client_rect_request(node)
     }
 
     #[cfg_attr(

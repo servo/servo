@@ -243,9 +243,9 @@ pub trait Layout {
     /// Set the scroll states of this layout after a compositor scroll.
     fn set_scroll_offsets(&mut self, scroll_states: &[ScrollState]);
 
-    fn query_content_box(&self, node: OpaqueNode) -> Option<Rect<Au>>;
-    fn query_content_boxes(&self, node: OpaqueNode) -> Vec<Rect<Au>>;
-    fn query_client_rect(&self, node: OpaqueNode) -> Rect<i32>;
+    fn query_content_box(&self, node: TrustedNodeAddress) -> Option<Rect<Au>>;
+    fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<Rect<Au>>;
+    fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32>;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_nodes_from_point(
         &self,
