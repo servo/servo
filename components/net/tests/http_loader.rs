@@ -636,7 +636,7 @@ fn test_load_doesnt_add_host_to_hsts_list_when_url_is_http_even_if_hsts_headers_
         .pipeline_id(Some(TEST_PIPELINE_ID))
         .build();
 
-    let mut context = new_fetch_context(None, None, None);
+    let mut context = new_fetch_context(None, None, None, None);
     let response = fetch_with_context(request, &mut context);
 
     let _ = server.close();
@@ -673,7 +673,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         };
     let (server, url) = make_server(handler);
 
-    let mut context = new_fetch_context(None, None, None);
+    let mut context = new_fetch_context(None, None, None, None);
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
@@ -719,7 +719,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         };
     let (server, url) = make_server(handler);
 
-    let mut context = new_fetch_context(None, None, None);
+    let mut context = new_fetch_context(None, None, None, None);
 
     {
         let mut cookie_jar = context.state.cookie_jar.write().unwrap();
@@ -768,7 +768,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         };
     let (server, url) = make_server(handler);
 
-    let mut context = new_fetch_context(None, None, None);
+    let mut context = new_fetch_context(None, None, None, None);
 
     {
         let mut cookie_jar = context.state.cookie_jar.write().unwrap();
@@ -818,7 +818,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         };
     let (server, url) = make_server(handler);
 
-    let mut context = new_fetch_context(None, None, None);
+    let mut context = new_fetch_context(None, None, None, None);
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
@@ -871,7 +871,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
         };
     let (server, url) = make_server(handler);
 
-    let mut context = new_fetch_context(None, None, None);
+    let mut context = new_fetch_context(None, None, None, None);
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
@@ -1298,7 +1298,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     let url_y = ServoUrl::parse(&format!("http://mozilla.org:{}/org/", port)).unwrap();
     *shared_url_y_clone.lock().unwrap() = Some(url_y.clone());
 
-    let mut context = new_fetch_context(None, None, None);
+    let mut context = new_fetch_context(None, None, None, None);
     {
         let mut cookie_jar = context.state.cookie_jar.write().unwrap();
         let cookie_x = ServoCookie::new_wrapped(
@@ -1413,7 +1413,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         .credentials_mode(CredentialsMode::Include)
         .build();
 
-    let mut context = new_fetch_context(None, None, None);
+    let mut context = new_fetch_context(None, None, None, None);
 
     let auth_entry = AuthCacheEntry {
         user_name: "username".to_owned(),
@@ -1554,7 +1554,7 @@ fn test_fetch_compressed_response_update_count() {
         methods::fetch(
             request,
             &mut target,
-            &mut new_fetch_context(None, None, None),
+            &mut new_fetch_context(None, None, None, None),
         )
         .await;
         receiver.await.unwrap()
@@ -1625,7 +1625,7 @@ fn test_user_credentials_prompt_when_proxy_authentication_is_required() {
         }),
     );
 
-    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None, None);
 
     let response = fetch_with_context(request, &mut context);
 
@@ -1677,8 +1677,7 @@ fn test_prompt_credentials_when_client_receives_unauthorized_response() {
             password: "test".into(),
         }),
     );
-    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
-
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None, None);
     let response = fetch_with_context(request, &mut context);
 
     server.close();
@@ -1723,7 +1722,7 @@ fn test_prompt_credentials_user_cancels_dialog_input() {
 
     let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
     let _ = receive_credential_prompt_msgs(embedder_receiver, None);
-    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None, None);
 
     let response = fetch_with_context(request, &mut context);
 
@@ -1775,7 +1774,7 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
             password: "test".into(),
         }),
     );
-    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None, None);
 
     let response = fetch_with_context(request, &mut context);
 
@@ -1827,7 +1826,7 @@ fn test_prompt_credentials_user_input_incorrect_mode() {
             password: "test".into(),
         }),
     );
-    let mut context = new_fetch_context(None, Some(embedder_proxy), None);
+    let mut context = new_fetch_context(None, Some(embedder_proxy), None, None);
 
     let response = fetch_with_context(request, &mut context);
 

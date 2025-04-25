@@ -50,8 +50,8 @@ use uuid::Uuid;
 use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use crate::{
     DEFAULT_USER_AGENT, create_embedder_proxy, create_embedder_proxy_and_receiver,
-    create_http_state, fetch, fetch_with_context, fetch_with_cors_cache, make_body, make_server,
-    make_ssl_server, new_fetch_context,
+    create_http_state, fetch, fetch_with_context, fetch_with_cors_cache, fetch_with_proxy,
+    make_body, make_server, make_ssl_server, new_fetch_context,
 };
 
 // TODO write a struct that impls Handler for storing test values
@@ -167,7 +167,7 @@ fn test_fetch_blob() {
         fn process_csp_violations(&mut self, _: &Request, _: Vec<csp::Violation>) {}
     }
 
-    let context = new_fetch_context(None, None, None);
+    let context = new_fetch_context(None, None, None, None);
 
     let bytes = b"content";
     let blob_buf = BlobBuf {
@@ -236,7 +236,7 @@ fn test_file() {
 
     let pool = CoreResourceThreadPool::new(1, "CoreResourceTestPool".to_string());
     let pool_handle = Arc::new(pool);
-    let mut context = new_fetch_context(None, None, Some(Arc::downgrade(&pool_handle)));
+    let mut context = new_fetch_context(None, None, Some(Arc::downgrade(&pool_handle)), None);
     let fetch_response = fetch_with_context(request, &mut context);
 
     // We should see an opaque-filtered response.
@@ -291,14 +291,29 @@ fn test_fetch_bogus_scheme() {
 }
 
 #[test]
+fn test_fetch_with_proxy() {
+    let url = ServoUrl::parse("http://www.example.com").unwrap();
+    let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
+        .origin(url.origin())
+        .build();
+    let fetch_response = fetch_with_proxy(
+        request,
+        None,
+        Some(hyper::Uri::from_static("http://localhost:3000")),
+    );
+    assert!(fetch_response.is_network_error());
+    panic!("NYI")
+}
+
+#[test]
 fn test_cors_preflight_fetch() {
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
     let handler =
         move |request: HyperRequest<Incoming>,
               response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
-            if request.method() == Method::OPTIONS &&
-                state.clone().fetch_add(1, Ordering::SeqCst) == 0
+            if request.method() == Method::OPTIONS
+                && state.clone().fetch_add(1, Ordering::SeqCst) == 0
             {
                 assert!(
                     request
@@ -361,8 +376,8 @@ fn test_cors_preflight_cache_fetch() {
     let handler =
         move |request: HyperRequest<Incoming>,
               response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
-            if request.method() == Method::OPTIONS &&
-                state.clone().fetch_add(1, Ordering::SeqCst) == 0
+            if request.method() == Method::OPTIONS
+                && state.clone().fetch_add(1, Ordering::SeqCst) == 0
             {
                 assert!(
                     request
@@ -433,8 +448,8 @@ fn test_cors_preflight_fetch_network_error() {
     let handler =
         move |request: HyperRequest<Incoming>,
               response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
-            if request.method() == Method::OPTIONS &&
-                state.clone().fetch_add(1, Ordering::SeqCst) == 0
+            if request.method() == Method::OPTIONS
+                && state.clone().fetch_add(1, Ordering::SeqCst) == 0
             {
                 assert!(
                     request
@@ -720,7 +735,7 @@ fn test_fetch_with_hsts() {
     let embedder_proxy = create_embedder_proxy();
 
     let mut context = FetchContext {
-        state: Arc::new(create_http_state(None)),
+        state: Arc::new(create_http_state(None, None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(
@@ -780,7 +795,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
     let embedder_proxy = create_embedder_proxy();
 
     let mut context = FetchContext {
-        state: Arc::new(create_http_state(None)),
+        state: Arc::new(create_http_state(None, None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(
@@ -846,7 +861,7 @@ fn test_fetch_self_signed() {
     let embedder_proxy = create_embedder_proxy();
 
     let mut context = FetchContext {
-        state: Arc::new(create_http_state(None)),
+        state: Arc::new(create_http_state(None, None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(
@@ -1400,7 +1415,7 @@ fn test_fetch_request_intercepted() {
     });
 
     let mut context = FetchContext {
-        state: Arc::new(create_http_state(None)),
+        state: Arc::new(create_http_state(None, None)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(

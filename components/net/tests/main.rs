@@ -143,7 +143,7 @@ fn receive_credential_prompt_msgs(
     })
 }
 
-fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
+fn create_http_state(fc: Option<EmbedderProxy>, http_proxy_uri: Option<hyper::Uri>) -> HttpState {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
     let override_manager = net::connector::CertificateErrorOverrideManager::new();
@@ -155,7 +155,7 @@ fn create_http_state(fc: Option<EmbedderProxy>) -> HttpState {
         http_cache: RwLock::new(net::http_cache::HttpCache::default()),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(
-            None,
+            http_proxy_uri,
             create_tls_config(
                 net::connector::CACertificates::Default,
                 false, /* ignore_certificate_errors */
@@ -171,11 +171,12 @@ fn new_fetch_context(
     dc: Option<Sender<DevtoolsControlMsg>>,
     fc: Option<EmbedderProxy>,
     pool_handle: Option<Weak<CoreResourceThreadPool>>,
+    http_proxy_uri: Option<hyper::Uri>,
 ) -> FetchContext {
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
 
     FetchContext {
-        state: Arc::new(create_http_state(Some(sender.clone()))),
+        state: Arc::new(create_http_state(Some(sender.clone()), http_proxy_uri)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc.map(|dc| Arc::new(Mutex::new(dc))),
         filemanager: Arc::new(Mutex::new(FileManager::new(
@@ -204,7 +205,18 @@ impl FetchTaskTarget for FetchResponseCollector {
 }
 
 fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    fetch_with_context(request, &mut new_fetch_context(dc, None, None))
+    fetch_with_context(request, &mut new_fetch_context(dc, None, None, None))
+}
+
+fn fetch_with_proxy(
+    request: Request,
+    dc: Option<Sender<DevtoolsControlMsg>>,
+    http_proxy_uri: Option<hyper::Uri>,
+) -> Response {
+    fetch_with_context(
+        request,
+        &mut new_fetch_context(dc, None, None, http_proxy_uri),
+    )
 }
 
 fn fetch_with_context(request: Request, mut context: &mut FetchContext) -> Response {
@@ -228,7 +240,7 @@ fn fetch_with_cors_cache(request: Request, cache: &mut CorsCache) -> Response {
             request,
             cache,
             &mut target,
-            &mut new_fetch_context(None, None, None),
+            &mut new_fetch_context(None, None, None, None),
         )
         .await;
         receiver.await.unwrap()
