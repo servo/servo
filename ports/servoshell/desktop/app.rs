@@ -122,12 +122,13 @@ impl App {
         }
 
         let mut protocol_registry = ProtocolRegistry::default();
-        protocol_registry.register(
+        let _ = protocol_registry.register(
             "urlinfo",
             protocols::urlinfo::UrlInfoProtocolHander::default(),
         );
-        protocol_registry.register("servo", protocols::servo::ServoProtocolHandler::default());
-        protocol_registry.register(
+        let _ =
+            protocol_registry.register("servo", protocols::servo::ServoProtocolHandler::default());
+        let _ = protocol_registry.register(
             "resource",
             protocols::resource::ResourceProtocolHandler::default(),
         );

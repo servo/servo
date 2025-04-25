@@ -54,27 +54,45 @@ pub struct ProtocolRegistry {
     pub(crate) handlers: HashMap<String, Box<dyn ProtocolHandler>>, // Maps scheme -> handler
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum ProtocolRegisterError {
+    ForbiddenScheme,
+    SchemeAlreadyRegistered,
+}
+
 impl ProtocolRegistry {
     pub fn with_internal_protocols() -> Self {
         let mut registry = Self::default();
-        registry.register("data", DataProtocolHander::default());
-        registry.register("blob", BlobProtocolHander::default());
-        registry.register("file", FileProtocolHander::default());
+        // We just created a new registry, and know that we aren't using
+        // any forbidden schemes, so this should never panic.
+        registry
+            .register("data", DataProtocolHander::default())
+            .expect("Infallible");
+        registry
+            .register("blob", BlobProtocolHander::default())
+            .expect("Infallible");
+        registry
+            .register("file", FileProtocolHander::default())
+            .expect("Infallible");
         registry
     }
 
-    pub fn register(&mut self, scheme: &str, handler: impl ProtocolHandler + 'static) -> bool {
+    pub fn register(
+        &mut self,
+        scheme: &str,
+        handler: impl ProtocolHandler + 'static,
+    ) -> Result<(), ProtocolRegisterError> {
         if FORBIDDEN_SCHEMES.contains(&scheme) {
             error!("Protocol handler for '{scheme}' is not allowed to be registered.");
-            return false;
+            return Err(ProtocolRegisterError::ForbiddenScheme);
         }
 
         if let Entry::Vacant(entry) = self.handlers.entry(scheme.into()) {
             entry.insert(Box::new(handler));
-            true
+            Ok(())
         } else {
             error!("Protocol handler for '{scheme}' is already registered.");
-            false
+            Err(ProtocolRegisterError::SchemeAlreadyRegistered)
         }
     }
 
