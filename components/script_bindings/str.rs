@@ -10,13 +10,18 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::LazyLock;
-use std::{fmt, ops, str};
+use std::{fmt, ops, slice, str};
 
 use cssparser::CowRcStr;
 use html5ever::{LocalName, Namespace};
+use js::rust::wrappers::ToJSON;
+use js::rust::{HandleObject, HandleValue};
 use num_traits::Zero;
 use regex::Regex;
 use stylo_atoms::Atom;
+
+use crate::error::Error;
+use crate::script_runtime::JSContext as SafeJSContext;
 
 /// Encapsulates the IDL `ByteString` type.
 #[derive(Clone, Debug, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]
@@ -291,6 +296,64 @@ impl DOMString {
             self.0 = parsed_value.to_string()
         }
     }
+}
+
+/// Because this converts to a DOMString it becomes UTF-8 encoded which is closer to
+/// the spec definition of <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-json-bytes>
+/// but we generally do not operate on anything that is truly a WTF-16 string.
+///
+/// <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-a-json-string>
+pub fn serialize_jsval_to_json_utf8(
+    cx: SafeJSContext,
+    data: HandleValue,
+) -> Result<DOMString, Error> {
+    #[repr(C)]
+    struct ToJSONCallbackData {
+        string: Option<String>,
+    }
+
+    let mut out_str = ToJSONCallbackData { string: None };
+
+    #[allow(unsafe_code)]
+    unsafe extern "C" fn write_callback(
+        string: *const u16,
+        len: u32,
+        data: *mut std::ffi::c_void,
+    ) -> bool {
+        let data = data as *mut ToJSONCallbackData;
+        let string_chars = slice::from_raw_parts(string, len as usize);
+        (*data)
+            .string
+            .get_or_insert_with(Default::default)
+            .push_str(&String::from_utf16_lossy(string_chars));
+        true
+    }
+
+    // 1. Let result be ? Call(%JSON.stringify%, undefined, « value »).
+    unsafe {
+        let stringify_result = ToJSON(
+            *cx,
+            data,
+            HandleObject::null(),
+            HandleValue::null(),
+            Some(write_callback),
+            &mut out_str as *mut ToJSONCallbackData as *mut _,
+        );
+        // Note: ToJSON returns false when a JS error is thrown, so we need to return
+        // JSFailed to propagate the raised exception
+        if !stringify_result {
+            return Err(Error::JSFailed);
+        }
+    }
+
+    // 2. If result is undefined, then throw a TypeError.
+    // Note: ToJSON will not call the callback if the data cannot be serialized.
+    // 3. Assert: result is a string.
+    // 4. Return result.
+    out_str
+        .string
+        .map(Into::into)
+        .ok_or_else(|| Error::Type("unable to serialize JSON".to_owned()))
 }
 
 impl Borrow<str> for DOMString {
