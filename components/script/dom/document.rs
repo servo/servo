@@ -31,7 +31,8 @@ use dom_struct::dom_struct;
 use embedder_traits::{
     AllowOrDeny, AnimationState, CompositorHitTestResult, ContextMenuResult, EditingActionEvent,
     EmbedderMsg, FocusSequenceNumber, ImeEvent, InputEvent, LoadStatus, MouseButton,
-    MouseButtonAction, MouseButtonEvent, TouchEvent, TouchEventType, TouchId, WheelEvent,
+    MouseButtonAction, MouseButtonEvent, ScrollEvent, TouchEvent, TouchEventType, TouchId,
+    UntrustedNodeAddress, WheelEvent,
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
@@ -54,7 +55,7 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
 use script_bindings::interfaces::DocumentHelpers;
-use script_layout_interface::{PendingRestyle, TrustedNodeAddress};
+use script_layout_interface::{PendingRestyle, TrustedNodeAddress, node_id_from_scroll_id};
 use script_traits::{ConstellationInputEvent, DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
 use servo_config::pref;
@@ -2325,6 +2326,40 @@ impl Document {
         match result {
             EventStatus::Canceled => TouchEventResult::Processed(false),
             EventStatus::NotCanceled => TouchEventResult::Processed(true),
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub(crate) fn handle_scroll_event(&self, event: ScrollEvent, can_gc: CanGc) {
+        // <https://drafts.csswg.org/cssom-view/#scrolling-events>
+        // If target is a Document, fire an event named scroll that bubbles at target.
+        if event.external_id.is_root() {
+            let Some(document) = self
+                .node
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<Document>)
+                .next()
+            else {
+                return;
+            };
+            DomRoot::upcast::<EventTarget>(document)
+                .fire_bubbling_event(Atom::from("scroll"), can_gc);
+        } else {
+            // Otherwise, fire an event named scroll at target.
+            let Some(node_id) = node_id_from_scroll_id(event.external_id.0 as usize) else {
+                return;
+            };
+            let node = unsafe {
+                node::from_untrusted_node_address(UntrustedNodeAddress::from_id(node_id))
+            };
+            let Some(element) = node
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<Element>)
+                .next()
+            else {
+                return;
+            };
+            DomRoot::upcast::<EventTarget>(element).fire_event(Atom::from("scroll"), can_gc);
         }
     }
 
