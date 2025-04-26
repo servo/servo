@@ -1389,7 +1389,17 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
     fn ResizeTo(&self, width: i32, height: i32) {
         // Step 1
-        //TODO determine if this operation is allowed
+        let window_proxy = match self.window_proxy.get() {
+            Some(proxy) => proxy,
+            None => return,
+        };
+
+        // If target is not an auxiliary browsing context that was created by a script
+        // (as opposed to by an action of the user), then return.
+        if !window_proxy.is_auxiliary() {
+            return;
+        }
+
         let dpr = self.device_pixel_ratio();
         let size = Size2D::new(width, height).to_f32() * dpr;
         self.send_to_embedder(EmbedderMsg::ResizeTo(self.webview_id(), size.to_i32()));
