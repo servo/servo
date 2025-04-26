@@ -7,7 +7,10 @@ use std::rc::Rc;
 
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
-use fonts::{FontContext, FontContextWebFontMethods, FontTemplate, LowercaseFontFamilyName};
+use fonts::{
+    FontContext, FontContextWebFontMethods, FontTemplate, LowercaseFontFamilyName,
+    WebFontDocumentContext,
+};
 use js::rust::HandleObject;
 use style::error_reporting::ParseErrorReporter;
 use style::font_face::SourceList;
@@ -539,7 +542,12 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
             &self.descriptors.borrow(),
         )
         .expect("Parsing shouldn't fail as descriptors are valid by construction");
-
+        let document_context = WebFontDocumentContext {
+            policy_container: global.policy_container(),
+            document_url: global.api_base_url(),
+            has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
+            insecure_requests_policy: global.insecure_requests_policy(),
+        };
         // Step 4. Using the value of font face’s [[Urls]] slot, attempt to load a font as defined
         // in [CSS-FONTS-3], as if it was the value of a @font-face rule’s src descriptor.
         // TODO: FontFaceSet is not supported on Workers yet. The `as_window` call below should be
@@ -549,6 +557,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
             sources,
             (&parsed_font_face_rule).into(),
             finished_callback,
+            &document_context,
         );
 
         // Step 3. Set font face’s status attribute to "loading", return font face’s

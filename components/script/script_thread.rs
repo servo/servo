@@ -818,6 +818,10 @@ impl ScriptThread {
         with_script_thread(|script_thread| script_thread.node_ids.borrow().contains(node_id))
     }
 
+    pub(crate) fn find_global(&self, pipeline_id: PipelineId) -> Option<DomRoot<GlobalScope>> {
+        self.documents.borrow().find_global(pipeline_id)
+    }
+
     /// Creates a new script thread.
     pub(crate) fn new(
         state: InitialScriptState,

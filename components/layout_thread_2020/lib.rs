@@ -23,7 +23,7 @@ use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
-use fonts::{FontContext, FontContextWebFontMethods};
+use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use fxhash::{FxHashMap, FxHashSet};
 use ipc_channel::ipc::IpcSender;
@@ -51,6 +51,7 @@ use script_layout_interface::{
     OffsetParentResponse, ReflowGoal, ReflowRequest, ReflowResult, TrustedNodeAddress,
 };
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThreadMessage};
+use script::ScriptThread;
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::{self, DebugOptions};
 use servo_config::pref;
@@ -584,12 +585,21 @@ impl LayoutThread {
                 .send(ScriptThreadMessage::WebFontLoaded(pipeline_id, succeeded));
         };
 
+        let global = ScriptThread::find_global(pipeline_id).expect("GlobalScope not found for pipeline");
+        let document_context = WebFontDocumentContext {
+            policy_container: global.policy_container(),
+            document_url: global.api_base_url(),
+            has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
+            insecure_requests_policy: global.insecure_requests_policy(),
+        };
+
         self.font_context.add_all_web_fonts_from_stylesheet(
             self.webview_id,
             stylesheet,
             guard,
             self.stylist.device(),
             Arc::new(web_font_finished_loading_callback) as StylesheetWebFontLoadFinishedCallback,
+            &document_context,
         );
     }
 
