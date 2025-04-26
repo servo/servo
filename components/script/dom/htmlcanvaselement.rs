@@ -407,15 +407,23 @@ impl HTMLCanvasElement {
         &self,
         image_type: &EncodedImageType,
         quality: Option<f64>,
-        bytes: &[u8],
+        snapshot: &Snapshot,
         encoder: &mut W,
     ) {
+        // We can't use self.Width() or self.Height() here, since the size of the canvas
+        // may have changed since the snapshot was created. Truncating the dimensions to a
+        // u32 can't panic, since the data comes from a canvas which is always smaller than
+        // u32::MAX.
+        let canvas_data = snapshot.data();
+        let width = snapshot.size().width as u32;
+        let height = snapshot.size().height as u32;
+
         match image_type {
             EncodedImageType::Png => {
                 // FIXME(nox): https://github.com/image-rs/image-png/issues/86
                 // FIXME(nox): https://github.com/image-rs/image-png/issues/87
                 PngEncoder::new(encoder)
-                    .write_image(bytes, self.Width(), self.Height(), ColorType::Rgba8)
+                    .write_image(canvas_data, width, height, ColorType::Rgba8)
                     .unwrap();
             },
             EncodedImageType::Jpeg => {
@@ -435,14 +443,14 @@ impl HTMLCanvasElement {
                 };
 
                 jpeg_encoder
-                    .write_image(bytes, self.Width(), self.Height(), ColorType::Rgba8)
+                    .write_image(canvas_data, width, height, ColorType::Rgba8)
                     .unwrap();
             },
 
             EncodedImageType::Webp => {
                 // No quality support because of https://github.com/image-rs/image/issues/1984
                 WebPEncoder::new_lossless(encoder)
-                    .write_image(bytes, self.Width(), self.Height(), ColorType::Rgba8)
+                    .write_image(canvas_data, width, height, ColorType::Rgba8)
                     .unwrap();
             },
         }
@@ -567,7 +575,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         self.encode_for_mime_type(
             &image_type,
             Self::maybe_quality(quality),
-            snapshot.data(),
+            &snapshot,
             &mut encoder,
         );
         encoder.into_inner();
@@ -589,8 +597,8 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             return Err(Error::Security);
         }
 
-        // Step 2. and 3.
-        // If this canvas element's bitmap has pixels (i.e., neither its horizontal dimension
+        // Step 2. Let result be null.
+        // Step 3. If this canvas element's bitmap has pixels (i.e., neither its horizontal dimension
         // nor its vertical dimension is zero),
         // then set result to a copy of this canvas element's bitmap.
         let result = if self.Width() == 0 || self.Height() == 0 {
@@ -627,12 +635,12 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                     // type and quality if given.
                     let mut encoded: Vec<u8> = vec![];
 
-                    this.encode_for_mime_type(&image_type, quality, snapshot.data(), &mut encoded);
+                    this.encode_for_mime_type(&image_type, quality, &snapshot, &mut encoded);
                     let blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
-                    // Step 4.2.1 & 4.2.2
-                    // Set result to a new Blob object, created in the relevant realm of this canvas element
-                    // Invoke callback with « result » and "report".
+                    // Step 4.2.1  Set result to a new Blob object, created in the relevant realm of this canvas element
                     let blob = Blob::new(&this.global(), blob_impl, CanGc::note());
+
+                    // Step 4.2.2 Invoke callback with « result » and "report".
                     let _ = callback.Call__(Some(&blob), ExceptionHandling::Report, CanGc::note());
                 } else {
                     let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::note());

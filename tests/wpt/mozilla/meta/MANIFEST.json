@@ -9,6 +9,15 @@
       {}
      ]
     ],
+    "canvas": {
+     "toblob-then-change-size-crash.html": [
+      "355474b4832dde985a73baad925702bbb0cbc73f",
+      [
+       null,
+       {}
+      ]
+     ]
+    },
     "datatransferitem-crash.html": [
      "d11355ab38c1e99e0ba3e10d7dfed18bf26af60b",
      [
