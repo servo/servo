@@ -141,62 +141,10 @@ svg > * {
   display: none;
 }
 
-/*
- * For most (but not all) anon-boxes, we inherit all values from the
- * parent.
- *
- * Anonymous table flows shouldn't inherit their parents properties in order
- * to avoid doubling up styles such as transformations. Same for text and such.
- *
- * For tables, we do want style to inherit, because TableWrapper is
- * responsible for handling clipping and scrolling, while Table is
- * responsible for creating stacking contexts.
- *
- * StackingContextCollectionFlags makes sure this is processed
- * properly.
- *
- * FIXME(emilio): inheriting all is a very strong hammer, and it's likely
- * broken for stuff like table backgrounds and such. Gecko explicitly inherits
- * what it wants, which seems a bit better off-hand.
- */
-*|*::-servo-legacy-anonymous-table,
-*|*::-servo-legacy-anonymous-table-wrapper,
-*|*::-servo-legacy-table-wrapper,
-*|*::-servo-legacy-anonymous-block,
-*|*::-servo-legacy-inline-block-wrapper,
-*|*::-servo-legacy-inline-absolute {
-    all: inherit;
-}
-
 *|*::-servo-anonymous-box {
   unicode-bidi: inherit;
   direction: inherit;
   writing-mode: inherit;
-}
-
-*|*::-servo-legacy-table-wrapper {
-    display: table;
-    border: none;
-}
-
-*|*::-servo-legacy-anonymous-table-wrapper {
-    position: static;
-    margin: 0;
-    counter-increment: none;
-
-    /* We don't want anonymous table parts to inherit hidden overflow, because
-     * they will create extra unnecessary ClipScrollNodes which also throws
-     * off assignment of contained flows. */
-    overflow: visible;
-}
-
-*|*::-servo-legacy-anonymous-table {
-    display: table;
-    position: static;
-    border: none;
-    padding: 0;
-    counter-increment: none;
-    overflow: visible;
 }
 
 *|*::-servo-anonymous-table {
@@ -247,32 +195,6 @@ svg > * {
 
   /* The grid needs to be block-level, so avoid inheriting `display: inline-table`. */
   display: table;
-}
-
-*|*::-servo-legacy-anonymous-block {
-    display: block;
-    position: static;
-    border: none;
-    padding: 0;
-    margin: 0;
-    width: auto;
-    height: auto;
-}
-
-/* The outer fragment wrapper of an inline-block. */
-*|*::-servo-legacy-inline-block-wrapper {
-    position: static;
-    border: none;
-    padding: 0;
-    margin: 0;
-}
-
-/* The outer fragment wrapper of an inline absolute hypothetical fragment. */
-*|*::-servo-legacy-inline-absolute {
-    clip: auto;
-    border: none;
-    padding: 0;
-    margin: 0;
 }
 
 meter {
