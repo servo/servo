@@ -179,7 +179,7 @@ impl Handler {
             ActionsType::Wheel { .. } => {
                 log::error!("not yet implemented");
                 return Err(ErrorStatus::UnsupportedOperation);
-            }
+            },
         }
 
         Ok(())
