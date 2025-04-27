@@ -11,11 +11,12 @@ use html5ever::buffer_queue::BufferQueue;
 use html5ever::serialize::TraversalScope::IncludeNode;
 use html5ever::serialize::{AttrRef, Serialize, Serializer, TraversalScope};
 use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts};
-use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
+use html5ever::tree_builder::{QuirksMode as HTML5EverQuirksMode, TreeBuilder, TreeBuilderOpts};
 use html5ever::{QualName, local_name, ns};
 use markup5ever::TokenizerResult;
 use script_bindings::trace::CustomTraceable;
 use servo_url::ServoUrl;
+use style::context::QuirksMode as StyleContextQuirksMode;
 use xml5ever::LocalName;
 
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
@@ -58,9 +59,17 @@ impl Tokenizer {
             parsing_algorithm,
         };
 
+        let quirks_mode = match document.quirks_mode() {
+            StyleContextQuirksMode::Quirks => HTML5EverQuirksMode::Quirks,
+            StyleContextQuirksMode::LimitedQuirks => HTML5EverQuirksMode::LimitedQuirks,
+            StyleContextQuirksMode::NoQuirks => HTML5EverQuirksMode::NoQuirks,
+        };
+
         let options = TreeBuilderOpts {
             ignore_missing_rules: true,
-            scripting_enabled: document.has_browsing_context(),
+            scripting_enabled: document.scripting_enabled(),
+            iframe_srcdoc: document.url().as_str() == "about:srcdoc",
+            quirks_mode,
             ..Default::default()
         };
 
