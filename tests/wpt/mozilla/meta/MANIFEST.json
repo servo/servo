@@ -52,6 +52,13 @@
       null,
       {}
      ]
+    ],
+    "window_resizeTo_not_permitted-crash.html": [
+     "7b6a67ff81436a91048bdb627f303f7fab2762f7",
+     [
+      null,
+      {}
+     ]
     ]
    }
   },
@@ -14330,7 +14337,7 @@
      ]
     ],
     "window_resizeTo.html": [
-     "87d60498e80bcd01b5790feb3f9e104410cb6e1b",
+     "3f6c5a610d52b64bf4457d478b929e95d79e9ab8",
      [
       null,
       {}
