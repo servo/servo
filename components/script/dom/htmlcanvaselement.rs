@@ -27,14 +27,13 @@ use servo_media::streams::registry::MediaStreamId;
 use snapshot::Snapshot;
 use style::attr::AttrValue;
 
-use crate::canvas_context::CanvasContext as _;
 pub(crate) use crate::canvas_context::*;
 use crate::conversions::Convert;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::{DomRefCell, Ref, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
-    BlobCallback, HTMLCanvasElementMethods, RenderingContext,
+    BlobCallback, HTMLCanvasElementMethods, RenderingContext as RootedRenderingContext,
 };
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
@@ -104,21 +103,10 @@ impl EncodedImageType {
     }
 }
 
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-pub(crate) enum CanvasContext {
-    Placeholder(Dom<OffscreenCanvas>),
-    Context2d(Dom<CanvasRenderingContext2D>),
-    WebGL(Dom<WebGLRenderingContext>),
-    WebGL2(Dom<WebGL2RenderingContext>),
-    #[cfg(feature = "webgpu")]
-    WebGPU(Dom<GPUCanvasContext>),
-}
-
 #[dom_struct]
 pub(crate) struct HTMLCanvasElement {
     htmlelement: HTMLElement,
-    context: DomRefCell<Option<CanvasContext>>,
+    context: DomRefCell<Option<RenderingContext>>,
     // This id and hashmap are used to keep track of ongoing toBlob() calls.
     callback_id: Cell<u32>,
     #[ignore_malloc_size_of = "not implemented for webidl callbacks"]
@@ -159,14 +147,7 @@ impl HTMLCanvasElement {
 
     fn recreate_contexts_after_resize(&self) {
         if let Some(ref context) = *self.context.borrow() {
-            match *context {
-                CanvasContext::Context2d(ref context) => context.resize(),
-                CanvasContext::WebGL(ref context) => context.resize(),
-                CanvasContext::WebGL2(ref context) => context.resize(),
-                #[cfg(feature = "webgpu")]
-                CanvasContext::WebGPU(ref context) => context.resize(),
-                CanvasContext::Placeholder(ref context) => context.resize(self.get_size().cast()),
-            }
+            context.resize()
         }
     }
 
@@ -176,23 +157,14 @@ impl HTMLCanvasElement {
 
     pub(crate) fn origin_is_clean(&self) -> bool {
         match *self.context.borrow() {
-            Some(CanvasContext::Context2d(ref context)) => context.origin_is_clean(),
+            Some(ref context) => context.origin_is_clean(),
             _ => true,
         }
     }
 
     pub(crate) fn mark_as_dirty(&self) {
         if let Some(ref context) = *self.context.borrow() {
-            match *context {
-                CanvasContext::Context2d(ref context) => context.mark_as_dirty(),
-                CanvasContext::WebGL(ref context) => context.mark_as_dirty(),
-                CanvasContext::WebGL2(ref context) => context.mark_as_dirty(),
-                #[cfg(feature = "webgpu")]
-                CanvasContext::WebGPU(ref context) => context.mark_as_dirty(),
-                CanvasContext::Placeholder(ref _context) => {
-                    // TODO: Should this be marked as dirty?
-                },
-            }
+            context.mark_as_dirty()
         }
     }
 
@@ -222,12 +194,14 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     fn data(self) -> HTMLCanvasData {
         let source = unsafe {
             match self.unsafe_get().context.borrow_for_layout().as_ref() {
-                Some(CanvasContext::Context2d(context)) => context.to_layout().canvas_data_source(),
-                Some(CanvasContext::WebGL(context)) => context.to_layout().canvas_data_source(),
-                Some(CanvasContext::WebGL2(context)) => context.to_layout().canvas_data_source(),
+                Some(RenderingContext::Context2d(context)) => {
+                    context.to_layout().canvas_data_source()
+                },
+                Some(RenderingContext::WebGL(context)) => context.to_layout().canvas_data_source(),
+                Some(RenderingContext::WebGL2(context)) => context.to_layout().canvas_data_source(),
                 #[cfg(feature = "webgpu")]
-                Some(CanvasContext::WebGPU(context)) => context.to_layout().canvas_data_source(),
-                Some(CanvasContext::Placeholder(_)) | None => HTMLCanvasDataSource::Empty,
+                Some(RenderingContext::WebGPU(context)) => context.to_layout().canvas_data_source(),
+                Some(RenderingContext::Placeholder(_)) | None => HTMLCanvasDataSource::Empty,
             }
         };
 
@@ -246,14 +220,14 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
 }
 
 impl HTMLCanvasElement {
-    pub(crate) fn context(&self) -> Option<Ref<CanvasContext>> {
+    pub(crate) fn context(&self) -> Option<Ref<RenderingContext>> {
         ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
     }
 
     fn get_or_init_2d_context(&self, can_gc: CanGc) -> Option<DomRoot<CanvasRenderingContext2D>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
-                CanvasContext::Context2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
+                RenderingContext::Context2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
                 _ => None,
             };
         }
@@ -261,7 +235,7 @@ impl HTMLCanvasElement {
         let window = self.owner_window();
         let size = self.get_size();
         let context = CanvasRenderingContext2D::new(window.as_global_scope(), self, size, can_gc);
-        *self.context.borrow_mut() = Some(CanvasContext::Context2d(Dom::from_ref(&*context)));
+        *self.context.borrow_mut() = Some(RenderingContext::Context2d(Dom::from_ref(&*context)));
         Some(context)
     }
 
@@ -273,7 +247,7 @@ impl HTMLCanvasElement {
     ) -> Option<DomRoot<WebGLRenderingContext>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
-                CanvasContext::WebGL(ref ctx) => Some(DomRoot::from_ref(ctx)),
+                RenderingContext::WebGL(ref ctx) => Some(DomRoot::from_ref(ctx)),
                 _ => None,
             };
         }
@@ -289,7 +263,7 @@ impl HTMLCanvasElement {
             attrs,
             can_gc,
         )?;
-        *self.context.borrow_mut() = Some(CanvasContext::WebGL(Dom::from_ref(&*context)));
+        *self.context.borrow_mut() = Some(RenderingContext::WebGL(Dom::from_ref(&*context)));
         Some(context)
     }
 
@@ -305,7 +279,7 @@ impl HTMLCanvasElement {
         }
         if let Some(ctx) = self.context() {
             return match *ctx {
-                CanvasContext::WebGL2(ref ctx) => Some(DomRoot::from_ref(ctx)),
+                RenderingContext::WebGL2(ref ctx) => Some(DomRoot::from_ref(ctx)),
                 _ => None,
             };
         }
@@ -314,7 +288,7 @@ impl HTMLCanvasElement {
         let attrs = Self::get_gl_attributes(cx, options)?;
         let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let context = WebGL2RenderingContext::new(&window, &canvas, size, attrs, can_gc)?;
-        *self.context.borrow_mut() = Some(CanvasContext::WebGL2(Dom::from_ref(&*context)));
+        *self.context.borrow_mut() = Some(RenderingContext::WebGL2(Dom::from_ref(&*context)));
         Some(context)
     }
 
@@ -327,7 +301,7 @@ impl HTMLCanvasElement {
     fn get_or_init_webgpu_context(&self, can_gc: CanGc) -> Option<DomRoot<GPUCanvasContext>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
-                CanvasContext::WebGPU(ref ctx) => Some(DomRoot::from_ref(ctx)),
+                RenderingContext::WebGPU(ref ctx) => Some(DomRoot::from_ref(ctx)),
                 _ => None,
             };
         }
@@ -341,7 +315,8 @@ impl HTMLCanvasElement {
             .expect("Failed to get WebGPU channel")
             .map(|channel| {
                 let context = GPUCanvasContext::new(&global_scope, self, channel, can_gc);
-                *self.context.borrow_mut() = Some(CanvasContext::WebGPU(Dom::from_ref(&*context)));
+                *self.context.borrow_mut() =
+                    Some(RenderingContext::WebGPU(Dom::from_ref(&*context)));
                 context
             })
     }
@@ -349,8 +324,8 @@ impl HTMLCanvasElement {
     /// Gets the base WebGLRenderingContext for WebGL or WebGL 2, if exists.
     pub(crate) fn get_base_webgl_context(&self) -> Option<DomRoot<WebGLRenderingContext>> {
         match *self.context.borrow() {
-            Some(CanvasContext::WebGL(ref context)) => Some(DomRoot::from_ref(context)),
-            Some(CanvasContext::WebGL2(ref context)) => Some(context.base_context()),
+            Some(RenderingContext::WebGL(ref context)) => Some(DomRoot::from_ref(context)),
+            Some(RenderingContext::WebGL2(ref context)) => Some(context.base_context()),
             _ => None,
         }
     }
@@ -378,12 +353,7 @@ impl HTMLCanvasElement {
 
     pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
         match self.context.borrow().as_ref() {
-            Some(CanvasContext::Context2d(context)) => context.get_image_data(),
-            Some(CanvasContext::WebGL(context)) => context.get_image_data(),
-            Some(CanvasContext::WebGL2(context)) => context.get_image_data(),
-            #[cfg(feature = "webgpu")]
-            Some(CanvasContext::WebGPU(context)) => context.get_image_data(),
-            Some(CanvasContext::Placeholder(context)) => context.get_image_data(),
+            Some(context) => context.get_image_data(),
             None => {
                 let size = self.get_size();
                 if size.width == 0 || size.height == 0 {
@@ -466,7 +436,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     // is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
     // attribute's value unchanged.
     fn SetWidth(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
-        if let Some(CanvasContext::Placeholder(_)) = *self.context.borrow() {
+        if let Some(RenderingContext::Placeholder(_)) = *self.context.borrow() {
             return Err(Error::InvalidState);
         }
 
@@ -485,7 +455,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     fn SetHeight(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
-        if let Some(CanvasContext::Placeholder(_)) = *self.context.borrow() {
+        if let Some(RenderingContext::Placeholder(_)) = *self.context.borrow() {
             return Err(Error::InvalidState);
         }
 
@@ -506,26 +476,26 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         id: DOMString,
         options: HandleValue,
         can_gc: CanGc,
-    ) -> Fallible<Option<RenderingContext>> {
+    ) -> Fallible<Option<RootedRenderingContext>> {
         // Always throw an InvalidState exception when the canvas is in Placeholder mode (See table in the spec).
-        if let Some(CanvasContext::Placeholder(_)) = *self.context.borrow() {
+        if let Some(RenderingContext::Placeholder(_)) = *self.context.borrow() {
             return Err(Error::InvalidState);
         }
 
         Ok(match &*id {
             "2d" => self
                 .get_or_init_2d_context(can_gc)
-                .map(RenderingContext::CanvasRenderingContext2D),
+                .map(RootedRenderingContext::CanvasRenderingContext2D),
             "webgl" | "experimental-webgl" => self
                 .get_or_init_webgl_context(cx, options, can_gc)
-                .map(RenderingContext::WebGLRenderingContext),
+                .map(RootedRenderingContext::WebGLRenderingContext),
             "webgl2" | "experimental-webgl2" => self
                 .get_or_init_webgl2_context(cx, options, can_gc)
-                .map(RenderingContext::WebGL2RenderingContext),
+                .map(RootedRenderingContext::WebGL2RenderingContext),
             #[cfg(feature = "webgpu")]
             "webgpu" => self
                 .get_or_init_webgpu_context(can_gc)
-                .map(RenderingContext::GPUCanvasContext),
+                .map(RootedRenderingContext::GPUCanvasContext),
             _ => None,
         })
     }
@@ -672,7 +642,8 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             can_gc,
         );
         // Step 4. Set this canvas element's context mode to placeholder.
-        *self.context.borrow_mut() = Some(CanvasContext::Placeholder(offscreen_canvas.as_traced()));
+        *self.context.borrow_mut() =
+            Some(RenderingContext::Placeholder(offscreen_canvas.as_traced()));
 
         // Step 5. Return offscreenCanvas.
         Ok(offscreen_canvas)

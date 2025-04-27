@@ -3,11 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::GenericBindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2D_Binding::CanvasRenderingContext2DMethods;
-use crate::canvas_context::CanvasContext as _;
+use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use canvas_traits::canvas::Canvas2dMsg;
 use dom_struct::dom_struct;
-use euclid::default::Size2D;
 use snapshot::Snapshot;
 
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
@@ -64,20 +63,32 @@ impl OffscreenCanvasRenderingContext2D {
         reflect_dom_object(boxed, global, can_gc)
     }
 
-    pub(crate) fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
-        self.context.set_canvas_bitmap_dimensions(size.cast());
-    }
-
     pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
         self.context.send_canvas_2d_msg(msg)
     }
+}
 
-    pub(crate) fn origin_is_clean(&self) -> bool {
-        self.context.origin_is_clean()
+impl CanvasContext for OffscreenCanvasRenderingContext2D {
+    type ID = <CanvasRenderingContext2D as CanvasContext>::ID;
+
+    fn context_id(&self) -> Self::ID {
+        self.context.context_id()
     }
 
-    pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
+    fn canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
+        self.context.canvas()
+    }
+
+    fn resize(&self) {
+        self.context.resize()
+    }
+
+    fn get_image_data(&self) -> Option<Snapshot> {
         self.context.get_image_data()
+    }
+
+    fn origin_is_clean(&self) -> bool {
+        self.context.origin_is_clean()
     }
 }
 
