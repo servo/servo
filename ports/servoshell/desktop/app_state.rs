@@ -282,6 +282,11 @@ impl RunningAppState {
             .collect()
     }
 
+    pub fn webviews_by_index(&self, index: WebViewId) -> WebView {
+        let inner = self.inner();
+        inner.webviews.get(&index).unwrap().clone()
+    }
+
     pub fn handle_gamepad_events(&self) {
         let Some(active_webview) = self.focused_webview() else {
             return;
