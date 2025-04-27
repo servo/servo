@@ -39,11 +39,20 @@ These two must look the same, each having 2 cells in one row:
 </table>
 <br>
 <table id=table3>
-  <col span=1001>
+  <col id="colspan-3" span=1001>
   <tr>
     <td colspan=1000><div class="square"></div></td>
     <td><div class="square"></div></td>
   </tr>
+</table>
+<table>
+    <tr>
+        <td id="colspan-limit-test1" colspan=5></td>
+        <td id="colspan-limit-test2" colspan=0></td>
+        <td id="colspan-limit-test3" colspan=1000></td>
+        <td id="colspan-limit-test4" colspan=1001></td>
+        <td id="colspan-limit-test5" colspan=5555555></td>
+    </tr>
 </table>
 </main>
 
@@ -56,4 +65,48 @@ test(() => {
     assert_equals(table2.offsetWidth, 51, "table2 width");
     assert_equals(table3.offsetWidth, 51, "table3 width");
 }, "col span of 1001 must be treated as 1000");
+
+test(() => {
+    let td = document.createElement("td");
+    td.colSpan = 5;
+    assert_equals(td.colSpan, 5);
+
+    td.colSpan = 0;
+    assert_equals(td.colSpan, 1);
+
+    td.colSpan = 1000;
+    assert_equals(td.colSpan, 1000);
+
+    td.colSpan = 1001;
+    assert_equals(td.colSpan, 1000);
+
+    td.colSpan = 555555;
+    assert_equals(td.colSpan, 1000);
+}, "colspan must be clamped to [1, 1000] when set via script");
+
+test(() => {
+    assert_equals(document.getElementById("colspan-limit-test1").colSpan, 5);
+    assert_equals(document.getElementById("colspan-limit-test2").colSpan, 1);
+    assert_equals(document.getElementById("colspan-limit-test3").colSpan, 1000);
+    assert_equals(document.getElementById("colspan-limit-test4").colSpan, 1000);
+    assert_equals(document.getElementById("colspan-limit-test5").colSpan, 1000);
+}, "colspan must be clamped to [1, 1000] when parsing attributes");
+
+test(() => {
+    let column = document.getElementById("colspan-3");
+    column.span = 5;
+    assert_equals(column.span, 5);
+
+    column.span = 0;
+    assert_equals(column.span, 1);
+
+    column.span = 1000;
+    assert_equals(column.span, 1000);
+
+    column.span = 1001;
+    assert_equals(column.span, 1000);
+
+    column.span = 555555;
+    assert_equals(column.span, 1000);
+}, "column span must be clamped to [1, 1000] when set via script");
 </script>

@@ -318,6 +318,26 @@ macro_rules! make_uint_setter(
 );
 
 #[macro_export]
+macro_rules! make_clamped_uint_setter(
+    ($attr:ident, $htmlname:tt, $min:expr, $max:expr, $default:expr) => (
+        fn $attr(&self, value: u32) {
+            use $crate::dom::bindings::inheritance::Castable;
+            use $crate::dom::element::Element;
+            use $crate::dom::values::UNSIGNED_LONG_MAX;
+            use $crate::script_runtime::CanGc;
+            let value = if value > UNSIGNED_LONG_MAX {
+                $default
+            } else {
+                value.clamp($min, $max)
+            };
+
+            let element = self.upcast::<Element>();
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+        }
+    );
+);
+
+#[macro_export]
 macro_rules! make_limited_uint_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
