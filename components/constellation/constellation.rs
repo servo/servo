@@ -3744,8 +3744,8 @@ where
     fn handle_load_complete_msg(&mut self, webview_id: WebViewId, pipeline_id: PipelineId) {
         let mut webdriver_reset = false;
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
-            debug!("Sending load for {:?} to WebDriver", expected_pipeline_id);
             if expected_pipeline_id == pipeline_id {
+                debug!("Sending load for {:?} to WebDriver", expected_pipeline_id);
                 let _ = reply_chan.send(WebDriverLoadStatus::Complete);
                 webdriver_reset = true;
             }
