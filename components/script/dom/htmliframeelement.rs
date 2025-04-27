@@ -162,8 +162,13 @@ impl HTMLIFrameElement {
         if load_data.url.scheme() == "javascript" {
             let window_proxy = self.GetContentWindow();
             if let Some(window_proxy) = window_proxy {
+                if document
+                    .global()
+                    .should_navigation_request_be_blocked(&load_data)
+                {
+                    return;
+                }
                 // Important re security. See https://github.com/servo/servo/issues/23373
-                // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
                 if ScriptThread::check_load_origin(&load_data.load_origin, &document.url().origin())
                 {
                     ScriptThread::eval_js_url(&window_proxy.global(), &mut load_data, can_gc);
