@@ -88,7 +88,7 @@
                                                  status: harness_status.structured_clone(),
                                                  asserts: asserts.map(assert => assert.structured_clone())});
                          }]
-        }
+        };
 
         on_event(window, 'load', function() {
           setTimeout(() => {
@@ -203,7 +203,7 @@
             }
         });
         this.message_events = new_events;
-    }
+    };
 
     WindowTestEnvironment.prototype.next_default_test_name = function() {
         var suffix = this.name_counter > 0 ? " " + this.name_counter : "";
@@ -225,8 +225,8 @@
     WindowTestEnvironment.prototype.test_timeout = function() {
         var metas = document.getElementsByTagName("meta");
         for (var i = 0; i < metas.length; i++) {
-            if (metas[i].name == "timeout") {
-                if (metas[i].content == "long") {
+            if (metas[i].name === "timeout") {
+                if (metas[i].content === "long") {
                     return settings.harness_timeout.long;
                 }
                 break;
@@ -487,7 +487,7 @@
         this.all_loaded = false;
         this.on_loaded_callback = null;
         Promise.resolve().then(function() {
-            this.all_loaded = true
+            this.all_loaded = true;
             if (this.on_loaded_callback) {
                 this.on_loaded_callback();
             }
@@ -563,7 +563,7 @@
         // The worker object may be from another execution context,
         // so do not use instanceof here.
         return 'ServiceWorker' in global_scope &&
-            Object.prototype.toString.call(worker) == '[object ServiceWorker]';
+            Object.prototype.toString.call(worker) === '[object ServiceWorker]';
     }
 
     var seen_func_name = Object.create(null);
@@ -810,7 +810,7 @@
         return bring_promise_to_current_realm(promise)
             .then(test.unreached_func("Should have rejected: " + description))
             .catch(function(e) {
-                assert_throws_js_impl(constructor, function() { throw e },
+                assert_throws_js_impl(constructor, function() { throw e; },
                                       description, "promise_rejects_js");
             });
     }
@@ -862,7 +862,7 @@
         return bring_promise_to_current_realm(promise)
             .then(test.unreached_func("Should have rejected: " + description))
             .catch(function(e) {
-                assert_throws_dom_impl(type, function() { throw e }, description,
+                assert_throws_dom_impl(type, function() { throw e; }, description,
                                        "promise_rejects_dom", constructor);
             });
     }
@@ -881,7 +881,7 @@
         return bring_promise_to_current_realm(promise)
             .then(test.unreached_func("Should have rejected: " + description))
             .catch(function(e) {
-                assert_throws_exactly_impl(exception, function() { throw e },
+                assert_throws_exactly_impl(exception, function() { throw e; },
                                            description, "promise_rejects_exactly");
             });
     }
@@ -907,7 +907,7 @@
      */
     function EventWatcher(test, watchedNode, eventTypes, timeoutPromise)
     {
-        if (typeof eventTypes == 'string') {
+        if (typeof eventTypes === 'string') {
             eventTypes = [eventTypes];
         }
 
@@ -972,7 +972,7 @@
             if (waitingFor) {
                 return Promise.reject('Already waiting for an event or events');
             }
-            if (typeof types == 'string') {
+            if (typeof types === 'string') {
                 types = [types];
             }
             if (options && options.record && options.record === 'all') {
@@ -987,7 +987,7 @@
 
                     // This should always fail, otherwise we should have
                     // resolved the promise.
-                    assert_true(waitingFor.types.length == 0,
+                    assert_true(waitingFor.types.length === 0,
                                 'Timed out waiting for ' + waitingFor.types.join(', '));
                     var result = recordedEvents;
                     recordedEvents = null;
@@ -1423,11 +1423,11 @@
                 case Node.COMMENT_NODE:
                     return "Comment node <!--" + truncate(val.data, 60) + "-->";
                 case Node.DOCUMENT_NODE:
-                    return "Document node with " + val.childNodes.length + (val.childNodes.length == 1 ? " child" : " children");
+                    return "Document node with " + val.childNodes.length + (val.childNodes.length === 1 ? " child" : " children");
                 case Node.DOCUMENT_TYPE_NODE:
                     return "DocumentType node";
                 case Node.DOCUMENT_FRAGMENT_NODE:
-                    return "DocumentFragment node with " + val.childNodes.length + (val.childNodes.length == 1 ? " child" : " children");
+                    return "DocumentFragment node with " + val.childNodes.length + (val.childNodes.length === 1 ? " child" : " children");
                 default:
                     return "Node object of unknown type";
                 }
@@ -2121,7 +2121,7 @@
                    {func:func});
 
             // Basic sanity-check on the passed-in constructor
-            assert(typeof constructor == "function",
+            assert(typeof constructor === "function",
                    assertion_type, description,
                    "${constructor} is not a constructor",
                    {constructor:constructor});
@@ -2196,7 +2196,7 @@
             assert(maybeDescription === undefined,
                    "Too many args passed to no-constructor version of assert_throws_dom, or accidentally explicitly passed undefined");
         }
-        assert_throws_dom_impl(type, func, description, "assert_throws_dom", constructor)
+        assert_throws_dom_impl(type, func, description, "assert_throws_dom", constructor);
     }
     expose_assert(assert_throws_dom, "assert_throws_dom");
 
@@ -2229,8 +2229,8 @@
                    {func:func});
 
             // Sanity-check our type
-            assert(typeof type == "number" ||
-                   typeof type == "string",
+            assert(typeof type === "number" ||
+                   typeof type === "string",
                    assertion_type, description,
                    "${type} is not a number or string",
                    {type:type});
@@ -2459,7 +2459,7 @@
     function assert_implements(condition, description) {
         assert(!!condition, "assert_implements", description);
     }
-    expose_assert(assert_implements, "assert_implements")
+    expose_assert(assert_implements, "assert_implements");
 
     /**
      * Assert that an optional feature is implemented, based on a 'truthy' condition.
@@ -2573,11 +2573,11 @@
         2: "Timeout",
         3: "Not Run",
         4: "Optional Feature Unsupported",
-    }
+    };
 
     Test.prototype.format_status = function() {
         return this.status_formats[this.status];
-    }
+    };
 
     Test.prototype.structured_clone = function()
     {
@@ -2887,7 +2887,7 @@
         return new Promise(resolve => {
             this.step_wait_func(cond, resolve, description, timeout, interval);
         });
-    }
+    };
 
     /*
      * Private method for registering cleanup functions. `testharness.js`
@@ -3120,7 +3120,7 @@
             throw new Error("AbortController is not supported in this browser");
         }
         return this._abortController.signal;
-    }
+    };
 
     /**
      * A RemoteTest object mirrors a Test object on a remote worker. The
@@ -3196,11 +3196,11 @@
                 function(callback) {
                     callback();
                 });
-    }
+    };
 
     RemoteTest.prototype.format_status = function() {
         return Test.prototype.status_formats[this.status];
-    }
+    };
 
     /*
      * A RemoteContext listens for test events from a remote test context, such
@@ -3472,7 +3472,7 @@
         this.all_done_callbacks = [];
 
         this.hide_test_state = false;
-        this.pending_remotes = [];
+        this.remotes = [];
 
         this.current_test = null;
         this.asserts_run = [];
@@ -3514,26 +3514,26 @@
         for (var p in properties) {
             if (properties.hasOwnProperty(p)) {
                 var value = properties[p];
-                if (p == "allow_uncaught_exception") {
+                if (p === "allow_uncaught_exception") {
                     this.allow_uncaught_exception = value;
-                } else if (p == "explicit_done" && value) {
+                } else if (p === "explicit_done" && value) {
                     this.wait_for_finish = true;
-                } else if (p == "explicit_timeout" && value) {
+                } else if (p === "explicit_timeout" && value) {
                     this.timeout_length = null;
                     if (this.timeout_id)
                     {
                         clearTimeout(this.timeout_id);
                     }
-                } else if (p == "single_test" && value) {
+                } else if (p === "single_test" && value) {
                     this.set_file_is_test();
-                } else if (p == "timeout_multiplier") {
+                } else if (p === "timeout_multiplier") {
                     this.timeout_multiplier = value;
                     if (this.timeout_length) {
                          this.timeout_length *= this.timeout_multiplier;
                     }
-                } else if (p == "hide_test_state") {
+                } else if (p === "hide_test_state") {
                     this.hide_test_state = value;
-                } else if (p == "output") {
+                } else if (p === "output") {
                     this.output = value;
                 } else if (p === "debug") {
                     settings.debug = value;
@@ -3626,11 +3626,14 @@
 
     Tests.prototype.push = function(test)
     {
+        if (this.phase === this.phases.COMPLETE) {
+            return;
+        }
         if (this.phase < this.phases.HAVE_TESTS) {
             this.start();
         }
         this.num_pending++;
-        test.index = this.tests.push(test);
+        test.index = this.tests.push(test) - 1;
         this.notify_test_state(test);
     };
 
@@ -3643,11 +3646,11 @@
     };
 
     Tests.prototype.all_done = function() {
-        return (this.tests.length > 0 || this.pending_remotes.length > 0) &&
+        return (this.tests.length > 0 || this.remotes.length > 0) &&
                 test_environment.all_loaded &&
                 (this.num_pending === 0 || this.is_aborted) && !this.wait_for_finish &&
                 !this.processing_callbacks &&
-                !this.pending_remotes.some(function(w) { return w.running; });
+                !this.remotes.some(function(w) { return w.running; });
     };
 
     Tests.prototype.start = function() {
@@ -3716,7 +3719,8 @@
                   function(test, testDone)
                   {
                       if (test.phase === test.phases.INITIAL) {
-                          test.phase = test.phases.COMPLETE;
+                          test.phase = test.phases.HAS_RESULT;
+                          test.done();
                           testDone();
                       } else {
                           add_test_done_callback(test, testDone);
@@ -3727,14 +3731,14 @@
     };
 
     Tests.prototype.set_assert = function(assert_name, args) {
-        this.asserts_run.push(new AssertRecord(this.current_test, assert_name, args))
-    }
+        this.asserts_run.push(new AssertRecord(this.current_test, assert_name, args));
+    };
 
     Tests.prototype.set_assert_status = function(index, status, stack) {
         let assert_record = this.asserts_run[index];
         assert_record.status = status;
         assert_record.stack = stack;
-    }
+    };
 
     /**
      * Update the harness status to reflect an unrecoverable harness error that
@@ -3876,7 +3880,7 @@
         }
 
         var remoteContext = this.create_remote_worker(worker);
-        this.pending_remotes.push(remoteContext);
+        this.remotes.push(remoteContext);
         return remoteContext.done;
     };
 
@@ -3899,7 +3903,7 @@
         }
 
         var remoteContext = this.create_remote_window(remote);
-        this.pending_remotes.push(remoteContext);
+        this.remotes.push(remoteContext);
         return remoteContext.done;
     };
 
@@ -4111,8 +4115,8 @@
             } else {
                 var root = output_document.documentElement;
                 var is_html = (root &&
-                               root.namespaceURI == "http://www.w3.org/1999/xhtml" &&
-                               root.localName == "html");
+                               root.namespaceURI === "http://www.w3.org/1999/xhtml" &&
+                               root.localName === "html");
                 var is_svg = (output_document.defaultView &&
                               "SVGSVGElement" in output_document.defaultView &&
                               root instanceof output_document.defaultView.SVGSVGElement);
@@ -4557,7 +4561,7 @@
      */
     function AssertionError(message)
     {
-        if (typeof message == "string") {
+        if (typeof message === "string") {
             message = sanitize_unpaired_surrogates(message);
         }
         this.message = message;
@@ -4603,7 +4607,7 @@
         }
 
         return lines.slice(i).join("\n");
-    }
+    };
 
     function OptionalFeatureUnsupportedError(message)
     {

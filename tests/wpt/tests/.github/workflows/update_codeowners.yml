@@ -1,0 +1,39 @@
+name: update codeowners
+on:
+  schedule:
+    - cron: 0 0 * * *
+  workflow_dispatch:
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    if: github.repository == 'web-platform-tests/wpt'
+    steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Checkout wpt
+      uses: actions/checkout@v4
+      with:
+        path: wpt
+    - name: Checkout wpt-metadata
+      uses: actions/checkout@v4
+      with:
+        path: wpt-metadata
+        repository: web-platform-tests/wpt-metadata
+    - name: Update codeowners
+      run: |
+        cd wpt
+        ./wpt update-codeowners ../wpt-metadata
+    - name: Commit and create pull request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        author: wpt-pr-bot <wpt-pr-bot@users.noreply.github.com>
+        commit-message: Automated update of CODEOWNERS
+        title: Update CODEOWNERS
+        body: |
+          This automated pull request updates CODEOWNERS
+
+          See the [workflow](https://github.com/web-platform-tests/wpt/blob/master/.github/workflows/update_codeowners.yml) for how this pull request was created.
+        branch: actions/update-codeowners

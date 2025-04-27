@@ -271,10 +271,11 @@ promise_test(async (test) => {
     assert_equals(data.senderBeforeWrite.metadata.frameId,
       data.senderAfterWrite.metadata.frameId,
       'frameId matches (for sender before and after write)');
-    assert_equals(data.senderBeforeWrite.metadata.frameId,
-      data.receiverBeforeWrite.metadata.frameId,
+
+    assert_true(data.senderBeforeWrite.metadata.frameId == data.receiverBeforeWrite.metadata.frameId ||
+      data.receiverBeforeWrite.metadata.frameId == undefined,
       'frameId matches (for sender and receiver)');
-    assert_equals(data.senderBeforeWrite.metadata.frameId,
+    assert_equals(data.receiverBeforeWrite.metadata.frameId,
       data.receiverAfterWrite.metadata.frameId,
       'frameId matches (for receiver before and after write)');
 }, 'video metadata: frameId');

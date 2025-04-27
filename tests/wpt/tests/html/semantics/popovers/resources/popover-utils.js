@@ -2,10 +2,6 @@ function waitForRender() {
   return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 }
 
-function waitForTick() {
-  return new Promise(resolve => step_timeout(resolve, 0));
-}
-
 async function clickOn(element) {
   await waitForRender();
   let rect = element.getBoundingClientRect();

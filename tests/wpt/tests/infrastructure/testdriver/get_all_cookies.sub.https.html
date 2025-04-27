@@ -17,8 +17,9 @@ promise_test(async t => {
   document.cookie = "test5=5; SameSite=Strict";
   document.cookie = "test6=6; SameSite=None; Secure";
   document.cookie = "test7=7; SameSite=Lax";
+  document.cookie = "test8=8; Secure; Partitioned; SameSite=None";
   const cookies = await test_driver.get_all_cookies();
-  assert_equals(cookies.length, 8);
+  assert_equals(cookies.length, 9);
   let cookieMap = new Map();
   for (const cookie of cookies) {
     cookieMap.set(cookie["name"], cookie);
@@ -108,5 +109,15 @@ promise_test(async t => {
   assert_equals(cookieMap.get("test7")["httpOnly"], false);
   assert_equals(cookieMap.get("test7")["expiry"], undefined);
   assert_equals(cookieMap.get("test7")["sameSite"], "Lax");
+
+  // test8 [Partitioned]
+  assert_equals(cookieMap.get("test8")["name"], "test8");
+  assert_equals(cookieMap.get("test8")["value"], "8");
+  assert_equals(cookieMap.get("test8")["path"], "/infrastructure/testdriver");
+  assert_equals(cookieMap.get("test8")["domain"], "{{host}}");
+  assert_equals(cookieMap.get("test8")["secure"], true);
+  assert_equals(cookieMap.get("test8")["httpOnly"], false);
+  assert_equals(cookieMap.get("test8")["expiry"], undefined);
+  assert_equals(cookieMap.get("test8")["sameSite"], "None");
 }, "Get all HTTPS cookies");
 </script>

@@ -385,6 +385,63 @@
         message = "Cross-partition third-party blob URL was accessible after granting storage access";
         break;
       }
+      case "BlobURLSharedWorker": {
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({createObjectURL: true, revokeObjectURL: true, SharedWorker: true}));
+        const workerScript = await fetch('/storage-access-api/resources/shared-worker-relay.js').then(response => response.text());
+        const workerBlob = new Blob([workerScript], { type: 'text/javascript' });
+
+        const firstPartyBlobUrl = handle.createObjectURL(workerBlob);
+        const thirdPartyWorker = new SharedWorker(firstPartyBlobUrl);
+        var workerCreated = true;
+        await new Promise((resolve) => {
+          thirdPartyWorker.onerror = (event) => {
+            message = "Third-party SharedWorker not created from first-party blob URL unexpectedly.";
+            workerCreated = false;
+            resolve();
+          }
+          thirdPartyWorker.port.onmessage = (event) => {
+            message = "Third-party SharedWorker created from first-party blob URL.";
+            resolve();
+          }
+          thirdPartyWorker.port.postMessage("ping");
+        });
+        if (!workerCreated) {
+          break;
+        }
+
+        const firstPartyWorker = handle.SharedWorker(firstPartyBlobUrl);
+        await new Promise((resolve) => {
+          firstPartyWorker.onerror = (event) => {
+            message = "First-party SharedWorker not created from first-party blob URL unexpectedly.";
+            workerCreated = false;
+            resolve();
+          }
+          firstPartyWorker.port.onmessage = (event) => {
+            message = "First-party SharedWorker created from first-party blob URL.";
+            resolve();
+          }
+          firstPartyWorker.port.postMessage("ping");
+        });
+        if (!workerCreated) {
+          break;
+        }
+
+        const thirdPartyBlobUrl = URL.createObjectURL(workerBlob);
+        const worker = handle.SharedWorker(thirdPartyBlobUrl);
+        await new Promise((resolve) => {
+          worker.onerror = (event) => {
+            message = "Blob URL SharedWorker tests completed successfully.";
+            workerCreated = false;
+            resolve();
+          };
+          worker.port.onmessage = (event) => {
+            message = "First-party SharedWorker created from third-party blob URL unexpectedly.";
+            resolve();
+          }
+          worker.port.postMessage("ping");
+        });
+        break;
+      }
       case "unpartitioned": {
         await MaybeSetStorageAccess("*", "*", "allowed");
         await test_driver.set_permission({ name: 'storage-access' }, 'denied');

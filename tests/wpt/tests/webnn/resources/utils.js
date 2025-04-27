@@ -204,7 +204,7 @@ const getTypedArrayData = (type, size, data) => {
     for (let i = 0; i < data.length; i++) {
       outData[i] = toHalf(data[i]);
     }
-  } else if (type === 'int64') {
+  } else if (type === 'int64' || type === 'uint64') {
     if (typeof (data) === 'number' && size > 1) {
       return new TypedArrayDict[type](size).fill(BigInt(data));
     }
@@ -285,6 +285,8 @@ const assert_array_approx_equals_ulp = (actual, expected, nulp, dataType, descri
   /*
     * Test if two primitive arrays are equal within acceptable ULP distance
     */
+  assert(
+      typeof nulp === 'number', `unexpected type for nulp: ${typeof nulp}`);
   assert_true(
       actual.length === expected.length,
       `assert_array_approx_equals_ulp: ${description} lengths differ, ` +

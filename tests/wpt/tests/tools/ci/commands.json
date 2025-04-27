@@ -78,5 +78,15 @@
     "requirements": [
       "requirements_tc.txt"
     ]
+  },
+  "update-codeowners": {
+    "path": "update_codeowners.py",
+    "parser": "get_parser",
+    "script": "run_update_codeowners",
+    "help": "Update CODEOWNERS file",
+    "virtualenv": true,
+    "requirements": [
+      "../wpt/requirements_metadata.txt"
+    ]
   }
 }

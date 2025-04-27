@@ -11,6 +11,10 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/popover-utils.js"></script>
 
+<meta name=variant content=?test1>
+<meta name=variant content=?test2>
+<meta name=variant content=?test3>
+
 <div id=fixup>
   <button id=button1 tabindex="0">Button1</button>
   <div popover id=popover0  tabindex="0" style="top:300px">
@@ -96,63 +100,75 @@ async function testPopoverFocusNavigation() {
   button1.focus();
   await verifyFocusOrder([button1, button2, invoker0, invoker1, inside_popover1, invoker2, inside_popover3, invoker3, inside_popover2, button3, button4],'set 2');
 }
-promise_test(async t => {
-  invoker0.setAttribute('popovertarget', 'popover0');
-  invoker1.setAttribute('popovertarget', 'popover1');
-  invoker2.setAttribute('popovertarget', 'popover2');
-  invoker3.setAttribute('popovertarget', 'popover3');
-  t.add_cleanup(() => {
-    invoker0.removeAttribute('popovertarget');
-    invoker1.removeAttribute('popovertarget');
-    invoker2.removeAttribute('popovertarget');
-    invoker3.removeAttribute('popovertarget');
-  });
-  await testPopoverFocusNavigation();
-}, "Popover focus navigation with popovertarget invocation");
-promise_test(async t => {
-  invoker0.setAttribute('commandfor', 'popover0');
-  invoker1.setAttribute('commandfor', 'popover1');
-  invoker2.setAttribute('commandfor', 'popover2');
-  invoker3.setAttribute('commandfor', 'popover3');
-  invoker0.setAttribute('command', 'toggle-popover');
-  invoker1.setAttribute('command', 'toggle-popover');
-  invoker2.setAttribute('command', 'toggle-popover');
-  invoker3.setAttribute('command', 'toggle-popover');
-  t.add_cleanup(() => {
-    invoker0.removeAttribute('commandfor');
-    invoker1.removeAttribute('commandfor');
-    invoker2.removeAttribute('commandfor');
-    invoker3.removeAttribute('commandfor');
-    invoker0.removeAttribute('command');
-    invoker1.removeAttribute('command');
-    invoker2.removeAttribute('command');
-    invoker3.removeAttribute('command');
-  });
-  await testPopoverFocusNavigation();
-}, "Popover focus navigation with command/commandfor invocation");
-promise_test(async t => {
-  const invoker0Click = () => {
-    popover0.togglePopover({ source: invoker0 });
-  };
-  invoker0.addEventListener('click', invoker0Click);
-  const invoker1Click = () => {
-    popover1.togglePopover({ source: invoker1 });
-  };
-  invoker1.addEventListener('click', invoker1Click);
-  const invoker2Click = () => {
-    popover2.togglePopover({ source: invoker2 });
-  };
-  invoker2.addEventListener('click', invoker2Click);
-  const invoker3Click = () => {
-    popover3.togglePopover({ source: invoker3 });
-  };
-  invoker3.addEventListener('click', invoker3Click);
-  t.add_cleanup(() => {
-    invoker0.removeEventListener('click', invoker0Click);
-    invoker1.removeEventListener('click', invoker1Click);
-    invoker2.removeEventListener('click', invoker2Click);
-    invoker3.removeEventListener('click', invoker3Click);
-  });
-  await testPopoverFocusNavigation()
-}, "Popover focus navigation with imperative invocation");
+
+// This test is very slow. Variants are used to split it into pieces.
+switch (window.location.search.substring(1)) {
+  case 'test1':
+    promise_test(async t => {
+      invoker0.setAttribute('popovertarget', 'popover0');
+      invoker1.setAttribute('popovertarget', 'popover1');
+      invoker2.setAttribute('popovertarget', 'popover2');
+      invoker3.setAttribute('popovertarget', 'popover3');
+      t.add_cleanup(() => {
+        invoker0.removeAttribute('popovertarget');
+        invoker1.removeAttribute('popovertarget');
+        invoker2.removeAttribute('popovertarget');
+        invoker3.removeAttribute('popovertarget');
+      });
+      await testPopoverFocusNavigation();
+    }, "Popover focus navigation with popovertarget invocation");
+    break;
+  case 'test2':
+    promise_test(async t => {
+      invoker0.setAttribute('commandfor', 'popover0');
+      invoker1.setAttribute('commandfor', 'popover1');
+      invoker2.setAttribute('commandfor', 'popover2');
+      invoker3.setAttribute('commandfor', 'popover3');
+      invoker0.setAttribute('command', 'toggle-popover');
+      invoker1.setAttribute('command', 'toggle-popover');
+      invoker2.setAttribute('command', 'toggle-popover');
+      invoker3.setAttribute('command', 'toggle-popover');
+      t.add_cleanup(() => {
+        invoker0.removeAttribute('commandfor');
+        invoker1.removeAttribute('commandfor');
+        invoker2.removeAttribute('commandfor');
+        invoker3.removeAttribute('commandfor');
+        invoker0.removeAttribute('command');
+        invoker1.removeAttribute('command');
+        invoker2.removeAttribute('command');
+        invoker3.removeAttribute('command');
+      });
+      await testPopoverFocusNavigation();
+    }, "Popover focus navigation with command/commandfor invocation");
+    break;
+  case 'test3':
+    promise_test(async t => {
+      const invoker0Click = () => {
+        popover0.togglePopover({ source: invoker0 });
+      };
+      invoker0.addEventListener('click', invoker0Click);
+      const invoker1Click = () => {
+        popover1.togglePopover({ source: invoker1 });
+      };
+      invoker1.addEventListener('click', invoker1Click);
+      const invoker2Click = () => {
+        popover2.togglePopover({ source: invoker2 });
+      };
+      invoker2.addEventListener('click', invoker2Click);
+      const invoker3Click = () => {
+        popover3.togglePopover({ source: invoker3 });
+      };
+      invoker3.addEventListener('click', invoker3Click);
+      t.add_cleanup(() => {
+        invoker0.removeEventListener('click', invoker0Click);
+        invoker1.removeEventListener('click', invoker1Click);
+        invoker2.removeEventListener('click', invoker2Click);
+        invoker3.removeEventListener('click', invoker3Click);
+      });
+      await testPopoverFocusNavigation()
+    }, "Popover focus navigation with imperative invocation");
+    break;
+  default:
+    assert_unreached('Invalid variant');
+}
 </script>

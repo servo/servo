@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Changing container size of SVG with calc() cx/cy/r on &lt;circle> (reference)</title>
+<div id="hcontainer" style="width: 100px; height: 100px; position: absolute">
+  <svg width="100" height="100">
+    <circle cy="50" r="100"/>
+  </svg>
+  <svg width="100" height="100">
+    <circle cx="50" cy="50" r="50"/>
+  </svg>
+</div>
+<div id="vcontainer" style="width: 100px; height: 100px; position: absolute; left: 116px">
+  <svg width="100" height="100">
+    <circle cx="50" r="100"/>
+  </svg>
+  <svg width="100" height="100">
+    <circle cy="50" cy="50" r="50"/>
+  </svg>
+</div>

@@ -18,7 +18,7 @@
 
 
 const getQuantizeLinearPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {int8: 1, uint8: 1, int4: 1, uint4: 1};
+  const toleranceValueDict = {int32: 1, int8: 1, uint8: 1, int4: 1, uint4: 1};
   const expectedDataType =
       getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
   return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};

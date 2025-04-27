@@ -9,6 +9,7 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/invoker-utils.js"></script>
+<script src="/html/semantics/popovers/resources/popover-utils.js"></script>
 
 <div id="examples">
   <button id="<button>" interesttarget=target>Button</button>
@@ -39,13 +40,6 @@
 </style>
 
 <script>
-const kEscape = '\uE00C';
-function sendLoseInterestHotkey() {
-  return new test_driver.Actions()
-    .keyDown(kEscape)
-    .keyUp(kEscape)
-    .send();
-}
 const allInterestTargetElements = document.querySelectorAll('#examples [interesttarget]');
 function verifyInterest(onlyElements,description) {
   if (!(onlyElements instanceof Array)) {
@@ -162,9 +156,12 @@ allInterestTargetElements.forEach(el => {
     assert_false(target.matches(':popover-open'),'anothertarget popover opens, closing target');
     assert_true(anothertarget.matches(':popover-open'));
     await sendLoseInterestHotkey();
-    assert_array_equals(events,['target loseinterest','anothertarget loseinterest'],'Fire loseinterest in both active elements');
+    assert_array_equals(events,['anothertarget loseinterest'],'Lose interest hot key on focused element loses just interest in that element');
     assert_false(target.matches(':popover-open'));
     assert_false(anothertarget.matches(':popover-open'));
+    await focusOn(el);
+    await sendLoseInterestHotkey();
+    assert_array_equals(events,['anothertarget loseinterest','target loseinterest'],'Now both lost interest');
     verifyInterest(undefined,`Nothing has interest now`);
   }, `Cancelling loseinterest caused by keyboard-gained interest cancels interest, ${description}`);
 });

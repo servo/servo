@@ -17,6 +17,7 @@
     width: 200px;
     transform: rotate(10);
     border: 0px;
+    cursor: none;
   }
 </style>
 
@@ -32,6 +33,7 @@
     assert_equals(getComputedStyle(el_with_negatives).mask, "none", "mask");
     assert_equals(getComputedStyle(el_with_negatives).paddingLeft, "0px", "padding-left");
     assert_equals(getComputedStyle(el_with_negatives).transform, "none", "transform");
+    assert_equals(getComputedStyle(el_with_negatives).cursor, "pointer", "cursor");
   }, "None of the listed properties should be applied");
 </script>
 </body>
