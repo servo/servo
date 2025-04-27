@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<iframe src="about:blank"></iframe>
+</body>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  t.add_cleanup(async () => {
+    await test_driver.clear_display_features();
+  });
+
+  // When the viewport is not divided the segments property should be null.
+  assert_equals(viewport.segments, null);
+  // iframes do not receive segments information.
+  assert_equals(window.frames[0].viewport.segments, null);
+
+  const displayFeatureLength = 10;
+  const horizontalViewportSegmentsMQL = window.matchMedia('(horizontal-viewport-segments: 2)');
+  let promise = new Promise(resolve => {
+    horizontalViewportSegmentsMQL.addEventListener(
+      'change',
+      () => { resolve(horizontalViewportSegmentsMQL.matches); },
+      { once: true }
+    );
+  });
+  await test_driver.set_display_features([{
+    orientation: 'vertical',
+    maskLength: displayFeatureLength,
+    offset: window.innerWidth / 2 - displayFeatureLength / 2
+  }]);
+  assert_true(await promise);
+  assert_equals(viewport.segments.length, 2);
+  const segmentLeft = viewport.segments[0];
+  assert_equals(segmentLeft.x, 0);
+  assert_equals(segmentLeft.y, 0);
+  assert_equals(segmentLeft.width, window.innerWidth / 2 - displayFeatureLength / 2);
+  assert_equals(segmentLeft.height,  window.innerHeight);
+  const segmentRight = viewport.segments[1];
+  assert_equals(segmentRight.x, window.innerWidth / 2 + displayFeatureLength / 2);
+  assert_equals(segmentRight.y, 0);
+  assert_equals(segmentRight.width, window.innerWidth / 2 - displayFeatureLength / 2);
+  assert_equals(segmentRight.height,  window.innerHeight);
+  // iframes do not receive segments information.
+  assert_equals(window.frames[0].viewport.segments, null);
+
+
+  const verticalViewportSegmentsMQL = window.matchMedia('(vertical-viewport-segments: 2)');
+  promise = new Promise(resolve => {
+    verticalViewportSegmentsMQL.addEventListener(
+      'change',
+      () => { resolve(verticalViewportSegmentsMQL.matches); },
+      { once: true }
+    );
+  });
+  await test_driver.set_display_features([{
+    orientation: 'horizontal',
+    maskLength: displayFeatureLength,
+    offset: window.innerHeight / 2 - displayFeatureLength / 2
+  }]);
+  assert_true(await promise);
+  assert_equals(viewport.segments.length, 2);
+  const segmentTop = viewport.segments[0];
+  assert_equals(segmentTop.x, 0);
+  assert_equals(segmentTop.y, 0);
+  assert_equals(segmentTop.width, window.innerWidth);
+  assert_equals(segmentTop.height, window.innerHeight / 2 - displayFeatureLength / 2);
+  const segmentBottom = viewport.segments[1];
+  assert_equals(segmentBottom.x, 0);
+  assert_equals(segmentBottom.y, window.innerHeight / 2 + displayFeatureLength / 2);
+  assert_equals(segmentBottom.width, window.innerWidth);
+  assert_equals(segmentBottom.height,  window.innerHeight / 2 - displayFeatureLength / 2);
+  // iframes do not receive segments information.
+  assert_equals(window.frames[0].viewport.segments, null);
+
+  const oneSegmentMQL = window.matchMedia('(vertical-viewport-segments: 1)');
+  promise = new Promise(resolve => {
+    oneSegmentMQL.addEventListener(
+      'change',
+      () => { resolve(oneSegmentMQL.matches); },
+      { once: true }
+    );
+  });
+  await test_driver.clear_display_features();
+  assert_true(await promise);
+  assert_equals(viewport.segments, null);
+  // iframes do not receive segments information.
+  assert_equals(window.frames[0].viewport.segments, null);
+
+}, 'Tests the Viewport Segments Media Query change event handler.');
+</script>
+</html>

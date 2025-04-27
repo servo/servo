@@ -956,7 +956,9 @@ class MockRuntime {
 
         this._calculateAnchorInformation(frameData);
 
-        this._calculateDepthInformation(frameData);
+        if (options.depthActive) {
+          this._calculateDepthInformation(frameData);
+        }
 
         this._injectAdditionalFrameData(options, frameData);
 

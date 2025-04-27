@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Native appearance disabled when appearance-disabling property has author-specified value unset (reference)</title>
+    <link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-disabling-properties">
+    <meta name="assert" content="Widgets with background and border set to `unset` should display the same as if they had background and border set to `initial`">
+    <style>
+      body * {
+        display: block;
+        background: initial;
+        border: initial;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Test passes if the following widgets display the same with their background and border set to 'unset' as they do with background and border set to 'initial'</h1>
+    <button>Button</button>
+    <meter value='10' min='0' max='100'></meter>
+    <progress></progress>
+    <select></select>
+    <textarea></textarea>
+    <input type=button>
+    <input type=checkbox>
+    <input type=checkbox switch>
+    <input type=color>
+    <input type=date>
+    <input type=datetime-local>
+    <input type=file>
+    <input type=month>
+    <input type=number>
+    <input type=radio>
+    <input type=range>
+    <input type=search>
+    <input type=submit>
+    <input type=text>
+    <input type=time>
+    <input type=week>
+  </body>
+</html>

@@ -1,5 +1,6 @@
 mypy==1.14.0
 mypy-extensions==1.0.0
+pydantic==2.10.6
 toml==0.10.2
 tomli==2.0.1
 types-atomicwrites==1.4.5.1

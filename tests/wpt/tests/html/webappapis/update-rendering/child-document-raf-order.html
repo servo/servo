@@ -47,6 +47,17 @@ callbacks for each.
 
 <script>
 
+// Split array into chunks of len.
+function chunk (arr, len) {
+  var chunks = [],
+    i = 0,
+    n = arr.length;
+  while (i < n) {
+    chunks.push(arr.slice(i, i += len));
+  }
+  return chunks;
+}
+
 async_test(function (t) {
   step_timeout(setup, 0);
 
@@ -108,9 +119,20 @@ async_test(function (t) {
   });
 
   let finish = t.step_func(function() {
-    assert_array_equals(notification_sequence,
-                        ["parent_raf", "first_child_raf", "second_child_raf"],
-                        "expected order of notifications");
+
+    // The test requests rafs recursively,
+    // but since all three rafs run as part of the same "update the rendering" task,
+    // they should always come in a triplet.
+    assert_equals(notification_sequence.length % 3, 0);
+
+    let chunks = chunk(notification_sequence, 3);
+    for (var i = 0; i < chunks.length; i++) {
+      // Assert correct ordering per triplet of rafs.
+      assert_array_equals(chunks[i],
+                          ["parent_raf", "first_child_raf", "second_child_raf"],
+                          "expected order of notifications");
+    }
+
     t.done();
   });
 });

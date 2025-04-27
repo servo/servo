@@ -32,7 +32,7 @@
     assert_true(target.matches(':popover-open'),'Focusing should trigger interest');
     assert_equals(interestCount,1);
     assert_equals(loseInterestCount,0);
-    await sendTab();
+    await sendShowInterestHotkey();
     assert_equals(document.activeElement,contained);
     assert_true(target.matches(':popover-open'),'Moving focus into popover should not lose interest');
     assert_equals(interestCount,1);

@@ -12,6 +12,6 @@ window.location.hash = '';
 
 test(() => {
     assert_true(window.location.hash === '');
-    assert_true(window.location.href === orig_location + '#');
+    assert_true(window.location.href === orig_location);
 }, 'window.location.hash is an empty string');
 </script>

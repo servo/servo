@@ -37,8 +37,8 @@ test_valid_value("min-inline-size", "calc-size(max-content, size)");
 test_valid_value("width",      "calc-size(fit-content, size)");
 test_valid_value("height",     "calc-size(min-content, size * 2)", "calc-size(min-content, 2 * size)");
 test_valid_value("max-width",  "calc-size(max-content, size / 2)", "calc-size(max-content, 0.5 * size)");
-test_valid_value("max-height", "calc-size(fit-content, 30px + size / 2)", "calc-size(fit-content, 30px + 0.5 * size)");
-test_valid_value("width",      "calc-size(fit-content, 50% + size / 2)", "calc-size(fit-content, 50% + 0.5 * size)");
+test_valid_value("max-height", "calc-size(fit-content, 30px + size / 2)", "calc-size(fit-content, 30px + (0.5 * size))");
+test_valid_value("width",      "calc-size(fit-content, 50% + size / 2)", "calc-size(fit-content, 50% + (0.5 * size))");
 
 test_valid_value("width",      "calc-size(any, 25em)");
 test_valid_value("width",      "calc-size(any, 40%)");

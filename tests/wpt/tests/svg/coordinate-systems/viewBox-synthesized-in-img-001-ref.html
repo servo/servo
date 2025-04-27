@@ -3,56 +3,65 @@
 <title>Reference Case</title>
 <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
 <style>
-  embed {
+  div.img-mockup {
     border: 1px solid black;
     margin: 2px;
     vertical-align: top;
+    display: inline-block;
   }
 </style>
 <body>
 <script>
-  // Note: in this reference case, we take an explicit 'viewBox' param
-  // which is expected to match the viewBox that the testcase will
-  // be implicitly synthesizing as part of rendering SVG-as-an-image.
-  // (For parts of the testcase where no viewBox should be synthesized,
-  // this param should be left as the empty string.)
-  function makeDataURI(width, height, viewBox) {
-    let uri = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' ";
-    uri += `width='${width}' height='${height}' viewBox='${viewBox}' preserveAspectRatio='none'>`;
-    uri += "<rect fill='blue' x='2' y='2' height='6' width='6'/></svg>";
-    return uri;
+  // This is the <rect> width and height in the testcase's data URI.
+  const RECT_SIZE = 6;
+  // This is the <rect> x/y position in the testcase's data URI.
+  const RECT_POS = 2;
+
+  // Determines the scale factor that we expect to apply to our SVG in a given
+  // axis, based on the specified size (width or height) of the SVG element and
+  // the img element in that axis, and based on whether we expect a viewBox to
+  // be synthesized at all.
+  function getExpectedScaleInAxis(svgSize, imgSize, shouldSynthesizeViewBox) {
+    if (shouldSynthesizeViewBox && svgSize == 10) {
+      // We'll be synthesizing a viewBox, and it'll be scaling our SVG content
+      // in this axis to fit the image size, so we need to scale up the size
+      // that we'll use for our mockup.
+      return imgSize / svgSize;
+    }
+    // Otherwise, we expect to render the SVG content at a 1.0 scale in this
+    // axis.
+    return 1.0;
+  }
+  function makeRectMockup(svgWidth, svgHeight,
+                          imgWidth, imgHeight) {
+    let fakeRect = document.createElement("div");
+    fakeRect.style.backgroundColor = "blue";
+
+    // Size/position the rect based on the scale that we expect the SVG
+    // content to be rendered at in each axis.  To inform that expectation,
+    // first decide whether we expect a synthesized viewBox: we expect
+    // the testcase's SVG-as-an-image document to synthesize a viewBox from
+    // the width and/or height *unless* that viewBox would be empty
+    // (zero-sized) in some axis.
+    let shouldSynthesizeViewBox = svgWidth != 0 && svgHeight != 0;
+
+    // Now compute the expected scale in each axis using a helper function:
+    let horizScale = getExpectedScaleInAxis(svgWidth, imgWidth,
+                                            shouldSynthesizeViewBox);
+    let vertScale = getExpectedScaleInAxis(svgHeight, imgHeight,
+                                           shouldSynthesizeViewBox);
+
+    fakeRect.style.width = `${RECT_SIZE * horizScale}px`;
+    fakeRect.style.height = `${RECT_SIZE * vertScale}px`;
+    fakeRect.style.marginLeft = `${RECT_POS * horizScale}px`;
+    fakeRect.style.marginTop = `${RECT_POS * vertScale}px`;
+    return fakeRect;
   }
 
-  const SVG_SIZE_VALS_TO_TEST = [ "", "0", "0", "0", "0", "10" ];
-  const IMG_SIZE_VALS_TO_TEST = [ "20", "30" ];
-
-  // Returns the size in one axis (height or width) that we expect the browser
-  // to use, in the viewBox that it synthesizes for a particular piece of the
-  // corresponding testcase. The params are the specified size (height or
-  // width) of the <svg> element and host <img> element (in the corresponding
-  // piece of the testcase).
-  //
-  // This function returns null if no viewBox should be synthesized at all.
-  function synthesizeViewBoxComponent(svgSizeVal, embedSizeVal) {
-    if (svgSizeVal == "") {
-      // The <svg> element has no specified size in this axis, so the browser
-      // should render the testcase with a synthesized viewBox that's exactly
-      // as large as the testcase's <img> element in this axis.
-      return embedSizeVal;
-    }
-
-    if (svgSizeVal == "0" || svgSizeVal == "0%") {
-      // The <svg> element has a specified size of 0 in this axis, so the
-      // browser should decline to synthesize a viewBox at all when rendering
-      // this part of the testcase, since a zero-sized viewBox would result in
-      // nothing being painted.
-      return null;
-    }
-
-    // Otherwise the browser should just use the given specified size of the
-    // <svg> element to construct the synthetic viewBox.
-    return svgSizeVal;
-  }
+  // To make the logic simpler, we just use 0 here for all of the testcase's
+  // sizes that we expect to behave like 0 (e.g. 0%, -5, -5%).
+  const SVG_SIZE_VALS_TO_TEST = [ null, 0, 0, 0, 0, 10 ];
+  const IMG_SIZE_VALS_TO_TEST = [ 20, 30 ];
 
   function go() {
     // We group our elements into rows with a particular number of items,
@@ -67,26 +76,21 @@
           for (sh of SVG_SIZE_VALS_TO_TEST) {
             // Generate a new container element at the start and every N elems:
             if (elemIdx % NUM_ELEMS_PER_ROW == 0) {
-                container = document.createElement("div");
-                document.body.appendChild(container);
+              container = document.createElement("div");
+              document.body.appendChild(container);
             }
             elemIdx++;
 
-            const embed = document.createElement("embed");
-            embed.setAttribute("width", iw);
-            embed.setAttribute("height", ih);
+            // Mockup for the img element:
+            const fakeImg = document.createElement("div");
+            fakeImg.classList.add("img-mockup");
+            fakeImg.style.width = `${iw}px`;
+            fakeImg.style.height = `${ih}px`;
 
-            // vbw/vbh here are the width/height we'll use in our viewBox.
-            let vbw = synthesizeViewBoxComponent(sw, iw);
-            let vbh = synthesizeViewBoxComponent(sh, ih);
-            let viewBox = "";
-            if (vbw != null && vbh != null) {
-              viewBox = `0 0 ${vbw} ${vbh}`;
-            }
-            const dataURI = makeDataURI(sw, sh, viewBox);
-            embed.setAttribute("src", dataURI);
+            // Add the mockup for the blue rect inside of the img:
+            fakeImg.appendChild(makeRectMockup(sw, sh, iw, ih));
 
-            container.appendChild(embed);
+            container.appendChild(fakeImg);
           }
         }
       }

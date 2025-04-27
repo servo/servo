@@ -186,14 +186,34 @@ function insertDocumentRule(predicate, extra_options={}) {
 }
 
 function assert_prefetched (requestHeaders, description) {
-  assert_in_array(requestHeaders.purpose, ["", "prefetch"], "The vendor-specific header Purpose, if present, must be 'prefetch'.");
-  assert_in_array(requestHeaders.sec_purpose,
+  assert_in_array(requestHeaders.purpose, [undefined, "prefetch"], "The vendor-specific header Purpose, if present, must be 'prefetch'.");
+  assert_in_array(requestHeaders['sec-purpose'],
                   ["prefetch", "prefetch;anonymous-client-ip"], description);
 }
 
+function assert_prefetched_anonymous_client_ip(requestHeaders, description) {
+  assert_in_array(requestHeaders.purpose, [undefined, "prefetch"], "The vendor-specific header Purpose, if present, must be 'prefetch'.");
+  assert_equals(requestHeaders['sec-purpose'],
+                "prefetch;anonymous-client-ip",
+                description);
+}
+
 function assert_not_prefetched (requestHeaders, description){
-  assert_equals(requestHeaders.purpose, "", description);
-  assert_equals(requestHeaders.sec_purpose, "", description);
+  assert_equals(requestHeaders.purpose, undefined, description);
+  assert_equals(requestHeaders['sec-purpose'], undefined, description);
+}
+
+// If the prefetch request is intercepted and modified by ServiceWorker,
+// - "Sec-Purpose: prefetch" header is dropped in Step 33 of
+//   https://fetch.spec.whatwg.org/#dom-request
+//   because it's a https://fetch.spec.whatwg.org/#forbidden-request-header.
+// - "Purpose: prefetch" can still be sent.
+// Note that this check passes also for non-prefetch requests, so additional
+// checks are needed to distinguish from non-prefetch requests.
+function assert_prefetched_without_sec_purpose(requestHeaders, description) {
+  assert_in_array(requestHeaders.purpose, [undefined, "prefetch"],
+      "The vendor-specific header Purpose, if present, must be 'prefetch'.");
+  assert_equals(requestHeaders['sec-purpose'], undefined, description);
 }
 
 // Use nvs_header query parameter to ask the wpt server

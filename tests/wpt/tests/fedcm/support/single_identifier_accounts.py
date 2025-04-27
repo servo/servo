@@ -17,7 +17,7 @@ def main(request, response):
   },
   {
    "id": "john_doe2",
-   "phone": "+1 (416) 000-0000"
+   "tel": "+1 (416) 000-0000"
   }
   ]
 }

@@ -31,6 +31,7 @@ test_math_used('calc(exp(0) + 1)', '2', {type:'number', approx:0.1});
 
 // Test unresolved at parse time
 test_math_used('calc(e - exp(sibling-index()))', '0', {type:'number', approx:0.1});
+test_math_used('calc(log(exp(2 * sibling-index())))', '2', {type:'number', approx:0.1});
 
 // Test nesting
 test_math_used('calc(log(exp(1)))', '1', {type:'number', approx:0.1});

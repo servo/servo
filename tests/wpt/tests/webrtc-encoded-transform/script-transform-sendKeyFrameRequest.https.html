@@ -76,7 +76,7 @@ promise_test(async (test) => {
   await receiverPc.setLocalDescription();
   await senderPc.setRemoteDescription(receiverPc.localDescription);
 
-  assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'failure: InvalidStateError');
+  assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'success');
 
   senderPc.getTransceivers()[0].direction = 'sendonly';
   await senderPc.setLocalDescription();
@@ -85,7 +85,7 @@ promise_test(async (test) => {
   await senderPc.setRemoteDescription(receiverPc.localDescription);
 
   assert_equals(await sendKeyFrameRequest(receiver.transform.port), 'success');
-}, 'sendKeyFrameRequest rejects when the receiver is negotiated inactive, and resumes succeeding when negotiated back to active');
+}, 'sendKeyFrameRequest does not reject when the receiver is negotiated inactive, and resumes succeeding when negotiated back to active');
 
 promise_test(async (test) => {
   const {sender, receiver, senderPc, receiverPc} = await createConnectionWithTransform(test, 'script-transform-sendKeyFrameRequest.js', {video: true});

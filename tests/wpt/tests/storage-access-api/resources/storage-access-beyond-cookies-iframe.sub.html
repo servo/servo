@@ -145,6 +145,9 @@ window.addEventListener("message", async (e) => {
         channel.close();
         break;
       }
+      case "BlobURLSharedWorker": {
+        break;
+      }
       default: {
         message = "Unexpected type " + type;
         break;

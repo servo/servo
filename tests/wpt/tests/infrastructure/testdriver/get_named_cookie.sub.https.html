@@ -17,6 +17,7 @@ promise_test(async t => {
   document.cookie = "test5=5; SameSite=Strict";
   document.cookie = "test6=6; SameSite=None; Secure";
   document.cookie = "test7=7; SameSite=Lax";
+  document.cookie = "test8=8; Secure; Partitioned; SameSite=None";
 
   // test0
   let cookie = await test_driver.get_named_cookie("test0");
@@ -110,5 +111,17 @@ promise_test(async t => {
   assert_equals(cookie["httpOnly"], false);
   assert_equals(cookie["expiry"], undefined);
   assert_equals(cookie["sameSite"], "Lax");
+
+  // test8 [Partitioned]
+  cookie = await test_driver.get_named_cookie("test8");
+  assert_equals(cookie["name"], "test8");
+  assert_equals(cookie["value"], "8");
+  assert_equals(cookie["path"], "/infrastructure/testdriver");
+  assert_equals(cookie["domain"], "{{host}}");
+  assert_equals(cookie["secure"], true);
+  assert_equals(cookie["httpOnly"], false);
+  assert_equals(cookie["expiry"], undefined);
+  assert_equals(cookie["sameSite"], "None");
+
 }, "Get Named HTTPS cookie");
 </script>

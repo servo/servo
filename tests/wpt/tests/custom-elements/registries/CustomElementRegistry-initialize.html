@@ -115,6 +115,27 @@ test(() => {
     assert_equals(shadowRoot.querySelector('ef').customElementRegistry, window.customElements);
 }, 'initialize is no-op on a subtree with a non-null registry');
 
+test(() => {
+    const doc = new Document();
+    assert_equals(doc.customElementRegistry, null);
+    const registry = new CustomElementRegistry();
+    registry.initialize(doc);
+    assert_equals(doc.customElementRegistry, registry);
+}, 'initialize works on Document');
+
+test(() => {
+    const doc = new Document();
+    const df = doc.createDocumentFragment();
+    const dummy = doc.createElement("dummy");
+    df.append(dummy);
+    assert_equals(dummy.customElementRegistry, null);
+    assert_equals(df.customElementRegistry, undefined);
+    const registry = new CustomElementRegistry();
+    registry.initialize(df);
+    assert_equals(dummy.customElementRegistry, registry);
+    assert_equals(df.customElementRegistry, undefined);
+}, 'initialize works on DocumentFragment');
+
 </script>
 </body>
 </html>

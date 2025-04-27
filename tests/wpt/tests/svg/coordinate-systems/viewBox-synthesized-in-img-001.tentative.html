@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<meta name="timeout" content="long">
 <title>Testcase for SVG viewBox synthesis when SVG is used as an image</title>
 <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
 <link rel="help" href="https://www.w3.org/TR/SVG/coords.html#ViewBoxAttribute">
@@ -15,9 +16,14 @@
 <body>
 <script>
   function makeDataURI(width, height) {
-    let uri = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' ";
-    uri += `width='${width}' height='${height}'>`;
-    uri += "<rect fill='blue' x='2' y='2' height='6' width='6'/></svg>";
+    let uri = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'";
+    if (width != "") {
+      uri += ` width='${width}'`;
+    }
+    if (height != "") {
+      uri += ` height='${height}'`;
+    }
+    uri += "><rect fill='blue' x='2' y='2' height='6' width='6'/></svg>";
     return uri;
   }
 
@@ -38,8 +44,8 @@
           for (sh of SVG_SIZE_VALS_TO_TEST) {
             // Generate a new container element at the start and every N elems:
             if (elemIdx % NUM_ELEMS_PER_ROW == 0) {
-                container = document.createElement("div");
-                document.body.appendChild(container);
+              container = document.createElement("div");
+              document.body.appendChild(container);
             }
             elemIdx++;
 

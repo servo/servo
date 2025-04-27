@@ -33,6 +33,39 @@ const testFunctionDepthType = function (session, controller, t) {
   return Promise.resolve();
 };
 
+const testFunctionDepthActive = function (session, controller, t) {
+    t.step(() => {
+      assert_throws_dom("InvalidStateError", () => session.depthActive,
+                        "session.depthActive should throw when depth sensing is disabled");
+    });
+
+  return Promise.resolve();
+};
+
+const testFunctionPauseDepthSensing = function (session, controller, t) {
+  let done = false;
+  session.requestAnimationFrame((time, frame) => {
+    t.step(() => {
+      assert_throws_dom("InvalidStateError", () => session.pauseDepthSensing(),
+                        "pauseDepthSensing() should thrown when depth sensing is disabled");
+    });
+  });
+
+  return t.step_wait(() => done);
+};
+
+const testFunctionResumeDepthSensing = function (session, controller, t) {
+  let done = false;
+  session.requestAnimationFrame((time, frame) => {
+    t.step(() => {
+      assert_throws_dom("InvalidStateError", () => session.resumeDepthSensing(),
+                        "resumeDepthSensing() should thrown when depth sensing is disabled");
+    });
+  });
+
+  return t.step_wait(() => done);
+};
+
 xr_session_promise_test(
   "XRSession.depthUsage rejects if depth sensing is not enabled on a session",
   testFunctionDepthUsage,

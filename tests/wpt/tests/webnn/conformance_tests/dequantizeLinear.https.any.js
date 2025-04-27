@@ -705,6 +705,65 @@ const dequantizeLinearTests = [
       }
     }
   },
+  ,
+  {
+    'name':
+        'quantizeLinear then dequantizeLinear with different scale and zero_point',
+    'graph': {
+      'inputs': {
+        'quantizeLinearInput': {
+          'data': [-1.1202747821807861, 13.163229942321777],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': false
+        },
+        'quantizeLinearScale': {
+          'data': [0.1202747821807861, 1.2800687253475189],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        },
+        'quantizeLinearZeroPoint': {
+          'data': [12, -21],
+          'descriptor': {shape: [2], dataType: 'int8'},
+          'constant': true
+        },
+        'dequantizeLinearScale': {
+          'data': [1.1202747821807861, 0.2800687253475189],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        },
+        'dequantizeLinearZeroPoint': {
+          'data': [35, -24],
+          'descriptor': {shape: [2], dataType: 'int8'},
+          'constant': true
+        }
+      },
+      'operators': [
+        {
+          'name': 'quantizeLinear',
+          'arguments': [
+            {'input': 'quantizeLinearInput'}, {'scale': 'quantizeLinearScale'},
+            {'zeroPoint': 'quantizeLinearZeroPoint'}
+          ],
+          'outputs': 'quantizeLinearOutput'
+        },
+        {
+          'name': 'dequantizeLinear',
+          'arguments': [
+            {'input': 'quantizeLinearOutput'},
+            {'scale': 'dequantizeLinearScale'},
+            {'zeroPoint': 'dequantizeLinearZeroPoint'}
+          ],
+          'outputs': 'dequantizeLinearOutput'
+        }
+      ],
+      'expectedOutputs': {
+        'dequantizeLinearOutput': {
+          'data': [-35.848793029785156, 3.6408934593200684],
+          'descriptor': {shape: [2], dataType: 'float32'}
+        }
+      }
+    }
+  },
 ];
 
 if (navigator.ml) {

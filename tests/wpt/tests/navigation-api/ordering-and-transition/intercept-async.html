@@ -45,6 +45,7 @@ promise_test(async t => {
     ["handler sync", "#1", { from, navigationType: "push" }],
     ["handler after microtask", "#1", { from, navigationType: "push" }],
     ["committed fulfilled", "#1", { from, navigationType: "push" }],
+    ["transition.committed fulfilled", "#1", { from, navigationType: "push" }],
     ["promise microtask", "#1", { from, navigationType: "push" }],
     ["handler after setTimeout", "#1", { from, navigationType: "push" }],
     ["navigatesuccess", "#1", { from, navigationType: "push" }],

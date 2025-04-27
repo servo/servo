@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- TODO update link -->
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <title>Scope view transition capture</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style type="text/css">
+  .parent {
+    background-color: lightblue;
+    height: 200px;
+    width: 200px;
+    view-transition-name: parent;
+    position: relative;
+  }
+
+  .child {
+    background-color: blue;
+    height: 100px;
+    width: 100px;
+    view-transition-name: child;
+    position: absolute;
+    left: 50px;
+    top: 50px;
+  }
+
+  .sibling {
+    background-color: gray;
+    margin-top: 20px;
+    height: 200px;
+    width: 200px;
+    view-transition-name: sibling;
+  }
+
+  /* view transition pseudos */
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*) {
+    animation: unset;
+  }
+
+  ::view-transition-old(*) {
+    animation: -ua-view-transition-fade-out 1s paused;
+  }
+
+  ::view-transition-new(*) {
+    animation: -ua-view-transition-fade-in 1s paused;
+  }
+
+</style>
+<body>
+  <div id="container"></div>
+</body>
+<script>
+  function createDiv(test, id, className) {
+    const element = document.createElement('div');
+    element.id = id;
+    element.className = className;
+    test.add_cleanup(() => {
+      element.remove();
+    });
+    return element;
+  }
+
+  function setupCaptureTest(test) {
+    const container = document.getElementById('container');
+    container.innerHTML = '';
+    const target1 = createDiv(test, 'target1', 'parent');
+    const target2 = createDiv(test, 'target2', 'child');
+    const target3 = createDiv(test, 'target3', 'sibling');
+    container.appendChild(target1);
+    target1.appendChild(target2);
+    container.appendChild(target3);
+    test.add_cleanup(() => {
+      document.getAnimations().forEach(a => a.cancel());
+    });
+  }
+
+  function assert_animations(target, filterFn, mappingFn, expected, message) {
+    const values = document.getAnimations()
+          .filter(filterFn)
+          .map(mappingFn)
+          .sort();
+
+    const format = entries => entries.join(", ");
+    assert_equals(format(values), format(expected), message);
+  }
+
+  function assert_animation_pseudos(element, expected, message) {
+    const filterFn = a => a.effect.target == element;
+    const mappingFn = a => a.effect.pseudoElement;
+    return assert_animations(element, filterFn, mappingFn, expected, message);
+  }
+
+  function assert_animation_names(target, expected, message) {
+    const filterFn = a => a.effect.pseudoElement == target;
+    const mappingFn = a => a.animationName;
+    return assert_animations(target, filterFn, mappingFn, expected, message);
+  }
+
+  promise_test(async t => {
+    setupCaptureTest(t);
+    const target = document.querySelector('.parent');
+    assert_true(!!target.startViewTransition,
+                'Missing scoped view transition support');
+
+    await target.startViewTransition({}).ready;
+
+    const expected_pseudos = [
+      '::view-transition-new(child)',
+      '::view-transition-new(parent)',
+      '::view-transition-old(child)',
+      '::view-transition-old(parent)'
+    ];
+    assert_animation_pseudos(target, expected_pseudos,
+                             'animations on target element pseudos');
+    assert_animation_pseudos(document.documentElement, [],
+                             'no animations targeting pseudos on root');
+    assert_animation_pseudos(document.querySelector('.sibling'), [],
+                             'no animations targetting pseudos on sibling');
+    assert_animation_pseudos(document.querySelector('.child'), [],
+                             'no animations targetting pseudos on child');
+
+    assert_animation_names('::view-transition-old(child)',
+                           ['-ua-view-transition-fade-out'],
+                           'fade out animation on old child');
+    assert_animation_names('::view-transition-old(parent)',
+                           ['-ua-view-transition-fade-out'],
+                           'fade out animation on old parent');
+    assert_animation_names('::view-transition-new(child)',
+                           ['-ua-view-transition-fade-in'],
+                           'fade in animation on new child');
+    assert_animation_names('::view-transition-new(parent)',
+                           ['-ua-view-transition-fade-in'],
+                           'fade in animation on new parent');
+  }, 'View-transition pseudo elements created for correct element');
+
+  promise_test(async t => {
+    setupCaptureTest(t);
+    const parent = document.querySelector('.parent');
+    const sibling = document.querySelector('.sibling');
+    assert_true(!!parent.startViewTransition,
+                'Missing scoped view transition support');
+
+    await parent.startViewTransition({}).ready;
+    await sibling.startViewTransition({}).ready;
+
+    const expected_parent_pseudos = [
+      '::view-transition-new(child)',
+      '::view-transition-new(parent)',
+      '::view-transition-old(child)',
+      '::view-transition-old(parent)'
+    ];
+    const expected_sibling_pseudos = [
+      '::view-transition-new(sibling)',
+      '::view-transition-old(sibling)'
+    ];
+    assert_animation_pseudos(parent, expected_parent_pseudos,
+                             'animations on parent element pseudos');
+    assert_animation_pseudos(sibling, expected_sibling_pseudos,
+                             'animations on sibling element pseudos');
+  }, 'Capture with concurrent scoped view-transitions');
+
+</script>
+</html>

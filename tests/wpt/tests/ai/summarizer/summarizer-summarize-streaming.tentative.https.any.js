@@ -22,7 +22,7 @@ promise_test(async t => {
     result = value;
   }
   assert_greater_than(result.length, 0);
-}, 'Summarizer.summarizeStreaming returns ReadableStream with a non-empty text.');
+}, 'Summarizer.summarizeStreaming() returns ReadableStream with a non-empty text.');
 
 promise_test(async t => {
   const summarizer = await Summarizer.create();
@@ -33,4 +33,12 @@ promise_test(async t => {
   );
   const { result, done } = await streamingResponse.getReader().read();
   assert_true(done);
-}, 'Summarizer.summarizeStreaming returns a ReadableStream without any chunk on an empty input.');
+}, 'Summarizer.summarizeStreaming() returns a ReadableStream without any chunk on an empty input.');
+
+promise_test(async () => {
+  const summarizer = await Summarizer.create();
+  await Promise.all([
+    summarizer.summarizeStreaming(kTestPrompt),
+    summarizer.summarizeStreaming(kTestPrompt)
+  ]);
+}, 'Multiple Summarizer.summarizeStreaming() calls are resolved successfully.');

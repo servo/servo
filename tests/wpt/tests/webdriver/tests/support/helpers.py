@@ -80,6 +80,10 @@ def cleanup_session(session):
 
         session.window_handle = current_window
 
+    # Do not try to clean up already ended session.
+    if session.session_id is None:
+        return
+
     _restore_timeouts(session)
     _ensure_valid_window(session)
     _dismiss_user_prompts(session)

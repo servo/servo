@@ -52,6 +52,7 @@ promise_test(async t => {
     ["currententrychange", "#1", { from: fromStart, navigationType: "push" }],
     ["handler run", "#1", { from: fromStart, navigationType: "push" }],
     ["committed fulfilled 1", "#1", { from: fromStart, navigationType: "push" }],
+    ["transition.committed fulfilled 1", "#1", { from: fromStart, navigationType: "push" }],
     ["promise microtask", "#1", { from: fromStart, navigationType: "push" }],
     ["navigatesuccess", "#1", { from: fromStart, navigationType: "push" }],
     ["finished fulfilled 1", "#1", null],
@@ -61,6 +62,7 @@ promise_test(async t => {
     ["currententrychange", "#2", { from: fromHash1, navigationType: "push" }],
     ["handler run", "#2", { from: fromHash1, navigationType: "push" }],
     ["committed fulfilled 2", "#2", { from: fromHash1, navigationType: "push" }],
+    ["transition.committed fulfilled 2", "#2", { from: fromHash1, navigationType: "push" }],
     ["navigatesuccess", "#2", { from: fromHash1, navigationType: "push" }],
     ["finished fulfilled 2", "#2", null],
     ["transition.finished fulfilled", "#2", null]
