@@ -2312,10 +2312,10 @@ impl Node {
         }
 
         // Step 5. If child is non-null:
-	    //     1. For each live range whose start node is parent and start offset is
-	    //        greater than child’s index, increase its start offset by count.
-	    //     2. For each live range whose end node is parent and end offset is
-	    //        greater than child’s index, increase its end offset by count.
+        //     1. For each live range whose start node is parent and start offset is
+        //        greater than child’s index, increase its start offset by count.
+        //     2. For each live range whose end node is parent and end offset is
+        //        greater than child’s index, increase its end offset by count.
         if let Some(child) = child {
             if !parent.ranges_is_empty() {
                 parent
