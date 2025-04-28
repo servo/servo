@@ -530,7 +530,7 @@ impl StackingContext {
         if effects.filter.0.is_empty() &&
             effects.opacity == 1.0 &&
             effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
-            !style.has_transform_or_perspective(FragmentFlags::empty()) &&
+            !style.has_effective_transform_or_perspective(FragmentFlags::empty()) &&
             style.clone_clip_path() == ClipPath::None
         {
             return false;
@@ -1584,7 +1584,10 @@ impl BoxFragment {
         &self,
         containing_block_rect: &PhysicalRect<Au>,
     ) -> Option<ReferenceFrameData> {
-        if !self.style.has_transform_or_perspective(self.base.flags) {
+        if !self
+            .style
+            .has_effective_transform_or_perspective(self.base.flags)
+        {
             return None;
         }
 
