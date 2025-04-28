@@ -46,14 +46,14 @@ tracing = [
 webdriver = ["webdriver_server"]
 webgl_backtrace = [
     "script/webgl_backtrace",
-    "canvas/webgl_backtrace",
+    "webgl/webgl_backtrace",
     "canvas_traits/webgl_backtrace",
 ]
 webxr = [
     "dep:webxr",
     "dep:webxr-api",
     "compositing/webxr",
-    "canvas/webxr",
+    "webgl/webxr",
     "script/webxr",
 ]
 webgpu = [
@@ -68,7 +68,8 @@ base = { workspace = true }
 bincode = { workspace = true }
 bluetooth = { path = "../bluetooth", optional = true }
 bluetooth_traits = { workspace = true, optional = true }
-canvas = { path = "../canvas", default-features = false }
+canvas = { path = "../canvas" }
+webgl = { path = "../webgl", default-features = false }
 canvas_traits = { workspace = true }
 cfg-if = { workspace = true }
 compositing = { path = "../compositing" }
