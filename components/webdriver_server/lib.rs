@@ -1312,11 +1312,13 @@ impl Handler {
         let cmd = WebDriverScriptCommand::GetCookie(name, sender);
         self.browsing_context_script_command(cmd)?;
         let cookies = wait_for_script_response(receiver)?;
-        let response = cookies
+        let Some(response) = cookies
             .into_iter()
             .map(|cookie| cookie_msg_to_cookie(cookie.into_inner()))
             .next()
-            .unwrap();
+        else {
+            return Err(WebDriverError::new(ErrorStatus::NoSuchCookie, ""));
+        };
         Ok(WebDriverResponse::Cookie(CookieResponse(response)))
     }
 
