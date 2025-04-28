@@ -14,11 +14,10 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 
-use super::browsing_context::ResourceAvailableReply;
 use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
-use crate::resource::ResourceAvailable;
+use crate::resource::{ResourceAvailable, ResourceAvailableReply};
 
 #[derive(Clone, Copy)]
 #[allow(dead_code)]
