@@ -1257,6 +1257,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn SetChecked(&self, checked: bool) {
         self.update_checked_state(checked, true);
+        update_related_validity_states(self, CanGc::note())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-readonly
@@ -1697,7 +1698,7 @@ fn radio_group_iter<'a>(
 ) -> impl Iterator<Item = DomRoot<HTMLInputElement>> + 'a {
     root.traverse_preorder(ShadowIncluding::No)
         .filter_map(DomRoot::downcast::<HTMLInputElement>)
-        .filter(move |r| &**r == elem || in_same_group(r, form, group, None))
+        .filter(move |r| &**r == elem || in_same_group(r, form, group, Some(root)))
 }
 
 fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>) {
@@ -2580,6 +2581,9 @@ impl VirtualMethods for HTMLInputElement {
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
+        if self.input_type() == InputType::Radio {
+            self.radio_group_updated(self.radio_group_name().as_ref());
+        }
         update_related_validity_states(self, can_gc);
     }
 
