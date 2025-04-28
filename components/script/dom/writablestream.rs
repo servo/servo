@@ -19,6 +19,7 @@ use js::rust::{
 };
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 
+use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::UnderlyingSink;
@@ -207,6 +208,11 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
     pub(crate) fn set_default_controller(&self, controller: &WritableStreamDefaultController) {
         self.controller.set(Some(controller));
+    }
+
+    #[allow(unused)]
+    pub(crate) fn get_default_controller(&self) -> DomRoot<WritableStreamDefaultController> {
+        self.controller.get().expect("Controller should be set.")
     }
 
     pub(crate) fn is_writable(&self) -> bool {
@@ -873,7 +879,6 @@ impl WritableStream {
                 backpressure_promise: backpressure_promise.clone(),
                 port: Dom::from_ref(port),
             },
-            &UnderlyingSink::empty(),
             1.0,
             size_algorithm,
             can_gc,
@@ -892,9 +897,102 @@ impl WritableStream {
 
         // Perform ! SetUpWritableStreamDefaultController
         controller
-            .setup(cx, &global, self, &None, can_gc)
+            .setup(cx, &global, self, can_gc)
             .expect("Setup for transfer cannot fail");
     }
+    /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink>
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn setup_from_underlying_sink(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        stream: &WritableStream,
+        underlying_sink_obj: SafeHandleObject,
+        underlying_sink: &UnderlyingSink,
+        strategy_hwm: f64,
+        strategy_size: Rc<QueuingStrategySize>,
+        can_gc: CanGc,
+    ) -> Result<(), Error> {
+        // Let controller be a new WritableStreamDefaultController.
+
+        // Let startAlgorithm be an algorithm that returns undefined.
+
+        // Let writeAlgorithm be an algorithm that returns a promise resolved with undefined.
+
+        // Let closeAlgorithm be an algorithm that returns a promise resolved with undefined.
+
+        // Let abortAlgorithm be an algorithm that returns a promise resolved with undefined.
+
+        // If underlyingSinkDict["start"] exists, then set startAlgorithm to an algorithm which
+        // returns the result of invoking underlyingSinkDict["start"] with argument
+        // list « controller », exception behavior "rethrow", and callback this value underlyingSink.
+
+        // If underlyingSinkDict["write"] exists, then set writeAlgorithm to an algorithm which
+        // takes an argument chunk and returns the result of invoking underlyingSinkDict["write"]
+        // with argument list « chunk, controller » and callback this value underlyingSink.
+
+        // If underlyingSinkDict["close"] exists, then set closeAlgorithm to an algorithm which
+        // returns the result of invoking underlyingSinkDict["close"] with argument
+        // list «» and callback this value underlyingSink.
+
+        // If underlyingSinkDict["abort"] exists, then set abortAlgorithm to an algorithm which
+        // takes an argument reason and returns the result of invoking underlyingSinkDict["abort"]
+        // with argument list « reason » and callback this value underlyingSink.
+        let controller = WritableStreamDefaultController::new(
+            global,
+            UnderlyingSinkType::new_js(
+                underlying_sink.abort.clone(),
+                underlying_sink.start.clone(),
+                underlying_sink.close.clone(),
+                underlying_sink.write.clone(),
+            ),
+            strategy_hwm,
+            strategy_size,
+            can_gc,
+        );
+
+        // Note: this must be done before `setup`,
+        // otherwise `thisOb` is null in the start callback.
+        controller.set_underlying_sink_this_object(underlying_sink_obj);
+
+        // Perform ? SetUpWritableStreamDefaultController
+        controller.setup(cx, global, stream, can_gc)
+    }
+}
+
+/// <https://streams.spec.whatwg.org/#create-writable-stream>
+#[cfg_attr(crown, allow(crown::unrooted_must_root))]
+#[allow(unused)]
+pub(crate) fn create_writable_stream(
+    cx: SafeJSContext,
+    global: &GlobalScope,
+    can_gc: CanGc,
+    writable_high_water_mark: f64,
+    writable_size_algorithm: Rc<QueuingStrategySize>,
+    underlying_sink_type: UnderlyingSinkType,
+) -> Fallible<DomRoot<WritableStream>> {
+    // Assert: ! IsNonNegativeNumber(highWaterMark) is true.
+    assert!(writable_high_water_mark >= 0.0);
+
+    // Let stream be a new WritableStream.
+    // Perform ! InitializeWritableStream(stream).
+    let stream = WritableStream::new_with_proto(global, None, can_gc);
+
+    // Let controller be a new WritableStreamDefaultController.
+    let controller = WritableStreamDefaultController::new(
+        global,
+        underlying_sink_type,
+        writable_high_water_mark,
+        writable_size_algorithm,
+        can_gc,
+    );
+
+    // Perform ? SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm,
+    // closeAlgorithm, abortAlgorithm, highWaterMark, sizeAlgorithm).
+    controller.setup(cx, global, &stream, can_gc)?;
+
+    // Return stream.
+    Ok(stream)
 }
 
 impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
@@ -939,22 +1037,18 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
         // Let highWaterMark be ? ExtractHighWaterMark(strategy, 1).
         let high_water_mark = extract_high_water_mark(strategy, 1.0)?;
 
-        // Perform ? SetUpWritableStreamDefaultControllerFromUnderlyingSink
-        let controller = WritableStreamDefaultController::new(
+        // Perform ? SetUpWritableStreamDefaultControllerFromUnderlyingSink(this, underlyingSink,
+        // underlyingSinkDict, highWaterMark, sizeAlgorithm).
+        stream.setup_from_underlying_sink(
+            cx,
             global,
-            UnderlyingSinkType::Js,
+            &stream,
+            underlying_sink_obj.handle(),
             &underlying_sink_dict,
             high_water_mark,
             size_algorithm,
             can_gc,
-        );
-
-        // Note: this must be done before `setup`,
-        // otherwise `thisOb` is null in the start callback.
-        controller.set_underlying_sink_this_object(underlying_sink_obj.handle());
-
-        // Perform ? SetUpWritableStreamDefaultController
-        controller.setup(cx, global, &stream, &underlying_sink_dict.start, can_gc)?;
+        )?;
 
         Ok(stream)
     }
