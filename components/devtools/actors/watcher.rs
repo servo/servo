@@ -227,7 +227,7 @@ impl Actor for WatcherActor {
                 // As per logs we either get targetType as "frame" or "worker"
                 let target_type = msg
                     .get("targetType")
-                    .and_then(|v| v.as_str())
+                    .and_then(Value::as_str)
                     .unwrap_or("frame"); // default to "frame"
 
                 if target_type == "frame" {
@@ -249,6 +249,9 @@ impl Actor for WatcherActor {
                         };
                         let _ = stream.write_json_packet(&worker_msg);
                     }
+                } else {
+                    warn!("Unexpected target_type: {}", target_type);
+                    return Ok(ActorMessageStatus::Ignored);
                 }
 
                 // Messages that contain a `type` field are used to send event callbacks, but they
@@ -296,7 +299,6 @@ impl Actor for WatcherActor {
                             let sources = thread_actor.source_manager.sources();
                             target.resources_available(sources.iter().collect(), "source".into());
 
-                            // handle worker scripts
                             for worker_name in &root.workers {
                                 let worker = registry.find::<WorkerActor>(worker_name);
                                 let thread = registry.find::<ThreadActor>(&worker.thread);

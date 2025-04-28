@@ -517,9 +517,8 @@ impl DevtoolsInstance {
         let mut actors = self.actors.lock().unwrap();
 
         if let Some(worker_id) = worker_id {
-            let worker_actor_name = match self.actor_workers.get(&worker_id) {
-                Some(name) => name,
-                None => return,
+            let Some(worker_actor_name) = self.actor_workers.get(&worker_id) else {
+                return;
             };
 
             let thread_actor_name = actors.find::<WorkerActor>(worker_actor_name).thread.clone();
@@ -538,14 +537,11 @@ impl DevtoolsInstance {
             let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
             worker_actor.resource_available(source, "source".into());
         } else {
-            let browsing_context_id = match self.pipelines.get(&pipeline_id) {
-                Some(id) => id,
-                None => return,
+            let Some(browsing_context_id) = self.pipelines.get(&pipeline_id) else {
+                return;
             };
-
-            let actor_name = match self.browsing_contexts.get(browsing_context_id) {
-                Some(name) => name,
-                None => return,
+            let Some(actor_name) = self.browsing_contexts.get(browsing_context_id) else {
+                return;
             };
 
             let thread_actor_name = actors
