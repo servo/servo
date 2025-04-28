@@ -16,7 +16,10 @@ use base::id::{PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::ScrollState;
 use embedder_traits::{UntrustedNodeAddress, ViewportDetails};
-use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
+use euclid::default::{
+    Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D,
+    Vector2D as UntypedVector2D,
+};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
 use fonts::{FontContext, FontContextWebFontMethods};
@@ -78,10 +81,12 @@ use webrender_api::{ExternalScrollId, HitTestFlags};
 
 use crate::context::LayoutContext;
 use crate::display_list::{DisplayList, WebRenderImageInfo};
+use crate::fragment_tree::BoxFragment;
 use crate::query::{
-    get_the_text_steps, process_client_rect_request, process_content_box_request,
-    process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
-    process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
+    PostCompositeQueryHelper, get_the_text_steps, process_client_rect_request,
+    process_content_box_request, process_content_boxes_request, process_node_scroll_area_request,
+    process_offset_parent_query, process_resolved_font_style_query, process_resolved_style_request,
+    process_text_index_request,
 };
 use crate::traversal::RecalcStyle;
 use crate::{BoxTree, FragmentTree};
@@ -243,7 +248,7 @@ impl Layout for LayoutThread {
     )]
     fn query_content_box(&self, node: TrustedNodeAddress) -> Option<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_content_box_request(node)
+        self.process_post_composite_query(node, process_content_box_request)
     }
 
     #[cfg_attr(
@@ -252,7 +257,7 @@ impl Layout for LayoutThread {
     )]
     fn query_content_boxes(&self, node: TrustedNodeAddress) -> Vec<UntypedRect<Au>> {
         let node = unsafe { ServoLayoutNode::new(&node) };
-        process_content_boxes_request(node)
+        self.process_post_composite_query(node, process_content_boxes_request)
     }
 
     #[cfg_attr(
@@ -961,6 +966,48 @@ impl LayoutThread {
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
+    }
+
+    /// Main entry point for queries that require [PostCompositeQueryHelper].
+    fn process_post_composite_query<T>(
+        &self,
+        node: ServoLayoutNode<'_>,
+        process_query_internals: fn(
+            node: ServoLayoutNode<'_>,
+            helper: PostCompositeQueryHelper,
+        ) -> T,
+    ) -> T {
+        let scroll_offset_getter = &|fragment: &BoxFragment| {
+            let scroll_id = fragment
+                .base
+                .tag
+                .map(|tag| ExternalScrollId(tag.to_display_list_fragment_id(), self.id.into()));
+            scroll_id
+                .and_then(|id| self.scroll_offsets.borrow().get(&id).cloned())
+                .map(|offset| {
+                    UntypedVector2D::new(Au::from_f32_px(offset.x), Au::from_f32_px(offset.y))
+                })
+                .unwrap_or_default()
+        };
+
+        let root_scroll_offset_getter = &|| {
+            let root_scroll_id = self.id.root_scroll_id();
+            self.scroll_offsets
+                .borrow()
+                .get(&root_scroll_id)
+                .cloned()
+                .map(|offset| {
+                    UntypedVector2D::new(Au::from_f32_px(offset.x), Au::from_f32_px(offset.y))
+                })
+                .unwrap_or_default()
+        };
+
+        let helper = PostCompositeQueryHelper {
+            scroll_offset: scroll_offset_getter,
+            root_scroll_offset: root_scroll_offset_getter,
+        };
+
+        process_query_internals(node, helper)
     }
 }
 

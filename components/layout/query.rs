@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use app_units::Au;
-use euclid::default::{Point2D, Rect};
+use euclid::default::{Point2D, Rect, Vector2D};
 use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
 use script::layout_dom::ServoLayoutNode;
@@ -47,7 +47,17 @@ use crate::fragment_tree::{
 };
 use crate::taffy::SpecificTaffyGridInfo;
 
-pub fn process_content_box_request(node: ServoLayoutNode<'_>) -> Option<Rect<Au>> {
+/// Supposed helper for post composite query, query that requires the consideration of transform,
+/// mapping of coordinates, scroll offset, etc.
+pub(crate) struct PostCompositeQueryHelper<'dom> {
+    pub root_scroll_offset: &'dom dyn Fn() -> Vector2D<Au>,
+    pub scroll_offset: &'dom dyn Fn(&BoxFragment) -> Vector2D<Au>,
+}
+
+pub(crate) fn process_content_box_request(
+    node: ServoLayoutNode<'_>,
+    helper: PostCompositeQueryHelper<'_>,
+) -> Option<Rect<Au>> {
     let rects: Vec<_> = node
         .fragments_for_pseudo(None)
         .iter()
@@ -56,18 +66,55 @@ pub fn process_content_box_request(node: ServoLayoutNode<'_>) -> Option<Rect<Au>
     if rects.is_empty() {
         return None;
     }
+    let transform = node_to_root_transform(node, helper);
 
-    Some(rects.iter().fold(Rect::zero(), |unioned_rect, rect| {
-        rect.to_untyped().union(&unioned_rect)
-    }))
+    Some(
+        rects
+            .iter()
+            .fold(Rect::zero(), |unioned_rect, rect| {
+                rect.to_untyped().union(&unioned_rect)
+            })
+            .translate(transform),
+    )
 }
 
-pub fn process_content_boxes_request(node: ServoLayoutNode<'_>) -> Vec<Rect<Au>> {
+pub(crate) fn process_content_boxes_request(
+    node: ServoLayoutNode<'_>,
+    helper: PostCompositeQueryHelper<'_>,
+) -> Vec<Rect<Au>> {
+    let transform = node_to_root_transform(node, helper);
+
     node.fragments_for_pseudo(None)
         .iter()
         .filter_map(Fragment::cumulative_border_box_rect)
-        .map(|rect| rect.to_untyped())
+        .map(|rect| rect.to_untyped().translate(transform))
         .collect()
+}
+
+/// Collect the transformations of ancestors in a containing block chain to a node.
+/// Currently we are only considering scroll offset here.
+/// TODO(stevennovaryo): This should consider CSS Transform and StickyFrame as well,
+///                      but it is yet to happen.
+pub(crate) fn node_to_root_transform(
+    node: ServoLayoutNode<'_>,
+    helper: PostCompositeQueryHelper<'_>,
+) -> Vector2D<Au> {
+    let mut translation = (helper.root_scroll_offset)();
+
+    let mut maybe_parent_node = node.parent_node();
+    while let Some(parent_node) = maybe_parent_node {
+        if let Some(parent_fragment) = parent_node.fragments_for_pseudo(None).first() {
+            let parent_fragment = match parent_fragment {
+                Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
+                _ => continue,
+            };
+
+            let scroll_offset = (helper.scroll_offset)(&parent_fragment.borrow());
+            translation += scroll_offset;
+        };
+        maybe_parent_node = parent_node.parent_node();
+    }
+    return translation;
 }
 
 pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32> {
