@@ -1270,8 +1270,14 @@ impl HTMLFormElement {
             return;
         }
 
-        let controls = self.controls.borrow();
-        for child in controls.iter() {
+        let controls: Vec<_> = self
+            .controls
+            .borrow()
+            .iter()
+            .map(|c| c.as_rooted())
+            .collect();
+
+        for child in controls {
             let child = child.upcast::<Node>();
 
             match child.type_id() {
