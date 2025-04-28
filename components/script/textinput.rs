@@ -38,6 +38,9 @@ pub enum SelectionDirection {
     None,
 }
 
+/// Represents a checked byte offset within a string.
+///
+/// It is assumed, but not guaranteed, that this offset is on a character boundary.
 #[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct UTF8Bytes(pub usize);
 
@@ -78,8 +81,10 @@ impl AddAssign for UTF8Bytes {
 }
 
 trait StrExt {
+    /// Return the length of the `str` in bytes
     fn len_utf8(&self) -> UTF8Bytes;
 }
+
 impl StrExt for str {
     fn len_utf8(&self) -> UTF8Bytes {
         UTF8Bytes(self.len())
@@ -420,7 +425,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         debug_assert!(self.edit_point.index <= self.lines[self.edit_point.line].len_utf8());
     }
 
-    pub(crate) fn get_selection_text(&self) -> Option<String> {
+    pub fn get_selection_text(&self) -> Option<String> {
         let text = self.fold_selection_slices(String::new(), |s, slice| s.push_str(slice));
         if text.is_empty() {
             return None;
@@ -465,6 +470,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             return;
         }
 
+        // Ensure that the max length is not exceeded after replacing the selection
         let allowed_to_insert_count = if let Some(max_length) = self.max_length {
             let len_after_selection_replaced =
                 self.utf16_len().saturating_sub(self.selection_utf16_len());
@@ -1119,28 +1125,41 @@ impl<T: ClipboardProvider> TextInput<T> {
         TextPoint { line, index }
     }
 
+    /// Set the current selection range and direction
+    ///
+    /// Both `start` and `end` are indices of code points, not bytes.
     pub fn set_selection_range(&mut self, start: u32, end: u32, direction: SelectionDirection) {
-        let mut start = UTF8Bytes(start as usize);
-        let mut end = UTF8Bytes(end as usize);
-        let text_end = self.get_content().len_utf8();
+        let content = self.get_content();
+        let char_count = self.char_count();
 
-        if end > text_end {
-            end = text_end;
-        }
-        if start > end {
-            start = end;
-        }
+        // Convert from code point offsets to byte offsets
+        // FIXME: This should not be necessary
+        let start_byte_offset = content
+            .chars()
+            .take((start as usize).min(char_count))
+            .fold(0, |acc, e| acc + e.len_utf8());
+        let end_byte_offset = content
+            .chars()
+            .take((end as usize).min(char_count))
+            .fold(0, |acc, e| acc + e.len_utf8());
+
+        // Ensure that the start is always less or equal the end
+        let start_byte_offset = start_byte_offset.min(end_byte_offset);
+
+        // Convert from code point offsets to locations in the input text
+        let start_point = self.offset_to_text_point(UTF8Bytes(start_byte_offset));
+        let end_point = self.offset_to_text_point(UTF8Bytes(end_byte_offset));
 
         self.selection_direction = direction;
 
         match direction {
             SelectionDirection::None | SelectionDirection::Forward => {
-                self.selection_origin = Some(self.offset_to_text_point(start));
-                self.edit_point = self.offset_to_text_point(end);
+                self.selection_origin = Some(start_point);
+                self.edit_point = end_point;
             },
             SelectionDirection::Backward => {
-                self.selection_origin = Some(self.offset_to_text_point(end));
-                self.edit_point = self.offset_to_text_point(start);
+                self.selection_origin = Some(end_point);
+                self.edit_point = start_point;
             },
         }
         self.assert_ok_selection();

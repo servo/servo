@@ -48,7 +48,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         self.set_range(Some(0), Some(u32::MAX), None, None);
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     pub(crate) fn dom_start(&self) -> Option<u32> {
         // Step 1
         if !self.element.selection_api_applies() {
@@ -59,24 +59,26 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         Some(self.start())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     pub(crate) fn set_dom_start(&self, start: Option<u32>) -> ErrorResult {
-        // Step 1
+        // Step 1. If this element is an input element, and selectionStart does not apply to this element,
+        // throw an "InvalidStateError" DOMException.
         if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
         }
 
-        // Step 2
+        // Step 2. Let end be the value of this element's selectionEnd attribute.
         let mut end = self.end();
 
-        // Step 3
+        // Step 3. If end is less than the given value, set end to the given value.
         if let Some(s) = start {
             if end < s {
                 end = s;
             }
         }
 
-        // Step 4
+        // Step 4. Set the selection range with the given value, end, and the value of this element's
+        // selectionDirection attribute.
         self.set_range(start, Some(end), Some(self.direction()), None);
         Ok(())
     }
@@ -92,14 +94,16 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         Some(self.end())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     pub(crate) fn set_dom_end(&self, end: Option<u32>) -> ErrorResult {
-        // Step 1
+        // Step 1. If this element is an input element, and selectionEnd does not apply to this element,
+        // throw an "InvalidStateError" DOMException.
         if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
         }
 
-        // Step 2
+        // Step 2. Set the selection range with the value of this element's selectionStart attribute, the given value,
+        // and the value of this element's selectionDirection attribute.
         self.set_range(Some(self.start()), end, Some(self.direction()), None);
         Ok(())
     }
@@ -153,7 +157,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     pub(crate) fn set_dom_range_text(
         &self,
         replacement: DOMString,
@@ -161,19 +165,22 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         end: Option<u32>,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
-        // Step 1
+        // Step 1. If this element is an input element, and setRangeText() does not apply
+        // to this element, throw an "InvalidStateError" DOMException.
         if !self.element.selection_api_applies() {
             return Err(Error::InvalidState);
         }
 
-        // Step 2
+        // Step 2. Set this element's dirty value flag to true.
         self.element.set_dirty_value_flag(true);
 
-        // Step 3
+        // Step 3. If the method has only one argument, then let start and end have the values
+        // of the selectionStart attribute and the selectionEnd attribute respectively.
+        // Otherwise, let start, end have the values of the second and third arguments respectively.
         let mut start = start.unwrap_or_else(|| self.start());
         let mut end = end.unwrap_or_else(|| self.end());
 
-        // Step 4
+        // Step 4. If start is greater than end, then throw an "IndexSizeError" DOMException.
         if start > end {
             return Err(Error::IndexSize);
         }
@@ -182,23 +189,24 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // change the selection state in order to replace the text in the range.
         let original_selection_state = self.textinput.borrow().selection_state();
 
-        let UTF8Bytes(content_length) = self.textinput.borrow().len_utf8();
-        let content_length = content_length as u32;
+        let content_length = self.textinput.borrow().char_count() as u32;
 
-        // Step 5
+        // Step 5. If start is greater than the length of the relevant value of the text control,
+        // then set it to the length of the relevant value of the text control.
         if start > content_length {
             start = content_length;
         }
 
-        // Step 6
+        // Step 6. If end is greater than the length of the relevant value of the text control,
+        // then set it to the length of the relevant value of the text control.
         if end > content_length {
             end = content_length;
         }
 
-        // Step 7
+        // Step 7. Let selection start be the current value of the selectionStart attribute.
         let mut selection_start = self.start();
 
-        // Step 8
+        // Step 8. Let selection end be the current value of the selectionEnd attribute.
         let mut selection_end = self.end();
 
         // Step 11
@@ -267,11 +275,13 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         Ok(())
     }
 
+    /// Return the start offset in bytes
     fn start(&self) -> u32 {
         let UTF8Bytes(offset) = self.textinput.borrow().selection_start_offset();
         offset as u32
     }
 
+    /// Return the end offset in bytes
     fn end(&self) -> u32 {
         let UTF8Bytes(offset) = self.textinput.borrow().selection_end_offset();
         offset as u32
@@ -281,7 +291,9 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         self.textinput.borrow().selection_direction()
     }
 
-    // https://html.spec.whatwg.org/multipage/#set-the-selection-range
+    /// <https://html.spec.whatwg.org/multipage/#set-the-selection-range>
+    ///
+    /// Both `start` and `end` are code point indices.
     fn set_range(
         &self,
         start: Option<u32>,
@@ -293,16 +305,19 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         let original_selection_state =
             original_selection_state.unwrap_or_else(|| textinput.selection_state());
 
-        // Step 1
+        // Step 1. If start is null, let start be zero.
         let start = start.unwrap_or(0);
 
-        // Step 2
+        // Step 2. If end is null, let end be zero.
         let end = end.unwrap_or(0);
 
         // Steps 3-5
         textinput.set_selection_range(start, end, direction.unwrap_or(SelectionDirection::None));
 
-        // Step 6
+        // Step 6. If the previous steps caused the selection of the text control
+        // to be modified (in either extent or direction), then queue an element
+        // task on the user interaction task source given the element to fire an event
+        // named select at the element, with the bubbles attribute initialized to true.
         if textinput.selection_state() != original_selection_state {
             self.element
                 .owner_global()
