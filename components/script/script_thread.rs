@@ -331,8 +331,7 @@ pub struct ScriptThread {
     #[no_trace]
     layout_factory: Arc<dyn LayoutFactory>,
 
-    // Mouse down point.
-    // In future, this shall be mouse_down_point for primary button
+    /// The screen coordinates where the primary mouse button was pressed.
     #[no_trace]
     relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
 }
