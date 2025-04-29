@@ -65,7 +65,7 @@ impl OffscreenCanvasRenderingContext2D {
     }
 
     pub(crate) fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
-        self.context.set_bitmap_dimensions(size.cast());
+        self.context.set_canvas_bitmap_dimensions(size.cast());
     }
 
     pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {

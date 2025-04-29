@@ -28,6 +28,10 @@ use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey
 
 use crate::raqote_backend::Repetition;
 
+// Asserts on WR texture cache update for zero sized image with raw data.
+// https://github.com/servo/webrender/blob/main/webrender/src/texture_cache.rs#L1475
+const MIN_WR_IMAGE_SIZE: Size2D<u64> = Size2D::new(1, 1);
+
 fn to_path(path: &[PathSegment], mut builder: Box<dyn GenericPathBuilder>) -> Path {
     let mut build_ref = PathBuilderRef {
         builder: &mut builder,
@@ -595,6 +599,7 @@ impl<'a> CanvasData<'a> {
         compositor_api: CrossProcessCompositorApi,
         font_context: Arc<FontContext>,
     ) -> CanvasData<'a> {
+        let size = size.max(MIN_WR_IMAGE_SIZE);
         let backend = create_backend();
         let draw_target = backend.create_drawtarget(size);
         let image_key = compositor_api.generate_image_key().unwrap();
@@ -1402,7 +1407,9 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn recreate(&mut self, size: Option<Size2D<u64>>) {
-        let size = size.unwrap_or_else(|| self.drawtarget.get_size().to_u64());
+        let size = size
+            .unwrap_or_else(|| self.drawtarget.get_size().to_u64())
+            .max(MIN_WR_IMAGE_SIZE);
         self.drawtarget = self
             .backend
             .create_drawtarget(Size2D::new(size.width, size.height));

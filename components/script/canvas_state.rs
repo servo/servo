@@ -152,6 +152,8 @@ pub(crate) struct CanvasState {
     canvas_id: CanvasId,
     #[no_trace]
     image_key: ImageKey,
+    #[no_trace]
+    size: Cell<Size2D<u64>>,
     state: DomRefCell<CanvasContextState>,
     origin_clean: Cell<bool>,
     #[ignore_malloc_size_of = "Arc"]
@@ -176,6 +178,7 @@ impl CanvasState {
             profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
         let script_to_constellation_chan = global.script_to_constellation_chan();
         debug!("Asking constellation to create new canvas thread.");
+        let size = adjust_canvas_size(size);
         script_to_constellation_chan
             .send(ScriptToConstellationMessage::CreateCanvasPaintThread(
                 size, sender,
@@ -194,6 +197,7 @@ impl CanvasState {
         CanvasState {
             ipc_renderer,
             canvas_id,
+            size: Cell::new(size),
             state: DomRefCell::new(CanvasContextState::new()),
             origin_clean: Cell::new(true),
             image_cache: global.image_cache(),
@@ -221,7 +225,15 @@ impl CanvasState {
         self.canvas_id
     }
 
+    pub(crate) fn is_paintable(&self) -> bool {
+        !self.size.get().is_empty()
+    }
+
     pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
+        if !self.is_paintable() {
+            return;
+        }
+
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(msg, self.get_canvas_id()))
             .unwrap()
@@ -229,6 +241,10 @@ impl CanvasState {
 
     /// Updates WR image and blocks on completion
     pub(crate) fn update_rendering(&self) {
+        if !self.is_paintable() {
+            return;
+        }
+
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::Canvas2d(
@@ -239,16 +255,27 @@ impl CanvasState {
         receiver.recv().unwrap();
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
+    /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>
     pub(crate) fn set_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.reset_to_initial_state();
+
+        self.size.replace(adjust_canvas_size(size));
+
         self.ipc_renderer
-            .send(CanvasMsg::Recreate(Some(size), self.get_canvas_id()))
+            .send(CanvasMsg::Recreate(
+                Some(self.size.get()),
+                self.get_canvas_id(),
+            ))
             .unwrap();
     }
 
     pub(crate) fn reset(&self) {
         self.reset_to_initial_state();
+
+        if !self.is_paintable() {
+            return;
+        }
+
         self.ipc_renderer
             .send(CanvasMsg::Recreate(None, self.get_canvas_id()))
             .unwrap();
@@ -347,7 +374,6 @@ impl CanvasState {
 
     pub(crate) fn get_rect(&self, canvas_size: Size2D<u64>, rect: Rect<u64>) -> Vec<u8> {
         assert!(self.origin_is_clean());
-
         assert!(Rect::from_size(canvas_size).contains_rect(&rect));
 
         let (sender, receiver) = ipc::channel().unwrap();
@@ -398,18 +424,22 @@ impl CanvasState {
         dw: Option<f64>,
         dh: Option<f64>,
     ) -> ErrorResult {
+        if !self.is_paintable() {
+            return Ok(());
+        }
+
         let result = match image {
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
                     return Err(Error::InvalidState);
                 }
 
                 self.draw_html_canvas_element(canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
             },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
                     return Err(Error::InvalidState);
                 }
 
@@ -528,11 +558,6 @@ impl CanvasState {
         dw: Option<f64>,
         dh: Option<f64>,
     ) -> ErrorResult {
-        // 1. Check the usability of the image argument
-        if !canvas.is_valid() {
-            return Err(Error::InvalidState);
-        }
-
         let canvas_size = canvas.get_size();
         let dw = dw.unwrap_or(canvas_size.width as f64);
         let dh = dh.unwrap_or(canvas_size.height as f64);
@@ -1403,13 +1428,13 @@ impl CanvasState {
             },
         };
 
-        ImageData::new(
-            global,
-            size.width,
-            size.height,
-            Some(self.get_rect(canvas_size, read_rect)),
-            can_gc,
-        )
+        let data = if self.is_paintable() {
+            Some(self.get_rect(canvas_size, read_rect))
+        } else {
+            None
+        };
+
+        ImageData::new(global, size.width, size.height, data, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
@@ -1445,6 +1470,10 @@ impl CanvasState {
         dirty_width: i32,
         dirty_height: i32,
     ) {
+        if !self.is_paintable() {
+            return;
+        }
+
         // FIXME(nox): There are many arithmetic operations here that can
         // overflow or underflow, this should probably be audited.
 
@@ -2012,4 +2041,24 @@ where
         style.font_size.to_css_string(),
         style.font_family.to_css_string()
     )
+}
+
+fn adjust_canvas_size(size: Size2D<u64>) -> Size2D<u64> {
+    // Firefox limits width/height to 32767 pixels and Chromium to 65535 pixels,
+    // but slows down dramatically before it reaches that limit.
+    // We limit by area instead, giving us larger maximum dimensions,
+    // in exchange for a smaller maximum canvas size.
+    const MAX_CANVAS_AREA: u64 = 32768 * 8192;
+    // Max width/height to 65535 in CSS pixels.
+    const MAX_CANVAS_SIZE: u64 = 65535;
+
+    if !size.is_empty() &&
+        size.greater_than(Size2D::new(MAX_CANVAS_SIZE, MAX_CANVAS_SIZE))
+            .none() &&
+        size.area() < MAX_CANVAS_AREA
+    {
+        size
+    } else {
+        Size2D::zero()
+    }
 }
