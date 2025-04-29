@@ -12,6 +12,7 @@ use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
+use super::event::EventDefault;
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -44,6 +45,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 use crate::textinput::{
     Direction, KeyReaction, Lines, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
+    get_content_from_clipboard_event, get_content_from_key_event, handle_beforeinput,
     handle_text_clipboard_action,
 };
 
@@ -637,6 +639,15 @@ impl VirtualMethods for HTMLTextAreaElement {
             //TODO: set the editing position for text inputs
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(kevent) = event.downcast::<KeyboardEvent>() {
+                if handle_beforeinput(
+                    self.upcast::<Node>(),
+                    get_content_from_key_event(kevent).as_ref(),
+                    can_gc,
+                ) == EventDefault::Prevented
+                {
+                    event.set_the_cancelled_flag();
+                    return;
+                }
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
                 let action = self.textinput.borrow_mut().handle_keydown(kevent);
@@ -688,9 +699,43 @@ impl VirtualMethods for HTMLTextAreaElement {
                 event.mark_as_handled();
             }
         } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
-            if !event.DefaultPrevented() {
-                handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
+            if event.DefaultPrevented() || !event.IsTrusted() {
+                return;
             }
+
+            let event_target: &Node = self.upcast();
+
+            match event.Type().str() {
+                "copy" => {
+                    if handle_beforeinput(event_target, None, can_gc) == EventDefault::Prevented {
+                        event.set_the_cancelled_flag();
+                        return;
+                    }
+                },
+                "cut" => {
+                    if handle_beforeinput(event_target, None, can_gc) == EventDefault::Prevented {
+                        event.set_the_cancelled_flag();
+                        return;
+                    }
+                },
+                "paste" => {
+                    if handle_beforeinput(
+                        event_target,
+                        Some(&DOMString::from(
+                            get_content_from_clipboard_event(clipboard_event).as_str(),
+                        )),
+                        can_gc,
+                    ) == EventDefault::Prevented
+                    {
+                        event.set_the_cancelled_flag();
+                        return;
+                    }
+                },
+                _ => (),
+            }
+
+            handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         }
 
         self.validity_state()
