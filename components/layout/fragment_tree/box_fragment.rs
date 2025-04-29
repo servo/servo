@@ -296,7 +296,10 @@ impl BoxFragment {
         // Both boxes and its scrollable overflow (if it is included) should be transformed accordingly.
         //
         // TODO(stevennovaryo): We are supposed to handle perspective transform and 3d context, but it is yet to happen.
-        if self.style.has_transform_or_perspective(self.base.flags) {
+        if self
+            .style
+            .has_effective_transform_or_perspective(self.base.flags)
+        {
             if let Some(transform) =
                 self.calculate_transform_matrix(&self.border_rect().to_untyped())
             {
