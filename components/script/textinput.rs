@@ -18,9 +18,11 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventM
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
-use crate::dom::event::Event;
+use crate::dom::event::{Event, EventDefault};
+use crate::dom::eventtarget::EventTarget;
+use crate::dom::inputevent::InputEvent;
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::node::NodeTraits;
+use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::ClipboardEvent;
 use crate::drag_data_store::{DragDataStore, Kind};
 use crate::script_runtime::CanGc;
@@ -1161,6 +1163,101 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.insert_string(data.to_string());
             }
         }
+    }
+}
+
+pub(crate) fn handle_beforeinput(
+    event_target: &Node,
+    data: Option<&DOMString>,
+    can_gc: CanGc,
+) -> EventDefault {
+    let beforeinput = InputEvent::new(
+        &event_target.owner_window(),
+        None,
+        DOMString::from("beforeinput"),
+        true,
+        true,
+        Some(&event_target.owner_window()),
+        0,
+        data.cloned(),
+        false,
+        can_gc,
+    );
+    let beforeinput_event: &Event = beforeinput.upcast();
+    beforeinput_event.set_composed(true);
+    beforeinput_event.set_trusted(true);
+    beforeinput_event.fire(event_target.upcast::<EventTarget>(), can_gc);
+    beforeinput_event.get_cancel_state()
+}
+
+pub(crate) fn handle_key_or_clipboard_event(
+    event: &Event,
+    event_target: &Node,
+    clipboard_event: Option<&ClipboardEvent>,
+    keyboard_event: Option<&KeyboardEvent>,
+    can_gc: CanGc,
+) -> bool {
+    let mut data: Option<DOMString> = None;
+
+    if clipboard_event.is_some() {
+        let mut content = "".to_owned();
+        if let Some(clipboard_data) = clipboard_event.unwrap().get_clipboard_data() {
+            let drag_data_store = clipboard_data.data_store().expect("This shouldn't fail");
+            for item in drag_data_store.iter_item_list() {
+                if let Kind::Text { data, .. } = item {
+                    content.push_str(data);
+                }
+            }
+        }
+
+        data = Some(DOMString::from(content.as_str()))
+    } else if keyboard_event.is_some() {
+        let key = keyboard_event.unwrap().key();
+        let mut mods = keyboard_event.unwrap().modifiers();
+        let macos = cfg!(target_os = "macos");
+        mods.remove(Modifiers::SHIFT);
+        data = ShortcutMatcher::new(KeyState::Down, key.clone(), mods)
+            .shortcut(Modifiers::CONTROL | Modifiers::ALT, 'B', || None)
+            .shortcut(Modifiers::CONTROL | Modifiers::ALT, 'F', || None)
+            .shortcut(Modifiers::CONTROL | Modifiers::ALT, 'A', || None)
+            .shortcut(Modifiers::CONTROL | Modifiers::ALT, 'E', || None)
+            .optional_shortcut(macos, Modifiers::CONTROL, 'A', || None)
+            .optional_shortcut(macos, Modifiers::CONTROL, 'E', || None)
+            .shortcut(CMD_OR_CONTROL, 'A', || None)
+            .shortcut(CMD_OR_CONTROL, 'X', || None)
+            .shortcut(CMD_OR_CONTROL, 'C', || None)
+            .shortcut(CMD_OR_CONTROL, 'V', || None)
+            .shortcut(Modifiers::empty(), Key::Delete, || None)
+            .shortcut(Modifiers::empty(), Key::Backspace, || None)
+            .optional_shortcut(macos, Modifiers::META, Key::ArrowLeft, || None)
+            .optional_shortcut(macos, Modifiers::META, Key::ArrowRight, || None)
+            .optional_shortcut(macos, Modifiers::META, Key::ArrowUp, || None)
+            .optional_shortcut(macos, Modifiers::META, Key::ArrowDown, || None)
+            .shortcut(Modifiers::ALT, Key::ArrowLeft, || None)
+            .shortcut(Modifiers::ALT, Key::ArrowRight, || None)
+            .shortcut(Modifiers::empty(), Key::ArrowLeft, || None)
+            .shortcut(Modifiers::empty(), Key::ArrowRight, || None)
+            .shortcut(Modifiers::empty(), Key::ArrowUp, || None)
+            .shortcut(Modifiers::empty(), Key::ArrowDown, || None)
+            .shortcut(Modifiers::empty(), Key::Enter, || None)
+            .optional_shortcut(macos, Modifiers::empty(), Key::Home, || None)
+            .optional_shortcut(macos, Modifiers::empty(), Key::End, || None)
+            .shortcut(Modifiers::empty(), Key::PageUp, || None)
+            .shortcut(Modifiers::empty(), Key::PageDown, || None)
+            .otherwise(|| {
+                if let Key::Character(ref c) = key {
+                    return Some(DOMString::from(c.as_str()));
+                }
+                None
+            })
+            .unwrap()
+    }
+
+    if handle_beforeinput(event_target, data.as_ref(), can_gc) == EventDefault::Prevented {
+        event.set_the_cancelled_flag();
+        false
+    } else {
+        true
     }
 }
 

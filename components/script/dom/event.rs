@@ -738,7 +738,7 @@ impl Event {
     }
 
     /// <https://dom.spec.whatwg.org/#set-the-canceled-flag>
-    fn set_the_cancelled_flag(&self) {
+    pub(crate) fn set_the_cancelled_flag(&self) {
         if self.cancelable.get() && !self.in_passive_listener.get() {
             self.canceled.set(EventDefault::Prevented)
         }

@@ -84,7 +84,7 @@ use crate::textinput::KeyReaction::{
 use crate::textinput::Lines::Single;
 use crate::textinput::{
     Direction, SelectionDirection, TextInput, UTF8Bytes, UTF16CodeUnits,
-    handle_text_clipboard_action,
+    handle_key_or_clipboard_event, handle_text_clipboard_action,
 };
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -2668,6 +2668,16 @@ impl VirtualMethods for HTMLInputElement {
             self.input_type().is_textual_or_password()
         {
             if let Some(keyevent) = event.downcast::<KeyboardEvent>() {
+                if !handle_key_or_clipboard_event(
+                    event,
+                    self.upcast::<Node>(),
+                    None,
+                    Some(keyevent),
+                    can_gc,
+                ) {
+                    return;
+                }
+
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
                 let action = self.textinput.borrow_mut().handle_keydown(keyevent);
@@ -2725,9 +2735,39 @@ impl VirtualMethods for HTMLInputElement {
                 event.mark_as_handled();
             }
         } else if let Some(clipboard_event) = event.downcast::<ClipboardEvent>() {
-            if !event.DefaultPrevented() {
-                handle_text_clipboard_action(self, &self.textinput, clipboard_event, can_gc);
+            if event.DefaultPrevented() || !event.IsTrusted() {
+                return;
             }
+
+            let event_target: &Node = self.upcast();
+
+            match event.Type().str() {
+                "copy" => {
+                    if !handle_key_or_clipboard_event(event, event_target, None, None, can_gc) {
+                        return;
+                    }
+                },
+                "cut" => {
+                    if !handle_key_or_clipboard_event(event, event_target, None, None, can_gc) {
+                        return;
+                    }
+                },
+                "paste" => {
+                    if !handle_key_or_clipboard_event(
+                        event,
+                        event_target,
+                        Some(clipboard_event),
+                        None,
+                        can_gc,
+                    ) {
+                        return;
+                    }
+                },
+                _ => (),
+            }
+
+            handle_text_clipboard_action(self, &self.textinput, clipboard_event, CanGc::note());
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         }
 
         update_related_validity_states(self, can_gc);
