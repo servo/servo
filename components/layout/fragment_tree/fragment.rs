@@ -170,17 +170,28 @@ impl Fragment {
         }
     }
 
-    pub fn scrolling_area(&self) -> PhysicalRect<Au> {
+    pub fn unclipped_scrolling_area(&self) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 let fragment = fragment.borrow();
                 fragment.offset_by_containing_block(&fragment.scrollable_overflow())
             },
-            _ => self.scrollable_overflow(),
+            _ => self.scrollable_overflow_for_parent(),
         }
     }
 
-    pub fn scrollable_overflow(&self) -> PhysicalRect<Au> {
+    pub fn scrolling_area(&self) -> PhysicalRect<Au> {
+        match self {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                let fragment = fragment.borrow();
+                fragment
+                    .offset_by_containing_block(&fragment.reachable_scrollable_overflow_region())
+            },
+            _ => self.scrollable_overflow_for_parent(),
+        }
+    }
+
+    pub fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 fragment.borrow().scrollable_overflow_for_parent()

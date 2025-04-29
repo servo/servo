@@ -12,7 +12,7 @@ use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::computed_values::unicode_bidi::T as UnicodeBidi;
-use style::logical_geometry::{Direction as AxisDirection, WritingMode};
+use style::logical_geometry::{Direction as AxisDirection, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
@@ -280,6 +280,16 @@ impl Default for BorderStyleColor {
     }
 }
 
+/// <https://drafts.csswg.org/cssom-view/#overflow-directions>
+/// > A scrolling box of a viewport or element has two overflow directions,
+/// > which are the block-end and inline-end directions for that viewport or element.
+pub(crate) struct OverflowDirection {
+    /// Whether block-end or inline-end direction is [PhysicalSide::Right].
+    pub rightward: bool,
+    /// Whether block-end or inline-end direction is [PhysicalSide::Bottom].
+    pub downward: bool,
+}
+
 pub(crate) trait ComputedValuesExt {
     fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn box_offsets(&self, writing_mode: WritingMode) -> LogicalSides<LengthPercentageOrAuto<'_>>;
@@ -354,6 +364,7 @@ pub(crate) trait ComputedValuesExt {
         writing_mode: WritingMode,
     ) -> bool;
     fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool;
+    fn overflow_direction(&self) -> OverflowDirection;
 }
 
 impl ComputedValuesExt for ComputedValues {
@@ -979,6 +990,23 @@ impl ComputedValuesExt for ComputedValues {
                 .is_some_and(LengthPercentage::has_percentage)
         };
         has_percentage(box_offsets.block_start) || has_percentage(box_offsets.block_end)
+    }
+
+    // <https://drafts.csswg.org/cssom-view/#overflow-directions>
+    fn overflow_direction(&self) -> OverflowDirection {
+        let inline_end_direction = self.writing_mode.inline_end_physical_side();
+        let block_end_direction = self.writing_mode.block_end_physical_side();
+
+        let rightward = inline_end_direction == PhysicalSide::Right ||
+            block_end_direction == PhysicalSide::Right;
+        let downward = inline_end_direction == PhysicalSide::Bottom ||
+            block_end_direction == PhysicalSide::Bottom;
+
+        // TODO(stevennovaryo): We should consider the flex-container's CSS (e.g. flow-direction: column-reverse).
+        OverflowDirection {
+            rightward,
+            downward,
+        }
     }
 }
 
