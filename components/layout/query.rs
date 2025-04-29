@@ -45,6 +45,7 @@ use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
+use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
 /// Supposed helper for post composite query, query that requires the consideration of transform,
@@ -52,6 +53,77 @@ use crate::taffy::SpecificTaffyGridInfo;
 pub(crate) struct PostCompositeQueryHelper<'dom> {
     pub root_scroll_offset: &'dom dyn Fn() -> Vector2D<Au>,
     pub scroll_offset: &'dom dyn Fn(&BoxFragment) -> Vector2D<Au>,
+}
+
+impl PostCompositeQueryHelper<'_> {
+    fn retrieve_box_fragment(fragment: &Fragment) -> Option<&ArcRefCell<BoxFragment>> {
+        match fragment {
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => Some(box_fragment),
+            _ => None,
+        }
+    }
+
+    /// Get the position property for current node.
+    fn retrieve_position_property(
+        node: ServoLayoutNode<'_>,
+    ) -> Option<Position> {
+        node.fragments_for_pseudo(None)
+            .first()
+            .and_then(PostCompositeQueryHelper::retrieve_box_fragment)
+            .map(|fragment| fragment.borrow().style.get_box().position)
+    }
+
+    /// Find the parent node in containing block chain.
+    fn parent_containing_block(node: ServoLayoutNode<'_>) -> Option<ServoLayoutNode<'_>> {
+        fn established_containing_block(
+            style: &ServoArc<ComputedValues>,
+            fragment_flags: FragmentFlags,
+            position: Option<Position>,
+        ) -> bool {
+            match position {
+                Some(Position::Absolute) => {
+                    style.establishes_containing_block_for_absolute_descendants(fragment_flags)
+                },
+                Some(Position::Fixed) => {
+                    style.establishes_containing_block_for_all_descendants(fragment_flags)
+                },
+                _ => true,
+            }
+        }
+
+        let position = PostCompositeQueryHelper::retrieve_position_property(node);
+
+        let mut maybe_parent_node = node.parent_node();
+        while let Some(parent_node) = maybe_parent_node {
+            if let Some(parent_fragment) = parent_node.fragments_for_pseudo(None).first() {
+                let established_containing_block = match parent_fragment {
+                    Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                        established_containing_block(
+                            &box_fragment.borrow().style,
+                            box_fragment.borrow().base.flags,
+                            position,
+                        )
+                    },
+                    Fragment::Positioning(fragment) => {
+                        fragment.borrow().style.as_ref().is_some_and(|style| {
+                            established_containing_block(
+                                style,
+                                fragment.borrow().base.flags,
+                                position,
+                            )
+                        })
+                    },
+                    _ => continue,
+                };
+
+                if established_containing_block {
+                    return maybe_parent_node;
+                }
+            };
+            maybe_parent_node = parent_node.parent_node()
+        }
+        None
+    }
 }
 
 pub(crate) fn process_content_box_request(
@@ -101,20 +173,24 @@ pub(crate) fn node_to_root_transform(
 ) -> Vector2D<Au> {
     let mut translation = (helper.root_scroll_offset)();
 
-    let mut maybe_parent_node = node.parent_node();
+    let mut maybe_parent_node = PostCompositeQueryHelper::parent_containing_block(node);
     while let Some(parent_node) = maybe_parent_node {
         if let Some(parent_fragment) = parent_node.fragments_for_pseudo(None).first() {
-            let parent_fragment = match parent_fragment {
-                Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
-                _ => continue,
-            };
+            let parent_fragment =
+                match PostCompositeQueryHelper::retrieve_box_fragment(parent_fragment) {
+                    Some(box_fragment) => box_fragment,
+                    _ => continue,
+                };
 
             let scroll_offset = (helper.scroll_offset)(&parent_fragment.borrow());
             translation += scroll_offset;
-        };
+
+            maybe_parent_node = PostCompositeQueryHelper::parent_containing_block(parent_node);
+            continue;
+        }
         maybe_parent_node = parent_node.parent_node();
     }
-    return translation;
+    translation
 }
 
 pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32> {
