@@ -42,6 +42,7 @@ mod from_constellation {
                 Self::LoadComplete(..) => target!("LoadComplete"),
                 Self::WebDriverMouseButtonEvent(..) => target!("WebDriverMouseButtonEvent"),
                 Self::WebDriverMouseMoveEvent(..) => target!("WebDriverMouseMoveEvent"),
+                Self::WebDriverWheelScrollEvent(..) => target!("WebDriverWheelScrollEvent"),
                 Self::SendInitialTransaction(..) => target!("SendInitialTransaction"),
                 Self::SendScrollNode(..) => target!("SendScrollNode"),
                 Self::SendDisplayList { .. } => target!("SendDisplayList"),

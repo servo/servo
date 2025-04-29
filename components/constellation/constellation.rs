@@ -4783,6 +4783,12 @@ where
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y));
             },
+            WebDriverCommandMsg::WheelScrollAction(webview, x, y, delta_x, delta_y) => {
+                self.compositor_proxy
+                    .send(CompositorMsg::WebDriverWheelScrollEvent(
+                        webview, x, y, delta_x, delta_y,
+                    ));
+            },
             WebDriverCommandMsg::TakeScreenshot(webview_id, rect, response_sender) => {
                 self.compositor_proxy.send(CompositorMsg::CreatePng(
                     webview_id,
