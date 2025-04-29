@@ -29,6 +29,7 @@ use crate::geom::{
     PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec, Size, Sizes, ToLogical,
     ToLogicalWithContainingBlock,
 };
+use crate::layout_box_base::LayoutBoxBase;
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
 use crate::{
@@ -103,6 +104,20 @@ impl AbsolutelyPositionedBox {
     }
 }
 
+impl IndependentFormattingContext {
+    #[inline]
+    pub(crate) fn new_positioning_context(&self) -> Option<PositioningContext> {
+        self.base.new_positioning_context()
+    }
+}
+
+impl LayoutBoxBase {
+    #[inline]
+    pub(crate) fn new_positioning_context(&self) -> Option<PositioningContext> {
+        PositioningContext::new_for_style(&self.style, &self.base_fragment_info.flags)
+    }
+}
+
 impl PositioningContext {
     pub(crate) fn new_for_containing_block_for_all_descendants() -> Self {
         Self {
@@ -130,14 +145,10 @@ impl PositioningContext {
         self.for_nearest_positioned_ancestor.is_some()
     }
 
-    pub(crate) fn new_for_style(style: &ComputedValues) -> Option<Self> {
-        // NB: We never make PositioningContexts for replaced elements, which is why we always
-        // pass false here.
-        if style.establishes_containing_block_for_all_descendants(FragmentFlags::empty()) {
+    fn new_for_style(style: &ComputedValues, flags: &FragmentFlags) -> Option<Self> {
+        if style.establishes_containing_block_for_all_descendants(*flags) {
             Some(Self::new_for_containing_block_for_all_descendants())
-        } else if style
-            .establishes_containing_block_for_absolute_descendants(FragmentFlags::empty())
-        {
+        } else if style.establishes_containing_block_for_absolute_descendants(*flags) {
             Some(Self {
                 for_nearest_positioned_ancestor: Some(Vec::new()),
                 for_nearest_containing_block_for_all_descendants: Vec::new(),
@@ -213,12 +224,12 @@ impl PositioningContext {
         &mut self,
         layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
-        style: &ComputedValues,
+        base: &LayoutBoxBase,
         fragment_layout_fn: impl FnOnce(&mut Self) -> BoxFragment,
     ) -> BoxFragment {
         // Try to create a context, but if one isn't necessary, simply create the fragment
         // using the given closure and the current `PositioningContext`.
-        let mut new_context = match Self::new_for_style(style) {
+        let mut new_context = match base.new_positioning_context() {
             Some(new_context) => new_context,
             None => return fragment_layout_fn(self),
         };
@@ -229,9 +240,8 @@ impl PositioningContext {
         // If the new context has any hoisted boxes for the nearest containing block for
         // pass them up the tree.
         self.append(new_context);
-
-        if style.clone_position() == Position::Relative {
-            new_fragment.content_rect.origin += relative_adjustement(style, containing_block)
+        if base.style.clone_position() == Position::Relative {
+            new_fragment.content_rect.origin += relative_adjustement(&base.style, containing_block)
                 .to_physical_vector(containing_block.style.writing_mode)
         }
 
@@ -586,7 +596,7 @@ impl HoistedAbsolutelyPositionedBox {
                 .sizes
         }));
 
-        let mut positioning_context = PositioningContext::new_for_style(&style).unwrap();
+        let mut positioning_context = context.new_positioning_context().unwrap();
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;

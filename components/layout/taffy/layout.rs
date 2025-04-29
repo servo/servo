@@ -251,8 +251,9 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             style,
                         };
                         let layout = {
-                            let mut child_positioning_context =
-                                PositioningContext::new_for_style(style).unwrap_or_else(|| {
+                            let mut child_positioning_context = independent_context
+                                .new_positioning_context()
+                                .unwrap_or_else(|| {
                                     PositioningContext::new_for_subtree(
                                         self.positioning_context
                                             .collects_for_nearest_positioned_ancestor(),

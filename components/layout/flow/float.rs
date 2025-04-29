@@ -913,11 +913,10 @@ impl FloatBox {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
     ) -> BoxFragment {
-        let style = self.contents.style().clone();
         positioning_context.layout_maybe_position_relative_fragment(
             layout_context,
             containing_block,
-            &style,
+            &self.contents.base,
             |positioning_context| {
                 self.contents
                     .layout_float_or_atomic_inline(

@@ -779,7 +779,7 @@ impl BlockLevelBox {
                 ArcRefCell::new(positioning_context.layout_maybe_position_relative_fragment(
                     layout_context,
                     containing_block,
-                    &base.style,
+                    base,
                     |positioning_context| {
                         layout_in_flow_non_replaced_block_level_same_formatting_context(
                             layout_context,
@@ -798,7 +798,7 @@ impl BlockLevelBox {
                 positioning_context.layout_maybe_position_relative_fragment(
                     layout_context,
                     containing_block,
-                    independent.style(),
+                    &independent.base,
                     |positioning_context| {
                         independent.layout_in_flow_block_level(
                             layout_context,
