@@ -105,7 +105,7 @@ pub enum ScriptToDevtoolsControlMsg {
     TitleChanged(PipelineId, String),
 
     /// Get source information from script
-    ScriptSourceLoaded(PipelineId, Option<WorkerId>, SourceInfo),
+    ScriptSourceLoaded(PipelineId, SourceInfo),
 }
 
 /// Serialized JS return values
@@ -551,4 +551,5 @@ impl fmt::Display for ShadowRootMode {
 pub struct SourceInfo {
     pub url: ServoUrl,
     pub external: bool,
+    pub worker_id: Option<WorkerId>,
 }

@@ -1008,16 +1008,15 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        // TODO: we need to handle this for worker
         if let Some(chan) = self.global().devtools_chan() {
             let pipeline_id = self.global().pipeline_id();
             let source_info = SourceInfo {
                 url: script.url.clone(),
                 external: script.external,
+                worker_id: None,
             };
             let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                 pipeline_id,
-                None,
                 source_info,
             ));
         }

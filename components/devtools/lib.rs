@@ -253,9 +253,8 @@ impl DevtoolsInstance {
                 )) => self.handle_console_message(pipeline_id, worker_id, console_message),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                     pipeline_id,
-                    worker_id,
                     source_info,
-                )) => self.handle_script_source_info(pipeline_id, worker_id, source_info),
+                )) => self.handle_script_source_info(pipeline_id, source_info),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
                     pipeline_id,
                     page_error,
@@ -508,15 +507,10 @@ impl DevtoolsInstance {
         }
     }
 
-    fn handle_script_source_info(
-        &mut self,
-        pipeline_id: PipelineId,
-        worker_id: Option<WorkerId>,
-        source_info: SourceInfo,
-    ) {
+    fn handle_script_source_info(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
         let mut actors = self.actors.lock().unwrap();
 
-        if let Some(worker_id) = worker_id {
+        if let Some(worker_id) = source_info.worker_id {
             let Some(worker_actor_name) = self.actor_workers.get(&worker_id) else {
                 return;
             };
