@@ -95,7 +95,7 @@ impl Default for ViewportDescription {
 
 impl ViewportDescription {
     /// Iterates over the key-value pairs generated from meta tag and returns a ViewportDescription
-    fn process_viewport_key_value_pair(pairs: HashMap<String, String>) -> ViewportDescription {
+    fn process_viewport_key_value_pairs(pairs: HashMap<String, String>) -> ViewportDescription {
         let mut description = ViewportDescription::default();
         for (key, value) in &pairs {
             match key.as_str() {
@@ -170,6 +170,6 @@ impl FromStr for ViewportDescription {
             })
             .collect::<HashMap<String, String>>();
 
-        Ok(Self::process_viewport_key_value_pair(parsed_values))
+        Ok(Self::process_viewport_key_value_pairs(parsed_values))
     }
 }
