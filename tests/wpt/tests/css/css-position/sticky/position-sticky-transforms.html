@@ -14,7 +14,9 @@
 test(() => {
   const elements = setupStickyTest('top', 50);
   elements.sticky.style.transform = 'scale(2)';
-  elements.scroller.scrollTop = 200;
+  // We will scroll halfway through the sticky element, this will reduce
+  // false positive if an UA is not considering transform yet.
+  elements.scroller.scrollTop = 175;
 
   // Transforms don't affect offsetTop, so use getBoundingClientRect.
   // Scaling the sticky element by 2 means its top-y moves (1/2 * height)
