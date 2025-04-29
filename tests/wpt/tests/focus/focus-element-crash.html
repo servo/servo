@@ -5,7 +5,7 @@
 
 <body>
 
-<!--https://github.com/servo/servo/issues/36729 test case-->
+<!--focus element remounted test case-->
 <audio onloadstart="select.focus()" src=""></audio>
 <iframe id="iframe"></iframe>
 <table id="table">
@@ -17,7 +17,7 @@
     window.addEventListener("load", _ => iframe.appendChild(table));
 </script>
 
-<!--https://github.com/servo/servo/issues/36607 test case-->
+<!--focus element adopted test case-->
 <input id="username" type="text" placeholder="username">
 <input id="password" type="text" placeholder="password">
 </body>
