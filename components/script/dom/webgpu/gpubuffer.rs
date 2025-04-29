@@ -62,7 +62,7 @@ impl ActiveBufferMapping {
         })
     }
 }
-
+#[derive(JSTraceable, MallocSizeOf)]
 struct DroppableStruct {
     #[ignore_malloc_size_of = "defined in webgpu.droppable"]
     #[no_trace]
@@ -91,7 +91,7 @@ impl DroppableStruct {
         size: GPUSize64,
         usage: GPUFlagsConstant,
         mapping: Option<ActiveBufferMapping>,
-        label: USVStrinG,
+        label: USVString,
     ) -> Self {
         Self {
             channel,
@@ -107,15 +107,20 @@ impl DroppableStruct {
 }
 
 impl Drop for DroppableStruct {
-    unsafe fn drop(&mut self) {
+    fn drop(&mut self) {
         self.Destroy()
     }
 }
 
-impl GPUBufferMethods<crate::DomTypeHolder> for DroppableStruct {
+impl DroppableStruct {
+    pub(crate) fn id(&self) -> WebGPUBuffer {
+        self.buffer
+    }
+}
+
+impl DroppableStruct {
     #[allow(unsafe_code)]
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
-    fn Unmap(&self) {
+    pub(crate) fn Unmap(&self) {
         // Step 1
         if let Some(promise) = self.pending_map.borrow_mut().take() {
             promise.reject_error(Error::Abort, CanGc::note());
@@ -146,9 +151,8 @@ impl GPUBufferMethods<crate::DomTypeHolder> for DroppableStruct {
             warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
         }
     }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy>
-    fn Destroy(&self) {
+    
+    pub(crate) fn Destroy(&self) {
         // Step 1
         self.Unmap();
         // Step 2
@@ -163,9 +167,8 @@ impl GPUBufferMethods<crate::DomTypeHolder> for DroppableStruct {
             );
         };
     }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync>
-    fn MapAsync(
+    
+    pub(crate) fn MapAsync(
         &self,
         mode: u32,
         offset: GPUSize64,
@@ -214,10 +217,9 @@ impl GPUBufferMethods<crate::DomTypeHolder> for DroppableStruct {
         // Step 6
         promise
     }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange>
+    
     #[allow(unsafe_code)]
-    fn GetMappedRange(
+    pub(crate) fn GetMappedRange(
         &self,
         _cx: JSContext,
         offset: GPUSize64,
@@ -251,29 +253,24 @@ impl GPUBufferMethods<crate::DomTypeHolder> for DroppableStruct {
             .map(|view| view.array_buffer())
             .map_err(|()| Error::Operation)
     }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn Label(&self) -> USVString {
+    
+    pub(crate) fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
-    fn SetLabel(&self, value: USVString) {
+    
+    pub(crate) fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-size>
-    fn Size(&self) -> GPUSize64 {
+    
+    pub(crate) fn Size(&self) -> GPUSize64 {
         self.size
     }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-usage>
-    fn Usage(&self) -> GPUFlagsConstant {
+    
+    pub(crate) fn Usage(&self) -> GPUFlagsConstant {
         self.usage
     }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapstate>
-    fn MapState(&self) -> GPUBufferMapState {
+    
+    pub(crate) fn MapState(&self) -> GPUBufferMapState {
         // Step 1&2&3
         if self.mapping.borrow().is_some() {
             GPUBufferMapState::Mapped
@@ -281,6 +278,20 @@ impl GPUBufferMethods<crate::DomTypeHolder> for DroppableStruct {
             GPUBufferMapState::Pending
         } else {
             GPUBufferMapState::Unmapped
+        }
+    }
+}
+
+impl RoutedPromiseListener<Result<Mapping, BufferAccessError>> for DroppableStruct {
+    fn handle_response(
+        &self,
+        response: Result<Mapping, BufferAccessError>,
+        promise: &Rc<Promise>,
+        can_gc: CanGc,
+    ) {
+        match response {
+            Ok(mapping) => self.map_success(promise, mapping, can_gc),
+            Err(_) => self.map_failure(promise, can_gc),
         }
     }
 }
@@ -339,7 +350,7 @@ impl GPUBuffer {
 
 impl GPUBuffer {
     pub(crate) fn id(&self) -> WebGPUBuffer {
-        self.droppable.buffer
+        self.droppable.id()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
@@ -390,9 +401,9 @@ impl GPUBuffer {
     }
 }
 
-impl GPUBuffer {
+impl DroppableStruct {
     fn map_failure(&self, p: &Rc<Promise>, can_gc: CanGc) {
-        let mut pending_map = self.droppable.pending_map.borrow_mut();
+        let mut pending_map = self.pending_map.borrow_mut();
         // Step 1
         if pending_map.as_ref() != Some(p) {
             assert!(p.is_rejected());
@@ -403,15 +414,15 @@ impl GPUBuffer {
         // Step 3
         pending_map.take();
         // Step 4
-        if self.droppable.device.is_lost() {
+        if self.device.is_lost() {
             p.reject_error(Error::Abort, can_gc);
         } else {
             p.reject_error(Error::Operation, can_gc);
         }
     }
-
+    
     fn map_success(&self, p: &Rc<Promise>, wgpu_mapping: Mapping, can_gc: CanGc) {
-        let mut pending_map = self.droppable.pending_map.borrow_mut();
+        let mut pending_map = self.pending_map.borrow_mut();
 
         // Step 1
         if pending_map.as_ref() != Some(p) {
@@ -449,16 +460,64 @@ impl GPUBuffer {
     }
 }
 
-impl RoutedPromiseListener<Result<Mapping, BufferAccessError>> for GPUBuffer {
-    fn handle_response(
+impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
+    #[allow(unsafe_code)]
+    fn Unmap(&self) {
+        self.droppable.Unmap();
+    }
+    
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy>
+    fn Destroy(&self) {
+        self.droppable.Destroy();
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync>
+    fn MapAsync(
         &self,
-        response: Result<Mapping, BufferAccessError>,
-        promise: &Rc<Promise>,
+        mode: u32,
+        offset: GPUSize64,
+        size: Option<GPUSize64>,
+        comp: InRealm,
         can_gc: CanGc,
-    ) {
-        match response {
-            Ok(mapping) => self.map_success(promise, mapping, can_gc),
-            Err(_) => self.map_failure(promise, can_gc),
-        }
+    ) -> Rc<Promise> {
+        self.droppable.MapAsync(mode, offset, size, comp, can_gc)
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange>
+    #[allow(unsafe_code)]
+    fn GetMappedRange(
+        &self,
+        cx: JSContext,
+        offset: GPUSize64,
+        size: Option<GPUSize64>,
+        can_gc: CanGc,
+    ) -> Fallible<ArrayBuffer> {
+        self.droppable.GetMappedRange(cx, offset, size, can_gc)
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
+    fn Label(&self) -> USVString {
+        self.droppable.Label()
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
+    fn SetLabel(&self, value: USVString) {
+        self.droppable.SetLabel(value);
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-size>
+    fn Size(&self) -> GPUSize64 {
+        self.droppable.Size()
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-usage>
+    fn Usage(&self) -> GPUFlagsConstant {
+        self.droppable.Usage()
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapstate>
+    fn MapState(&self) -> GPUBufferMapState {
+        self.droppable.MapState()
     }
 }
