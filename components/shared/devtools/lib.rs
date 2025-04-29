@@ -551,4 +551,5 @@ impl fmt::Display for ShadowRootMode {
 pub struct SourceInfo {
     pub url: ServoUrl,
     pub external: bool,
+    pub worker_id: Option<WorkerId>,
 }
