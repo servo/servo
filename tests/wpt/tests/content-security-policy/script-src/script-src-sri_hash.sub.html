@@ -7,6 +7,9 @@
     <script src='/resources/testharnessreport.js' nonce='dummy'></script>
 
     <!-- CSP served: script-src {{domains[www]}}:* 'nonce-dummy' 'sha256-wIc3KtqOuTFEu6t17sIBuOswgkV406VJvhSk79Gw6U0=' 'ShA256-L7/UQ9VWpyG7C9RDEC4ctS5hI3Zcw+ta+haPGlByG9c=' 'sha512-rYCVMxWV5nq8IsMo+UZNObWtEiWGok/vDN8BMoEQi41s0znSes6E1Q2aag3Lw3u2J1w2rqH7uF2ws6FpQhfSOA==' -->
+    <!-- The domain here is intentionally served with `www`. In the event that the integrity check fails,
+      the request should be disallowed by the source list. If we were to use {{domains[]}},
+      then we would not be able to observe the difference with regards to the integrity check -->
     <!-- ShA256 is intentionally mixed case -->
 </head>
 
@@ -18,6 +21,8 @@
         var port = "{{ports[http][0]}}";
         if (location.protocol === "https:")
           port = "{{ports[https][0]}}";
+        // Since {{domains[www]}} is allowed by the CSP policy, regardless of the integrity check
+        // the request would be allowed.
         var crossorigin_base = location.protocol + "//{{domains[www]}}:" + port;
 
         // Test name, src, integrity, expected to run.
