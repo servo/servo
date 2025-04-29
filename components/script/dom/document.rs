@@ -1180,7 +1180,9 @@ impl Document {
             let node = elem.upcast::<Node>();
             elem.set_focus_state(false);
             // FIXME: pass appropriate relatedTarget
-            self.fire_focus_event(FocusEventType::Blur, node, None, can_gc);
+            if node.is_connected() {
+                self.fire_focus_event(FocusEventType::Blur, node, None, can_gc);
+            }
 
             // Notify the embedder to hide the input method.
             if elem.input_method_type().is_some() {
