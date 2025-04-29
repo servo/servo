@@ -12,7 +12,7 @@ use js::typedarray::ArrayBuffer;
 use webgpu_traits::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
 use wgpu_core::device::HostMap;
 use wgpu_core::resource::BufferAccessError;
-
+use script_bindings::reflector::DomObject;
 use crate::conversions::Convert;
 use crate::dom::bindings::buffer_source::DataBlock;
 use crate::dom::bindings::cell::DomRefCell;
@@ -64,6 +64,7 @@ impl ActiveBufferMapping {
 }
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableStruct {
+    reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu.droppable"]
     #[no_trace]
     channel: WebGPU,
@@ -85,6 +86,7 @@ struct DroppableStruct {
 impl DroppableStruct {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
+        reflector: Reflector,
         channel: WebGPU, 
         buffer: WebGPUBuffer,
         device: &GPUDevice,
@@ -94,6 +96,7 @@ impl DroppableStruct {
         label: USVString,
     ) -> Self {
         Self {
+            reflector_: reflector,
             channel,
             label: DomRefCell::new(label),
             device: Dom::from_ref(device),
@@ -151,7 +154,7 @@ impl DroppableStruct {
             warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
         }
     }
-    
+
     pub(crate) fn Destroy(&self) {
         // Step 1
         self.Unmap();
@@ -167,7 +170,7 @@ impl DroppableStruct {
             );
         };
     }
-    
+
     pub(crate) fn MapAsync(
         &self,
         mode: u32,
@@ -217,7 +220,7 @@ impl DroppableStruct {
         // Step 6
         promise
     }
-    
+
     #[allow(unsafe_code)]
     pub(crate) fn GetMappedRange(
         &self,
@@ -253,23 +256,23 @@ impl DroppableStruct {
             .map(|view| view.array_buffer())
             .map_err(|()| Error::Operation)
     }
-    
+
     pub(crate) fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
-    
+
     pub(crate) fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
-    
+
     pub(crate) fn Size(&self) -> GPUSize64 {
         self.size
     }
-    
+
     pub(crate) fn Usage(&self) -> GPUFlagsConstant {
         self.usage
     }
-    
+
     pub(crate) fn MapState(&self) -> GPUBufferMapState {
         // Step 1&2&3
         if self.mapping.borrow().is_some() {
@@ -279,6 +282,12 @@ impl DroppableStruct {
         } else {
             GPUBufferMapState::Unmapped
         }
+    }
+}
+
+impl DomObject for DroppableStruct {
+    fn reflector(&self) -> &Reflector {
+        &self.reflector_
     }
 }
 
@@ -298,7 +307,6 @@ impl RoutedPromiseListener<Result<Mapping, BufferAccessError>> for DroppableStru
 
 #[dom_struct]
 pub(crate) struct GPUBuffer {
-    reflector_: Reflector,
     droppable: DroppableStruct,
 }
 
@@ -312,9 +320,10 @@ impl GPUBuffer {
         mapping: Option<ActiveBufferMapping>,
         label: USVString,
     ) -> Self {
+        let reflector = Reflector::new();
         Self {
-            reflector_: Reflector::new(),
             droppable: DroppableStruct::new(
+                reflector,
                 channel,
                 buffer,
                 device,
@@ -420,7 +429,7 @@ impl DroppableStruct {
             p.reject_error(Error::Operation, can_gc);
         }
     }
-    
+
     fn map_success(&self, p: &Rc<Promise>, wgpu_mapping: Mapping, can_gc: CanGc) {
         let mut pending_map = self.pending_map.borrow_mut();
 
@@ -451,7 +460,7 @@ impl DroppableStruct {
                 // Step 5
                 mapping.data.load(&wgpu_mapping.data);
                 // Step 6
-                self.droppable.mapping.borrow_mut().replace(mapping);
+                self.mapping.borrow_mut().replace(mapping);
                 // Step 7
                 pending_map.take();
                 p.resolve_native(&(), can_gc);
@@ -466,7 +475,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     fn Unmap(&self) {
         self.droppable.Unmap();
     }
-    
+
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy>
     fn Destroy(&self) {
         self.droppable.Destroy();
