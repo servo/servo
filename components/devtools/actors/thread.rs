@@ -7,7 +7,7 @@ use std::net::TcpStream;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use super::source::{Source, SourceData, SourcesReply};
+use super::source::{Source, SourceData, SourcesReply, SourceManager};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
@@ -52,14 +52,14 @@ struct ThreadInterruptedReply {
 
 pub struct ThreadActor {
     pub name: String,
-    pub source_manager: Source,
+    pub source_manager: SourceManager,
 }
 
 impl ThreadActor {
     pub fn new(name: String) -> ThreadActor {
         ThreadActor {
             name: name.clone(),
-            source_manager: Source::new(name),
+            source_manager: SourceManager::new(),
         }
     }
 }
