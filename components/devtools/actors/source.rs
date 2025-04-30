@@ -65,7 +65,7 @@ impl Source {
         }
     }
 
-    pub fn add_source(&self, url: ServoUrl, source_content: String,) {
+    pub fn add_source(&self, url: ServoUrl, source_content: String) {
         self.source_urls.borrow_mut().insert(SourceData {
             actor: self.actor_name.clone(),
             url: url.to_string(),
