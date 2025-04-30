@@ -432,9 +432,9 @@ class MachCommands(CommandBase):
         return [py, avd, apk]
 
     @Command('test-jquery', description='Run the jQuery test suite', category='testing')
-    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def test_jquery(self, build_type: BuildType):
-        return self.jquery_test_runner("test", build_type)
+    @CommandBase.common_command_arguments(binary_selection=True)
+    def test_jquery(self, servo_binary: str):
+        return self.jquery_test_runner("test", servo_binary)
 
     @Command('test-dromaeo', description='Run the Dromaeo test suite', category='testing')
     @CommandArgument('tests', default=["recommended"], nargs="...", help="Specific tests to run")
