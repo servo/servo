@@ -771,7 +771,7 @@ impl CoreResourceManager {
             _ => (FileTokenCheck::NotRequired, None),
         };
 
-        HANDLE.lock().unwrap().as_ref().unwrap().spawn(async move {
+        HANDLE.spawn(async move {
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?

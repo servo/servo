@@ -493,7 +493,7 @@ impl BodySink {
         match self {
             BodySink::Chunked(sender) => {
                 let sender = sender.clone();
-                HANDLE.lock().unwrap().as_mut().unwrap().spawn(async move {
+                HANDLE.spawn(async move {
                     let _ = sender.send(Ok(Frame::data(bytes.into()))).await;
                 });
             },
@@ -2016,7 +2016,7 @@ async fn http_network_fetch(
     let url1 = request.url();
     let url2 = url1.clone();
 
-    HANDLE.lock().unwrap().as_ref().unwrap().spawn(
+    HANDLE.spawn(
         res.into_body()
             .map_err(|e| {
                 warn!("Error streaming response body: {:?}", e);
