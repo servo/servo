@@ -518,9 +518,8 @@ impl DevtoolsInstance {
     fn handle_script_source_info(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
         let mut actors = self.actors.lock().unwrap();
 
-        let (source_actor, source_actor_name) =
+        let source_actor_name =
             SourceActor::new_source(&mut actors, &source_info.url, source_info.content.clone());
-        actors.register(Box::new(source_actor));
 
         if let Some(worker_id) = source_info.worker_id {
             let Some(worker_actor_name) = self.actor_workers.get(&worker_id) else {
@@ -546,7 +545,7 @@ impl DevtoolsInstance {
 >>>>>>> 2fbcdac63d6 (fmt)
 
             let source = SourceData {
-                actor: source_actor_name.clone(),
+                actor: source_actor_name,
                 url: source_info.url.to_string(),
                 is_black_boxed: false,
                 source_content: source_info.content,

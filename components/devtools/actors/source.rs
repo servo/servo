@@ -86,11 +86,7 @@ impl SourceActor {
         }
     }
 
-    pub fn new_source(
-        actors: &mut ActorRegistry,
-        url: &ServoUrl,
-        content: String,
-    ) -> (SourceActor, String) {
+    pub fn new_source(actors: &mut ActorRegistry, url: &ServoUrl, content: String) -> String {
         let source_actor_name = actors.new_name("source");
 
         // this can do better, we should find a way to identify content_type
@@ -102,8 +98,9 @@ impl SourceActor {
         .to_string();
 
         let source_actor = SourceActor::new(source_actor_name.clone(), content, content_type);
+        actors.register(Box::new(source_actor));
 
-        (source_actor, source_actor_name)
+        source_actor_name
     }
 }
 
