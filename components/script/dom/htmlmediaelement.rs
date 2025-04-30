@@ -38,7 +38,7 @@ use servo_media::player::audio::AudioRenderer;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, SeekLock, StreamType};
 use servo_media::{ClientContextId, ServoMedia, SupportsMediaType};
-use servo_url::ServoUrl;
+use servo_url::{MutableOrigin, ServoUrl};
 use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageDescriptor,
     ImageDescriptorFlags, ImageFormat, ImageKey,
@@ -492,6 +492,10 @@ impl HTMLMediaElement {
             media_controls_id: DomRefCell::new(None),
             player_context: document.window().get_player_context(),
         }
+    }
+
+    pub(crate) fn network_state(&self) -> NetworkState {
+        self.network_state.get()
     }
 
     pub(crate) fn get_ready_state(&self) -> ReadyState {
@@ -2069,6 +2073,15 @@ impl HTMLMediaElement {
             if let Err(e) = player.lock().unwrap().stop() {
                 eprintln!("Could not stop player {:?}", e);
             }
+        }
+    }
+
+    pub(crate) fn same_origin(&self, origin: &MutableOrigin) -> bool {
+        // TODO(tharkum): Step 8.6. Update the media data with the contents of response.
+        // <https://html.spec.whatwg.org/multipage/media.html#concept-media-load-resource>
+        match self.resource_url.borrow().as_ref() {
+            Some(url) => url.origin().same_origin(origin),
+            None => self.owner_document().origin().same_origin(origin),
         }
     }
 }

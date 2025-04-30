@@ -26,8 +26,8 @@ interface mixin WindowOrWorkerGlobalScope {
   // ImageBitmap
   [Pref="dom_imagebitmap_enabled"]
   Promise<ImageBitmap> createImageBitmap(ImageBitmapSource image, optional ImageBitmapOptions options = {});
-  // Promise<ImageBitmap> createImageBitmap(
-  //   ImageBitmapSource image, long sx, long sy, long sw, long sh, optional ImageBitmapOptions options);
+  [Pref="dom_imagebitmap_enabled"]
+  Promise<ImageBitmap> createImageBitmap(ImageBitmapSource image, long sx, long sy, long sw, long sh, optional ImageBitmapOptions options = {});
 
   // structured cloning
   [Throws]
