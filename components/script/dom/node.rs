@@ -568,11 +568,6 @@ impl Node {
         self.rare_data.borrow()
     }
 
-    #[allow(dead_code)]
-    fn rare_data_mut(&self) -> RefMut<Option<Box<NodeRareData>>> {
-        self.rare_data.borrow_mut()
-    }
-
     fn ensure_rare_data(&self) -> RefMut<Box<NodeRareData>> {
         let mut rare_data = self.rare_data.borrow_mut();
         if rare_data.is_none() {

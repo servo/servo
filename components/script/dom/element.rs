@@ -331,7 +331,6 @@ impl Element {
         self.rare_data.borrow()
     }
 
-    #[allow(dead_code)]
     fn rare_data_mut(&self) -> RefMut<Option<Box<ElementRareData>>> {
         self.rare_data.borrow_mut()
     }
