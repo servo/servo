@@ -923,13 +923,13 @@ impl GlobalScope {
         {
             let dom_port = if let Some(managed_port) = message_ports.get_mut(&port_id) {
                 if managed_port.pending {
-                    panic!("CompleteDisentanglement msg received for a pending port.");
+                    unreachable!("CompleteDisentanglement msg received for a pending port.");
                 }
-                if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                    port_impl.disentangle();
-                } else {
-                    panic!("managed-port has no port-impl.");
-                }
+                let port_impl = managed_port
+                    .port_impl
+                    .as_mut()
+                    .expect("managed-port has no port-impl.");
+                port_impl.disentangle();
                 managed_port.dom_port.as_rooted()
             } else {
                 // Note: this, and the other return below,
@@ -1027,22 +1027,22 @@ impl GlobalScope {
                         continue;
                     },
                     Some(managed_port) => {
-                        if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                            managed_port.dom_port.disentangle();
-                            port_impl.disentangle();
+                        let port_impl = managed_port
+                            .port_impl
+                            .as_mut()
+                            .expect("managed-port has no port-impl.");
+                        managed_port.dom_port.disentangle();
+                        port_impl.disentangle();
 
-                            if **port_id == other_port {
-                                dom_port = Some(managed_port.dom_port.as_rooted())
-                            }
-                        } else {
-                            panic!("managed-port has no port-impl.");
+                        if **port_id == other_port {
+                            dom_port = Some(managed_port.dom_port.as_rooted())
                         }
                     },
                 }
             }
             dom_port
         } else {
-            panic!("entangled_ports called on a global not managing any ports.");
+            panic!("disentangle_port called on a global not managing any ports.");
         };
 
         // Fire an event named close at `otherPort`.
