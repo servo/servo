@@ -30,8 +30,7 @@ pub(crate) struct SourcesReply {
     pub sources: Vec<SourceData>,
 }
 
-pub(crate) struct Source {
-    pub actor_name: String,
+pub(crate) struct SourceManager {
     pub source_urls: RefCell<BTreeSet<SourceData>>,
 }
 
@@ -57,17 +56,16 @@ struct BreakableLinesReply {
     lines: Vec<u32>,
 }
 
-impl Source {
-    pub fn new(actor_name: String) -> Self {
+impl SourceManager {
+    pub fn new() -> Self {
         Self {
-            actor_name,
             source_urls: RefCell::new(BTreeSet::default()),
         }
     }
 
-    pub fn add_source(&self, url: ServoUrl, source_content: String) {
+    pub fn add_source(&self, url: ServoUrl, source_content: String, actor_name: String) {
         self.source_urls.borrow_mut().insert(SourceData {
-            actor: self.actor_name.clone(),
+            actor: actor_name,
             url: url.to_string(),
             is_black_boxed: false,
             source_content,
