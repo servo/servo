@@ -530,7 +530,7 @@ impl DevtoolsInstance {
                 .add_source(source_info.url.clone(), source_info.content.clone());
 
             let source = SourceData {
-                actor: thread_actor_name.clone(),
+                actor: source_actor_name.clone(),
                 url: source_info.url.to_string(),
                 is_black_boxed: false,
                 source_content: source_info.content,
@@ -560,7 +560,7 @@ impl DevtoolsInstance {
                 .add_source(source_info.url.clone(), source_info.content.clone());
 
             let source = SourceData {
-                actor: thread_actor_name.clone(),
+                actor: source_actor_name.clone(),
                 url: source_info.url.to_string(),
                 is_black_boxed: false,
                 source_content: source_info.content,
