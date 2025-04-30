@@ -530,12 +530,20 @@ impl DevtoolsInstance {
             let thread_actor_name = actors.find::<WorkerActor>(worker_actor_name).thread.clone();
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
 <<<<<<< HEAD
+<<<<<<< HEAD
             thread_actor
                 .source_manager
                 .add_source(source_info.url.clone(), source_info.content.clone());
 =======
             thread_actor.source_manager.add_source(source_info.url.clone(), source_info.content.clone(), source_actor_name.clone());
 >>>>>>> 6eddb58a96d (pass correct actor name to SourceData)
+=======
+            thread_actor.source_manager.add_source(
+                source_info.url.clone(),
+                source_info.content.clone(),
+                source_actor_name.clone(),
+            );
+>>>>>>> 2fbcdac63d6 (fmt)
 
             let source = SourceData {
                 actor: source_actor_name.clone(),
@@ -564,12 +572,20 @@ impl DevtoolsInstance {
 
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
 <<<<<<< HEAD
+<<<<<<< HEAD
             thread_actor
                 .source_manager
                 .add_source(source_info.url.clone(), source_info.content.clone());
 =======
             thread_actor.source_manager.add_source(source_info.url.clone(),  source_info.content.clone(), source_actor_name.clone());
 >>>>>>> 6eddb58a96d (pass correct actor name to SourceData)
+=======
+            thread_actor.source_manager.add_source(
+                source_info.url.clone(),
+                source_info.content.clone(),
+                source_actor_name.clone(),
+            );
+>>>>>>> 2fbcdac63d6 (fmt)
 
             let source = SourceData {
                 actor: source_actor_name,
