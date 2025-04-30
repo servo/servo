@@ -7,7 +7,7 @@ use std::net::TcpStream;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-use super::source::{SourceManager, SourcesReply, SourceData};
+use super::source::{SourceData, SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};

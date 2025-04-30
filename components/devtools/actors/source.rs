@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
- use std::cell::{Ref, RefCell};
+use std::cell::{Ref, RefCell};
 use std::collections::BTreeSet;
 use std::net::TcpStream;
 
- use serde::Serialize;
- use serde_json::{Map, Value};
- use servo_url::ServoUrl;
- 
- use crate::StreamId;
- use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
- use crate::protocol::JsonPacketStream;
+use serde::Serialize;
+use serde_json::{Map, Value};
+use servo_url::ServoUrl;
+
+use crate::StreamId;
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::protocol::JsonPacketStream;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -78,11 +78,7 @@ impl SourceManager {
 }
 
 impl SourceActor {
-    pub fn new(
-        name: String,
-        content: String,
-        content_type: String,
-    ) -> SourceActor {
+    pub fn new(name: String, content: String, content_type: String) -> SourceActor {
         SourceActor {
             name,
             content,
@@ -105,11 +101,7 @@ impl SourceActor {
         }
         .to_string();
 
-        let source_actor = SourceActor::new(
-            source_actor_name.clone(),
-            content,
-            content_type,
-        );
+        let source_actor = SourceActor::new(source_actor_name.clone(), content, content_type);
 
         (source_actor, source_actor_name)
     }
@@ -141,7 +133,7 @@ impl Actor for SourceActor {
             "getBreakableLines" => {
                 let reply = BreakableLinesReply {
                     from: self.name(),
-                    lines:[].to_vec(),
+                    lines: [].to_vec(),
                 };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed

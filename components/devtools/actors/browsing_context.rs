@@ -236,11 +236,7 @@ impl BrowsingContextActor {
             browsing_context: name.clone(),
         };
 
-        let source = SourceActor::new(
-            actors.new_name("source"),
-            "".to_string(),
-            "".to_string(),
-        );
+        let source = SourceActor::new(actors.new_name("source"), "".to_string(), "".to_string());
 
         let reflow = ReflowActor::new(actors.new_name("reflow"));
 

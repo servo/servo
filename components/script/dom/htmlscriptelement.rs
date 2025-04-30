@@ -1015,7 +1015,7 @@ impl HTMLScriptElement {
                 SourceCode::Text(text) => text.to_string(),
                 SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
             };
-            
+
             let source_info = SourceInfo {
                 url: script.url.clone(),
                 external: script.external,

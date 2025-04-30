@@ -43,7 +43,7 @@ use crate::actors::performance::PerformanceActor;
 use crate::actors::preference::PreferenceActor;
 use crate::actors::process::ProcessActor;
 use crate::actors::root::RootActor;
-use crate::actors::source::{SourceData, SourceActor};
+use crate::actors::source::{SourceActor, SourceData};
 use crate::actors::thread::ThreadActor;
 use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::id::IdMap;
@@ -510,11 +510,8 @@ impl DevtoolsInstance {
     fn handle_script_source_info(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
         let mut actors = self.actors.lock().unwrap();
 
-        let (source_actor, source_actor_name) = SourceActor::new_source(
-            &mut actors,
-            &source_info.url,
-            source_info.content.clone(),
-        );
+        let (source_actor, source_actor_name) =
+            SourceActor::new_source(&mut actors, &source_info.url, source_info.content.clone());
         actors.register(Box::new(source_actor));
 
         if let Some(worker_id) = source_info.worker_id {
@@ -524,7 +521,11 @@ impl DevtoolsInstance {
 
             let thread_actor_name = actors.find::<WorkerActor>(worker_actor_name).thread.clone();
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
-            thread_actor.source_manager.add_source(source_info.url.clone(), source_info.content.clone(), source_actor_name.clone());
+            thread_actor.source_manager.add_source(
+                source_info.url.clone(),
+                source_info.content.clone(),
+                source_actor_name.clone(),
+            );
 
             let source = SourceData {
                 actor: source_actor_name.clone(),
@@ -549,7 +550,11 @@ impl DevtoolsInstance {
             };
 
             let thread_actor = actors.find_mut::<ThreadActor>(&thread_actor_name);
-            thread_actor.source_manager.add_source(source_info.url.clone(),  source_info.content.clone(), source_actor_name.clone());
+            thread_actor.source_manager.add_source(
+                source_info.url.clone(),
+                source_info.content.clone(),
+                source_actor_name.clone(),
+            );
 
             let source = SourceData {
                 actor: source_actor_name,
