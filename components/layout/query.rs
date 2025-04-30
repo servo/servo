@@ -64,9 +64,7 @@ impl PostCompositeQueryHelper<'_> {
     }
 
     /// Get the position property for current node.
-    fn retrieve_position_property(
-        node: ServoLayoutNode<'_>,
-    ) -> Option<Position> {
+    fn retrieve_position_property(node: ServoLayoutNode<'_>) -> Option<Position> {
         node.fragments_for_pseudo(None)
             .first()
             .and_then(PostCompositeQueryHelper::retrieve_box_fragment)
@@ -74,7 +72,10 @@ impl PostCompositeQueryHelper<'_> {
     }
 
     /// Find the parent node in containing block chain.
-    fn parent_containing_block(node: ServoLayoutNode<'_>, position: Option<Position>) -> Option<ServoLayoutNode<'_>> {
+    fn parent_containing_block(
+        node: ServoLayoutNode<'_>,
+        position: Option<Position>,
+    ) -> Option<ServoLayoutNode<'_>> {
         fn established_containing_block(
             style: &ServoArc<ComputedValues>,
             fragment_flags: FragmentFlags,
@@ -172,7 +173,8 @@ pub(crate) fn node_to_root_transform(
     let mut translation = Vector2D::zero();
 
     let mut current_position = PostCompositeQueryHelper::retrieve_position_property(node);
-    let mut maybe_parent_node = PostCompositeQueryHelper::parent_containing_block(node, current_position);
+    let mut maybe_parent_node =
+        PostCompositeQueryHelper::parent_containing_block(node, current_position);
     while let Some(parent_node) = maybe_parent_node {
         if let Some(parent_fragment) = parent_node.fragments_for_pseudo(None).first() {
             let parent_fragment =
@@ -185,7 +187,8 @@ pub(crate) fn node_to_root_transform(
             translation += scroll_offset;
 
             current_position = Some(parent_fragment.borrow().style.get_box().position);
-            maybe_parent_node = PostCompositeQueryHelper::parent_containing_block(parent_node, current_position);
+            maybe_parent_node =
+                PostCompositeQueryHelper::parent_containing_block(parent_node, current_position);
             continue;
         }
         maybe_parent_node = parent_node.parent_node();
