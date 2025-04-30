@@ -335,6 +335,14 @@ pub struct ScriptThread {
     /// The screen coordinates where the primary mouse button was pressed.
     #[no_trace]
     relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
+
+    #[no_trace]
+    pending_webdriver_script_events: DomRefCell<HashMap<PipelineId, Vec<WebdriverScriptEvent>>>,
+}
+
+struct WebdriverScriptEvent {
+    pub msg: WebDriverScriptCommand,
+    pub can_gc: CanGc,
 }
 
 struct BHMExitSignal {
@@ -954,6 +962,7 @@ impl ScriptThread {
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
             relative_mouse_down_point: Cell::new(Point2D::zero()),
+            pending_webdriver_script_events: Default::default(),
         }
     }
 
@@ -1055,6 +1064,30 @@ impl ScriptThread {
                 {
                     let event = EmbedderMsg::Status(window.webview_id(), None);
                     window.send_to_embedder(event);
+                }
+            }
+        }
+    }
+
+    fn process_pending_webdriver_script_events(&self, pipeline_id: PipelineId) {
+        if let Some(events) = self
+            .pending_webdriver_script_events
+            .borrow_mut()
+            .remove(&pipeline_id)
+        {
+            for WebdriverScriptEvent { msg, can_gc } in events {
+                match msg {
+                    WebDriverScriptCommand::ExecuteScript(script, reply) => {
+                        let window = self.documents.borrow().find_window(pipeline_id);
+                        webdriver_handlers::handle_execute_script(window, script, reply, can_gc);
+                    },
+                    WebDriverScriptCommand::ExecuteAsyncScript(script, reply) => {
+                        let window = self.documents.borrow().find_window(pipeline_id);
+                        webdriver_handlers::handle_execute_async_script(
+                            window, script, reply, can_gc,
+                        );
+                    },
+                    _ => (),
                 }
             }
         }
@@ -1272,6 +1305,9 @@ impl ScriptThread {
             #[cfg(feature = "webgpu")]
             document.update_rendering_of_webgpu_canvases();
 
+            // after entering realm, process pending webdriver script event
+            self.process_pending_webdriver_script_events(*pipeline_id);
+
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
             let window = document.window();
@@ -1282,6 +1318,10 @@ impl ScriptThread {
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
         }
+
+        // TODO: remaining documents requested are non-existent
+        // For each left in self.pending_webdriver_script_events
+        // reply.send(Err(WebDriverJSError::BrowsingContextNotFound)).unwrap();
 
         // Perform a microtask checkpoint as the specifications says that *update the rendering*
         // should be run in a task and a microtask checkpoint is always done when running tasks.
@@ -2088,15 +2128,14 @@ impl ScriptThread {
         // `self.documents`, which would conflict with the immutable borrow of it that
         // occurs for the rest of the messages
         match msg {
-            WebDriverScriptCommand::ExecuteScript(script, reply) => {
-                let window = self.documents.borrow().find_window(pipeline_id);
-                return webdriver_handlers::handle_execute_script(window, script, reply, can_gc);
-            },
-            WebDriverScriptCommand::ExecuteAsyncScript(script, reply) => {
-                let window = self.documents.borrow().find_window(pipeline_id);
-                return webdriver_handlers::handle_execute_async_script(
-                    window, script, reply, can_gc,
-                );
+            WebDriverScriptCommand::ExecuteScript(..) |
+            WebDriverScriptCommand::ExecuteAsyncScript(..) => {
+                self.pending_webdriver_script_events
+                    .borrow_mut()
+                    .entry(pipeline_id)
+                    .or_default()
+                    .push(WebdriverScriptEvent { msg, can_gc });
+                return;
             },
             _ => (),
         }
