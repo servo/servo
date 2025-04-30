@@ -15,7 +15,8 @@ use base::id::{
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
-    AnimationState, EmbedderMsg, MediaSessionEvent, TouchEventResult, ViewportDetails,
+    AnimationState, EmbedderMsg, FocusSequenceNumber, MediaSessionEvent, TouchEventResult,
+    ViewportDetails,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use http::{HeaderMap, Method};
@@ -519,8 +520,21 @@ pub enum ScriptToConstellationMessage {
         UntypedSize2D<u64>,
         IpcSender<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>,
     ),
-    /// Notifies the constellation that this frame has received focus.
-    Focus,
+    /// Notifies the constellation that this pipeline is requesting focus.
+    ///
+    /// When this message is sent, the sender pipeline has already its local
+    /// focus state updated. The constellation, after receiving this message,
+    /// will broadcast messages to other pipelines that are affected by this
+    /// focus operation.
+    ///
+    /// The first field contains the browsing context ID of the container
+    /// element if one was focused.
+    ///
+    /// The second field is a sequence number that the constellation should use
+    /// when sending a focus-related message to the sender pipeline next time.
+    Focus(Option<BrowsingContextId>, FocusSequenceNumber),
+    /// Requests the constellation to focus the specified browsing context.
+    FocusRemoteDocument(BrowsingContextId),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(BrowsingContextId, IpcSender<Option<WebViewId>>),
     /// Get the browsing context id of the browsing context in which pipeline is

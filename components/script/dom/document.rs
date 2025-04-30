@@ -30,8 +30,8 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
     AllowOrDeny, AnimationState, CompositorHitTestResult, ContextMenuResult, EditingActionEvent,
-    EmbedderMsg, ImeEvent, InputEvent, LoadStatus, MouseButton, MouseButtonAction,
-    MouseButtonEvent, TouchEvent, TouchEventType, TouchId, WheelEvent,
+    EmbedderMsg, FocusSequenceNumber, ImeEvent, InputEvent, LoadStatus, MouseButton,
+    MouseButtonAction, MouseButtonEvent, TouchEvent, TouchEventType, TouchId, WheelEvent,
 };
 use encoding_rs::{Encoding, UTF_8};
 use euclid::default::{Point2D, Rect, Size2D};
@@ -270,12 +270,11 @@ pub(crate) enum IsHTMLDocument {
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-enum FocusTransaction {
-    /// No focus operation is in effect.
-    NotInTransaction,
-    /// A focus operation is in effect.
-    /// Contains the element that has most recently requested focus for itself.
-    InTransaction(Option<Dom<Element>>),
+struct FocusTransaction {
+    /// The focused element of this document.
+    element: Option<Dom<Element>>,
+    /// See [`Document::has_focus`].
+    has_focus: bool,
 }
 
 /// Information about a declarative refresh
@@ -341,9 +340,16 @@ pub(crate) struct Document {
     /// Whether the DOMContentLoaded event has already been dispatched.
     domcontentloaded_dispatched: Cell<bool>,
     /// The state of this document's focus transaction.
-    focus_transaction: DomRefCell<FocusTransaction>,
+    focus_transaction: DomRefCell<Option<FocusTransaction>>,
     /// The element that currently has the document focus context.
     focused: MutNullableDom<Element>,
+    /// The last sequence number sent to the constellation.
+    #[no_trace]
+    focus_sequence: Cell<FocusSequenceNumber>,
+    /// Indicates whether the container is included in the top-level browsing
+    /// context's focus chain (not considering system focus). Permanently `true`
+    /// for a top-level document.
+    has_focus: Cell<bool>,
     /// The script element that is currently executing.
     current_script: MutNullableDom<HTMLScriptElement>,
     /// <https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script>
@@ -1120,124 +1126,318 @@ impl Document {
         self.focused.get()
     }
 
+    /// Get the last sequence number sent to the constellation.
+    ///
+    /// Received focus-related messages with sequence numbers less than the one
+    /// returned by this method must be discarded.
+    pub fn get_focus_sequence(&self) -> FocusSequenceNumber {
+        self.focus_sequence.get()
+    }
+
+    /// Generate the next sequence number for focus-related messages.
+    fn increment_fetch_focus_sequence(&self) -> FocusSequenceNumber {
+        self.focus_sequence.set(FocusSequenceNumber(
+            self.focus_sequence
+                .get()
+                .0
+                .checked_add(1)
+                .expect("too many focus messages have been sent"),
+        ));
+        self.focus_sequence.get()
+    }
+
     /// Initiate a new round of checking for elements requesting focus. The last element to call
     /// `request_focus` before `commit_focus_transaction` is called will receive focus.
     fn begin_focus_transaction(&self) {
-        *self.focus_transaction.borrow_mut() = FocusTransaction::InTransaction(Default::default());
+        // Initialize it with the current state
+        *self.focus_transaction.borrow_mut() = Some(FocusTransaction {
+            element: self.focused.get().as_deref().map(Dom::from_ref),
+            has_focus: self.has_focus.get(),
+        });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
     pub(crate) fn perform_focus_fixup_rule(&self, not_focusable: &Element, can_gc: CanGc) {
+        // Return if `not_focusable` is not the designated focused area of the
+        // `Document`.
         if Some(not_focusable) != self.focused.get().as_deref() {
             return;
         }
-        self.request_focus(
-            self.GetBody().as_ref().map(|e| e.upcast()),
-            FocusType::Element,
-            can_gc,
-        )
-    }
 
-    /// Request that the given element receive focus once the current transaction is complete.
-    /// If None is passed, then whatever element is currently focused will no longer be focused
-    /// once the transaction is complete.
-    pub(crate) fn request_focus(
-        &self,
-        elem: Option<&Element>,
-        focus_type: FocusType,
-        can_gc: CanGc,
-    ) {
-        let implicit_transaction = matches!(
-            *self.focus_transaction.borrow(),
-            FocusTransaction::NotInTransaction
-        );
+        let implicit_transaction = self.focus_transaction.borrow().is_none();
+
         if implicit_transaction {
             self.begin_focus_transaction();
         }
-        if elem.is_none_or(|e| e.is_focusable_area()) {
-            *self.focus_transaction.borrow_mut() =
-                FocusTransaction::InTransaction(elem.map(Dom::from_ref));
+
+        // Designate the viewport as the new focused area of the `Document`, but
+        // do not run the focusing steps.
+        {
+            let mut focus_transaction = self.focus_transaction.borrow_mut();
+            focus_transaction.as_mut().unwrap().element = None;
         }
+
         if implicit_transaction {
-            self.commit_focus_transaction(focus_type, can_gc);
+            self.commit_focus_transaction(FocusInitiator::Local, can_gc);
         }
     }
 
-    /// Reassign the focus context to the element that last requested focus during this
-    /// transaction, or none if no elements requested it.
-    fn commit_focus_transaction(&self, focus_type: FocusType, can_gc: CanGc) {
-        let possibly_focused = match *self.focus_transaction.borrow() {
-            FocusTransaction::NotInTransaction => unreachable!(),
-            FocusTransaction::InTransaction(ref elem) => {
-                elem.as_ref().map(|e| DomRoot::from_ref(&**e))
-            },
-        };
-        *self.focus_transaction.borrow_mut() = FocusTransaction::NotInTransaction;
-        if self.focused == possibly_focused.as_deref() {
+    /// Request that the given element receive focus once the current
+    /// transaction is complete. `None` specifies to focus the document.
+    ///
+    /// If there's no ongoing transaction, this method automatically starts and
+    /// commits an implicit transaction.
+    pub(crate) fn request_focus(
+        &self,
+        elem: Option<&Element>,
+        focus_initiator: FocusInitiator,
+        can_gc: CanGc,
+    ) {
+        // If an element is specified, and it's non-focusable, ignore the
+        // request.
+        if elem.is_some_and(|e| !e.is_focusable_area()) {
             return;
         }
-        if let Some(ref elem) = self.focused.get() {
-            let node = elem.upcast::<Node>();
-            elem.set_focus_state(false);
-            // FIXME: pass appropriate relatedTarget
-            if node.is_connected() {
-                self.fire_focus_event(FocusEventType::Blur, node, None, can_gc);
-            }
 
-            // Notify the embedder to hide the input method.
-            if elem.input_method_type().is_some() {
-                self.send_to_embedder(EmbedderMsg::HideIME(self.webview_id()));
+        let implicit_transaction = self.focus_transaction.borrow().is_none();
+
+        if implicit_transaction {
+            self.begin_focus_transaction();
+        }
+
+        {
+            let mut focus_transaction = self.focus_transaction.borrow_mut();
+            let focus_transaction = focus_transaction.as_mut().unwrap();
+            focus_transaction.element = elem.map(Dom::from_ref);
+            focus_transaction.has_focus = true;
+        }
+
+        if implicit_transaction {
+            self.commit_focus_transaction(focus_initiator, can_gc);
+        }
+    }
+
+    /// Update the local focus state accordingly after being notified that the
+    /// document's container is removed from the top-level browsing context's
+    /// focus chain (not considering system focus).
+    pub(crate) fn handle_container_unfocus(&self, can_gc: CanGc) {
+        assert!(
+            self.window().parent_info().is_some(),
+            "top-level document cannot be unfocused",
+        );
+
+        // Since this method is called from an event loop, there mustn't be
+        // an in-progress focus transaction
+        assert!(
+            self.focus_transaction.borrow().is_none(),
+            "there mustn't be an in-progress focus transaction at this point"
+        );
+
+        // Start an implicit focus transaction
+        self.begin_focus_transaction();
+
+        // Update the transaction
+        {
+            let mut focus_transaction = self.focus_transaction.borrow_mut();
+            focus_transaction.as_mut().unwrap().has_focus = false;
+        }
+
+        // Commit the implicit focus transaction
+        self.commit_focus_transaction(FocusInitiator::Remote, can_gc);
+    }
+
+    /// Reassign the focus context to the element that last requested focus during this
+    /// transaction, or the document if no elements requested it.
+    fn commit_focus_transaction(&self, focus_initiator: FocusInitiator, can_gc: CanGc) {
+        let (mut new_focused, new_focus_state) = {
+            let focus_transaction = self.focus_transaction.borrow();
+            let focus_transaction = focus_transaction
+                .as_ref()
+                .expect("no focus transaction in progress");
+            (
+                focus_transaction
+                    .element
+                    .as_ref()
+                    .map(|e| DomRoot::from_ref(&**e)),
+                focus_transaction.has_focus,
+            )
+        };
+        *self.focus_transaction.borrow_mut() = None;
+
+        if !new_focus_state {
+            // In many browsers, a document forgets its focused area when the
+            // document is removed from the top-level BC's focus chain
+            if new_focused.take().is_some() {
+                trace!(
+                    "Forgetting the document's focused area because the \
+                    document's container was removed from the top-level BC's \
+                    focus chain"
+                );
             }
         }
 
-        self.focused.set(possibly_focused.as_deref());
+        let old_focused = self.focused.get();
+        let old_focus_state = self.has_focus.get();
 
-        if let Some(ref elem) = self.focused.get() {
-            elem.set_focus_state(true);
-            let node = elem.upcast::<Node>();
-            // FIXME: pass appropriate relatedTarget
-            self.fire_focus_event(FocusEventType::Focus, node, None, can_gc);
-            // Update the focus state for all elements in the focus chain.
-            // https://html.spec.whatwg.org/multipage/#focus-chain
-            if focus_type == FocusType::Element {
-                self.window()
-                    .send_to_constellation(ScriptToConstellationMessage::Focus);
+        debug!(
+            "Committing focus transaction: {:?} → {:?}",
+            (&old_focused, old_focus_state),
+            (&new_focused, new_focus_state),
+        );
+
+        // `*_focused_filtered` indicates the local element (if any) included in
+        // the top-level BC's focus chain.
+        let old_focused_filtered = old_focused.as_ref().filter(|_| old_focus_state);
+        let new_focused_filtered = new_focused.as_ref().filter(|_| new_focus_state);
+
+        let trace_focus_chain = |name, element, doc| {
+            trace!(
+                "{} local focus chain: {}",
+                name,
+                match (element, doc) {
+                    (Some(e), _) => format!("[{:?}, document]", e),
+                    (None, true) => "[document]".to_owned(),
+                    (None, false) => "[]".to_owned(),
+                }
+            );
+        };
+
+        trace_focus_chain("Old", old_focused_filtered, old_focus_state);
+        trace_focus_chain("New", new_focused_filtered, new_focus_state);
+
+        if old_focused_filtered != new_focused_filtered {
+            if let Some(elem) = &old_focused_filtered {
+                let node = elem.upcast::<Node>();
+                elem.set_focus_state(false);
+                // FIXME: pass appropriate relatedTarget
+                if node.is_connected() {
+                    self.fire_focus_event(FocusEventType::Blur, node.upcast(), None, can_gc);
+                }
+
+                // Notify the embedder to hide the input method.
+                if elem.input_method_type().is_some() {
+                    self.send_to_embedder(EmbedderMsg::HideIME(self.webview_id()));
+                }
             }
+        }
 
-            // Notify the embedder to display an input method.
-            if let Some(kind) = elem.input_method_type() {
-                let rect = elem.upcast::<Node>().bounding_content_box_or_zero(can_gc);
-                let rect = Rect::new(
-                    Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
-                    Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+        if old_focus_state != new_focus_state && !new_focus_state {
+            self.fire_focus_event(FocusEventType::Blur, self.global().upcast(), None, can_gc);
+        }
+
+        self.focused.set(new_focused.as_deref());
+        self.has_focus.set(new_focus_state);
+
+        if old_focus_state != new_focus_state && new_focus_state {
+            self.fire_focus_event(FocusEventType::Focus, self.global().upcast(), None, can_gc);
+        }
+
+        if old_focused_filtered != new_focused_filtered {
+            if let Some(elem) = &new_focused_filtered {
+                elem.set_focus_state(true);
+                let node = elem.upcast::<Node>();
+                // FIXME: pass appropriate relatedTarget
+                self.fire_focus_event(FocusEventType::Focus, node.upcast(), None, can_gc);
+
+                // Notify the embedder to display an input method.
+                if let Some(kind) = elem.input_method_type() {
+                    let rect = elem.upcast::<Node>().bounding_content_box_or_zero(can_gc);
+                    let rect = Rect::new(
+                        Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
+                        Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+                    );
+                    let (text, multiline) = if let Some(input) = elem.downcast::<HTMLInputElement>()
+                    {
+                        (
+                            Some((
+                                (input.Value()).to_string(),
+                                input.GetSelectionEnd().unwrap_or(0) as i32,
+                            )),
+                            false,
+                        )
+                    } else if let Some(textarea) = elem.downcast::<HTMLTextAreaElement>() {
+                        (
+                            Some((
+                                (textarea.Value()).to_string(),
+                                textarea.GetSelectionEnd().unwrap_or(0) as i32,
+                            )),
+                            true,
+                        )
+                    } else {
+                        (None, false)
+                    };
+                    self.send_to_embedder(EmbedderMsg::ShowIME(
+                        self.webview_id(),
+                        kind,
+                        text,
+                        multiline,
+                        DeviceIntRect::from_untyped(&rect.to_box2d()),
+                    ));
+                }
+            }
+        }
+
+        if focus_initiator != FocusInitiator::Local {
+            return;
+        }
+
+        // We are the initiator of the focus operation, so we must broadcast
+        // the change we intend to make.
+        match (old_focus_state, new_focus_state) {
+            (_, true) => {
+                // Advertise the change in the focus chain.
+                // <https://html.spec.whatwg.org/multipage/#focus-chain>
+                // <https://html.spec.whatwg.org/multipage/#focusing-steps>
+                //
+                // If the top-level BC doesn't have system focus, this won't
+                // have an immediate effect, but it will when we gain system
+                // focus again. Therefore we still have to send `ScriptMsg::
+                // Focus`.
+                //
+                // When a container with a non-null nested browsing context is
+                // focused, its active document becomes the focused area of the
+                // top-level browsing context instead. Therefore we need to let
+                // the constellation know if such a container is focused.
+                //
+                // > The focusing steps for an object `new focus target` [...]
+                // >
+                // >  3. If `new focus target` is a browsing context container
+                // >     with non-null nested browsing context, then set
+                // >     `new focus target` to the nested browsing context's
+                // >     active document.
+                let child_browsing_context_id = new_focused
+                    .as_ref()
+                    .and_then(|elem| elem.downcast::<HTMLIFrameElement>())
+                    .and_then(|iframe| iframe.browsing_context_id());
+
+                let sequence = self.increment_fetch_focus_sequence();
+
+                debug!(
+                    "Advertising the focus request to the constellation \
+                        with sequence number {} and child BC ID {}",
+                    sequence,
+                    child_browsing_context_id
+                        .as_ref()
+                        .map(|id| id as &dyn std::fmt::Display)
+                        .unwrap_or(&"(none)"),
                 );
-                let (text, multiline) = if let Some(input) = elem.downcast::<HTMLInputElement>() {
-                    (
-                        Some((
-                            input.Value().to_string(),
-                            input.GetSelectionEnd().unwrap_or(0) as i32,
-                        )),
-                        false,
-                    )
-                } else if let Some(textarea) = elem.downcast::<HTMLTextAreaElement>() {
-                    (
-                        Some((
-                            textarea.Value().to_string(),
-                            textarea.GetSelectionEnd().unwrap_or(0) as i32,
-                        )),
-                        true,
-                    )
-                } else {
-                    (None, false)
-                };
-                self.send_to_embedder(EmbedderMsg::ShowIME(
-                    self.webview_id(),
-                    kind,
-                    text,
-                    multiline,
-                    DeviceIntRect::from_untyped(&rect.to_box2d()),
-                ));
-            }
+
+                self.window()
+                    .send_to_constellation(ScriptToConstellationMessage::Focus(
+                        child_browsing_context_id,
+                        sequence,
+                    ));
+            },
+            (false, false) => {
+                // Our `Document` doesn't have focus, and we intend to keep it
+                // this way.
+            },
+            (true, false) => {
+                unreachable!(
+                    "Can't lose the document's focus without specifying \
+                    another one to focus"
+                );
+            },
         }
     }
 
@@ -1352,7 +1552,10 @@ impl Document {
             }
 
             self.begin_focus_transaction();
-            self.request_focus(Some(&*el), FocusType::Element, can_gc);
+            // Try to focus `el`. If it's not focusable, focus the document
+            // instead.
+            self.request_focus(None, FocusInitiator::Local, can_gc);
+            self.request_focus(Some(&*el), FocusInitiator::Local, can_gc);
         }
 
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_mouse_event(
@@ -1390,7 +1593,9 @@ impl Document {
         }
 
         if let MouseButtonAction::Click = event.action {
-            self.commit_focus_transaction(FocusType::Element, can_gc);
+            if self.focus_transaction.borrow().is_some() {
+                self.commit_focus_transaction(FocusInitiator::Local, can_gc);
+            }
             self.maybe_fire_dblclick(
                 hit_test_result.point_in_viewport,
                 node,
@@ -2217,7 +2422,7 @@ impl Document {
             ImeEvent::Dismissed => {
                 self.request_focus(
                     self.GetBody().as_ref().map(|e| e.upcast()),
-                    FocusType::Element,
+                    FocusInitiator::Local,
                     can_gc,
                 );
                 return;
@@ -3196,7 +3401,7 @@ impl Document {
     fn fire_focus_event(
         &self,
         focus_event_type: FocusEventType,
-        node: &Node,
+        event_target: &EventTarget,
         related_target: Option<&EventTarget>,
         can_gc: CanGc,
     ) {
@@ -3216,8 +3421,7 @@ impl Document {
         );
         let event = event.upcast::<Event>();
         event.set_trusted(true);
-        let target = node.upcast();
-        event.fire(target, can_gc);
+        event.fire(event_target, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#cookie-averse-document-object>
@@ -3797,6 +4001,8 @@ impl Document {
             .and_then(|charset| Encoding::for_label(charset.as_bytes()))
             .unwrap_or(UTF_8);
 
+        let has_focus = window.parent_info().is_none();
+
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
 
         Document {
@@ -3844,8 +4050,10 @@ impl Document {
             stylesheet_list: MutNullableDom::new(None),
             ready_state: Cell::new(ready_state),
             domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
-            focus_transaction: DomRefCell::new(FocusTransaction::NotInTransaction),
+            focus_transaction: DomRefCell::new(None),
             focused: Default::default(),
+            focus_sequence: Cell::new(FocusSequenceNumber::default()),
+            has_focus: Cell::new(has_focus),
             current_script: Default::default(),
             pending_parsing_blocking_script: Default::default(),
             script_blocking_stylesheets_count: Cell::new(0u32),
@@ -4991,12 +5199,34 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
     fn HasFocus(&self) -> bool {
-        // Step 1-2.
-        if self.window().parent_info().is_none() && self.is_fully_active() {
-            return true;
+        // <https://html.spec.whatwg.org/multipage/#has-focus-steps>
+        //
+        // > The has focus steps, given a `Document` object `target`, are as
+        // > follows:
+        // >
+        // > 1. If `target`'s browsing context's top-level browsing context does
+        // >    not have system focus, then return false.
+
+        // > 2. Let `candidate` be `target`'s browsing context's top-level
+        // >    browsing context's active document.
+        // >
+        // > 3. While true:
+        // >
+        // >    3.1. If `candidate` is target, then return true.
+        // >
+        // >    3.2. If the focused area of `candidate` is a browsing context
+        // >         container with a non-null nested browsing context, then set
+        // >         `candidate` to the active document of that browsing context
+        // >         container's nested browsing context.
+        // >
+        // >    3.3. Otherwise, return false.
+        if self.window().parent_info().is_none() {
+            // 2 → 3 → (3.1 || ⋯ → 3.3)
+            self.is_fully_active()
+        } else {
+            // 2 → 3 → 3.2 → (⋯ → 3.1 || ⋯ → 3.3)
+            self.is_fully_active() && self.has_focus.get()
         }
-        // TODO Step 3.
-        false
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-domain
@@ -6397,6 +6627,17 @@ pub(crate) fn determine_policy_for_token(token: &str) -> ReferrerPolicy {
 pub(crate) enum FocusType {
     Element, // The first focus message - focus the element itself
     Parent,  // Focusing a parent element (an iframe)
+}
+
+/// Specifies the initiator of a focus operation.
+#[derive(Clone, Copy, PartialEq)]
+pub enum FocusInitiator {
+    /// The operation is initiated by this document and to be broadcasted
+    /// through the constellation.
+    Local,
+    /// The operation is initiated somewhere else, and we are updating our
+    /// internal state accordingly.
+    Remote,
 }
 
 /// Focus events

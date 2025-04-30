@@ -25,7 +25,7 @@ use constellation_traits::{LoadData, SWManagerMsg, ScriptToConstellationChan};
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::user_content_manager::UserContentManager;
-use embedder_traits::{AnimationState, ViewportDetails};
+use embedder_traits::{AnimationState, FocusSequenceNumber, ViewportDetails};
 use fonts::{SystemFontServiceProxy, SystemFontServiceProxySender};
 use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -102,6 +102,8 @@ pub struct Pipeline {
     /// The last compositor [`Epoch`] that was laid out in this pipeline if "exit after load" is
     /// enabled.
     pub layout_epoch: Epoch,
+
+    pub focus_sequence: FocusSequenceNumber,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -370,6 +372,7 @@ impl Pipeline {
             completely_loaded: false,
             title: String::new(),
             layout_epoch: Epoch(0),
+            focus_sequence: FocusSequenceNumber::default(),
         };
 
         pipeline.set_throttled(throttled);
