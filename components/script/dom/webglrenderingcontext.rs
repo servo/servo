@@ -575,6 +575,23 @@ impl WebGLRenderingContext {
 
     pub(crate) fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
         Ok(Some(match source {
+            TexImageSource::ImageBitmap(bitmap) => {
+                if !bitmap.origin_is_clean() {
+                    return Err(Error::Security);
+                }
+                if let Some(snapshot) = bitmap.bitmap_data() {
+                    let snapshot = snapshot.as_ipc();
+                    let size = snapshot.size().cast();
+                    let format = match snapshot.format() {
+                        snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
+                        snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                    };
+                    let premultiply = snapshot.alpha_mode().is_premultiplied();
+                    TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, premultiply)
+                } else {
+                    return Ok(None);
+                }
+            },
             TexImageSource::ImageData(image_data) => TexPixels::new(
                 image_data.to_shared_memory(),
                 image_data.get_size(),
@@ -642,14 +659,31 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 }
             },
-            TexImageSource::HTMLVideoElement(video) => match video.get_current_frame_data() {
-                Some((data, size)) => {
-                    let data = data.unwrap_or_else(|| {
-                        IpcSharedMemory::from_bytes(&vec![0; size.area() as usize * 4])
-                    });
-                    TexPixels::new(data, size, PixelFormat::BGRA8, false)
-                },
-                None => return Ok(None),
+            TexImageSource::HTMLVideoElement(video) => {
+                let document = match self.canvas {
+                    HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
+                        canvas.owner_document()
+                    },
+                    HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(ref _canvas) => {
+                        // TODO: Support retrieving image pixels here for OffscreenCanvas
+                        return Ok(None);
+                    },
+                };
+                if !video.same_origin(document.origin()) {
+                    return Err(Error::Security);
+                }
+
+                if let Some(snapshot) = video.get_current_frame_data() {
+                    let snapshot = snapshot.as_ipc();
+                    let size = snapshot.size().cast();
+                    let format: PixelFormat = match snapshot.format() {
+                        snapshot::PixelFormat::RGBA => PixelFormat::RGBA8,
+                        snapshot::PixelFormat::BGRA => PixelFormat::BGRA8,
+                    };
+                    TexPixels::new(snapshot.to_ipc_shared_memory(), size, format, false)
+                } else {
+                    return Ok(None);
+                }
             },
         }))
     }

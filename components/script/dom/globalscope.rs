@@ -29,9 +29,10 @@ use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
+use euclid::default::{Point2D, Rect, Size2D};
 use http::HeaderMap;
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
@@ -59,9 +60,11 @@ use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchResponseListener, IpcSend, ReferrerPolicy,
     ResourceThreads, fetch_async,
 };
+use pixels::PixelFormat;
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use snapshot::Snapshot;
 use timers::{TimerEventId, TimerEventRequest, TimerSource};
 use url::Origin;
 use uuid::Uuid;
@@ -79,7 +82,7 @@ use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastC
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSource_Binding::EventSourceMethods;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
-    ImageBitmapOptions, ImageBitmapSource,
+    ImageBitmapOptions, ImageBitmapSource, ImageOrientation, PremultiplyAlpha,
 };
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::NotificationPermissionCallback;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
@@ -2964,64 +2967,407 @@ impl GlobalScope {
         result == CheckResult::Blocked
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#cropped-to-the-source-rectangle-with-formatting>
+    fn crop_and_transform_bitmap_data(
+        &self,
+        input: Snapshot,
+        mut sx: i32,
+        mut sy: i32,
+        sw: Option<i32>,
+        sh: Option<i32>,
+        options: &ImageBitmapOptions,
+    ) -> Option<Snapshot> {
+        let input_size = input.size().to_u32();
+
+        // If either sw or sh are negative, then the top-left corner of this rectangle
+        // will be to the left or above the (sx, sy) point.
+        let sw = sw.map_or(input_size.width as i32, |w| {
+            if w < 0 {
+                sx = sx.saturating_add(w);
+                w.saturating_abs()
+            } else {
+                w
+            }
+        });
+
+        let sh = sh.map_or(input_size.height as i32, |h| {
+            if h < 0 {
+                sy = sy.saturating_add(h);
+                h.saturating_abs()
+            } else {
+                h
+            }
+        });
+
+        // Step 2.
+        let source_rect = Rect::new(Point2D::new(sx, sy), Size2D::new(sw, sh));
+
+        // In the case the source is too large, we should fail, and that is not defined.
+        // <https://github.com/whatwg/html/issues/3323>
+        let Some(source_bytes_length) = pixels::rgba8_bytes_length(
+            source_rect.size.width as usize,
+            source_rect.size.height as usize,
+        ) else {
+            // The requested source bytes length exceeds the supported range.
+            return None;
+        };
+
+        // Step 3-4.
+        let output_size = match (options.resizeWidth, options.resizeHeight) {
+            (Some(width), Some(height)) => Size2D::new(width, height),
+            (Some(width), None) => {
+                let height =
+                    source_rect.size.height as f64 * width as f64 / source_rect.size.width as f64;
+                Size2D::new(width, height.round() as u32)
+            },
+            (None, Some(height)) => {
+                let width =
+                    source_rect.size.width as f64 * height as f64 / source_rect.size.height as f64;
+                Size2D::new(width.round() as u32, height)
+            },
+            (None, None) => source_rect.size.to_u32(),
+        };
+
+        // In the case the output is too large, we should fail, and that is not defined.
+        // <https://github.com/whatwg/html/issues/3323>
+        let Some(_) =
+            pixels::rgba8_bytes_length(output_size.width as usize, output_size.height as usize)
+        else {
+            // The requested output bytes length exceeds the supported range.
+            return None;
+        };
+
+        // TODO: Take into account the image orientation (such as EXIF metadata).
+
+        // Step 5.
+        let input_rect = Rect::new(Point2D::zero(), input_size.to_i32());
+
+        let input_cropped_rect = source_rect
+            .intersection(&input_rect)
+            .unwrap_or(Rect::zero());
+
+        // Early out for empty tranformations.
+        if input_cropped_rect.is_empty() {
+            return Some(Snapshot::cleared(output_size.cast()));
+        }
+
+        // Step 6.
+        let mut output = Snapshot::from_vec(
+            source_rect.size.cast(),
+            input.format(),
+            input.alpha_mode(),
+            vec![0; source_bytes_length],
+        );
+
+        let source_cropped_origin = Point2D::new(
+            input_cropped_rect.origin.x - source_rect.origin.x,
+            input_cropped_rect.origin.y - source_rect.origin.y,
+        );
+        let source_cropped_rect = Rect::new(source_cropped_origin, input_cropped_rect.size);
+
+        pixels::rgba8_copy(
+            input.data(),
+            input_size.cast(),
+            input_cropped_rect.cast(),
+            output.data_mut(),
+            source_rect.size.cast(),
+            source_cropped_rect.cast(),
+        );
+
+        // TODO: Step 7. Scale output to the size specified by outputWidth and outputHeight.
+
+        // Step 8.
+        if options.imageOrientation == ImageOrientation::FlipY {
+            let output_size = output.size().cast();
+            pixels::rgba8_flip_y_inplace(output.data_mut(), output_size);
+        }
+
+        // TODO: Step 9. Color space conversion.
+
+        // Step 10.
+        match options.premultiplyAlpha {
+            PremultiplyAlpha::Default | PremultiplyAlpha::Premultiply => {
+                output.transform(
+                    snapshot::AlphaMode::Transparent {
+                        premultiplied: true,
+                    },
+                    snapshot::PixelFormat::BGRA,
+                );
+            },
+            PremultiplyAlpha::None => {
+                output.transform(
+                    snapshot::AlphaMode::Transparent {
+                        premultiplied: false,
+                    },
+                    snapshot::PixelFormat::BGRA,
+                );
+            },
+        }
+
+        Some(output)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn create_image_bitmap(
         &self,
         image: ImageBitmapSource,
+        sx: i32,
+        sy: i32,
+        sw: Option<i32>,
+        sh: Option<i32>,
         options: &ImageBitmapOptions,
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
         let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+
+        // Step 1.
+        if sw.is_some_and(|w| w == 0) {
+            p.reject_error(
+                Error::Range("'sw' must be a non-zero value".to_owned()),
+                can_gc,
+            );
+            return p;
+        }
+
+        if sh.is_some_and(|h| h == 0) {
+            p.reject_error(
+                Error::Range("'sh' must be a non-zero value".to_owned()),
+                can_gc,
+            );
+            return p;
+        }
+
+        // Step 2.
         if options.resizeWidth.is_some_and(|w| w == 0) {
             p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
 
-        if options.resizeHeight.is_some_and(|w| w == 0) {
+        if options.resizeHeight.is_some_and(|h| h == 0) {
             p.reject_error(Error::InvalidState, can_gc);
             return p;
         }
 
+        // Step 3-6.
         match image {
-            ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+            ImageBitmapSource::HTMLImageElement(ref image) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if !image.is_usable().is_ok_and(|u| u) {
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 }
 
-                if let Some(snapshot) = canvas.get_image_data() {
-                    let size = snapshot.size().cast();
-                    let image_bitmap =
-                        ImageBitmap::new(self, size.width, size.height, can_gc).unwrap();
-                    image_bitmap.set_bitmap_data(snapshot.to_vec());
-                    image_bitmap.set_origin_clean(canvas.origin_is_clean());
-                    p.resolve_native(&(image_bitmap), can_gc);
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(img) = image.image_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let size = Size2D::new(img.width, img.height);
+                let format = match img.format {
+                    PixelFormat::BGRA8 => snapshot::PixelFormat::BGRA,
+                    PixelFormat::RGBA8 => snapshot::PixelFormat::RGBA,
+                    pixel_format => {
+                        unimplemented!("unsupported pixel format ({:?})", pixel_format)
+                    },
+                };
+                let alpha_mode = snapshot::AlphaMode::Transparent {
+                    premultiplied: false,
+                };
+
+                let source_data = Snapshot::from_shared_memory(
+                    size.cast(),
+                    format,
+                    alpha_mode,
+                    IpcSharedMemory::from_bytes(img.first_frame().bytes),
+                );
+
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(source_data, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let bitmap_size = bitmap_data.size().cast();
+
+                let image_bitmap =
+                    ImageBitmap::new(self, bitmap_size.width, bitmap_size.height, can_gc).unwrap();
+                image_bitmap.set_bitmap_data(bitmap_data);
+                image_bitmap.set_origin_clean(image.same_origin(GlobalScope::entry().origin()));
+
+                p.resolve_native(&image_bitmap, can_gc);
+            },
+            ImageBitmapSource::HTMLVideoElement(ref video) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if !video.is_usable() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
                 }
-                p
+
+                if video.is_network_state_empty() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(source_data) = video.get_current_frame_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(source_data, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let bitmap_size = bitmap_data.size().cast();
+
+                let image_bitmap =
+                    ImageBitmap::new(self, bitmap_size.width, bitmap_size.height, can_gc).unwrap();
+                image_bitmap.set_bitmap_data(bitmap_data);
+                image_bitmap.set_origin_clean(video.same_origin(GlobalScope::entry().origin()));
+
+                p.resolve_native(&image_bitmap, can_gc);
+            },
+            ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(source_data) = canvas.get_image_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(source_data, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let bitmap_size = bitmap_data.size().cast();
+
+                let image_bitmap =
+                    ImageBitmap::new(self, bitmap_size.width, bitmap_size.height, can_gc).unwrap();
+                image_bitmap.set_bitmap_data(bitmap_data);
+                image_bitmap.set_origin_clean(canvas.origin_is_clean());
+
+                p.resolve_native(&image_bitmap, can_gc);
+            },
+            ImageBitmapSource::ImageBitmap(ref bitmap) => {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if bitmap.is_detached() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(source_data) = bitmap.bitmap_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(source_data, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let bitmap_size = bitmap_data.size().cast();
+
+                let image_bitmap =
+                    ImageBitmap::new(self, bitmap_size.width, bitmap_size.height, can_gc).unwrap();
+                image_bitmap.set_bitmap_data(bitmap_data);
+                image_bitmap.set_origin_clean(bitmap.origin_is_clean());
+
+                p.resolve_native(&image_bitmap, can_gc);
             },
             ImageBitmapSource::OffscreenCanvas(ref canvas) => {
-                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
-                if !canvas.is_valid() {
+                // <https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument>
+                if canvas.get_size().is_empty() {
                     p.reject_error(Error::InvalidState, can_gc);
                     return p;
                 }
 
-                if let Some(snapshot) = canvas.get_image_data() {
-                    let size = snapshot.size().cast();
-                    let image_bitmap =
-                        ImageBitmap::new(self, size.width, size.height, can_gc).unwrap();
-                    image_bitmap.set_bitmap_data(snapshot.to_vec());
-                    image_bitmap.set_origin_clean(canvas.origin_is_clean());
-                    p.resolve_native(&(image_bitmap), can_gc);
-                }
-                p
+                // If no ImageBitmap object can be constructed, then the promise is rejected instead.
+                let Some(source_data) = canvas.get_image_data() else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(source_data, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let bitmap_size = bitmap_data.size().cast();
+
+                let image_bitmap =
+                    ImageBitmap::new(self, bitmap_size.width, bitmap_size.height, can_gc).unwrap();
+                image_bitmap.set_bitmap_data(bitmap_data);
+                image_bitmap.set_origin_clean(canvas.origin_is_clean());
+
+                p.resolve_native(&image_bitmap, can_gc);
             },
-            _ => {
+            ImageBitmapSource::Blob(_) => {
+                // TODO: implement support of Blob object as ImageBitmapSource
+                p.reject_error(Error::InvalidState, can_gc);
+            },
+            ImageBitmapSource::ImageData(ref image_data) => {
+                // If IsDetachedBuffer(image_data.[[ViewedArrayBuffer]]) is true,
+                // then return a promise rejected with an "InvalidStateError" DOMException.
+                if image_data.is_detached() {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                }
+
+                let alpha_mode = snapshot::AlphaMode::Transparent {
+                    premultiplied: false,
+                };
+
+                let source_data = Snapshot::from_shared_memory(
+                    image_data.get_size().cast(),
+                    snapshot::PixelFormat::RGBA,
+                    alpha_mode,
+                    image_data.to_shared_memory(),
+                );
+
+                let Some(bitmap_data) =
+                    self.crop_and_transform_bitmap_data(source_data, sx, sy, sw, sh, options)
+                else {
+                    p.reject_error(Error::InvalidState, can_gc);
+                    return p;
+                };
+
+                let bitmap_size = bitmap_data.size().cast();
+
+                let image_bitmap =
+                    ImageBitmap::new(self, bitmap_size.width, bitmap_size.height, can_gc).unwrap();
+                image_bitmap.set_bitmap_data(bitmap_data);
+
+                p.resolve_native(&image_bitmap, can_gc);
+            },
+            ImageBitmapSource::CSSStyleValue(_) => {
+                // TODO: CSSStyleValue is not part of ImageBitmapSource
+                // <https://html.spec.whatwg.org/multipage/#imagebitmapsource>
                 p.reject_error(Error::NotSupported, can_gc);
-                p
             },
         }
+
+        // Step 7.
+        p
     }
 
     pub(crate) fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {

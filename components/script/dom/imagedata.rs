@@ -41,14 +41,9 @@ impl ImageData {
         mut data: Option<Vec<u8>>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
-        // The color components of each pixel must be stored in four sequential
-        // elements in the order of red, green, blue, and then alpha.
-        let len = 4u32
-            .checked_mul(width)
-            .and_then(|v| v.checked_mul(height))
-            .ok_or(Error::Range(
-                "The requested image size exceeds the supported range".to_owned(),
-            ))?;
+        let len = pixels::rgba8_bytes_length(width as usize, height as usize).ok_or(
+            Error::Range("The requested image size exceeds the supported range".to_owned()),
+        )?;
 
         unsafe {
             let cx = GlobalScope::get_cx();
@@ -129,18 +124,15 @@ impl ImageData {
             return Err(Error::IndexSize);
         }
 
-        // The color components of each pixel must be stored in four sequential
-        // elements in the order of red, green, blue, and then alpha.
-        // Please note when a too-large ImageData is created using a constructor
+        // Please note when a too large ImageData is created using a constructor
         // historically throwns an IndexSizeError, instead of RangeError.
-        let len = 4u32
-            .checked_mul(width)
-            .and_then(|v| v.checked_mul(height))
-            .ok_or(Error::IndexSize)?;
+        let len =
+            pixels::rgba8_bytes_length(width as usize, height as usize).ok_or(Error::IndexSize)?;
 
         let cx = GlobalScope::get_cx();
 
-        let heap_typed_array = create_heap_buffer_source_with_length::<ClampedU8>(cx, len, can_gc)?;
+        let heap_typed_array =
+            create_heap_buffer_source_with_length::<ClampedU8>(cx, len as u32, can_gc)?;
 
         let imagedata = Box::new(ImageData {
             reflector_: Reflector::new(),
@@ -153,6 +145,11 @@ impl ImageData {
             imagedata, global, proto, can_gc,
         ))
     }
+
+    pub(crate) fn is_detached(&self) -> bool {
+        self.data.is_detached_buffer(GlobalScope::get_cx())
+    }
+
     #[allow(unsafe_code)]
     pub(crate) fn to_shared_memory(&self) -> IpcSharedMemory {
         IpcSharedMemory::from_bytes(unsafe { self.as_slice() })

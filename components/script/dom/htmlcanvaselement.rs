@@ -361,7 +361,10 @@ impl HTMLCanvasElement {
             Some(context) => context.get_image_data(),
             None => {
                 let size = self.get_size();
-                if size.width == 0 || size.height == 0 {
+                if size.is_empty() ||
+                    pixels::rgba8_bytes_length(size.width as usize, size.height as usize)
+                        .is_none()
+                {
                     None
                 } else {
                     Some(Snapshot::cleared(size.cast()))

@@ -31,6 +31,20 @@ pub enum PixelFormat {
     BGRA8,
 }
 
+// Computes total bytes length, returning None if overflow occurred or exceed the limit.
+pub fn rgba8_bytes_length(width: usize, height: usize) -> Option<usize> {
+    // TODO: use configurable option from servo_config.prefs.
+    // Maximum allowed memory allocation size (u32::MAX ~ 4096MB).
+    const MAX_BYTES_LENGTH: usize = 4294967295;
+
+    // The color components of each pixel must be stored in four sequential
+    // elements in the order of red, green, blue, and then alpha.
+    4usize
+        .checked_mul(width)
+        .and_then(|v| v.checked_mul(height))
+        .filter(|v| *v <= MAX_BYTES_LENGTH)
+}
+
 pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u64>, rect: Rect<u64>) -> Cow<[u8]> {
     assert!(!rect.is_empty());
     assert!(Rect::from_size(size).contains_rect(&rect));
@@ -52,6 +66,69 @@ pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u64>, rect: Rect<u64>) -> Cow<
         data.extend_from_slice(&row[first_column_start..][..rect.size.width as usize * 4]);
     }
     data.into()
+}
+
+// Copy pixels from source to destination target without scaling.
+pub fn rgba8_copy(
+    src_pixels: &[u8],
+    src_size: Size2D<u64>,
+    src_rect: Rect<u64>,
+    dst_pixels: &mut [u8],
+    dst_size: Size2D<u64>,
+    dst_rect: Rect<u64>,
+) {
+    assert!(!src_rect.is_empty());
+    assert!(!dst_rect.is_empty());
+    assert!(Rect::from_size(src_size).contains_rect(&src_rect));
+    assert!(Rect::from_size(dst_size).contains_rect(&dst_rect));
+    assert!(src_rect.size == dst_rect.size);
+    assert_eq!(src_pixels.len() % 4, 0);
+    assert_eq!(dst_pixels.len() % 4, 0);
+
+    let use_fast_copy = (Rect::from(src_size) == src_rect) &&
+        (Rect::from(dst_size) == dst_rect) &&
+        (src_rect == dst_rect);
+
+    if use_fast_copy {
+        dst_pixels.copy_from_slice(src_pixels);
+        return;
+    }
+
+    let src_first_column_start = src_rect.origin.x as usize * 4;
+    let src_row_length = src_size.width as usize * 4;
+    let src_first_row_start = src_rect.origin.y as usize * src_row_length;
+
+    let dst_first_column_start = dst_rect.origin.x as usize * 4;
+    let dst_row_length = dst_size.width as usize * 4;
+    let dst_first_row_start = dst_rect.origin.y as usize * dst_row_length;
+
+    let (chunk_length, chunk_count) = (
+        src_rect.size.width as usize * 4,
+        src_rect.size.height as usize,
+    );
+
+    for i in 0..chunk_count {
+        let src = &src_pixels[src_first_row_start + i * src_row_length..][src_first_column_start..]
+            [..chunk_length];
+        let dst = &mut dst_pixels[dst_first_row_start + i * dst_row_length..]
+            [dst_first_column_start..][..chunk_length];
+        dst.copy_from_slice(src);
+    }
+}
+
+pub fn rgba8_flip_y_inplace(pixels: &mut [u8], size: Size2D<u64>) {
+    assert_eq!(pixels.len() % 4, 0);
+
+    let (left, right) = pixels.split_at_mut(pixels.len() / 2);
+
+    let row_length = size.width as usize * 4;
+    let half_height = (size.height / 2) as usize;
+
+    for i in 0..half_height {
+        let top = &mut left[i * row_length..][..row_length];
+        let bottom = &mut right[(half_height - i - 1) * row_length..][..row_length];
+        top.swap_with_slice(bottom);
+    }
 }
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
