@@ -1027,10 +1027,17 @@ impl HTMLScriptElement {
 
         if let Some(chan) = self.global().devtools_chan() {
             let pipeline_id = self.global().pipeline_id();
+
+            let content = match &script.code {
+                SourceCode::Text(text) => text.to_string(),
+                SourceCode::Compiled(compiled) => compiled.original_text.to_string(),
+            };
+
             let source_info = SourceInfo {
                 url: script.url.clone(),
                 external: script.external,
                 worker_id: None,
+                content,
             };
             let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                 pipeline_id,

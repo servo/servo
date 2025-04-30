@@ -4,9 +4,15 @@
 
 use std::cell::{Ref, RefCell};
 use std::collections::BTreeSet;
+use std::net::TcpStream;
 
 use serde::Serialize;
+use serde_json::{Map, Value};
 use servo_url::ServoUrl;
+
+use crate::StreamId;
+use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::protocol::JsonPacketStream;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,6 +21,7 @@ pub(crate) struct SourceData {
     /// URL of the script, or URL of the page for inline scripts.
     pub url: String,
     pub is_black_boxed: bool,
+    pub source_content: String,
 }
 
 #[derive(Serialize)]
@@ -24,8 +31,30 @@ pub(crate) struct SourcesReply {
 }
 
 pub(crate) struct Source {
-    actor_name: String,
-    source_urls: RefCell<BTreeSet<SourceData>>,
+    pub actor_name: String,
+    pub source_urls: RefCell<BTreeSet<SourceData>>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceActor {
+    pub name: String,
+    pub content: String,
+    pub content_type: String,
+}
+
+#[derive(Serialize)]
+struct SourceContentReply {
+    from: String,
+    #[serde(rename = "contentType")]
+    content_type: String,
+    source: String,
+}
+
+#[derive(Serialize)]
+struct BreakableLinesReply {
+    from: String,
+    lines: Vec<u32>,
 }
 
 impl Source {
@@ -36,15 +65,82 @@ impl Source {
         }
     }
 
-    pub fn add_source(&self, url: ServoUrl) {
+    pub fn add_source(&self, url: ServoUrl, source_content: String) {
         self.source_urls.borrow_mut().insert(SourceData {
             actor: self.actor_name.clone(),
             url: url.to_string(),
             is_black_boxed: false,
+            source_content,
         });
     }
 
     pub fn sources(&self) -> Ref<BTreeSet<SourceData>> {
         self.source_urls.borrow()
+    }
+}
+
+impl SourceActor {
+    pub fn new(name: String, content: String, content_type: String) -> SourceActor {
+        SourceActor {
+            name,
+            content,
+            content_type,
+        }
+    }
+
+    pub fn new_source(
+        actors: &mut ActorRegistry,
+        url: &ServoUrl,
+        content: String,
+    ) -> (SourceActor, String) {
+        let source_actor_name = actors.new_name("source");
+
+        // this can do better, we should find a way to identify content_type
+        // maybe get it directly from script?
+        let content_type = match url.path().rsplit('.').next() {
+            Some("js") => "application/javascript",
+            _ => "text/plain",
+        }
+        .to_string();
+
+        let source_actor = SourceActor::new(source_actor_name.clone(), content, content_type);
+
+        (source_actor, source_actor_name)
+    }
+}
+
+impl Actor for SourceActor {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn handle_message(
+        &self,
+        _registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+        _id: StreamId,
+    ) -> Result<ActorMessageStatus, ()> {
+        Ok(match msg_type {
+            "source" => {
+                let reply = SourceContentReply {
+                    from: self.name(),
+                    content_type: self.content_type.clone(),
+                    source: self.content.clone(),
+                };
+                let _ = stream.write_json_packet(&reply);
+                ActorMessageStatus::Processed
+            },
+            "getBreakableLines" => {
+                let reply = BreakableLinesReply {
+                    from: self.name(),
+                    lines: [].to_vec(),
+                };
+                let _ = stream.write_json_packet(&reply);
+                ActorMessageStatus::Processed
+            },
+            _ => ActorMessageStatus::Ignored,
+        })
     }
 }

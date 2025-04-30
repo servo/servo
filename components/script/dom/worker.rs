@@ -229,6 +229,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                     url: worker_url.clone(),
                     external: true, // Worker scripts are always external.
                     worker_id: Some(worker_id),
+                    content: "".to_string(),
                 };
                 let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                     pipeline_id,
