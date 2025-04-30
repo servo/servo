@@ -2559,17 +2559,22 @@ impl ScriptThread {
         sequence: FocusSequenceNumber,
         can_gc: CanGc,
     ) {
-        let doc = self.documents.borrow().find_document(pipeline_id).unwrap();
-        if doc.get_focus_sequence() > sequence {
-            debug!(
-                "Disregarding the FocusDocument message because the contained sequence number is \
-                too old ({:?} < {:?})",
-                sequence,
-                doc.get_focus_sequence()
+        if let Some(doc) = self.documents.borrow().find_document(pipeline_id) {
+            if doc.get_focus_sequence() > sequence {
+                debug!(
+                    "Disregarding the FocusDocument message because the contained sequence number is \
+                    too old ({:?} < {:?})",
+                    sequence,
+                    doc.get_focus_sequence()
+                );
+                return;
+            }
+            doc.request_focus(None, FocusInitiator::Remote, can_gc);
+        } else {
+            warn!(
+                "Couldn't find document by pipleline_id:{pipeline_id:?} when handle_focus_document_msg."
             );
-            return;
         }
-        doc.request_focus(None, FocusInitiator::Remote, can_gc);
     }
 
     fn handle_unfocus_msg(
@@ -2578,17 +2583,22 @@ impl ScriptThread {
         sequence: FocusSequenceNumber,
         can_gc: CanGc,
     ) {
-        let doc = self.documents.borrow().find_document(pipeline_id).unwrap();
-        if doc.get_focus_sequence() > sequence {
-            debug!(
-                "Disregarding the Unfocus message because the contained sequence number is \
-                too old ({:?} < {:?})",
-                sequence,
-                doc.get_focus_sequence()
+        if let Some(doc) = self.documents.borrow().find_document(pipeline_id) {
+            if doc.get_focus_sequence() > sequence {
+                debug!(
+                    "Disregarding the Unfocus message because the contained sequence number is \
+                    too old ({:?} < {:?})",
+                    sequence,
+                    doc.get_focus_sequence()
+                );
+                return;
+            }
+            doc.handle_container_unfocus(can_gc);
+        } else {
+            warn!(
+                "Couldn't find document by pipleline_id:{pipeline_id:?} when handle_unfocus_msg."
             );
-            return;
         }
-        doc.handle_container_unfocus(can_gc);
     }
 
     fn handle_post_message_msg(

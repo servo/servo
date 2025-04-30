@@ -4457,6 +4457,7 @@ where
             ([.., p1], [.., p2]) if p1.id == p2.id => {},
             _ => {
                 warn!("Aborting the focus operation - focus chain sanity check failed");
+                return;
             },
         }
 
