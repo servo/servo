@@ -48,11 +48,9 @@
     }
   }
 
-  async_test((t) => {
-    window.onload = async () => {
-      await assert_focus_order([before,within1,after1,dialog2,within2,after2,
-        within3,after3,dialog4,within4,after4]);
-      t.done();
-    };
+  promise_test(async () => {
+    await new Promise(resolve => window.onload = resolve);
+    await assert_focus_order([before,within1,after1,dialog2,within2,after2,
+      within3,after3,dialog4,within4,after4]);
   }, "The dialog element itself should not be keyboard focusable.");
 </script>

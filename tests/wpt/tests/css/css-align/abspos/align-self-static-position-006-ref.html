@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<style>
+.block {
+  width: 75px;
+  height: 75px;
+  z-index: -1;
+  border: 5px dotted blue;
+}
+
+.container {
+  border: 1px solid;
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: inline-block;
+  margin-left: 50px;
+  margin-bottom: 50px;
+}
+
+.abs {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  background: purple;
+}
+</style>
+<!-- start aligned -->
+<div class="container"><div class="block">
+  <div class="abs"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="left: 30px;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs"></div>
+</div></div>
+<br>
+<!-- end aligned -->
+<div class="container"><div class="block">
+  <div class="abs" style="top: -45px; left: 30px;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="top: -45px;"></div>
+</div></div>
+<div class="container"><div class="block">
+  <div class="abs" style="top: -45px; left: 30px;"></div>
+</div></div>
+<br>

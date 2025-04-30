@@ -695,6 +695,16 @@ async function joinCrossOriginInterestGroup(test, uuid, origin, interestGroupOve
                    `await joinInterestGroup(test_instance, "${uuid}", ${interestGroup})`);
 }
 
+// Leaves a cross-origin interest group, by running a leave in an iframe.
+async function leaveCrossOriginInterestGroup(test, uuid, origin, interestGroupOverrides = {}) {
+  let interestGroup = JSON.stringify(
+      createInterestGroupForOrigin(uuid, origin, interestGroupOverrides));
+
+  let iframe = await createIframe(test, origin, 'join-ad-interest-group');
+  await runInFrame(test, iframe,
+                   `await leaveInterestGroup(${interestGroup})`);
+}
+
 // Joins an interest group in a top-level window, which has the same origin
 // as the joined interest group.
 async function joinInterestGroupInTopLevelWindow(

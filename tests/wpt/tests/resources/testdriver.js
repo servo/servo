@@ -254,12 +254,57 @@
                 }
             },
             /**
-             * `log <https://w3c.github.io/webdriver-bidi/#module-log>`_ module.
+             * `emulation <https://www.w3.org/TR/webdriver-bidi/#module-emulation>`_ module.
+             */
+            emulation: {
+                /**
+                 * Overrides the geolocation coordinates for the specified
+                 * browsing contexts.
+                 * Matches the `emulation.setGeolocationOverride
+                 * <https://w3c.github.io/webdriver-bidi/#command-emulation-setGeolocationOverride>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.emulation.set_geolocation_override({
+                 *     coordinates: {
+                 *         latitude: 52.51,
+                 *         longitude: 13.39,
+                 *         accuracy: 0.5,
+                 *         altitude: 34,
+                 *         altitudeAccuracy: 0.75,
+                 *         heading: 180,
+                 *         speed: 2.77
+                 *     }
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {null|object} params.coordinates - The optional
+                 * geolocation coordinates to set. Matches the
+                 * `emulation.GeolocationCoordinates <https://w3c.github.io/webdriver-bidi/#type-emulation-GeolocationCoordinates>`_
+                 * value. If null or omitted, the emulation will be removed.
+                 * @param {null|Array.<(Context)>} [params.contexts] The
+                 * optional contexts parameter specifies which browsing contexts
+                 * to set the geolocation override on. It should be either an
+                 * array of Context objects (window or browsing context id), or
+                 * null. If null or omitted, the override will be set on the
+                 * current browsing context.
+                 * @returns {Promise<void>} Resolves when the geolocation
+                 * override is successfully set.
+                 */
+                set_geolocation_override: function (params) {
+                    // Ensure the bidi feature is enabled before calling the internal method
+                    assertBidiIsEnabled();
+                    return window.test_driver_internal.bidi.emulation.set_geolocation_override(
+                        params);
+                },
+            },
+            /**
+             * `log <https://www.w3.org/TR/webdriver-bidi/#module-log>`_ module.
              */
             log: {
                 entry_added: {
                     /**
-                     * @typedef {object} LogEntryAdded `log.entryAdded <https://w3c.github.io/webdriver-bidi/#event-log-entryAdded>`_ event.
+                     * @typedef {object} LogEntryAdded `log.entryAdded <https://www.w3.org/TR/webdriver-bidi/#event-log-entryAdded>`_ event.
                      */
 
                     /**
@@ -1574,6 +1619,12 @@
                         throw new Error(
                             'bidi.bluetooth.request_device_prompt_updated.on is not implemented by testdriver-vendor.js');
                     }
+                }
+            },
+            emulation: {
+                set_geolocation_override: function (params) {
+                    throw new Error(
+                        "bidi.emulation.set_geolocation_override is not implemented by testdriver-vendor.js");
                 }
             },
             log: {

@@ -36,6 +36,8 @@ interface MLContext {
   undefined dispatch(MLGraph graph, MLNamedTensors inputs, MLNamedTensors outputs);
 
   Promise<MLTensor> createTensor(MLTensorDescriptor descriptor);
+  Promise<MLTensor> createConstantTensor(
+    MLOperandDescriptor descriptor, AllowSharedBufferSource inputData);
 
   Promise<ArrayBuffer> readTensor(MLTensor tensor);
   Promise<undefined> readTensor(MLTensor tensor, AllowSharedBufferSource outputData);
@@ -133,6 +135,7 @@ interface MLTensor {
   readonly attribute FrozenArray<unsigned long> shape;
   readonly attribute boolean readable;
   readonly attribute boolean writable;
+  readonly attribute boolean constant;
 
   undefined destroy();
 };
@@ -153,6 +156,9 @@ interface MLGraphBuilder {
 
   // Create a scalar operand from the specified number of the specified type.
   MLOperand constant(MLOperandDataType type, MLNumber value);
+
+  // Create an operand from a specified constant tensor.
+  MLOperand constant(MLTensor tensor);
 
   // Compile the graph up to the specified output operands asynchronously.
   Promise<MLGraph> build(MLNamedOperands outputs);

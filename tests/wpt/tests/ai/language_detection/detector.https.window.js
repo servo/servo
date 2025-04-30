@@ -1,19 +1,32 @@
 // META: title=Detect english
 // META: global=window
+// META: timeout=long
+// META: script=resources/util.js
+// META: script=/resources/testdriver.js
 // META: script=../resources/util.js
 // META: script=../resources/locale-util.js
 
 'use strict';
 
 promise_test(async t => {
-  // Language detection is available after call to `create()`.
-  await LanguageDetector.create();
+  // Creating the language detector without user activation rejects with
+  // NotAllowedError.
+  const createPromise = LanguageDetector.create();
+  await promise_rejects_dom(t, 'NotAllowedError', createPromise);
+
+  // Creating the translator with user activation succeeds.
+  await createLanguageDetector();
+
+  // Creating it should have switched it to available.
   const availability = await LanguageDetector.availability();
   assert_equals(availability, 'available');
-}, 'Simple LanguageDetector.availability() call');
+
+  // Now that it is available, we should no longer need user activation.
+  await LanguageDetector.create();
+}, 'LanguageDetector.create() requires user activation when availability is "downloadable.');
 
 promise_test(async t => {
-  const detector = await LanguageDetector.create();
+  const detector = await createLanguageDetector();
   const results = await detector.detect('Hello world!');
 
   // must at least have the 'und' result.
@@ -62,30 +75,30 @@ promise_test(async t => {
     throw error;
   }
 
-  await promise_rejects_exactly(t, error, LanguageDetector.create({monitor}));
+  await promise_rejects_exactly(t, error, createLanguageDetector({monitor}));
 }, 'If monitor throws an error, LanguageDetector.create() rejects with that error');
 
 promise_test(async t => {
-  testMonitor(LanguageDetector.create);
+  testMonitor(createLanguageDetector);
 }, 'LanguageDetector.create() notifies its monitor on downloadprogress');
 
 promise_test(async t => {
   const controller = new AbortController();
   controller.abort();
 
-  const createPromise = LanguageDetector.create({signal: controller.signal});
+  const createPromise = createLanguageDetector({signal: controller.signal});
 
   await promise_rejects_dom(t, 'AbortError', createPromise);
 }, 'LanguageDetector.create() call with an aborted signal.');
 
 promise_test(async t => {
   await testAbortPromise(t, signal => {
-    return LanguageDetector.create({signal});
+    return createLanguageDetector({signal});
   });
-}, 'Aborting LanguageDetector.create().');
+}, 'Aborting createLanguageDetector().');
 
 promise_test(async t => {
-  const detector = await LanguageDetector.create();
+  const detector = await createLanguageDetector();
 
   const text = 'Hello world!';
   const promises = [detector.detect(text), detector.measureInputUsage(text)];
@@ -101,7 +114,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const controller = new AbortController();
-  const detector = await LanguageDetector.create({signal: controller.signal});
+  const detector = await createLanguageDetector({signal: controller.signal});
 
   const text = 'Hello world!';
   const promises = [detector.detect(text), detector.measureInputUsage(text)];
@@ -120,7 +133,7 @@ promise_test(async t => {
   const controller = new AbortController();
   controller.abort();
 
-  const detector = await LanguageDetector.create();
+  const detector = await createLanguageDetector();
   const detectPromise =
       detector.detect('Hello world!', {signal: controller.signal});
 
@@ -128,14 +141,14 @@ promise_test(async t => {
 }, 'LanguageDetector.detect() call with an aborted signal.');
 
 promise_test(async t => {
-  const detector = await LanguageDetector.create();
+  const detector = await createLanguageDetector();
   await testAbortPromise(t, signal => {
     return detector.detect('Hello world!', {signal});
   });
 }, 'Aborting LanguageDetector.detect().');
 
 promise_test(async t => {
-  const detector = await LanguageDetector.create();
+  const detector = await createLanguageDetector();
 
   const text = 'Hello world!';
   const largeText = text.repeat(10000);
@@ -157,7 +170,7 @@ promise_test(async t => {
   const controller = new AbortController();
   controller.abort();
 
-  const detector = await LanguageDetector.create();
+  const detector = await createLanguageDetector();
   const measureInputUsagePromise =
       detector.measureInputUsage('hello', {signal: controller.signal});
 
@@ -165,17 +178,17 @@ promise_test(async t => {
 }, 'LanguageDetector.measureInputUsage() call with an aborted signal.');
 
 promise_test(async t => {
-  const detector = await LanguageDetector.create();
+  const detector = await createLanguageDetector();
   await testAbortPromise(t, signal => {
     return detector.measureInputUsage('hello', {signal});
   });
 }, 'Aborting LanguageDetector.measureInputUsage().');
 
 promise_test(async () => {
-  const detector = await LanguageDetector.create();
+  const detector = await createLanguageDetector();
   assert_equals(detector.expectedInputLanguages, null);
 }, 'Creating LanguageDetector without expectedInputLanguages');
 
 promise_test(async t => {
-  await testCreateMonitorWithAbort(t, LanguageDetector.create);
+  await testCreateMonitorWithAbort(t, createLanguageDetector);
 }, 'Progress events are not emitted after aborted.');

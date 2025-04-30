@@ -568,5 +568,8 @@ class EditorTestUtils {
         }) - (${EditorTestUtils.getNodeDescription(range.endContainer)}, ${range.endOffset})`;
   }
 
+  static waitForRender() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
 
 }

@@ -37,6 +37,9 @@ function load_iframe(src, permission_policy) {
   });
 }
 
+// TODO(crbug.com/414428433): Tests in this file intermittently crash.
+// Re-enable once potential causes in Permissions Policy implementation
+// and test setup are addressed.
 promise_test(async t => {
   const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
   const iframe = await load_iframe(src, /*permission_policy=*/"");
