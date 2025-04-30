@@ -30,9 +30,10 @@ use crate::actors::watcher::target_configuration::{
 use crate::actors::watcher::thread_configuration::{
     ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
+use crate::actors::worker::WorkerActor;
 use crate::protocol::JsonPacketStream;
 use crate::resource::{ResourceAvailable, ResourceAvailableReply};
-use crate::{EmptyReplyMsg, StreamId, WorkerActor};
+use crate::{EmptyReplyMsg, StreamId};
 
 pub mod network_parent;
 pub mod target_configuration;
