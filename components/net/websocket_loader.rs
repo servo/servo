@@ -418,24 +418,21 @@ fn connect(
     tls_config.alpn_protocols = vec!["http/1.1".to_string().into()];
 
     let resource_event_sender2 = resource_event_sender.clone();
-    match HANDLE.lock().unwrap().as_mut() {
-        Some(handle) => handle.spawn(
-            start_websocket(
-                http_state,
-                req_url.clone(),
-                resource_event_sender,
-                protocols,
-                client,
-                tls_config,
-                dom_action_receiver,
-            )
-            .map_err(move |e| {
-                warn!("Failed to establish a WebSocket connection: {:?}", e);
-                let _ = resource_event_sender2.send(WebSocketNetworkEvent::Fail);
-            }),
-        ),
-        None => return Err("No runtime available".to_string()),
-    };
+    HANDLE.spawn(
+        start_websocket(
+            http_state,
+            req_url.clone(),
+            resource_event_sender,
+            protocols,
+            client,
+            tls_config,
+            dom_action_receiver,
+        )
+        .map_err(move |e| {
+            warn!("Failed to establish a WebSocket connection: {:?}", e);
+            let _ = resource_event_sender2.send(WebSocketNetworkEvent::Fail);
+        }),
+    );
     Ok(())
 }
 
