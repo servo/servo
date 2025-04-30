@@ -564,7 +564,22 @@ impl Iterator for QuerySelectorIterator {
 }
 
 impl Node {
-    impl_rare_data!(NodeRareData);
+    fn rare_data(&self) -> Ref<Option<Box<NodeRareData>>> {
+        self.rare_data.borrow()
+    }
+
+    #[allow(dead_code)]
+    fn rare_data_mut(&self) -> RefMut<Option<Box<NodeRareData>>> {
+        self.rare_data.borrow_mut()
+    }
+
+    fn ensure_rare_data(&self) -> RefMut<Box<NodeRareData>> {
+        let mut rare_data = self.rare_data.borrow_mut();
+        if rare_data.is_none() {
+            *rare_data = Some(Default::default());
+        }
+        RefMut::map(rare_data, |rare_data| rare_data.as_mut().unwrap())
+    }
 
     /// Returns true if this node is before `other` in the same connected DOM
     /// tree.
