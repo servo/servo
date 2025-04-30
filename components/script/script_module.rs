@@ -1369,7 +1369,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     true
 }
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Debug, JSTraceable, MallocSizeOf)]
 /// <https://html.spec.whatwg.org/multipage/#script-fetch-options>
 pub(crate) struct ScriptFetchOptions {
     #[no_trace]
@@ -1763,7 +1763,8 @@ fn fetch_single_module_script(
         .mode(mode)
         .insecure_requests_policy(global.insecure_requests_policy())
         .has_trustworthy_ancestor_origin(global.has_trustworthy_ancestor_origin())
-        .policy_container(global.policy_container().to_owned());
+        .policy_container(global.policy_container().to_owned())
+        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
 
     let context = Arc::new(Mutex::new(ModuleContext {
         owner,
