@@ -36,6 +36,7 @@ use style_traits::{CssWriter, ParsingMode};
 use url::Url;
 use webrender_api::ImageKey;
 
+use crate::canvas_context::{OffscreenRenderingContext, RenderingContext};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
@@ -52,10 +53,10 @@ use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::element::{Element, cors_setting_for_element};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
+use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagedata::ImageData;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
+use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
@@ -522,7 +523,7 @@ impl CanvasState {
 
         if let Some(context) = canvas.context() {
             match *context {
-                OffscreenCanvasContext::OffscreenContext2d(ref context) => {
+                OffscreenRenderingContext::Context2d(ref context) => {
                     context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                         self.get_canvas_id(),
                         image_size,
@@ -577,7 +578,7 @@ impl CanvasState {
 
         if let Some(context) = canvas.context() {
             match *context {
-                CanvasContext::Context2d(ref context) => {
+                RenderingContext::Context2d(ref context) => {
                     context.send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                         self.get_canvas_id(),
                         image_size,
@@ -586,12 +587,12 @@ impl CanvasState {
                         smoothing_enabled,
                     ));
                 },
-                CanvasContext::Placeholder(ref context) => {
+                RenderingContext::Placeholder(ref context) => {
                     let Some(context) = context.context() else {
                         return Err(Error::InvalidState);
                     };
                     match *context {
-                        OffscreenCanvasContext::OffscreenContext2d(ref context) => context
+                        OffscreenRenderingContext::Context2d(ref context) => context
                             .send_canvas_2d_msg(Canvas2dMsg::DrawImageInOther(
                                 self.get_canvas_id(),
                                 image_size,

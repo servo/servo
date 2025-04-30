@@ -9,9 +9,10 @@ use euclid::default::Size2D;
 use js::rust::{HandleObject, HandleValue};
 use snapshot::Snapshot;
 
+use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
 use crate::dom::bindings::cell::{DomRefCell, Ref, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
-    OffscreenCanvasMethods, OffscreenRenderingContext,
+    OffscreenCanvasMethods, OffscreenRenderingContext as RootedOffscreenRenderingContext,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
@@ -23,20 +24,12 @@ use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
 use crate::script_runtime::{CanGc, JSContext};
 
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-pub(crate) enum OffscreenCanvasContext {
-    OffscreenContext2d(Dom<OffscreenCanvasRenderingContext2D>),
-    //WebGL(Dom<WebGLRenderingContext>),
-    //WebGL2(Dom<WebGL2RenderingContext>),
-}
-
 #[dom_struct]
 pub(crate) struct OffscreenCanvas {
     eventtarget: EventTarget,
     width: Cell<u64>,
     height: Cell<u64>,
-    context: DomRefCell<Option<OffscreenCanvasContext>>,
+    context: DomRefCell<Option<OffscreenRenderingContext>>,
     placeholder: Option<Dom<HTMLCanvasElement>>,
 }
 
@@ -77,20 +70,18 @@ impl OffscreenCanvas {
 
     pub(crate) fn origin_is_clean(&self) -> bool {
         match *self.context.borrow() {
-            Some(OffscreenCanvasContext::OffscreenContext2d(ref context)) => {
-                context.origin_is_clean()
-            },
+            Some(ref context) => context.origin_is_clean(),
             _ => true,
         }
     }
 
-    pub(crate) fn context(&self) -> Option<Ref<OffscreenCanvasContext>> {
+    pub(crate) fn context(&self) -> Option<Ref<OffscreenRenderingContext>> {
         ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
     }
 
     pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
         match self.context.borrow().as_ref() {
-            Some(OffscreenCanvasContext::OffscreenContext2d(context)) => context.get_image_data(),
+            Some(context) => context.get_image_data(),
             None => {
                 let size = self.get_size();
                 if size.width == 0 || size.height == 0 {
@@ -108,13 +99,13 @@ impl OffscreenCanvas {
     ) -> Option<DomRoot<OffscreenCanvasRenderingContext2D>> {
         if let Some(ctx) = self.context() {
             return match *ctx {
-                OffscreenCanvasContext::OffscreenContext2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
+                OffscreenRenderingContext::Context2d(ref ctx) => Some(DomRoot::from_ref(ctx)),
             };
         }
         let context = OffscreenCanvasRenderingContext2D::new(&self.global(), self, can_gc);
-        *self.context.borrow_mut() = Some(OffscreenCanvasContext::OffscreenContext2d(
-            Dom::from_ref(&*context),
-        ));
+        *self.context.borrow_mut() = Some(OffscreenRenderingContext::Context2d(Dom::from_ref(
+            &*context,
+        )));
         Some(context)
     }
 
@@ -124,19 +115,6 @@ impl OffscreenCanvas {
 
     pub(crate) fn placeholder(&self) -> Option<&HTMLCanvasElement> {
         self.placeholder.as_deref()
-    }
-
-    pub(crate) fn resize(&self, size: Size2D<u64>) {
-        self.width.set(size.width);
-        self.height.set(size.height);
-
-        if let Some(canvas_context) = self.context() {
-            match &*canvas_context {
-                OffscreenCanvasContext::OffscreenContext2d(rendering_context) => {
-                    rendering_context.set_canvas_bitmap_dimensions(self.get_size());
-                },
-            }
-        }
     }
 }
 
@@ -160,11 +138,11 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         id: DOMString,
         _options: HandleValue,
         can_gc: CanGc,
-    ) -> Fallible<Option<OffscreenRenderingContext>> {
+    ) -> Fallible<Option<RootedOffscreenRenderingContext>> {
         match &*id {
             "2d" => Ok(self
                 .get_or_init_2d_context(can_gc)
-                .map(OffscreenRenderingContext::OffscreenCanvasRenderingContext2D)),
+                .map(RootedOffscreenRenderingContext::OffscreenCanvasRenderingContext2D)),
             /*"webgl" | "experimental-webgl" => self
                 .get_or_init_webgl_context(cx, options)
                 .map(OffscreenRenderingContext::WebGLRenderingContext),
@@ -187,11 +165,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         self.width.set(value);
 
         if let Some(canvas_context) = self.context() {
-            match &*canvas_context {
-                OffscreenCanvasContext::OffscreenContext2d(rendering_context) => {
-                    rendering_context.set_canvas_bitmap_dimensions(self.get_size());
-                },
-            }
+            canvas_context.resize();
         }
 
         if let Some(canvas) = &self.placeholder {
@@ -209,11 +183,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         self.height.set(value);
 
         if let Some(canvas_context) = self.context() {
-            match &*canvas_context {
-                OffscreenCanvasContext::OffscreenContext2d(rendering_context) => {
-                    rendering_context.set_canvas_bitmap_dimensions(self.get_size());
-                },
-            }
+            canvas_context.resize();
         }
 
         if let Some(canvas) = &self.placeholder {
