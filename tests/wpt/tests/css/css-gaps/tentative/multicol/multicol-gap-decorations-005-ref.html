@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .outer {
+        display: flex;
+        border: 1px solid #ccc;
+        height: 50px;
+        width: 210px;
+        column-gap: 10px;
+    }
+
+    .outer-items {
+        background: rgb(96 139 168 / 0.2);
+        height 50px;
+        width: 100px;
+    }
+
+    .inner {
+        display: flex;
+        height: 50px;
+        column-gap: 10px;
+        width: 100px;
+    }
+
+    .inner-items {
+        height: 50px;
+        width: 45px;
+        background: black;
+    }
+
+    .column-gap {
+        position: absolute;
+        height: 50px;
+        top: 1px;
+        left: 101px;
+        width: 10px;
+    }
+
+    .row-gap {
+        position: absolute;
+        background: purple;
+        height: 10px;
+        top: 21px;
+        left: 111px;
+        width: 100px;
+    }
+</style>
+<div class="outer">
+    <div class="outer-items"></div>
+    <div class="outer-items" id="nested">
+        <div class="inner">
+            <div class="inner-items"></div>
+            <div class="inner-items"></div>
+        </div>
+    </div>
+</div>
+<div class="column-gap" style="background: blue;"></div>
+<div class="column-gap" style="background: gold; left: 156px"></div>
+<div class="row-gap"></div>

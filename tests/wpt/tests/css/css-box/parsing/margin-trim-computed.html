@@ -27,8 +27,13 @@ test_computed_value("margin-trim", "inline-start block-start", "block-start inli
 test_computed_value("margin-trim", "inline-end block-start", "block-start inline-end");
 test_computed_value("margin-trim", "inline-end block-end", "block-end inline-end");
 test_computed_value("margin-trim", "block-start block-end inline-start", "block-start inline-start block-end");
-test_computed_value("margin-trim", "inline-start block-start inline-end block-end", "block-start inline-start block-end inline-end");
-test_computed_value("margin-trim", "inline-start inline-end block-start", "block-start inline-start inline-end");
+
+test_computed_value("margin-trim", "block-start inline-start block-end inline-end", "block inline");
+test_computed_value("margin-trim", "block-start block-end inline-end inline-start", "block inline");
+test_computed_value("margin-trim", "block-start block-end inline-start inline-end", "block inline");
+test_computed_value("margin-trim", "inline-start block-end block-start inline-end", "block inline");
+test_computed_value("margin-trim", "inline-start inline-end block-start block-end", "block inline");
+test_computed_value("margin-trim", "inline-end block-end inline-start block-start", "block inline");
 </script>
 </body>
 </html>

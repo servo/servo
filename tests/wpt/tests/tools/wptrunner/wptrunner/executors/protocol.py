@@ -445,6 +445,18 @@ class BidiPermissionsProtocolPart(ProtocolPart):
         pass
 
 
+class BidiEmulationProtocolPart(ProtocolPart):
+    """Protocol part for emulation"""
+    __metaclass__ = ABCMeta
+    name = "bidi_emulation"
+
+    @abstractmethod
+    async def set_geolocation_override(self,
+            coordinates: Optional[Mapping[str, Any]],
+            contexts: List[str]) -> None:
+        pass
+
+
 class BidiScriptProtocolPart(ProtocolPart):
     """Protocol part for executing BiDi scripts"""
     __metaclass__ = ABCMeta

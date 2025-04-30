@@ -11,7 +11,9 @@
 // META: variant=?17-20
 // META: variant=?21-24
 // META: variant=?25-28
-// META: variant=?29-last
+// META: variant=?29-32
+// META: variant=?33-36
+// META: variant=?37-last
 
 "use strict";
 
@@ -35,7 +37,21 @@ subsetTest(promise_test, async test => {
     'bidCount': 0,
     'multiBidLimit': 1,
     'prevWinsMs': [],
-    'forDebuggingOnlySampling': false
+    'forDebuggingOnlySampling': false,
+    'viewCounts': {
+      'pastHour': 0,
+      'pastDay': 0,
+      'pastWeek': 0,
+      'past30Days': 0,
+      'past90Days': 0
+    },
+    'clickCounts': {
+      'pastHour': 0,
+      'pastDay': 0,
+      'pastWeek': 0,
+      'past30Days': 0,
+      'past90Days': 0
+    }
   };
   let biddingLogicURL = createBiddingScriptURL({
     generateBid:
@@ -47,6 +63,17 @@ subsetTest(promise_test, async test => {
           // This value may be affected by other recently run tests.
           expectedBrowserSignals.forDebuggingOnlyInCooldownOrLockout =
               browserSignals.forDebuggingOnlyInCooldownOrLockout;
+
+          // Don't check exact values of view/click reports.
+          function zeroCounts(object) {
+            object.pastHour = 0;
+            object.pastDay = 0;
+            object.pastWeek = 0;
+            object.past30Days = 0;
+            object.past90Days = 0;
+          }
+          zeroCounts(browserSignals.viewCounts);
+          zeroCounts(browserSignals.clickCounts);
 
           // Remove deprecated field, if present.
           delete browserSignals.prevWins;
@@ -947,3 +974,253 @@ subsetTest(promise_test, async test => {
       }
     });
 }, 'browserSignals.wasmHelper.');
+
+
+// Generates 0 or 1 clicks, dependent on `produceAttributionSrc` &
+// `produceUserAction`, and `numViews` views for `igOwner`, provided by
+// `viewClickProvider`.
+async function generateViewsAndClicks(
+    test, uuid, viewClickProvider, igOwner, numViews, produceAttributionSrc,
+    produceUserAction) {
+  let iframe = await createIframe(test, viewClickProvider);
+  let script = `
+    // We use a wrapper iframe here so the original remains in communication.
+    let frame = document.createElement('iframe');
+    document.body.appendChild(frame);
+    let frameDocument = frame.contentDocument;
+    let a = frameDocument.createElement('a');
+    a.href = '${RESOURCE_PATH}/record-click.py?' +
+        'eligible_origin=${igOwner}&num_views=${numViews}';
+    if (${produceAttributionSrc}) {
+      a.attributionSrc = '';
+    }
+    a.target = '_self';
+    a.appendChild(frameDocument.createTextNode('Click me'));
+    frameDocument.body.appendChild(a);
+
+    if (${produceUserAction}) {
+      // Note: test_driver.click() seems to not work well with Chrome's
+      // content_shell; while .bless() does... unreliably.
+      // headless_shell/chrome path seems to work reliably. User activation
+      // is used sparingly to work around content_shell flakiness.
+      await test_driver.bless('User-initiated click', () => { a.click() });
+    } else {
+      a.click();
+    }
+  `;
+
+  await runInFrame(test, iframe, script);
+}
+
+// Keep running a basic auction with an interest group in
+// `interestGroupOverrides` until it succeeds; joining and leaving the
+// IG every time to bypass caching which is permitted to provide stale
+// view/click counts.
+async function keepTryingAuctionUntilWinBypassCaching(
+    test, uuid, interestGroupOverrides) {
+  while (true) {
+    await joinInterestGroup(test, uuid, interestGroupOverrides);
+    let result = await runBasicFledgeAuction(test, uuid);
+    if (result !== null) {  // Got a winner.
+      break;
+    }
+    await leaveInterestGroup(interestGroupOverrides);
+  }
+}
+
+// Like keepTryingAuctionUntilWinBypassCaching but for auctions with
+// cross-origin interest group, owned by `igOwner`.
+async function crossOriginKeepTryingAuctionUntilWinBypassCaching(
+    test, uuid, igOwner, interestGroupOverrides) {
+  while (true) {
+    await joinCrossOriginInterestGroup(
+        test, uuid, igOwner, interestGroupOverrides);
+    const auctionConfigOverrides = {interestGroupBuyers: [igOwner]};
+    let result =
+        await runBasicFledgeAuction(test, uuid, auctionConfigOverrides);
+    if (result !== null) {  // Got a winner.
+      break;
+    }
+    await leaveCrossOriginInterestGroup(
+        test, uuid, igOwner, interestGroupOverrides);
+  }
+}
+
+// Generates `numViews` views and 0 or 1 clicks based on `produceAttributionSrc`
+// and `produceUserAction`, by `viewClickProvider` available to `igOwner`, then
+// creates an interest group for `igOwner` with given
+// `viewAndClickCountsProviders`, and runs an auction
+// to make sure the events are eventually available.
+async function testClickiness(
+    test, igOwner, viewClickProvider, numViews, produceAttributionSrc,
+    produceUserAction, viewAndClickCountsProviders = undefined) {
+  const uuid = generateUuid(test);
+
+  await generateViewsAndClicks(
+      test, uuid, viewClickProvider, igOwner, numViews, produceAttributionSrc,
+      produceUserAction);
+
+  // For clicks to be recorded, both attributionsrc attribution must exist
+  // and a user action must be used. If we don't expect clicks, we can expect
+  // that the number is exactly 0 since re-running the test won't break that.
+  //
+  // This is relying on all tests using Ad-Auction-Record-Event using distinct
+  // `viewClickProvider`s.
+  let clicksBadTest =
+      produceAttributionSrc && produceUserAction ? '< 1' : ' !== 0';
+
+  let viewsBadTest = (numViews > 0) ? `< ${numViews}` : ' !== 0';
+
+  // Join an IG to read view/click info back. We use a UUID for a name to make
+  // sure nothing old is cached, since view/clicks are permitted to be a bit
+  // stale.
+  let interestGroupOverrides = {
+    owner: igOwner,
+    name: uuid,
+    biddingLogicURL: createBiddingScriptURL({
+      origin: igOwner,
+      generateBid: `
+        // We should see at least one click and numViews views the test injects.
+        if (browserSignals.clickCounts.pastHour ${clicksBadTest} ||
+            browserSignals.clickCounts.pastDay ${clicksBadTest} ||
+            browserSignals.clickCounts.pastWeek ${clicksBadTest} ||
+            browserSignals.clickCounts.past30Days ${clicksBadTest} ||
+            browserSignals.clickCounts.past90Days ${clicksBadTest} ||
+            browserSignals.viewCounts.pastHour ${viewsBadTest} ||
+            browserSignals.viewCounts.pastDay ${viewsBadTest} ||
+            browserSignals.viewCounts.pastWeek ${viewsBadTest} ||
+            browserSignals.viewCounts.past30Days ${viewsBadTest} ||
+            browserSignals.viewCounts.past90Days ${viewsBadTest}) {
+          return -1;
+        }
+    `
+    })
+  };
+
+  if (viewAndClickCountsProviders) {
+    interestGroupOverrides.viewAndClickCountsProviders =
+        viewAndClickCountsProviders;
+  }
+
+  await crossOriginKeepTryingAuctionUntilWinBypassCaching(
+      test, uuid, igOwner, interestGroupOverrides);
+}
+
+subsetTest(promise_test, async test => {
+  const IG_OWNER = OTHER_ORIGIN5;
+  const VIEW_CLICK_PROVIDER = OTHER_ORIGIN6;
+  await testClickiness(
+      test, IG_OWNER, VIEW_CLICK_PROVIDER, /*numViews=*/ 2,
+      /*produceAttributionSrc=*/ true,
+      /*produceUserAction=*/ true, [VIEW_CLICK_PROVIDER]);
+}, 'browserSignals for clickiness.');
+
+subsetTest(promise_test, async test => {
+  const IG_OWNER = OTHER_ORIGIN5;
+  const VIEW_CLICK_PROVIDER = OTHER_ORIGIN5;
+
+  await testClickiness(
+      test, IG_OWNER, VIEW_CLICK_PROVIDER, /*numViews=*/ 4,
+      /*produceAttributionSrc=*/ false,
+      /*produceUserAction=*/ false);
+}, 'IG owner is default clickiness provider if nothing is specified');
+
+subsetTest(promise_test, async test => {
+  const IG_OWNER = OTHER_ORIGIN4;
+  const VIEW_CLICK_PROVIDER = OTHER_ORIGIN4;
+
+  await testClickiness(
+      test, IG_OWNER, VIEW_CLICK_PROVIDER, /*numViews=*/ 6,
+      /*produceAttributionSrc=*/ true,
+      /*produceUserAction=*/ true, []);
+}, 'IG owner is default clickiness provider if empty list provided');
+
+subsetTest(promise_test, async test => {
+  const IG_OWNER = OTHER_ORIGIN3;
+  const VIEW_CLICK_PROVIDER = OTHER_ORIGIN3;
+
+  await testClickiness(
+      test, IG_OWNER, VIEW_CLICK_PROVIDER, /*numViews=*/ 0,
+      /*produceAttributionSrc=*/ true,
+      /*produceUserAction=*/ true, []);
+}, 'browserSignals for clickiness --- just a click');
+
+subsetTest(promise_test, async test => {
+  const IG_OWNER = OTHER_ORIGIN2;
+  const VIEW_CLICK_PROVIDER = OTHER_ORIGIN2;
+
+  await testClickiness(
+      test, IG_OWNER, VIEW_CLICK_PROVIDER, /*numViews=*/ 1,
+      /*produceAttributionSrc=*/ true,
+      /*produceUserAction=*/ false, [VIEW_CLICK_PROVIDER]);
+}, 'browserSignals for clickiness --- no click report w/o user action');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const IG_OWNER = window.location.origin;
+  const VIEW_CLICK_PROVIDER1 = OTHER_ORIGIN1;
+  const VIEW_CLICK_PROVIDER2 = window.location.origin;
+
+  // From provider 1 have click, no views.
+  // From provider 2 have views, no clicks;
+  await generateViewsAndClicks(
+      test, uuid, VIEW_CLICK_PROVIDER1, IG_OWNER,
+      /*numViews=*/ 0, /*produceAttributionSrc=*/ true,
+      /*produceUserAction=*/ true);
+  await generateViewsAndClicks(
+      test, uuid, VIEW_CLICK_PROVIDER2, IG_OWNER,
+      /*numViews=*/ 2, /*produceAttributionSrc=*/ false,
+      /*produceUserAction=*/ false);
+
+  // Create an IG that subscribes only to provider 2 --- it should only see
+  // the views.
+  let interestGroupOverrides = {
+    name: uuid,
+    viewAndClickCountsProviders: [VIEW_CLICK_PROVIDER2],
+    biddingLogicURL: createBiddingScriptURL({
+      generateBid: `
+        if (browserSignals.clickCounts.pastHour !== 0 ||
+            browserSignals.viewCounts.pastHour < 2) {
+          throw JSON.stringify(browserSignals);
+        }
+    `
+    })
+  };
+
+  await keepTryingAuctionUntilWinBypassCaching(
+      test, uuid, interestGroupOverrides);
+
+  // Now see that subscribing only to 1 provides only the click.
+  interestGroupOverrides = {
+    name: uuid,
+    viewAndClickCountsProviders: [VIEW_CLICK_PROVIDER1],
+    biddingLogicURL: createBiddingScriptURL({
+      generateBid: `
+        if (browserSignals.clickCounts.pastHour < 1 ||
+            browserSignals.viewCounts.pastHour !== 0) {
+          throw JSON.stringify(browserSignals);
+        }
+    `
+    })
+  };
+
+  await keepTryingAuctionUntilWinBypassCaching(
+      test, uuid, interestGroupOverrides);
+
+  // Now subscribe to both.
+  interestGroupOverrides = {
+    name: uuid,
+    viewAndClickCountsProviders: [VIEW_CLICK_PROVIDER1, VIEW_CLICK_PROVIDER2],
+    biddingLogicURL: createBiddingScriptURL({
+      generateBid: `
+        if (browserSignals.clickCounts.pastHour < 1 ||
+            browserSignals.viewCounts.pastHour < 2) {
+          throw JSON.stringify(browserSignals);
+        }
+    `
+    })
+  };
+
+  await keepTryingAuctionUntilWinBypassCaching(
+      test, uuid, interestGroupOverrides);
+}, 'browserSignals for clickiness --- viewAndClickCountsProviders works.');

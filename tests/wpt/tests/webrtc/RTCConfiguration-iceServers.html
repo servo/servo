@@ -301,4 +301,28 @@
       }] }));
   }, `with empty urls should throw SyntaxError`);
 
+  test(() => {
+    const pc = new RTCPeerConnection({ iceServers: [{
+      urls: 'stun:stun1.example.net'
+    }] });
+    let config = pc.getConfiguration();
+    assert_equals(config.iceServers.length, 1);
+    pc.setConfiguration({});
+    config = pc.getConfiguration();
+    assert_equals(config.iceServers.length, 0);
+  }, `setConfiguration(config) - without iceServers removes ice servers`);
+
+  config_test(makePc => {
+    const pc = makePc({ iceServers: [...Array(32)].map((_, i) => ({
+      urls: `stun:stun${i+1}.example.net`
+    })) });
+
+    const { iceServers } = pc.getConfiguration();
+    assert_equals(iceServers.length, 32);
+
+    for (let i = 0; i < 32; i++) {
+      const server = iceServers[i];
+      assert_array_equals(server.urls, [`stun:stun${i+1}.example.net`]);
+    }
+  }, `with 32 ice servers must succeed`);
 </script>

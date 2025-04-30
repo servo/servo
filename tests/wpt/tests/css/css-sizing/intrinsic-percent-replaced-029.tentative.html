@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#min-content-zero">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1308929">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12133">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="A replaced element with a percentage block-size doesn't compress the min-content contribution on its block axis to zero.">
+
+<p>Test passes if there is a filled green square.</p>
+<div style="inline-size: min-content">
+  <canvas width="100" height="100"
+          style="writing-mode:vertical-rl; background: green; block-size: 100%"></canvas>
+</div>

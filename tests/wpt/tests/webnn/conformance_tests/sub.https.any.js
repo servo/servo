@@ -14,7 +14,16 @@
 
 
 const getSubPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 1, float16: 1};
+  const toleranceValueDict = {
+    float32: 1,
+    float16: 1,
+    int8: 0,
+    uint8: 0,
+    int32: 0,
+    uint32: 0,
+    int64: 0,
+    uint64: 0
+  };
   const expectedDataType =
       getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
   return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
@@ -913,6 +922,208 @@ const subTests = [
             -177.625, -194.75,   -149.75,  -186.25,   -76.5625, -196.5
           ],
           'descriptor': {shape: [2, 2, 2, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+
+  // int8 tests
+  {
+    'name': 'sub int8 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            73, 14, -69, -52, -75, -2, -83, 15, -62, 32, 82,  -74,
+            78, 48, -19, -85, 89,  22, 80,  97, 52,  89, -20, 99
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'int8'}
+        },
+        'inputB': {
+          'data': [
+            -49, 40,  7,  76, -81, 59, 11, 48, 65,  27,  30, -38,
+            -49, -78, 16, 35, -28, 28, 35, -3, -57, -21, 27, 32
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'int8'}
+        }
+      },
+      'operators': [{
+        'name': 'sub',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          // the range of int8 result: [-128, 127]
+          'data': [
+            122, -26, -76, -128, 6,   -61, -94, -33, -127, 5,   52,  -36,
+            127, 126, -35, -120, 117, -6,  45,  100, 109,  110, -47, 67
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'int8'}
+        }
+      }
+    }
+  },
+
+  // uint8 tests
+  {
+    'name': 'sub uint8 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [1, 10, 100, 255],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'uint8'}
+        },
+        'inputB': {
+          // b should be lesser than or equal to a, otherwise the result would
+          // overflow when testing uint8 data type
+          'data': [1, 8, 88, 254],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'uint8'}
+        }
+      },
+      'operators': [{
+        'name': 'sub',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [0, 2, 12, 1],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'uint8'}
+        }
+      }
+    }
+  },
+
+  // int32 tests
+  {
+    'name': 'sub int32 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            73, 14, -69, -52, -75, -2, -83, 15, -62, 32, 82,  -74,
+            78, 48, -19, -85, 89,  22, 80,  97, 52,  89, -20, 99
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'int32'}
+        },
+        'inputB': {
+          'data': [
+            -49, 40,  7,  89, -81, 59, 11, 48,  85,  27,  30, -38,
+            -83, -86, 16, 46, -28, 28, 35, -77, -57, -58, 27, 32
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'sub',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            122, -26, -76, -141, 6,   -61, -94, -33, -147, 5,   52,  -36,
+            161, 134, -35, -131, 117, -6,  45,  174, 109,  147, -47, 67
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'int32'}
+        }
+      }
+    }
+  },
+
+  // uint32 tests
+  {
+    'name': 'sub uint32 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [1, 10, 100, 1024],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'uint32'}
+        },
+        'inputB': {
+          // b should be lesser than or equal to a, otherwise the result would
+          // overflow when testing uint32 data type
+          'data': [1, 8, 88, 1000],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'uint32'}
+        }
+      },
+      'operators': [{
+        'name': 'sub',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [0, 2, 12, 24],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'uint32'}
+        }
+      }
+    }
+  },
+
+  // int64 tests
+  {
+    'name': 'sub int64 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [
+            73, 14, -69, -52, -75, -2, -83, 15, -62, 32, 82,  -74,
+            78, 48, -19, -85, 89,  22, 80,  97, 52,  89, -20, 99
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'int64'}
+        },
+        'inputB': {
+          'data': [
+            -49, 40,  7,  89, -81, 59, 11, 48,  85,  27,  30, -38,
+            -83, -86, 16, 46, -28, 28, 35, -77, -57, -58, 27, 32
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'int64'}
+        }
+      },
+      'operators': [{
+        'name': 'sub',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [
+            122, -26, -76, -141, 6,   -61, -94, -33, -147, 5,   52,  -36,
+            161, 134, -35, -131, 117, -6,  45,  174, 109,  147, -47, 67
+          ],
+          'descriptor': {shape: [2, 2, 2, 3], dataType: 'int64'}
+        }
+      }
+    }
+  },
+
+  // uint64 tests
+  {
+    'name': 'sub uint64 4D tensors',
+    'graph': {
+      'inputs': {
+        'inputA': {
+          'data': [1, 10, 100, 1024],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'uint64'}
+        },
+        'inputB': {
+          // b should be lesser than or equal to a, otherwise the result would
+          // overflow when testing uint64 data type
+          'data': [1, 8, 88, 1000],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'uint64'}
+        }
+      },
+      'operators': [{
+        'name': 'sub',
+        'arguments': [{'a': 'inputA'}, {'b': 'inputB'}],
+        'outputs': 'output'
+      }],
+      'expectedOutputs': {
+        'output': {
+          'data': [0, 2, 12, 24],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'uint64'}
         }
       }
     }

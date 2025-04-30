@@ -15,8 +15,14 @@ promise_test(async (t) => {
     await test_driver.clear_display_features();
   });
 
-  // When the viewport is not divided the segments property should be null.
-  assert_equals(viewport.segments, null);
+  // When the viewport is not divided the segments property should return an
+  // array with one segment, the size of the viewport.
+  assert_equals(viewport.segments.length, 1);
+  let segment = viewport.segments[0];
+  assert_equals(segment.x, 0);
+  assert_equals(segment.y, 0);
+  assert_equals(segment.width, window.innerWidth);
+  assert_equals(segment.height,  window.innerHeight);
   // iframes do not receive segments information.
   assert_equals(window.frames[0].viewport.segments, null);
 
@@ -88,7 +94,11 @@ promise_test(async (t) => {
   });
   await test_driver.clear_display_features();
   assert_true(await promise);
-  assert_equals(viewport.segments, null);
+  segment = viewport.segments[0];
+  assert_equals(segment.x, 0);
+  assert_equals(segment.y, 0);
+  assert_equals(segment.width, window.innerWidth);
+  assert_equals(segment.height,  window.innerHeight);
   // iframes do not receive segments information.
   assert_equals(window.frames[0].viewport.segments, null);
 

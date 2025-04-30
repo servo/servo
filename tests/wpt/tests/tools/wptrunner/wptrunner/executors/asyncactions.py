@@ -87,6 +87,34 @@ class BidiBluetoothSimulatePreconnectedPeripheralAction:
         return await self.protocol.bidi_bluetooth.simulate_preconnected_peripheral(
             context, address, name, manufacturer_data, known_service_uuids)
 
+
+class BidiEmulationSetGeolocationOverrideAction:
+    name = "bidi.emulation.set_geolocation_override"
+
+    def __init__(self, logger, protocol):
+        do_delayed_imports()
+        self.logger = logger
+        self.protocol = protocol
+
+    async def __call__(self, payload):
+        coordinates = payload['coordinates']
+        contexts = []
+        for context in payload["contexts"]:
+            # Context can be either a browsing context id, or a BiDi serialized window. In the latter case, the
+            # value is extracted from the serialized object.
+            if isinstance(context, str):
+                contexts.append(context)
+            elif isinstance(context, webdriver.bidi.protocol.BidiWindow):
+                contexts.append(context.browsing_context)
+            else:
+                raise ValueError("Unexpected context type: %s" % context)
+        if len(contexts) == 0:
+            raise ValueError("At least one context must be provided")
+
+        return await self.protocol.bidi_emulation.set_geolocation_override(
+            coordinates, contexts)
+
+
 class BidiSessionSubscribeAction:
     name = "bidi.session.subscribe"
 
@@ -133,5 +161,6 @@ async_actions = [
     BidiBluetoothHandleRequestDevicePrompt,
     BidiBluetoothSimulateAdapterAction,
     BidiBluetoothSimulatePreconnectedPeripheralAction,
+    BidiEmulationSetGeolocationOverrideAction,
     BidiPermissionsSetPermissionAction,
     BidiSessionSubscribeAction]
