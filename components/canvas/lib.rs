@@ -4,6 +4,7 @@
 
 #![deny(unsafe_code)]
 
+mod backend;
 mod raqote_backend;
 
 pub mod canvas_data;
