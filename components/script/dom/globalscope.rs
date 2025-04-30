@@ -457,8 +457,9 @@ pub(crate) struct ManagedMessagePort {
     /// and only add them, and ask the constellation to complete the transfer,
     /// in a subsequent task if the port hasn't been re-transfered.
     pending: bool,
-    /// Has the port been closed? If closed, it can be dropped and later GC'ed.
-    closed: bool,
+    /// Whether the port has been closed by script in this global,
+    /// so it can be removed.
+    explicitly_closed: bool,
     /// Note: it may seem strange to use a pair of options, versus for example an enum.
     /// But it looks like tranform streams will require both of those in their transfer.
     /// This will be resolved when we reach that point of the implementation.
@@ -546,12 +547,17 @@ impl MessageListener {
                         let mut succeeded = vec![];
                         let mut failed = HashMap::new();
 
-                        for (id, buffer) in ports.into_iter() {
+                        for (id, info) in ports.into_iter() {
                             if global.is_managing_port(&id) {
                                 succeeded.push(id);
-                                global.complete_port_transfer(id, buffer);
+                                global.complete_port_transfer(
+                                    id,
+                                    info.port_message_queue,
+                                    info.disentangled,
+                                    CanGc::note()
+                                );
                             } else {
-                                failed.insert(id, buffer);
+                                failed.insert(id, info);
                             }
                         }
                         let _ = global.script_to_constellation_chan().send(
@@ -560,12 +566,20 @@ impl MessageListener {
                     })
                 );
             },
-            MessagePortMsg::CompletePendingTransfer(port_id, buffer) => {
+            MessagePortMsg::CompletePendingTransfer(port_id, info) => {
                 let context = self.context.clone();
                 self.task_source.queue(task!(complete_pending: move || {
                     let global = context.root();
-                    global.complete_port_transfer(port_id, buffer);
+                    global.complete_port_transfer(port_id, info.port_message_queue, info.disentangled, CanGc::note());
                 }));
+            },
+            MessagePortMsg::CompleteDisentanglement(port_id) => {
+                let context = self.context.clone();
+                self.task_source
+                    .queue(task!(try_complete_disentanglement: move || {
+                        let global = context.root();
+                        global.try_complete_disentanglement(port_id, CanGc::note());
+                    }));
             },
             MessagePortMsg::NewTask(port_id, task) => {
                 let context = self.context.clone();
@@ -573,14 +587,6 @@ impl MessageListener {
                     let global = context.root();
                     global.route_task_to_port(port_id, task, CanGc::note());
                 }));
-            },
-            MessagePortMsg::RemoveMessagePort(port_id) => {
-                let context = self.context.clone();
-                self.task_source
-                    .queue(task!(process_remove_message_port: move || {
-                        let global = context.root();
-                        global.note_entangled_port_removed(&port_id);
-                    }));
             },
         }
     }
@@ -871,7 +877,13 @@ impl GlobalScope {
     }
 
     /// Complete the transfer of a message-port.
-    fn complete_port_transfer(&self, port_id: MessagePortId, tasks: VecDeque<PortMessageTask>) {
+    fn complete_port_transfer(
+        &self,
+        port_id: MessagePortId,
+        tasks: VecDeque<PortMessageTask>,
+        disentangled: bool,
+        can_gc: CanGc,
+    ) {
         let should_start = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -885,6 +897,10 @@ impl GlobalScope {
                     }
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
                         port_impl.complete_transfer(tasks);
+                        if disentangled {
+                            port_impl.disentangle();
+                            managed_port.dom_port.disentangle();
+                        }
                         port_impl.enabled()
                     } else {
                         panic!("managed-port has no port-impl.");
@@ -895,7 +911,45 @@ impl GlobalScope {
             panic!("complete_port_transfer called for an unknown port.");
         };
         if should_start {
-            self.start_message_port(&port_id);
+            self.start_message_port(&port_id, can_gc);
+        }
+    }
+
+    /// The closing of `otherPort`, if it is in a different global.
+    /// <https://html.spec.whatwg.org/multipage/#disentangle>
+    fn try_complete_disentanglement(&self, port_id: MessagePortId, can_gc: CanGc) {
+        let dom_port = if let MessagePortState::Managed(_id, message_ports) =
+            &mut *self.message_port_state.borrow_mut()
+        {
+            let dom_port = if let Some(managed_port) = message_ports.get_mut(&port_id) {
+                if managed_port.pending {
+                    unreachable!("CompleteDisentanglement msg received for a pending port.");
+                }
+                let port_impl = managed_port
+                    .port_impl
+                    .as_mut()
+                    .expect("managed-port has no port-impl.");
+                port_impl.disentangle();
+                managed_port.dom_port.as_rooted()
+            } else {
+                // Note: this, and the other return below,
+                // can happen if the port has already been transferred out of this global,
+                // in which case the disentanglement will complete along with the transfer.
+                return;
+            };
+            dom_port
+        } else {
+            return;
+        };
+
+        // Fire an event named close at otherPort.
+        dom_port.upcast().fire_event(atom!("close"), can_gc);
+
+        let res = self.script_to_constellation_chan().send(
+            ScriptToConstellationMessage::DisentanglePorts(port_id, None),
+        );
+        if res.is_err() {
+            warn!("Sending DisentanglePorts failed");
         }
     }
 
@@ -951,8 +1005,64 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#disentangle>
-    pub(crate) fn disentangle_port(&self, _port: &MessagePort) {
-        // TODO: #36465
+    pub(crate) fn disentangle_port(&self, port: &MessagePort, can_gc: CanGc) {
+        let initiator_port = port.message_port_id();
+        // Let otherPort be the MessagePort which initiatorPort was entangled with.
+        let Some(other_port) = port.disentangle() else {
+            // Assert: otherPort exists.
+            // Note: ignoring the assert,
+            // because the streams spec seems to disentangle ports that are disentangled already.
+            return;
+        };
+
+        // Disentangle initiatorPort and otherPort, so that they are no longer entangled or associated with each other.
+        // Note: this is done in part here, and in part at the constellation(if otherPort is in another global).
+        let dom_port = if let MessagePortState::Managed(_id, message_ports) =
+            &mut *self.message_port_state.borrow_mut()
+        {
+            let mut dom_port = None;
+            for port_id in &[initiator_port, &other_port] {
+                match message_ports.get_mut(port_id) {
+                    None => {
+                        continue;
+                    },
+                    Some(managed_port) => {
+                        let port_impl = managed_port
+                            .port_impl
+                            .as_mut()
+                            .expect("managed-port has no port-impl.");
+                        managed_port.dom_port.disentangle();
+                        port_impl.disentangle();
+
+                        if **port_id == other_port {
+                            dom_port = Some(managed_port.dom_port.as_rooted())
+                        }
+                    },
+                }
+            }
+            dom_port
+        } else {
+            panic!("disentangle_port called on a global not managing any ports.");
+        };
+
+        // Fire an event named close at `otherPort`.
+        // Note: done here if the port is managed by the same global as `initialPort`.
+        if let Some(dom_port) = dom_port {
+            dom_port.upcast().fire_event(atom!("close"), can_gc);
+        }
+
+        let chan = self.script_to_constellation_chan().clone();
+        let initiator_port = *initiator_port;
+        self.task_manager()
+            .port_message_queue()
+            .queue(task!(post_message: move || {
+                // Note: we do this in a task to ensure it doesn't affect messages that are still to be routed,
+                // see the task queueing in `post_messageport_msg`.
+                let res = chan.send(ScriptToConstellationMessage::DisentanglePorts(initiator_port, Some(other_port)));
+                if res.is_err() {
+                    warn!("Sending DisentanglePorts failed");
+                }
+            }));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#entangle>
@@ -984,18 +1094,6 @@ impl GlobalScope {
             .send(ScriptToConstellationMessage::EntanglePorts(port1, port2));
     }
 
-    /// Note that the entangled port of `port_id` has been removed in another global.
-    pub(crate) fn note_entangled_port_removed(&self, port_id: &MessagePortId) {
-        // Note: currently this is a no-op,
-        // as we only use the `close` method to manage the local lifecyle of a port.
-        // This could be used as part of lifecyle management to determine a port can be GC'ed.
-        // See https://github.com/servo/servo/issues/25772
-        warn!(
-            "Entangled port of {:?} has been removed in another global",
-            port_id
-        );
-    }
-
     /// Handle the transfer of a port in the current task.
     pub(crate) fn mark_port_as_transferred(&self, port_id: &MessagePortId) -> MessagePortImpl {
         if let MessagePortState::Managed(_id, message_ports) =
@@ -1021,26 +1119,39 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
-    pub(crate) fn start_message_port(&self, port_id: &MessagePortId) {
-        let message_buffer = if let MessagePortState::Managed(_id, message_ports) =
+    pub(crate) fn start_message_port(&self, port_id: &MessagePortId, can_gc: CanGc) {
+        let (message_buffer, dom_port) = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            match message_ports.get_mut(port_id) {
+            let (message_buffer, dom_port) = match message_ports.get_mut(port_id) {
                 None => panic!("start_message_port called on a unknown port."),
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                        port_impl.start()
+                        (port_impl.start(), managed_port.dom_port.as_rooted())
                     } else {
                         panic!("managed-port has no port-impl.");
                     }
                 },
-            }
+            };
+            (message_buffer, dom_port)
         } else {
             return warn!("start_message_port called on a global not managing any ports.");
         };
         if let Some(message_buffer) = message_buffer {
             for task in message_buffer {
                 self.route_task_to_port(*port_id, task, CanGc::note());
+            }
+            if dom_port.disentangled() {
+                // <https://html.spec.whatwg.org/multipage/#disentangle>
+                // Fire an event named close at otherPort.
+                dom_port.upcast().fire_event(atom!("close"), can_gc);
+
+                let res = self.script_to_constellation_chan().send(
+                    ScriptToConstellationMessage::DisentanglePorts(*port_id, None),
+                );
+                if res.is_err() {
+                    warn!("Sending DisentanglePorts failed");
+                }
             }
         }
     }
@@ -1055,7 +1166,7 @@ impl GlobalScope {
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
                         port_impl.close();
-                        managed_port.closed = true;
+                        managed_port.explicitly_closed = true;
                     } else {
                         panic!("managed-port has no port-impl.");
                     }
@@ -1436,12 +1547,7 @@ impl GlobalScope {
             let to_be_removed: Vec<MessagePortId> = message_ports
                 .iter()
                 .filter_map(|(id, managed_port)| {
-                    if managed_port.closed {
-                        // Let the constellation know to drop this port and the one it is entangled with,
-                        // and to forward this message to the script-process where the entangled is found.
-                        let _ = self
-                            .script_to_constellation_chan()
-                            .send(ScriptToConstellationMessage::RemoveMessagePort(*id));
+                    if managed_port.explicitly_closed {
                         Some(*id)
                     } else {
                         None
@@ -1451,6 +1557,9 @@ impl GlobalScope {
             for id in to_be_removed {
                 message_ports.remove(&id);
             }
+            // Note: ports are only removed throught explicit closure by script in this global.
+            // TODO: #25772
+            // TODO: remove ports when we can be sure their port message queue is empty(via the constellation).
             message_ports.is_empty()
         } else {
             false
@@ -1581,7 +1690,7 @@ impl GlobalScope {
                         port_impl: Some(port_impl),
                         dom_port: Dom::from_ref(dom_port),
                         pending: true,
-                        closed: false,
+                        explicitly_closed: false,
                         cross_realm_transform_readable: None,
                         cross_realm_transform_writable: None,
                     },
@@ -1605,7 +1714,7 @@ impl GlobalScope {
                         port_impl: Some(port_impl),
                         dom_port: Dom::from_ref(dom_port),
                         pending: false,
-                        closed: false,
+                        explicitly_closed: false,
                         cross_realm_transform_readable: None,
                         cross_realm_transform_writable: None,
                     },

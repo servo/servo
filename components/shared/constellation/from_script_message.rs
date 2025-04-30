@@ -4,7 +4,7 @@
 
 //! Messages send from the ScriptThread to the Constellation.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::fmt;
 
 use base::Epoch;
@@ -35,7 +35,9 @@ use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
 use webrender_api::ImageKey;
 
 use crate::structured_data::{BroadcastMsg, StructuredSerializedData};
-use crate::{LogEntry, MessagePortMsg, PortMessageTask, TraversalDirection, WindowSizeType};
+use crate::{
+    LogEntry, MessagePortMsg, PortMessageTask, PortTransferInfo, TraversalDirection, WindowSizeType,
+};
 
 /// A Script to Constellation channel.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -470,7 +472,7 @@ pub enum ScriptToConstellationMessage {
         /* The ids of ports transferred successfully */
         Vec<MessagePortId>,
         /* The ids, and buffers, of ports whose transfer failed */
-        HashMap<MessagePortId, VecDeque<PortMessageTask>>,
+        HashMap<MessagePortId, PortTransferInfo>,
     ),
     /// A new message-port was created or transferred, with corresponding control-sender.
     NewMessagePort(MessagePortRouterId, MessagePortId),
@@ -482,10 +484,14 @@ pub enum ScriptToConstellationMessage {
     RerouteMessagePort(MessagePortId, PortMessageTask),
     /// A message-port was shipped, let the entangled port know.
     MessagePortShipped(MessagePortId),
-    /// A message-port has been discarded by script.
-    RemoveMessagePort(MessagePortId),
     /// Entangle two message-ports.
     EntanglePorts(MessagePortId, MessagePortId),
+    /// Disentangle two message-ports.
+    /// The first is the initiator, the second the other port,
+    /// unless the message is sent to complete a disentanglement,
+    /// in which case the first one is the other port,
+    /// and the second is none.
+    DisentanglePorts(MessagePortId, Option<MessagePortId>),
     /// A global has started managing broadcast-channels.
     NewBroadcastChannelRouter(
         BroadcastChannelRouterId,

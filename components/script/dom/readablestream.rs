@@ -1825,7 +1825,7 @@ impl ReadableStream {
         global.note_cross_realm_transform_readable(&cross_realm_transform_readable, port_id);
 
         // Enable port’s port message queue.
-        port.Start();
+        port.Start(can_gc);
 
         // Perform ! SetUpReadableStreamDefaultController
         controller
@@ -2093,7 +2093,7 @@ impl CrossRealmTransformReadable {
             self.controller.close(can_gc);
 
             // Disentangle port.
-            global.disentangle_port(port);
+            global.disentangle_port(port, can_gc);
         }
 
         // Otherwise, if type is "error",
@@ -2102,7 +2102,7 @@ impl CrossRealmTransformReadable {
             self.controller.error(value.handle(), can_gc);
 
             // Disentangle port.
-            global.disentangle_port(port);
+            global.disentangle_port(port, can_gc);
         }
     }
 
@@ -2129,7 +2129,7 @@ impl CrossRealmTransformReadable {
         self.controller.error(rooted_error.handle(), can_gc);
 
         // Disentangle port.
-        global.disentangle_port(port);
+        global.disentangle_port(port, can_gc);
     }
 }
 
