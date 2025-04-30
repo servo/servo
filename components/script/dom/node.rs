@@ -1007,24 +1007,25 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
     pub(crate) fn replace_with(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        // Step 1.
-        let parent = if let Some(parent) = self.GetParentNode() {
-            parent
-        } else {
-            // Step 2.
+        // Step 1. Let parent be this’s parent.
+        let Some(parent) = self.GetParentNode() else {
+            // Step 2. If parent is null, then return.
             return Ok(());
         };
-        // Step 3.
+
+        // Step 3. Let viableNextSibling be this’s first following sibling not in nodes; otherwise null.
         let viable_next_sibling = first_node_not_in(self.following_siblings(), &nodes);
-        // Step 4.
+
+        // Step 4. Let node be the result of converting nodes into a node, given nodes and this’s node document.
         let node = self
             .owner_doc()
             .node_from_nodes_and_strings(nodes, can_gc)?;
+
         if self.parent_node == Some(&*parent) {
-            // Step 5.
+            // Step 5. If this’s parent is parent, replace this with node within parent.
             parent.ReplaceChild(&node, self, can_gc)?;
         } else {
-            // Step 6.
+            // Step 6. Otherwise, pre-insert node into parent before viableNextSibling.
             Node::pre_insert(&node, &parent, viable_next_sibling.as_deref(), can_gc)?;
         }
         Ok(())
@@ -3172,24 +3173,29 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace>
     fn ReplaceChild(&self, node: &Node, child: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
-        // Step 1.
+        // Step 1. If parent is not a Document, DocumentFragment, or Element node,
+        // then throw a "HierarchyRequestError" DOMException.
         match self.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
             },
             _ => return Err(Error::HierarchyRequest),
         }
 
-        // Step 2.
+        // Step 2. If node is a host-including inclusive ancestor of parent,
+        // then throw a "HierarchyRequestError" DOMException.
         if node.is_inclusive_ancestor_of(self) {
             return Err(Error::HierarchyRequest);
         }
 
-        // Step 3.
+        // Step 3. If child’s parent is not parent, then throw a "NotFoundError" DOMException.
         if !self.is_parent_of(child) {
             return Err(Error::NotFound);
         }
 
-        // Step 4-5.
+        // Step 4. If node is not a DocumentFragment, DocumentType, Element, or CharacterData node,
+        // then throw a "HierarchyRequestError" DOMException.
+        // Step 5. If either node is a Text node and parent is a document,
+        // or node is a doctype and parent is not a document, then throw a "HierarchyRequestError" DOMException.
         match node.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) if self.is::<Document>() => {
                 return Err(Error::HierarchyRequest);
@@ -3201,7 +3207,8 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             _ => (),
         }
 
-        // Step 6.
+        // Step 6. If parent is a document, and any of the statements below, switched on the interface node implements,
+        // are true, then throw a "HierarchyRequestError" DOMException.
         if self.is::<Document>() {
             match node.type_id() {
                 // Step 6.1
@@ -3255,7 +3262,8 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             }
         }
 
-        // Step 7-8.
+        // Step 7. Let referenceChild be child’s next sibling.
+        // Step 8. If referenceChild is node, then set referenceChild to node’s next sibling.
         let child_next_sibling = child.GetNextSibling();
         let node_next_sibling = node.GetNextSibling();
         let reference_child = if child_next_sibling.as_deref() == Some(node) {
@@ -3264,7 +3272,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             child_next_sibling.as_deref()
         };
 
-        // Step 9.
+        // Step 9. Let previousSibling be child’s previous sibling.
         let previous_sibling = child.GetPreviousSibling();
 
         // NOTE: All existing browsers assume that adoption is performed here, which does not follow the DOM spec.
@@ -3285,7 +3293,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             None
         };
 
-        // Step 12.
+        // Step 12. Let nodes be node’s children if node is a DocumentFragment node; otherwise « node ».
         rooted_vec!(let mut nodes);
         let nodes = if node.type_id() ==
             NodeTypeId::DocumentFragment(DocumentFragmentTypeId::DocumentFragment) ||
@@ -3297,7 +3305,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             from_ref(&node)
         };
 
-        // Step 13.
+        // Step 13. Insert node into parent before referenceChild with the suppress observers flag set.
         Node::insert(
             node,
             self,
@@ -3306,13 +3314,15 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             can_gc,
         );
 
-        // Step 14.
         vtable_for(self).children_changed(&ChildrenMutation::replace(
             previous_sibling.as_deref(),
             &removed_child,
             nodes,
             reference_child,
         ));
+
+        // Step 14. Queue a tree mutation record for parent with nodes, removedNodes,
+        // previousSibling, and referenceChild.
         let removed = removed_child.map(|r| [r]);
         let mutation = LazyCell::new(|| Mutation::ChildList {
             added: Some(nodes),
@@ -3323,7 +3333,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         MutationObserver::queue_a_mutation_record(self, mutation);
 
-        // Step 15.
+        // Step 15. Return child.
         Ok(DomRoot::from_ref(child))
     }
 
