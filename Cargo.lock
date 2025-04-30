@@ -784,18 +784,13 @@ name = "canvas"
 version = "0.0.1"
 dependencies = [
  "app_units",
- "bitflags 2.9.0",
- "byteorder",
  "canvas_traits",
  "compositing_traits",
  "crossbeam-channel",
  "cssparser",
  "euclid",
- "fnv",
  "font-kit",
  "fonts",
- "glow",
- "half",
  "ipc-channel",
  "log",
  "lyon_geom",
@@ -807,12 +802,8 @@ dependencies = [
  "servo_arc",
  "snapshot",
  "stylo",
- "surfman",
  "unicode-script",
- "webrender",
  "webrender_api",
- "webxr",
- "webxr-api",
 ]
 
 [[package]]
@@ -4334,6 +4325,7 @@ dependencies = [
  "tracing",
  "url",
  "webdriver_server",
+ "webgl",
  "webgpu",
  "webrender",
  "webrender_api",
@@ -8487,6 +8479,30 @@ dependencies = [
  "stylo_traits",
  "uuid",
  "webdriver",
+]
+
+[[package]]
+name = "webgl"
+version = "0.0.1"
+dependencies = [
+ "bitflags 2.9.0",
+ "byteorder",
+ "canvas_traits",
+ "compositing_traits",
+ "crossbeam-channel",
+ "euclid",
+ "fnv",
+ "glow",
+ "half",
+ "ipc-channel",
+ "log",
+ "pixels",
+ "snapshot",
+ "surfman",
+ "webrender",
+ "webrender_api",
+ "webxr",
+ "webxr-api",
 ]
 
 [[package]]

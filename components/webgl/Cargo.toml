@@ -1,5 +1,5 @@
 [package]
-name = "canvas"
+name = "webgl"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -8,28 +8,29 @@ publish.workspace = true
 rust-version.workspace = true
 
 [lib]
-name = "canvas"
+name = "webgl"
 path = "lib.rs"
 
+[features]
+webgl_backtrace = ["canvas_traits/webgl_backtrace"]
+webxr = ["dep:webxr", "dep:webxr-api"]
+
 [dependencies]
-app_units = { workspace = true }
+bitflags = { workspace = true }
+byteorder = { workspace = true }
 canvas_traits = { workspace = true }
 compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
-cssparser = { workspace = true }
 euclid = { workspace = true }
-font-kit = "0.14"
-fonts = { path = "../fonts" }
+fnv = { workspace = true }
+glow = { workspace = true }
+half = "2"
 ipc-channel = { workspace = true }
 log = { workspace = true }
-lyon_geom = "1.0.4"
-net_traits = { workspace = true }
-num-traits = { workspace = true }
 pixels = { path = "../pixels" }
-range = { path = "../range" }
-raqote = "0.8.5"
-servo_arc = { workspace = true }
 snapshot = { workspace = true }
-stylo = { workspace = true }
-unicode-script = { workspace = true }
+surfman = { workspace = true }
+webrender = { workspace = true }
 webrender_api = { workspace = true }
+webxr = { path = "../webxr", features = ["ipc"], optional = true }
+webxr-api = { workspace = true, features = ["ipc"], optional = true }
