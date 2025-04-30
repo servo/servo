@@ -1003,8 +1003,8 @@ impl LayoutThread {
         };
 
         let helper = PostCompositeQueryHelper {
-            scroll_offset: scroll_offset_getter,
-            root_scroll_offset: root_scroll_offset_getter,
+            scroll_offset_getter,
+            root_scroll_offset_getter,
         };
 
         process_query_internals(node, helper)

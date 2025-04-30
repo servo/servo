@@ -51,8 +51,10 @@ use crate::taffy::SpecificTaffyGridInfo;
 /// Supposed helper for post composite query, query that requires the consideration of transform,
 /// mapping of coordinates, scroll offset, etc.
 pub(crate) struct PostCompositeQueryHelper<'dom> {
-    pub root_scroll_offset: &'dom dyn Fn() -> Vector2D<Au>,
-    pub scroll_offset: &'dom dyn Fn(&BoxFragment) -> Vector2D<Au>,
+    /// Get the scroll offset of a viewport (i.e. window).
+    pub root_scroll_offset_getter: &'dom dyn Fn() -> Vector2D<Au>,
+    /// Get the scroll offset of a BoxFragment.
+    pub scroll_offset_getter: &'dom dyn Fn(&BoxFragment) -> Vector2D<Au>,
 }
 
 impl PostCompositeQueryHelper<'_> {
@@ -183,7 +185,7 @@ pub(crate) fn node_to_root_transform(
                     _ => continue,
                 };
 
-            let scroll_offset = (helper.scroll_offset)(&parent_fragment.borrow());
+            let scroll_offset = (helper.scroll_offset_getter)(&parent_fragment.borrow());
             translation += scroll_offset;
 
             current_position = Some(parent_fragment.borrow().style.get_box().position);
@@ -199,7 +201,7 @@ pub(crate) fn node_to_root_transform(
     //
     // https://drafts.csswg.org/css-position/#fixed-cb
     if current_position != Some(Position::Fixed) {
-        translation += (helper.root_scroll_offset)();
+        translation += (helper.root_scroll_offset_getter)();
     }
 
     translation

@@ -2,8 +2,8 @@
 <title>getBoundingClientRect for a element inside scroll container</title>
 <link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
 <link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect">
-<script src="https://wpt.live/resources/testharness.js"></script>
-<script src="https://wpt.live/resources/testharnessreport.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <html>
   <head>
     <style>
@@ -43,7 +43,9 @@
     <div class="scroll_container fixed_containing_block">
       <div class="scroll_container absolute_containing_block">
         <div class="scroll_container">
-          <div class="target_box"></div>
+          <div id="target_static" class="target_box"></div>
+          <div id="target_absolute" class="target_box position_absolute"></div>
+          <div id="target_fixed" class="target_box position_fixed"></div>
           <div class="dummy_overflowing_box"></div>
         </div>
         <div class="dummy_overflowing_box"></div>
@@ -62,8 +64,8 @@
           scroll_container.scrollTo(offset_left, offset_top)
         }
       });
-      var target = document.querySelector('.target_box');
       test(function() {
+        var target = document.querySelector('#target_static');
         let staticRect = target.getBoundingClientRect();
         assert_equals(staticRect.left, -85, 'static positioned target left');
         assert_equals(staticRect.top, -170, 'static positioned target top');
@@ -71,7 +73,7 @@
         assert_equals(staticRect.height, 100, 'static positioned target height');
       }, "getBoundingClientRect for element inside scroll container");
       test(function() {
-        target.style.position = 'absolute';
+        var target = document.querySelector('#target_absolute');
         let absoluteRect = target.getBoundingClientRect();
         assert_equals(absoluteRect.left, -21, 'absolute positioned target left');
         assert_equals(absoluteRect.top, -42, 'absolute positioned target top');
@@ -79,7 +81,7 @@
         assert_equals(absoluteRect.height, 100, 'absolute positioned target height');
       }, "getBoundingClientRect for absolute element inside scroll container");
       test(function() {
-        target.style.position = 'fixed';
+        var target = document.querySelector('#target_fixed');
         let fixedRect = target.getBoundingClientRect();
         assert_equals(fixedRect.left, -5, 'fixed positioned target left');
         assert_equals(fixedRect.top, -10, 'fixed positioned target top');
