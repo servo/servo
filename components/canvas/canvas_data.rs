@@ -1183,7 +1183,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         self.state.draw_options.set_alpha(alpha);
     }
 
-    pub(crate) fn set_global_composition(&mut self, op: B::CompositionOrBlending) {
+    pub(crate) fn set_global_composition(&mut self, op: CompositionOrBlending) {
         self.backend.set_global_composition(op, &mut self.state);
     }
 

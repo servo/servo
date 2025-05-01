@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::canvas::{FillOrStrokeStyle, LineCapStyle, LineJoinStyle};
+use canvas_traits::canvas::{
+    CompositionOrBlending, FillOrStrokeStyle, LineCapStyle, LineJoinStyle,
+};
 use euclid::Angle;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use lyon_geom::Arc;
@@ -16,7 +18,6 @@ pub(crate) trait Backend: Clone + Sized {
     type Color: Clone;
     type DrawOptions: DrawOptionsHelpers + Clone;
     type CompositionOp;
-    type CompositionOrBlending;
     type DrawTarget: GenericDrawTarget<Self>;
     type PathBuilder: GenericPathBuilder<Self>;
     type SourceSurface;
@@ -41,7 +42,7 @@ pub(crate) trait Backend: Clone + Sized {
     );
     fn set_global_composition(
         &mut self,
-        op: Self::CompositionOrBlending,
+        op: CompositionOrBlending,
         state: &mut CanvasPaintState<'_, Self>,
     );
     fn create_drawtarget(&self, size: Size2D<u64>) -> Self::DrawTarget;

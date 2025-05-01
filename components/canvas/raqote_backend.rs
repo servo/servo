@@ -38,7 +38,6 @@ impl Backend for RaqoteBackend {
     type Color = raqote::SolidSource;
     type DrawOptions = raqote::DrawOptions;
     type CompositionOp = raqote::BlendMode;
-    type CompositionOrBlending = CompositionOrBlending;
     type DrawTarget = raqote::DrawTarget;
     type PathBuilder = PathBuilder;
     type SourceSurface = Vec<u8>; // TODO: See if we can avoid the alloc (probably?)
@@ -82,7 +81,7 @@ impl Backend for RaqoteBackend {
 
     fn set_global_composition(
         &mut self,
-        op: Self::CompositionOrBlending,
+        op: CompositionOrBlending,
         state: &mut CanvasPaintState<'_, Self>,
     ) {
         state.draw_options.blend_mode = op.to_raqote_style();
