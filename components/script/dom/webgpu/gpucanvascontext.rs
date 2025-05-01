@@ -8,7 +8,6 @@ use std::cell::RefCell;
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self};
-use script_layout_interface::HTMLCanvasDataSource;
 use snapshot::Snapshot;
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, WebGPU, WebGPUContextId, WebGPURequest,
@@ -227,11 +226,11 @@ impl GPUCanvasContext {
 
 // Internal helper methods
 impl GPUCanvasContext {
-    fn layout_handle(&self) -> HTMLCanvasDataSource {
+    fn layout_handle(&self) -> Option<ImageKey> {
         if self.drawing_buffer.borrow().cleared {
-            HTMLCanvasDataSource::Empty
+            None
         } else {
-            HTMLCanvasDataSource::WebGPU(self.webrender_image)
+            Some(self.webrender_image)
         }
     }
 
@@ -301,7 +300,7 @@ impl CanvasContext for GPUCanvasContext {
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
-    fn canvas_data_source(self) -> HTMLCanvasDataSource {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         (*self.unsafe_get()).layout_handle()
     }
 }

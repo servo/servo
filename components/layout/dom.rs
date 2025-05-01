@@ -15,8 +15,7 @@ use script_layout_interface::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{
-    GenericLayoutDataTrait, HTMLCanvasDataSource, LayoutElementType,
-    LayoutNodeType as ScriptLayoutNodeType,
+    GenericLayoutDataTrait, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
 };
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
@@ -29,7 +28,7 @@ use crate::flow::BlockLevelBox;
 use crate::flow::inline::InlineItem;
 use crate::fragment_tree::Fragment;
 use crate::geom::PhysicalSize;
-use crate::replaced::{CanvasInfo, CanvasSource};
+use crate::replaced::CanvasInfo;
 use crate::table::TableLevelBox;
 use crate::taffy::TaffyItemBox;
 
@@ -220,12 +219,7 @@ where
     fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)> {
         let node = self.to_threadsafe();
         let canvas_data = node.canvas_data()?;
-        let source = match canvas_data.source {
-            HTMLCanvasDataSource::WebGL(texture_id) => CanvasSource::WebGL(texture_id),
-            HTMLCanvasDataSource::Image(image_key) => CanvasSource::Image(image_key),
-            HTMLCanvasDataSource::WebGPU(image_key) => CanvasSource::WebGPU(image_key),
-            HTMLCanvasDataSource::Empty => CanvasSource::Empty,
-        };
+        let source = canvas_data.source;
         Some((
             CanvasInfo { source },
             PhysicalSize::new(canvas_data.width.into(), canvas_data.height.into()),

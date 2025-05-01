@@ -21,7 +21,7 @@ use image::{ColorType, ImageEncoder};
 use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
-use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
+use script_layout_interface::HTMLCanvasData;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 use snapshot::Snapshot;
@@ -201,7 +201,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
                 Some(RenderingContext::WebGL2(context)) => context.to_layout().canvas_data_source(),
                 #[cfg(feature = "webgpu")]
                 Some(RenderingContext::WebGPU(context)) => context.to_layout().canvas_data_source(),
-                Some(RenderingContext::Placeholder(_)) | None => HTMLCanvasDataSource::Empty,
+                Some(RenderingContext::Placeholder(_)) | None => None,
             }
         };
 
