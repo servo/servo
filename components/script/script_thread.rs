@@ -3674,10 +3674,12 @@ impl ScriptThread {
             None => vec![],
         };
 
+        let policy_container = incomplete.load_data.policy_container.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let dummy_request_id = RequestId::default();
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.append_parent_to_csp_list(policy_container.as_ref());
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
             dummy_request_id,
@@ -3697,12 +3699,14 @@ impl ScriptThread {
         let srcdoc = std::mem::take(&mut incomplete.load_data.srcdoc);
         let chunk = srcdoc.into_bytes();
 
+        let policy_container = incomplete.load_data.policy_container.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let mut context = ParserContext::new(id, url);
         let dummy_request_id = RequestId::default();
 
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.append_parent_to_csp_list(policy_container.as_ref());
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
             dummy_request_id,
