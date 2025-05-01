@@ -144,6 +144,15 @@ pub struct NodeInfo {
     pub shadow_root_mode: Option<ShadowRootMode>,
     pub is_shadow_host: bool,
     pub display: Option<String>,
+
+    /// The `DOCTYPE` name if this is a `DocumentType` node, `None` otherwise
+    pub doctype_name: Option<String>,
+
+    /// The `DOCTYPE` public identifier if this is a `DocumentType` node , `None` otherwise
+    pub doctype_public_identifier: Option<String>,
+
+    /// The `DOCTYPE` system identifier if this is a `DocumentType` node, `None` otherwise
+    pub doctype_system_identifier: Option<String>,
 }
 
 pub struct StartedTimelineMarker {

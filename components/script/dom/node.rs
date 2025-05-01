@@ -1283,6 +1283,21 @@ impl Node {
             is_shadow_host,
             shadow_root_mode,
             display,
+            doctype_name: self
+                .downcast::<DocumentType>()
+                .map(DocumentType::name)
+                .cloned()
+                .map(String::from),
+            doctype_public_identifier: self
+                .downcast::<DocumentType>()
+                .map(DocumentType::public_id)
+                .cloned()
+                .map(String::from),
+            doctype_system_identifier: self
+                .downcast::<DocumentType>()
+                .map(DocumentType::system_id)
+                .cloned()
+                .map(String::from),
         }
     }
 
