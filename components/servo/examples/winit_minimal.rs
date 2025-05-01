@@ -3,9 +3,12 @@
 
 use std::cell::RefCell;
 use std::error::Error;
+use std::fs;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use euclid::{Scale, Size2D};
+use servo::resources::{self, Resource};
 use servo::{
     RenderingContext, Servo, ServoBuilder, TouchEventType, WebView, WebViewBuilder,
     WindowRenderingContext,
@@ -21,10 +24,35 @@ use winit::event_loop::EventLoop;
 use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use winit::window::Window;
 
+// Minimal resource reader.
+struct ResourceReader;
+
+impl ResourceReader {
+    fn init() {
+        resources::set(Box::new(ResourceReader));
+    }
+}
+
+impl resources::ResourceReaderMethods for ResourceReader {
+    fn read(&self, file: Resource) -> Vec<u8> {
+        let mut path = PathBuf::from("./resources");
+        path.push(file.filename());
+        fs::read(path).expect("Can't read file")
+    }
+    fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
+        vec![PathBuf::from("./resources")]
+    }
+    fn sandbox_access_files(&self) -> Vec<PathBuf> {
+        vec![]
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
         .expect("Failed to install crypto provider");
+
+    ResourceReader::init();
 
     let event_loop = EventLoop::with_user_event()
         .build()
