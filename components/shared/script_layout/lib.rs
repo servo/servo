@@ -117,16 +117,8 @@ pub enum LayoutElementType {
     SVGSVGElement,
 }
 
-pub enum HTMLCanvasDataSource {
-    WebGL(ImageKey),
-    Image(ImageKey),
-    WebGPU(ImageKey),
-    /// transparent black
-    Empty,
-}
-
 pub struct HTMLCanvasData {
-    pub source: HTMLCanvasDataSource,
+    pub source: Option<ImageKey>,
     pub width: u32,
     pub height: u32,
 }

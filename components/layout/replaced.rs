@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::LazyCell;
-use std::fmt;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -96,33 +95,9 @@ impl NaturalSizes {
     }
 }
 
-#[derive(MallocSizeOf)]
-pub(crate) enum CanvasSource {
-    WebGL(ImageKey),
-    Image(ImageKey),
-    WebGPU(ImageKey),
-    /// transparent black
-    Empty,
-}
-
-impl fmt::Debug for CanvasSource {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match *self {
-                CanvasSource::WebGL(_) => "WebGL",
-                CanvasSource::Image(_) => "Image",
-                CanvasSource::WebGPU(_) => "WebGPU",
-                CanvasSource::Empty => "Empty",
-            }
-        )
-    }
-}
-
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct CanvasInfo {
-    pub source: CanvasSource,
+    pub source: Option<ImageKey>,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -388,12 +363,10 @@ impl ReplacedContents {
                     return vec![];
                 }
 
-                let image_key = match canvas_info.source {
-                    CanvasSource::WebGL(image_key) => image_key,
-                    CanvasSource::WebGPU(image_key) => image_key,
-                    CanvasSource::Image(image_key) => image_key,
-                    CanvasSource::Empty => return vec![],
+                let Some(image_key) = canvas_info.source else {
+                    return vec![];
                 };
+
                 vec![Fragment::Image(ArcRefCell::new(ImageFragment {
                     base: self.base_fragment_info.into(),
                     style: style.clone(),

@@ -6,8 +6,9 @@
 
 use euclid::default::Size2D;
 use script_bindings::root::Dom;
-use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
+use script_layout_interface::HTMLCanvasData;
 use snapshot::Snapshot;
+use webrender_api::ImageKey;
 
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::inheritance::Castable;
@@ -19,7 +20,8 @@ use crate::dom::types::{
 };
 
 pub(crate) trait LayoutCanvasRenderingContextHelpers {
-    fn canvas_data_source(self) -> HTMLCanvasDataSource;
+    /// `None` is rendered as transparent black (cleared canvas)
+    fn canvas_data_source(self) -> Option<ImageKey>;
 }
 
 pub(crate) trait LayoutHTMLCanvasElementHelpers {

@@ -7,9 +7,9 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use profile_traits::ipc;
 use script_bindings::inheritance::Castable;
-use script_layout_interface::HTMLCanvasDataSource;
 use servo_url::ServoUrl;
 use snapshot::Snapshot;
+use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, CanvasHelpers, LayoutCanvasRenderingContextHelpers};
 use crate::canvas_state::CanvasState;
@@ -98,13 +98,13 @@ impl CanvasRenderingContext2D {
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
-    fn canvas_data_source(self) -> HTMLCanvasDataSource {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         let canvas_state = &self.unsafe_get().canvas_state;
 
         if canvas_state.is_paintable() {
-            HTMLCanvasDataSource::Image(canvas_state.image_key())
+            Some(canvas_state.image_key())
         } else {
-            HTMLCanvasDataSource::Empty
+            None
         }
     }
 }

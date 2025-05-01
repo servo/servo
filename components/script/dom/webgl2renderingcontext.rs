@@ -22,10 +22,10 @@ use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, U
 use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
 use script_bindings::interfaces::WebGL2RenderingContextHelpers;
-use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::pref;
 use snapshot::Snapshot;
 use url::Host;
+use webrender_api::ImageKey;
 
 use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
@@ -4702,7 +4702,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGL2RenderingContext> {
     #[allow(unsafe_code)]
-    fn canvas_data_source(self) -> HTMLCanvasDataSource {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         let this = self.unsafe_get();
         unsafe { (*this.base.to_layout().unsafe_get()).layout_handle() }
     }
