@@ -3,7 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::{FillOrStrokeStyle, LineCapStyle, LineJoinStyle};
+use euclid::Angle;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use lyon_geom::Arc;
 use style::color::AbsoluteColor;
 
 use crate::canvas_data::{CanvasPaintState, Filter, TextRun};
@@ -148,7 +150,54 @@ pub(crate) trait GenericPathBuilder<B: Backend> {
         start_angle: f32,
         end_angle: f32,
         anticlockwise: bool,
-    );
+    ) {
+        let mut start = Angle::radians(start_angle);
+        let mut end = Angle::radians(end_angle);
+
+        // Wrap angles mod 2 * PI if necessary
+        if !anticlockwise && start > end + Angle::two_pi() ||
+            anticlockwise && end > start + Angle::two_pi()
+        {
+            start = start.positive();
+            end = end.positive();
+        }
+
+        // Calculate the total arc we're going to sweep.
+        let sweep = match anticlockwise {
+            true => {
+                if end - start == Angle::two_pi() {
+                    -Angle::two_pi()
+                } else if end > start {
+                    -(Angle::two_pi() - (end - start))
+                } else {
+                    -(start - end)
+                }
+            },
+            false => {
+                if start - end == Angle::two_pi() {
+                    Angle::two_pi()
+                } else if start > end {
+                    Angle::two_pi() - (start - end)
+                } else {
+                    end - start
+                }
+            },
+        };
+
+        let arc: Arc<f32> = Arc {
+            center: origin,
+            radii: Vector2D::new(radius_x, radius_y),
+            start_angle: start,
+            sweep_angle: sweep,
+            x_rotation: Angle::radians(rotation_angle),
+        };
+
+        self.line_to(arc.from());
+
+        arc.for_each_quadratic_bezier(&mut |q| {
+            self.quadratic_curve_to(&q.ctrl, &q.to);
+        });
+    }
     fn get_current_point(&mut self) -> Option<Point2D<f32>>;
     fn line_to(&mut self, point: Point2D<f32>);
     fn move_to(&mut self, point: Point2D<f32>);
