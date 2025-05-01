@@ -21,6 +21,7 @@ pub(crate) trait Backend: Clone + Sized {
     type DrawTarget: GenericDrawTarget<Self>;
     type PathBuilder: GenericPathBuilder<Self>;
     type SourceSurface;
+    type Bytes<'a>: AsRef<[u8]>;
     type Path: PathHelpers<Self> + Clone;
     type GradientStop;
     type GradientStops;
@@ -98,7 +99,6 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
     fn pop_clip(&mut self);
     fn push_clip(&mut self, path: &B::Path);
     fn set_transform(&mut self, matrix: &Transform2D<f32>);
-    fn snapshot(&self) -> B::SourceSurface;
     fn stroke(
         &mut self,
         path: &B::Path,
@@ -121,7 +121,8 @@ pub(crate) trait GenericDrawTarget<B: Backend> {
         stroke_options: &B::StrokeOptions,
         draw_options: &B::DrawOptions,
     );
-    fn snapshot_data(&self) -> &[u8];
+    fn surface(&self) -> B::SourceSurface;
+    fn bytes(&'_ self) -> B::Bytes<'_>;
 }
 
 /// A generic PathBuilder that abstracts the interface for azure's and raqote's PathBuilder.

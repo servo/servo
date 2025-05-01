@@ -426,7 +426,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             flags: ImageDescriptorFlags::empty(),
         };
         let data =
-            SerializableImageData::Raw(IpcSharedMemory::from_bytes(draw_target.snapshot_data()));
+            SerializableImageData::Raw(IpcSharedMemory::from_bytes(draw_target.bytes().as_ref()));
         compositor_api.update_images(vec![ImageUpdate::AddImage(image_key, descriptor, data)]);
         CanvasData {
             state: backend.new_paint_state(),
@@ -1209,7 +1209,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             flags: ImageDescriptorFlags::empty(),
         };
         let data = SerializableImageData::Raw(IpcSharedMemory::from_bytes(
-            self.drawtarget.snapshot_data(),
+            self.drawtarget.bytes().as_ref(),
         ));
 
         self.compositor_api
@@ -1292,7 +1292,7 @@ impl<'a, B: Backend> CanvasData<'a, B> {
         let mut new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
         draw_shadow_source(&mut new_draw_target);
         self.drawtarget.draw_surface_with_shadow(
-            new_draw_target.snapshot(),
+            new_draw_target.surface(),
             &Point2D::new(shadow_src_rect.origin.x, shadow_src_rect.origin.y),
             &self.state.shadow_color,
             &Vector2D::new(
@@ -1323,11 +1323,11 @@ impl<'a, B: Backend> CanvasData<'a, B> {
             {
                 vec![]
             } else {
-                let bytes = self.drawtarget.snapshot_data();
-                pixels::rgba8_get_rect(bytes, canvas_size, read_rect).to_vec()
+                pixels::rgba8_get_rect(self.drawtarget.bytes().as_ref(), canvas_size, read_rect)
+                    .to_vec()
             }
         } else {
-            self.drawtarget.snapshot_data().to_vec()
+            self.drawtarget.bytes().as_ref().to_vec()
         };
 
         Snapshot::from_vec(

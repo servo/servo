@@ -41,6 +41,7 @@ impl Backend for RaqoteBackend {
     type DrawTarget = raqote::DrawTarget;
     type PathBuilder = PathBuilder;
     type SourceSurface = Vec<u8>; // TODO: See if we can avoid the alloc (probably?)
+    type Bytes<'a> = &'a [u8];
     type Path = raqote::Path;
     type GradientStop = raqote::GradientStop;
     type GradientStops = Vec<raqote::GradientStop>;
@@ -595,8 +596,8 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
     fn set_transform(&mut self, matrix: &Transform2D<f32>) {
         self.set_transform(matrix);
     }
-    fn snapshot(&self) -> <RaqoteBackend as Backend>::SourceSurface {
-        self.snapshot_data().to_vec()
+    fn surface(&self) -> <RaqoteBackend as Backend>::SourceSurface {
+        self.bytes().to_vec()
     }
     fn stroke(
         &mut self,
@@ -655,7 +656,7 @@ impl GenericDrawTarget<RaqoteBackend> for raqote::DrawTarget {
         );
     }
     #[allow(unsafe_code)]
-    fn snapshot_data(&self) -> &[u8] {
+    fn bytes(&self) -> &[u8] {
         let v = self.get_data();
         unsafe { std::slice::from_raw_parts(v.as_ptr() as *const u8, std::mem::size_of_val(v)) }
     }
