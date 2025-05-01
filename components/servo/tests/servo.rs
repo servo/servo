@@ -4,7 +4,7 @@
 
 //! Servo API unit tests.
 //!
-//! Since all Servo tests must rust serially on the same thread, it is important
+//! Since all Servo tests must run serially on the same thread, it is important
 //! that tests never panic. In order to ensure this, use `anyhow::ensure!` instead
 //! of `assert!` for test assertions. `ensure!` will produce a `Result::Err` in
 //! place of panicking.
@@ -12,21 +12,15 @@
 mod common;
 
 use anyhow::ensure;
-use common::*;
-use servo::WebViewBuilder;
+use common::{ServoTest, run_api_tests};
 
-#[test]
-fn test_simple_servo_is_not_animating_by_default() {
-    ServoTest::run(|servo_test| {
-        ensure!(!servo_test.servo().animating());
-        Ok(())
-    });
+fn test_simple_servo_is_not_animating_by_default(
+    servo_test: &ServoTest,
+) -> Result<(), anyhow::Error> {
+    ensure!(!servo_test.servo().animating());
+    Ok(())
 }
 
-#[test]
-fn test_simple_servo_construct_webview() {
-    ServoTest::run(|servo_test| {
-        WebViewBuilder::new(servo_test.servo()).build();
-        Ok(())
-    });
+fn main() {
+    run_api_tests!(test_simple_servo_is_not_animating_by_default);
 }
