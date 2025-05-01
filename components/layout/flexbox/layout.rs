@@ -49,7 +49,6 @@ use crate::{
 struct FlexContext<'a> {
     config: FlexContainerConfig,
     layout_context: &'a LayoutContext<'a>,
-    positioning_context: &'a mut PositioningContext,
     containing_block: &'a ContainingBlock<'a>, // For items
     container_inner_size_constraint: FlexRelativeVec2<SizeConstraint>,
 }
@@ -657,7 +656,6 @@ impl FlexContainer {
         let mut flex_context = FlexContext {
             config: self.config.clone(),
             layout_context,
-            positioning_context,
             containing_block,
             // https://drafts.csswg.org/css-flexbox/#definite-sizes
             container_inner_size_constraint: self.config.flex_axis.vec2_to_flex_relative(
@@ -1775,16 +1773,7 @@ impl FlexItem<'_> {
     ) -> Option<FlexItemLayoutResult> {
         let containing_block = flex_context.containing_block;
         let independent_formatting_context = &self.box_.independent_formatting_context;
-        let mut positioning_context = independent_formatting_context
-            .new_positioning_context()
-            .unwrap_or_else(|| {
-                PositioningContext::new_for_subtree(
-                    flex_context
-                        .positioning_context
-                        .collects_for_nearest_positioned_ancestor(),
-                )
-            });
-
+        let mut positioning_context = PositioningContext::default();
         let item_writing_mode = independent_formatting_context.style().writing_mode;
         let item_is_horizontal = item_writing_mode.is_horizontal();
         let flex_axis = flex_context.config.flex_axis;
@@ -2617,17 +2606,7 @@ impl FlexItemBox {
         cross_size_stretches_to_container_size: bool,
         intrinsic_sizing_mode: IntrinsicSizingMode,
     ) -> Au {
-        let mut positioning_context = self
-            .independent_formatting_context
-            .new_positioning_context()
-            .unwrap_or_else(|| {
-                PositioningContext::new_for_subtree(
-                    flex_context
-                        .positioning_context
-                        .collects_for_nearest_positioned_ancestor(),
-                )
-            });
-
+        let mut positioning_context = PositioningContext::default();
         let style = self.independent_formatting_context.style();
         match &self.independent_formatting_context.contents {
             IndependentFormattingContextContents::Replaced(replaced) => {

@@ -385,8 +385,7 @@ impl BoxTree {
             style,
         };
 
-        let mut positioning_context =
-            PositioningContext::new_for_containing_block_for_all_descendants();
+        let mut positioning_context = PositioningContext::default();
         let independent_layout = self.root.layout(
             layout_context,
             &mut positioning_context,

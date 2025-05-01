@@ -110,7 +110,7 @@ impl TaffyItemBox {
         Self {
             taffy_layout: Default::default(),
             child_fragments: Vec::new(),
-            positioning_context: PositioningContext::new_for_containing_block_for_all_descendants(),
+            positioning_context: PositioningContext::default(),
             style,
             taffy_level_box: inner,
         }
@@ -118,8 +118,7 @@ impl TaffyItemBox {
 
     pub(crate) fn invalidate_cached_fragment(&mut self) {
         self.taffy_layout = Default::default();
-        self.positioning_context =
-            PositioningContext::new_for_containing_block_for_all_descendants();
+        self.positioning_context = PositioningContext::default();
         match self.taffy_level_box {
             TaffyItemBoxInner::InFlowBox(ref independent_formatting_context) => {
                 independent_formatting_context

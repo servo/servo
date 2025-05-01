@@ -331,7 +331,7 @@ impl LineItemLayout<'_, '_> {
             self.calculate_inline_box_block_start(inline_box_state, space_above_baseline);
 
         let positioning_context_or_start_offset_in_parent =
-            match inline_box.base.new_positioning_context() {
+            match PositioningContext::new_for_layout_box_base(&inline_box.base) {
                 Some(positioning_context) => Either::Left(positioning_context),
                 None => Either::Right(self.current_positioning_context_mut().len()),
             };

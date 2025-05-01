@@ -295,10 +295,7 @@ impl IndependentNonReplacedContents {
             );
         }
 
-        let mut child_positioning_context = PositioningContext::new_for_subtree(
-            positioning_context.collects_for_nearest_positioned_ancestor(),
-        );
-
+        let mut child_positioning_context = PositioningContext::default();
         let result = self.layout_without_caching(
             layout_context,
             &mut child_positioning_context,
