@@ -166,15 +166,15 @@ uuid = { version = "1.12.1", features = ["v4"] }
 webdriver = "0.51.0"
 webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "0.26"
-webrender = { git = "https://github.com/servo/webrender", branch = "0.66", features = ["capture"] }
-webrender_api = { git = "https://github.com/servo/webrender", branch = "0.66" }
+webrender = { git = "https://github.com/servo/webrender", branch = "0.67", features = ["capture"] }
+webrender_api = { git = "https://github.com/servo/webrender", branch = "0.67" }
 webxr-api = { path = "components/shared/webxr" }
 wgpu-core = "25"
 wgpu-types = "25"
 winapi = "0.3"
 windows-sys = "0.59"
 wio = "0.2"
-wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.66" }
+wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.67" }
 xi-unicode = "0.3.0"
 xml5ever = "0.22"
 
