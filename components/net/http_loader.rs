@@ -4,12 +4,30 @@
 
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
+use std::ops::Deref;
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use crate::async_runtime::HANDLE;
+use crate::connector::{CertificateErrorOverrideManager, Connector};
+use crate::cookie::ServoCookie;
+use crate::cookie_storage::CookieStorage;
+use crate::decoder::Decoder;
+use crate::fetch::cors_cache::CorsCache;
+use crate::fetch::fetch_params::FetchParams;
+use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
+use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
+use crate::hsts::HstsList;
+use crate::http_cache::{CacheKey, HttpCache};
+use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use async_recursion::async_recursion;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{HistoryStateId, PipelineId};
+use base64::prelude::BASE64_STANDARD;
+use base64::{
+    Engine as _,
+};
+use cross_krb5::{ClientCtx, InitiateFlags, Step};
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
@@ -26,7 +44,7 @@ use headers::{
 };
 use http::header::{
     self, ACCEPT, ACCESS_CONTROL_REQUEST_HEADERS, AUTHORIZATION, CONTENT_ENCODING,
-    CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE,
+    CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE, HeaderValue, RANGE, WWW_AUTHENTICATE,
 };
 use http::{HeaderMap, Method, Request as HyperRequest, StatusCode};
 use http_body_util::combinators::BoxBody;
@@ -65,19 +83,6 @@ use tokio::sync::mpsc::{
     unbounded_channel,
 };
 use tokio_stream::wrappers::ReceiverStream;
-
-use crate::async_runtime::HANDLE;
-use crate::connector::{CertificateErrorOverrideManager, Connector};
-use crate::cookie::ServoCookie;
-use crate::cookie_storage::CookieStorage;
-use crate::decoder::Decoder;
-use crate::fetch::cors_cache::CorsCache;
-use crate::fetch::fetch_params::FetchParams;
-use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
-use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
-use crate::hsts::HstsList;
-use crate::http_cache::{CacheKey, HttpCache};
-use crate::resource_thread::{AuthCache, AuthCacheEntry};
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -266,8 +271,8 @@ fn is_schemelessy_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) 
         let host_b_reg = reg_suffix(&host_b);
 
         // Step 2.2-2.3
-        (site_a.host() == site_b.host() && host_a_reg.is_empty()) ||
-            (host_a_reg == host_b_reg && !host_a_reg.is_empty())
+        (site_a.host() == site_b.host() && host_a_reg.is_empty())
+            || (host_a_reg == host_b_reg && !host_a_reg.is_empty())
     } else {
         // Step 3
         false
@@ -781,11 +786,11 @@ pub async fn http_fetch(
             // nothing to do, since actual_response is a function on response
 
             // Subsubstep 3
-            if (res.response_type == ResponseType::Opaque && request.mode != RequestMode::NoCors) ||
-                (res.response_type == ResponseType::OpaqueRedirect &&
-                    request.redirect_mode != RedirectMode::Manual) ||
-                (res.url_list.len() > 1 && request.redirect_mode != RedirectMode::Follow) ||
-                res.is_network_error()
+            if (res.response_type == ResponseType::Opaque && request.mode != RequestMode::NoCors)
+                || (res.response_type == ResponseType::OpaqueRedirect
+                    && request.redirect_mode != RedirectMode::Manual)
+                || (res.url_list.len() > 1 && request.redirect_mode != RedirectMode::Follow)
+                || res.is_network_error()
             {
                 return Response::network_error(NetworkError::Internal("Request failed".into()));
             }
@@ -801,11 +806,11 @@ pub async fn http_fetch(
         if cors_preflight_flag {
             let method_cache_match = cache.match_method(request, request.method.clone());
 
-            let method_mismatch = !method_cache_match &&
-                (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
+            let method_mismatch = !method_cache_match
+                && (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
             let header_mismatch = request.headers.iter().any(|(name, value)| {
-                !cache.match_header(request, name) &&
-                    !is_cors_safelisted_request_header(&name, &value)
+                !cache.match_header(request, name)
+                    && !is_cors_safelisted_request_header(&name, &value)
             });
 
             // Sub-substep 1
@@ -1057,8 +1062,8 @@ pub async fn http_redirect_fetch(
 
     // Step 11: If internalResponse’s status is not 303, request’s body is non-null, and request’s
     // body’s source is null, then return a network error.
-    if response.actual_response().status != StatusCode::SEE_OTHER &&
-        request.body.as_ref().is_some_and(|b| b.source_is_null())
+    if response.actual_response().status != StatusCode::SEE_OTHER
+        && request.body.as_ref().is_some_and(|b| b.source_is_null())
     {
         return Response::network_error(NetworkError::Internal("Request body is not done".into()));
     }
@@ -1069,11 +1074,11 @@ pub async fn http_redirect_fetch(
         .status
         .try_code()
         .is_some_and(|code| {
-            ((code == StatusCode::MOVED_PERMANENTLY || code == StatusCode::FOUND) &&
-                request.method == Method::POST) ||
-                (code == StatusCode::SEE_OTHER &&
-                    request.method != Method::HEAD &&
-                    request.method != Method::GET)
+            ((code == StatusCode::MOVED_PERMANENTLY || code == StatusCode::FOUND)
+                && request.method == Method::POST)
+                || (code == StatusCode::SEE_OTHER
+                    && request.method != Method::HEAD
+                    && request.method != Method::GET)
         })
     {
         // Step 12.1
@@ -1239,8 +1244,8 @@ async fn http_network_or_cache_fetch(
 
     // Step 8.11: If httpRequest’s referrer is a URL, then:
     match http_request.referrer {
-        Referrer::ReferrerUrl(ref http_request_referrer) |
-        Referrer::Client(ref http_request_referrer) => {
+        Referrer::ReferrerUrl(ref http_request_referrer)
+        | Referrer::Client(ref http_request_referrer) => {
             // Step 8.11.1: Let referrerValue be httpRequest’s referrer, serialized and isomorphic
             // encoded.
             if let Ok(referer) = http_request_referrer.to_string().parse::<Referer>() {
@@ -1363,9 +1368,9 @@ async fn http_network_or_cache_fetch(
             }
 
             // Substep 5
-            if authentication_fetch_flag &&
-                authorization_value.is_none() &&
-                has_credentials(&current_url)
+            if authentication_fetch_flag
+                && authorization_value.is_none()
+                && has_credentials(&current_url)
             {
                 authorization_value = Some(Authorization::basic(
                     current_url.username(),
@@ -1435,9 +1440,9 @@ async fn http_network_or_cache_fetch(
                         (CacheMode::OnlyIfCached, &RequestMode::SameOrigin) => {
                             (Some(response_from_cache.response), false)
                         },
-                        (CacheMode::OnlyIfCached, _) |
-                        (CacheMode::NoStore, _) |
-                        (CacheMode::Reload, _) => (None, false),
+                        (CacheMode::OnlyIfCached, _)
+                        | (CacheMode::NoStore, _)
+                        | (CacheMode::Reload, _) => (None, false),
                         (_, _) => (
                             Some(response_from_cache.response),
                             response_from_cache.needs_validation,
@@ -1605,9 +1610,9 @@ async fn http_network_or_cache_fetch(
 
     // FIXME: The spec doesn't tell us to do this *here*, but if we don't do it then
     // tests fail. Where should we do it instead? See also #33615
-    if http_request.response_tainting != ResponseTainting::CorsTainting &&
-        cross_origin_resource_policy_check(http_request, &response) ==
-            CrossOriginResourcePolicy::Blocked
+    if http_request.response_tainting != ResponseTainting::CorsTainting
+        && cross_origin_resource_policy_check(http_request, &response)
+            == CrossOriginResourcePolicy::Blocked
     {
         return Response::network_error(NetworkError::Internal(
             "Cross-origin resource policy check failed".into(),
@@ -1629,51 +1634,87 @@ async fn http_network_or_cache_fetch(
     if let (Some(StatusCode::UNAUTHORIZED), false, true) =
         (response.status.try_code(), cors_flag, include_credentials)
     {
-        // TODO: Step 14.1 Spec says requires testing on multiple WWW-Authenticate headers
+        'auth: {
+            // TODO: Step 14.1 Spec says requires testing on multiple WWW-Authenticate headers
 
-        let request = &mut fetch_params.request;
+            for auth in response.headers.clone().get_all(WWW_AUTHENTICATE) {
+                if let Ok(auth) = auth.to_str() {
+                    if auth.starts_with("Negotiate") {
+                        debug!("SPNEGO: Header detected - '{}'", auth);
+                        if let Some(token) = http_fetch_params
+                            .request
+                            .headers
+                            .get(AUTHORIZATION)
+                            .map(|s| s.to_str().unwrap_or_default())
+                        {
+                            debug!("SPNEGO: Negotiation in progress, sent tokens - '{}'", token);
+                            return response;
+                        } else {
+                            spnego(
+                                http_fetch_params,
+                                &mut response,
+                                authentication_fetch_flag,
+                                done_chan,
+                                context,
+                            )
+                            .await;
+                            debug!("SPNEGO: Negotiation finished");
+                            if response.status != StatusCode::UNAUTHORIZED {
+                                debug!(
+                                    "SPNEGO: HTTP Status no longer 401 Unauthorized, skipping further authentication methods."
+                                );
+                                break 'auth;
+                            }
+                        }
+                    }
+                }
+            }
 
-        // Step 14.2 If request’s body is non-null, then:
-        if request.body.is_some() {
-            // TODO Implement body source
+            let request = &mut fetch_params.request;
+
+            // Step 14.2 If request’s body is non-null, then:
+            if request.body.is_some() {
+                // TODO Implement body source
+            }
+
+            // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
+            if !request.use_url_credentials || authentication_fetch_flag {
+                let Some(credentials) = context.state.request_authentication(request, &response)
+                else {
+                    return response;
+                };
+
+                if let Err(err) = request
+                    .current_url_mut()
+                    .set_username(&credentials.username)
+                {
+                    error!("error setting username for url: {:?}", err);
+                    return response;
+                };
+
+                if let Err(err) = request
+                    .current_url_mut()
+                    .set_password(Some(&credentials.password))
+                {
+                    error!("error setting password for url: {:?}", err);
+                    return response;
+                };
+            }
+
+            // Make sure this is set to None,
+            // since we're about to start a new `http_network_or_cache_fetch`.
+            *done_chan = None;
+
+            // Step 14.4 Set response to the result of running HTTP-network-or-cache fetch given fetchParams and true.
+            response = http_network_or_cache_fetch(
+                fetch_params,
+                true, /* authentication flag */
+                cors_flag,
+                done_chan,
+                context,
+            )
+            .await;
         }
-
-        // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
-        if !request.use_url_credentials || authentication_fetch_flag {
-            let Some(credentials) = context.state.request_authentication(request, &response) else {
-                return response;
-            };
-
-            if let Err(err) = request
-                .current_url_mut()
-                .set_username(&credentials.username)
-            {
-                error!("error setting username for url: {:?}", err);
-                return response;
-            };
-
-            if let Err(err) = request
-                .current_url_mut()
-                .set_password(Some(&credentials.password))
-            {
-                error!("error setting password for url: {:?}", err);
-                return response;
-            };
-        }
-
-        // Make sure this is set to None,
-        // since we're about to start a new `http_network_or_cache_fetch`.
-        *done_chan = None;
-
-        // Step 14.4 Set response to the result of running HTTP-network-or-cache fetch given fetchParams and true.
-        response = http_network_or_cache_fetch(
-            fetch_params,
-            true, /* authentication flag */
-            cors_flag,
-            done_chan,
-            context,
-        )
-        .await;
     }
 
     // Step 15. If response’s status is 407, then:
@@ -1786,9 +1827,9 @@ fn cross_origin_resource_policy_check(
     // Step 5
     if let Origin::Origin(ref request_origin) = request.origin {
         let schemeless_same_origin = is_schemelessy_same_site(request_origin, &current_url_origin);
-        if schemeless_same_origin &&
-            (request_origin.scheme() == Some("https") ||
-                response.https_state == HttpsState::None)
+        if schemeless_same_origin
+            && (request_origin.scheme() == Some("https")
+                || response.https_state == HttpsState::None)
         {
             return CrossOriginResourcePolicy::Allowed;
         }
@@ -2115,6 +2156,106 @@ async fn http_network_fetch(
     response
 }
 
+/// [SPNEGO-based Kerberos and NTLM HTTP Authentication](https://datatracker.ietf.org/doc/html/rfc4559#section-4.1)
+async fn spnego(
+    fetch_params: &mut FetchParams,
+    response: &mut Response,
+    authentication_fetch_flag: bool,
+    done_chan: &mut DoneChannel,
+    context: &FetchContext,
+) {
+    if let Some(host) = fetch_params.request.url().host_str() {
+        if !fetch_params.request.headers.contains_key(WWW_AUTHENTICATE) {
+            if let Ok((mut client, token)) = ClientCtx::new(
+                InitiateFlags::empty(),
+                None,
+                format!("HTTP/{}", host).as_ref(),
+                None,
+            ) {
+                info!("SPNEGO: Starting authentication for service 'HTTP/{}'", host);
+                // First create a pending context fetching the initial token, sending it as part
+                // of the 'Authorization' header
+                let token = BASE64_STANDARD.encode(token.deref());
+                debug!("SPNEGO: Sent initial token '{}'", token);
+                fetch_params.request.headers.insert(
+                    AUTHORIZATION,
+                    HeaderValue::from_str(format!("Negotiate {}", token).as_str())
+                        .expect("Failed to convert GSSAPI tokens to header"),
+                );
+
+                *response = http_network_fetch(
+                    fetch_params,
+                    authentication_fetch_flag, /* authentication flag */
+                    done_chan,
+                    context,
+                )
+                .await;
+                // If the server responds with further Negotiate headers containing tokens,
+                // enter them into the client context and send the resulting client tokens.
+                // Repeat until the security context is established.
+                // (Who said that HTTP was a stateless protocol?)
+                while let Some(Some(token)) = response
+                    .headers
+                    .get(WWW_AUTHENTICATE)
+                    .map(|t| t.to_str().unwrap_or_default().strip_prefix("Negotiate "))
+                {
+                    debug!("SPNEGO: Token in '{}'", token);
+                    let token = if let Ok(token) = BASE64_STANDARD.decode(token.as_bytes()) {
+                        token
+                    } else {
+                        warn!("SPNEGO: Received invalid base64 encoded token, aborting.");
+                        break;
+                    };
+
+                    match client.step(token.as_slice()) {
+                        Ok(Step::Finished((_, token))) => {
+                            if let Some(token) = token {
+                                let token = BASE64_STANDARD.encode(token.deref());
+                                debug!("SPNEGO: Step out '{}'", token);
+                                fetch_params.request.headers.insert(
+                                    AUTHORIZATION,
+                                    HeaderValue::from_str(format!("Negotiate {}", token).as_str())
+                                        .expect("Failed to convert GSSAPI tokens to header"),
+                                );
+                                *response = http_network_fetch(
+                                    fetch_params,
+                                    authentication_fetch_flag,
+                                    done_chan,
+                                    context,
+                                )
+                                .await;
+                                info!("SPNEGO: Authenticated");
+                            }
+                            break;
+                        },
+                        Ok(Step::Continue((ctx, token))) => {
+                            let token = BASE64_STANDARD.encode(token.deref());
+                            debug!("SPNEGO: Step out '{}'", token);
+                            fetch_params.request.headers.insert(
+                                AUTHORIZATION,
+                                HeaderValue::from_str(format!("Negotiate {}", token).as_str())
+                                    .expect("Failed to convert GSSAPI tokens to header"),
+                            );
+                            client = ctx;
+                            *response = http_network_fetch(
+                                fetch_params,
+                                authentication_fetch_flag,
+                                done_chan,
+                                context,
+                            )
+                            .await;
+                        },
+                        Err(e) => {
+                            error!("SPNEGO: Encountered error, '{}'", e);
+                            break;
+                        },
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
 async fn cors_preflight_fetch(
     request: &Request,
@@ -2223,10 +2364,10 @@ async fn cors_preflight_fetch(
         // Substep 5
         if methods
             .iter()
-            .all(|m| *m.as_str() != *request.method.as_ref()) &&
-            !is_cors_safelisted_method(&request.method) &&
-            (request.credentials_mode == CredentialsMode::Include ||
-                methods.iter().all(|m| m.as_ref() != "*"))
+            .all(|m| *m.as_str() != *request.method.as_ref())
+            && !is_cors_safelisted_method(&request.method)
+            && (request.credentials_mode == CredentialsMode::Include
+                || methods.iter().all(|m| m.as_ref() != "*"))
         {
             return Response::network_error(NetworkError::Internal(
                 "CORS method check failed".into(),
@@ -2240,8 +2381,8 @@ async fn cors_preflight_fetch(
 
         // Substep 6
         if request.headers.iter().any(|(name, _)| {
-            is_cors_non_wildcard_request_header_name(name) &&
-                header_names.iter().all(|hn| hn != name)
+            is_cors_non_wildcard_request_header_name(name)
+                && header_names.iter().all(|hn| hn != name)
         }) {
             return Response::network_error(NetworkError::Internal(
                 "CORS authorization check failed".into(),
@@ -2254,9 +2395,9 @@ async fn cors_preflight_fetch(
         let header_names_set: HashSet<&HeaderName> = HashSet::from_iter(header_names.iter());
         let header_names_contains_star = header_names.iter().any(|hn| hn.as_str() == "*");
         for unsafe_name in unsafe_names.iter() {
-            if !header_names_set.contains(unsafe_name) &&
-                (request.credentials_mode == CredentialsMode::Include ||
-                    !header_names_contains_star)
+            if !header_names_set.contains(unsafe_name)
+                && (request.credentials_mode == CredentialsMode::Include
+                    || !header_names_contains_star)
             {
                 return Response::network_error(NetworkError::Internal(
                     "CORS headers check failed".into(),
@@ -2302,8 +2443,8 @@ fn cors_check(request: &Request, response: &Response) -> Result<(), ()> {
     let origin = origin.ok_or(())?;
 
     // Step 3
-    if request.credentials_mode != CredentialsMode::Include &&
-        origin == AccessControlAllowOrigin::ANY
+    if request.credentials_mode != CredentialsMode::Include
+        && origin == AccessControlAllowOrigin::ANY
     {
         return Ok(());
     }
@@ -2344,22 +2485,22 @@ fn has_credentials(url: &ServoUrl) -> bool {
 }
 
 fn is_no_store_cache(headers: &HeaderMap) -> bool {
-    headers.contains_key(header::IF_MODIFIED_SINCE) |
-        headers.contains_key(header::IF_NONE_MATCH) |
-        headers.contains_key(header::IF_UNMODIFIED_SINCE) |
-        headers.contains_key(header::IF_MATCH) |
-        headers.contains_key(header::IF_RANGE)
+    headers.contains_key(header::IF_MODIFIED_SINCE)
+        | headers.contains_key(header::IF_NONE_MATCH)
+        | headers.contains_key(header::IF_UNMODIFIED_SINCE)
+        | headers.contains_key(header::IF_MATCH)
+        | headers.contains_key(header::IF_RANGE)
 }
 
 /// <https://fetch.spec.whatwg.org/#redirect-status>
 fn is_redirect_status(status: StatusCode) -> bool {
     matches!(
         status,
-        StatusCode::MOVED_PERMANENTLY |
-            StatusCode::FOUND |
-            StatusCode::SEE_OTHER |
-            StatusCode::TEMPORARY_REDIRECT |
-            StatusCode::PERMANENT_REDIRECT
+        StatusCode::MOVED_PERMANENTLY
+            | StatusCode::FOUND
+            | StatusCode::SEE_OTHER
+            | StatusCode::TEMPORARY_REDIRECT
+            | StatusCode::PERMANENT_REDIRECT
     )
 }
 
@@ -2442,8 +2583,8 @@ fn append_a_request_origin_header(request: &mut Request) {
 
     // Step 3. If request’s response tainting is "cors" or request’s mode is "websocket",
     //         then append (`Origin`, serializedOrigin) to request’s header list.
-    if request.response_tainting == ResponseTainting::CorsTainting ||
-        matches!(request.mode, RequestMode::WebSocket { .. })
+    if request.response_tainting == ResponseTainting::CorsTainting
+        || matches!(request.mode, RequestMode::WebSocket { .. })
     {
         request.headers.typed_insert(serialized_origin);
     }
@@ -2456,9 +2597,9 @@ fn append_a_request_origin_header(request: &mut Request) {
                     // Set serializedOrigin to `null`.
                     serialized_origin = headers::Origin::NULL;
                 },
-                ReferrerPolicy::NoReferrerWhenDowngrade |
-                ReferrerPolicy::StrictOrigin |
-                ReferrerPolicy::StrictOriginWhenCrossOrigin => {
+                ReferrerPolicy::NoReferrerWhenDowngrade
+                | ReferrerPolicy::StrictOrigin
+                | ReferrerPolicy::StrictOriginWhenCrossOrigin => {
                     // If request’s origin is a tuple origin, its scheme is "https", and
                     // request’s current URL’s scheme is not "https", then set serializedOrigin to `null`.
                     if let ImmutableOrigin::Tuple(scheme, _, _) = &request_origin {
