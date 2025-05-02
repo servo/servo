@@ -20,6 +20,7 @@ use crate::dom::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
+use crate::dom::transformstream::TransformStream;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 /// <https://streams.spec.whatwg.org/#underlying-source-api>
@@ -46,8 +47,7 @@ pub(crate) enum UnderlyingSourceType {
     /// A struct representing a JS object as underlying source,
     /// and the actual JS object for use as `thisArg` in callbacks.
     /// This is used for the `TransformStream` API.
-    #[allow(unused)]
-    Transform(/* Dom<TransformStream>, Rc<Promise>*/),
+    Transform(Dom<TransformStream>, Rc<Promise>),
 }
 
 impl UnderlyingSourceType {
@@ -139,9 +139,9 @@ impl UnderlyingSourceContainer {
                 // Call the cancel algorithm for the appropriate branch.
                 tee_underlying_source.cancel_algorithm(cx, global, reason, can_gc)
             },
-            UnderlyingSourceType::Transform() => {
+            UnderlyingSourceType::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSourceCancelAlgorithm(stream, reason).
-                todo!();
+                Some(stream.transform_stream_default_source_cancel(cx, global, reason, can_gc))
             },
             UnderlyingSourceType::Transfer(port) => {
                 // Let cancelAlgorithm be the following steps, taking a reason argument:
@@ -213,9 +213,9 @@ impl UnderlyingSourceContainer {
                 Some(Ok(promise))
             },
             // Note: other source type have no pull steps for now.
-            UnderlyingSourceType::Transform() => {
+            UnderlyingSourceType::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSourcePullAlgorithm(stream).
-                todo!();
+                Some(stream.transform_stream_default_source_pull(&self.global(), can_gc))
             },
             _ => None,
         }
@@ -280,9 +280,9 @@ impl UnderlyingSourceContainer {
                 // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable
                 None
             },
-            UnderlyingSourceType::Transform() => {
-                // Some(transform_underlying_source.start_algorithm())
-                todo!();
+            UnderlyingSourceType::Transform(_, start_promise) => {
+                // Let startAlgorithm be an algorithm that returns startPromise.
+                Some(Ok(start_promise.clone()))
             },
             _ => None,
         }
