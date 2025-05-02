@@ -76,9 +76,12 @@ pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
 use malloc_size_of_derive::MallocSizeOf;
+use script::layout_dom::ServoLayoutElement;
 use servo_arc::Arc;
+use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font;
+use style::selector_parser::PseudoElement;
 use style_traits::dom::OpaqueNode;
 
 use super::flow::BlockFormattingContext;
@@ -191,6 +194,19 @@ impl Table {
             ),
         }
     }
+
+    pub(crate) fn repair_style(
+        &mut self,
+        context: &SharedStyleContext,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        self.style = new_style.clone();
+        self.grid_style = context.stylist.style_for_anonymous::<ServoLayoutElement>(
+            &context.guards,
+            &PseudoElement::ServoTableGrid,
+            new_style,
+        );
+    }
 }
 
 type TableSlotCoordinates = Point2D<usize, UnknownUnit>;
@@ -231,6 +247,10 @@ impl TableSlotCell {
     /// Get the node id of this cell's [`BaseFragmentInfo`]. This is used for unit tests.
     pub fn node_id(&self) -> usize {
         self.base.base_fragment_info.tag.map_or(0, |tag| tag.node.0)
+    }
+
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.base.repair_style(new_style);
     }
 }
 
@@ -294,6 +314,13 @@ pub struct TableTrack {
     shared_background_style: SharedStyle,
 }
 
+impl TableTrack {
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.base.repair_style(new_style);
+        self.shared_background_style = SharedStyle::new(new_style.clone());
+    }
+}
+
 #[derive(Debug, MallocSizeOf, PartialEq)]
 pub enum TableTrackGroupType {
     HeaderGroup,
@@ -322,6 +349,11 @@ pub struct TableTrackGroup {
 impl TableTrackGroup {
     pub(super) fn is_empty(&self) -> bool {
         self.track_range.is_empty()
+    }
+
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.base.repair_style(new_style);
+        self.shared_background_style = SharedStyle::new(new_style.clone());
     }
 }
 
@@ -387,6 +419,24 @@ impl TableLevelBox {
             TableLevelBox::Cell(cell) => cell.borrow().base.fragments(),
             TableLevelBox::TrackGroup(track_group) => track_group.borrow().base.fragments(),
             TableLevelBox::Track(track) => track.borrow().base.fragments(),
+        }
+    }
+
+    pub(crate) fn repair_style(
+        &self,
+        context: &SharedStyleContext<'_>,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        match self {
+            TableLevelBox::Caption(caption) => caption
+                .borrow_mut()
+                .context
+                .repair_style(context, new_style),
+            TableLevelBox::Cell(cell) => cell.borrow_mut().repair_style(new_style),
+            TableLevelBox::TrackGroup(track_group) => {
+                track_group.borrow_mut().repair_style(new_style);
+            },
+            TableLevelBox::Track(track) => track.borrow_mut().repair_style(new_style),
         }
     }
 }

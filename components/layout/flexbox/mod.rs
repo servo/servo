@@ -5,6 +5,7 @@
 use geom::{FlexAxis, MainStartCrossStart};
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
+use style::context::SharedStyleContext;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
@@ -136,6 +137,11 @@ impl FlexContainer {
             config: FlexContainerConfig::new(&info.style),
         }
     }
+
+    pub(crate) fn repair_style(&mut self, new_style: &ServoArc<ComputedValues>) {
+        self.config = FlexContainerConfig::new(new_style);
+        self.style = new_style.clone();
+    }
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -145,6 +151,22 @@ pub(crate) enum FlexLevelBox {
 }
 
 impl FlexLevelBox {
+    pub(crate) fn repair_style(
+        &mut self,
+        context: &SharedStyleContext,
+        new_style: &ServoArc<ComputedValues>,
+    ) {
+        match self {
+            FlexLevelBox::FlexItem(flex_item_box) => flex_item_box
+                .independent_formatting_context
+                .repair_style(context, new_style),
+            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
+                .borrow_mut()
+                .context
+                .repair_style(context, new_style),
+        }
+    }
+
     pub(crate) fn invalidate_cached_fragment(&self) {
         match self {
             FlexLevelBox::FlexItem(flex_item_box) => flex_item_box

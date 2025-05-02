@@ -56,7 +56,7 @@ use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::queries::values::PrefersColorScheme;
-use style::selector_parser::{PseudoElement, SnapshotMap};
+use style::selector_parser::{PseudoElement, RestyleDamage, SnapshotMap};
 use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
@@ -83,7 +83,7 @@ use crate::query::{
     process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
     process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
 };
-use crate::traversal::RecalcStyle;
+use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
 use crate::{BoxTree, FragmentTree};
 
 // This mutex is necessary due to syncronisation issues between two different types of thread-local storage
@@ -765,6 +765,12 @@ impl LayoutThread {
             driver::traverse_dom(&recalc_style_traversal, token, rayon_pool).as_node();
 
         let root_node = root_element.as_node();
+        let damage = compute_damage_and_repair_style(layout_context.shared_context(), root_node);
+        if damage == RestyleDamage::REPAINT {
+            layout_context.style_context.stylist.rule_tree().maybe_gc();
+            return;
+        }
+
         let mut box_tree = self.box_tree.borrow_mut();
         let box_tree = &mut *box_tree;
         let mut build_box_tree = || {

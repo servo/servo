@@ -7,7 +7,6 @@ use std::char::{ToLowercase, ToUppercase};
 
 use icu_segmenter::WordSegmenter;
 use itertools::izip;
-use servo_arc::Arc;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
@@ -158,7 +157,7 @@ impl InlineFormattingContextBuilder {
         independent_formatting_context: IndependentFormattingContext,
     ) -> ArcRefCell<InlineItem> {
         let inline_level_box = ArcRefCell::new(InlineItem::Atomic(
-            Arc::new(independent_formatting_context),
+            ArcRefCell::new(independent_formatting_context),
             self.current_text_offset,
             Level::ltr(), /* This will be assigned later if necessary. */
         ));
@@ -189,7 +188,8 @@ impl InlineFormattingContextBuilder {
     }
 
     pub(crate) fn push_float_box(&mut self, float_box: FloatBox) -> ArcRefCell<InlineItem> {
-        let inline_level_box = ArcRefCell::new(InlineItem::OutOfFlowFloatBox(Arc::new(float_box)));
+        let inline_level_box =
+            ArcRefCell::new(InlineItem::OutOfFlowFloatBox(ArcRefCell::new(float_box)));
         self.inline_items.push(inline_level_box.clone());
         self.contains_floats = true;
         inline_level_box

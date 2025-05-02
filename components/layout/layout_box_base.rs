@@ -89,6 +89,13 @@ impl LayoutBoxBase {
     pub(crate) fn clear_fragments(&self) {
         self.fragments.borrow_mut().clear();
     }
+
+    pub(crate) fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.style = new_style.clone();
+        for fragment in self.fragments.borrow_mut().iter_mut() {
+            fragment.repair_style(new_style);
+        }
+    }
 }
 
 impl Debug for LayoutBoxBase {
