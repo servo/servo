@@ -299,8 +299,40 @@ impl FetchTaskTarget for IpcSender<WebSocketNetworkEvent> {
         unreachable!()
     }
 
-    fn process_response(&mut self, _request: &Request, _response: &Response) {
-        unreachable!()
+    fn process_response(&mut self, request: &Request, response: &Response) {
+        // https://websockets.spec.whatwg.org/#concept-websocket-establish
+        // Fetch request with useParallelQueue set to true, and processResponse given response being these steps:
+        // NOTE(pylbrecht): useParallelQueue is still missing in Servo
+
+        // 1. If response is a network error or its status is not 101, fail the WebSocket
+        //    connection.
+        if response.is_network_error() || response.status.code() != 101 {
+            let _ = self.send(WebSocketNetworkEvent::Fail);
+            return;
+        }
+
+        // 2. If protocols is not the empty list and extracting header list values given
+        //    `Sec-WebSocket-Protocol` and response’s header list results in null, failure, or the
+        //    empty byte sequence, then fail the WebSocket connection.
+        let protocols = match &request.mode {
+            request::RequestMode::WebSocket { protocols } => protocols,
+            _ => unreachable!(),
+        };
+
+        let mut _protocol_in_use = None;
+        if let Some(protocol_name) = response.headers.get("Sec-WebSocket-Protocol") {
+            let protocol_name = protocol_name.to_str().unwrap_or("");
+            if !protocols.is_empty() && !protocols.iter().any(|p| protocol_name == (*p)) {
+                let _ = self.send(WebSocketNetworkEvent::Fail);
+                return;
+            }
+            _protocol_in_use = Some(protocol_name.to_string());
+        }
+
+        // 3. Follow the requirements stated step 2 to step 6, inclusive, of the last set of steps
+        //    in section 4.1 of The WebSocket Protocol to validate response. This either results in
+        //    fail the WebSocket connection or the WebSocket connection is established.
+        todo!("validate response")
     }
 
     fn process_response_chunk(&mut self, _request: &Request, _chunk: Vec<u8>) {
