@@ -297,7 +297,13 @@ impl XRSystem {
                 return;
             },
         };
-        let session = XRSession::new(&self.global(), session, mode, frame_receiver, CanGc::note());
+        let session = XRSession::new(
+            self.global().as_window(),
+            session,
+            mode,
+            frame_receiver,
+            CanGc::note(),
+        );
         if mode == XRSessionMode::Inline {
             self.active_inline_sessions
                 .borrow_mut()
