@@ -712,15 +712,19 @@ impl ComputedValuesExt for ComputedValues {
         // From <https://www.w3.org/TR/css-transforms-1/#transform-rendering>
         // > For elements whose layout is governed by the CSS box model, any value other than
         // > `none` for the `transform` property results in the creation of a stacking context.
+        //
+        // From <https://www.w3.org/TR/css-transforms-2/#individual-transforms>
+        // > all other values […] create a stacking context and containing block for all
+        // > descendants, per usual for transforms.
+        //
+        // From <https://www.w3.org/TR/css-transforms-2/#perspective-property>
+        // > any value other than none establishes a stacking context.
+        //
         // From <https://www.w3.org/TR/css-transforms-2/#transform-style-property>
         // > A computed value of `preserve-3d` for `transform-style` on a transformable element
         // > establishes both a stacking context and a containing block for all descendants.
-        // From <https://www.w3.org/TR/css-transforms-2/#perspective-property>
-        // > any value other than none establishes a stacking context.
-        // TODO: handle individual transform properties (`translate`, `scale` and `rotate`).
-        // <https://www.w3.org/TR/css-transforms-2/#individual-transforms>
         if self.is_transformable(fragment_flags) &&
-            (!self.get_box().transform.0.is_empty() ||
+            (self.has_transform_or_perspective_style() ||
                 self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
                 will_change_bits
                     .intersects(WillChangeBits::TRANSFORM | WillChangeBits::PERSPECTIVE))
