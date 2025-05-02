@@ -866,7 +866,6 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-has-backpressure>
-    #[allow(unused)]
     pub(crate) fn has_backpressure(&self) -> bool {
         // If ! ReadableStreamDefaultControllerShouldCallPull(controller) is true, return false.
         // Otherwise, return true.

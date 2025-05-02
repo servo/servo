@@ -962,14 +962,13 @@ impl WritableStream {
 
 /// <https://streams.spec.whatwg.org/#create-writable-stream>
 #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-#[allow(unused)]
 pub(crate) fn create_writable_stream(
     cx: SafeJSContext,
     global: &GlobalScope,
-    can_gc: CanGc,
     writable_high_water_mark: f64,
     writable_size_algorithm: Rc<QueuingStrategySize>,
     underlying_sink_type: UnderlyingSinkType,
+    can_gc: CanGc,
 ) -> Fallible<DomRoot<WritableStream>> {
     // Assert: ! IsNonNegativeNumber(highWaterMark) is true.
     assert!(writable_high_water_mark >= 0.0);
