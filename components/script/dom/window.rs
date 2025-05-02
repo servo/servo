@@ -32,8 +32,9 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, SimpleDialog, Theme,
-    ViewportDetails, WebDriverJSError, WebDriverJSResult,
+    AlertResponse, ConfirmResponse, EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects,
+    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, ViewportDetails, WebDriverJSError,
+    WebDriverJSResult,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
@@ -61,6 +62,8 @@ use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
+use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::interfaces::WindowHelpers;
 use script_layout_interface::{
     FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
@@ -125,6 +128,8 @@ use crate::dom::document::{AnimationFrameCallback, Document, ReflowTriggerCondit
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::gamepad::{Gamepad, contains_user_gesture};
+use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
@@ -641,6 +646,136 @@ impl Window {
 
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
         &self.font_context
+    }
+
+    pub(crate) fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
+        match gamepad_event {
+            GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
+                self.handle_gamepad_connect(
+                    index.0,
+                    name,
+                    bounds.axis_bounds,
+                    bounds.button_bounds,
+                    supported_haptic_effects,
+                );
+            },
+            GamepadEvent::Disconnected(index) => {
+                self.handle_gamepad_disconnect(index.0);
+            },
+            GamepadEvent::Updated(index, update_type) => {
+                self.receive_new_gamepad_button_or_axis(index.0, update_type);
+            },
+        };
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
+    fn handle_gamepad_connect(
+        &self,
+        // As the spec actually defines how to set the gamepad index, the GilRs index
+        // is currently unused, though in practice it will almost always be the same.
+        // More infra is currently needed to track gamepads across windows.
+        _index: usize,
+        name: String,
+        axis_bounds: (f64, f64),
+        button_bounds: (f64, f64),
+        supported_haptic_effects: GamepadSupportedHapticEffects,
+    ) {
+        // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
+        //          then abort these steps.
+        let this = Trusted::new(self.upcast::<GlobalScope>());
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .gamepad_task_source()
+            .queue(task!(gamepad_connected: move || {
+                let global = this.root();
+
+                if let Some(window) = global.downcast::<Window>() {
+                    let navigator = window.Navigator();
+                    let selected_index = navigator.select_gamepad_index();
+                    let gamepad = Gamepad::new(
+                        &global,
+                        selected_index,
+                        name,
+                        "standard".into(),
+                        axis_bounds,
+                        button_bounds,
+                        supported_haptic_effects,
+                        false,
+                        CanGc::note(),
+                    );
+                    navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::note());
+                }
+            }));
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
+    pub(crate) fn handle_gamepad_disconnect(&self, index: usize) {
+        let this = Trusted::new(self.upcast::<GlobalScope>());
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .gamepad_task_source()
+            .queue(task!(gamepad_disconnected: move || {
+                let global = this.root();
+                if let Some(window) = global.downcast::<Window>() {
+                    let navigator = window.Navigator();
+                    if let Some(gamepad) = navigator.get_gamepad(index) {
+                        if window.Document().is_fully_active() {
+                            gamepad.update_connected(false, gamepad.exposed(), CanGc::note());
+                            navigator.remove_gamepad(index);
+                        }
+                    }
+                }
+            }));
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
+    pub(crate) fn receive_new_gamepad_button_or_axis(
+        &self,
+        index: usize,
+        update_type: GamepadUpdateType,
+    ) {
+        let this = Trusted::new(self.upcast::<GlobalScope>());
+
+        // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
+        self.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
+                task!(update_gamepad_state: move || {
+                    let global = this.root();
+                    if let Some(window) = global.downcast::<Window>() {
+                        let navigator = window.Navigator();
+                        if let Some(gamepad) = navigator.get_gamepad(index) {
+                            let current_time = global.performance().Now();
+                            gamepad.update_timestamp(*current_time);
+                            match update_type {
+                                GamepadUpdateType::Axis(index, value) => {
+                                    gamepad.map_and_normalize_axes(index, value);
+                                },
+                                GamepadUpdateType::Button(index, value) => {
+                                    gamepad.map_and_normalize_buttons(index, value);
+                                }
+                            };
+                            if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
+                                navigator.set_has_gamepad_gesture(true);
+                                navigator.GetGamepads()
+                                    .iter()
+                                    .filter_map(|g| g.as_ref())
+                                    .for_each(|gamepad| {
+                                        gamepad.set_exposed(true);
+                                        gamepad.update_timestamp(*current_time);
+                                        let new_gamepad = Trusted::new(&**gamepad);
+                                        if window.Document().is_fully_active() {
+                                            global.task_manager().gamepad_task_source().queue(
+                                                task!(update_gamepad_connect: move || {
+                                                    let gamepad = new_gamepad.root();
+                                                    gamepad.notify_event(GamepadEventType::Connected, CanGc::note());
+                                                })
+                                            );
+                                        }
+                                });
+                            }
+                        }
+                    }
+                })
+            );
     }
 }
 

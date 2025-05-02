@@ -1126,7 +1126,7 @@ impl ScriptThread {
                     document.dispatch_ime_event(ime_event, can_gc);
                 },
                 InputEvent::Gamepad(gamepad_event) => {
-                    window.as_global_scope().handle_gamepad_event(gamepad_event);
+                    window.handle_gamepad_event(gamepad_event);
                 },
                 InputEvent::EditingAction(editing_action_event) => {
                     document.handle_editing_action(editing_action_event, can_gc);
