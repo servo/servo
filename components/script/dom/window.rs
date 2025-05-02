@@ -2371,12 +2371,13 @@ impl Window {
             });
 
             let has_sent_idle_message = self.has_sent_idle_message.get();
-            let pending_images = !self.pending_layout_images.borrow().is_empty();
+            let no_pending_images = self.pending_layout_images.borrow().is_empty() &&
+                self.pending_images_for_rasterization.borrow().is_empty();
 
             if !has_sent_idle_message &&
                 is_ready_state_complete &&
                 !reftest_wait &&
-                !pending_images &&
+                no_pending_images &&
                 !waiting_for_web_fonts_to_load
             {
                 debug!(

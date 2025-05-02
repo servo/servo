@@ -25,7 +25,7 @@ use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use log::{debug, error};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
-use net_traits::image_cache::{ImageCache, UsePlaceholder};
+use net_traits::image_cache::{Image, ImageCache, UsePlaceholder};
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::time::{
@@ -77,7 +77,7 @@ use webrender_api::units::{DevicePixel, DevicePoint, LayoutPixel, LayoutPoint, L
 use webrender_api::{ExternalScrollId, HitTestFlags};
 
 use crate::context::LayoutContext;
-use crate::display_list::{DisplayList, WebRenderImageInfo};
+use crate::display_list::DisplayList;
 use crate::query::{
     get_the_text_steps, process_client_rect_request, process_content_box_request,
     process_content_boxes_request, process_node_scroll_area_request, process_offset_parent_query,
@@ -154,7 +154,7 @@ pub struct LayoutThread {
     /// Scroll offsets of nodes that scroll.
     scroll_offsets: RefCell<HashMap<ExternalScrollId, Vector2D<f32, LayoutPixel>>>,
 
-    webrender_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
+    resolved_image_cache: Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), Option<Image>>>>,
 
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
@@ -530,7 +530,7 @@ impl LayoutThread {
             compositor_api: config.compositor_api,
             scroll_offsets: Default::default(),
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
-            webrender_image_cache: Default::default(),
+            resolved_image_cache: Default::default(),
             debug: opts::get().debug.clone(),
         }
     }
@@ -639,7 +639,7 @@ impl LayoutThread {
             ),
             image_cache: self.image_cache.clone(),
             font_context: self.font_context.clone(),
-            webrender_image_cache: self.webrender_image_cache.clone(),
+            resolved_image_cache: self.resolved_image_cache.clone(),
             pending_images: Mutex::default(),
             pending_rasterization_images: Mutex::default(),
             node_image_animation_map: Arc::new(RwLock::new(std::mem::take(
