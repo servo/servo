@@ -598,7 +598,7 @@ impl ScriptThread {
         with_script_thread(|script_thread| {
             let is_javascript = load_data.url.scheme() == "javascript";
             // If resource is a request whose url's scheme is "javascript"
-            // https://html.spec.whatwg.org/multipage/#javascript-protocol
+            // https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url
             if is_javascript {
                 let window = match script_thread.documents.borrow().find_window(pipeline_id) {
                     None => return,
@@ -612,8 +612,12 @@ impl ScriptThread {
                     .clone();
                 let task = task!(navigate_javascript: move || {
                     // Important re security. See https://github.com/servo/servo/issues/23373
-                    // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
                     if let Some(window) = trusted_global.root().downcast::<Window>() {
+                        // Step 5: If the result of should navigation request of type be blocked by
+                        // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
+                        if trusted_global.root().should_navigation_request_be_blocked(&load_data) {
+                            return;
+                        }
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
                             ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data, CanGc::note());
                             sender
@@ -622,6 +626,7 @@ impl ScriptThread {
                         }
                     }
                 });
+                // Step 19 of <https://html.spec.whatwg.org/multipage/#navigate>
                 global
                     .task_manager()
                     .dom_manipulation_task_source()

@@ -18,11 +18,12 @@ use base::id::{
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use constellation_traits::{
-    BlobData, BlobImpl, BroadcastMsg, FileBlob, MessagePortImpl, MessagePortMsg, PortMessageTask,
-    ScriptToConstellationChan, ScriptToConstellationMessage,
+    BlobData, BlobImpl, BroadcastMsg, FileBlob, LoadData, LoadOrigin, MessagePortImpl,
+    MessagePortMsg, PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
 };
 use content_security_policy::{
-    CheckResult, CspList, PolicyDisposition, PolicySource, Violation, ViolationResource,
+    CheckResult, CspList, Destination, Initiator, NavigationCheckType, ParserMetadata,
+    PolicyDisposition, PolicySource, Request, Violation, ViolationResource,
 };
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
@@ -62,6 +63,7 @@ use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_tim
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use timers::{TimerEventId, TimerEventRequest, TimerSource};
+use url::Origin;
 use uuid::Uuid;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{DeviceLostReason, WebGPUDevice};
@@ -2949,6 +2951,33 @@ impl GlobalScope {
         self.report_csp_violations(violations);
 
         is_js_evaluation_allowed == CheckResult::Allowed
+    }
+
+    pub(crate) fn should_navigation_request_be_blocked(&self, load_data: &LoadData) -> bool {
+        let Some(csp_list) = self.get_csp_list() else {
+            return false;
+        };
+        let request = Request {
+            url: load_data.url.clone().into_url(),
+            origin: match &load_data.load_origin {
+                LoadOrigin::Script(immutable_origin) => immutable_origin.clone().into_url_origin(),
+                _ => Origin::new_opaque(),
+            },
+            // TODO: populate this field correctly
+            redirect_count: 0,
+            destination: Destination::None,
+            initiator: Initiator::None,
+            nonce: "".to_owned(),
+            integrity_metadata: "".to_owned(),
+            parser_metadata: ParserMetadata::None,
+        };
+        // TODO: set correct navigation check type for form submission if applicable
+        let (result, violations) =
+            csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
+
+        self.report_csp_violations(violations);
+
+        result == CheckResult::Blocked
     }
 
     pub(crate) fn create_image_bitmap(
