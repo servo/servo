@@ -1660,7 +1660,8 @@ async fn http_network_or_cache_fetch(
                             debug!("SPNEGO: Negotiation finished");
                             if response.status != StatusCode::UNAUTHORIZED {
                                 debug!(
-                                    "SPNEGO: HTTP Status no longer 401 Unauthorized, skipping further authentication methods."
+                                    "SPNEGO: HTTP Status no longer 401 Unauthorized, \
+                                    skipping further authentication methods."
                                 );
                                 break 'auth;
                             }
