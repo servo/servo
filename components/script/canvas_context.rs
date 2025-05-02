@@ -14,8 +14,10 @@ use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanva
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::node::{Node, NodeDamage};
+#[cfg(feature = "webgpu")]
+use crate::dom::types::GPUCanvasContext;
 use crate::dom::types::{
-    CanvasRenderingContext2D, GPUCanvasContext, OffscreenCanvas, OffscreenCanvasRenderingContext2D,
+    CanvasRenderingContext2D, OffscreenCanvas, OffscreenCanvasRenderingContext2D,
     WebGL2RenderingContext, WebGLRenderingContext,
 };
 

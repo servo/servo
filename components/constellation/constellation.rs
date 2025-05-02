@@ -371,6 +371,7 @@ pub struct Constellation<STF, SWF> {
     mem_profiler_chan: mem::ProfilerChan,
 
     /// A single WebRender document the constellation operates on.
+    #[cfg(feature = "webgpu")]
     webrender_document: DocumentId,
 
     /// Webrender related objects required by WebGPU threads
@@ -715,6 +716,7 @@ where
                     phantom: PhantomData,
                     webdriver: WebDriverData::new(),
                     document_states: HashMap::new(),
+                    #[cfg(feature = "webgpu")]
                     webrender_document: state.webrender_document,
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
