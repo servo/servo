@@ -530,6 +530,15 @@ pub async fn main_fetch(
         let should_replace_with_mixed_content = !response_is_network_error &&
             should_response_be_blocked_as_mixed_content(request, &response, &context.protocols);
 
+        let (mut should_replace_with_csp_error, mut violations) = (false, vec![]);
+        if !response.is_network_error() {
+            (should_replace_with_csp_error, violations) =
+                should_response_be_blocked_by_csp(request, &response.actual_response());
+        }
+        if !violations.is_empty() {
+            target.process_csp_violations(request, violations);
+        }
+
         // Step 15.
         let mut network_error_response = response
             .get_network_error()
@@ -552,7 +561,7 @@ pub async fn main_fetch(
 
         // Step 19. If response is not a network error and any of the following returns blocked
         // * should internalResponse to request be blocked as mixed content
-        // TODO: * should internalResponse to request be blocked by Content Security Policy
+        // * should internalResponse to request be blocked by Content Security Policy
         // * should internalResponse to request be blocked due to its MIME type
         // * should internalResponse to request be blocked due to nosniff
         let mut blocked_error_response;
@@ -570,6 +579,10 @@ pub async fn main_fetch(
         } else if should_replace_with_mixed_content {
             blocked_error_response =
                 Response::network_error(NetworkError::Internal("Blocked as mixed content".into()));
+            &blocked_error_response
+        } else if should_replace_with_csp_error {
+            blocked_error_response =
+                Response::network_error(NetworkError::Internal("Blocked due to CSP".into()));
             &blocked_error_response
         } else {
             internal_response
@@ -872,6 +885,37 @@ fn is_null_body_status(status: &HttpStatus) -> bool {
             Some(StatusCode::RESET_CONTENT) |
             Some(StatusCode::NOT_MODIFIED)
     )
+}
+
+fn should_response_be_blocked_by_csp(
+    request: &Request,
+    response: &Response,
+) -> (bool, Vec<csp::Violation>) {
+    let policy_container = match &request.policy_container {
+        RequestPolicyContainer::Client => PolicyContainer::default(),
+        RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
+    };
+    let Some(csp_list) = policy_container.csp_list else {
+        return (false, vec![]);
+    };
+    let origin = match &request.origin {
+        Origin::Client => return (false, Vec::new()),
+        Origin::Origin(origin) => origin,
+    };
+
+    let csp_request = convert_request_to_csp_request(request, origin);
+    let csp_response = csp::Response {
+        url: response
+            .url()
+            .cloned()
+            .expect("response must have a url")
+            .into_url(),
+        redirect_count: request.redirect_count,
+    };
+
+    let (result, violations) =
+        csp_list.should_response_to_request_be_blocked(&csp_request, &csp_response);
+    (result == csp::CheckResult::Blocked, violations)
 }
 
 /// <https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff?>
