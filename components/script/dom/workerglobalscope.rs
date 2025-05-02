@@ -40,7 +40,9 @@ use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
-use crate::dom::bindings::codegen::UnionTypes::{RequestOrUSVString, StringOrFunction};
+use crate::dom::bindings::codegen::UnionTypes::{
+    RequestOrUSVString, StringOrFunction, TrustedScriptURLOrUSVString,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomObject;
@@ -53,6 +55,7 @@ use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
+use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -281,9 +284,25 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     error_event_handler!(error, GetOnerror, SetOnerror);
 
     // https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts
-    fn ImportScripts(&self, url_strings: Vec<DOMString>, can_gc: CanGc) -> ErrorResult {
+    fn ImportScripts(
+        &self,
+        url_strings: Vec<TrustedScriptURLOrUSVString>,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        // Step 1: Let urlStrings be « ».
         let mut urls = Vec::with_capacity(url_strings.len());
+        // Step 2: For each url of urls:
         for url in url_strings {
+            // Step 3: Append the result of invoking the Get Trusted Type compliant string algorithm
+            // with TrustedScriptURL, this's relevant global object, url, "WorkerGlobalScope importScripts",
+            // and "script" to urlStrings.
+            let url = TrustedScriptURL::get_trusted_script_url_compliant_string(
+                self.upcast::<GlobalScope>(),
+                url,
+                "WorkerGlobalScope",
+                "importScripts",
+                can_gc,
+            )?;
             let url = self.worker_url.borrow().join(&url);
             match url {
                 Ok(url) => urls.push(url),
