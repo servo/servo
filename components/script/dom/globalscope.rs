@@ -27,9 +27,7 @@ use content_security_policy::{
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
-use embedder_traits::{
-    EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
-};
+use embedder_traits::EmbedderMsg;
 use http::HeaderMap;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -81,9 +79,7 @@ use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
-use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NotificationBinding::NotificationPermissionCallback;
-use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionName, PermissionState,
 };
@@ -113,8 +109,6 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::gamepad::{Gamepad, contains_user_gesture};
-use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageevent::MessageEvent;
@@ -3285,134 +3279,6 @@ impl GlobalScope {
         } else {
             warn!("Recived error for lost GPUDevice!")
         }
-    }
-
-    pub(crate) fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
-        match gamepad_event {
-            GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
-                self.handle_gamepad_connect(
-                    index.0,
-                    name,
-                    bounds.axis_bounds,
-                    bounds.button_bounds,
-                    supported_haptic_effects,
-                );
-            },
-            GamepadEvent::Disconnected(index) => {
-                self.handle_gamepad_disconnect(index.0);
-            },
-            GamepadEvent::Updated(index, update_type) => {
-                self.receive_new_gamepad_button_or_axis(index.0, update_type);
-            },
-        };
-    }
-
-    /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
-    fn handle_gamepad_connect(
-        &self,
-        // As the spec actually defines how to set the gamepad index, the GilRs index
-        // is currently unused, though in practice it will almost always be the same.
-        // More infra is currently needed to track gamepads across windows.
-        _index: usize,
-        name: String,
-        axis_bounds: (f64, f64),
-        button_bounds: (f64, f64),
-        supported_haptic_effects: GamepadSupportedHapticEffects,
-    ) {
-        // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
-        //          then abort these steps.
-        let this = Trusted::new(self);
-        self.task_manager()
-            .gamepad_task_source()
-            .queue(task!(gamepad_connected: move || {
-                let global = this.root();
-
-                if let Some(window) = global.downcast::<Window>() {
-                    let navigator = window.Navigator();
-                    let selected_index = navigator.select_gamepad_index();
-                    let gamepad = Gamepad::new(
-                        &global,
-                        selected_index,
-                        name,
-                        "standard".into(),
-                        axis_bounds,
-                        button_bounds,
-                        supported_haptic_effects,
-                        false,
-                        CanGc::note(),
-                    );
-                    navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::note());
-                }
-            }));
-    }
-
-    /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
-    pub(crate) fn handle_gamepad_disconnect(&self, index: usize) {
-        let this = Trusted::new(self);
-        self.task_manager()
-            .gamepad_task_source()
-            .queue(task!(gamepad_disconnected: move || {
-                let global = this.root();
-                if let Some(window) = global.downcast::<Window>() {
-                    let navigator = window.Navigator();
-                    if let Some(gamepad) = navigator.get_gamepad(index) {
-                        if window.Document().is_fully_active() {
-                            gamepad.update_connected(false, gamepad.exposed(), CanGc::note());
-                            navigator.remove_gamepad(index);
-                        }
-                    }
-                }
-            }));
-    }
-
-    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
-    pub(crate) fn receive_new_gamepad_button_or_axis(
-        &self,
-        index: usize,
-        update_type: GamepadUpdateType,
-    ) {
-        let this = Trusted::new(self);
-
-        // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
-        self.task_manager().gamepad_task_source().queue(
-                task!(update_gamepad_state: move || {
-                    let global = this.root();
-                    if let Some(window) = global.downcast::<Window>() {
-                        let navigator = window.Navigator();
-                        if let Some(gamepad) = navigator.get_gamepad(index) {
-                            let current_time = global.performance().Now();
-                            gamepad.update_timestamp(*current_time);
-                            match update_type {
-                                GamepadUpdateType::Axis(index, value) => {
-                                    gamepad.map_and_normalize_axes(index, value);
-                                },
-                                GamepadUpdateType::Button(index, value) => {
-                                    gamepad.map_and_normalize_buttons(index, value);
-                                }
-                            };
-                            if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
-                                navigator.set_has_gamepad_gesture(true);
-                                navigator.GetGamepads()
-                                    .iter()
-                                    .filter_map(|g| g.as_ref())
-                                    .for_each(|gamepad| {
-                                        gamepad.set_exposed(true);
-                                        gamepad.update_timestamp(*current_time);
-                                        let new_gamepad = Trusted::new(&**gamepad);
-                                        if window.Document().is_fully_active() {
-                                            global.task_manager().gamepad_task_source().queue(
-                                                task!(update_gamepad_connect: move || {
-                                                    let gamepad = new_gamepad.root();
-                                                    gamepad.notify_event(GamepadEventType::Connected, CanGc::note());
-                                                })
-                                            );
-                                        }
-                                });
-                            }
-                        }
-                    }
-                })
-            );
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {
