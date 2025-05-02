@@ -2808,8 +2808,6 @@ impl ScriptThread {
     ) {
         debug!("{id}: Starting pipeline exit.");
 
-        self.closed_pipelines.borrow_mut().insert(id);
-
         // Abort the parser, if any,
         // to prevent any further incoming networking messages from being handled.
         let document = self.documents.borrow_mut().remove(id);
@@ -2829,12 +2827,6 @@ impl ScriptThread {
 
             debug!("{id}: Shutting down layout");
             document.window().layout_mut().exit_now();
-
-            debug!("{id}: Sending PipelineExited message to constellation");
-            self.senders
-                .pipeline_to_constellation_sender
-                .send((id, ScriptToConstellationMessage::PipelineExited))
-                .ok();
 
             // Clear any active animations and unroot all of the associated DOM objects.
             debug!("{id}: Clearing animations");
@@ -2857,6 +2849,15 @@ impl ScriptThread {
             debug!("{id}: Clearing JavaScript runtime");
             window.clear_js_runtime();
         }
+
+        // Prevent any further work for this Pipeline.
+        self.closed_pipelines.borrow_mut().insert(id);
+
+        debug!("{id}: Sending PipelineExited message to constellation");
+        self.senders
+            .pipeline_to_constellation_sender
+            .send((id, ScriptToConstellationMessage::PipelineExited))
+            .ok();
 
         debug!("{id}: Finished pipeline exit");
     }
