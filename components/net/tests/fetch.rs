@@ -225,7 +225,7 @@ fn test_fetch_blob() {
 
 #[test]
 fn test_file() {
-    let path = Path::new("../../resources/servo.css")
+    let path = Path::new("../../resources/ahem.css")
         .canonicalize()
         .unwrap();
     let url = ServoUrl::from_file_path(path.clone()).unwrap();

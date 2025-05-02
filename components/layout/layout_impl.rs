@@ -16,7 +16,6 @@ use base::Epoch;
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::ScrollState;
-use embedder_traits::resources::{self, Resource};
 use embedder_traits::{UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -99,6 +98,18 @@ static STYLE_THREAD_POOL: Mutex<&style::global_style_data::STYLE_THREAD_POOL> =
 thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {
     LazyCell::new(|| RefCell::new(HashSet::new()))
 });
+
+/// A CSS file to style the user agent stylesheet.
+static USER_AGENT_CSS: &[u8] = include_bytes!("./stylesheets/user-agent.css");
+
+/// A CSS file to style the Servo browser.
+static SERVO_CSS: &[u8] = include_bytes!("./stylesheets/servo.css");
+
+/// A CSS file to style the presentational hints.
+static PRESENTATIONAL_HINTS_CSS: &[u8] = include_bytes!("./stylesheets/presentational-hints.css");
+
+/// A CSS file to style the quirks mode.
+static QUIRKS_MODE_CSS: &[u8] = include_bytes!("./stylesheets/quirks-mode.css");
 
 /// Information needed by layout.
 pub struct LayoutThread {
@@ -983,20 +994,12 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     // FIXME: presentational-hints.css should be at author origin with zero specificity.
     //        (Does it make a difference?)
     let mut user_or_user_agent_stylesheets = vec![
-        parse_ua_stylesheet(
-            shared_lock,
-            "user-agent.css",
-            &resources::read_bytes(Resource::UserAgentCSS),
-        )?,
-        parse_ua_stylesheet(
-            shared_lock,
-            "servo.css",
-            &resources::read_bytes(Resource::ServoCSS),
-        )?,
+        parse_ua_stylesheet(shared_lock, "user-agent.css", USER_AGENT_CSS)?,
+        parse_ua_stylesheet(shared_lock, "servo.css", SERVO_CSS)?,
         parse_ua_stylesheet(
             shared_lock,
             "presentational-hints.css",
-            &resources::read_bytes(Resource::PresentationalHintsCSS),
+            PRESENTATIONAL_HINTS_CSS,
         )?,
     ];
 
@@ -1017,11 +1020,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         )));
     }
 
-    let quirks_mode_stylesheet = parse_ua_stylesheet(
-        shared_lock,
-        "quirks-mode.css",
-        &resources::read_bytes(Resource::QuirksModeCSS),
-    )?;
+    let quirks_mode_stylesheet =
+        parse_ua_stylesheet(shared_lock, "quirks-mode.css", QUIRKS_MODE_CSS)?;
 
     Ok(UserAgentStylesheets {
         shared_lock: shared_lock.clone(),
