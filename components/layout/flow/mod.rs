@@ -689,16 +689,13 @@ fn layout_block_level_children_in_parallel(
     placement_state: &mut PlacementState,
     ignore_block_margins_for_stretch: LogicalSides1D<bool>,
 ) -> Vec<Fragment> {
-    let collects_for_nearest_positioned_ancestor =
-        positioning_context.collects_for_nearest_positioned_ancestor();
     let mut layout_results: Vec<(Fragment, PositioningContext)> =
         Vec::with_capacity(child_boxes.len());
 
     child_boxes
         .par_iter()
         .map(|child_box| {
-            let mut child_positioning_context =
-                PositioningContext::new_for_subtree(collects_for_nearest_positioned_ancestor);
+            let mut child_positioning_context = PositioningContext::default();
             let fragment = child_box.borrow().layout(
                 layout_context,
                 &mut child_positioning_context,
