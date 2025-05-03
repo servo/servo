@@ -1013,3 +1013,29 @@ pub fn set_default_accept_language(headers: &mut HeaderMap) {
 
 pub static PRIVILEGED_SECRET: LazyLock<u32> =
     LazyLock::new(|| servo_rand::ServoRng::default().next_u32());
+
+/// Registered custom protocols
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Protocols(HashMap<String, Protocol>);
+
+impl Protocols {
+    /// Construct from a HashMap of string and protocols
+    pub fn new(protocols: HashMap<String, Protocol>) -> Self {
+        Self(protocols)
+    }
+
+    /// Test if the URL is potentially trustworthy or the custom protocol is registered as secure
+    pub fn is_url_potentially_trustworthy(&self, url: &ServoUrl) -> bool {
+        url.is_potentially_trustworthy() ||
+            self.0
+                .get(url.scheme())
+                .is_some_and(|protocol| protocol.is_secure)
+    }
+}
+
+/// A custom protocol
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Protocol {
+    /// If this custom protocol is considered secure context
+    pub is_secure: bool,
+}
