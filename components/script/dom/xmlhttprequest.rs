@@ -1452,7 +1452,7 @@ impl XMLHttpRequest {
         // Step 2
         let bytes = self.response.borrow();
         // Step 3
-        if bytes.len() == 0 {
+        if bytes.is_empty() {
             return rval.set(NullValue());
         }
         // Step 4
@@ -1516,10 +1516,7 @@ impl XMLHttpRequest {
         let doc = win.Document();
         let docloader = DocumentLoader::new(&doc.loader());
         let base = wr.get_url();
-        let parsed_url = match base.join(&self.ResponseURL().0) {
-            Ok(parsed) => Some(parsed),
-            Err(_) => None, // Step 7
-        };
+        let parsed_url = base.join(&self.ResponseURL().0).ok(); // Step 7
         let content_type = Some(self.final_mime_type());
         Document::new(
             win,
