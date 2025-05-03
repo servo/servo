@@ -196,7 +196,7 @@ impl WebGLExtensions {
     where
         F: FnOnce() -> String,
     {
-        if self.extensions.borrow().len() == 0 {
+        if self.extensions.borrow().is_empty() {
             let gl_str = cb();
             self.features.borrow_mut().gl_extensions =
                 FnvHashSet::from_iter(gl_str.split(&[',', ' '][..]).map(|s| s.into()));

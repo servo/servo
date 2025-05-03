@@ -1093,20 +1093,6 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 // so they can be sent safely when running steps in parallel.
 
 #[derive(Clone, Debug)]
-pub(crate) struct SubtleAlgorithm {
-    #[allow(dead_code)]
-    pub(crate) name: String,
-}
-
-impl From<DOMString> for SubtleAlgorithm {
-    fn from(name: DOMString) -> Self {
-        SubtleAlgorithm {
-            name: name.to_string(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
 pub(crate) struct SubtleAesCbcParams {
     #[allow(dead_code)]
     pub(crate) name: String,

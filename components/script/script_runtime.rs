@@ -543,7 +543,7 @@ pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
     let cx = GlobalScope::get_cx();
     unsafe {
         // Step 2.
-        if global.get_uncaught_rejections().borrow().len() > 0 {
+        if !global.get_uncaught_rejections().borrow().is_empty() {
             // Step 1.
             let uncaught_rejections: Vec<TrustedPromise> = global
                 .get_uncaught_rejections()

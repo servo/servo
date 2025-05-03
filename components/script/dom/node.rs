@@ -2693,7 +2693,7 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
     pub(crate) fn string_replace_all(string: DOMString, parent: &Node, can_gc: CanGc) {
-        if string.len() == 0 {
+        if string.is_empty() {
             Node::replace_all(None, parent, can_gc);
         } else {
             let text = Text::new(string, &parent.owner_document(), can_gc);
