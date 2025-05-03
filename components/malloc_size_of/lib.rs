@@ -774,6 +774,7 @@ malloc_size_of_is_0!(style::font_face::SourceList);
 malloc_size_of_is_0!(style::properties::ComputedValues);
 malloc_size_of_is_0!(style::properties::declaration_block::PropertyDeclarationBlock);
 malloc_size_of_is_0!(style::queries::values::PrefersColorScheme);
+malloc_size_of_is_0!(style::stylesheets::Stylesheet);
 malloc_size_of_is_0!(taffy::Layout);
 malloc_size_of_is_0!(unicode_bidi::Level);
 malloc_size_of_is_0!(unicode_script::Script);

@@ -98,7 +98,7 @@ pub(crate) struct HTMLLinkElement {
     #[no_trace]
     relations: Cell<LinkRelations>,
 
-    #[ignore_malloc_size_of = "Arc"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
