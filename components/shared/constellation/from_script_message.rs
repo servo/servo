@@ -22,6 +22,7 @@ use euclid::default::Size2D as UntypedSize2D;
 use http::{HeaderMap, Method};
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
 use net_traits::{CoreResourceMsg, ReferrerPolicy, ResourceThreads};
@@ -97,6 +98,8 @@ pub struct LoadData {
     pub referrer: Referrer,
     /// The referrer policy.
     pub referrer_policy: ReferrerPolicy,
+    /// The policy container.
+    pub policy_container: Option<PolicyContainer>,
 
     /// The source to use instead of a network response for a srcdoc document.
     pub srcdoc: String,
@@ -143,6 +146,7 @@ impl LoadData {
             js_eval_result: None,
             referrer,
             referrer_policy,
+            policy_container: None,
             srcdoc: "".to_string(),
             inherited_secure_context,
             crash: None,

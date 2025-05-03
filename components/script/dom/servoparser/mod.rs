@@ -21,6 +21,7 @@ use html5ever::{Attribute, ExpandedName, LocalName, QualName, local_name, ns};
 use hyper_serde::Serde;
 use markup5ever::TokenizerResult;
 use mime::{self, Mime};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::RequestId;
 use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
@@ -812,6 +813,27 @@ impl ParserContext {
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Navigation),
             pushed_entry_index: None,
         }
+    }
+
+    pub(crate) fn append_parent_to_csp_list(&self, policy_container: Option<&PolicyContainer>) {
+        let Some(policy_container) = policy_container else {
+            return;
+        };
+        let Some(parent_csp_list) = &policy_container.csp_list else {
+            return;
+        };
+        let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
+            return;
+        };
+        let new_csp_list = match parser.document.get_csp_list() {
+            None => parent_csp_list.clone(),
+            Some(original_csp_list) => {
+                let mut appended_csp_list = original_csp_list.clone();
+                appended_csp_list.append(parent_csp_list.clone());
+                appended_csp_list.to_owned()
+            },
+        };
+        parser.document.set_csp_list(Some(new_csp_list));
     }
 }
 
