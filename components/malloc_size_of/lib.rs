@@ -50,6 +50,7 @@ use std::cell::OnceCell;
 use std::collections::BinaryHeap;
 use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use style::values::generics::length::GenericLengthPercentageOrAuto;
@@ -570,6 +571,28 @@ impl<T> MallocConditionalShallowSizeOf for Arc<T> {
 impl<T: MallocSizeOf> MallocConditionalSizeOf for Arc<T> {
     fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         if ops.have_seen_ptr(Arc::as_ptr(self)) {
+            0
+        } else {
+            self.unconditional_size_of(ops)
+        }
+    }
+}
+
+impl<T> MallocUnconditionalShallowSizeOf for Rc<T> {
+    fn unconditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        unsafe { ops.malloc_size_of(Rc::as_ptr(self)) }
+    }
+}
+
+impl<T: MallocSizeOf> MallocUnconditionalSizeOf for Rc<T> {
+    fn unconditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.unconditional_shallow_size_of(ops) + (**self).size_of(ops)
+    }
+}
+
+impl<T: MallocSizeOf> MallocConditionalSizeOf for Rc<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if ops.have_seen_ptr(Rc::as_ptr(self)) {
             0
         } else {
             self.unconditional_size_of(ops)

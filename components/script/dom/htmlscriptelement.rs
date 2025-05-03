@@ -281,19 +281,18 @@ pub(crate) enum ScriptType {
 pub(crate) struct CompiledSourceCode {
     #[ignore_malloc_size_of = "SM handles JS values"]
     pub(crate) source_code: Stencil,
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[conditional_malloc_size_of = "Rc is hard"]
     pub(crate) original_text: Rc<DOMString>,
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum SourceCode {
-    Text(Rc<DOMString>),
+    Text(#[conditional_malloc_size_of] Rc<DOMString>),
     Compiled(CompiledSourceCode),
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ScriptOrigin {
-    #[ignore_malloc_size_of = "Rc is hard"]
     code: SourceCode,
     #[no_trace]
     url: ServoUrl,
