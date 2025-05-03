@@ -5,8 +5,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use atomic_refcell::AtomicRefCell;
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
 use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::{FontStyle, FontWeight};
@@ -15,7 +15,7 @@ use crate::font::FontDescriptor;
 use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods, IsOblique};
 use crate::system_font_service::{FontIdentifier, LowercaseFontFamilyName};
 
-#[derive(Default)]
+#[derive(Default, MallocSizeOf)]
 pub struct FontStore {
     pub(crate) families: HashMap<LowercaseFontFamilyName, FontTemplates>,
     web_fonts_loading_for_stylesheets: Vec<(DocumentStyleSheet, usize)>,
@@ -134,7 +134,7 @@ impl FontStore {
 ///
 /// This optimization is taken from:
 /// <https://searchfox.org/mozilla-central/source/gfx/thebes/gfxFontEntry.cpp>.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, MallocSizeOf)]
 struct SimpleFamily {
     regular: Option<FontTemplateRef>,
     bold: Option<FontTemplateRef>,
@@ -190,7 +190,7 @@ impl SimpleFamily {
     }
 }
 /// A list of font templates that make up a given font family.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct FontTemplates {
     pub(crate) templates: Vec<FontTemplateRef>,
     simple_family: Option<SimpleFamily>,
@@ -263,7 +263,7 @@ impl FontTemplates {
             }
         }
 
-        let new_template = Arc::new(AtomicRefCell::new(new_template));
+        let new_template = FontTemplateRef::new(new_template);
         self.templates.push(new_template.clone());
         self.update_simple_family(new_template);
     }

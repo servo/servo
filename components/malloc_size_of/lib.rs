@@ -732,6 +732,12 @@ impl<T> MallocSizeOf for ipc_channel::ipc::IpcSender<T> {
     }
 }
 
+impl<T> MallocSizeOf for ipc_channel::ipc::IpcReceiver<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl MallocSizeOf for ipc_channel::ipc::IpcSharedMemory {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         self.len()
@@ -798,6 +804,7 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BorderStyle);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BoxShadowClipMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ColorF);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ExtendMode);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontInstanceKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GlyphInstance);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GradientStop);
@@ -842,8 +849,7 @@ where
     }
 }
 
-impl<T> MallocSizeOf for style::shared_lock::Locked<T>
-{
+impl<T> MallocSizeOf for style::shared_lock::Locked<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // TODO: fix this implementation when Locked derives MallocSizeOf.
         0

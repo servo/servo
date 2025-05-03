@@ -2194,6 +2194,7 @@ dependencies = [
  "net_traits",
  "num-traits",
  "parking_lot",
+ "profile_traits",
  "range",
  "serde",
  "servo_allocator",
