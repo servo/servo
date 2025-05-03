@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use rustc_hir::{self as hir, intravisit as visit, ExprKind};
+use rustc_hir::{self as hir, intravisit as visit, AmbigArg, ExprKind};
 use rustc_lint::{LateContext, LateLintPass, Lint, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
 use rustc_session::declare_tool_lint;
@@ -504,7 +504,7 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
         visit::walk_pat(self, pat);
     }
 
-    fn visit_ty(&mut self, _: &'tcx hir::Ty) {}
+    fn visit_ty(&mut self, _: &'tcx rustc_hir::Ty<'tcx, AmbigArg>) {}
 
     fn nested_visit_map(&mut self) -> Self::Map {
         self.cx.tcx.hir()
