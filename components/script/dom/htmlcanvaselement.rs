@@ -397,8 +397,8 @@ impl HTMLCanvasElement {
         // u32 can't panic, since the data comes from a canvas which is always smaller than
         // u32::MAX.
         let canvas_data = snapshot.data();
-        let width = snapshot.size().width as u32;
-        let height = snapshot.size().height as u32;
+        let width = snapshot.size().width;
+        let height = snapshot.size().height;
 
         match image_type {
             EncodedImageType::Png => {

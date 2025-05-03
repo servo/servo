@@ -167,8 +167,8 @@ impl GPUCanvasContext {
             // causes FAIL on webgpu:web_platform,canvas,configure:usage:*
             usage: configuration.usage | GPUTextureUsageConstants::COPY_SRC,
             size: GPUExtent3D::GPUExtent3DDict(GPUExtent3DDict {
-                width: size.width as u32,
-                height: size.height as u32,
+                width: size.width,
+                height: size.height,
                 depthOrArrayLayers: 1,
             }),
             viewFormats: configuration.viewFormats.clone(),

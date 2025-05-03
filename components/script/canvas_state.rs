@@ -383,7 +383,7 @@ impl CanvasState {
         }
     }
 
-    pub(crate) fn get_rect(&self, canvas_size: Size2D<u64>, rect: Rect<u64>) -> Vec<u8> {
+    pub(crate) fn get_rect(&self, canvas_size: Size2D<u32>, rect: Rect<u32>) -> Vec<u8> {
         assert!(self.origin_is_clean());
         assert!(Rect::from_size(canvas_size).contains_rect(&rect));
 
@@ -1486,7 +1486,7 @@ impl CanvasState {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn get_image_data(
         &self,
-        canvas_size: Size2D<u64>,
+        canvas_size: Size2D<u32>,
         global: &GlobalScope,
         sx: i32,
         sy: i32,
@@ -1506,7 +1506,7 @@ impl CanvasState {
         }
 
         let (origin, size) = adjust_size_sign(Point2D::new(sx, sy), Size2D::new(sw, sh));
-        let read_rect = match pixels::clip(origin, size.to_u64(), canvas_size) {
+        let read_rect = match pixels::clip(origin, size.to_u32(), canvas_size) {
             Some(rect) => rect,
             None => {
                 // All the pixels are outside the canvas surface.
@@ -1526,7 +1526,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     pub(crate) fn put_image_data(
         &self,
-        canvas_size: Size2D<u64>,
+        canvas_size: Size2D<u32>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1547,7 +1547,7 @@ impl CanvasState {
     #[allow(unsafe_code, clippy::too_many_arguments)]
     pub(crate) fn put_image_data_(
         &self,
-        canvas_size: Size2D<u64>,
+        canvas_size: Size2D<u32>,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -1579,7 +1579,7 @@ impl CanvasState {
             Point2D::new(dirty_x, dirty_y),
             Size2D::new(dirty_width, dirty_height),
         );
-        let src_rect = match pixels::clip(src_origin, src_size.to_u64(), imagedata_size.to_u64()) {
+        let src_rect = match pixels::clip(src_origin, src_size.to_u32(), imagedata_size.to_u32()) {
             Some(rect) => rect,
             None => return,
         };

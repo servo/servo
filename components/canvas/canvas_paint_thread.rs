@@ -187,7 +187,7 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect) => {
                 self.canvas(canvas_id).draw_image(
                     &vec![0; image_size.area() as usize * 4],
-                    image_size.to_u64(),
+                    image_size.to_u32(),
                     dest_rect,
                     source_rect,
                     false,
@@ -203,10 +203,10 @@ impl<'a> CanvasPaintThread<'a> {
             ) => {
                 let image_data = self
                     .canvas(canvas_id)
-                    .read_pixels(Some(source_rect.to_u64()), Some(image_size.to_u64()));
+                    .read_pixels(Some(source_rect.to_u32()), Some(image_size.to_u32()));
                 self.canvas(other_canvas_id).draw_image(
                     image_data.data(),
-                    source_rect.size.to_u64(),
+                    source_rect.size.to_u32(),
                     dest_rect,
                     source_rect,
                     smoothing,
@@ -398,7 +398,7 @@ impl Canvas<'_> {
     fn draw_image(
         &mut self,
         data: &[u8],
-        size: Size2D<u64>,
+        size: Size2D<u32>,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
         smoothing_enabled: bool,
@@ -418,8 +418,8 @@ impl Canvas<'_> {
 
     fn read_pixels(
         &mut self,
-        read_rect: Option<Rect<u64>>,
-        canvas_size: Option<Size2D<u64>>,
+        read_rect: Option<Rect<u32>>,
+        canvas_size: Option<Size2D<u32>>,
     ) -> snapshot::Snapshot {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.read_pixels(read_rect, canvas_size),
@@ -612,7 +612,7 @@ impl Canvas<'_> {
         }
     }
 
-    fn put_image_data(&mut self, unwrap: Vec<u8>, rect: Rect<u64>) {
+    fn put_image_data(&mut self, unwrap: Vec<u8>, rect: Rect<u32>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.put_image_data(unwrap, rect),
         }

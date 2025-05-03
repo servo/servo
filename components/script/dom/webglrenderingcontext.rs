@@ -3838,7 +3838,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         let src_origin = Point2D::new(x, y);
         let src_size = Size2D::new(width as u32, height as u32);
         let fb_size = Size2D::new(fb_width as u32, fb_height as u32);
-        let src_rect = match pixels::clip(src_origin, src_size.to_u64(), fb_size.to_u64()) {
+        let src_rect = match pixels::clip(src_origin, src_size.to_u32(), fb_size.to_u32()) {
             Some(rect) => rect,
             None => return,
         };
