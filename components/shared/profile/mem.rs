@@ -279,7 +279,6 @@ thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = 
 /// The function is expected to call all the desired [MallocSizeOf::size_of]
 /// for allocations reachable from the current thread.
 pub fn perform_memory_report<F: FnOnce(&mut MallocSizeOfOps)>(f: F) {
-    SEEN_POINTERS.with(|pointers| pointers.borrow_mut().clear());
     let seen_pointer = move |ptr| SEEN_POINTERS.with(|pointers| !pointers.borrow_mut().insert(ptr));
     let mut ops = MallocSizeOfOps::new(
         servo_allocator::usable_size,
@@ -287,4 +286,9 @@ pub fn perform_memory_report<F: FnOnce(&mut MallocSizeOfOps)>(f: F) {
         Some(Box::new(seen_pointer)),
     );
     f(&mut ops);
+    SEEN_POINTERS.with(|pointers| {
+        let mut pointers = pointers.borrow_mut();
+        pointers.clear();
+        pointers.shrink_to_fit();
+    });
 }
