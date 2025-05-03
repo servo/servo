@@ -357,16 +357,14 @@ impl ServoParser {
     }
 
     /// Steps 6-8 of <https://html.spec.whatwg.org/multipage/#document.write()>
-    pub(crate) fn write(&self, text: Vec<DOMString>, can_gc: CanGc) {
+    pub(crate) fn write(&self, text: DOMString, can_gc: CanGc) {
         assert!(self.can_write());
 
         if self.document.has_pending_parsing_blocking_script() {
             // There is already a pending parsing blocking script so the
             // parser is suspended, we just append everything to the
             // script input and abort these steps.
-            for chunk in text {
-                self.script_input.push_back(String::from(chunk).into());
-            }
+            self.script_input.push_back(String::from(text).into());
             return;
         }
 
@@ -376,9 +374,7 @@ impl ServoParser {
         assert!(self.script_input.is_empty());
 
         let input = BufferQueue::default();
-        for chunk in text {
-            input.push_back(String::from(chunk).into());
-        }
+        input.push_back(String::from(text).into());
 
         let profiler_chan = self
             .document

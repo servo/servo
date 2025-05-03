@@ -103,7 +103,9 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
-use crate::dom::bindings::codegen::UnionTypes::{NodeOrString, StringOrElementCreationOptions};
+use crate::dom::bindings::codegen::UnionTypes::{
+    NodeOrString, StringOrElementCreationOptions, TrustedHTMLOrString,
+};
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
@@ -184,6 +186,7 @@ use crate::dom::touch::Touch;
 use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
+use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::types::VisibilityStateEntry;
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
@@ -3818,6 +3821,90 @@ impl Document {
             .Performance()
             .queue_entry(entry.upcast::<PerformanceEntry>(), can_gc);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#document-write-steps>
+    fn write(
+        &self,
+        text: Vec<TrustedHTMLOrString>,
+        line_feed: bool,
+        containing_class: &str,
+        field: &str,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        // Step 1: Let string be the empty string.
+        let mut strings: Vec<String> = Vec::with_capacity(text.len());
+        // Step 2: Let isTrusted be false if text contains a string; otherwise true.
+        let mut is_trusted = true;
+        // Step 3: For each value of text:
+        for value in text {
+            match value {
+                // Step 3.1: If value is a TrustedHTML object, then append value's associated data to string.
+                TrustedHTMLOrString::TrustedHTML(trusted_html) => {
+                    strings.push(trusted_html.to_string().to_owned());
+                },
+                TrustedHTMLOrString::String(str_) => {
+                    // Step 2: Let isTrusted be false if text contains a string; otherwise true.
+                    is_trusted = false;
+                    // Step 3.2: Otherwise, append value to string.
+                    strings.push(str_.into());
+                },
+            };
+        }
+        let mut string = itertools::join(strings, "");
+        // Step 4: If isTrusted is false, set string to the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, string, sink, and "script".
+        if !is_trusted {
+            string = TrustedHTML::get_trusted_script_compliant_string(
+                &self.global(),
+                TrustedHTMLOrString::String(string.into()),
+                containing_class,
+                field,
+                can_gc,
+            )?;
+        }
+        // Step 5: If lineFeed is true, append U+000A LINE FEED to string.
+        if line_feed {
+            string.push('\n');
+        }
+        // Step 6: If document is an XML document, then throw an "InvalidStateError" DOMException.
+        if !self.is_html_document() {
+            return Err(Error::InvalidState);
+        }
+
+        // Step 7: If document's throw-on-dynamic-markup-insertion counter is greater than 0,
+        // then throw an "InvalidStateError" DOMException.
+        if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
+            return Err(Error::InvalidState);
+        }
+
+        // Step 8: If document's active parser was aborted is true, then return.
+        if !self.is_active() || self.active_parser_was_aborted.get() {
+            return Ok(());
+        }
+
+        let parser = match self.get_current_parser() {
+            Some(ref parser) if parser.can_write() => DomRoot::from_ref(&**parser),
+            // Step 9: If the insertion point is undefined, then:
+            _ => {
+                // Step 9.1: If document's unload counter is greater than 0 or
+                // document's ignore-destructive-writes counter is greater than 0, then return.
+                if self.is_prompting_or_unloading() ||
+                    self.ignore_destructive_writes_counter.get() > 0
+                {
+                    return Ok(());
+                }
+                // Step 9.2: Run the document open steps with document.
+                self.Open(None, None, can_gc)?;
+                self.get_current_parser().unwrap()
+            },
+        };
+
+        // Steps 10-11.
+        parser.write(string.into(), can_gc);
+
+        Ok(())
+    }
 }
 
 fn is_character_value_key(key: &Key) -> bool {
@@ -6408,54 +6495,17 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-write
-    fn Write(&self, text: Vec<DOMString>, can_gc: CanGc) -> ErrorResult {
-        if !self.is_html_document() {
-            // Step 1.
-            return Err(Error::InvalidState);
-        }
-
-        // Step 2.
-        if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
-            return Err(Error::InvalidState);
-        }
-
-        // Step 3 - what specifies the is_active() part here?
-        if !self.is_active() || self.active_parser_was_aborted.get() {
-            return Ok(());
-        }
-
-        let parser = match self.get_current_parser() {
-            Some(ref parser) if parser.can_write() => DomRoot::from_ref(&**parser),
-            _ => {
-                // Either there is no parser, which means the parsing ended;
-                // or script nesting level is 0, which means the method was
-                // called from outside a parser-executed script.
-                if self.is_prompting_or_unloading() ||
-                    self.ignore_destructive_writes_counter.get() > 0
-                {
-                    // Step 4.
-                    return Ok(());
-                }
-                // Step 5.
-                self.Open(None, None, can_gc)?;
-                self.get_current_parser().unwrap()
-            },
-        };
-
-        // Step 7.
-        // TODO: handle reload override buffer.
-
-        // Steps 6-8.
-        parser.write(text, can_gc);
-
-        // Step 9.
-        Ok(())
+    fn Write(&self, text: Vec<TrustedHTMLOrString>, can_gc: CanGc) -> ErrorResult {
+        // The document.write(...text) method steps are to run the document write steps
+        // with this, text, false, and "Document write".
+        self.write(text, false, "Document", "write", can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-writeln
-    fn Writeln(&self, mut text: Vec<DOMString>, can_gc: CanGc) -> ErrorResult {
-        text.push("\n".into());
-        self.Write(text, can_gc)
+    fn Writeln(&self, text: Vec<TrustedHTMLOrString>, can_gc: CanGc) -> ErrorResult {
+        // The document.writeln(...text) method steps are to run the document write steps
+        // with this, text, true, and "Document writeln".
+        self.write(text, true, "Document", "writeln", can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-close
