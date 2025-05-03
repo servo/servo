@@ -149,7 +149,6 @@ use crate::dom::raredata::ElementRareData;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
-use crate::dom::types::TrustedTypePolicyFactory;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -1959,35 +1958,6 @@ impl Element {
             .join(value)
             .map(|parsed| TrustedScriptURLOrUSVString::USVString(USVString(parsed.into_string())))
             .unwrap_or_else(|_| TrustedScriptURLOrUSVString::USVString(USVString(value.to_owned())))
-    }
-
-    pub(crate) fn set_trusted_type_url_attribute(
-        &self,
-        local_name: &LocalName,
-        value: TrustedScriptURLOrUSVString,
-        can_gc: CanGc,
-    ) -> Fallible<()> {
-        assert_eq!(*local_name, local_name.to_ascii_lowercase());
-        let value = match value {
-            TrustedScriptURLOrUSVString::USVString(url) => {
-                let global = self.owner_global();
-                // TODO(36258): Reflectively get the name of the class
-                let sink = format!("{} {}", "HTMLScriptElement", &local_name);
-                let result = TrustedTypePolicyFactory::get_trusted_type_compliant_string(
-                    &global,
-                    url.to_string(),
-                    &sink,
-                    "'script'",
-                    can_gc,
-                );
-                result?
-            },
-            // This partially implements <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm>
-            // Step 1: If input is an instance of expectedType, return stringified input and abort these steps.
-            TrustedScriptURLOrUSVString::TrustedScriptURL(script_url) => script_url.to_string(),
-        };
-        self.set_attribute(local_name, AttrValue::String(value), can_gc);
-        Ok(())
     }
 
     pub(crate) fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {

@@ -6,11 +6,9 @@ use std::cell::RefCell;
 use content_security_policy::CheckResult;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
-use js::jsapi::JSObject;
 use js::jsval::NullValue;
 use js::rust::HandleValue;
 
-use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
     TrustedTypePolicyFactoryMethods, TrustedTypePolicyOptions,
 };
@@ -23,7 +21,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::trustedscript::TrustedScript;
 use crate::dom::trustedscripturl::TrustedScriptURL;
-use crate::dom::trustedtypepolicy::TrustedTypePolicy;
+use crate::dom::trustedtypepolicy::{TrustedType, TrustedTypePolicy};
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::{CanGc, JSContext};
 
@@ -144,50 +142,40 @@ impl TrustedTypePolicyFactory {
     /// <https://w3c.github.io/trusted-types/dist/spec/#process-value-with-a-default-policy-algorithm>
     #[allow(unsafe_code)]
     pub(crate) fn process_value_with_default_policy(
+        expected_type: TrustedType,
         global: &GlobalScope,
         input: String,
         sink: &str,
         can_gc: CanGc,
-    ) -> Fallible<Option<DomRoot<TrustedScriptURL>>> {
+    ) -> Fallible<Option<String>> {
         // Step 1: Let defaultPolicy be the value of global’s trusted type policy factory's default policy.
         let global_policy_factory = global.trusted_types(can_gc);
         let default_policy = match global_policy_factory.default_policy.get() {
-            None => return Ok(Some(TrustedScriptURL::new(input, global, can_gc))),
+            None => return Ok(None),
             Some(default_policy) => default_policy,
         };
         let cx = GlobalScope::get_cx();
         // Step 2: Let policyValue be the result of executing Get Trusted Type policy value,
         // with the following arguments:
+        rooted!(in(*cx) let mut trusted_type_name_value = NullValue());
+        unsafe {
+            let trusted_type_name: &'static str = expected_type.clone().into();
+            trusted_type_name.to_jsval(*cx, trusted_type_name_value.handle_mut());
+        }
+
+        rooted!(in(*cx) let mut sink_value = NullValue());
+        unsafe {
+            sink.to_jsval(*cx, sink_value.handle_mut());
+        }
+
+        let arguments = vec![trusted_type_name_value.handle(), sink_value.handle()];
         let policy_value = default_policy.get_trusted_type_policy_value(
-            || {
-                // TODO(36258): support other trusted types as well by changing get_trusted_type_policy_value to accept
-                // the trusted type as enum and call the appropriate callback based on that.
-                default_policy.create_script_url().map(|callback| {
-                    rooted!(in(*cx) let this_object: *mut JSObject);
-                    rooted!(in(*cx) let mut trusted_type_name_value = NullValue());
-                    unsafe {
-                        "TrustedScriptURL".to_jsval(*cx, trusted_type_name_value.handle_mut());
-                    }
-
-                    rooted!(in(*cx) let mut sink_value = NullValue());
-                    unsafe {
-                        sink.to_jsval(*cx, sink_value.handle_mut());
-                    }
-
-                    let args = vec![trusted_type_name_value.handle(), sink_value.handle()];
-                    // Step 4: Let policyValue be the result of invoking function with value as a first argument,
-                    // items of arguments as subsequent arguments, and callback **this** value set to null,
-                    // rethrowing any exceptions.
-                    callback.Call_(
-                        &this_object.handle(),
-                        DOMString::from(input.to_owned()),
-                        args,
-                        ExceptionHandling::Rethrow,
-                        can_gc,
-                    )
-                })
-            },
+            expected_type,
+            cx,
+            DOMString::from(input.to_owned()),
+            arguments,
             false,
+            can_gc,
         );
         let data_string = match policy_value {
             // Step 3: If the algorithm threw an error, rethrow the error and abort the following steps.
@@ -196,14 +184,15 @@ impl TrustedTypePolicyFactory {
                 // Step 4: If policyValue is null or undefined, return policyValue.
                 None => return Ok(None),
                 // Step 5: Let dataString be the result of stringifying policyValue.
-                Some(policy_value) => policy_value.as_ref().into(),
+                Some(policy_value) => policy_value,
             },
         };
-        Ok(Some(TrustedScriptURL::new(data_string, global, can_gc)))
+        Ok(Some(data_string))
     }
     /// Step 1 is implemented by the caller
     /// <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm>
     pub(crate) fn get_trusted_type_compliant_string(
+        expected_type: TrustedType,
         global: &GlobalScope,
         input: String,
         sink: &str,
@@ -224,6 +213,7 @@ impl TrustedTypePolicyFactory {
         // Step 4: Let convertedInput be the result of executing Process value with a default policy
         // with the same arguments as this algorithm.
         let converted_input = TrustedTypePolicyFactory::process_value_with_default_policy(
+            expected_type,
             global,
             input.clone(),
             sink,
@@ -252,7 +242,7 @@ impl TrustedTypePolicyFactory {
                 }
             },
             // Step 8: Return stringified convertedInput.
-            Some(converted_input) => Ok((*converted_input).to_string()),
+            Some(converted_input) => Ok(converted_input),
         }
         // Step 7: Assert: convertedInput is an instance of expectedType.
         // TODO(https://github.com/w3c/trusted-types/issues/566): Implement when spec is resolved
