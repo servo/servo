@@ -749,6 +749,7 @@ malloc_size_of_is_0!(std::time::SystemTime);
 malloc_size_of_is_0!(style::data::ElementData);
 malloc_size_of_is_0!(style::font_face::SourceList);
 malloc_size_of_is_0!(style::properties::ComputedValues);
+malloc_size_of_is_0!(style::properties::declaration_block::PropertyDeclarationBlock);
 malloc_size_of_is_0!(style::queries::values::PrefersColorScheme);
 malloc_size_of_is_0!(taffy::Layout);
 malloc_size_of_is_0!(unicode_bidi::Level);
@@ -813,6 +814,15 @@ where
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         <style::stylesheet_set::DocumentStylesheetSet<S> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+    }
+}
+
+impl<T> MallocSizeOf for style::shared_lock::Locked<T>
+{
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // TODO: fix this implementation when Locked derives MallocSizeOf.
+        0
+        //<style::shared_lock::Locked<T> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
     }
 }
 
