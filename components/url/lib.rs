@@ -35,7 +35,7 @@ pub enum UrlError {
 }
 
 #[derive(Clone, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct ServoUrl(#[ignore_malloc_size_of = "Arc"] Arc<Url>);
+pub struct ServoUrl(#[conditional_malloc_size_of] Arc<Url>);
 
 impl ServoUrl {
     pub fn from_url(url: Url) -> Self {
