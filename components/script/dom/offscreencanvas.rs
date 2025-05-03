@@ -27,16 +27,16 @@ use crate::script_runtime::{CanGc, JSContext};
 #[dom_struct]
 pub(crate) struct OffscreenCanvas {
     eventtarget: EventTarget,
-    width: Cell<u64>,
-    height: Cell<u64>,
+    width: Cell<u32>,
+    height: Cell<u32>,
     context: DomRefCell<Option<OffscreenRenderingContext>>,
     placeholder: Option<Dom<HTMLCanvasElement>>,
 }
 
 impl OffscreenCanvas {
     pub(crate) fn new_inherited(
-        width: u64,
-        height: u64,
+        width: u32,
+        height: u32,
         placeholder: Option<&HTMLCanvasElement>,
     ) -> OffscreenCanvas {
         OffscreenCanvas {
@@ -51,8 +51,8 @@ impl OffscreenCanvas {
     pub(crate) fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        width: u64,
-        height: u64,
+        width: u32,
+        height: u32,
         placeholder: Option<&HTMLCanvasElement>,
         can_gc: CanGc,
     ) -> DomRoot<OffscreenCanvas> {
@@ -64,8 +64,8 @@ impl OffscreenCanvas {
         )
     }
 
-    pub(crate) fn get_size(&self) -> Size2D<u64> {
-        Size2D::new(self.Width(), self.Height())
+    pub(crate) fn get_size(&self) -> Size2D<u32> {
+        Size2D::new(Self::try_fit(self.Width()), Self::try_fit(self.Height()))
     }
 
     pub(crate) fn origin_is_clean(&self) -> bool {
@@ -116,6 +116,25 @@ impl OffscreenCanvas {
     pub(crate) fn placeholder(&self) -> Option<&HTMLCanvasElement> {
         self.placeholder.as_deref()
     }
+
+    /// Tries to convert a [`u64`] into [`u32`] for the purposes of
+    /// compatibility with the [OffscreenCanvas spec].
+    ///
+    /// # Panics
+    ///
+    /// Panics if converting the provided [`u64`] into a [`u32`] with
+    /// [`u64::try_into`] would return [`Result::Err`].
+    ///
+    /// [OffscreenCanvas spec]: https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface
+    fn try_fit(value: u64) -> u32 {
+        match value.try_into() {
+            Ok(fits) => fits,
+            Err(error) => {
+                let msg = format!("{error}\n\nInvalid canvas dimension \"{value}\"!");
+                panic!("{}", msg)
+            },
+        }
+    }
 }
 
 impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
@@ -127,6 +146,8 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         width: u64,
         height: u64,
     ) -> Fallible<DomRoot<OffscreenCanvas>> {
+        let width: u32 = Self::try_fit(width);
+        let height: u32 = Self::try_fit(height);
         let offscreencanvas = OffscreenCanvas::new(global, proto, width, height, None, can_gc);
         Ok(offscreencanvas)
     }
@@ -157,12 +178,12 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
 
     // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width
     fn Width(&self) -> u64 {
-        self.width.get()
+        self.width.get().into()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width
     fn SetWidth(&self, value: u64, can_gc: CanGc) {
-        self.width.set(value);
+        self.width.set(Self::try_fit(value));
 
         if let Some(canvas_context) = self.context() {
             canvas_context.resize();
@@ -175,12 +196,12 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
 
     // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height
     fn Height(&self) -> u64 {
-        self.height.get()
+        self.height.get().into()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height
     fn SetHeight(&self, value: u64, can_gc: CanGc) {
-        self.height.set(value);
+        self.height.set(Self::try_fit(value));
 
         if let Some(canvas_context) = self.context() {
             canvas_context.resize();
