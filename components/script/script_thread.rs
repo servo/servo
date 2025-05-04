@@ -745,7 +745,9 @@ impl ScriptThread {
                             .senders
                             .pipeline_to_constellation_sender
                             .clone(),
-                        image_cache: script_thread.image_cache.clone(),
+                        image_cache: script_thread
+                            .image_cache
+                            .create_new_image_cache(script_thread.compositor_api.clone()),
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
                         inherited_secure_context: script_thread.inherited_secure_context,
@@ -2443,8 +2445,6 @@ impl ScriptThread {
 
             let prefix = format!("url({urls})");
             reports.extend(self.get_cx().get_reports(prefix.clone(), ops));
-
-            reports.push(self.image_cache.memory_report(&prefix, ops));
         });
 
         reports_chan.send(ProcessReports::new(reports));
@@ -3145,13 +3145,17 @@ impl ScriptThread {
             self.resource_threads.clone(),
         ));
 
+        let image_cache = self
+            .image_cache
+            .create_new_image_cache(self.compositor_api.clone());
+
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
             webview_id: incomplete.webview_id,
             url: final_url.clone(),
             is_iframe: incomplete.parent_info.is_some(),
             script_chan: self.senders.constellation_sender.clone(),
-            image_cache: self.image_cache.clone(),
+            image_cache: image_cache.clone(),
             font_context: font_context.clone(),
             time_profiler_chan: self.senders.time_profiler_sender.clone(),
             compositor_api: self.compositor_api.clone(),
@@ -3166,7 +3170,7 @@ impl ScriptThread {
             self.layout_factory.create(layout_config),
             font_context,
             self.senders.image_cache_sender.clone(),
-            self.image_cache.clone(),
+            image_cache.clone(),
             self.resource_threads.clone(),
             #[cfg(feature = "bluetooth")]
             self.senders.bluetooth_sender.clone(),
