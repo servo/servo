@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
@@ -10,11 +13,21 @@ const { HTTPS_ORIGIN, HTTPS_NOTSAMESITE_ORIGIN } = get_host_info();
 const PATH = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
 const IFRAME_PATH = PATH + 'resources/iframe-helper.html';
 
+const getId = (() => {
+  let idCount = 0;
+  return () => idCount++;
+})();
+
 function run_iframe_test(iframe, test_name) {
-  iframe.contentWindow.postMessage({type: test_name}, '*');
+  const id = getId();
+  iframe.contentWindow.postMessage({id, type: test_name}, '*');
   const {promise, resolve, reject} = Promise.withResolvers();
 
   window.onmessage = message => {
+    if (message.data.id !== id){
+      return;
+    }
+
     if (message.data.success) {
       resolve(message.data.success);
     } else {
@@ -27,19 +40,18 @@ function run_iframe_test(iframe, test_name) {
 
 function load_iframe(src, permission_policy) {
   let iframe = document.createElement('iframe');
-  return new Promise((resolve, reject) => {
-    iframe.onload = () => {
-      resolve(iframe);
-    }
-    iframe.src = src;
-    iframe.allow = permission_policy;
-    document.body.appendChild(iframe);
-  });
+  const {promise, resolve} = Promise.withResolvers();
+
+  iframe.onload = () => {
+    resolve(iframe);
+  }
+  iframe.src = src;
+  iframe.allow = permission_policy;
+  document.body.appendChild(iframe);
+
+  return promise;
 }
 
-// TODO(crbug.com/414428433): Tests in this file intermittently crash.
-// Re-enable once potential causes in Permissions Policy implementation
-// and test setup are addressed.
 promise_test(async t => {
   const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
   const iframe = await load_iframe(src, /*permission_policy=*/"");
@@ -49,7 +61,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
-  const iframe = await load_iframe(src, "languageDetector");
+  const iframe = await load_iframe(src, "language-detector");
 
   assert_equals(
     await run_iframe_test(iframe, "LanguageDetectorCreate"), 'Success');
@@ -73,7 +85,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
-  const iframe = await load_iframe(src, "languageDetector");
+  const iframe = await load_iframe(src, "language-detector");
 
   assert_in_array(
   await run_iframe_test(iframe, "LanguageDetectorAvailability"),

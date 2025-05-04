@@ -37,9 +37,11 @@ promise_test(async t => {
 
   // Wait until the popup window is loaded to make sure the document we update
   // below is the right one.
-  await new Promise(resolve => {
-    popupWin.addEventListener('load', resolve, { once: true });
-  });
+  if (!popupWin.document || popupWin.document.readyState != 'complete') {
+    await new Promise(resolve => {
+      popupWin.addEventListener('load', resolve, { once: true });
+    });
+  }
 
   let popupDoc = popupWin.document;
   popupDoc.documentElement.innerHTML = `

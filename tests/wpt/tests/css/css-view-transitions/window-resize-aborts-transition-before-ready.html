@@ -37,9 +37,11 @@ promise_test(async t => {
 
   // Wait until the popup window is loaded to make sure the document we start
   // the view transitions is the right one.
-  await new Promise(resolve => {
-    popup_win.addEventListener('load', resolve, { once: true });
-  });
+  if (!popup_win.document || popup_win.document.readyState != 'complete') {
+    await new Promise(resolve => {
+      popup_win.addEventListener('load', resolve, { once: true });
+    });
+  }
 
   if (popup_win.document.visibilityState == "hidden") {
     await new Promise((resolve) => {

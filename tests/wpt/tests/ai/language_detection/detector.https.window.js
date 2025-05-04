@@ -185,6 +185,11 @@ promise_test(async t => {
 }, 'Aborting LanguageDetector.measureInputUsage().');
 
 promise_test(async () => {
+  const detector = await createLanguageDetector({expectedInputLanguages: []});
+  assert_equals(detector.expectedInputLanguages, null);
+}, 'Creating LanguageDetector with empty expectedInputLanguages array');
+
+promise_test(async () => {
   const detector = await createLanguageDetector();
   assert_equals(detector.expectedInputLanguages, null);
 }, 'Creating LanguageDetector without expectedInputLanguages');
