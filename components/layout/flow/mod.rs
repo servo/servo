@@ -2238,7 +2238,9 @@ fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &Containi
             lp.is_definitely_zero() ||
                 (lp.0.has_percentage() && !containing_block.size.block.is_definite())
         },
-        StyleSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+        StyleSize::AnchorSizeFunction(_) | StyleSize::AnchorContainingCalcFunction(_) => {
+            unreachable!("anchor-size() should be disabled")
+        },
     }
 }
 
