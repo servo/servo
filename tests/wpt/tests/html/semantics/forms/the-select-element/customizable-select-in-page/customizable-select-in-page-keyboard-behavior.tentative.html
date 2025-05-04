@@ -27,6 +27,15 @@ select {
   <option class=disabled disabled>disabled</option>
 </select>
 
+<button id=aftersize>button after size=4</button>
+
+<select multiple disabled>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<button id=afterdisabled>button after select disabled</button>
+
 <script>
 const tabKey = '\uE004';
 const enterKey = '\uE007';
@@ -111,6 +120,10 @@ promise_test(async () => {
     'One option should be selected after arrow up.');
   assert_equals(select.selectedOptions[0], optionOne,
     'First option should stay selected after arrow up.');
+
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, beforesize,
+    'Pressing tab key should focus the next element after <select>.');
 }, 'Keyboard behavior for base appearance <select multiple>');
 
 promise_test(async () => {
@@ -174,6 +187,14 @@ promise_test(async () => {
     'First option should be focused after arrow up.');
   assert_equals(select.selectedOptions.length, 0,
     'No options should be selected after arrow up.');
+
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, aftersize,
+    'Pressing tab should focus the next element after <select>.');
+
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, afterdisabled,
+    'Pressing tab key should skip over <select disabled>.');
 }, 'Keyboard behavior for base appearance <select size=4>');
 
 promise_test(async () => {

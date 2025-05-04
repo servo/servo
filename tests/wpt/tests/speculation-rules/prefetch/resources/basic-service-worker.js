@@ -1,5 +1,13 @@
 const swOption = new URL(location.href).searchParams.get('sw');
 
+const interceptedRequests = [];
+
+self.addEventListener('message', event => {
+  if (event.data === 'getInterceptedRequests') {
+    event.source.postMessage(interceptedRequests);
+  }
+});
+
 if (swOption !== 'no-fetch-handler') {
   self.addEventListener('fetch', event => {
 
@@ -8,6 +16,19 @@ if (swOption !== 'no-fetch-handler') {
     if (!event.request.url.includes('counting-executor.py')) {
       return;
     }
+
+    const headers = {};
+    event.request.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    interceptedRequests.push({
+      request: {
+        url: event.request.url,
+        headers: headers,
+      },
+      clientId: event.clientId,
+      resultingClientId: event.resultingClientId
+    });
 
     if (swOption === 'fetch-handler') {
       event.respondWith(fetch(event.request));

@@ -1,5 +1,6 @@
 import json
 
+# TODO(https://crbug.com/406819294): Simplify relative import for util.
 import importlib
 util = importlib.import_module("speculation-rules.prefetch.resources.util")
 

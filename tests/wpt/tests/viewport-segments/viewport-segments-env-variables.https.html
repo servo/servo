@@ -77,18 +77,19 @@ promise_test(async (t) => {
       { once: true }
     );
   });
+  const leftOffset =
+    Math.round(window.innerWidth / 2 - displayFeatureLength / 2);
   await test_driver.set_display_features([{
     orientation: 'vertical',
     maskLength: displayFeatureLength,
-    offset: window.innerWidth / 2 - displayFeatureLength / 2
+    offset: leftOffset
   }]);
   assert_true(await promise);
   assert_equals(targetComputedStyle.marginTop, '0px');
   assert_equals(targetComputedStyle.marginRight,
-    window.innerWidth / 2 + displayFeatureLength / 2 + 'px');
+    Math.round(window.innerWidth / 2 + displayFeatureLength / 2) + 'px');
   assert_equals(targetComputedStyle.marginBottom, window.innerHeight + 'px');
-  assert_equals(targetComputedStyle.marginLeft,
-    window.innerWidth / 2 - displayFeatureLength / 2 + 'px');
+  assert_equals(targetComputedStyle.marginLeft, leftOffset + 'px');
   assert_equals(targetComputedStyle.width, displayFeatureLength + 'px');
   assert_equals(targetComputedStyle.height, window.innerHeight + 'px');
   assert_equals(targetComputedStyle.opacity, '0.2');
@@ -102,17 +103,18 @@ promise_test(async (t) => {
       { once: true }
     );
   });
+  const topOffset =
+    Math.round(window.innerHeight / 2 - displayFeatureLength / 2);
   await test_driver.set_display_features([{
     orientation: 'horizontal',
     maskLength: displayFeatureLength,
-    offset: window.innerHeight / 2 - displayFeatureLength / 2
+    offset: topOffset
   }]);
   assert_true(await promise);
-  assert_equals(targetComputedStyle.marginTop,
-    window.innerHeight / 2 - displayFeatureLength / 2 + 'px');
+  assert_equals(targetComputedStyle.marginTop, topOffset + 'px');
   assert_equals(targetComputedStyle.marginRight, window.innerWidth + 'px');
   assert_equals(targetComputedStyle.marginBottom,
-    window.innerHeight / 2 + displayFeatureLength / 2 + 'px');
+    Math.round(window.innerHeight / 2 + displayFeatureLength / 2) + 'px');
   assert_equals(targetComputedStyle.marginLeft, '0px');
   assert_equals(targetComputedStyle.width, window.innerWidth + 'px');
   assert_equals(targetComputedStyle.height, displayFeatureLength + 'px');

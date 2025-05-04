@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<meta name="timeout" content="long" />
+<title>Partitioned cookie SameSite test site embedded in a cross-site context</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  test_driver.set_test_context(window.top);
+  t.add_cleanup(test_driver.delete_all_cookies);
+
+  document.cookie = "testUnset=0; Secure; Partitioned;";
+  document.cookie = "testStrict=0; Secure; Partitioned; SameSite=Strict;";
+  document.cookie = "testLax=0; Secure; Partitioned; SameSite=Lax;";
+  let cookies = await test_driver.get_all_cookies();
+  assert_equals(cookies.length, 0);
+
+  document.cookie = "testNone=0; Secure; Partitioned; SameSite=None;";
+  cookies = await test_driver.get_all_cookies();
+  assert_equals(cookies.length, 1);
+  const cookie = cookies[0];
+  assert_equals(cookie["name"], "testNone");
+  assert_equals(cookie["value"], "0");
+  assert_equals(cookie["sameSite"], "None");
+
+}, "In embedded cross-site contexts, partitioned cookies can only be set with explicit SameSite=None");
+</script>
+</body>

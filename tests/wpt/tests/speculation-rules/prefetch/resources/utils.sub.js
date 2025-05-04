@@ -216,6 +216,28 @@ function assert_prefetched_without_sec_purpose(requestHeaders, description) {
   assert_equals(requestHeaders['sec-purpose'], undefined, description);
 }
 
+// For ServiceWorker tests.
+// `interceptedRequest` is an element of `interceptedRequests` in
+// `resources/basic-service-worker.js`.
+
+// The ServiceWorker fetch handler intercepted a prefetching request.
+function assert_intercept_prefetch(interceptedRequest, expectedUrl) {
+  assert_equals(interceptedRequest.request.url, expectedUrl.toString(),
+      "intercepted request URL.");
+
+  assert_prefetched(interceptedRequest.request.headers,
+      "Prefetch request should be intercepted.");
+}
+
+// The ServiceWorker fetch handler intercepted a non-prefetching request.
+function assert_intercept_non_prefetch(interceptedRequest, expectedUrl) {
+  assert_equals(interceptedRequest.request.url, expectedUrl.toString(),
+      "intercepted request URL.");
+
+  assert_not_prefetched(interceptedRequest.request.headers,
+      "Non-prefetch request should be intercepted.");
+}
+
 // Use nvs_header query parameter to ask the wpt server
 // to populate No-Vary-Search response header.
 function addNoVarySearchHeaderUsingQueryParam(url, value){

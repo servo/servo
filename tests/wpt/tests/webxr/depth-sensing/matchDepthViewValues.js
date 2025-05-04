@@ -18,8 +18,8 @@ const depthViewGeometryTestGenerator = function(isCpuOptimized) {
           const depthInformation = isCpuOptimized ? frame.getDepthInformation(view)
                                                   : glBinding.getDepthInformation(view);
           t.step(()=> {
-            assert_matrix_approx_equals(IDENTITY_MATRIX, depthInformation.projectionMatrix);
-            assert_transform_approx_equals(IDENTITY_TRANSFORM, depthInformation.transform);
+            assert_matrix_approx_equals(view.projectionMatrix, depthInformation.projectionMatrix);
+            assert_transform_approx_equals(view.transform, depthInformation.transform);
           });
         }
         resolve();
