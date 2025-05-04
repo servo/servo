@@ -441,6 +441,8 @@ impl Layout for LayoutThread {
                 .map(|tree| tree.conditional_size_of(ops))
                 .unwrap_or_default(),
         });
+
+        reports.push(self.image_cache.memory_report(formatted_url, ops));
     }
 
     fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {

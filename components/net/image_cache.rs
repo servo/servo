@@ -431,7 +431,7 @@ pub struct ImageCacheImpl {
     store: Arc<Mutex<ImageCacheStore>>,
 
     /// Thread pool for image decoding
-    thread_pool: CoreResourceThreadPool,
+    thread_pool: Arc<CoreResourceThreadPool>,
 }
 
 impl ImageCache for ImageCacheImpl {
@@ -454,7 +454,10 @@ impl ImageCache for ImageCacheImpl {
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 compositor_api,
             })),
-            thread_pool: CoreResourceThreadPool::new(thread_count, "ImageCache".to_string()),
+            thread_pool: Arc::new(CoreResourceThreadPool::new(
+                thread_count,
+                "ImageCache".to_string(),
+            )),
         }
     }
 
@@ -650,6 +653,25 @@ impl ImageCache for ImageCacheImpl {
                 }
             },
         }
+    }
+
+    fn create_new_image_cache(
+        &self,
+        compositor_api: CrossProcessCompositorApi,
+    ) -> Arc<dyn ImageCache> {
+        let store = self.store.lock().unwrap();
+        let placeholder_image = store.placeholder_image.clone();
+        let placeholder_url = store.placeholder_url.clone();
+        Arc::new(ImageCacheImpl {
+            store: Arc::new(Mutex::new(ImageCacheStore {
+                pending_loads: AllPendingLoads::new(),
+                completed_loads: HashMap::new(),
+                placeholder_image,
+                placeholder_url,
+                compositor_api,
+            })),
+            thread_pool: self.thread_pool.clone(),
+        })
     }
 }
 

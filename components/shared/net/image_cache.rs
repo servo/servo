@@ -141,4 +141,10 @@ pub trait ImageCache: Sync + Send {
 
     /// Inform the image cache about a response for a pending request.
     fn notify_pending_response(&self, id: PendingImageId, action: FetchResponseMsg);
+
+    /// Create new image cache based on this one, while reusing the existing thread_pool.
+    fn create_new_image_cache(
+        &self,
+        compositor_api: CrossProcessCompositorApi,
+    ) -> Arc<dyn ImageCache>;
 }
