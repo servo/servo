@@ -10,9 +10,10 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, DomObject};
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::promise::Promise;
 use crate::script_runtime::CanGc;
+use crate::task_source::TaskSource;
 
 pub(crate) trait RoutedPromiseListener<R: Serialize + DeserializeOwned + Send> {
     fn handle_response(&self, response: R, promise: &Rc<Promise>, can_gc: CanGc);
@@ -44,13 +45,10 @@ pub(crate) fn route_promise<
 >(
     promise: &Rc<Promise>,
     receiver: &T,
+    task_source: TaskSource,
 ) -> IpcSender<R> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let task_source = receiver
-        .global()
-        .task_manager()
-        .dom_manipulation_task_source()
-        .to_sendable();
+    let task_source = task_source.to_sendable();
     let mut trusted: Option<TrustedPromise> = Some(TrustedPromise::new(promise.clone()));
     let trusted_receiver = Trusted::new(receiver);
     ROUTER.add_typed_route(

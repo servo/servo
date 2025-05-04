@@ -271,7 +271,11 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             },
         };
 
-        let sender = route_promise(&promise, self);
+        let sender = route_promise(
+            &promise,
+            self,
+            self.global().task_manager().dom_manipulation_task_source(),
+        );
         if let Err(e) = self.channel.0.send(WebGPURequest::BufferMapAsync {
             sender,
             buffer_id: self.buffer.0,

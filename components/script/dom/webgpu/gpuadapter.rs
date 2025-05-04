@@ -117,7 +117,11 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
     ) -> Rc<Promise> {
         // Step 2
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(&promise, self);
+        let sender = route_promise(
+            &promise,
+            self,
+            self.global().task_manager().dom_manipulation_task_source(),
+        );
         let mut required_features = wgpu_types::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {

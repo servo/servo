@@ -470,7 +470,11 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
         can_gc: CanGc,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(&promise, self);
+        let sender = route_promise(
+            &promise,
+            self,
+            self.global().task_manager().dom_manipulation_task_source(),
+        );
         GPUComputePipeline::create(self, descriptor, Some(sender));
         promise
     }
@@ -518,7 +522,11 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     ) -> Fallible<Rc<Promise>> {
         let (implicit_ids, desc) = self.parse_render_pipeline(descriptor)?;
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(&promise, self);
+        let sender = route_promise(
+            &promise,
+            self,
+            self.global().task_manager().dom_manipulation_task_source(),
+        );
         GPURenderPipeline::create(self, implicit_ids, desc, Some(sender))?;
         Ok(promise)
     }
@@ -549,7 +557,11 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope>
     fn PopErrorScope(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(&promise, self);
+        let sender = route_promise(
+            &promise,
+            self,
+            self.global().task_manager().dom_manipulation_task_source(),
+        );
         if self
             .channel
             .0
