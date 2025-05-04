@@ -98,7 +98,7 @@ impl GPUShaderModule {
         let sender = route_promise(
             &promise,
             &*shader_module,
-            device
+            shader_module
                 .global()
                 .task_manager()
                 .dom_manipulation_task_source(),
