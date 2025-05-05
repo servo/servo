@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::LazyCell;
+use std::cell::{LazyCell, OnceCell};
 use std::convert::From;
 use std::fmt;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
@@ -1100,5 +1100,89 @@ impl Sizes {
                 .unwrap_or(automatic_minimum_size),
             self.max.maybe_resolve_extrinsic(stretch_size),
         )
+    }
+}
+
+struct LazySizeData<'a> {
+    sizes: &'a Sizes,
+    axis: Direction,
+    automatic_size: Size<Au>,
+    get_automatic_minimum_size: fn() -> Au,
+    stretch_size: Option<Au>,
+    is_table: bool,
+}
+
+/// Represents a size that can't be fully resolved until the intrinsic size
+/// is known. This is useful in the block axis, since the intrinsic size
+/// depends on layout, but the other inputs are known beforehand.
+pub(crate) struct LazySize<'a> {
+    result: OnceCell<Au>,
+    data: Option<LazySizeData<'a>>,
+}
+
+impl<'a> LazySize<'a> {
+    pub(crate) fn new(
+        sizes: &'a Sizes,
+        axis: Direction,
+        automatic_size: Size<Au>,
+        get_automatic_minimum_size: fn() -> Au,
+        stretch_size: Option<Au>,
+        is_table: bool,
+    ) -> Self {
+        Self {
+            result: OnceCell::new(),
+            data: Some(LazySizeData {
+                sizes,
+                axis,
+                automatic_size,
+                get_automatic_minimum_size,
+                stretch_size,
+                is_table,
+            }),
+        }
+    }
+
+    /// Creates a [`LazySize`] that will resolve to the intrinsic size.
+    /// Should be equivalent to [`LazySize::new()`] with default parameters,
+    /// but avoiding the trouble of getting a reference to a [`Sizes::default()`]
+    /// which lives long enough.
+    ///
+    /// TODO: It's not clear what this should do if/when [`LazySize::resolve()`]
+    /// is changed to accept a [`ContentSizes`] as the intrinsic size.
+    pub(crate) fn intrinsic() -> Self {
+        Self {
+            result: OnceCell::new(),
+            data: None,
+        }
+    }
+
+    /// Resolves the [`LazySize`] into [`Au`], caching the result.
+    /// The argument is a callback that computes the intrinsic size lazily.
+    ///
+    /// TODO: The intrinsic size should probably be a [`ContentSizes`] instead of [`Au`].
+    pub(crate) fn resolve(&self, get_content_size: impl FnOnce() -> Au) -> Au {
+        *self.result.get_or_init(|| {
+            let Some(ref data) = self.data else {
+                return get_content_size();
+            };
+            data.sizes.resolve(
+                data.axis,
+                data.automatic_size,
+                data.get_automatic_minimum_size,
+                data.stretch_size,
+                || get_content_size().into(),
+                data.is_table,
+            )
+        })
+    }
+}
+
+impl From<Au> for LazySize<'_> {
+    /// Creates a [`LazySize`] that will resolve to the given [`Au`],
+    /// ignoring the intrinsic size.
+    fn from(value: Au) -> Self {
+        let result = OnceCell::new();
+        result.set(value).unwrap();
+        LazySize { result, data: None }
     }
 }

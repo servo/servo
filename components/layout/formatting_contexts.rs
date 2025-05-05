@@ -15,6 +15,7 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
+use crate::geom::LazySize;
 use crate::layout_box_base::{
     CacheableLayoutResult, CacheableLayoutResultAndInputs, LayoutBoxBase,
 };
@@ -242,6 +243,7 @@ impl IndependentNonReplacedContents {
         containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
         depends_on_block_constraints: bool,
+        _lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         match self {
             IndependentNonReplacedContents::Flow(bfc) => bfc.layout(
@@ -281,6 +283,7 @@ impl IndependentNonReplacedContents {
             level = "trace",
         )
     )]
+    #[allow(clippy::too_many_arguments)]
     pub fn layout(
         &self,
         layout_context: &LayoutContext,
@@ -289,6 +292,7 @@ impl IndependentNonReplacedContents {
         containing_block: &ContainingBlock,
         base: &LayoutBoxBase,
         depends_on_block_constraints: bool,
+        lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
         if let Some(cache) = base.cached_layout_result.borrow().as_ref() {
             let cache = &**cache;
@@ -317,6 +321,7 @@ impl IndependentNonReplacedContents {
             containing_block_for_children,
             containing_block,
             depends_on_block_constraints,
+            lazy_block_size,
         );
 
         *base.cached_layout_result.borrow_mut() = Some(Box::new(CacheableLayoutResultAndInputs {

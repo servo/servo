@@ -24,12 +24,11 @@ use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, HoistedSharedFragment, SpecificLayoutInfo,
 };
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2,
-    PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec, Size, Sizes, ToLogical,
-    ToLogicalWithContainingBlock,
+    AuOrAuto, LazySize, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalSides1D,
+    LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec, Size,
+    Sizes, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::layout_box_base::LayoutBoxBase;
-use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
@@ -560,18 +559,32 @@ impl HoistedAbsolutelyPositionedBox {
 
                     // The block size can depend on layout results, so we only solve it extrinsically,
                     // we may have to resolve it properly later on.
-                    let extrinsic_block_size = block_axis_solver.solve_size_extrinsically();
+                    let block_automatic_size = block_axis_solver.automatic_size();
+                    let block_stretch_size = Some(block_axis_solver.stretch_size());
+                    let extrinsic_block_size = block_axis_solver.computed_sizes.resolve_extrinsic(
+                        block_automatic_size,
+                        Au::zero(),
+                        block_stretch_size,
+                    );
 
                     // The inline axis can be fully resolved, computing intrinsic sizes using the
                     // extrinsic block size.
-                    let inline_size = inline_axis_solver.solve_size(|| {
+                    let get_inline_content_size = || {
                         let ratio = context.preferred_aspect_ratio(&pbm.padding_border_sums);
                         let constraint_space =
                             ConstraintSpace::new(extrinsic_block_size, style.writing_mode, ratio);
                         context
                             .inline_content_sizes(layout_context, &constraint_space)
                             .sizes
-                    });
+                    };
+                    let inline_size = inline_axis_solver.computed_sizes.resolve(
+                        Direction::Inline,
+                        inline_axis_solver.automatic_size(),
+                        Au::zero,
+                        Some(inline_axis_solver.stretch_size()),
+                        get_inline_content_size,
+                        is_table,
+                    );
 
                     let containing_block_for_children = ContainingBlock {
                         size: ContainingBlockSize {
@@ -587,6 +600,14 @@ impl HoistedAbsolutelyPositionedBox {
                         "Mixed horizontal and vertical writing modes are not supported yet"
                     );
 
+                    let lazy_block_size = LazySize::new(
+                        &block_axis_solver.computed_sizes,
+                        Direction::Block,
+                        block_automatic_size,
+                        Au::zero,
+                        block_stretch_size,
+                        is_table,
+                    );
                     let independent_layout = non_replaced.layout(
                         layout_context,
                         &mut positioning_context,
@@ -594,6 +615,7 @@ impl HoistedAbsolutelyPositionedBox {
                         containing_block,
                         &context.base,
                         false, /* depends_on_block_constraints */
+                        &lazy_block_size,
                     );
 
                     // Tables can become narrower than predicted due to collapsed columns
@@ -602,8 +624,8 @@ impl HoistedAbsolutelyPositionedBox {
                         .unwrap_or(inline_size);
 
                     // Now we can properly solve the block size.
-                    let block_size = block_axis_solver
-                        .solve_size(|| independent_layout.content_block_size.into());
+                    let block_size =
+                        lazy_block_size.resolve(|| independent_layout.content_block_size);
 
                     content_size = LogicalVec2 {
                         inline: inline_size,
@@ -762,27 +784,6 @@ impl AbsoluteAxisSolver<'_> {
                 self.padding_border_sum -
                 self.computed_margin_start.auto_is(Au::zero) -
                 self.computed_margin_end.auto_is(Au::zero),
-        )
-    }
-
-    #[inline]
-    fn solve_size_extrinsically(&self) -> SizeConstraint {
-        self.computed_sizes.resolve_extrinsic(
-            self.automatic_size(),
-            Au::zero(),
-            Some(self.stretch_size()),
-        )
-    }
-
-    #[inline]
-    fn solve_size(&self, get_content_size: impl FnOnce() -> ContentSizes) -> Au {
-        self.computed_sizes.resolve(
-            self.axis,
-            self.automatic_size(),
-            Au::zero,
-            Some(self.stretch_size()),
-            get_content_size,
-            self.is_table,
         )
     }
 
