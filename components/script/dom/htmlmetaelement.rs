@@ -116,7 +116,7 @@ impl HTMLMetaElement {
                     };
                     last_atom.trim()
                 },
-                a => a.trim(),
+                val => val.trim(),
             };
             if !attr_val.is_empty() {
                 doc.set_referrer_policy(determine_policy_for_token(attr_val));
