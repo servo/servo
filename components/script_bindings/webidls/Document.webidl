@@ -129,9 +129,9 @@ partial /*sealed*/ interface Document {
   [CEReactions, Throws]
   undefined close();
   [CEReactions, Throws]
-  undefined write(DOMString... text);
+  undefined write((TrustedHTML or DOMString)... text);
   [CEReactions, Throws]
-  undefined writeln(DOMString... text);
+  undefined writeln((TrustedHTML or DOMString)... text);
 
   // user interaction
   readonly attribute Window?/*Proxy?*/ defaultView;
@@ -203,6 +203,16 @@ partial interface Document {
 };
 
 Document includes DocumentOrShadowRoot;
+
+// https://drafts.csswg.org/cssom-view/#extensions-to-the-document-interface
+partial interface Document {
+  // CaretPosition? caretPositionFromPoint(double x, double y, optional CaretPositionFromPointOptions options = {});
+  readonly attribute Element? scrollingElement;
+};
+
+// dictionary CaretPositionFromPointOptions {
+//   sequence<ShadowRoot> shadowRoots = [];
+// };
 
 // https://w3c.github.io/selection-api/#dom-document
 partial interface Document {

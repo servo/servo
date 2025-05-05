@@ -32,8 +32,9 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom_struct::dom_struct;
 use embedder_traits::user_content_manager::{UserContentManager, UserScript};
 use embedder_traits::{
-    AlertResponse, ConfirmResponse, EmbedderMsg, PromptResponse, SimpleDialog, Theme,
-    ViewportDetails, WebDriverJSError, WebDriverJSResult,
+    AlertResponse, ConfirmResponse, EmbedderMsg, GamepadEvent, GamepadSupportedHapticEffects,
+    GamepadUpdateType, PromptResponse, SimpleDialog, Theme, ViewportDetails, WebDriverJSError,
+    WebDriverJSResult,
 };
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
@@ -61,6 +62,8 @@ use num_traits::ToPrimitive;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
+use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::interfaces::WindowHelpers;
 use script_layout_interface::{
     FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
@@ -125,6 +128,8 @@ use crate::dom::document::{AnimationFrameCallback, Document, ReflowTriggerCondit
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::gamepad::{Gamepad, contains_user_gesture};
+use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
@@ -642,6 +647,126 @@ impl Window {
     pub(crate) fn font_context(&self) -> &Arc<FontContext> {
         &self.font_context
     }
+
+    pub(crate) fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
+        match gamepad_event {
+            GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
+                self.handle_gamepad_connect(
+                    index.0,
+                    name,
+                    bounds.axis_bounds,
+                    bounds.button_bounds,
+                    supported_haptic_effects,
+                );
+            },
+            GamepadEvent::Disconnected(index) => {
+                self.handle_gamepad_disconnect(index.0);
+            },
+            GamepadEvent::Updated(index, update_type) => {
+                self.receive_new_gamepad_button_or_axis(index.0, update_type);
+            },
+        };
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
+    fn handle_gamepad_connect(
+        &self,
+        // As the spec actually defines how to set the gamepad index, the GilRs index
+        // is currently unused, though in practice it will almost always be the same.
+        // More infra is currently needed to track gamepads across windows.
+        _index: usize,
+        name: String,
+        axis_bounds: (f64, f64),
+        button_bounds: (f64, f64),
+        supported_haptic_effects: GamepadSupportedHapticEffects,
+    ) {
+        // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
+        //          then abort these steps.
+        let this = Trusted::new(self);
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .gamepad_task_source()
+            .queue(task!(gamepad_connected: move || {
+                let window = this.root();
+
+                let navigator = window.Navigator();
+                let selected_index = navigator.select_gamepad_index();
+                let gamepad = Gamepad::new(
+                    &window,
+                    selected_index,
+                    name,
+                    "standard".into(),
+                    axis_bounds,
+                    button_bounds,
+                    supported_haptic_effects,
+                    false,
+                    CanGc::note(),
+                );
+                navigator.set_gamepad(selected_index as usize, &gamepad, CanGc::note());
+            }));
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
+    fn handle_gamepad_disconnect(&self, index: usize) {
+        let this = Trusted::new(self);
+        self.upcast::<GlobalScope>()
+            .task_manager()
+            .gamepad_task_source()
+            .queue(task!(gamepad_disconnected: move || {
+                let window = this.root();
+                let navigator = window.Navigator();
+                if let Some(gamepad) = navigator.get_gamepad(index) {
+                    if window.Document().is_fully_active() {
+                        gamepad.update_connected(false, gamepad.exposed(), CanGc::note());
+                        navigator.remove_gamepad(index);
+                    }
+                }
+            }));
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
+    fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
+        let this = Trusted::new(self);
+
+        // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
+        self.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
+                task!(update_gamepad_state: move || {
+                    let window = this.root();
+                    let navigator = window.Navigator();
+                    if let Some(gamepad) = navigator.get_gamepad(index) {
+                        let current_time = window.Performance().Now();
+                        gamepad.update_timestamp(*current_time);
+                        match update_type {
+                            GamepadUpdateType::Axis(index, value) => {
+                                gamepad.map_and_normalize_axes(index, value);
+                            },
+                            GamepadUpdateType::Button(index, value) => {
+                                gamepad.map_and_normalize_buttons(index, value);
+                            }
+                        };
+                        if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
+                            navigator.set_has_gamepad_gesture(true);
+                            navigator.GetGamepads()
+                                .iter()
+                                .filter_map(|g| g.as_ref())
+                                .for_each(|gamepad| {
+                                    gamepad.set_exposed(true);
+                                    gamepad.update_timestamp(*current_time);
+                                    let new_gamepad = Trusted::new(&**gamepad);
+                                    if window.Document().is_fully_active() {
+                                        window.upcast::<GlobalScope>().task_manager().gamepad_task_source().queue(
+                                            task!(update_gamepad_connect: move || {
+                                                let gamepad = new_gamepad.root();
+                                                gamepad.notify_event(GamepadEventType::Connected, CanGc::note());
+                                            })
+                                        );
+                                    }
+                                });
+                        }
+                    }
+                })
+            );
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
@@ -785,6 +910,32 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // TODO: Cancel ongoing navigation.
         let doc = self.Document();
         doc.abort(can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-focus>
+    fn Focus(&self) {
+        // > 1. Let `current` be this `Window` object's browsing context.
+        // >
+        // > 2. If `current` is null, then return.
+        let current = match self.undiscarded_window_proxy() {
+            Some(proxy) => proxy,
+            None => return,
+        };
+
+        // > 3. Run the focusing steps with `current`.
+        current.focus();
+
+        // > 4. If current is a top-level browsing context, user agents are
+        // >    encouraged to trigger some sort of notification to indicate to
+        // >    the user that the page is attempting to gain focus.
+        //
+        // TODO: Step 4
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-blur
+    fn Blur(&self) {
+        // > User agents are encouraged to ignore calls to this `blur()` method
+        // > entirely.
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-open
@@ -1220,7 +1371,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let rv = jsval_to_webdriver(cx, &self.globalscope, val, realm, can_gc);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
-            chan.send(rv).unwrap();
+            let _ = chan.send(rv);
         }
     }
 
@@ -1229,9 +1380,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
             if let Ok(rv) = rv {
-                chan.send(Err(WebDriverJSError::JSException(rv))).unwrap();
+                let _ = chan.send(Err(WebDriverJSError::JSException(rv)));
             } else {
-                chan.send(rv).unwrap();
+                let _ = chan.send(rv);
             }
         }
     }
@@ -1239,7 +1390,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     fn WebdriverTimeout(&self) {
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
-            chan.send(Err(WebDriverJSError::Timeout)).unwrap();
+            let _ = chan.send(Err(WebDriverJSError::Timeout));
         }
     }
 
@@ -1991,6 +2142,8 @@ impl Window {
             .or_else(|| document.GetDocumentElement())
             .map(|root| root.upcast::<Node>().to_trusted_node_address());
 
+        let highlighted_dom_node = document.highlighted_dom_node().map(|node| node.to_opaque());
+
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             reflow_info: Reflow {
@@ -2010,6 +2163,7 @@ impl Window {
                 .image_animation_manager_mut()
                 .take_image_animate_set(),
             theme: self.theme.get(),
+            highlighted_dom_node,
         };
 
         let Some(results) = self.layout.borrow_mut().reflow(reflow) else {

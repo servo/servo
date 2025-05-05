@@ -31,7 +31,6 @@ use js::typedarray::{
 };
 use net_traits::image_cache::ImageResponse;
 use pixels::{self, PixelFormat};
-use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use snapshot::Snapshot;
@@ -875,9 +874,8 @@ impl WebGLRenderingContext {
         receiver.recv().unwrap()
     }
 
-    pub(crate) fn layout_handle(&self) -> HTMLCanvasDataSource {
-        let image_key = self.webrender_image;
-        HTMLCanvasDataSource::WebGL(image_key)
+    pub(crate) fn layout_handle(&self) -> Option<ImageKey> {
+        Some(self.webrender_image)
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
@@ -4829,7 +4827,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGLRenderingContext> {
-    fn canvas_data_source(self) -> HTMLCanvasDataSource {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         (*self.unsafe_get()).layout_handle()
     }
 }

@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::GamepadButtonBinding::GamepadButton
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -32,14 +32,14 @@ impl GamepadButton {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         pressed: bool,
         touched: bool,
         can_gc: CanGc,
     ) -> DomRoot<GamepadButton> {
         reflect_dom_object(
             Box::new(GamepadButton::new_inherited(pressed, touched)),
-            global,
+            window,
             can_gc,
         )
     }

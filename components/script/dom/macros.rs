@@ -122,32 +122,6 @@ macro_rules! make_url_setter(
 );
 
 #[macro_export]
-macro_rules! make_trusted_type_url_getter(
-    ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self) -> TrustedScriptURLOrUSVString {
-            use $crate::dom::bindings::inheritance::Castable;
-            use $crate::dom::element::Element;
-            let element = self.upcast::<Element>();
-            element.get_trusted_type_url_attribute(&html5ever::local_name!($htmlname))
-        }
-    );
-);
-
-#[macro_export]
-macro_rules! make_trusted_type_url_setter(
-    ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, value: TrustedScriptURLOrUSVString, can_gc: CanGc) -> Fallible<()> {
-            use $crate::dom::bindings::inheritance::Castable;
-            use $crate::dom::element::Element;
-            use $crate::script_runtime::CanGc;
-            let element = self.upcast::<Element>();
-            element.set_trusted_type_url_attribute(&html5ever::local_name!($htmlname),
-                                         value, can_gc)
-        }
-    );
-);
-
-#[macro_export]
 macro_rules! make_form_action_getter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self) -> DOMString {
@@ -315,6 +289,26 @@ macro_rules! make_uint_setter(
     ($attr:ident, $htmlname:tt) => {
         make_uint_setter!($attr, $htmlname, 0);
     };
+);
+
+#[macro_export]
+macro_rules! make_clamped_uint_setter(
+    ($attr:ident, $htmlname:tt, $min:expr, $max:expr, $default:expr) => (
+        fn $attr(&self, value: u32) {
+            use $crate::dom::bindings::inheritance::Castable;
+            use $crate::dom::element::Element;
+            use $crate::dom::values::UNSIGNED_LONG_MAX;
+            use $crate::script_runtime::CanGc;
+            let value = if value > UNSIGNED_LONG_MAX {
+                $default
+            } else {
+                value.clamp($min, $max)
+            };
+
+            let element = self.upcast::<Element>();
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+        }
+    );
 );
 
 #[macro_export]
@@ -719,26 +713,3 @@ macro_rules! handle_potential_webgl_error {
         handle_potential_webgl_error!($context, $call, ())
     };
 }
-
-macro_rules! impl_rare_data (
-    ($type:ty) => (
-        fn rare_data(&self) -> Ref<Option<Box<$type>>> {
-            self.rare_data.borrow()
-        }
-
-        #[allow(dead_code)]
-        fn rare_data_mut(&self) -> RefMut<Option<Box<$type>>> {
-            self.rare_data.borrow_mut()
-        }
-
-        fn ensure_rare_data(&self) -> RefMut<Box<$type>> {
-            let mut rare_data = self.rare_data.borrow_mut();
-            if rare_data.is_none() {
-                *rare_data = Some(Default::default());
-            }
-            RefMut::map(rare_data, |rare_data| {
-                rare_data.as_mut().unwrap()
-            })
-        }
-    );
-);

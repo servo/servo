@@ -12,7 +12,7 @@ use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::computed_values::unicode_bidi::T as UnicodeBidi;
-use style::logical_geometry::{Direction as AxisDirection, WritingMode};
+use style::logical_geometry::{Direction as AxisDirection, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
@@ -280,6 +280,16 @@ impl Default for BorderStyleColor {
     }
 }
 
+/// <https://drafts.csswg.org/cssom-view/#overflow-directions>
+/// > A scrolling box of a viewport or element has two overflow directions,
+/// > which are the block-end and inline-end directions for that viewport or element.
+pub(crate) struct OverflowDirection {
+    /// Whether block-end or inline-end direction is [PhysicalSide::Right].
+    pub rightward: bool,
+    /// Whether block-end or inline-end direction is [PhysicalSide::Bottom].
+    pub downward: bool,
+}
+
 pub(crate) trait ComputedValuesExt {
     fn physical_box_offsets(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>>;
     fn box_offsets(&self, writing_mode: WritingMode) -> LogicalSides<LengthPercentageOrAuto<'_>>;
@@ -354,6 +364,7 @@ pub(crate) trait ComputedValuesExt {
         writing_mode: WritingMode,
     ) -> bool;
     fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool;
+    fn overflow_direction(&self) -> OverflowDirection;
 }
 
 impl ComputedValuesExt for ComputedValues {
@@ -364,6 +375,9 @@ impl ComputedValuesExt for ComputedValues {
                 Inset::Auto => LengthPercentageOrAuto::Auto,
                 Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
                 Inset::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+                Inset::AnchorContainingCalcFunction(_) => {
+                    unreachable!("anchor() and anchor-size() should be disabled")
+                },
             }
         }
         let position = self.get_position();
@@ -484,7 +498,9 @@ impl ComputedValuesExt for ComputedValues {
             match inset {
                 Margin::LengthPercentage(v) => LengthPercentageOrAuto::LengthPercentage(v),
                 Margin::Auto => LengthPercentageOrAuto::Auto,
-                Margin::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+                Margin::AnchorSizeFunction(_) | Margin::AnchorContainingCalcFunction(_) => {
+                    unreachable!("anchor-size() should be disabled")
+                },
             }
         }
         let margin = self.get_margin();
@@ -701,15 +717,19 @@ impl ComputedValuesExt for ComputedValues {
         // From <https://www.w3.org/TR/css-transforms-1/#transform-rendering>
         // > For elements whose layout is governed by the CSS box model, any value other than
         // > `none` for the `transform` property results in the creation of a stacking context.
+        //
+        // From <https://www.w3.org/TR/css-transforms-2/#individual-transforms>
+        // > all other values […] create a stacking context and containing block for all
+        // > descendants, per usual for transforms.
+        //
+        // From <https://www.w3.org/TR/css-transforms-2/#perspective-property>
+        // > any value other than none establishes a stacking context.
+        //
         // From <https://www.w3.org/TR/css-transforms-2/#transform-style-property>
         // > A computed value of `preserve-3d` for `transform-style` on a transformable element
         // > establishes both a stacking context and a containing block for all descendants.
-        // From <https://www.w3.org/TR/css-transforms-2/#perspective-property>
-        // > any value other than none establishes a stacking context.
-        // TODO: handle individual transform properties (`translate`, `scale` and `rotate`).
-        // <https://www.w3.org/TR/css-transforms-2/#individual-transforms>
         if self.is_transformable(fragment_flags) &&
-            (!self.get_box().transform.0.is_empty() ||
+            (self.has_transform_or_perspective_style() ||
                 self.get_box().transform_style == ComputedTransformStyle::Preserve3d ||
                 will_change_bits
                     .intersects(WillChangeBits::TRANSFORM | WillChangeBits::PERSPECTIVE))
@@ -834,9 +854,9 @@ impl ComputedValuesExt for ComputedValues {
         // > A value other than none for the filter property results in the creation of a containing
         // > block for absolute and fixed positioned descendants unless the element it applies to is
         // > a document root element in the current browsing context.
-        // FIXME(#35391): Need to check if this is the root element.
-        if !self.get_effects().filter.0.is_empty() ||
-            will_change_bits.intersects(WillChangeBits::FIXPOS_CB_NON_SVG)
+        if !fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT) &&
+            (!self.get_effects().filter.0.is_empty() ||
+                will_change_bits.intersects(WillChangeBits::FIXPOS_CB_NON_SVG))
         {
             return true;
         }
@@ -979,6 +999,23 @@ impl ComputedValuesExt for ComputedValues {
                 .is_some_and(LengthPercentage::has_percentage)
         };
         has_percentage(box_offsets.block_start) || has_percentage(box_offsets.block_end)
+    }
+
+    // <https://drafts.csswg.org/cssom-view/#overflow-directions>
+    fn overflow_direction(&self) -> OverflowDirection {
+        let inline_end_direction = self.writing_mode.inline_end_physical_side();
+        let block_end_direction = self.writing_mode.block_end_physical_side();
+
+        let rightward = inline_end_direction == PhysicalSide::Right ||
+            block_end_direction == PhysicalSide::Right;
+        let downward = inline_end_direction == PhysicalSide::Bottom ||
+            block_end_direction == PhysicalSide::Bottom;
+
+        // TODO(stevennovaryo): We should consider the flex-container's CSS (e.g. flow-direction: column-reverse).
+        OverflowDirection {
+            rightward,
+            downward,
+        }
     }
 }
 

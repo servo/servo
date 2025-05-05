@@ -117,16 +117,8 @@ pub enum LayoutElementType {
     SVGSVGElement,
 }
 
-pub enum HTMLCanvasDataSource {
-    WebGL(ImageKey),
-    Image(ImageKey),
-    WebGPU(ImageKey),
-    /// transparent black
-    Empty,
-}
-
 pub struct HTMLCanvasData {
-    pub source: HTMLCanvasDataSource,
+    pub source: Option<ImageKey>,
     pub width: u32,
     pub height: u32,
 }
@@ -436,6 +428,8 @@ pub struct ReflowRequest {
     pub node_to_image_animation_map: FxHashMap<OpaqueNode, ImageAnimationState>,
     /// The theme for the window
     pub theme: PrefersColorScheme,
+    /// The node highlighted by the devtools, if any
+    pub highlighted_dom_node: Option<OpaqueNode>,
 }
 
 /// A pending restyle.

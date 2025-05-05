@@ -689,9 +689,14 @@ const dequantizeLinearTests = [
           'outputs': 'transposeOutput'
         },
         {
+          'name': 'reshape',
+          'arguments': [{'input': 'transposeOutput'}, {'newShape': [1, 1, 2]}],
+          'outputs': 'reshapeOutput'
+        },
+        {
           'name': 'dequantizeLinear',
           'arguments': [
-            {'input': 'transposeOutput'}, {'scale': 'dequantizeLinearScale'},
+            {'input': 'reshapeOutput'}, {'scale': 'dequantizeLinearScale'},
             {'zeroPoint': 'dequantizeLinearZeroPoint'}
           ],
           'outputs': 'dequantizeLinearOutput'
@@ -700,7 +705,7 @@ const dequantizeLinearTests = [
       'expectedOutputs': {
         'dequantizeLinearOutput': {
           'data': [-1.1202747821807861, 13.163229942321777],
-          'descriptor': {shape: [1, 2], dataType: 'float32'}
+          'descriptor': {shape: [1, 1, 2], dataType: 'float32'}
         }
       }
     }

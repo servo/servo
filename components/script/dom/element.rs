@@ -50,6 +50,7 @@ use style::selector_parser::{
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{CssRuleType, UrlExtraData};
+use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
@@ -149,7 +150,6 @@ use crate::dom::raredata::ElementRareData;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
-use crate::dom::types::TrustedTypePolicyFactory;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -327,7 +327,21 @@ impl Element {
         )
     }
 
-    impl_rare_data!(ElementRareData);
+    fn rare_data(&self) -> Ref<Option<Box<ElementRareData>>> {
+        self.rare_data.borrow()
+    }
+
+    fn rare_data_mut(&self) -> RefMut<Option<Box<ElementRareData>>> {
+        self.rare_data.borrow_mut()
+    }
+
+    fn ensure_rare_data(&self) -> RefMut<Box<ElementRareData>> {
+        let mut rare_data = self.rare_data.borrow_mut();
+        if rare_data.is_none() {
+            *rare_data = Some(Default::default());
+        }
+        RefMut::map(rare_data, |rare_data| rare_data.as_mut().unwrap())
+    }
 
     pub(crate) fn restyle(&self, damage: NodeDamage) {
         let doc = self.node.owner_doc();
@@ -442,8 +456,25 @@ impl Element {
             .is_some_and(|s| !s.get_box().clone_display().is_none())
     }
 
-    // https://drafts.csswg.org/cssom-view/#potentially-scrollable
-    fn is_potentially_scrollable_body(&self, can_gc: CanGc) -> bool {
+    /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
+    pub(crate) fn is_potentially_scrollable_body(&self, can_gc: CanGc) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(false, can_gc)
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
+    pub(crate) fn is_potentially_scrollable_body_for_scrolling_element(
+        &self,
+        can_gc: CanGc,
+    ) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(true, can_gc)
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
+    fn is_potentially_scrollable_body_shared_logic(
+        &self,
+        treat_overflow_clip_on_parent_as_hidden: bool,
+        can_gc: CanGc,
+    ) -> bool {
         let node = self.upcast::<Node>();
         debug_assert!(
             node.owner_doc().GetBody().as_deref() == self.downcast::<HTMLElement>(),
@@ -461,9 +492,21 @@ impl Element {
         //     overflow-y properties is neither visible nor clip."
         if let Some(parent) = node.GetParentElement() {
             if let Some(style) = parent.style(can_gc) {
-                if !style.get_box().clone_overflow_x().is_scrollable() &&
-                    !style.get_box().clone_overflow_y().is_scrollable()
-                {
+                let mut overflow_x = style.get_box().clone_overflow_x();
+                let mut overflow_y = style.get_box().clone_overflow_y();
+
+                // This fulfills the 'treat parent element overflow:clip as overflow:hidden' stipulation
+                // from the document.scrollingElement specification.
+                if treat_overflow_clip_on_parent_as_hidden {
+                    if overflow_x == Overflow::Clip {
+                        overflow_x = Overflow::Hidden;
+                    }
+                    if overflow_y == Overflow::Clip {
+                        overflow_y = Overflow::Hidden;
+                    }
+                }
+
+                if !overflow_x.is_scrollable() && !overflow_y.is_scrollable() {
                     return false;
                 }
             };
@@ -1947,35 +1990,6 @@ impl Element {
             .unwrap_or_else(|_| TrustedScriptURLOrUSVString::USVString(USVString(value.to_owned())))
     }
 
-    pub(crate) fn set_trusted_type_url_attribute(
-        &self,
-        local_name: &LocalName,
-        value: TrustedScriptURLOrUSVString,
-        can_gc: CanGc,
-    ) -> Fallible<()> {
-        assert_eq!(*local_name, local_name.to_ascii_lowercase());
-        let value = match value {
-            TrustedScriptURLOrUSVString::USVString(url) => {
-                let global = self.owner_global();
-                // TODO(36258): Reflectively get the name of the class
-                let sink = format!("{} {}", "HTMLScriptElement", &local_name);
-                let result = TrustedTypePolicyFactory::get_trusted_type_compliant_string(
-                    &global,
-                    url.to_string(),
-                    &sink,
-                    "'script'",
-                    can_gc,
-                );
-                result?
-            },
-            // This partially implements <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm>
-            // Step 1: If input is an instance of expectedType, return stringified input and abort these steps.
-            TrustedScriptURLOrUSVString::TrustedScriptURL(script_url) => script_url.to_string(),
-        };
-        self.set_attribute(local_name, AttrValue::String(value), can_gc);
-        Ok(())
-    }
-
     pub(crate) fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
         match self.get_attribute(&ns!(), local_name) {
             Some(x) => x.Value(),
@@ -3011,28 +3025,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             DomRoot::from_ref(self.upcast())
         };
 
-        // Step 3. Unsafely set HTML given target, this, and compliantHTML.
-        // Let newChildren be the result of the HTML fragment parsing algorithm.
-        let new_children = ServoParser::parse_html_fragment(self, html, true, can_gc);
-
-        let context_document = {
-            if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-                template.Content(can_gc).upcast::<Node>().owner_doc()
-            } else {
-                self.owner_document()
-            }
-        };
-
-        // Let fragment be a new DocumentFragment whose node document is contextElement's node document.
-        let frag = DocumentFragment::new(&context_document, can_gc);
-
-        // For each node in newChildren, append node to fragment.
-        for child in new_children {
-            frag.upcast::<Node>().AppendChild(&child, can_gc).unwrap();
-        }
-
-        // Replace all with fragment within target.
-        Node::replace_all(Some(frag.upcast()), &target, can_gc);
+        // Step 3. Unsafely set HTML given target, this, and compliantHTML
+        Node::unsafely_set_html(&target, self, html, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>

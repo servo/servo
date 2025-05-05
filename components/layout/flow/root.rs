@@ -385,8 +385,7 @@ impl BoxTree {
             style,
         };
 
-        let mut positioning_context =
-            PositioningContext::new_for_containing_block_for_all_descendants();
+        let mut positioning_context = PositioningContext::default();
         let independent_layout = self.root.layout(
             layout_context,
             &mut positioning_context,
@@ -411,7 +410,7 @@ impl BoxTree {
         let scrollable_overflow = root_fragments
             .iter()
             .fold(PhysicalRect::zero(), |acc, child| {
-                let child_overflow = child.scrollable_overflow();
+                let child_overflow = child.scrollable_overflow_for_parent();
 
                 // https://drafts.csswg.org/css-overflow/#scrolling-direction
                 // We want to clip scrollable overflow on box-start and inline-start

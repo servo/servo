@@ -31,15 +31,17 @@ use style::values::generics::NonNegative;
 use style::values::generics::rect::Rect;
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
+use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, LayoutPixel, LayoutRect, LayoutSize};
 use webrender_api::{
     self as wr, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
-    ImageRendering, NinePatchBorder, NinePatchBorderSource, units,
+    ImageRendering, NinePatchBorder, NinePatchBorderSource, SpatialId, units,
 };
 use wr::units::LayoutVector2D;
 
+use crate::cell::ArcRefCell;
 use crate::context::{LayoutContext, ResolvedImage};
-use crate::display_list::conversions::ToWebRender;
+pub use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
     BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
@@ -161,10 +163,49 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// The [DisplayList] used to collect display list items and metadata.
     pub display_list: &'a mut DisplayList,
+
+    /// Data about the fragments that are highlighted by the inspector, if any.
+    ///
+    /// This data is collected during the traversal of the fragment tree and used
+    /// to paint the highlight at the very end.
+    inspector_highlight: Option<InspectorHighlight>,
+}
+
+struct InspectorHighlight {
+    /// The node that should be highlighted
+    tag: Tag,
+
+    /// Accumulates information about the fragments that belong to the highlighted node.
+    ///
+    /// This information is collected as the fragment tree is traversed to build the
+    /// display list.
+    state: Option<HighlightTraversalState>,
+}
+
+struct HighlightTraversalState {
+    /// The smallest rectangle that fully encloses all fragments created by the highlighted
+    /// dom node, if any.
+    content_box: euclid::Rect<Au, CSSPixel>,
+
+    spatial_id: SpatialId,
+
+    clip_chain_id: ClipChainId,
+
+    /// When the highlighted fragment is a box fragment we remember the information
+    /// needed to paint padding, border and margin areas.
+    maybe_box_fragment: Option<ArcRefCell<BoxFragment>>,
+}
+
+impl InspectorHighlight {
+    fn for_node(node: OpaqueNode) -> Self {
+        Self {
+            tag: Tag::new(node),
+            state: None,
+        }
+    }
 }
 
 impl DisplayList {
-    /// Build the display list, returning true if it was contentful.
     pub fn build(
         &mut self,
         context: &LayoutContext,
@@ -180,8 +221,19 @@ impl DisplayList {
             element_for_canvas_background: fragment_tree.canvas_background.from_element,
             context,
             display_list: self,
+            inspector_highlight: context
+                .highlighted_dom_node
+                .map(InspectorHighlight::for_node),
         };
         fragment_tree.build_display_list(&mut builder, root_stacking_context);
+
+        if let Some(highlight) = builder
+            .inspector_highlight
+            .take()
+            .and_then(|highlight| highlight.state)
+        {
+            builder.paint_dom_inspector_highlight(highlight);
+        }
     }
 }
 
@@ -233,6 +285,150 @@ impl DisplayListBuilder<'_> {
             self.display_list.compositor_info.epoch.as_u16(),
         ))
     }
+
+    /// Draw highlights around the node that is currently hovered in the devtools.
+    fn paint_dom_inspector_highlight(&mut self, highlight: HighlightTraversalState) {
+        const CONTENT_BOX_HIGHLIGHT_COLOR: webrender_api::ColorF = webrender_api::ColorF {
+            r: 0.23,
+            g: 0.7,
+            b: 0.87,
+            a: 0.5,
+        };
+
+        const PADDING_BOX_HIGHLIGHT_COLOR: webrender_api::ColorF = webrender_api::ColorF {
+            r: 0.49,
+            g: 0.3,
+            b: 0.7,
+            a: 0.5,
+        };
+
+        const BORDER_BOX_HIGHLIGHT_COLOR: webrender_api::ColorF = webrender_api::ColorF {
+            r: 0.2,
+            g: 0.2,
+            b: 0.2,
+            a: 0.5,
+        };
+
+        const MARGIN_BOX_HIGHLIGHT_COLOR: webrender_api::ColorF = webrender_api::ColorF {
+            r: 1.,
+            g: 0.93,
+            b: 0.,
+            a: 0.5,
+        };
+
+        // Highlight content box
+        let content_box = highlight.content_box.to_webrender();
+        let properties = wr::CommonItemProperties {
+            clip_rect: content_box,
+            spatial_id: highlight.spatial_id,
+            clip_chain_id: highlight.clip_chain_id,
+            flags: wr::PrimitiveFlags::default(),
+        };
+
+        self.display_list
+            .wr
+            .push_rect(&properties, content_box, CONTENT_BOX_HIGHLIGHT_COLOR);
+
+        // Highlight margin, border and padding
+        if let Some(box_fragment) = highlight.maybe_box_fragment {
+            let mut paint_highlight =
+                |color: webrender_api::ColorF,
+                 fragment_relative_bounds: PhysicalRect<Au>,
+                 widths: webrender_api::units::LayoutSideOffsets| {
+                    if widths.is_zero() {
+                        return;
+                    }
+
+                    let bounds = box_fragment
+                        .borrow()
+                        .offset_by_containing_block(&fragment_relative_bounds)
+                        .to_webrender();
+
+                    // We paint each highlighted area as if it was a border for simplicity
+                    let border_style = wr::BorderSide {
+                        color,
+                        style: webrender_api::BorderStyle::Solid,
+                    };
+
+                    let details = wr::BorderDetails::Normal(wr::NormalBorder {
+                        top: border_style,
+                        right: border_style,
+                        bottom: border_style,
+                        left: border_style,
+                        radius: webrender_api::BorderRadius::default(),
+                        do_aa: true,
+                    });
+
+                    let common = wr::CommonItemProperties {
+                        clip_rect: bounds,
+                        spatial_id: highlight.spatial_id,
+                        clip_chain_id: highlight.clip_chain_id,
+                        flags: wr::PrimitiveFlags::default(),
+                    };
+                    self.wr().push_border(&common, bounds, widths, details)
+                };
+
+            let box_fragment = box_fragment.borrow();
+            paint_highlight(
+                PADDING_BOX_HIGHLIGHT_COLOR,
+                box_fragment.padding_rect(),
+                box_fragment.padding.to_webrender(),
+            );
+            paint_highlight(
+                BORDER_BOX_HIGHLIGHT_COLOR,
+                box_fragment.border_rect(),
+                box_fragment.border.to_webrender(),
+            );
+            paint_highlight(
+                MARGIN_BOX_HIGHLIGHT_COLOR,
+                box_fragment.margin_rect(),
+                box_fragment.margin.to_webrender(),
+            );
+        }
+    }
+}
+
+impl InspectorHighlight {
+    fn register_fragment_of_highlighted_dom_node(
+        &mut self,
+        fragment: &Fragment,
+        spatial_id: SpatialId,
+        clip_chain_id: ClipChainId,
+        containing_block: &PhysicalRect<Au>,
+    ) {
+        let state = self.state.get_or_insert(HighlightTraversalState {
+            content_box: euclid::Rect::zero(),
+            spatial_id,
+            clip_chain_id,
+            maybe_box_fragment: None,
+        });
+
+        // We expect all fragments generated by one node to be in the same scroll tree node and clip node
+        debug_assert_eq!(spatial_id, state.spatial_id);
+        if clip_chain_id != ClipChainId::INVALID && state.clip_chain_id != ClipChainId::INVALID {
+            debug_assert_eq!(
+                clip_chain_id, state.clip_chain_id,
+                "Fragments of the same node must either have no clip chain or the same one"
+            );
+        }
+
+        let fragment_relative_rect = match fragment {
+            Fragment::Box(fragment) | Fragment::Float(fragment) => {
+                state.maybe_box_fragment = Some(fragment.clone());
+
+                fragment.borrow().content_rect
+            },
+            Fragment::Positioning(fragment) => fragment.borrow().rect,
+            Fragment::Text(fragment) => fragment.borrow().rect,
+            Fragment::Image(image_fragment) => image_fragment.borrow().rect,
+            Fragment::AbsoluteOrFixedPositioned(_) => return,
+            Fragment::IFrame(iframe_fragment) => iframe_fragment.borrow().rect,
+        };
+
+        state.content_box = state
+            .content_box
+            .union(&fragment_relative_rect.translate(containing_block.origin.to_vector()));
+    }
 }
 
 impl Fragment {
@@ -244,6 +440,17 @@ impl Fragment {
         is_hit_test_for_scrollable_overflow: bool,
         is_collapsed_table_borders: bool,
     ) {
+        if let Some(inspector_highlight) = &mut builder.inspector_highlight {
+            if self.tag() == Some(inspector_highlight.tag) {
+                inspector_highlight.register_fragment_of_highlighted_dom_node(
+                    self,
+                    builder.current_scroll_node_id.spatial_id,
+                    builder.current_clip_chain_id,
+                    containing_block,
+                );
+            }
+        }
+
         match self {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
                 let box_fragment = &*box_fragment.borrow();
@@ -711,7 +918,12 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build(&mut self, builder: &mut DisplayListBuilder, section: StackingContextSection) {
         if self.is_hit_test_for_scrollable_overflow {
-            self.build_hit_test(builder, self.fragment.scrollable_overflow().to_webrender());
+            self.build_hit_test(
+                builder,
+                self.fragment
+                    .reachable_scrollable_overflow_region()
+                    .to_webrender(),
+            );
             return;
         }
 
@@ -734,6 +946,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         {
             return;
         }
+
         self.build_background(builder);
         self.build_box_shadow(builder);
         self.build_border(builder);

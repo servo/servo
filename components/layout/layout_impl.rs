@@ -16,7 +16,6 @@ use base::Epoch;
 use base::id::{PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::ScrollState;
-use embedder_traits::resources::{self, Resource};
 use embedder_traits::{UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Scale, Size2D, Vector2D};
@@ -70,7 +69,7 @@ use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength};
-use style::values::specified::font::KeywordInfo;
+use style::values::specified::font::{KeywordInfo, QueryFontMetricsFlags};
 use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
@@ -99,6 +98,18 @@ static STYLE_THREAD_POOL: Mutex<&style::global_style_data::STYLE_THREAD_POOL> =
 thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {
     LazyCell::new(|| RefCell::new(HashSet::new()))
 });
+
+/// A CSS file to style the user agent stylesheet.
+static USER_AGENT_CSS: &[u8] = include_bytes!("./stylesheets/user-agent.css");
+
+/// A CSS file to style the Servo browser.
+static SERVO_CSS: &[u8] = include_bytes!("./stylesheets/servo.css");
+
+/// A CSS file to style the presentational hints.
+static PRESENTATIONAL_HINTS_CSS: &[u8] = include_bytes!("./stylesheets/presentational-hints.css");
+
+/// A CSS file to style the quirks mode.
+static QUIRKS_MODE_CSS: &[u8] = include_bytes!("./stylesheets/quirks-mode.css");
 
 /// Information needed by layout.
 pub struct LayoutThread {
@@ -441,6 +452,8 @@ impl Layout for LayoutThread {
                 .map(|tree| tree.conditional_size_of(ops))
                 .unwrap_or_default(),
         });
+
+        reports.push(self.image_cache.memory_report(formatted_url, ops));
     }
 
     fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
@@ -638,6 +651,7 @@ impl LayoutThread {
             ))),
             iframe_sizes: Mutex::default(),
             use_rayon: rayon_pool.is_some(),
+            highlighted_dom_node: reflow_request.highlighted_dom_node,
         };
 
         self.restyle_and_build_trees(
@@ -983,20 +997,12 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     // FIXME: presentational-hints.css should be at author origin with zero specificity.
     //        (Does it make a difference?)
     let mut user_or_user_agent_stylesheets = vec![
-        parse_ua_stylesheet(
-            shared_lock,
-            "user-agent.css",
-            &resources::read_bytes(Resource::UserAgentCSS),
-        )?,
-        parse_ua_stylesheet(
-            shared_lock,
-            "servo.css",
-            &resources::read_bytes(Resource::ServoCSS),
-        )?,
+        parse_ua_stylesheet(shared_lock, "user-agent.css", USER_AGENT_CSS)?,
+        parse_ua_stylesheet(shared_lock, "servo.css", SERVO_CSS)?,
         parse_ua_stylesheet(
             shared_lock,
             "presentational-hints.css",
-            &resources::read_bytes(Resource::PresentationalHintsCSS),
+            PRESENTATIONAL_HINTS_CSS,
         )?,
     ];
 
@@ -1017,11 +1023,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         )));
     }
 
-    let quirks_mode_stylesheet = parse_ua_stylesheet(
-        shared_lock,
-        "quirks-mode.css",
-        &resources::read_bytes(Resource::QuirksModeCSS),
-    )?;
+    let quirks_mode_stylesheet =
+        parse_ua_stylesheet(shared_lock, "quirks-mode.css", QUIRKS_MODE_CSS)?;
 
     Ok(UserAgentStylesheets {
         shared_lock: shared_lock.clone(),
@@ -1097,8 +1100,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
         _vertical: bool,
         font: &Font,
         base_size: CSSPixelLength,
-        _in_media_query: bool,
-        _retrieve_math_scales: bool,
+        _flags: QueryFontMetricsFlags,
     ) -> FontMetrics {
         let font_context = &self.0;
         let font_group = self

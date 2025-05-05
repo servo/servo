@@ -1068,7 +1068,6 @@ impl<'a> TableLayout<'a> {
         &mut self,
         layout_context: &LayoutContext,
         containing_block_for_table: &ContainingBlock,
-        parent_positioning_context: &mut PositioningContext,
     ) {
         self.cells_laid_out = self
             .table
@@ -1076,30 +1075,6 @@ impl<'a> TableLayout<'a> {
             .par_iter()
             .enumerate()
             .map(|(row_index, row_slots)| {
-                // When building the PositioningContext for this cell, we want it to have the same
-                // configuration for whatever PositioningContext the contents are ultimately added to.
-                let collect_for_nearest_positioned_ancestor = parent_positioning_context
-                    .collects_for_nearest_positioned_ancestor() ||
-                    self.table.rows.get(row_index).is_some_and(|row| {
-                        let row = row.borrow();
-                        let row_group_collects_for_nearest_positioned_ancestor =
-                            row.group_index.is_some_and(|group_index| {
-                                self.table.row_groups[group_index]
-                                    .borrow()
-                                    .base
-                                    .style
-                                    .establishes_containing_block_for_absolute_descendants(
-                                        FragmentFlags::empty(),
-                                    )
-                            });
-                        row_group_collects_for_nearest_positioned_ancestor ||
-                            row.base
-                                .style
-                                .establishes_containing_block_for_absolute_descendants(
-                                    FragmentFlags::empty(),
-                                )
-                    });
-
                 row_slots
                     .par_iter()
                     .enumerate()
@@ -1141,10 +1116,7 @@ impl<'a> TableLayout<'a> {
                             style: &cell.base.style,
                         };
 
-                        let mut positioning_context = PositioningContext::new_for_subtree(
-                            collect_for_nearest_positioned_ancestor,
-                        );
-
+                        let mut positioning_context = PositioningContext::default();
                         let layout = cell.contents.layout(
                             layout_context,
                             &mut positioning_context,
@@ -1503,7 +1475,6 @@ impl<'a> TableLayout<'a> {
         layout_context: &LayoutContext,
         parent_positioning_context: &mut PositioningContext,
     ) -> BoxFragment {
-        let mut positioning_context = PositioningContext::new_for_style(caption.context.style());
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize {
                 inline: self.table_width + self.pbm.padding_border_sums.inline,
@@ -1517,6 +1488,8 @@ impl<'a> TableLayout<'a> {
         // stretch block size. https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
         let ignore_block_margins_for_stretch = LogicalSides1D::new(false, false);
 
+        let mut positioning_context =
+            PositioningContext::new_for_layout_box_base(&caption.context.base);
         let mut box_fragment = caption.context.layout_in_flow_block_level(
             layout_context,
             positioning_context
@@ -1769,11 +1742,7 @@ impl<'a> TableLayout<'a> {
     ) -> BoxFragment {
         self.distributed_column_widths =
             Self::distribute_width_to_columns(self.assignable_width, &self.columns);
-        self.layout_cells_in_row(
-            layout_context,
-            containing_block_for_children,
-            positioning_context,
-        );
+        self.layout_cells_in_row(layout_context, containing_block_for_children);
         let table_writing_mode = containing_block_for_children.style.writing_mode;
         let first_layout_row_heights = self.do_first_row_layout(table_writing_mode);
         self.compute_table_height_and_final_row_heights(
@@ -2325,7 +2294,7 @@ impl<'a> RowFragmentLayout<'a> {
         Self {
             row: table_row,
             rect,
-            positioning_context: PositioningContext::new_for_style(&table_row.base.style),
+            positioning_context: PositioningContext::new_for_layout_box_base(&table_row.base),
             containing_block,
             fragments: Vec::new(),
         }
@@ -2379,11 +2348,11 @@ impl<'a> RowFragmentLayout<'a> {
         if let Some(mut row_positioning_context) = self.positioning_context.take() {
             row_positioning_context.layout_collected_children(layout_context, &mut row_fragment);
 
-            let positioning_context = row_group_fragment_layout
+            let parent_positioning_context = row_group_fragment_layout
                 .as_mut()
                 .and_then(|layout| layout.positioning_context.as_mut())
                 .unwrap_or(table_positioning_context);
-            positioning_context.append(row_positioning_context);
+            parent_positioning_context.append(row_positioning_context);
         }
 
         let fragment = Fragment::Box(ArcRefCell::new(row_fragment));
@@ -2410,7 +2379,7 @@ impl RowGroupFragmentLayout {
             let row_group = row_group.borrow();
             (
                 dimensions.get_row_group_rect(&row_group),
-                PositioningContext::new_for_style(&row_group.base.style),
+                PositioningContext::new_for_layout_box_base(&row_group.base),
             )
         };
         Self {

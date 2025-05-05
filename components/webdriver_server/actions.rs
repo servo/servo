@@ -76,7 +76,7 @@ fn compute_tick_duration(tick_actions: &ActionSequence) -> u64 {
             }
         },
         ActionsType::Key { actions: _ } => (),
-        ActionsType::Wheel { .. } => todo!("Not implemented."),
+        ActionsType::Wheel { .. } => log::error!("not implemented"),
     }
     duration
 }
@@ -176,7 +176,10 @@ impl Handler {
                     }
                 }
             },
-            ActionsType::Wheel { .. } => todo!("Not implemented."),
+            ActionsType::Wheel { .. } => {
+                log::error!("not yet implemented");
+                return Err(ErrorStatus::UnsupportedOperation);
+            },
         }
 
         Ok(())

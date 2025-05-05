@@ -20,8 +20,10 @@ use serde_json::{Map, Value};
 
 use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
 use super::thread::ThreadActor;
+use super::worker::WorkerMsg;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
+use crate::actors::root::RootActor;
 use crate::actors::watcher::target_configuration::{
     TargetConfigurationActor, TargetConfigurationActorMsg,
 };
@@ -29,8 +31,8 @@ use crate::actors::watcher::thread_configuration::{
     ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
 use crate::protocol::JsonPacketStream;
-use crate::resource::ResourceAvailable;
-use crate::{EmptyReplyMsg, StreamId};
+use crate::resource::{ResourceAvailable, ResourceAvailableReply};
+use crate::{EmptyReplyMsg, StreamId, WorkerActor};
 
 pub mod network_parent;
 pub mod target_configuration;
@@ -55,7 +57,7 @@ impl SessionContext {
             supported_targets: HashMap::from([
                 ("frame", true),
                 ("process", false),
-                ("worker", false),
+                ("worker", true),
                 ("service_worker", false),
                 ("shared_worker", false),
             ]),
@@ -103,11 +105,18 @@ pub enum SessionContextType {
 }
 
 #[derive(Serialize)]
+#[serde(untagged)]
+enum TargetActorMsg {
+    BrowsingContext(BrowsingContextActorMsg),
+    Worker(WorkerMsg),
+}
+
+#[derive(Serialize)]
 struct WatchTargetsReply {
     from: String,
     #[serde(rename = "type")]
     type_: String,
-    target: BrowsingContextActorMsg,
+    target: TargetActorMsg,
 }
 
 #[derive(Serialize)]
@@ -212,16 +221,38 @@ impl Actor for WatcherActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+        let root = registry.find::<RootActor>("root");
         Ok(match msg_type {
             "watchTargets" => {
-                let msg = WatchTargetsReply {
-                    from: self.name(),
-                    type_: "target-available-form".into(),
-                    target: target.encodable(),
-                };
-                let _ = stream.write_json_packet(&msg);
+                // As per logs we either get targetType as "frame" or "worker"
+                let target_type = msg
+                    .get("targetType")
+                    .and_then(Value::as_str)
+                    .unwrap_or("frame"); // default to "frame"
 
-                target.frame_update(stream);
+                if target_type == "frame" {
+                    let msg = WatchTargetsReply {
+                        from: self.name(),
+                        type_: "target-available-form".into(),
+                        target: TargetActorMsg::BrowsingContext(target.encodable()),
+                    };
+                    let _ = stream.write_json_packet(&msg);
+
+                    target.frame_update(stream);
+                } else if target_type == "worker" {
+                    for worker_name in &root.workers {
+                        let worker = registry.find::<WorkerActor>(worker_name);
+                        let worker_msg = WatchTargetsReply {
+                            from: self.name(),
+                            type_: "target-available-form".into(),
+                            target: TargetActorMsg::Worker(worker.encodable()),
+                        };
+                        let _ = stream.write_json_packet(&worker_msg);
+                    }
+                } else {
+                    warn!("Unexpected target_type: {}", target_type);
+                    return Ok(ActorMessageStatus::Ignored);
+                }
 
                 // Messages that contain a `type` field are used to send event callbacks, but they
                 // don't count as a reply. Since every message needs to be responded, we send an
@@ -267,6 +298,22 @@ impl Actor for WatcherActor {
                             let thread_actor = registry.find::<ThreadActor>(&target.thread);
                             let sources = thread_actor.source_manager.sources();
                             target.resources_available(sources.iter().collect(), "source".into());
+
+                            for worker_name in &root.workers {
+                                let worker = registry.find::<WorkerActor>(worker_name);
+                                let thread = registry.find::<ThreadActor>(&worker.thread);
+                                let worker_sources = thread.source_manager.sources();
+
+                                let msg = ResourceAvailableReply {
+                                    from: worker.name(),
+                                    type_: "resources-available-array".into(),
+                                    array: vec![(
+                                        "source".to_string(),
+                                        worker_sources.iter().cloned().collect(),
+                                    )],
+                                };
+                                let _ = stream.write_json_packet(&msg);
+                            }
                         },
                         "console-message" | "error-message" => {},
                         _ => warn!("resource {} not handled yet", resource),

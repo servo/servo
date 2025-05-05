@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    .outer-container {
+        columns: 3;
+        column-fill: auto;
+        height: 100px;
+        width: 600px;
+        gap: 10px;
+        background: yellow;
+    }
+
+    .nested-container {
+        columns: 2;
+        box-decoration-break: clone;
+        padding: 10px;
+        gap: 10px;
+        background: cyan;
+    }
+
+    .inner-column {
+        height: 250px;
+        background: hotpink;
+        width: 80px;
+    }
+
+    #col-gap1 {
+        position: absolute;
+        height: 80px;
+        width: 1px;
+        background: green;
+        top: 18px;
+        left: 104px;
+    }
+
+    #col-gap2 {
+        position: absolute;
+        width: 1px;
+        background: green;
+        top: 18px;
+        left: 307px;
+        height: 45px;
+    }
+</style>
+<div class="outer-container">
+    <div class="nested-container">
+        <div class="inner-column"></div>
+    </div>
+</div>
+<div id="col-gap1"></div>
+<div id="col-gap2"></div>

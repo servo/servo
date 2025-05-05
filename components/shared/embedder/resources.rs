@@ -91,18 +91,6 @@ pub enum Resource {
     /// The message can contain a placeholder `${reason}` for the error code.
     /// It can be empty but then nothing will be displayed when an internal error occurs.
     NetErrorHTML,
-    /// A CSS file to style the user agent stylesheet.
-    /// It can be empty but then there's simply no user agent stylesheet.
-    UserAgentCSS,
-    /// A CSS file to style the Servo browser.
-    /// It can be empty but several features might not work as expected.
-    ServoCSS,
-    /// A CSS file to style the presentational hints.
-    /// It can be empty but then presentational hints will not be styled.
-    PresentationalHintsCSS,
-    /// A CSS file to style the quirks mode.
-    /// It can be empty but then quirks mode will not be styled.
-    QuirksModeCSS,
     /// A placeholder image to display if we couldn't get the requested image.
     ///
     /// ## Panic
@@ -110,12 +98,6 @@ pub enum Resource {
     /// If the resource is not provided, servo will fallback to a baked in default (See resources/rippy.png).
     /// However, if the image is provided but invalid, Servo will crash.
     RippyPNG,
-    /// A CSS file to style the media controls.
-    /// It can be empty but then media controls will not be styled.
-    MediaControlsCSS,
-    /// A JS file to control the media controls.
-    /// It can be empty but then media controls will not work.
-    MediaControlsJS,
     /// A placeholder HTML page to display when the code responsible for rendering a page panics and the original
     /// page can no longer be displayed.
     /// The message can contain a placeholder `${details}` for the error details.
@@ -137,13 +119,7 @@ impl Resource {
             Resource::HstsPreloadList => "hsts_preload.json",
             Resource::BadCertHTML => "badcert.html",
             Resource::NetErrorHTML => "neterror.html",
-            Resource::UserAgentCSS => "user-agent.css",
-            Resource::ServoCSS => "servo.css",
-            Resource::PresentationalHintsCSS => "presentational-hints.css",
-            Resource::QuirksModeCSS => "quirks-mode.css",
             Resource::RippyPNG => "rippy.png",
-            Resource::MediaControlsCSS => "media-controls.css",
-            Resource::MediaControlsJS => "media-controls.js",
             Resource::CrashHTML => "crash.html",
             Resource::DirectoryListingHTML => "directory-listing.html",
             Resource::AboutMemoryHTML => "about-memory.html",
@@ -183,21 +159,7 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                 },
                 Resource::BadCertHTML => &include_bytes!("../../../resources/badcert.html")[..],
                 Resource::NetErrorHTML => &include_bytes!("../../../resources/neterror.html")[..],
-                Resource::UserAgentCSS => &include_bytes!("../../../resources/user-agent.css")[..],
-                Resource::ServoCSS => &include_bytes!("../../../resources/servo.css")[..],
-                Resource::PresentationalHintsCSS => {
-                    &include_bytes!("../../../resources/presentational-hints.css")[..]
-                },
-                Resource::QuirksModeCSS => {
-                    &include_bytes!("../../../resources/quirks-mode.css")[..]
-                },
                 Resource::RippyPNG => &include_bytes!("../../../resources/rippy.png")[..],
-                Resource::MediaControlsCSS => {
-                    &include_bytes!("../../../resources/media-controls.css")[..]
-                },
-                Resource::MediaControlsJS => {
-                    &include_bytes!("../../../resources/media-controls.js")[..]
-                },
                 Resource::CrashHTML => &include_bytes!("../../../resources/crash.html")[..],
                 Resource::DirectoryListingHTML => {
                     &include_bytes!("../../../resources/directory-listing.html")[..]

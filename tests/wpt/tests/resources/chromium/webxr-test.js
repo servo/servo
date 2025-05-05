@@ -757,30 +757,34 @@ class MockRuntime {
     const viewport_size = 20;
     return [{
         eye: vrMojom.XREye.kLeft,
-        fieldOfView: {
-          upDegrees: 48.316,
-          downDegrees: 50.099,
-          leftDegrees: 50.899,
-          rightDegrees: 35.197
+        geometry: {
+          fieldOfView: {
+            upDegrees: 48.316,
+            downDegrees: 50.099,
+            leftDegrees: 50.899,
+            rightDegrees: 35.197
+          },
+          mojoFromView: this._getMojoFromViewerWithOffset(composeGFXTransform({
+            position: [-0.032, 0, 0],
+            orientation: [0, 0, 0, 1]
+          }))
         },
-        mojoFromView: this._getMojoFromViewerWithOffset(composeGFXTransform({
-          position: [-0.032, 0, 0],
-          orientation: [0, 0, 0, 1]
-        })),
         viewport: { x: 0, y: 0, width: viewport_size, height: viewport_size }
       },
       {
         eye: vrMojom.XREye.kRight,
-        fieldOfView: {
-          upDegrees: 48.316,
-          downDegrees: 50.099,
-          leftDegrees: 50.899,
-          rightDegrees: 35.197
+        geometry: {
+          fieldOfView: {
+            upDegrees: 48.316,
+            downDegrees: 50.099,
+            leftDegrees: 50.899,
+            rightDegrees: 35.197
+          },
+          mojoFromView: this._getMojoFromViewerWithOffset(composeGFXTransform({
+            position: [0.032, 0, 0],
+            orientation: [0, 0, 0, 1]
+          }))
         },
-        mojoFromView: this._getMojoFromViewerWithOffset(composeGFXTransform({
-          position: [0.032, 0, 0],
-          orientation: [0, 0, 0, 1]
-        })),
         viewport: { x: viewport_size, y: 0, width: viewport_size, height: viewport_size }
       }];
   }
@@ -835,13 +839,15 @@ class MockRuntime {
 
     return {
       eye: viewEye,
-      fieldOfView: fov,
-      mojoFromView: this._getMojoFromViewerWithOffset(composeGFXTransform(fakeXRViewInit.viewOffset)),
+      geometry: {
+        fieldOfView: fov,
+        mojoFromView: this._getMojoFromViewerWithOffset(composeGFXTransform(fakeXRViewInit.viewOffset))
+      },
       viewport: {
         x: xOffset,
-        y: 0,
-        width: fakeXRViewInit.resolution.width,
-        height: fakeXRViewInit.resolution.height
+      y: 0,
+      width: fakeXRViewInit.resolution.width,
+      height: fakeXRViewInit.resolution.height
       },
       isFirstPersonObserver: fakeXRViewInit.isFirstPersonObserver ? true : false,
       viewOffset: composeGFXTransform(fakeXRViewInit.viewOffset)
@@ -915,12 +921,12 @@ class MockRuntime {
 
         let frame_views = this.primaryViews_;
         for (let i = 0; i < this.primaryViews_.length; i++) {
-          this.primaryViews_[i].mojoFromView =
+          this.primaryViews_[i].geometry.mojoFromView =
             this._getMojoFromViewerWithOffset(this.primaryViews_[i].viewOffset);
         }
         if (this.enabledFeatures_.includes(xrSessionMojom.XRSessionFeature.SECONDARY_VIEWS)) {
           for (let i = 0; i < this.secondaryViews_.length; i++) {
-            this.secondaryViews_[i].mojoFromView =
+            this.secondaryViews_[i].geometry.mojoFromView =
               this._getMojoFromViewerWithOffset(this.secondaryViews_[i].viewOffset);
           }
 

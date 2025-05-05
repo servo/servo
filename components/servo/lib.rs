@@ -38,7 +38,6 @@ use base::id::{PipelineNamespace, PipelineNamespaceId};
 use bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
-use canvas::WebGLComm;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas_traits::webgl::{GlType, WebGLThreads};
 use clipboard_delegate::StringRequest;
@@ -99,6 +98,7 @@ use servo_delegate::DefaultServoDelegate;
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use servo_url::ServoUrl;
+use webgl::WebGLComm;
 #[cfg(feature = "webgpu")]
 pub use webgpu;
 #[cfg(feature = "webgpu")]
@@ -120,6 +120,7 @@ pub use {bluetooth, bluetooth_traits};
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
+use crate::webrender_api::FrameReadyParams;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, FormControl, NavigationRequest, PermissionRequest,
@@ -233,14 +234,13 @@ impl webrender_api::RenderNotifier for RenderNotifier {
     fn new_frame_ready(
         &self,
         document_id: DocumentId,
-        _scrolled: bool,
-        composite_needed: bool,
-        _frame_publish_id: FramePublishId,
+        _: FramePublishId,
+        frame_ready_params: &FrameReadyParams,
     ) {
         self.compositor_proxy
             .send(CompositorMsg::NewWebRenderFrameReady(
                 document_id,
-                composite_needed,
+                frame_ready_params.render,
             ));
     }
 }

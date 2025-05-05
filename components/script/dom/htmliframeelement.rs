@@ -162,8 +162,13 @@ impl HTMLIFrameElement {
         if load_data.url.scheme() == "javascript" {
             let window_proxy = self.GetContentWindow();
             if let Some(window_proxy) = window_proxy {
+                if document
+                    .global()
+                    .should_navigation_request_be_blocked(&load_data)
+                {
+                    return;
+                }
                 // Important re security. See https://github.com/servo/servo/issues/23373
-                // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
                 if ScriptThread::check_load_origin(&load_data.load_origin, &document.url().origin())
                 {
                     ScriptThread::eval_js_url(&window_proxy.global(), &mut load_data, can_gc);
@@ -274,6 +279,7 @@ impl HTMLIFrameElement {
                 Some(document.insecure_requests_policy()),
                 document.has_trustworthy_ancestor_or_current_origin(),
             );
+            load_data.policy_container = Some(window.as_global_scope().policy_container());
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
             self.navigate_or_reload_child_browsing_context(
@@ -356,7 +362,7 @@ impl HTMLIFrameElement {
             None
         };
 
-        let load_data = LoadData::new(
+        let mut load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             creator_pipeline_id,
@@ -372,6 +378,10 @@ impl HTMLIFrameElement {
         // see https://html.spec.whatwg.org/multipage/#the-iframe-element:about:blank-3
         let is_about_blank =
             pipeline_id.is_some() && pipeline_id == self.about_blank_pipeline_id.get();
+
+        if is_about_blank {
+            load_data.policy_container = Some(window.as_global_scope().policy_container());
+        }
 
         let history_handling = if is_about_blank {
             NavigationHistoryBehavior::Replace
@@ -402,7 +412,7 @@ impl HTMLIFrameElement {
         let document = self.owner_document();
         let window = self.owner_window();
         let pipeline_id = Some(window.pipeline_id());
-        let load_data = LoadData::new(
+        let mut load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             pipeline_id,
@@ -412,6 +422,7 @@ impl HTMLIFrameElement {
             Some(document.insecure_requests_policy()),
             document.has_trustworthy_ancestor_or_current_origin(),
         );
+        load_data.policy_container = Some(window.as_global_scope().policy_container());
         let browsing_context_id = BrowsingContextId::new();
         let webview_id = window.window_proxy().webview_id();
         self.pipeline_id.set(None);

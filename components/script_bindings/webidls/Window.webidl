@@ -27,8 +27,8 @@
   [CrossOriginCallable] undefined close();
   [CrossOriginReadable] readonly attribute boolean closed;
   undefined stop();
-  //[CrossOriginCallable] void focus();
-  //[CrossOriginCallable] void blur();
+  [CrossOriginCallable] undefined focus();
+  [CrossOriginCallable] undefined blur();
 
   // other browsing contexts
   [Replaceable, CrossOriginReadable] readonly attribute WindowProxy frames;

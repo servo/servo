@@ -689,16 +689,13 @@ fn layout_block_level_children_in_parallel(
     placement_state: &mut PlacementState,
     ignore_block_margins_for_stretch: LogicalSides1D<bool>,
 ) -> Vec<Fragment> {
-    let collects_for_nearest_positioned_ancestor =
-        positioning_context.collects_for_nearest_positioned_ancestor();
     let mut layout_results: Vec<(Fragment, PositioningContext)> =
         Vec::with_capacity(child_boxes.len());
 
     child_boxes
         .par_iter()
         .map(|child_box| {
-            let mut child_positioning_context =
-                PositioningContext::new_for_subtree(collects_for_nearest_positioned_ancestor);
+            let mut child_positioning_context = PositioningContext::default();
             let fragment = child_box.borrow().layout(
                 layout_context,
                 &mut child_positioning_context,
@@ -779,7 +776,7 @@ impl BlockLevelBox {
                 ArcRefCell::new(positioning_context.layout_maybe_position_relative_fragment(
                     layout_context,
                     containing_block,
-                    &base.style,
+                    base,
                     |positioning_context| {
                         layout_in_flow_non_replaced_block_level_same_formatting_context(
                             layout_context,
@@ -798,7 +795,7 @@ impl BlockLevelBox {
                 positioning_context.layout_maybe_position_relative_fragment(
                     layout_context,
                     containing_block,
-                    independent.style(),
+                    &independent.base,
                     |positioning_context| {
                         independent.layout_in_flow_block_level(
                             layout_context,
@@ -2241,7 +2238,9 @@ fn block_size_is_zero_or_intrinsic(size: &StyleSize, containing_block: &Containi
             lp.is_definitely_zero() ||
                 (lp.0.has_percentage() && !containing_block.size.block.is_definite())
         },
-        StyleSize::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+        StyleSize::AnchorSizeFunction(_) | StyleSize::AnchorContainingCalcFunction(_) => {
+            unreachable!("anchor-size() should be disabled")
+        },
     }
 }
 

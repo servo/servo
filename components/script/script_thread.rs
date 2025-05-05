@@ -50,8 +50,9 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, EmbedderMsg, InputEvent, MediaSessionActionType, MouseButton,
-    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
+    CompositorHitTestResult, EmbedderMsg, FocusSequenceNumber, InputEvent, MediaSessionActionType,
+    MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails,
+    WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
@@ -124,7 +125,7 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
 use crate::dom::document::{
-    Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
+    Document, DocumentSource, FocusInitiator, HasBrowsingContext, IsHTMLDocument, TouchEventResult,
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
@@ -331,8 +332,7 @@ pub struct ScriptThread {
     #[no_trace]
     layout_factory: Arc<dyn LayoutFactory>,
 
-    // Mouse down point.
-    // In future, this shall be mouse_down_point for primary button
+    /// The screen coordinates where the primary mouse button was pressed.
     #[no_trace]
     relative_mouse_down_point: Cell<Point2D<f32, DevicePixel>>,
 }
@@ -598,7 +598,7 @@ impl ScriptThread {
         with_script_thread(|script_thread| {
             let is_javascript = load_data.url.scheme() == "javascript";
             // If resource is a request whose url's scheme is "javascript"
-            // https://html.spec.whatwg.org/multipage/#javascript-protocol
+            // https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url
             if is_javascript {
                 let window = match script_thread.documents.borrow().find_window(pipeline_id) {
                     None => return,
@@ -612,8 +612,12 @@ impl ScriptThread {
                     .clone();
                 let task = task!(navigate_javascript: move || {
                     // Important re security. See https://github.com/servo/servo/issues/23373
-                    // TODO: check according to https://w3c.github.io/webappsec-csp/#should-block-navigation-request
                     if let Some(window) = trusted_global.root().downcast::<Window>() {
+                        // Step 5: If the result of should navigation request of type be blocked by
+                        // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
+                        if trusted_global.root().should_navigation_request_be_blocked(&load_data) {
+                            return;
+                        }
                         if ScriptThread::check_load_origin(&load_data.load_origin, &window.get_url().origin()) {
                             ScriptThread::eval_js_url(&trusted_global.root(), &mut load_data, CanGc::note());
                             sender
@@ -622,6 +626,7 @@ impl ScriptThread {
                         }
                     }
                 });
+                // Step 19 of <https://html.spec.whatwg.org/multipage/#navigate>
                 global
                     .task_manager()
                     .dom_manipulation_task_source()
@@ -740,7 +745,9 @@ impl ScriptThread {
                             .senders
                             .pipeline_to_constellation_sender
                             .clone(),
-                        image_cache: script_thread.image_cache.clone(),
+                        image_cache: script_thread
+                            .image_cache
+                            .create_new_image_cache(script_thread.compositor_api.clone()),
                         #[cfg(feature = "webgpu")]
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
                         inherited_secure_context: script_thread.inherited_secure_context,
@@ -1126,7 +1133,7 @@ impl ScriptThread {
                     document.dispatch_ime_event(ime_event, can_gc);
                 },
                 InputEvent::Gamepad(gamepad_event) => {
-                    window.as_global_scope().handle_gamepad_event(gamepad_event);
+                    window.handle_gamepad_event(gamepad_event);
                 },
                 InputEvent::EditingAction(editing_action_event) => {
                     document.handle_editing_action(editing_action_event, can_gc);
@@ -1804,8 +1811,14 @@ impl ScriptThread {
             ScriptThreadMessage::RemoveHistoryStates(pipeline_id, history_states) => {
                 self.handle_remove_history_states(pipeline_id, history_states)
             },
-            ScriptThreadMessage::FocusIFrame(parent_pipeline_id, frame_id) => {
-                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id, can_gc)
+            ScriptThreadMessage::FocusIFrame(parent_pipeline_id, frame_id, sequence) => {
+                self.handle_focus_iframe_msg(parent_pipeline_id, frame_id, sequence, can_gc)
+            },
+            ScriptThreadMessage::FocusDocument(pipeline_id, sequence) => {
+                self.handle_focus_document_msg(pipeline_id, sequence, can_gc)
+            },
+            ScriptThreadMessage::Unfocus(pipeline_id, sequence) => {
+                self.handle_unfocus_msg(pipeline_id, sequence, can_gc)
             },
             ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg, can_gc)
@@ -2055,6 +2068,9 @@ impl ScriptThread {
                     },
                     None => warn!("Message sent to closed pipeline {}.", id),
                 }
+            },
+            DevtoolScriptControlMsg::HighlightDomNode(id, node_id) => {
+                devtools::handle_highlight_dom_node(&documents, id, node_id)
             },
         }
     }
@@ -2432,8 +2448,6 @@ impl ScriptThread {
 
             let prefix = format!("url({urls})");
             reports.extend(self.get_cx().get_reports(prefix.clone(), ops));
-
-            reports.push(self.image_cache.memory_report(&prefix, ops));
         });
 
         reports_chan.send(ProcessReports::new(reports));
@@ -2514,6 +2528,7 @@ impl ScriptThread {
         &self,
         parent_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
+        sequence: FocusSequenceNumber,
         can_gc: CanGc,
     ) {
         let document = self
@@ -2533,7 +2548,65 @@ impl ScriptThread {
             return;
         };
 
-        document.request_focus(Some(&iframe_element_root), FocusType::Parent, can_gc);
+        if document.get_focus_sequence() > sequence {
+            debug!(
+                "Disregarding the FocusIFrame message because the contained sequence number is \
+                too old ({:?} < {:?})",
+                sequence,
+                document.get_focus_sequence()
+            );
+            return;
+        }
+
+        document.request_focus(Some(&iframe_element_root), FocusInitiator::Remote, can_gc);
+    }
+
+    fn handle_focus_document_msg(
+        &self,
+        pipeline_id: PipelineId,
+        sequence: FocusSequenceNumber,
+        can_gc: CanGc,
+    ) {
+        if let Some(doc) = self.documents.borrow().find_document(pipeline_id) {
+            if doc.get_focus_sequence() > sequence {
+                debug!(
+                    "Disregarding the FocusDocument message because the contained sequence number is \
+                    too old ({:?} < {:?})",
+                    sequence,
+                    doc.get_focus_sequence()
+                );
+                return;
+            }
+            doc.request_focus(None, FocusInitiator::Remote, can_gc);
+        } else {
+            warn!(
+                "Couldn't find document by pipleline_id:{pipeline_id:?} when handle_focus_document_msg."
+            );
+        }
+    }
+
+    fn handle_unfocus_msg(
+        &self,
+        pipeline_id: PipelineId,
+        sequence: FocusSequenceNumber,
+        can_gc: CanGc,
+    ) {
+        if let Some(doc) = self.documents.borrow().find_document(pipeline_id) {
+            if doc.get_focus_sequence() > sequence {
+                debug!(
+                    "Disregarding the Unfocus message because the contained sequence number is \
+                    too old ({:?} < {:?})",
+                    sequence,
+                    doc.get_focus_sequence()
+                );
+                return;
+            }
+            doc.handle_container_unfocus(can_gc);
+        } else {
+            warn!(
+                "Couldn't find document by pipleline_id:{pipeline_id:?} when handle_unfocus_msg."
+            );
+        }
     }
 
     fn handle_post_message_msg(
@@ -2743,8 +2816,6 @@ impl ScriptThread {
     ) {
         debug!("{id}: Starting pipeline exit.");
 
-        self.closed_pipelines.borrow_mut().insert(id);
-
         // Abort the parser, if any,
         // to prevent any further incoming networking messages from being handled.
         let document = self.documents.borrow_mut().remove(id);
@@ -2764,12 +2835,6 @@ impl ScriptThread {
 
             debug!("{id}: Shutting down layout");
             document.window().layout_mut().exit_now();
-
-            debug!("{id}: Sending PipelineExited message to constellation");
-            self.senders
-                .pipeline_to_constellation_sender
-                .send((id, ScriptToConstellationMessage::PipelineExited))
-                .ok();
 
             // Clear any active animations and unroot all of the associated DOM objects.
             debug!("{id}: Clearing animations");
@@ -2792,6 +2857,15 @@ impl ScriptThread {
             debug!("{id}: Clearing JavaScript runtime");
             window.clear_js_runtime();
         }
+
+        // Prevent any further work for this Pipeline.
+        self.closed_pipelines.borrow_mut().insert(id);
+
+        debug!("{id}: Sending PipelineExited message to constellation");
+        self.senders
+            .pipeline_to_constellation_sender
+            .send((id, ScriptToConstellationMessage::PipelineExited))
+            .ok();
 
         debug!("{id}: Finished pipeline exit");
     }
@@ -3075,13 +3149,17 @@ impl ScriptThread {
             self.resource_threads.clone(),
         ));
 
+        let image_cache = self
+            .image_cache
+            .create_new_image_cache(self.compositor_api.clone());
+
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
             webview_id: incomplete.webview_id,
             url: final_url.clone(),
             is_iframe: incomplete.parent_info.is_some(),
             script_chan: self.senders.constellation_sender.clone(),
-            image_cache: self.image_cache.clone(),
+            image_cache: image_cache.clone(),
             font_context: font_context.clone(),
             time_profiler_chan: self.senders.time_profiler_sender.clone(),
             compositor_api: self.compositor_api.clone(),
@@ -3096,7 +3174,7 @@ impl ScriptThread {
             self.layout_factory.create(layout_config),
             font_context,
             self.senders.image_cache_sender.clone(),
-            self.image_cache.clone(),
+            image_cache.clone(),
             self.resource_threads.clone(),
             #[cfg(feature = "bluetooth")]
             self.senders.bluetooth_sender.clone(),
@@ -3604,10 +3682,12 @@ impl ScriptThread {
             None => vec![],
         };
 
+        let policy_container = incomplete.load_data.policy_container.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let dummy_request_id = RequestId::default();
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.append_parent_to_csp_list(policy_container.as_ref());
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
             dummy_request_id,
@@ -3627,12 +3707,14 @@ impl ScriptThread {
         let srcdoc = std::mem::take(&mut incomplete.load_data.srcdoc);
         let chunk = srcdoc.into_bytes();
 
+        let policy_container = incomplete.load_data.policy_container.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let mut context = ParserContext::new(id, url);
         let dummy_request_id = RequestId::default();
 
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.append_parent_to_csp_list(policy_container.as_ref());
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
             dummy_request_id,

@@ -396,7 +396,7 @@ async def test_page_with_cached_script_javascript(
 
 
 @pytest.mark.asyncio
-async def tst_page_with_cached_javascript_module(
+async def test_page_with_cached_javascript_module(
     bidi_session,
     url,
     inline,

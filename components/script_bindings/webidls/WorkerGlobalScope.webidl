@@ -19,6 +19,6 @@ interface WorkerGlobalScope : GlobalScope {
 [Exposed=Worker]
 partial interface WorkerGlobalScope { // not obsolete
   [Throws]
-  undefined importScripts(DOMString... urls);
+  undefined importScripts((TrustedScriptURL or USVString)... urls);
   readonly attribute WorkerNavigator navigator;
 };

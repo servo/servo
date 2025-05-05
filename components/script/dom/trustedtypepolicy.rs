@@ -7,6 +7,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::JSObject;
 use js::rust::HandleValue;
+use strum_macros::IntoStaticStr;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyBinding::TrustedTypePolicyMethods;
@@ -38,6 +39,13 @@ pub struct TrustedTypePolicy {
     create_script_url: Option<Rc<CreateScriptURLCallback>>,
 }
 
+#[derive(Clone, IntoStaticStr)]
+pub(crate) enum TrustedType {
+    TrustedHTML,
+    TrustedScript,
+    TrustedScriptURL,
+}
+
 impl TrustedTypePolicy {
     fn new_inherited(name: String, options: &TrustedTypePolicyOptions) -> Self {
         Self {
@@ -59,51 +67,87 @@ impl TrustedTypePolicy {
         reflect_dom_object(Box::new(Self::new_inherited(name, options)), global, can_gc)
     }
 
-    // TODO(36258): Remove when we refactor get_trusted_type_policy_value to take an enum
-    // value to handle which callback to call. The callback should not be exposed outside
-    // of the policy object, but is currently used in TrustedPolicyFactory::process_value_with_default_policy
-    pub(crate) fn create_script_url(&self) -> Option<Rc<CreateScriptURLCallback>> {
-        self.create_script_url.clone()
+    /// <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-policy-value-algorithm>
+    fn check_callback_if_missing(throw_if_missing: bool) -> Fallible<Option<String>> {
+        // Step 3.1: If throwIfMissing throw a TypeError.
+        if throw_if_missing {
+            Err(Type("Cannot find type".to_owned()))
+        } else {
+            // Step 3.2: Else return null.
+            Ok(None)
+        }
     }
 
-    /// This does not take all arguments as specified. That's because the return type of the
-    /// trusted type function and object are not the same. 2 of the 3 string callbacks return
-    /// a DOMString, while the other one returns an USVString. Additionally, all three callbacks
-    /// have a unique type signature in WebIDL.
-    ///
-    /// To circumvent these type problems, rather than implementing the full functionality here,
-    /// part of the algorithm is implemented on the caller side. There, we only call the callback
-    /// and create the object. The rest of the machinery is ensuring the right values pass through
-    /// to the relevant callbacks.
-    ///
     /// <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-policy-value-algorithm>
-    pub(crate) fn get_trusted_type_policy_value<S, PolicyCallback>(
+    pub(crate) fn get_trusted_type_policy_value(
         &self,
-        policy_value_callback: PolicyCallback,
+        expected_type: TrustedType,
+        cx: JSContext,
+        input: DOMString,
+        arguments: Vec<HandleValue>,
         throw_if_missing: bool,
-    ) -> Fallible<Option<S>>
-    where
-        S: AsRef<str>,
-        PolicyCallback: FnOnce() -> Option<Fallible<Option<S>>>,
-    {
+        can_gc: CanGc,
+    ) -> Fallible<Option<String>> {
+        rooted!(in(*cx) let this_object: *mut JSObject);
         // Step 1: Let functionName be a function name for the given trustedTypeName, based on the following table:
-        // Step 2: Let function be policy’s options[functionName].
-        let function = policy_value_callback();
-        match function {
-            // Step 3: If function is null, then:
-            None => {
-                // Step 3.1: If throwIfMissing throw a TypeError.
-                if throw_if_missing {
-                    Err(Type("Cannot find type".to_owned()))
-                } else {
-                    // Step 3.2: Else return null.
-                    Ok(None)
-                }
+        match expected_type {
+            TrustedType::TrustedHTML => match &self.create_html {
+                // Step 3: If function is null, then:
+                None => TrustedTypePolicy::check_callback_if_missing(throw_if_missing),
+                // Step 2: Let function be policy’s options[functionName].
+                Some(callback) => {
+                    // Step 4: Let policyValue be the result of invoking function with value as a first argument,
+                    // items of arguments as subsequent arguments, and callback **this** value set to null,
+                    // rethrowing any exceptions.
+                    callback
+                        .Call_(
+                            &this_object.handle(),
+                            input,
+                            arguments,
+                            ExceptionHandling::Rethrow,
+                            can_gc,
+                        )
+                        .map(|result| result.map(|str| str.as_ref().to_owned()))
+                },
             },
-            // Step 4: Let policyValue be the result of invoking function with value as a first argument,
-            // items of arguments as subsequent arguments, and callback **this** value set to null,
-            // rethrowing any exceptions.
-            Some(policy_value) => policy_value,
+            TrustedType::TrustedScript => match &self.create_script {
+                // Step 3: If function is null, then:
+                None => TrustedTypePolicy::check_callback_if_missing(throw_if_missing),
+                // Step 2: Let function be policy’s options[functionName].
+                Some(callback) => {
+                    // Step 4: Let policyValue be the result of invoking function with value as a first argument,
+                    // items of arguments as subsequent arguments, and callback **this** value set to null,
+                    // rethrowing any exceptions.
+                    callback
+                        .Call_(
+                            &this_object.handle(),
+                            input,
+                            arguments,
+                            ExceptionHandling::Rethrow,
+                            can_gc,
+                        )
+                        .map(|result| result.map(|str| str.as_ref().to_owned()))
+                },
+            },
+            TrustedType::TrustedScriptURL => match &self.create_script_url {
+                // Step 3: If function is null, then:
+                None => TrustedTypePolicy::check_callback_if_missing(throw_if_missing),
+                // Step 2: Let function be policy’s options[functionName].
+                Some(callback) => {
+                    // Step 4: Let policyValue be the result of invoking function with value as a first argument,
+                    // items of arguments as subsequent arguments, and callback **this** value set to null,
+                    // rethrowing any exceptions.
+                    callback
+                        .Call_(
+                            &this_object.handle(),
+                            input,
+                            arguments,
+                            ExceptionHandling::Rethrow,
+                            can_gc,
+                        )
+                        .map(|result| result.map(|str| str.as_ref().to_owned()))
+                },
+            },
         }
     }
 
@@ -118,27 +162,30 @@ impl TrustedTypePolicy {
     /// to the relevant callbacks.
     ///
     /// <https://w3c.github.io/trusted-types/dist/spec/#create-a-trusted-type-algorithm>
-    pub(crate) fn create_trusted_type<R, S, PolicyCallback, TrustedTypeCallback>(
+    pub(crate) fn create_trusted_type<R, TrustedTypeCallback>(
         &self,
-        policy_value_callback: PolicyCallback,
+        expected_type: TrustedType,
+        cx: JSContext,
+        input: DOMString,
+        arguments: Vec<HandleValue>,
         trusted_type_creation_callback: TrustedTypeCallback,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<R>>
     where
         R: DomObject,
-        S: AsRef<str>,
-        PolicyCallback: FnOnce() -> Option<Fallible<Option<S>>>,
         TrustedTypeCallback: FnOnce(String) -> DomRoot<R>,
     {
         // Step 1: Let policyValue be the result of executing Get Trusted Type policy value
         // with the same arguments as this algorithm and additionally true as throwIfMissing.
-        let policy_value = self.get_trusted_type_policy_value(policy_value_callback, true);
+        let policy_value =
+            self.get_trusted_type_policy_value(expected_type, cx, input, arguments, true, can_gc);
         match policy_value {
             // Step 2: If the algorithm threw an error, rethrow the error and abort the following steps.
             Err(error) => Err(error),
             Ok(policy_value) => {
                 // Step 3: Let dataString be the result of stringifying policyValue.
                 let data_string = match policy_value {
-                    Some(value) => value.as_ref().into(),
+                    Some(value) => value,
                     // Step 4: If policyValue is null or undefined, set dataString to the empty string.
                     None => "".to_owned(),
                 };
@@ -164,22 +211,12 @@ impl TrustedTypePolicyMethods<crate::DomTypeHolder> for TrustedTypePolicy {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedHTML>> {
         self.create_trusted_type(
-            || {
-                self.create_html.clone().map(|callback| {
-                    rooted!(in(*cx) let this_object: *mut JSObject);
-                    // Step 4: Let policyValue be the result of invoking function with value as a first argument,
-                    // items of arguments as subsequent arguments, and callback **this** value set to null,
-                    // rethrowing any exceptions.
-                    callback.Call_(
-                        &this_object.handle(),
-                        input,
-                        arguments,
-                        ExceptionHandling::Rethrow,
-                        can_gc,
-                    )
-                })
-            },
+            TrustedType::TrustedHTML,
+            cx,
+            input,
+            arguments,
             |data_string| TrustedHTML::new(data_string, &self.global(), can_gc),
+            can_gc,
         )
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicy-createscript>
@@ -191,22 +228,12 @@ impl TrustedTypePolicyMethods<crate::DomTypeHolder> for TrustedTypePolicy {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedScript>> {
         self.create_trusted_type(
-            || {
-                self.create_script.clone().map(|callback| {
-                    rooted!(in(*cx) let this_object: *mut JSObject);
-                    // Step 4: Let policyValue be the result of invoking function with value as a first argument,
-                    // items of arguments as subsequent arguments, and callback **this** value set to null,
-                    // rethrowing any exceptions.
-                    callback.Call_(
-                        &this_object.handle(),
-                        input,
-                        arguments,
-                        ExceptionHandling::Rethrow,
-                        can_gc,
-                    )
-                })
-            },
+            TrustedType::TrustedScript,
+            cx,
+            input,
+            arguments,
             |data_string| TrustedScript::new(data_string, &self.global(), can_gc),
+            can_gc,
         )
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicy-createscripturl>
@@ -218,22 +245,12 @@ impl TrustedTypePolicyMethods<crate::DomTypeHolder> for TrustedTypePolicy {
         can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedScriptURL>> {
         self.create_trusted_type(
-            || {
-                self.create_script_url.clone().map(|callback| {
-                    rooted!(in(*cx) let this_object: *mut JSObject);
-                    // Step 4: Let policyValue be the result of invoking function with value as a first argument,
-                    // items of arguments as subsequent arguments, and callback **this** value set to null,
-                    // rethrowing any exceptions.
-                    callback.Call_(
-                        &this_object.handle(),
-                        input,
-                        arguments,
-                        ExceptionHandling::Rethrow,
-                        can_gc,
-                    )
-                })
-            },
+            TrustedType::TrustedScriptURL,
+            cx,
+            input,
+            arguments,
             |data_string| TrustedScriptURL::new(data_string, &self.global(), can_gc),
+            can_gc,
         )
     }
 }

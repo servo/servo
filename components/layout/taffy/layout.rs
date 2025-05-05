@@ -29,7 +29,7 @@ use crate::geom::{
 use crate::layout_box_base::CacheableLayoutResult;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
-use crate::style_ext::{ComputedValuesExt, LayoutStyle};
+use crate::style_ext::LayoutStyle;
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
 const DUMMY_NODE_ID: taffy::NodeId = taffy::NodeId::new(u64::MAX);
@@ -250,28 +250,15 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                             },
                             style,
                         };
-                        let layout = {
-                            let mut child_positioning_context =
-                                PositioningContext::new_for_style(style).unwrap_or_else(|| {
-                                    PositioningContext::new_for_subtree(
-                                        self.positioning_context
-                                            .collects_for_nearest_positioned_ancestor(),
-                                    )
-                                });
 
-                            let layout = non_replaced.layout_without_caching(
-                                self.layout_context,
-                                &mut child_positioning_context,
-                                &content_box_size_override,
-                                containing_block,
-                                false, /* depends_on_block_constraints */
-                            );
-
-                            // Store layout data on child for later access
-                            child.positioning_context = child_positioning_context;
-
-                            layout
-                        };
+                        child.positioning_context = PositioningContext::default();
+                        let layout = non_replaced.layout_without_caching(
+                            self.layout_context,
+                            &mut child.positioning_context,
+                            &content_box_size_override,
+                            containing_block,
+                            false, /* depends_on_block_constraints */
+                        );
 
                         child.child_fragments = layout.fragments;
                         self.child_specific_layout_infos[usize::from(node_id)] =
@@ -372,8 +359,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
 
         let mut grid_context = TaffyContainerContext {
             layout_context,
-            positioning_context:
-                &mut PositioningContext::new_for_containing_block_for_all_descendants(),
+            positioning_context: &mut PositioningContext::default(),
             content_box_size_override: containing_block,
             style,
             source_child_nodes: &self.children,
@@ -539,17 +525,6 @@ impl TaffyContainer {
                 let child_specific_layout_info: Option<SpecificLayoutInfo> =
                     std::mem::take(&mut container_ctx.child_specific_layout_infos[child_id]);
 
-                let establishes_containing_block_for_absolute_descendants =
-                    if let TaffyItemBoxInner::InFlowBox(independent_box) = &child.taffy_level_box {
-                        child
-                            .style
-                            .establishes_containing_block_for_absolute_descendants(
-                                independent_box.base_fragment_info().flags,
-                            )
-                    } else {
-                        false
-                    };
-
                 let fragment = match &mut child.taffy_level_box {
                     TaffyItemBoxInner::InFlowBox(independent_box) => {
                         let mut fragment_info = independent_box.base_fragment_info();
@@ -572,29 +547,21 @@ impl TaffyContainer {
                         })
                         .with_specific_layout_info(child_specific_layout_info);
 
-                        if establishes_containing_block_for_absolute_descendants {
-                            child.positioning_context.layout_collected_children(
-                                container_ctx.layout_context,
-                                &mut box_fragment,
-                            );
-                        }
-
-                        let fragment = Fragment::Box(ArcRefCell::new(box_fragment));
-
+                        child.positioning_context.layout_collected_children(
+                            container_ctx.layout_context,
+                            &mut box_fragment,
+                        );
                         child
                             .positioning_context
-                            .adjust_static_position_of_hoisted_fragments(
-                                &fragment,
+                            .adjust_static_position_of_hoisted_fragments_with_offset(
+                                &box_fragment.content_rect.origin.to_vector(),
                                 PositioningContextLength::zero(),
                             );
-                        let child_positioning_context = std::mem::replace(
-                            &mut child.positioning_context,
-                            PositioningContext::new_for_containing_block_for_all_descendants(),
-                        );
                         container_ctx
                             .positioning_context
-                            .append(child_positioning_context);
-                        fragment
+                            .append(std::mem::take(&mut child.positioning_context));
+
+                        Fragment::Box(ArcRefCell::new(box_fragment))
                     },
                     TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(abs_pos_box) => {
                         fn resolve_alignment(value: AlignFlags, auto: AlignFlags) -> AlignFlags {

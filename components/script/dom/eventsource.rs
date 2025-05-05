@@ -11,6 +11,7 @@ use std::time::Duration;
 use content_security_policy as csp;
 use dom_struct::dom_struct;
 use headers::ContentType;
+use http::StatusCode;
 use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -183,7 +184,9 @@ impl EventSourceContext {
                 self.data.push_str(&self.value);
                 self.data.push('\n');
             },
-            "id" => mem::swap(&mut self.last_event_id, &mut self.value),
+            "id" if !self.value.contains('\0') => {
+                mem::swap(&mut self.last_event_id, &mut self.value);
+            },
             "retry" => {
                 if let Ok(time) = u64::from_str(&self.value) {
                     self.event_source
@@ -349,6 +352,11 @@ impl FetchResponseListener for EventSourceContext {
                         _ => unsafe_,
                     },
                 };
+                // Step 15.3 if res's status is not 200, or if res's `Content-Type` is not
+                // `text/event-stream`, then fail the connection.
+                if meta.status.code() != StatusCode::OK {
+                    return self.fail_the_connection();
+                }
                 let mime = match meta.content_type {
                     None => return self.fail_the_connection(),
                     Some(ct) => <ContentType as Into<Mime>>::into(ct.into_inner()),
@@ -357,12 +365,15 @@ impl FetchResponseListener for EventSourceContext {
                     return self.fail_the_connection();
                 }
                 self.origin = meta.final_url.origin().ascii_serialization();
+                // Step 15.4 announce the connection and interpret res's body line by line.
                 self.announce_the_connection();
             },
             Err(_) => {
-                // The spec advises failing here if reconnecting would be
-                // "futile", with no more specific advice; WPT tests
-                // consider a non-http(s) scheme to be futile.
+                // Step 15.2 if res is a network error, then reestablish the connection, unless
+                // the user agent knows that to be futile, in which case the user agent may
+                // fail the connection.
+
+                // WPT tests consider a non-http(s) scheme to be futile.
                 match self.event_source.root().url.scheme() {
                     "http" | "https" => self.reestablish_the_connection(),
                     _ => self.fail_the_connection(),
@@ -413,12 +424,14 @@ impl FetchResponseListener for EventSourceContext {
     fn process_response_eof(
         &mut self,
         _: RequestId,
-        _response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         if self.incomplete_utf8.take().is_some() {
             self.parse("\u{FFFD}".chars(), CanGc::note());
         }
-        self.reestablish_the_connection();
+        if response.is_ok() {
+            self.reestablish_the_connection();
+        }
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -535,29 +548,35 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         event_source_init: &EventSourceInit,
     ) -> Fallible<DomRoot<EventSource>> {
         // TODO: Step 2 relevant settings object
-        // Step 3
+        // Step 3 Let urlRecord be the result of encoding-parsing a URL given url,
+        // relative to settings.
         let base_url = global.api_base_url();
         let url_record = match base_url.join(&url) {
             Ok(u) => u,
-            //  Step 4
+            // Step 4 If urlRecord is failure, then throw a "SyntaxError" DOMException.
             Err(_) => return Err(Error::Syntax),
         };
-        // Step 1, 5
+        // Step 1 Let ev be a new EventSource object.
         let ev = EventSource::new(
             global,
             proto,
+            // Step 5 Set ev's url to urlRecord.
             url_record.clone(),
             event_source_init.withCredentials,
             can_gc,
         );
         global.track_event_source(&ev);
-        // Steps 6-7
         let cors_attribute_state = if event_source_init.withCredentials {
+            // Step 7 If the value of eventSourceInitDict's withCredentials member is true,
+            // then set corsAttributeState to Use Credentials and set ev's withCredentials
+            // attribute to true.
             CorsSettings::UseCredentials
         } else {
+            // Step 6 Let corsAttributeState be Anonymous.
             CorsSettings::Anonymous
         };
-        // Step 8
+        // Step 8 Let request be the result of creating a potential-CORS request
+        // given urlRecord, the empty string, and corsAttributeState.
         // TODO: Step 9 set request's client settings
         let mut request = create_a_potential_cors_request(
             global.webview_id(),
@@ -573,17 +592,18 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         .origin(global.origin().immutable().clone())
         .pipeline_id(Some(global.pipeline_id()));
 
-        // Step 10
+        // Step 10 User agents may set (`Accept`, `text/event-stream`) in request's header list.
         // TODO(eijebong): Replace once typed headers allow it
         request.headers.insert(
             header::ACCEPT,
             HeaderValue::from_static("text/event-stream"),
         );
-        // Step 11
+        // Step 11 Set request's cache mode to "no-store".
         request.cache_mode = CacheMode::NoStore;
-        // Step 12
+        // Step 13 Set ev's request to request.
         *ev.request.borrow_mut() = Some(request.clone());
-        // Step 14
+        // Step 14 Let processEventSourceEndOfBody given response res be the following step:
+        // if res is not a network error, then reestablish the connection.
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let context = EventSourceContext {
             incomplete_utf8: None,
@@ -620,7 +640,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
                 FetchChannels::ResponseMsg(action_sender),
             ))
             .unwrap();
-        // Step 13
+        // Step 16 Return ev.
         Ok(ev)
     }
 

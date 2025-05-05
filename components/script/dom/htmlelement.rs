@@ -32,7 +32,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::customelementregistry::CallbackReaction;
-use crate::dom::document::{Document, FocusType};
+use crate::dom::document::{Document, FocusInitiator};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domstringmap::DOMStringMap;
 use crate::dom::element::{AttributeMutation, Element};
@@ -116,7 +116,7 @@ impl HTMLElement {
     /// `.outerText` in JavaScript.`
     ///
     /// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
-    fn get_inner_outer_text(&self, can_gc: CanGc) -> DOMString {
+    pub(crate) fn get_inner_outer_text(&self, can_gc: CanGc) -> DOMString {
         let node = self.upcast::<Node>();
         let window = node.owner_window();
         let element = self.as_element();
@@ -133,6 +133,16 @@ impl HTMLElement {
             .query_element_inner_outer_text(node.to_trusted_node_address());
 
         DOMString::from(text)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
+    pub(crate) fn set_inner_text(&self, input: DOMString, can_gc: CanGc) {
+        // Step 1: Let fragment be the rendered text fragment for value given element's node
+        // document.
+        let fragment = self.rendered_text_fragment(input, can_gc);
+
+        // Step 2: Replace all with fragment within element.
+        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>(), can_gc);
     }
 }
 
@@ -415,18 +425,19 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
         let document = self.owner_document();
-        document.request_focus(Some(self.upcast()), FocusType::Element, can_gc);
+        document.request_focus(Some(self.upcast()), FocusInitiator::Local, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(&self, can_gc: CanGc) {
-        // TODO: Run the unfocusing steps.
+        // TODO: Run the unfocusing steps. Focus the top-level document, not
+        //       the current document.
         if !self.as_element().focus_state() {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
         let document = self.owner_document();
-        document.request_focus(None, FocusType::Element, can_gc);
+        document.request_focus(None, FocusInitiator::Local, can_gc);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent
@@ -493,12 +504,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
     fn SetInnerText(&self, input: DOMString, can_gc: CanGc) {
-        // Step 1: Let fragment be the rendered text fragment for value given element's node
-        // document.
-        let fragment = self.rendered_text_fragment(input, can_gc);
-
-        // Step 2: Replace all with fragment within element.
-        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>(), can_gc);
+        self.set_inner_text(input, can_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-outertext>

@@ -1,5 +1,8 @@
 // META: title=Detect english
 // META: global=window
+// META: timeout=long
+// META: script=resources/util.js
+// META: script=/resources/testdriver.js
 // META: script=../resources/util.js
 // META: script=../resources/locale-util.js
 
@@ -45,7 +48,7 @@ promise_test(async t => {
 
 
 async function getExpectedInputLanguages(expectedInputLanguages) {
-  return (await LanguageDetector.create({expectedInputLanguages}))
+  return (await createLanguageDetector({expectedInputLanguages}))
       .expectedInputLanguages;
 }
 
@@ -63,14 +66,14 @@ function uniqueCount(array) {
 promise_test(async t => {
   for (const [languageSubtag, variations] of Object.entries(
            valid_language_tags)) {
-    if (await getAvailability(languageSubtag) === 'unavailable') {
+    if (await getAvailability([languageSubtag]) === 'unavailable') {
       continue;
     }
 
-    await assert_valid_expected_input_languages(languageSubtag)
+    await assert_valid_expected_input_languages(languageSubtag);
 
     for (const variation of variations) {
-      await assert_valid_expected_input_languages(variation)
+      await assert_valid_expected_input_languages(variation);
     }
 
     const expectedInputLanguages = await getExpectedInputLanguages(variations);
@@ -94,10 +97,10 @@ function assert_rejects_invalid_expected_input_languages(
 promise_test(async t => {
   for (const languageTag of invalid_language_tags) {
     assert_rejects_invalid_expected_input_languages(
-        t, LanguageDetector.create, [languageTag]);
+        t, createLanguageDetector, [languageTag]);
   }
   assert_rejects_invalid_expected_input_languages(
-      t, LanguageDetector.create, invalid_language_tags);
+      t, createLanguageDetector, invalid_language_tags);
 }, 'LanguageDetector.create() throws RangeError for invalid language tags');
 
 promise_test(async t => {

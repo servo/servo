@@ -33,6 +33,10 @@ promise_test(async function() {
             Math.round(bounds.top + bounds.height / 2), 0, -100)
     .send();
 
+  // Await two animation frames to give a chance to scroll.
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
   assert_equals(window.scrollY, originalScrollPos, "overscroll-behavior should work on the root");
 });
 </script>

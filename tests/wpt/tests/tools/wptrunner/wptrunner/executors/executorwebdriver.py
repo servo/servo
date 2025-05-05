@@ -39,6 +39,7 @@ from .protocol import (BaseProtocolPart,
                        VirtualSensorProtocolPart,
                        BidiBluetoothProtocolPart,
                        BidiBrowsingContextProtocolPart,
+                       BidiEmulationProtocolPart,
                        BidiEventsProtocolPart,
                        BidiPermissionsProtocolPart,
                        BidiScriptProtocolPart,
@@ -261,6 +262,19 @@ class WebDriverBidiScriptProtocolPart(BidiScriptProtocolPart):
             arguments=arguments,
             target=target,
             await_promise=True)
+
+
+class WebDriverBidiEmulationProtocolPart(BidiEmulationProtocolPart):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.webdriver = None
+
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    async def set_geolocation_override(self, coordinates, contexts):
+        return await self.webdriver.bidi_session.emulation.set_geolocation_override(
+            coordinates=coordinates, contexts=contexts)
 
 
 class WebDriverBidiPermissionsProtocolPart(BidiPermissionsProtocolPart):
@@ -810,6 +824,7 @@ class WebDriverBidiProtocol(WebDriverProtocol):
     enable_bidi = True
     implements = [WebDriverBidiBluetoothProtocolPart,
                   WebDriverBidiBrowsingContextProtocolPart,
+                  WebDriverBidiEmulationProtocolPart,
                   WebDriverBidiEventsProtocolPart,
                   WebDriverBidiPermissionsProtocolPart,
                   WebDriverBidiScriptProtocolPart,

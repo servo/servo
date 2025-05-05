@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- TODO update link -->
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
+  <title>Scoped element with name auto on descendant</title>
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container {
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    /* Currently needed to force a stacking context in the absence of an
+       animation-name.
+    */
+    will-change: opacity;
+  }
+
+  .item {
+    background-color: teal;
+    color: white;
+    text-align: center;
+    line-height: 50px;
+    width: 50px;
+    height: 50px;
+    margin: 5px;
+    position: relative;
+    will-change: opacity;
+    view-transition-name: auto;
+  }
+
+  #item1.active {
+    background-color: orange;
+    transform: scale(1.2);
+  }
+
+  #item2.active {
+    background-color: salmon;
+    transform: scale(0.9);
+  }
+
+  #item3.active {
+    background-color: hotpink;
+    transform: scale(0.8) translateX(-10px);
+  }
+
+  ::view-transition-group(*) {
+    animation-duration: 2s;
+  }
+
+  ::view-transition-old(*) {
+    animation-name: -ua-view-transition-fade-out;
+  }
+
+  ::view-transition-new(*) {
+    animation-name: -ua-view-transition-fade-in;
+  }
+
+</style>
+<body>
+  <div id="container">
+    <div id="item1" class="item">A</div>
+    <div id="item2" class="item">B</div>
+    <div id="item3" class="item">C</div>
+  </div>
+</body>
+<script>
+  function assert_has_animations_with_name(name, count, message) {
+    const results =
+        document.getAnimations().filter(a => a.animationName == name);
+    assert_equals(results.length, count, message);
+  }
+
+  promise_test(async t => {
+    const element = document.getElementById("container");
+    const vt = element.startViewTransition(() => {
+      element.querySelectorAll('.item').forEach(el => {
+        el.classList.toggle('active');
+      });
+    });
+    await vt.ready;
+    const results =
+        document.getAnimations().map((a) => {
+          return `${a.effect.target.id}${a.effect.pseudoElement}`;
+      }).sort();
+    const expected = [
+      'container::view-transition-group(match-element)',
+      'container::view-transition-group(match-element)',
+      'container::view-transition-group(match-element)',
+      'container::view-transition-new(match-element)',
+      'container::view-transition-new(match-element)',
+      'container::view-transition-new(match-element)',
+      'container::view-transition-old(match-element)',
+      'container::view-transition-old(match-element)',
+      'container::view-transition-old(match-element)',
+    ];
+
+    assert_array_equals(results, expected, 'Matched pseudo-elements');
+
+    assert_has_animations_with_name('-ua-view-transition-fade-in', 3,
+                                    'Fade in animation');
+    assert_has_animations_with_name('-ua-view-transition-fade-out', 3,
+                                    'Fade out animation');
+  }, 'Scoped view transition with name auto on the scoped element');
+</script>
+</html>

@@ -4,7 +4,7 @@
 
 //! Messages send from the ScriptThread to the Constellation.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::fmt;
 
 use base::Epoch;
@@ -15,12 +15,14 @@ use base::id::{
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
-    AnimationState, EmbedderMsg, MediaSessionEvent, TouchEventResult, ViewportDetails,
+    AnimationState, EmbedderMsg, FocusSequenceNumber, MediaSessionEvent, TouchEventResult,
+    ViewportDetails,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use http::{HeaderMap, Method};
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::storage_thread::StorageType;
 use net_traits::{CoreResourceMsg, ReferrerPolicy, ResourceThreads};
@@ -34,7 +36,9 @@ use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
 use webrender_api::ImageKey;
 
 use crate::structured_data::{BroadcastMsg, StructuredSerializedData};
-use crate::{LogEntry, MessagePortMsg, PortMessageTask, TraversalDirection, WindowSizeType};
+use crate::{
+    LogEntry, MessagePortMsg, PortMessageTask, PortTransferInfo, TraversalDirection, WindowSizeType,
+};
 
 /// A Script to Constellation channel.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -94,6 +98,8 @@ pub struct LoadData {
     pub referrer: Referrer,
     /// The referrer policy.
     pub referrer_policy: ReferrerPolicy,
+    /// The policy container.
+    pub policy_container: Option<PolicyContainer>,
 
     /// The source to use instead of a network response for a srcdoc document.
     pub srcdoc: String,
@@ -140,6 +146,7 @@ impl LoadData {
             js_eval_result: None,
             referrer,
             referrer_policy,
+            policy_container: None,
             srcdoc: "".to_string(),
             inherited_secure_context,
             crash: None,
@@ -469,7 +476,7 @@ pub enum ScriptToConstellationMessage {
         /* The ids of ports transferred successfully */
         Vec<MessagePortId>,
         /* The ids, and buffers, of ports whose transfer failed */
-        HashMap<MessagePortId, VecDeque<PortMessageTask>>,
+        HashMap<MessagePortId, PortTransferInfo>,
     ),
     /// A new message-port was created or transferred, with corresponding control-sender.
     NewMessagePort(MessagePortRouterId, MessagePortId),
@@ -481,10 +488,14 @@ pub enum ScriptToConstellationMessage {
     RerouteMessagePort(MessagePortId, PortMessageTask),
     /// A message-port was shipped, let the entangled port know.
     MessagePortShipped(MessagePortId),
-    /// A message-port has been discarded by script.
-    RemoveMessagePort(MessagePortId),
     /// Entangle two message-ports.
     EntanglePorts(MessagePortId, MessagePortId),
+    /// Disentangle two message-ports.
+    /// The first is the initiator, the second the other port,
+    /// unless the message is sent to complete a disentanglement,
+    /// in which case the first one is the other port,
+    /// and the second is none.
+    DisentanglePorts(MessagePortId, Option<MessagePortId>),
     /// A global has started managing broadcast-channels.
     NewBroadcastChannelRouter(
         BroadcastChannelRouterId,
@@ -519,8 +530,21 @@ pub enum ScriptToConstellationMessage {
         UntypedSize2D<u64>,
         IpcSender<(IpcSender<CanvasMsg>, CanvasId, ImageKey)>,
     ),
-    /// Notifies the constellation that this frame has received focus.
-    Focus,
+    /// Notifies the constellation that this pipeline is requesting focus.
+    ///
+    /// When this message is sent, the sender pipeline has already its local
+    /// focus state updated. The constellation, after receiving this message,
+    /// will broadcast messages to other pipelines that are affected by this
+    /// focus operation.
+    ///
+    /// The first field contains the browsing context ID of the container
+    /// element if one was focused.
+    ///
+    /// The second field is a sequence number that the constellation should use
+    /// when sending a focus-related message to the sender pipeline next time.
+    Focus(Option<BrowsingContextId>, FocusSequenceNumber),
+    /// Requests the constellation to focus the specified browsing context.
+    FocusRemoteDocument(BrowsingContextId),
     /// Get the top-level browsing context info for a given browsing context.
     GetTopForBrowsingContext(BrowsingContextId, IpcSender<Option<WebViewId>>),
     /// Get the browsing context id of the browsing context in which pipeline is

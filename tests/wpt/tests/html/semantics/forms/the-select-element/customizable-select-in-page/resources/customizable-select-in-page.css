@@ -1,0 +1,14 @@
+.customizable-select-in-page {
+  display: inline-block;
+  border: 1px solid;
+  overflow-inline: hidden;
+  overflow-block: scroll;
+}
+
+.customizable-select-in-page.disabled {
+  color: color-mix(in lab, currentColor 50%, transparent);
+}
+
+.customizable-select-in-page:not(.disabled) .customizable-select-legend.disabled {
+  color: color-mix(in lab, currentColor 50%, transparent);
+}

@@ -157,18 +157,29 @@ pub struct PortMessageTask {
     pub data: StructuredSerializedData,
 }
 
+/// The information needed by a global to process the transfer of a port.
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct PortTransferInfo {
+    /// <https://html.spec.whatwg.org/multipage/#port-message-queue>
+    pub port_message_queue: VecDeque<PortMessageTask>,
+    /// A boolean indicating whether the port has been disentangled while in transfer,
+    /// if so, the disentanglement should be completed along with the transfer.
+    /// <https://html.spec.whatwg.org/multipage/#disentangle>
+    pub disentangled: bool,
+}
+
 /// Messages for communication between the constellation and a global managing ports.
 #[derive(Debug, Deserialize, Serialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum MessagePortMsg {
     /// Complete the transfer for a batch of ports.
-    CompleteTransfer(HashMap<MessagePortId, VecDeque<PortMessageTask>>),
+    CompleteTransfer(HashMap<MessagePortId, PortTransferInfo>),
     /// Complete the transfer of a single port,
     /// whose transfer was pending because it had been requested
     /// while a previous failed transfer was being rolled-back.
-    CompletePendingTransfer(MessagePortId, VecDeque<PortMessageTask>),
-    /// Remove a port, the entangled one doesn't exists anymore.
-    RemoveMessagePort(MessagePortId),
+    CompletePendingTransfer(MessagePortId, PortTransferInfo),
+    /// <https://html.spec.whatwg.org/multipage/#disentangle>
+    CompleteDisentanglement(MessagePortId),
     /// Handle a new port-message-task.
     NewTask(MessagePortId, PortMessageTask),
 }

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/357649033">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+select {
+  appearance: base-select;
+}
+</style>
+
+<button id=beforemultiple>button before multiple</button>
+<select multiple>
+  <option class=one>one</option>
+  <option class=two>two</option>
+  <option class=disabled disabled>disabled</option>
+</select>
+
+<button id=beforesize>button before size=4</button>
+<select size=4>
+  <option class=one>one</option>
+  <option class=two>two</option>
+  <option class=disabled disabled>disabled</option>
+</select>
+
+<button id=aftersize>button after size=4</button>
+
+<select multiple disabled>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<button id=afterdisabled>button after select disabled</button>
+
+<script>
+const tabKey = '\uE004';
+const enterKey = '\uE007';
+const spaceKey = '\uE00D';
+const arrowUp = '\uE013';
+const arrowDown = '\uE015';
+function pressKey(keyCode) {
+  return (new test_driver.Actions()
+    .keyDown(keyCode)
+    .keyUp(keyCode))
+    .send();
+}
+
+promise_test(async () => {
+  const select = document.querySelector('select[multiple]');
+  const optionOne = select.querySelector('.one');
+  const optionTwo = select.querySelector('.two');
+  assert_equals(select.selectedOptions.length, 0,
+    'No options should be selected at the start of the test.');
+
+  beforemultiple.focus();
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, optionOne,
+    'The first option should get focus when keyboard focusing into a select.');
+
+  await pressKey(spaceKey);
+  assert_equals(document.activeElement, optionOne,
+    'Focus should not be moved after pressing space.');
+  assert_equals(select.selectedOptions.length, 1,
+    'One option should be selected after the first space.');
+  assert_equals(select.selectedOptions[0], optionOne,
+    'First option should be selected after the first space.');
+
+  await pressKey(arrowDown);
+  assert_equals(document.activeElement, optionTwo,
+    'Second option should be focused after arrow down.');
+
+  await pressKey(arrowDown);
+  assert_equals(document.activeElement, optionTwo,
+    'Disabled option should not be focusable.');
+
+  await pressKey(spaceKey);
+  assert_equals(document.activeElement, optionTwo,
+    'Second option should be focused after second space.');
+  assert_equals(select.selectedOptions.length, 2,
+    'Two options should be selected after second space.');
+  assert_equals(select.selectedOptions[0], optionOne,
+    'First option should stay selected after second space.');
+  assert_equals(select.selectedOptions[1], optionTwo,
+    'Second option should be selected after second space.');
+
+  await pressKey(spaceKey);
+  assert_equals(document.activeElement, optionTwo,
+    'Second option should be focused after third space.');
+  assert_equals(select.selectedOptions.length, 1,
+    'One option should be selected after third space.');
+  assert_equals(select.selectedOptions[0], optionOne,
+    'First option should stay selected after third space.');
+
+  await pressKey(enterKey);
+  assert_equals(document.activeElement, optionTwo,
+    'Second option should be focused after first enter.');
+  assert_equals(select.selectedOptions.length, 2,
+    'Two options should be selected after first enter.');
+  assert_equals(select.selectedOptions[0], optionOne,
+    'First option should stay selected after first enter.');
+  assert_equals(select.selectedOptions[1], optionTwo,
+    'Second option should be selected after first enter.');
+
+  await pressKey(enterKey);
+  assert_equals(document.activeElement, optionTwo,
+    'Second option should be focused after second enter.');
+  assert_equals(select.selectedOptions.length, 1,
+    'One option should be selected after second enter.');
+  assert_equals(select.selectedOptions[0], optionOne,
+    'First option should stay selected after second enter.');
+
+  await pressKey(arrowUp);
+  assert_equals(document.activeElement, optionOne,
+    'First option should be focused after arrow up.');
+  assert_equals(select.selectedOptions.length, 1,
+    'One option should be selected after arrow up.');
+  assert_equals(select.selectedOptions[0], optionOne,
+    'First option should stay selected after arrow up.');
+
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, beforesize,
+    'Pressing tab key should focus the next element after <select>.');
+}, 'Keyboard behavior for base appearance <select multiple>');
+
+promise_test(async () => {
+  const select = document.querySelector('select[size]');
+  const optionOne = select.querySelector('.one');
+  const optionTwo = select.querySelector('.two');
+  assert_equals(select.selectedOptions.length, 0,
+    'No options should be selected at the start of the test.');
+
+  beforesize.focus();
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, optionOne,
+    'The first option should get focus when keyboard focusing into a select.');
+
+  await pressKey(spaceKey);
+  assert_equals(document.activeElement, optionOne,
+    'Focus should not be moved after pressing space.');
+  assert_equals(select.selectedOptions.length, 1,
+    'One option should be selected after the first space.');
+  assert_equals(select.selectedOptions[0], optionOne,
+    'First option should be selected after the first space.');
+
+  await pressKey(arrowDown);
+  assert_equals(document.activeElement, optionTwo,
+    'Second option should be focused after arrow down.');
+
+  await pressKey(arrowDown);
+  assert_equals(document.activeElement, optionTwo,
+    'Disabled option should not be focusable.');
+
+  await pressKey(spaceKey);
+  assert_equals(document.activeElement, optionTwo,
+    'Second option should be focused after second space.');
+  assert_equals(select.selectedOptions.length, 1,
+    'One options should be selected after second space.');
+  assert_equals(select.selectedOptions[0], optionTwo,
+    'Second option should be selected after second space.');
+
+  await pressKey(spaceKey);
+  assert_equals(document.activeElement, optionTwo,
+    'Second option should be focused after third space.');
+  assert_equals(select.selectedOptions.length, 0,
+    'No options should be selected after third space.');
+
+  await pressKey(enterKey);
+  assert_equals(document.activeElement, optionTwo,
+    'Second option should be focused after first enter.');
+  assert_equals(select.selectedOptions.length, 1,
+    'One option should be selected after first enter.');
+  assert_equals(select.selectedOptions[0], optionTwo,
+    'Second option should be selected after first enter.');
+
+  await pressKey(enterKey);
+  assert_equals(document.activeElement, optionTwo,
+    'Second option should be focused after second enter.');
+  assert_equals(select.selectedOptions.length, 0,
+    'No options should be selected after second enter.');
+
+  await pressKey(arrowUp);
+  assert_equals(document.activeElement, optionOne,
+    'First option should be focused after arrow up.');
+  assert_equals(select.selectedOptions.length, 0,
+    'No options should be selected after arrow up.');
+
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, aftersize,
+    'Pressing tab should focus the next element after <select>.');
+
+  await pressKey(tabKey);
+  assert_equals(document.activeElement, afterdisabled,
+    'Pressing tab key should skip over <select disabled>.');
+}, 'Keyboard behavior for base appearance <select size=4>');
+
+promise_test(async () => {
+  document.body.focus();
+
+  const selectMultiple = document.querySelector('select[multiple]');
+  selectMultiple.focus();
+  assert_not_equals(document.activeElement, selectMultiple, '<select multiple>');
+
+  const selectSize = document.querySelector('select[size]');
+  selectSize.focus();
+  assert_not_equals(document.activeElement, selectSize, '<select size=4>');
+}, 'Base appearance in-page selects should not be focusable.');
+
+// TODO(crbug.com/357649033): Test tab key while focused on an option after deciding behavior.
+</script>

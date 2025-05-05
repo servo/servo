@@ -54,8 +54,8 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutDom, MutNullableDom};
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::window::Window;
 use crate::dom::xrboundedreferencespace::XRBoundedReferenceSpace;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrhittestsource::XRHitTestSource;
@@ -152,7 +152,7 @@ impl XRSession {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         session: Session,
         mode: XRSessionMode,
         frame_receiver: IpcReceiver<Frame>,
@@ -163,8 +163,8 @@ impl XRSession {
         } else {
             None
         };
-        let render_state = XRRenderState::new(global, 0.1, 1000.0, ivfov, None, Vec::new(), can_gc);
-        let input_sources = XRInputSourceArray::new(global, can_gc);
+        let render_state = XRRenderState::new(window, 0.1, 1000.0, ivfov, None, Vec::new(), can_gc);
+        let input_sources = XRInputSourceArray::new(window, can_gc);
         let ret = reflect_dom_object(
             Box::new(XRSession::new_inherited(
                 session,
@@ -172,7 +172,7 @@ impl XRSession {
                 &input_sources,
                 mode,
             )),
-            global,
+            window,
             can_gc,
         );
         ret.attach_event_handler();
@@ -587,7 +587,7 @@ impl XRSession {
             FrameUpdateEvent::HitTestSourceAdded(id) => {
                 if let Some(promise) = self.pending_hit_test_promises.borrow_mut().remove(&id) {
                     promise.resolve_native(
-                        &XRHitTestSource::new(&self.global(), id, self, can_gc),
+                        &XRHitTestSource::new(self.global().as_window(), id, self, can_gc),
                         can_gc,
                     );
                 } else {

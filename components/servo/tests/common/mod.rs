@@ -3,17 +3,51 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use anyhow::Error;
 use compositing_traits::rendering_context::{RenderingContext, SoftwareRenderingContext};
-use crossbeam_channel::{Receiver, Sender, unbounded};
 use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
-use parking_lot::Mutex;
 use servo::{Servo, ServoBuilder};
+
+macro_rules! run_api_tests {
+    ($($test_function:ident), +) => {
+        let mut failed = false;
+
+        // Be sure that `servo_test` is dropped before exiting early.
+        {
+            let servo_test = ServoTest::new();
+            $(
+                common::run_test($test_function, stringify!($test_function), &servo_test, &mut failed);
+            )+
+        }
+
+        if failed {
+            std::process::exit(1);
+        }
+    }
+}
+
+pub(crate) use run_api_tests;
+
+pub(crate) fn run_test(
+    test_function: fn(&ServoTest) -> Result<(), Error>,
+    test_name: &str,
+    servo_test: &ServoTest,
+    failed: &mut bool,
+) {
+    match test_function(servo_test) {
+        Ok(_) => println!("    ✅ {test_name}"),
+        Err(error) => {
+            *failed = true;
+            println!("    ❌ {test_name}");
+            println!("{}", format!("\n{error:?}").replace("\n", "\n        "));
+        },
+    }
+}
 
 pub struct ServoTest {
     servo: Servo,
@@ -30,7 +64,7 @@ impl Drop for ServoTest {
 }
 
 impl ServoTest {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let rendering_context = Rc::new(
             SoftwareRenderingContext::new(PhysicalSize {
                 width: 500,
@@ -63,58 +97,28 @@ impl ServoTest {
         &self.servo
     }
 
-    /// Run a Servo test. All tests are run in a `ServoTestThread` and serially. Currently
-    /// Servo does not support launching concurrent instances, in order to ensure
-    /// isolation and allow for more than a single test per instance.
-    pub fn run(
-        test_function: impl FnOnce(&ServoTest) -> Result<(), anyhow::Error> + Send + Sync + 'static,
-    ) {
-        static SERVO_TEST_THREAD: Mutex<OnceLock<ServoTestThread>> = Mutex::new(OnceLock::new());
-        let test_thread = SERVO_TEST_THREAD.lock();
-        test_thread
-            .get_or_init(ServoTestThread::new)
-            .run_test(Box::new(test_function));
-    }
-}
-
-type TestFunction =
-    Box<dyn FnOnce(&ServoTest) -> Result<(), anyhow::Error> + Send + Sync + 'static>;
-
-struct ServoTestThread {
-    test_function_sender: Sender<TestFunction>,
-    result_receiver: Receiver<Result<(), Error>>,
-}
-
-impl ServoTestThread {
-    fn new() -> Self {
-        let (result_sender, result_receiver) = unbounded();
-        let (test_function_sender, test_function_receiver) = unbounded();
-
-        // Defined here rather than at the end of this method in order to take advantage
-        // of Rust type inference.
-        let thread = Self {
-            test_function_sender,
-            result_receiver,
-        };
-
-        let _ = std::thread::spawn(move || {
-            let servo_test = ServoTest::new();
-            while let Ok(incoming_test_function) = test_function_receiver.recv() {
-                let _ = result_sender.send(incoming_test_function(&servo_test));
+    /// Spin the Servo event loop until one of:
+    ///  - The given callback returns `Ok(false)`.
+    ///  - The given callback returns an `Error`, in which case the `Error` will be returned.
+    ///  - Servo has indicated that shut down is complete and we cannot spin the event loop
+    ///    any longer.
+    // The dead code exception here is because not all test suites that use `common` also
+    // use `spin()`.
+    #[allow(dead_code)]
+    pub fn spin(&self, callback: impl Fn() -> Result<bool, Error> + 'static) -> Result<(), Error> {
+        let mut keep_going = true;
+        while keep_going {
+            std::thread::sleep(Duration::from_millis(1));
+            if !self.servo.spin_event_loop() {
+                return Ok(());
             }
-        });
-
-        thread
-    }
-
-    fn run_test(&self, test_function: TestFunction) {
-        let _ = self.test_function_sender.send(Box::new(test_function));
-        let result = self
-            .result_receiver
-            .recv()
-            .expect("Servo test thread should always return a result.");
-        if let Err(result) = result {
-            unreachable!("{result}");
+            let result = callback();
+            match result {
+                Ok(result) => keep_going = result,
+                Err(error) => return Err(error),
+            }
         }
+
+        Ok(())
     }
 }

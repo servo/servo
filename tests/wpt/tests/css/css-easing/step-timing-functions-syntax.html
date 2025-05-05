@@ -29,6 +29,7 @@ test_invalid_value("animation-timing-function", "steps(0, jump-start)");
 test_invalid_value("animation-timing-function", "steps(0, jump-end)");
 test_invalid_value("animation-timing-function", "steps(0, jump-both)");
 test_invalid_value("animation-timing-function", "steps(1, jump-none)");
+test_invalid_value("animation-timing-function", "steps(calc(0/0), jump-none)");
 
 </script>
 </body>

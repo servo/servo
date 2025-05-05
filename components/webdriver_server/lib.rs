@@ -29,7 +29,7 @@ use embedder_traits::{
 use euclid::{Rect, Size2D};
 use http::method::Method;
 use image::{DynamicImage, ImageFormat, RgbaImage};
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::send_keys;
 use log::{debug, info};
@@ -678,7 +678,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         self.top_level_script_command(WebDriverScriptCommand::GetUrl(sender))?;
 
-        let url = receiver.recv().unwrap();
+        let url = wait_for_script_response(receiver)?;
 
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(url.as_str())?,
@@ -694,7 +694,7 @@ impl Handler {
             .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
-        let window_size = receiver.recv().unwrap();
+        let window_size = wait_for_script_response(receiver)?;
         let window_size_response = WindowRectResponse {
             x: 0,
             y: 0,
@@ -738,7 +738,7 @@ impl Handler {
                 .unwrap();
         });
 
-        let window_size = receiver.recv().unwrap();
+        let window_size = wait_for_script_response(receiver)?;
         let window_size_response = WindowRectResponse {
             x: 0,
             y: 0,
@@ -756,7 +756,7 @@ impl Handler {
             sender,
         ))?;
 
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(is_enabled) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(is_enabled)?,
             ))),
@@ -772,7 +772,7 @@ impl Handler {
             sender,
         ))?;
 
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(is_selected) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(is_selected)?,
             ))),
@@ -812,7 +812,7 @@ impl Handler {
 
         self.top_level_script_command(WebDriverScriptCommand::GetTitle(sender))?;
 
-        let value = receiver.recv().unwrap();
+        let value = wait_for_script_response(receiver)?;
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(value)?,
         )))
@@ -874,7 +874,7 @@ impl Handler {
             },
         }
 
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(value) => {
                 let value_resp = serde_json::to_value(
                     value.map(|x| serde_json::to_value(WebElement(x)).unwrap()),
@@ -1005,7 +1005,7 @@ impl Handler {
         let cmd = WebDriverScriptCommand::GetBrowsingContextId(frame_id, sender);
         self.browsing_context_script_command(cmd)?;
 
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(browsing_context_id) => {
                 self.session_mut()?.browsing_context_id = browsing_context_id;
                 Ok(WebDriverResponse::Void)
@@ -1047,7 +1047,7 @@ impl Handler {
             },
         }
 
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(value) => {
                 let resp_value: Vec<Value> = value
                     .into_iter()
@@ -1103,7 +1103,7 @@ impl Handler {
             },
         }
 
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(value) => {
                 let value_resp = serde_json::to_value(
                     value.map(|x| serde_json::to_value(WebElement(x)).unwrap()),
@@ -1156,7 +1156,7 @@ impl Handler {
             },
         }
 
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(value) => {
                 let resp_value: Vec<Value> = value
                     .into_iter()
@@ -1175,7 +1175,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementRect(element.to_string(), sender);
         self.browsing_context_script_command(cmd)?;
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(rect) => {
                 let response = ElementRectResponse {
                     x: rect.origin.x,
@@ -1193,7 +1193,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementText(element.to_string(), sender);
         self.browsing_context_script_command(cmd)?;
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
             ))),
@@ -1205,9 +1205,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetActiveElement(sender);
         self.browsing_context_script_command(cmd)?;
-        let value = receiver
-            .recv()
-            .unwrap()
+        let value = wait_for_script_response(receiver)?
             .map(|x| serde_json::to_value(WebElement(x)).unwrap());
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(value)?,
@@ -1218,7 +1216,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetComputedRole(element.to_string(), sender);
         self.browsing_context_script_command(cmd)?;
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
             ))),
@@ -1230,7 +1228,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetElementTagName(element.to_string(), sender);
         self.browsing_context_script_command(cmd)?;
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
             ))),
@@ -1250,7 +1248,7 @@ impl Handler {
             sender,
         );
         self.browsing_context_script_command(cmd)?;
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
             ))),
@@ -1272,7 +1270,7 @@ impl Handler {
         );
         self.browsing_context_script_command(cmd)?;
 
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(SendableWebDriverJSValue(value))?,
             ))),
@@ -1289,7 +1287,7 @@ impl Handler {
         let cmd =
             WebDriverScriptCommand::GetElementCSS(element.to_string(), name.to_owned(), sender);
         self.browsing_context_script_command(cmd)?;
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(value)?,
             ))),
@@ -1301,7 +1299,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookies(sender);
         self.browsing_context_script_command(cmd)?;
-        let cookies = receiver.recv().unwrap();
+        let cookies = wait_for_script_response(receiver)?;
         let response = cookies
             .into_iter()
             .map(|cookie| cookie_msg_to_cookie(cookie.into_inner()))
@@ -1313,12 +1311,14 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::GetCookie(name, sender);
         self.browsing_context_script_command(cmd)?;
-        let cookies = receiver.recv().unwrap();
-        let response = cookies
+        let cookies = wait_for_script_response(receiver)?;
+        let Some(response) = cookies
             .into_iter()
             .map(|cookie| cookie_msg_to_cookie(cookie.into_inner()))
             .next()
-            .unwrap();
+        else {
+            return Err(WebDriverError::new(ErrorStatus::NoSuchCookie, ""));
+        };
         Ok(WebDriverResponse::Cookie(CookieResponse(response)))
     }
 
@@ -1342,7 +1342,7 @@ impl Handler {
 
         let cmd = WebDriverScriptCommand::AddCookie(cookie_builder.build(), sender);
         self.browsing_context_script_command(cmd)?;
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(_) => Ok(WebDriverResponse::Void),
             Err(response) => match response {
                 WebDriverCookieError::InvalidDomain => Err(WebDriverError::new(
@@ -1361,7 +1361,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookie(name, sender);
         self.browsing_context_script_command(cmd)?;
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(_) => Ok(WebDriverResponse::Void),
             Err(error) => Err(WebDriverError::new(error, "")),
         }
@@ -1371,7 +1371,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookies(sender);
         self.browsing_context_script_command(cmd)?;
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(_) => Ok(WebDriverResponse::Void),
             Err(error) => Err(WebDriverError::new(error, "")),
         }
@@ -1426,7 +1426,7 @@ impl Handler {
         let cmd = WebDriverScriptCommand::GetPageSource(sender);
         self.browsing_context_script_command(cmd)?;
 
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(source) => Ok(WebDriverResponse::Generic(ValueResponse(
                 serde_json::to_value(source)?,
             ))),
@@ -1487,9 +1487,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteScript(script, sender);
         self.browsing_context_script_command(command)?;
-        let result = receiver
-            .recv()
-            .unwrap_or(Err(WebDriverJSError::BrowsingContextNotFound));
+        let result = wait_for_script_response(receiver)?;
         self.postprocess_js_result(result)
     }
 
@@ -1533,9 +1531,7 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
         self.browsing_context_script_command(command)?;
-        let result = receiver
-            .recv()
-            .unwrap_or(Err(WebDriverJSError::BrowsingContextNotFound));
+        let result = wait_for_script_response(receiver)?;
         self.postprocess_js_result(result)
     }
 
@@ -1589,10 +1585,7 @@ impl Handler {
             .unwrap();
 
         // TODO: distinguish the not found and not focusable cases
-        receiver
-            .recv()
-            .unwrap()
-            .map_err(|error| WebDriverError::new(error, ""))?;
+        wait_for_script_response(receiver)?.map_err(|error| WebDriverError::new(error, ""))?;
 
         let input_events = send_keys(&keys.text);
 
@@ -1615,7 +1608,7 @@ impl Handler {
         let command = WebDriverScriptCommand::ElementClick(element.to_string(), sender);
         self.browsing_context_script_command(command)?;
 
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(element_id) => match element_id {
                 Some(element_id) => {
                     let id = Uuid::new_v4().to_string();
@@ -1688,7 +1681,7 @@ impl Handler {
                 .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                 .unwrap();
 
-            if let Some(x) = receiver.recv().unwrap() {
+            if let Some(x) = wait_for_script_response(receiver)? {
                 img = Some(x);
                 break;
             };
@@ -1739,7 +1732,7 @@ impl Handler {
         let command = WebDriverScriptCommand::GetBoundingClientRect(element.to_string(), sender);
         self.browsing_context_script_command(command)?;
 
-        match receiver.recv().unwrap() {
+        match wait_for_script_response(receiver)? {
             Ok(rect) => {
                 let encoded = self.take_screenshot(Some(Rect::from_untyped(&rect)))?;
 
@@ -1943,4 +1936,13 @@ fn webdriver_value_to_js_argument(v: &Value) -> String {
             format!("{{{}}}", elems.join(", "))
         },
     }
+}
+
+fn wait_for_script_response<T>(receiver: IpcReceiver<T>) -> Result<T, WebDriverError>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    receiver
+        .recv()
+        .map_err(|_| WebDriverError::new(ErrorStatus::NoSuchWindow, ""))
 }

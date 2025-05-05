@@ -15,8 +15,14 @@ promise_test(async (t) => {
     await test_driver.clear_display_features();
   });
 
-  // When the viewport is not divided the segments property should be null.
-  assert_equals(viewport.segments, null);
+  // When the viewport is not divided the segments property should return an
+  // array with one segment, the size of the viewport.
+  assert_equals(viewport.segments.length, 1);
+  let segment = viewport.segments[0];
+  assert_equals(segment.x, 0);
+  assert_equals(segment.y, 0);
+  assert_equals(segment.width, window.innerWidth);
+  assert_equals(segment.height,  window.innerHeight);
   // iframes do not receive segments information.
   assert_equals(window.frames[0].viewport.segments, null);
 
@@ -29,22 +35,26 @@ promise_test(async (t) => {
       { once: true }
     );
   });
+  const leftOffset =
+    Math.round(window.innerWidth / 2 - displayFeatureLength / 2);
   await test_driver.set_display_features([{
     orientation: 'vertical',
     maskLength: displayFeatureLength,
-    offset: window.innerWidth / 2 - displayFeatureLength / 2
+    offset: leftOffset
   }]);
   assert_true(await promise);
   assert_equals(viewport.segments.length, 2);
   const segmentLeft = viewport.segments[0];
+  const epsilon = 1;
   assert_equals(segmentLeft.x, 0);
   assert_equals(segmentLeft.y, 0);
-  assert_equals(segmentLeft.width, window.innerWidth / 2 - displayFeatureLength / 2);
+  assert_approx_equals(segmentLeft.width, leftOffset, epsilon);
   assert_equals(segmentLeft.height,  window.innerHeight);
   const segmentRight = viewport.segments[1];
-  assert_equals(segmentRight.x, window.innerWidth / 2 + displayFeatureLength / 2);
+  assert_approx_equals(segmentRight.x,
+    Math.round(window.innerWidth / 2 + displayFeatureLength / 2), epsilon);
   assert_equals(segmentRight.y, 0);
-  assert_equals(segmentRight.width, window.innerWidth / 2 - displayFeatureLength / 2);
+  assert_approx_equals(segmentRight.width, leftOffset, epsilon);
   assert_equals(segmentRight.height,  window.innerHeight);
   // iframes do not receive segments information.
   assert_equals(window.frames[0].viewport.segments, null);
@@ -58,10 +68,12 @@ promise_test(async (t) => {
       { once: true }
     );
   });
+  const topOffset =
+    Math.round(window.innerHeight / 2 - displayFeatureLength / 2);
   await test_driver.set_display_features([{
     orientation: 'horizontal',
     maskLength: displayFeatureLength,
-    offset: window.innerHeight / 2 - displayFeatureLength / 2
+    offset: topOffset
   }]);
   assert_true(await promise);
   assert_equals(viewport.segments.length, 2);
@@ -69,12 +81,13 @@ promise_test(async (t) => {
   assert_equals(segmentTop.x, 0);
   assert_equals(segmentTop.y, 0);
   assert_equals(segmentTop.width, window.innerWidth);
-  assert_equals(segmentTop.height, window.innerHeight / 2 - displayFeatureLength / 2);
+  assert_approx_equals(segmentTop.height, topOffset, epsilon);
   const segmentBottom = viewport.segments[1];
   assert_equals(segmentBottom.x, 0);
-  assert_equals(segmentBottom.y, window.innerHeight / 2 + displayFeatureLength / 2);
+  assert_approx_equals(segmentBottom.y,
+    Math.round(window.innerHeight / 2 + displayFeatureLength / 2), epsilon);
   assert_equals(segmentBottom.width, window.innerWidth);
-  assert_equals(segmentBottom.height,  window.innerHeight / 2 - displayFeatureLength / 2);
+  assert_approx_equals(segmentBottom.height,  topOffset, epsilon);
   // iframes do not receive segments information.
   assert_equals(window.frames[0].viewport.segments, null);
 
@@ -88,7 +101,11 @@ promise_test(async (t) => {
   });
   await test_driver.clear_display_features();
   assert_true(await promise);
-  assert_equals(viewport.segments, null);
+  segment = viewport.segments[0];
+  assert_equals(segment.x, 0);
+  assert_equals(segment.y, 0);
+  assert_equals(segment.width, window.innerWidth);
+  assert_equals(segment.height,  window.innerHeight);
   // iframes do not receive segments information.
   assert_equals(window.frames[0].viewport.segments, null);
 

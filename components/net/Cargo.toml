@@ -76,6 +76,7 @@ webpki-roots = { workspace = true }
 webrender_api = { workspace = true }
 
 [dev-dependencies]
+embedder_traits = { workspace = true, features = ["baked-default-resources"] }
 flate2 = "1"
 futures = { version = "0.3", features = ["compat"] }
 hyper = { workspace = true, features = ["full"] }
