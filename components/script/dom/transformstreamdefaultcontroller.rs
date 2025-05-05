@@ -3,13 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{ExceptionStackBehavior, Heap, IsPromiseObject, JS_SetPendingException, JSObject};
-use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
+use js::jsapi::{
+    ExceptionStackBehavior, Heap, JS_IsExceptionPending, JS_SetPendingException, JSObject,
+};
+use js::jsval::UndefinedValue;
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
 use super::bindings::cell::DomRefCell;
 use super::bindings::codegen::Bindings::TransformerBinding::{
@@ -165,8 +166,6 @@ impl TransformStreamDefaultController {
         // « chunk, controller » and callback this value transformer.
         let algo = self.transform.borrow().clone();
         let result = if let Some(transform) = algo {
-            rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
-            rooted!(in(*cx) let mut result: JSVal);
             rooted!(in(*cx) let this_object = self.transform_obj.get());
             let call_result = transform.Call_(
                 &this_object.handle(),
@@ -177,23 +176,7 @@ impl TransformStreamDefaultController {
             );
 
             match call_result {
-                Ok(_) => {
-                    let is_promise = unsafe {
-                        if result.is_object() {
-                            result_object.set(result.to_object());
-                            IsPromiseObject(result_object.handle().into_handle())
-                        } else {
-                            false
-                        }
-                    };
-                    let promise = if is_promise {
-                        let promise = Promise::new_with_js_promise(result_object.handle(), cx);
-                        promise
-                    } else {
-                        Promise::new_resolved(global, cx, result.get(), can_gc)
-                    };
-                    promise
-                },
+                Ok(p) => p,
                 Err(e) => {
                     let p = Promise::new(global, can_gc);
                     p.reject_error(e, can_gc);
@@ -232,8 +215,6 @@ impl TransformStreamDefaultController {
         // and callback this value transformer.
         let algo = self.cancel.borrow().clone();
         let result = if let Some(cancel) = algo {
-            rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
-            rooted!(in(*cx) let mut result: JSVal);
             rooted!(in(*cx) let this_object = self.transform_obj.get());
             let call_result = cancel.Call_(
                 &this_object.handle(),
@@ -243,23 +224,7 @@ impl TransformStreamDefaultController {
             );
 
             match call_result {
-                Ok(_) => {
-                    let is_promise = unsafe {
-                        if result.is_object() {
-                            result_object.set(result.to_object());
-                            IsPromiseObject(result_object.handle().into_handle())
-                        } else {
-                            false
-                        }
-                    };
-                    let promise = if is_promise {
-                        let promise = Promise::new_with_js_promise(result_object.handle(), cx);
-                        promise
-                    } else {
-                        Promise::new_resolved(global, cx, result.get(), can_gc)
-                    };
-                    promise
-                },
+                Ok(p) => p,
                 Err(e) => {
                     let p = Promise::new(global, can_gc);
                     p.reject_error(e, can_gc);
@@ -285,8 +250,6 @@ impl TransformStreamDefaultController {
         // invoking transformerDict["flush"] with argument list « controller » and callback this value transformer.
         let algo = self.flush.borrow().clone();
         let result = if let Some(flush) = algo {
-            rooted!(in(*cx) let mut result_object = ptr::null_mut::<JSObject>());
-            rooted!(in(*cx) let mut result: JSVal);
             rooted!(in(*cx) let this_object = self.transform_obj.get());
             let call_result = flush.Call_(
                 &this_object.handle(),
@@ -296,23 +259,7 @@ impl TransformStreamDefaultController {
             );
 
             match call_result {
-                Ok(_) => {
-                    let is_promise = unsafe {
-                        if result.is_object() {
-                            result_object.set(result.to_object());
-                            IsPromiseObject(result_object.handle().into_handle())
-                        } else {
-                            false
-                        }
-                    };
-                    let promise = if is_promise {
-                        let promise = Promise::new_with_js_promise(result_object.handle(), cx);
-                        promise
-                    } else {
-                        Promise::new_resolved(global, cx, result.get(), can_gc)
-                    };
-                    promise
-                },
+                Ok(p) => p,
                 Err(e) => {
                     let p = Promise::new(global, can_gc);
                     p.reject_error(e, can_gc);
@@ -328,6 +275,7 @@ impl TransformStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-enqueue>
+    #[allow(unsafe_code)]
     pub(crate) fn enqueue(
         &self,
         cx: SafeJSContext,
@@ -355,16 +303,24 @@ impl TransformStreamDefaultController {
         if let Err(error) = readable_controller.enqueue(cx, chunk, can_gc) {
             // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, enqueueResult.[[Value]]).
             rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            error.to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
+            error
+                .clone()
+                .to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
             stream.error_writable_and_unblock_write(cx, global, rooted_error.handle(), can_gc);
 
             // Throw stream.[[readable]].[[storedError]].
-            rooted!(in(*cx) let mut stored_error = UndefinedValue());
-            readable.get_stored_error(stored_error.handle_mut());
-            let error = Error::Type("readable_controller enqueue error".to_owned());
-            error
-                .clone()
-                .to_jsval(cx, global, stored_error.handle_mut(), can_gc);
+            unsafe {
+                if !JS_IsExceptionPending(*cx) {
+                    rooted!(in(*cx) let mut stored_error = UndefinedValue());
+                    readable.get_stored_error(stored_error.handle_mut());
+
+                    JS_SetPendingException(
+                        *cx,
+                        stored_error.handle().into(),
+                        ExceptionStackBehavior::Capture,
+                    );
+                }
+            }
             return Err(error);
         }
 
