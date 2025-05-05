@@ -371,9 +371,7 @@ impl FetchResponseListener for EventSourceContext {
                 // the user agent knows that to be futile, in which case the user agent may
                 // fail the connection.
 
-                // The spec advises failing here if reconnecting would be
-                // "futile", with no more specific advice; WPT tests
-                // consider a non-http(s) scheme to be futile.
+                // WPT tests consider a non-http(s) scheme to be futile.
                 match self.event_source.root().url.scheme() {
                     "http" | "https" => self.reestablish_the_connection(),
                     _ => self.fail_the_connection(),
