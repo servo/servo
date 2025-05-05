@@ -109,10 +109,12 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
 
         // Step 3.3 Let data be a copy of the system clipboard data.
         let window = global.as_window();
-        let sender = route_promise(&p, self);
+        let sender = route_promise(&p, self, global.task_manager().clipboard_task_source());
         window.send_to_embedder(EmbedderMsg::GetClipboardText(window.webview_id(), sender));
 
-        // NOTE: Step 3.4 is done inside handle_response
+        // Step 3.4 Queue a global task on the clipboard task source,
+        // given realm’s global object, to perform the below steps:
+        // NOTE: We queue the task inside route_promise and perform the steps inside handle_response
 
         p
     }
@@ -177,63 +179,62 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
         &self,
         response: Result<String, String>,
         promise: &Rc<Promise>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) {
-        let trusted_promise = TrustedPromise::new(promise.clone());
+        let global = self.global();
         let text = response.unwrap_or_default();
 
-        // Step 3.4 Queue a global task on the clipboard task source,
-        // given realm’s global object, to perform the below steps:
-        self.global()
-            .task_manager()
-            .clipboard_task_source()
-            .queue(task!(read_text: move || {
-                let promise = trusted_promise.root();
-                let global = promise.global();
+        // Step 3.4.1 For each systemClipboardItem in data:
+        // Step 3.4.1.1 For each systemClipboardRepresentation in systemClipboardItem:
+        // TODO: Arboard provide the first item that has a String representation
 
-                // Step 3.4.1 For each systemClipboardItem in data:
-                // Step 3.4.1.1 For each systemClipboardRepresentation in systemClipboardItem:
-                // TODO: Arboard provide the first item that has a String representation
+        // Step 3.4.1.1.1 Let mimeType be the result of running the
+        // well-known mime type from os specific format algorithm given systemClipboardRepresentation’s name.
+        // Note: This is done by arboard, so we just convert the format to a MIME
+        let mime_type = Mime::from_str("text/plain").unwrap();
 
-                // Step 3.4.1.1.1 Let mimeType be the result of running the
-                // well-known mime type from os specific format algorithm given systemClipboardRepresentation’s name.
-                // Note: This is done by arboard, so we just convert the format to a MIME
-                let mime_type = Mime::from_str("text/plain").unwrap();
+        // Step 3.4.1.1.2 If mimeType is null, continue this loop.
+        // Note: Since the previous step is infallible, we don't need to handle this case
 
-                // Step 3.4.1.1.2 If mimeType is null, continue this loop.
+        // Step 3.4.1.1.3 Let representation be a new representation.
+        let representation = Representation {
+            mime_type,
+            is_custom: false,
+            data: Promise::new_resolved(
+                &global,
+                GlobalScope::get_cx(),
+                DOMString::from(text),
+                can_gc,
+            ),
+        };
 
-                // Step 3.4.1.1.3 Let representation be a new representation.
-                let representation = Representation {
-                    mime_type,
-                    is_custom: false,
-                    data: Promise::new_resolved(&global, GlobalScope::get_cx(), DOMString::from(text), CanGc::note()),
-                };
+        // Step 3.4.1.1.4 If representation’s MIME type essence is "text/plain", then:
 
-                // Step 3.4.1.1.4 If representation’s MIME type essence is "text/plain", then:
+        // Step 3.4.1.1.4.1 Set representation’s MIME type to mimeType.
 
-                // Step 3.4.1.1.4.1 Set representation’s MIME type to mimeType.
+        // Step 3.4.1.1.4.2 Let representationDataPromise be the representation’s data.
+        // Step 3.4.1.1.4.3 React to representationDataPromise:
+        let fulfillment_handler = Box::new(RepresentationDataPromiseFulfillmentHandler {
+            promise: promise.clone(),
+        });
+        let rejection_handler = Box::new(RepresentationDataPromiseRejectionHandler {
+            promise: promise.clone(),
+        });
+        let handler = PromiseNativeHandler::new(
+            &global,
+            Some(fulfillment_handler),
+            Some(rejection_handler),
+            can_gc,
+        );
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+        representation
+            .data
+            .append_native_handler(&handler, comp, can_gc);
 
-                // Step 3.4.1.1.4.2 Let representationDataPromise be the representation’s data.
-                // Step 3.4.1.1.4.3 React to representationDataPromise:
-                let fulfillment_handler = Box::new(RepresentationDataPromiseFulfillmentHandler {
-                    promise: promise.clone(),
-                });
-                let rejection_handler = Box::new(RepresentationDataPromiseRejectionHandler {
-                    promise: promise.clone(),
-                });
-                let handler = PromiseNativeHandler::new(
-                    &global,
-                    Some(fulfillment_handler),
-                    Some(rejection_handler),
-                    CanGc::note(),
-                );
-                let realm = enter_realm(&*global);
-                let comp = InRealm::Entered(&realm);
-                representation.data.append_native_handler(&handler, comp, CanGc::note());
-
-                // Step 3.4.2 Reject p with "NotFoundError" DOMException in realm.
-                // Step 3.4.3 Return p.
-            }));
+        // Step 3.4.2 Reject p with "NotFoundError" DOMException in realm.
+        // Step 3.4.3 Return p.
+        // NOTE: We follow the same behaviour of Gecko by doing nothing if no text is available instead of rejecting p
     }
 }
 
