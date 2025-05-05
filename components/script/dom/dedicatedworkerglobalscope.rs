@@ -9,7 +9,7 @@ use std::thread::{self, JoinHandle};
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Receiver, Sender, unbounded};
-use devtools_traits::DevtoolScriptControlMsg;
+use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, SourceInfo};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
@@ -478,10 +478,23 @@ impl DedicatedWorkerGlobalScope {
                     },
                     Ok((metadata, bytes)) => (metadata, bytes),
                 };
-                scope.set_url(metadata.final_url);
+                scope.set_url(metadata.final_url.clone());
                 scope.set_csp_list(GlobalScope::parse_csp_list_from_metadata(&metadata.headers));
                 global_scope.set_https_state(metadata.https_state);
                 let source = String::from_utf8_lossy(&bytes);
+                if let Some(chan) = global_scope.devtools_chan() {
+                    let pipeline_id = global_scope.pipeline_id();
+                    let source_info = SourceInfo {
+                        url: metadata.final_url,
+                        external: true, // Worker scripts are always external.
+                        worker_id: Some(global.upcast::<WorkerGlobalScope>().get_worker_id()),
+                        content: source.to_string(),
+                    };
+                    let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                        pipeline_id,
+                        source_info,
+                    ));
+                }
 
                 unsafe {
                     // Handle interrupt requests
