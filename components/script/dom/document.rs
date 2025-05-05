@@ -6369,6 +6369,30 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         )
     }
 
+    /// <https://drafts.csswg.org/cssom-view/#dom-document-scrollingelement>
+    fn GetScrollingElement(&self, can_gc: CanGc) -> Option<DomRoot<Element>> {
+        // Step 1. If the Document is in quirks mode, follow these steps:
+        if self.quirks_mode() == QuirksMode::Quirks {
+            // Step 1.1. If the body element exists,
+            if let Some(ref body) = self.GetBody() {
+                let e = body.upcast::<Element>();
+                // and it is not potentially scrollable, return the body element and abort these steps.
+                // For this purpose, a value of overflow:clip on the the body element’s parent element
+                // must be treated as overflow:hidden.
+                if !e.is_potentially_scrollable_body_for_scrolling_element(can_gc) {
+                    return Some(DomRoot::from_ref(e));
+                }
+            }
+
+            // Step 1.2. Return null and abort these steps.
+            return None;
+        }
+
+        // Step 2. If there is a root element, return the root element and abort these steps.
+        // Step 3. Return null.
+        self.GetDocumentElement()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-document-open
     fn Open(
         &self,

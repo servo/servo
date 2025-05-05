@@ -50,6 +50,7 @@ use style::selector_parser::{
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::{CssRuleType, UrlExtraData};
+use style::values::computed::Overflow;
 use style::values::generics::NonNegative;
 use style::values::generics::position::PreferredRatio;
 use style::values::generics::ratio::Ratio;
@@ -455,8 +456,25 @@ impl Element {
             .is_some_and(|s| !s.get_box().clone_display().is_none())
     }
 
-    // https://drafts.csswg.org/cssom-view/#potentially-scrollable
-    fn is_potentially_scrollable_body(&self, can_gc: CanGc) -> bool {
+    /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
+    pub(crate) fn is_potentially_scrollable_body(&self, can_gc: CanGc) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(false, can_gc)
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
+    pub(crate) fn is_potentially_scrollable_body_for_scrolling_element(
+        &self,
+        can_gc: CanGc,
+    ) -> bool {
+        self.is_potentially_scrollable_body_shared_logic(true, can_gc)
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#potentially-scrollable>
+    fn is_potentially_scrollable_body_shared_logic(
+        &self,
+        treat_overflow_clip_on_parent_as_hidden: bool,
+        can_gc: CanGc,
+    ) -> bool {
         let node = self.upcast::<Node>();
         debug_assert!(
             node.owner_doc().GetBody().as_deref() == self.downcast::<HTMLElement>(),
@@ -474,9 +492,21 @@ impl Element {
         //     overflow-y properties is neither visible nor clip."
         if let Some(parent) = node.GetParentElement() {
             if let Some(style) = parent.style(can_gc) {
-                if !style.get_box().clone_overflow_x().is_scrollable() &&
-                    !style.get_box().clone_overflow_y().is_scrollable()
-                {
+                let mut overflow_x = style.get_box().clone_overflow_x();
+                let mut overflow_y = style.get_box().clone_overflow_y();
+
+                // This fulfills the 'treat parent element overflow:clip as overflow:hidden' stipulation
+                // from the document.scrollingElement specification.
+                if treat_overflow_clip_on_parent_as_hidden {
+                    if overflow_x == Overflow::Clip {
+                        overflow_x = Overflow::Hidden;
+                    }
+                    if overflow_y == Overflow::Clip {
+                        overflow_y = Overflow::Hidden;
+                    }
+                }
+
+                if !overflow_x.is_scrollable() && !overflow_y.is_scrollable() {
                     return false;
                 }
             };
