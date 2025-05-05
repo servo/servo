@@ -6820,6 +6820,7 @@ dependencies = [
  "unicode-bidi",
  "unicode-script",
  "url",
+ "urlpattern",
  "uuid",
  "webrender_api",
  "wr_malloc_size_of",

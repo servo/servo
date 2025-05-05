@@ -23,7 +23,6 @@ pub(crate) struct URLPattern {
 
     /// <https://urlpattern.spec.whatwg.org/#urlpattern-associated-url-pattern>
     #[no_trace]
-    #[ignore_malloc_size_of = "defined in urlpattern crate"]
     associated_url_pattern: urlpattern::UrlPattern,
 }
 

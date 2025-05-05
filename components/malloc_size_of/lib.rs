@@ -753,6 +753,7 @@ malloc_size_of_is_0!(style::queries::values::PrefersColorScheme);
 malloc_size_of_is_0!(taffy::Layout);
 malloc_size_of_is_0!(unicode_bidi::Level);
 malloc_size_of_is_0!(unicode_script::Script);
+malloc_size_of_is_0!(urlpattern::UrlPattern);
 
 macro_rules! malloc_size_of_is_webrender_malloc_size_of(
     ($($ty:ty),+) => (
