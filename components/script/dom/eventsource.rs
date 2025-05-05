@@ -183,7 +183,9 @@ impl EventSourceContext {
                 self.data.push_str(&self.value);
                 self.data.push('\n');
             },
-            "id" => mem::swap(&mut self.last_event_id, &mut self.value),
+            "id" if !self.value.contains('\0') => {
+                mem::swap(&mut self.last_event_id, &mut self.value);
+            },
             "retry" => {
                 if let Ok(time) = u64::from_str(&self.value) {
                     self.event_source
