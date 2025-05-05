@@ -194,7 +194,11 @@ impl TransformStreamDefaultController {
                     };
                     promise
                 },
-                Err(_) => Promise::new_resolved(global, cx, &(), can_gc),
+                Err(e) => {
+                    let p = Promise::new(global, can_gc);
+                    p.reject_error(e, can_gc);
+                    p
+                },
             }
         } else {
             // Let transformAlgorithm be the following steps, taking a chunk argument:
@@ -256,7 +260,11 @@ impl TransformStreamDefaultController {
                     };
                     promise
                 },
-                Err(_) => Promise::new_resolved(global, cx, &(), can_gc),
+                Err(e) => {
+                    let p = Promise::new(global, can_gc);
+                    p.reject_error(e, can_gc);
+                    p
+                },
             }
         } else {
             // Let cancelAlgorithm be an algorithm which returns a promise resolved with undefined.
@@ -305,7 +313,11 @@ impl TransformStreamDefaultController {
                     };
                     promise
                 },
-                Err(_) => Promise::new_resolved(global, cx, &(), can_gc),
+                Err(e) => {
+                    let p = Promise::new(global, can_gc);
+                    p.reject_error(e, can_gc);
+                    p
+                },
             }
         } else {
             // Let flushAlgorithm be an algorithm which returns a promise resolved with undefined.

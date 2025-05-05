@@ -165,24 +165,28 @@ struct CancelPromiseFulfillment {
 impl Callback for CancelPromiseFulfillment {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
     fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
-        let finish_promise = self
-            .controller
-            .get_finish_promise()
-            .expect("finish promise is not set");
         // If readable.[[state]] is "errored", reject controller.[[finishPromise]] with readable.[[storedError]].
         if self.readable.is_errored() {
             rooted!(in(*cx) let mut error = UndefinedValue());
             self.readable.get_stored_error(error.handle_mut());
-            finish_promise.reject(cx, error.handle(), can_gc);
+            self.controller
+                .get_finish_promise()
+                .expect("finish promise is not set")
+                .reject_native(&error.handle(), can_gc);
         } else {
             // Otherwise:
             // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], reason).
             rooted!(in(*cx) let mut reason = UndefinedValue());
             reason.set(self.reason.get());
-            self.readable.get_default_controller().error(reason.handle(), can_gc);
+            self.readable
+                .get_default_controller()
+                .error(reason.handle(), can_gc);
 
             // Resolve controller.[[finishPromise]] with undefined.
-            finish_promise.resolve_native(&(), can_gc);
+            self.controller
+                .get_finish_promise()
+                .expect("finish promise is not set")
+                .resolve_native(&(), can_gc);
         }
     }
 }
@@ -200,7 +204,6 @@ struct CancelPromiseRejection {
 
 impl Callback for CancelPromiseRejection {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
-    #[allow(unsafe_code)]
     fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], r).
         self.readable.get_default_controller().error(v, can_gc);
