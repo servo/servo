@@ -7,11 +7,16 @@
 use std::cell::{BorrowError, BorrowMutError};
 #[cfg(not(feature = "refcell_backtrace"))]
 pub(crate) use std::cell::{Ref, RefCell, RefMut};
+#[cfg(not(feature = "refcell_backtrace"))]
+pub(crate) fn ref_filter_map<T: ?Sized, U: ?Sized, F: FnOnce(&T) -> Option<&U>>(
+    orig: Ref<'_, T>,
+    f: F,
+) -> Option<Ref<'_, U>> {
+    Ref::filter_map(orig, f).ok()
+}
 
 #[cfg(feature = "refcell_backtrace")]
 pub(crate) use accountable_refcell::{Ref, RefCell, RefMut, ref_filter_map};
-#[cfg(not(feature = "refcell_backtrace"))]
-pub(crate) use ref_filter_map::ref_filter_map;
 
 use crate::dom::bindings::root::{assert_in_layout, assert_in_script};
 

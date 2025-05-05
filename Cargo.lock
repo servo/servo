@@ -6007,12 +6007,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ref_filter_map"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b5ceb840e4009da4841ed22a15eb49f64fdd00a2138945c5beacf506b2fb5ed"
-
-[[package]]
 name = "regex"
 version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6280,7 +6274,6 @@ dependencies = [
  "pixels",
  "profile_traits",
  "range",
- "ref_filter_map",
  "regex",
  "script_bindings",
  "script_layout_interface",
