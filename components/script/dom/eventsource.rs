@@ -11,6 +11,7 @@ use std::time::Duration;
 use content_security_policy as csp;
 use dom_struct::dom_struct;
 use headers::ContentType;
+use http::StatusCode;
 use http::header::{self, HeaderName, HeaderValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -349,6 +350,11 @@ impl FetchResponseListener for EventSourceContext {
                         _ => unsafe_,
                     },
                 };
+                // Step 15.3 if res's status is not 200, or if res's `Content-Type` is not
+                // `text/event-stream`, then fail the connection.
+                if meta.status.code() != StatusCode::OK {
+                    return self.fail_the_connection();
+                }
                 let mime = match meta.content_type {
                     None => return self.fail_the_connection(),
                     Some(ct) => <ContentType as Into<Mime>>::into(ct.into_inner()),
@@ -357,9 +363,14 @@ impl FetchResponseListener for EventSourceContext {
                     return self.fail_the_connection();
                 }
                 self.origin = meta.final_url.origin().ascii_serialization();
+                // Step 15.4 announce the connection and interpret res's body line by line.
                 self.announce_the_connection();
             },
             Err(_) => {
+                // Step 15.2 if res is a network error, then reestablish the connection, unless
+                // the user agent knows that to be futile, in which case the user agent may
+                // fail the connection.
+
                 // The spec advises failing here if reconnecting would be
                 // "futile", with no more specific advice; WPT tests
                 // consider a non-http(s) scheme to be futile.
@@ -413,12 +424,14 @@ impl FetchResponseListener for EventSourceContext {
     fn process_response_eof(
         &mut self,
         _: RequestId,
-        _response: Result<ResourceFetchTiming, NetworkError>,
+        response: Result<ResourceFetchTiming, NetworkError>,
     ) {
         if self.incomplete_utf8.take().is_some() {
             self.parse("\u{FFFD}".chars(), CanGc::note());
         }
-        self.reestablish_the_connection();
+        if response.is_ok() {
+            self.reestablish_the_connection();
+        }
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -581,7 +594,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         );
         // Step 11
         request.cache_mode = CacheMode::NoStore;
-        // Step 12
+        // Step 13
         *ev.request.borrow_mut() = Some(request.clone());
         // Step 14
         let (action_sender, action_receiver) = ipc::channel().unwrap();
@@ -620,7 +633,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
                 FetchChannels::ResponseMsg(action_sender),
             ))
             .unwrap();
-        // Step 13
+        // Step 16
         Ok(ev)
     }
 
