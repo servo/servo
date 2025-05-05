@@ -651,6 +651,7 @@ impl LayoutThread {
             ))),
             iframe_sizes: Mutex::default(),
             use_rayon: rayon_pool.is_some(),
+            highlighted_dom_node: reflow_request.highlighted_dom_node,
         };
 
         self.restyle_and_build_trees(

@@ -273,6 +273,8 @@ pub enum DevtoolScriptControlMsg {
     GetCssDatabase(IpcSender<HashMap<String, CssDatabaseProperty>>),
     /// Simulates a light or dark color scheme for the given pipeline
     SimulateColorScheme(PipelineId, Theme),
+    /// Highlight the given DOM node
+    HighlightDomNode(PipelineId, Option<String>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

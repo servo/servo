@@ -2069,6 +2069,9 @@ impl ScriptThread {
                     None => warn!("Message sent to closed pipeline {}.", id),
                 }
             },
+            DevtoolScriptControlMsg::HighlightDomNode(id, node_id) => {
+                devtools::handle_highlight_dom_node(&documents, id, node_id)
+            },
         }
     }
 
