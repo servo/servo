@@ -1822,7 +1822,7 @@ impl GlobalScope {
     pub(crate) fn get_blob_bytes(&self, blob_id: &BlobId) -> Result<Vec<u8>, ()> {
         let parent = {
             match *self.get_blob_data(blob_id) {
-                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos.clone())),
+                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos)),
                 _ => None,
             }
         };
@@ -1883,7 +1883,7 @@ impl GlobalScope {
     fn get_blob_bytes_or_file_id(&self, blob_id: &BlobId) -> BlobResult {
         let parent = {
             match *self.get_blob_data(blob_id) {
-                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos.clone())),
+                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos)),
                 _ => None,
             }
         };
@@ -1931,7 +1931,7 @@ impl GlobalScope {
     pub(crate) fn get_blob_size(&self, blob_id: &BlobId) -> u64 {
         let parent = {
             match *self.get_blob_data(blob_id) {
-                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos.clone())),
+                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos)),
                 _ => None,
             }
         };
@@ -1965,7 +1965,7 @@ impl GlobalScope {
             blob_info.has_url = true;
 
             match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
+                BlobData::Sliced(parent, rel_pos) => Some((*parent, *rel_pos)),
                 _ => None,
             }
         };
@@ -2006,12 +2006,8 @@ impl GlobalScope {
         let origin = get_blob_origin(&self.get_url());
 
         let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
-        let msg = FileManagerThreadMsg::AddSlicedURLEntry(
-            *parent_file_id,
-            rel_pos.clone(),
-            tx,
-            origin.clone(),
-        );
+        let msg =
+            FileManagerThreadMsg::AddSlicedURLEntry(*parent_file_id, *rel_pos, tx, origin.clone());
         self.send_to_file_manager(msg);
         match rx.recv().expect("File manager thread is down.") {
             Ok(new_id) => {
