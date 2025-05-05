@@ -16,6 +16,13 @@
        null,
        {}
       ]
+     ],
+     "transfer-control-to-offscreencanvas-then-change-dimensions-crash.html": [
+      "bc0c7afd6ab2e1c313bb61ea4a5c68b402105f5d",
+      [
+       null,
+       {}
+      ]
      ]
     },
     "datatransferitem-crash.html": [
