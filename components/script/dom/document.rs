@@ -6666,7 +6666,7 @@ pub(crate) fn determine_policy_for_token(token: &str) -> ReferrerPolicy {
         "same-origin" => ReferrerPolicy::SameOrigin,
         "strict-origin" => ReferrerPolicy::StrictOrigin,
         "default" | "strict-origin-when-cross-origin" => ReferrerPolicy::StrictOriginWhenCrossOrigin,
-        "origin-when-cross-origin" => ReferrerPolicy::OriginWhenCrossOrigin,
+        "origin-when-cross-origin" | "origin-when-crossorigin" => ReferrerPolicy::OriginWhenCrossOrigin,
         "always" | "unsafe-url" => ReferrerPolicy::UnsafeUrl,
         _ => ReferrerPolicy::EmptyString,
     }
