@@ -338,10 +338,6 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
     fn Close(&self, can_gc: CanGc) {
-        if self.detached.get() {
-            return;
-        }
-
         // Set this's [[Detached]] internal slot value to true.
         self.detached.set(true);
 
