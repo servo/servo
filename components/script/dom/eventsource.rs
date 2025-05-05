@@ -546,29 +546,35 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         event_source_init: &EventSourceInit,
     ) -> Fallible<DomRoot<EventSource>> {
         // TODO: Step 2 relevant settings object
-        // Step 3
+        // Step 3 Let urlRecord be the result of encoding-parsing a URL given url, 
+        // relative to settings.
         let base_url = global.api_base_url();
         let url_record = match base_url.join(&url) {
             Ok(u) => u,
-            //  Step 4
+            // Step 4 If urlRecord is failure, then throw a "SyntaxError" DOMException.
             Err(_) => return Err(Error::Syntax),
         };
-        // Step 1, 5
+        // Step 1 Let ev be a new EventSource object.
         let ev = EventSource::new(
             global,
             proto,
+            // Step 5 Set ev's url to urlRecord.
             url_record.clone(),
             event_source_init.withCredentials,
             can_gc,
         );
         global.track_event_source(&ev);
-        // Steps 6-7
         let cors_attribute_state = if event_source_init.withCredentials {
+            // Step 7 If the value of eventSourceInitDict's withCredentials member is true,
+            // then set corsAttributeState to Use Credentials and set ev's withCredentials
+            // attribute to true.
             CorsSettings::UseCredentials
         } else {
+            // Step 6 Let corsAttributeState be Anonymous.
             CorsSettings::Anonymous
         };
-        // Step 8
+        // Step 8 Let request be the result of creating a potential-CORS request
+        // given urlRecord, the empty string, and corsAttributeState.
         // TODO: Step 9 set request's client settings
         let mut request = create_a_potential_cors_request(
             global.webview_id(),
@@ -584,17 +590,18 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         .origin(global.origin().immutable().clone())
         .pipeline_id(Some(global.pipeline_id()));
 
-        // Step 10
+        // Step 10 User agents may set (`Accept`, `text/event-stream`) in request's header list.
         // TODO(eijebong): Replace once typed headers allow it
         request.headers.insert(
             header::ACCEPT,
             HeaderValue::from_static("text/event-stream"),
         );
-        // Step 11
+        // Step 11 Set request's cache mode to "no-store".
         request.cache_mode = CacheMode::NoStore;
-        // Step 13
+        // Step 13 Set ev's request to request.
         *ev.request.borrow_mut() = Some(request.clone());
-        // Step 14
+        // Step 14 Let processEventSourceEndOfBody given response res be the following step:
+        // if res is not a network error, then reestablish the connection.
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let context = EventSourceContext {
             incomplete_utf8: None,
@@ -631,7 +638,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
                 FetchChannels::ResponseMsg(action_sender),
             ))
             .unwrap();
-        // Step 16
+        // Step 16 Return ev.
         Ok(ev)
     }
 
