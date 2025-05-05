@@ -546,7 +546,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         event_source_init: &EventSourceInit,
     ) -> Fallible<DomRoot<EventSource>> {
         // TODO: Step 2 relevant settings object
-        // Step 3 Let urlRecord be the result of encoding-parsing a URL given url, 
+        // Step 3 Let urlRecord be the result of encoding-parsing a URL given url,
         // relative to settings.
         let base_url = global.api_base_url();
         let url_record = match base_url.join(&url) {
