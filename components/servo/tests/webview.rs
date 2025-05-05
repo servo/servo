@@ -44,6 +44,18 @@ fn test_create_webview(servo_test: &ServoTest) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+fn test_create_webview_and_immediately_drop_webview_before_shutdown(
+    servo_test: &ServoTest,
+) -> Result<(), anyhow::Error> {
+    WebViewBuilder::new(servo_test.servo()).build();
+    Ok(())
+}
+
 fn main() {
-    run_api_tests!(test_create_webview);
+    run_api_tests!(
+        test_create_webview,
+        // This test needs to be last, as it tests creating and dropping
+        // a WebView right before shutdown.
+        test_create_webview_and_immediately_drop_webview_before_shutdown
+    );
 }
