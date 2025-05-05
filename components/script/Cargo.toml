@@ -21,7 +21,7 @@ profilemozjs = ['js/profilemozjs']
 tracing = ["dep:tracing", "script_bindings/tracing"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 js_backtrace = []
-refcell_backtrace = ["accountable-refcell"]
+# refcell_backtrace = ["accountable-refcell"]
 webxr = ["webxr-api", "script_bindings/webxr"]
 webgpu = ["script_bindings/webgpu", "script_traits/webgpu"]
 

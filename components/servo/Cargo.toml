@@ -33,7 +33,7 @@ native-bluetooth = ["bluetooth/native-bluetooth"]
 no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "compositing_traits/no-wgl"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 profilemozjs = ["script/profilemozjs"]
-refcell_backtrace = ["script/refcell_backtrace"]
+# refcell_backtrace = ["script/refcell_backtrace"]
 tracing = [
     "dep:tracing",
     "compositing/tracing",
