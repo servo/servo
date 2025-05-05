@@ -653,6 +653,10 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
         preferences.media_glvideo_enabled = false;
     }
 
+    if let Some(agent) = opt_match.opt_str("user-agent") {
+        preferences.user_agent = agent;
+    }
+
     let opts = Opts {
         debug: debug_options.clone(),
         wait_for_stable_image,
