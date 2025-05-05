@@ -59,6 +59,7 @@ pub fn dimension(val: &stylo::Size) -> taffy::Dimension {
 
         // Anchor positioning will be flagged off for time being
         stylo::Size::AnchorSizeFunction(_) => unreachable!(),
+        stylo::Size::AnchorContainingCalcFunction(_) => unreachable!(),
     }
 }
 
@@ -77,6 +78,7 @@ pub fn max_size_dimension(val: &stylo::MaxSize) -> taffy::Dimension {
 
         // Anchor positioning will be flagged off for time being
         stylo::MaxSize::AnchorSizeFunction(_) => unreachable!(),
+        stylo::MaxSize::AnchorContainingCalcFunction(_) => unreachable!(),
     }
 }
 
@@ -88,6 +90,7 @@ pub fn margin(val: &stylo::MarginVal) -> taffy::LengthPercentageAuto {
 
         // Anchor positioning will be flagged off for time being
         stylo::MarginVal::AnchorSizeFunction(_) => unreachable!(),
+        stylo::MarginVal::AnchorContainingCalcFunction(_) => unreachable!(),
     }
 }
 
@@ -100,6 +103,7 @@ pub fn inset(val: &stylo::InsetVal) -> taffy::LengthPercentageAuto {
         // Anchor positioning will be flagged off for time being
         stylo::InsetVal::AnchorSizeFunction(_) => unreachable!(),
         stylo::InsetVal::AnchorFunction(_) => unreachable!(),
+        stylo::InsetVal::AnchorContainingCalcFunction(_) => unreachable!(),
     }
 }
 

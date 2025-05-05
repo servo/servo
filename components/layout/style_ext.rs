@@ -375,6 +375,9 @@ impl ComputedValuesExt for ComputedValues {
                 Inset::Auto => LengthPercentageOrAuto::Auto,
                 Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
                 Inset::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+                Inset::AnchorContainingCalcFunction(_) => {
+                    unreachable!("anchor() and anchor-size() should be disabled")
+                },
             }
         }
         let position = self.get_position();
@@ -495,7 +498,9 @@ impl ComputedValuesExt for ComputedValues {
             match inset {
                 Margin::LengthPercentage(v) => LengthPercentageOrAuto::LengthPercentage(v),
                 Margin::Auto => LengthPercentageOrAuto::Auto,
-                Margin::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
+                Margin::AnchorSizeFunction(_) | Margin::AnchorContainingCalcFunction(_) => {
+                    unreachable!("anchor-size() should be disabled")
+                },
             }
         }
         let margin = self.get_margin();
