@@ -122,8 +122,6 @@ fn create_request_body_with_content(content: Vec<u8>) -> RequestBody {
 
 #[test]
 fn test_check_default_headers_loaded_in_every_request() {
-    let proxy_string = "http://proxy.example.com".to_string();
-    prefs::write().network_proxy_uri = proxy_string;
     let expected_headers = Arc::new(Mutex::new(None));
     let expected_headers_clone = expected_headers.clone();
     let handler = move |request: HyperRequest<Incoming>,
@@ -1794,18 +1792,7 @@ fn test_prompt_credentials_user_input_incorrect_credentials() {
 fn test_prompt_credentials_user_input_incorrect_mode() {
     let handler =
         move |request: HyperRequest<Incoming>,
-              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
-            let expected = Authorization::basic("test", "test");
-            if let Some(credentials) = request.headers().typed_get::<Authorization<Basic>>() {
-                if credentials == expected {
-                    *response.status_mut() = StatusCode::OK;
-                } else {
-                    *response.status_mut() = StatusCode::UNAUTHORIZED;
-                }
-            } else {
-                *response.status_mut() = StatusCode::UNAUTHORIZED;
-            }
-        };
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {};
     let (server, url) = make_server(handler);
 
     let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
@@ -1848,30 +1835,78 @@ fn test_set_proxy_headers() {
     };
     let (server, url) = make_server(handler);
 
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .mode(RequestMode::SameOrigin)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .credentials_mode(CredentialsMode::Include)
+        .build();
+
     let mut headers = HeaderMap::new();
 
-    headers.insert(header::FORWARDED, HeaderValue::from_static("PROXY"));
+    headers.insert(
+        header::ACCEPT_ENCODING,
+        HeaderValue::from_static("gzip, deflate, br"),
+    );
+
+    headers.typed_insert(Host::from(
+        format!("{}:{}", url.host_str().unwrap(), url.port().unwrap())
+            .parse::<Authority>()
+            .unwrap(),
+    ));
+
+    headers.insert(
+        header::ACCEPT,
+        HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
+    );
+
+    headers.insert(
+        header::ACCEPT_LANGUAGE,
+        HeaderValue::from_static("en-US,en;q=0.5"),
+    );
+
+    headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
+
+    // Append fetch metadata headers
+    headers.insert(
+        HeaderName::from_static("sec-fetch-dest"),
+        HeaderValue::from_static("document"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-mode"),
+        HeaderValue::from_static("no-cors"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-site"),
+        HeaderValue::from_static("same-origin"),
+    );
 
     *expected_headers.lock().unwrap() = Some(headers.clone());
 
-    // Testing for method.GET
-    let request = RequestBuilder::new(None, url.clone(), Referrer::NoReferrer)
-        .method(Method::GET)
-        .destination(Destination::Document)
-        .origin(url.clone().origin())
-        .pipeline_id(Some(TEST_PIPELINE_ID))
-        .build();
-
-    println!("{:?}", &expected_headers);
-    let response = dbg!(fetch(request, None));
-    assert!(
-        response
-            .internal_response
-            .unwrap()
-            .status
-            .code()
-            .is_success()
+    let (embedder_proxy, embedder_receiver) = create_embedder_proxy_and_receiver();
+    let _ = receive_credential_prompt_msgs(
+        embedder_receiver,
+        Some(AuthenticationResponse {
+            username: "test".into(),
+            password: "test".into(),
+        }),
     );
+    let mut context = new_fetch_context(
+        None,
+        Some(embedder_proxy),
+        None,
+        Some("http://127.0.0.1".parse().unwrap()),
+    );
+
+    let response = fetch_with_context(request, &mut context);
+
+    println!("{:?}", response.headers);
+    server.close();
+
+    assert!(response.internal_response.is_none());
 
     panic!("NYI");
 }
