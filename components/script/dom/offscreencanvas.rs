@@ -24,17 +24,20 @@ use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
 use crate::script_runtime::{CanGc, JSContext};
 
-/// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas>
+/// <https://html.spec.whatwg.org/multipage/#offscreencanvas>
 #[dom_struct]
 pub(crate) struct OffscreenCanvas {
     eventtarget: EventTarget,
     width: Cell<u64>,
     height: Cell<u64>,
 
-    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-context-mode>
-    context_mode: DomRefCell<Option<OffscreenRenderingContext>>,
+    /// Represents both the [bitmap] and the [context mode] of the canvas.
+    ///
+    /// [bitmap]: https://html.spec.whatwg.org/multipage/#offscreencanvas-bitmap
+    /// [context mode]: https://html.spec.whatwg.org/multipage/#offscreencanvas-context-mode
+    context: DomRefCell<Option<OffscreenRenderingContext>>,
 
-    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
     placeholder: Option<Dom<HTMLCanvasElement>>,
 }
 
@@ -48,7 +51,7 @@ impl OffscreenCanvas {
             eventtarget: EventTarget::new_inherited(),
             width: Cell::new(width),
             height: Cell::new(height),
-            context_mode: DomRefCell::new(None),
+            context: DomRefCell::new(None),
             placeholder: placeholder.map(Dom::from_ref),
         }
     }
@@ -74,18 +77,18 @@ impl OffscreenCanvas {
     }
 
     pub(crate) fn origin_is_clean(&self) -> bool {
-        match *self.context_mode.borrow() {
+        match *self.context.borrow() {
             Some(ref context) => context.origin_is_clean(),
             _ => true,
         }
     }
 
     pub(crate) fn context(&self) -> Option<Ref<OffscreenRenderingContext>> {
-        ref_filter_map(self.context_mode.borrow(), |ctx| ctx.as_ref())
+        ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
     }
 
     pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
-        match self.context_mode.borrow().as_ref() {
+        match self.context.borrow().as_ref() {
             Some(context) => context.get_image_data(),
             None => {
                 let size = self.get_size();
@@ -108,7 +111,7 @@ impl OffscreenCanvas {
             };
         }
         let context = OffscreenCanvasRenderingContext2D::new(&self.global(), self, can_gc);
-        *self.context_mode.borrow_mut() = Some(OffscreenRenderingContext::Context2d(Dom::from_ref(
+        *self.context.borrow_mut() = Some(OffscreenRenderingContext::Context2d(Dom::from_ref(
             &*context,
         )));
         Some(context)
@@ -124,7 +127,7 @@ impl OffscreenCanvas {
 }
 
 impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
-    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas
+    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas>
     fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -136,7 +139,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         Ok(offscreencanvas)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-getcontext
+    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-getcontext>
     fn GetContext(
         &self,
         _cx: JSContext,
@@ -160,12 +163,12 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width
+    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width>
     fn Width(&self) -> u64 {
         self.width.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width
+    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width>
     fn SetWidth(&self, value: u64, can_gc: CanGc) {
         self.width.set(value);
 
@@ -178,12 +181,12 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height
+    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height>
     fn Height(&self) -> u64 {
         self.height.get()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height
+    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height>
     fn SetHeight(&self, value: u64, can_gc: CanGc) {
         self.height.set(value);
 

@@ -103,12 +103,12 @@ impl EncodedImageType {
     }
 }
 
-/// <https://html.spec.whatwg.org/multipage/canvas.html#htmlcanvaselement>
+/// <https://html.spec.whatwg.org/multipage/#htmlcanvaselement>
 #[dom_struct]
 pub(crate) struct HTMLCanvasElement {
     htmlelement: HTMLElement,
 
-    /// <https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-context-mode>
+    /// <https://html.spec.whatwg.org/multipage/#concept-canvas-context-mode>
     context_mode: DomRefCell<Option<RenderingContext>>,
 
     // This id and hashmap are used to keep track of ongoing toBlob() calls.
