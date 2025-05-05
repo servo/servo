@@ -158,11 +158,13 @@ impl js::gc::Rootable for CancelPromiseFulfillment {}
 struct CancelPromiseFulfillment {
     readable: Dom<ReadableStream>,
     controller: Dom<TransformStreamDefaultController>,
+    #[ignore_malloc_size_of = "mozjs"]
+    reason: Box<Heap<JSVal>>,
 }
 
 impl Callback for CancelPromiseFulfillment {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
-    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         let finish_promise = self
             .controller
             .get_finish_promise()
@@ -175,7 +177,9 @@ impl Callback for CancelPromiseFulfillment {
         } else {
             // Otherwise:
             // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], reason).
-            self.readable.get_default_controller().error(v, can_gc);
+            rooted!(in(*cx) let mut reason = UndefinedValue());
+            reason.set(self.reason.get());
+            self.readable.get_default_controller().error(reason.handle(), can_gc);
 
             // Resolve controller.[[finishPromise]] with undefined.
             finish_promise.resolve_native(&(), can_gc);
@@ -209,7 +213,6 @@ impl Callback for CancelPromiseRejection {
     }
 }
 
-//----------
 impl js::gc::Rootable for SourceCancelPromiseFulfillment {}
 
 /// Reacting to fulfillment of the cancelpromise as part of
@@ -220,11 +223,13 @@ struct SourceCancelPromiseFulfillment {
     writeable: Dom<WritableStream>,
     controller: Dom<TransformStreamDefaultController>,
     stream: Dom<TransformStream>,
+    #[ignore_malloc_size_of = "mozjs"]
+    reason: Box<Heap<JSVal>>,
 }
 
 impl Callback for SourceCancelPromiseFulfillment {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
-    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         // If cancelPromise was fulfilled, then:
         let finish_promise = self
             .controller
@@ -240,9 +245,14 @@ impl Callback for SourceCancelPromiseFulfillment {
         } else {
             // Otherwise:
             // Perform ! WritableStreamDefaultControllerErrorIfNeeded(writable.[[controller]], reason).
-            self.writeable
-                .get_default_controller()
-                .error_if_needed(cx, v, global, can_gc);
+            rooted!(in(*cx) let mut reason = UndefinedValue());
+            reason.set(self.reason.get());
+            self.writeable.get_default_controller().error_if_needed(
+                cx,
+                reason.handle(),
+                global,
+                can_gc,
+            );
 
             // Perform ! TransformStreamUnblockWrite(stream).
             self.stream.unblock_write(global, can_gc);
@@ -596,7 +606,6 @@ impl TransformStream {
             let handler = PromiseNativeHandler::new(
                 global,
                 fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
-                // None,
                 Some(Box::new(BackpressureChangeRejection {
                     result_promise: result_promise.clone(),
                 })),
@@ -659,6 +668,7 @@ impl TransformStream {
             Some(Box::new(CancelPromiseFulfillment {
                 readable: Dom::from_ref(&readable),
                 controller: Dom::from_ref(&controller),
+                reason: Heap::boxed(reason.get()),
             })),
             Some(Box::new(CancelPromiseRejection {
                 readable: Dom::from_ref(&readable),
@@ -799,6 +809,7 @@ impl TransformStream {
                 writeable: Dom::from_ref(&writable),
                 controller: Dom::from_ref(&controller),
                 stream: Dom::from_ref(self),
+                reason: Heap::boxed(reason.get()),
             })),
             Some(Box::new(SourceCancelPromiseRejection {
                 writeable: Dom::from_ref(&writable),
