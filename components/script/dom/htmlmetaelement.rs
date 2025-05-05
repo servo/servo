@@ -5,7 +5,8 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
-use style::{attr::AttrValue, str::HTML_SPACE_CHARACTERS};
+use style::attr::AttrValue;
+use style::str::HTML_SPACE_CHARACTERS;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
