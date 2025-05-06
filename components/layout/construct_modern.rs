@@ -12,7 +12,7 @@ use style::selector_parser::PseudoElement;
 
 use crate::PropagatedBoxTreeData;
 use crate::context::LayoutContext;
-use crate::dom::{BoxSlot, NodeExt};
+use crate::dom::BoxSlot;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 use crate::flow::{BlockContainer, BlockFormattingContext};
@@ -24,32 +24,32 @@ use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::DisplayGeneratingBox;
 
 /// A builder used for both flex and grid containers.
-pub(crate) struct ModernContainerBuilder<'a, 'dom, Node> {
+pub(crate) struct ModernContainerBuilder<'a, 'dom> {
     context: &'a LayoutContext<'a>,
-    info: &'a NodeAndStyleInfo<Node>,
+    info: &'a NodeAndStyleInfo<'dom>,
     propagated_data: PropagatedBoxTreeData,
-    contiguous_text_runs: Vec<ModernContainerTextRun<'dom, Node>>,
+    contiguous_text_runs: Vec<ModernContainerTextRun<'dom>>,
     /// To be run in parallel with rayon in `finish`
-    jobs: Vec<ModernContainerJob<'dom, Node>>,
+    jobs: Vec<ModernContainerJob<'dom>>,
     has_text_runs: bool,
 }
 
-enum ModernContainerJob<'dom, Node> {
+enum ModernContainerJob<'dom> {
     ElementOrPseudoElement {
-        info: NodeAndStyleInfo<Node>,
+        info: NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     },
-    TextRuns(Vec<ModernContainerTextRun<'dom, Node>>),
+    TextRuns(Vec<ModernContainerTextRun<'dom>>),
 }
 
-struct ModernContainerTextRun<'dom, Node> {
-    info: NodeAndStyleInfo<Node>,
+struct ModernContainerTextRun<'dom> {
+    info: NodeAndStyleInfo<'dom>,
     text: Cow<'dom, str>,
 }
 
-impl<Node> ModernContainerTextRun<'_, Node> {
+impl ModernContainerTextRun<'_> {
     /// <https://drafts.csswg.org/css-text/#white-space>
     fn is_only_document_white_space(&self) -> bool {
         // FIXME: is this the right definition? See
@@ -73,11 +73,8 @@ pub(crate) struct ModernItem<'dom> {
     pub formatting_context: IndependentFormattingContext,
 }
 
-impl<'dom, Node: 'dom> TraversalHandler<'dom, Node> for ModernContainerBuilder<'_, 'dom, Node>
-where
-    Node: NodeExt<'dom>,
-{
-    fn handle_text(&mut self, info: &NodeAndStyleInfo<Node>, text: Cow<'dom, str>) {
+impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {
+    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
         self.contiguous_text_runs.push(ModernContainerTextRun {
             info: info.clone(),
             text,
@@ -87,7 +84,7 @@ where
     /// Or pseudo-element
     fn handle_element(
         &mut self,
-        info: &NodeAndStyleInfo<Node>,
+        info: &NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         contents: Contents,
         box_slot: BoxSlot<'dom>,
@@ -103,13 +100,10 @@ where
     }
 }
 
-impl<'a, 'dom, Node: 'dom> ModernContainerBuilder<'a, 'dom, Node>
-where
-    Node: NodeExt<'dom>,
-{
+impl<'a, 'dom> ModernContainerBuilder<'a, 'dom> {
     pub fn new(
         context: &'a LayoutContext<'a>,
-        info: &'a NodeAndStyleInfo<Node>,
+        info: &'a NodeAndStyleInfo<'dom>,
         propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         ModernContainerBuilder {
@@ -165,7 +159,7 @@ where
                     let block_formatting_context = BlockFormattingContext::from_block_container(
                         BlockContainer::InlineFormattingContext(inline_formatting_context),
                     );
-                    let info: &NodeAndStyleInfo<_> = &*anonymous_info;
+                    let info: &NodeAndStyleInfo = &anonymous_info;
                     let formatting_context = IndependentFormattingContext {
                         base: LayoutBoxBase::new(info.into(), info.style.clone()),
                         contents: IndependentFormattingContextContents::NonReplaced(

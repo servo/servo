@@ -4,12 +4,12 @@
 
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
+use script::layout_dom::ServoLayoutElement;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
 use crate::context::LayoutContext;
-use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
@@ -69,9 +69,9 @@ impl Baselines {
 }
 
 impl IndependentFormattingContext {
-    pub fn construct<'dom, Node: NodeExt<'dom>>(
+    pub fn construct(
         context: &LayoutContext,
-        node_and_style_info: &NodeAndStyleInfo<Node>,
+        node_and_style_info: &NodeAndStyleInfo,
         display_inside: DisplayInside,
         contents: Contents,
         propagated_data: PropagatedBoxTreeData,
@@ -111,11 +111,11 @@ impl IndependentFormattingContext {
                         let table_grid_style = context
                             .shared_context()
                             .stylist
-                            .style_for_anonymous::<Node::ConcreteElement>(
-                            &context.shared_context().guards,
-                            &PseudoElement::ServoTableGrid,
-                            &node_and_style_info.style,
-                        );
+                            .style_for_anonymous::<ServoLayoutElement>(
+                                &context.shared_context().guards,
+                                &PseudoElement::ServoTableGrid,
+                                &node_and_style_info.style,
+                            );
                         base_fragment_info.flags.insert(FragmentFlags::DO_NOT_PAINT);
                         IndependentNonReplacedContents::Table(Table::construct(
                             context,

@@ -33,16 +33,13 @@ use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, D
 use crate::table::{AnonymousTableContent, Table};
 
 impl BlockFormattingContext {
-    pub(crate) fn construct<'dom, Node>(
+    pub(crate) fn construct(
         context: &LayoutContext,
-        info: &NodeAndStyleInfo<Node>,
+        info: &NodeAndStyleInfo<'_>,
         contents: NonReplacedContents,
         propagated_data: PropagatedBoxTreeData,
         is_list_item: bool,
-    ) -> Self
-    where
-        Node: NodeExt<'dom>,
-    {
+    ) -> Self {
         Self::from_block_container(BlockContainer::construct(
             context,
             info,
@@ -61,8 +58,8 @@ impl BlockFormattingContext {
     }
 }
 
-struct BlockLevelJob<'dom, Node> {
-    info: NodeAndStyleInfo<Node>,
+struct BlockLevelJob<'dom> {
+    info: NodeAndStyleInfo<'dom>,
     box_slot: BoxSlot<'dom>,
     propagated_data: PropagatedBoxTreeData,
     kind: BlockLevelCreator,
@@ -111,12 +108,12 @@ enum IntermediateBlockContainer {
 ///
 /// This builder starts from the first child of a given DOM node
 /// and does a preorder traversal of all of its inclusive siblings.
-pub(crate) struct BlockContainerBuilder<'dom, 'style, Node> {
+pub(crate) struct BlockContainerBuilder<'dom, 'style> {
     context: &'style LayoutContext<'style>,
 
     /// This NodeAndStyleInfo contains the root node, the corresponding pseudo
     /// content designator, and the block container style.
-    info: &'style NodeAndStyleInfo<Node>,
+    info: &'style NodeAndStyleInfo<'dom>,
 
     /// The list of block-level boxes to be built for the final block container.
     ///
@@ -131,7 +128,7 @@ pub(crate) struct BlockContainerBuilder<'dom, 'style, Node> {
     /// doesn't have a next sibling, we either reached the end of the container
     /// root or there are ongoing inline-level boxes
     /// (see `handle_block_level_element`).
-    block_level_boxes: Vec<BlockLevelJob<'dom, Node>>,
+    block_level_boxes: Vec<BlockLevelJob<'dom>>,
 
     /// Whether or not this builder has yet produced a block which would be
     /// be considered the first line for the purposes of `text-indent`.
@@ -144,25 +141,22 @@ pub(crate) struct BlockContainerBuilder<'dom, 'style, Node> {
 
     /// The [`NodeAndStyleInfo`] to use for anonymous block boxes pushed to the list of
     /// block-level boxes, lazily initialized (see `end_ongoing_inline_formatting_context`).
-    anonymous_box_info: Option<NodeAndStyleInfo<Node>>,
+    anonymous_box_info: Option<NodeAndStyleInfo<'dom>>,
 
     /// A collection of content that is being added to an anonymous table. This is
     /// composed of any sequence of internal table elements or table captions that
     /// are found outside of a table.
-    anonymous_table_content: Vec<AnonymousTableContent<'dom, Node>>,
+    anonymous_table_content: Vec<AnonymousTableContent<'dom>>,
 }
 
 impl BlockContainer {
-    pub fn construct<'dom, Node>(
+    pub fn construct(
         context: &LayoutContext,
-        info: &NodeAndStyleInfo<Node>,
+        info: &NodeAndStyleInfo<'_>,
         contents: NonReplacedContents,
         propagated_data: PropagatedBoxTreeData,
         is_list_item: bool,
-    ) -> BlockContainer
-    where
-        Node: NodeExt<'dom>,
-    {
+    ) -> BlockContainer {
         let mut builder = BlockContainerBuilder::new(context, info, propagated_data);
 
         if is_list_item {
@@ -186,13 +180,10 @@ impl BlockContainer {
     }
 }
 
-impl<'dom, 'style, Node> BlockContainerBuilder<'dom, 'style, Node>
-where
-    Node: NodeExt<'dom>,
-{
+impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     pub(crate) fn new(
         context: &'style LayoutContext,
-        info: &'style NodeAndStyleInfo<Node>,
+        info: &'style NodeAndStyleInfo<'dom>,
         propagated_data: PropagatedBoxTreeData,
     ) -> Self {
         BlockContainerBuilder {
@@ -274,7 +265,7 @@ where
             false => self.propagated_data,
         };
 
-        let contents: Vec<AnonymousTableContent<'dom, Node>> =
+        let contents: Vec<AnonymousTableContent<'dom>> =
             self.anonymous_table_content.drain(..).collect();
         let last_text = match contents.last() {
             Some(AnonymousTableContent::Text(info, text)) => Some((info.clone(), text.clone())),
@@ -312,13 +303,10 @@ where
     }
 }
 
-impl<'dom, Node> TraversalHandler<'dom, Node> for BlockContainerBuilder<'dom, '_, Node>
-where
-    Node: NodeExt<'dom>,
-{
+impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
     fn handle_element(
         &mut self,
-        info: &NodeAndStyleInfo<Node>,
+        info: &NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         contents: Contents,
         box_slot: BoxSlot<'dom>,
@@ -359,7 +347,7 @@ where
         }
     }
 
-    fn handle_text(&mut self, info: &NodeAndStyleInfo<Node>, text: Cow<'dom, str>) {
+    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
         if text.is_empty() {
             return;
         }
@@ -379,14 +367,11 @@ where
     }
 }
 
-impl<'dom, Node> BlockContainerBuilder<'dom, '_, Node>
-where
-    Node: NodeExt<'dom>,
-{
+impl<'dom> BlockContainerBuilder<'dom, '_> {
     fn handle_list_item_marker_inside(
         &mut self,
-        marker_info: &NodeAndStyleInfo<Node>,
-        container_info: &NodeAndStyleInfo<Node>,
+        marker_info: &NodeAndStyleInfo<'dom>,
+        container_info: &NodeAndStyleInfo<'dom>,
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
     ) {
         // TODO: We do not currently support saving box slots for ::marker pseudo-elements
@@ -411,8 +396,8 @@ where
 
     fn handle_list_item_marker_outside(
         &mut self,
-        marker_info: &NodeAndStyleInfo<Node>,
-        container_info: &NodeAndStyleInfo<Node>,
+        marker_info: &NodeAndStyleInfo<'dom>,
+        container_info: &NodeAndStyleInfo<'dom>,
         contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
         list_item_style: Arc<ComputedValues>,
     ) {
@@ -439,7 +424,7 @@ where
 
     fn handle_inline_level_element(
         &mut self,
-        info: &NodeAndStyleInfo<Node>,
+        info: &NodeAndStyleInfo<'dom>,
         display_inside: DisplayInside,
         contents: Contents,
         box_slot: BoxSlot<'dom>,
@@ -497,7 +482,7 @@ where
 
     fn handle_block_level_element(
         &mut self,
-        info: &NodeAndStyleInfo<Node>,
+        info: &NodeAndStyleInfo<'dom>,
         display_inside: DisplayInside,
         contents: Contents,
         box_slot: BoxSlot<'dom>,
@@ -565,7 +550,7 @@ where
 
     fn handle_absolutely_positioned_element(
         &mut self,
-        info: &NodeAndStyleInfo<Node>,
+        info: &NodeAndStyleInfo<'dom>,
         display_inside: DisplayInside,
         contents: Contents,
         box_slot: BoxSlot<'dom>,
@@ -597,7 +582,7 @@ where
 
     fn handle_float_element(
         &mut self,
-        info: &NodeAndStyleInfo<Node>,
+        info: &NodeAndStyleInfo<'dom>,
         display_inside: DisplayInside,
         contents: Contents,
         box_slot: BoxSlot<'dom>,
@@ -670,10 +655,7 @@ where
     }
 }
 
-impl<'dom, Node> BlockLevelJob<'dom, Node>
-where
-    Node: NodeExt<'dom>,
-{
+impl BlockLevelJob<'_> {
     fn finish(self, context: &LayoutContext) -> ArcRefCell<BlockLevelBox> {
         let info = &self.info;
         let block_level_box = match self.kind {
@@ -747,14 +729,7 @@ where
 }
 
 impl IntermediateBlockContainer {
-    fn finish<'dom, Node>(
-        self,
-        context: &LayoutContext,
-        info: &NodeAndStyleInfo<Node>,
-    ) -> BlockContainer
-    where
-        Node: NodeExt<'dom>,
-    {
+    fn finish(self, context: &LayoutContext, info: &NodeAndStyleInfo<'_>) -> BlockContainer {
         match self {
             IntermediateBlockContainer::Deferred {
                 contents,
