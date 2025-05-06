@@ -1581,12 +1581,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-select>
     fn Select(&self) {
         self.selection().dom_select();
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn GetSelectionStart(&self) -> Option<u32> {
         self.selection().dom_start()
     }
@@ -1596,38 +1596,38 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         self.selection().set_dom_start(start)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn GetSelectionEnd(&self) -> Option<u32> {
         self.selection().dom_end()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
         self.selection().set_dom_end(end)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn GetSelectionDirection(&self) -> Option<DOMString> {
         self.selection().dom_direction()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
     fn SetSelectionDirection(&self, direction: Option<DOMString>) -> ErrorResult {
         self.selection().set_dom_direction(direction)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
         self.selection().set_dom_range(start, end, direction)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
         self.selection()
             .set_dom_range_text(replacement, None, None, Default::default())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText_(
         &self,
         replacement: DOMString,
@@ -1649,42 +1649,42 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-stepup
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-stepup>
     fn StepUp(&self, n: i32, can_gc: CanGc) -> ErrorResult {
         self.step_up_or_down(n, StepDirection::Up, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-stepdown
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-stepdown>
     fn StepDown(&self, n: i32, can_gc: CanGc) -> ErrorResult {
         self.step_up_or_down(n, StepDirection::Down, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-willvalidate>
     fn WillValidate(&self) -> bool {
         self.is_instance_validatable()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validity>
     fn Validity(&self) -> DomRoot<ValidityState> {
         self.validity_state()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
     fn CheckValidity(&self, can_gc: CanGc) -> bool {
         self.check_validity(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
     fn ReportValidity(&self, can_gc: CanGc) -> bool {
         self.report_validity(can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
     fn ValidationMessage(&self) -> DOMString {
         self.validation_message()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
     fn SetCustomValidity(&self, error: DOMString) {
         self.validity_state().set_custom_error_message(error);
     }

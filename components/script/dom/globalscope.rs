@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, OnceCell};
+use std::cell::{Cell, OnceCell, Ref};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::ops::Index;
@@ -1821,12 +1821,8 @@ impl GlobalScope {
     /// In the case of a File-backed blob, this might incur synchronous read and caching.
     pub(crate) fn get_blob_bytes(&self, blob_id: &BlobId) -> Result<Vec<u8>, ()> {
         let parent = {
-            let blob_state = self.blob_state.borrow();
-            let blob_info = blob_state
-                .get(blob_id)
-                .expect("get_blob_bytes for an unknown blob.");
-            match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
+            match *self.get_blob_data(blob_id) {
+                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos.clone())),
                 _ => None,
             }
         };
@@ -1840,14 +1836,24 @@ impl GlobalScope {
         }
     }
 
+    /// Retrieve information about a specific blob from the blob store
+    ///
+    /// # Panics
+    /// This function panics if there is no blob with the given ID.
+    pub(crate) fn get_blob_data<'a>(&'a self, blob_id: &BlobId) -> Ref<'a, BlobData> {
+        Ref::map(self.blob_state.borrow(), |blob_state| {
+            blob_state
+                .get(blob_id)
+                .expect("get_blob_impl called for a unknown blob")
+                .blob_impl
+                .blob_data()
+        })
+    }
+
     /// Get bytes from a non-sliced blob
     fn get_blob_bytes_non_sliced(&self, blob_id: &BlobId) -> Result<Vec<u8>, ()> {
-        let blob_state = self.blob_state.borrow();
-        let blob_info = blob_state
-            .get(blob_id)
-            .expect("get_blob_bytes_non_sliced called for a unknown blob.");
-        match blob_info.blob_impl.blob_data() {
-            BlobData::File(f) => {
+        match *self.get_blob_data(blob_id) {
+            BlobData::File(ref f) => {
                 let (buffer, is_new_buffer) = match f.get_cache() {
                     Some(bytes) => (bytes, false),
                     None => {
@@ -1863,7 +1869,7 @@ impl GlobalScope {
 
                 Ok(buffer)
             },
-            BlobData::Memory(s) => Ok(s.clone()),
+            BlobData::Memory(ref s) => Ok(s.clone()),
             BlobData::Sliced(_, _) => panic!("This blob doesn't have a parent."),
         }
     }
@@ -1876,12 +1882,8 @@ impl GlobalScope {
     /// TODO: merge with `get_blob_bytes` by way of broader integration with blob streams.
     fn get_blob_bytes_or_file_id(&self, blob_id: &BlobId) -> BlobResult {
         let parent = {
-            let blob_state = self.blob_state.borrow();
-            let blob_info = blob_state
-                .get(blob_id)
-                .expect("get_blob_bytes_or_file_id for an unknown blob.");
-            match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
+            match *self.get_blob_data(blob_id) {
+                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos.clone())),
                 _ => None,
             }
         };
@@ -1906,16 +1908,12 @@ impl GlobalScope {
     /// tweaked for integration with streams.
     /// TODO: merge with `get_blob_bytes` by way of broader integration with blob streams.
     fn get_blob_bytes_non_sliced_or_file_id(&self, blob_id: &BlobId) -> BlobResult {
-        let blob_state = self.blob_state.borrow();
-        let blob_info = blob_state
-            .get(blob_id)
-            .expect("get_blob_bytes_non_sliced_or_file_id called for a unknown blob.");
-        match blob_info.blob_impl.blob_data() {
-            BlobData::File(f) => match f.get_cache() {
+        match *self.get_blob_data(blob_id) {
+            BlobData::File(ref f) => match f.get_cache() {
                 Some(bytes) => BlobResult::Bytes(bytes.clone()),
                 None => BlobResult::File(f.get_id(), f.get_size() as usize),
             },
-            BlobData::Memory(s) => BlobResult::Bytes(s.clone()),
+            BlobData::Memory(ref s) => BlobResult::Bytes(s.clone()),
             BlobData::Sliced(_, _) => panic!("This blob doesn't have a parent."),
         }
     }
@@ -1931,39 +1929,27 @@ impl GlobalScope {
 
     /// <https://w3c.github.io/FileAPI/#dfn-size>
     pub(crate) fn get_blob_size(&self, blob_id: &BlobId) -> u64 {
-        let blob_state = self.blob_state.borrow();
         let parent = {
-            let blob_info = blob_state
-                .get(blob_id)
-                .expect("get_blob_size called for a unknown blob.");
-            match blob_info.blob_impl.blob_data() {
-                BlobData::Sliced(parent, rel_pos) => Some((*parent, rel_pos.clone())),
+            match *self.get_blob_data(blob_id) {
+                BlobData::Sliced(parent, rel_pos) => Some((parent, rel_pos.clone())),
                 _ => None,
             }
         };
         match parent {
             Some((parent_id, rel_pos)) => {
-                let parent_info = blob_state
-                    .get(&parent_id)
-                    .expect("Parent of blob whose size is unknown.");
-                let parent_size = match parent_info.blob_impl.blob_data() {
-                    BlobData::File(f) => f.get_size(),
-                    BlobData::Memory(v) => v.len() as u64,
+                let parent_size = match *self.get_blob_data(&parent_id) {
+                    BlobData::File(ref f) => f.get_size(),
+                    BlobData::Memory(ref v) => v.len() as u64,
                     BlobData::Sliced(_, _) => panic!("Blob ancestry should be only one level."),
                 };
                 rel_pos.to_abs_range(parent_size as usize).len() as u64
             },
-            None => {
-                let blob_info = blob_state
-                    .get(blob_id)
-                    .expect("Blob whose size is unknown.");
-                match blob_info.blob_impl.blob_data() {
-                    BlobData::File(f) => f.get_size(),
-                    BlobData::Memory(v) => v.len() as u64,
-                    BlobData::Sliced(_, _) => {
-                        panic!("It was previously checked that this blob does not have a parent.")
-                    },
-                }
+            None => match *self.get_blob_data(blob_id) {
+                BlobData::File(ref f) => f.get_size(),
+                BlobData::Memory(ref v) => v.len() as u64,
+                BlobData::Sliced(_, _) => {
+                    panic!("It was previously checked that this blob does not have a parent.")
+                },
             },
         }
     }

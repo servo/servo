@@ -864,3 +864,12 @@ fn test_backspace_in_textarea_at_beginning_of_line() {
     textinput.handle_keydown_aux(Key::Backspace, Modifiers::empty(), false);
     assert_eq!(textinput.get_content(), DOMString::from("first line"));
 }
+
+#[test]
+fn test_textinput_set_selection_with_multibyte_character() {
+    // This unicode character is more than one byte long. If `set_selection_range` incorrectly
+    // indexes bytes instead of code points then getting the selection text will crash.
+    let mut textinput = text_input(Lines::Single, "\u{c4e35}");
+    textinput.set_selection_range(0, 1, SelectionDirection::Forward);
+    assert_eq!(&textinput.get_selection_text().unwrap(), "\u{c4e35}");
+}
