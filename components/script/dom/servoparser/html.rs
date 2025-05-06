@@ -302,11 +302,10 @@ pub(crate) fn serialize_html_fragment<S: Serializer>(
                     serializer.write_processing_instruction(pi.target(), &data)?;
                 },
 
-                NodeTypeId::DocumentFragment(_) => {},
+                NodeTypeId::DocumentFragment(_) | NodeTypeId::Attr => {},
 
                 NodeTypeId::Document(_) => panic!("Can't serialize Document node itself"),
                 NodeTypeId::Element(_) => panic!("Element shouldn't appear here"),
-                NodeTypeId::Attr => panic!("Attr shouldn't appear here"),
             },
             SerializationCommand::SerializeShadowRoot(shadow_root) => {
                 // Shadow roots are serialized as template elements with a fixed set of
