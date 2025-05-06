@@ -280,11 +280,10 @@ impl Handler {
             },
         });
 
-        let button = (action.button as u16).into();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
             MouseButtonAction::Down,
-            button,
+            action.button.into(),
             pointer_input_state.x as f32,
             pointer_input_state.y as f32,
         );
@@ -327,11 +326,10 @@ impl Handler {
             },
         });
 
-        let button = (action.button as u16).into();
         let cmd_msg = WebDriverCommandMsg::MouseButtonAction(
             session.webview_id,
             MouseButtonAction::Up,
-            button,
+            action.button.into(),
             pointer_input_state.x as f32,
             pointer_input_state.y as f32,
         );
