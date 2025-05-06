@@ -4,16 +4,16 @@
 
 // https://urlpattern.spec.whatwg.org/#urlpattern
 
-typedef /* USVString or */ URLPatternInit    URLPatternInput;
+typedef (USVString or URLPatternInit)    URLPatternInput;
 
 [Exposed=(Window,Worker), Pref="dom_urlpattern_enabled"]
 interface URLPattern {
-//   constructor(URLPatternInput input, USVString baseURL, optional URLPatternOptions options = {});
+  [Throws] constructor(URLPatternInput input, USVString baseURL, optional URLPatternOptions options = {});
   [Throws] constructor(optional URLPatternInput input = {}, optional URLPatternOptions options = {});
 
-//   boolean test(optional URLPatternInput input = {}, optional USVString baseURL);
+  // [Throws] boolean test(optional URLPatternInput input = {}, optional USVString baseURL);
 
-//   URLPatternResult? exec(optional URLPatternInput input = {}, optional USVString baseURL);
+  // [Throws] URLPatternResult? exec(optional URLPatternInput input = {}, optional USVString baseURL);
 
   readonly attribute USVString protocol;
   readonly attribute USVString username;
