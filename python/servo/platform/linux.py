@@ -36,6 +36,7 @@ APT_PKGS = [
     'gstreamer1.0-libav',
     'libgstrtspserver-1.0-dev',
     'gstreamer1.0-tools',
+    'libkrb5-dev',
     'libges-1.0-dev',
     'libharfbuzz-dev', 'liblzma-dev', 'libudev-dev', 'libunwind-dev',
     'libvulkan1', 'libx11-dev', 'libxcb-render0-dev', 'libxcb-shape0-dev',
@@ -60,7 +61,7 @@ DNF_PKGS = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
             'gstreamer1-plugins-good', 'gstreamer1-plugins-bad-free-devel',
             'gstreamer1-plugins-ugly-free', 'libjpeg-turbo-devel',
             'zlib-ng', 'libjpeg-turbo', 'vulkan-loader', 'libxkbcommon',
-            'libxkbcommon-x11', 'wireshark-cli']
+            'libxkbcommon-x11', 'krb5-devel', 'wireshark-cli']
 
 # https://voidlinux.org/packages/
 # 1. open devtools
@@ -76,7 +77,7 @@ XBPS_PKGS = ['libtool', 'gcc', 'libXi-devel', 'freetype-devel',
              'clang', 'gstreamer1-devel', 'gst-plugins-base1-devel',
              'gst-plugins-good1', 'gst-plugins-bad1-devel',
              'gst-plugins-ugly1', 'vulkan-loader', 'libxkbcommon',
-             'libxkbcommon-x11']
+             'libxkbcommon-x11', 'mit-krb5-devel']
 
 GSTREAMER_URL = \
     "https://github.com/servo/servo-build-deps/releases/download/linux/gstreamer-1.16-x86_64-linux-gnu.20190515.tar.gz"
