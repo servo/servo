@@ -247,7 +247,7 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
         let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
         if dom_class.is_null() {
             return Err(());
-        }        
+        }
         return Ok(&*dom_class);
     }
     trace!("not a dom object");
