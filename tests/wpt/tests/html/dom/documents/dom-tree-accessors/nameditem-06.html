@@ -23,9 +23,11 @@
 <img id=test6>
 <img name=test6>
 
-<img id=test7 name=fail>
+<img name="test7">
 
-<img name=test8 id=fail>
+<img>
+
+<img name="test9">
 </div>
 <script>
 test(function() {
@@ -88,17 +90,46 @@ test(function() {
 
 test(function() {
   var img = document.getElementsByTagName("img")[10];
-  assert_equals(img.id, "test7");
+  assert_equals(img.name, "test7");
 
-  assert_true("test7" in document, '"test7" in document should be true');
+  assert_true("test7" in document, 'test7 in document should be true');
+  assert_equals(document["test7"], img);
   assert_equals(document.test7, img);
-}, "A name should affect getting an img by id");
+
+  img.removeAttribute("name");
+  assert_false("test7" in document, 'test7 in document should be false');
+  assert_equals(document["test7"], undefined);
+  assert_equals(document.test7, undefined);
+}, "Dynamically removing the name attribute from img elements, should not be accessible.");
 
 test(function() {
   var img = document.getElementsByTagName("img")[11];
-  assert_equals(img.name, "test8");
+  img.setAttribute("name", "test8a");
 
-  assert_true("test8" in document, '"test8" in document should be true');
-  assert_equals(document.test8, img);
-}, "An id shouldn't affect getting an img by name");
+  assert_true("test8a" in document, 'test8a in document should be true');
+  assert_equals(document["test8a"], img);
+  assert_equals(document.test8a, img);
+
+  img.setAttribute("name", "test8b");
+  assert_false("test8a" in document, 'test8a in document should be false');
+  assert_equals(document["test8a"], undefined);
+  assert_equals(document.test8a, undefined);
+  assert_true("test8b" in document, 'test8b in document should be true');
+  assert_equals(document["test8b"], img);
+  assert_equals(document.test8b, img);
+}, "Dynamically updating the name attribute from img elements, should be accessible by its name.");
+
+test(function() {
+  var img = document.getElementsByTagName("img")[12];
+  assert_equals(img.name, "test9");
+
+  assert_true("test9" in document, 'test9 in document should be true');
+  assert_equals(document["test9"], img);
+  assert_equals(document.test9, img);
+
+  img.remove();
+  assert_false("test9" in document, 'test9 in document should be false');
+  assert_equals(document["test9"], undefined);
+  assert_equals(document.test9, undefined);
+}, "img elements that is removed, should not be accessible.");
 </script>

@@ -23,11 +23,6 @@ servo_config = { path = "../config" }
 servo_rand = { path = "../rand" }
 uuid = { workspace = true }
 
-[features]
-default = ["bluetooth-test"]
-native-bluetooth = ["blurz", "blurdroid", "blurmac", "bluetooth-test"]
-bluetooth-test = ["blurmock"]
-
 [target.'cfg(target_os = "linux")'.dependencies]
 blurz = { version = "0.3", optional = true }
 
@@ -36,3 +31,8 @@ blurdroid = { version = "0.1.2", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 blurmac = { path = "../../third_party/blurmac", optional = true }
+
+[features]
+default = ["bluetooth-test"]
+native-bluetooth = ["blurz", "blurdroid", "blurmac", "bluetooth-test"]
+bluetooth-test = ["blurmock"]

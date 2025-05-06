@@ -6,18 +6,23 @@ use std::error::Error;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+use std::process::Command;
 
-use vergen_git2::{Emitter, Git2Builder};
-
-fn emit_git_sha() -> Result<(), String> {
-    let git_options = Git2Builder::default()
-        .sha(true /* short */)
-        .build()
+fn git_sha() -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["rev-parse", "--short", "HEAD"])
+        // on macos mach sets DYLD_LIBRARY_PATH since it is needed for unit-tests, but it
+        // causes git to fail, so we remove it for the git invocation.
+        .env_remove("DYLD_LIBRARY_PATH")
+        .output()
         .map_err(|e| e.to_string())?;
-    Emitter::default()
-        .add_instructions(&git_options)
-        .and_then(|emitter| emitter.fail_on_error().emit())
-        .map_err(|e| e.to_string())
+    if output.status.success() {
+        let hash = String::from_utf8(output.stdout).map_err(|e| e.to_string())?;
+        Ok(hash.trim().to_owned())
+    } else {
+        let stderr = String::from_utf8(output.stderr).map_err(|e| e.to_string())?;
+        Err(stderr)
+    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -72,12 +77,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("cargo:rustc-link-search=native={}", out.display());
     }
 
-    if let Err(error) = emit_git_sha() {
-        println!(
-            "cargo:warning=Could not generate git version information: {:?}",
-            error
-        );
-        println!("cargo:rustc-env=VERGEN_GIT_SHA=nogit");
+    match git_sha() {
+        Ok(hash) => println!("cargo:rustc-env=GIT_SHA={}", hash),
+        Err(error) => {
+            println!(
+                "cargo:warning=Could not generate git version information: {:?}",
+                error
+            );
+            println!("cargo:rustc-env=GIT_SHA=nogit");
+        },
     }
 
     // On MacOS, all dylib dependencies are shipped along with the binary

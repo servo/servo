@@ -15,7 +15,7 @@ to run it manually you can find it on any of this paths:
 * Debian or Ubuntu: `/usr/lib/${TRIPLET}/wpe-webkit-${APIVERSION}/MiniBrowser`
   * Note: `${TRIPLET}` is the output of the command `gcc -dumpmachine`
 
-# Nightly universal bundle
+## Nightly universal bundle
 
 Alternatively you can pass to `wpt` the flags `--install-browser --channel=nightly`
 and then `wpt` will automatically download the last bundle and unpack it on the
@@ -30,7 +30,7 @@ If you are using proprietary graphics drivers (NVIDIA, AMDGPU PRO, etc) and you 
 issues with this bundle then a possible workaround is to try to run the tests in
 headless mode, for that pass the flag `--headless` to `wpt`
 
-# Headless mode
+## Headless mode
 
 The WPE MiniBrowser needs a Wayland display to run, but if you don't have one
 or you want to enable headless mode you can pass the flag `--headless` to `wpt`.
@@ -40,7 +40,7 @@ Example:
 ./wpt run [more-options] --headless wpewebkit_minibrowser [tests-to-run]
 ```
 
-# Using a custom WPE WebKit build
+## Using a custom WPE WebKit build
 
 If you want to test with a custom WPE WebKit build the easiest way is that you
 install this build in a temporary directory (`/tmp/wpetest` in this example),
@@ -64,7 +64,7 @@ Note: It is important that you build WPE WebKit against the libraries of your sy
 Do not build WPE WebKit inside Flatpak or other container unless you run `wpt` also
 from inside this container.
 
-# Running tests locally
+## Running tests locally
 
 Is a good idea that you increase the verbosity of `wpt` by passing to it the flag `--log-mach=-`
 Also, please check the documentation about [Running Tests from the Local System](from-local-system).

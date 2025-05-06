@@ -47,10 +47,11 @@
         history.back();
       });
       promise_test(async t => {
+        const soft_nav_promise = waitOnSoftNav();
         if (test_driver) {
           test_driver.click(link);
         }
-        await waitOnSoftNav();
+        await soft_nav_promise;
         assert_equals(
             document.softNavigations, 1,
             'Single Soft Navigation detected');
@@ -70,7 +71,3 @@
   </script>
 </body>
 </html>
-
-
-
-

@@ -76,6 +76,30 @@ const reduceProductTests = [
     }
   },
   {
+    'name': 'reduceProduct float32 1D constant tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceProductInput': {
+          'data': [-68.75911712646484, -68.75911712646483],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceProduct',
+        'arguments':
+            [{'input': 'reduceProductInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceProductOutput'
+      }],
+      'expectedOutputs': {
+        'reduceProductOutput': {
+          'data': [-68.75911712646484, -68.75911712646483],
+          'descriptor': {shape: [2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'reduceProduct float32 1D constant tensor default options',
     'graph': {
       'inputs': {

@@ -19,6 +19,7 @@ path = "lib.rs"
 ipc = ["serde", "ipc-channel", "euclid/serde"]
 
 [dependencies]
+embedder_traits = { workspace = true }
 euclid = { workspace = true }
 ipc-channel = { workspace = true, optional = true }
 log = { workspace = true }

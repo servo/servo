@@ -20,11 +20,10 @@ use raw_window_handle::{
     AndroidDisplayHandle, AndroidNdkWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
 use servo::{
-    AlertResponse, LoadStatus, MediaSessionActionType, PermissionRequest, SimpleDialog, WebView,
+    AlertResponse, EventLoopWaker, LoadStatus, MediaSessionActionType, PermissionRequest,
+    SimpleDialog, WebView,
 };
-use simpleservo::{
-    APP, DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
-};
+use simpleservo::{APP, DeviceIntRect, InitOptions, InputMethodType, MediaSessionPlaybackState};
 
 use super::app_state::{Coordinates, RunningAppState};
 use super::host_trait::HostTrait;

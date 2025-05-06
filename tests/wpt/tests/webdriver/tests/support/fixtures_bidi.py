@@ -207,6 +207,9 @@ def wait_for_future_safe(configuration):
                 timeout=timeout * configuration["timeout_multiplier"],
             )
         except asyncio.TimeoutError:
+            # Cancel the original future.
+            future.cancel()
+
             raise TimeoutException("Future did not resolve within the given timeout")
 
     return wait_for_future_safe

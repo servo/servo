@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<title>Test of resizing interaction</title>
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://www.w3.org/TR/css-ui-4/#resize">
+<link rel="help" href="https://issues.chromium.org/issues/41236895">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<!--
+  This test uses .tentative. because it depends on unspecified user
+  interface characteristics (the position of the resizer UI and how it
+  works), although those user interface characteristics are likely common
+  across implementations.
+-->
+
+<textarea id="text"></textarea>
+
+<script>
+
+promise_test(async t => {
+  let e = document.getElementById("text");
+
+  let w = e.getBoundingClientRect().width;
+  let h = e.getBoundingClientRect().height;
+
+  let startX = e.getBoundingClientRect().left;
+
+  let x = e.getBoundingClientRect().left + 3; // resizer at lower left
+  let y = e.getBoundingClientRect().bottom - 3;
+  let move1 = new test_driver.Actions()
+    .pointerMove(x, y)
+    .pointerDown()
+    .pointerMove(x+2, y-3);
+  await move1.send();
+
+  assert_equals(e.getBoundingClientRect().width, w - 2, "width after move 1");
+  assert_equals(e.getBoundingClientRect().height, h - 3, "height after move 1");
+  assert_equals(e.getBoundingClientRect().left, startX + 2, "left after move 1");
+
+  // It's odd that we have to send pointerMove and pointerDown again here.
+  let move2 = new test_driver.Actions()
+    .pointerMove(x+2, y-3)
+    .pointerDown()
+    .pointerMove(x-9, y-1)
+    .pointerUp();
+  await move2.send();
+
+  assert_equals(e.getBoundingClientRect().width, w + 9, "width after move 2");
+  assert_equals(e.getBoundingClientRect().height, h - 1, "height after move 2");
+  assert_equals(e.getBoundingClientRect().left, startX - 9, "left after move 2");
+}, "resizing of RTL textarea in RTL context");
+
+</script>

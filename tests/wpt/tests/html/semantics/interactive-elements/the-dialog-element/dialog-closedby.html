@@ -29,7 +29,7 @@
 <dialog data-behavior="auto"></dialog>
 
 <script>
-  async function openDialog(dialog,openMethod) {
+  function openDialog(dialog,openMethod) {
     assert_false(dialog.open,'Should be closed to start');
     assert_equals(dialog.matches(':open'),dialog.open,':open should match .open');
     switch (openMethod) {
@@ -45,7 +45,6 @@
       default:
         assert_unreached('Invalid open method');
     }
-    await waitForRender();
     assert_true(dialog.open,'Should be open now');
     assert_equals(dialog.matches(':open'),dialog.open,':open should match .open');
   }
@@ -99,22 +98,30 @@
       assert_false(dialog.open,'setup');
       assert_false(dialog.matches(':open'));
       t.add_cleanup(() => dialog.close());
+      let expectations = getDefaultExpectations(dialog.dataset.behavior, openMethod);
 
       // Open the dialog
-      await openDialog(dialog,openMethod);
+      openDialog(dialog,openMethod);
       assert_equals(dialog.matches(':modal'),openMethod === 'modal',':modal incorrect');
       const closedByReflectionWhileOpen = dialog.closedBy;
 
       // Try hitting ESC
       const ESC = '\uE00C';
+      const close_fired = new Promise(resolve => {
+        dialog.addEventListener('close', resolve, { once: true })
+      });
       await test_driver.send_keys(document.documentElement,ESC);
-      await waitForRender();
+      if (expectations.respondsToEsc) {
+        await close_fired;
+      } else {
+        await waitForRender();
+      }
       const respondsToEsc = !dialog.open;
       assert_equals(!dialog.matches(':open'),respondsToEsc,':open should match dialog.open');
       dialog.close();
 
       // Try clicking outside
-      await openDialog(dialog,openMethod);
+      openDialog(dialog,openMethod);
       assert_equals(dialog.matches(':modal'),openMethod === 'modal',':modal incorrect');
       await clickOn(outside);
       const respondsToLightDismiss = !dialog.open;
@@ -122,7 +129,6 @@
       dialog.close();
 
       // See if expectations match
-      let expectations = getDefaultExpectations(dialog.dataset.behavior, openMethod);
       assert_equals(respondsToEsc,expectations.respondsToEsc,`Dialog ${expectations.respondsToEsc ? "should" : "should NOT"} respond to ESC`);
       assert_equals(respondsToLightDismiss,expectations.respondsToLightDismiss,`Dialog ${expectations.respondsToLightDismiss ? "should" : "should NOT"} respond to light dismiss`);
       assert_equals(closedByReflectionWhileOpen,expectations.expectedReflectionWhileOpen,'Reflection should be limited to known values (open)');

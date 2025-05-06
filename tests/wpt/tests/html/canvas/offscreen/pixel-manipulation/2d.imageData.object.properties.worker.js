@@ -20,6 +20,8 @@ t.step(function() {
   _assertSame(typeof(imgdata.width), 'number', "typeof(imgdata.width)", "'number'");
   _assertSame(typeof(imgdata.height), 'number', "typeof(imgdata.height)", "'number'");
   _assertSame(typeof(imgdata.data), 'object', "typeof(imgdata.data)", "'object'");
+  _assertSame(typeof(imgdata.colorSpace), 'string', "typeof(imgdata.colorSpace)", "'string'");
+  _assertSame(typeof(imgdata.pixelFormat), 'string', "typeof(imgdata.pixelFormat)", "'string'");
   t.done();
 });
 done();

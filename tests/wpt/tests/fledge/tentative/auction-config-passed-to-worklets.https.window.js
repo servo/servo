@@ -12,7 +12,7 @@
 // META: variant=?26-30
 // META: variant=?30-35
 
-"use strict;"
+"use strict";
 
 // These tests focus on making sure AuctionConfig fields are passed to seller worklets,
 // and are normalized if necessary. This test does not check the behaviors of the

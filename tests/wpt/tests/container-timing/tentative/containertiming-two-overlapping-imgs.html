@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: observe containertiming in a containertiming tree overlapping image children</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script src="/element-timing/resources/element-timing-helpers.js"></script>
+<script>
+  let beforeRender;
+  async_test(function (t) {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        checkContainerEntry(entry, 'div_ct', null, beforeRender)
+        checkRect(entry, [0, 150, 0, 150])
+        // size is the total area that has been painted, so the more intersection, the less area painted.
+        checkContainerSize(entry, 17500);
+      })
+    );
+    observer.observe({entryTypes: ['container']});
+    // Add the image during onload to be sure that the observer is registered
+    // in time.
+    window.onload = () => {
+      // Add a div that is the container timing root
+      const div = document.createElement('div');
+      div.setAttribute('containertiming', 'div_ct');
+      document.body.appendChild(div);
+
+      // Add two overlapping images
+      const img1 = document.createElement('img');
+      img1.src = '/container-timing/resources/square100.png';
+      img1.setAttribute('id', 'img1_id');
+      img1.style.position = 'absolute';
+      div.appendChild(img1);
+
+      const img2 = document.createElement('img');
+      img2.src = '/container-timing/resources/square100.png';
+      img2.setAttribute('id', 'img2_id');
+      img2.style.marginLeft = '50px';
+      img2.style.marginTop = '50px';
+      img2.style.position = 'absolute';
+      div.appendChild(img2);
+
+      beforeRender = performance.now();
+    };
+  }, 'Overlapping images report to containertiming.');
+</script>
+
+</body>

@@ -8,23 +8,30 @@
 </div>
 
 <script>
+(async () => {
   const results = {
     beforematchFiredOnChild: false,
     beforematchFiredOnParent: false
   };
 
+  let beforematchResolver = null;
+  const beforematchPromise = new Promise(resolve => {
+    beforematchResolver = resolve;
+  });
+
   childid.addEventListener('beforematch', () => {
     results.beforematchFiredOnChild = true;
+    beforematchResolver();
   });
 
   parentid.addEventListener('beforematch', () => {
     results.beforematchFiredOnParent = true;
   });
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const params = new URLSearchParams(window.location.search);
-      stashResultsThenClose(params.get('key'), results);
-    });
-  });
+  await beforematchPromise;
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  const params = new URLSearchParams(window.location.search);
+  stashResultsThenClose(params.get('key'), results);
+})();
 </script>

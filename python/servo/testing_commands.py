@@ -13,6 +13,7 @@ import re
 import sys
 import os
 import os.path as path
+import platform
 import shutil
 import subprocess
 import textwrap
@@ -57,7 +58,7 @@ TOML_GLOBS = [
     "*.toml",
     ".cargo/*.toml",
     "components/*/*.toml",
-    "components/shared/*.toml",
+    "components/shared/*/*.toml",
     "ports/*/*.toml",
     "support/*/*.toml",
 ]
@@ -161,10 +162,13 @@ class MachCommands(CommandBase):
         self_contained_tests = [
             "background_hang_monitor",
             "base",
+            "compositing",
+            "compositing_traits",
             "constellation",
+            "devtools",
             "fonts",
             "hyper_serde",
-            "layout_2020",
+            "layout",
             "libservo",
             "metrics",
             "net",
@@ -175,7 +179,6 @@ class MachCommands(CommandBase):
             "servo_config",
             "servoshell",
             "stylo_config",
-            "webrender_traits",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])
@@ -290,6 +293,25 @@ class MachCommands(CommandBase):
 
         print("Running WPT tests...")
         passed = wpt.run_tests() and passed
+
+        print("Running devtools parser tests...")
+        # TODO: Enable these tests on other platforms once mach bootstrap installs tshark(1) for them
+        if platform.system() == "Linux":
+            try:
+                result = subprocess.run(
+                    ["etc/devtools_parser.py", "--json", "--use", "etc/devtools_parser_test.pcap"],
+                    check=True, capture_output=True)
+                expected = open("etc/devtools_parser_test.json", "rb").read()
+                actual = result.stdout
+                assert actual == expected, f"Incorrect output!\nExpected: {repr(expected)}\nActual:   {repr(actual)}"
+                print("OK")
+            except subprocess.CalledProcessError as e:
+                print(f"Process failed with exit status {e.returncode}: {e.cmd}", file=sys.stderr)
+                print(f"stdout: {repr(e.stdout)}", file=sys.stderr)
+                print(f"stderr: {repr(e.stderr)}", file=sys.stderr)
+                raise e
+        else:
+            print("SKIP")
 
         if all or tests:
             print("Running WebIDL tests...")
@@ -410,9 +432,9 @@ class MachCommands(CommandBase):
         return [py, avd, apk]
 
     @Command('test-jquery', description='Run the jQuery test suite', category='testing')
-    @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def test_jquery(self, build_type: BuildType):
-        return self.jquery_test_runner("test", build_type)
+    @CommandBase.common_command_arguments(binary_selection=True)
+    def test_jquery(self, servo_binary: str):
+        return self.jquery_test_runner("test", servo_binary)
 
     @Command('test-dromaeo', description='Run the Dromaeo test suite', category='testing')
     @CommandArgument('tests', default=["recommended"], nargs="...", help="Specific tests to run")
@@ -650,6 +672,12 @@ class MachCommands(CommandBase):
                                     '<meta charset=utf-8>\n<meta name="timeout" content="long">')
         # Write the file out again
         with open(cts_html, 'w') as file:
+            file.write(filedata)
+        logger = path.join(clone_dir, "out-wpt", "common/internal/logging/test_case_recorder.js")
+        with open(logger, 'r') as file:
+            filedata = file.read()
+        filedata.replace("info(ex) {", "info(ex) {return;")
+        with open(logger, 'w') as file:
             file.write(filedata)
         # copy
         delete(path.join(tdir, "webgpu"))

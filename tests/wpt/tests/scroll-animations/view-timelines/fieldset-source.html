@@ -87,7 +87,7 @@
           parseFloat(getComputedStyle(fieldset).borderBottom);
 
       // Validate the start and end offsets for each view timeline.
-      anims.forEach(async (anim) => {
+      for (let anim of anims) {
         assert_equals(anim.timeline.source.id, 'fieldset');
         assert_equals(anim.timeline.subject.tagName, 'INPUT');
         const bounds = anim.effect.target.getBoundingClientRect();
@@ -96,13 +96,13 @@
         const expectedEndOffset = bounds.bottom - fieldsetContentTop;
         assert_approx_equals(
             parseFloat(anim.timeline.startOffset),
-            expectedStartOffset, 0.1,
+            expectedStartOffset, 0.5,
             `Unexpected start offset for ${anim.effect.target.id}`);
         assert_approx_equals(
             parseFloat(anim.timeline.endOffset),
-            expectedEndOffset, 0.1,
+            expectedEndOffset, 0.5,
             `Unexpected end offset for ${anim.effect.target.id}`);
-      });
+      };
     }, 'Fieldset is a valid source for a view timeline');
   }
 

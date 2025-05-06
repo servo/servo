@@ -1,4 +1,6 @@
-export type Protocol = "default" | "openid4vp";
+export type GetProtocol = "default" | "openid4vp";
+export type CreateProtocol = "default" | "openid4vci";
+
 export type CredentialMediationRequirement =
   | "conditional"
   | "optional"
@@ -8,7 +10,7 @@ export type CredentialMediationRequirement =
 /**
  * @see https://wicg.github.io/digital-credentials/#dom-digitalcredentialrequest
  */
-export interface DigitalCredentialRequest {
+export interface DigitalCredentialGetRequest {
   protocol: string;
   data: object;
 }
@@ -20,7 +22,7 @@ export interface DigitalCredentialRequestOptions {
   /**
    * The list of credential requests.
    */
-  requests: DigitalCredentialRequest[] | any;
+  requests: DigitalCredentialGetRequest[] | any;
 }
 
 /**
@@ -28,6 +30,23 @@ export interface DigitalCredentialRequestOptions {
  */
 export interface CredentialRequestOptions {
   digital: DigitalCredentialRequestOptions;
+  mediation: CredentialMediationRequirement;
+}
+
+export interface DigitalCredentialCreateRequest {
+  protocol: string;
+  data: object;
+}
+
+export interface DigitalCredentialCreationOptions {
+  /**
+   * The list of credential requests.
+   */
+  requests: DigitalCredentialCreateRequest[] | any;
+}
+
+export interface CredentialCreationOptions {
+  digital: DigitalCredentialCreationOptions;
   mediation: CredentialMediationRequirement;
 }
 

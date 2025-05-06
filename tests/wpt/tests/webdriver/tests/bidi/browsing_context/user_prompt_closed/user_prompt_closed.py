@@ -318,7 +318,7 @@ async def test_iframe(
     event = await wait_for_future_safe(on_prompt_closed)
 
     assert event == {
-        "context": new_tab["context"],
+        "context": frame["context"],
         "accepted": True,
         "type": "alert",
     }

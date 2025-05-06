@@ -2,11 +2,7 @@ name: documentation
 on:
   push:
     branches:
-      - master
-    paths:
-      - 'docs/**'
-      - 'resources/**'
-      - 'tools/**'
+      - ubuntu-24.04
   pull_request:
     paths:
       - 'docs/**'
@@ -14,7 +10,7 @@ on:
       - 'tools/**'
 jobs:
   build-and-publish:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: github.repository == 'web-platform-tests/wpt'
     steps:
       - name: Set up Python
@@ -34,4 +30,4 @@ jobs:
       - name: Run website_build.sh
         run: ./tools/ci/website_build.sh
         env:
-          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          DEPLOY_TOKEN: dummy

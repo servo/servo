@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [dependencies]
 base = { workspace = true }
+constellation_traits = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }

@@ -20,7 +20,6 @@ pub(crate) use script_bindings::error::*;
 
 #[cfg(feature = "js_backtrace")]
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::PrototypeList::proto_id_to_name;
 use crate::dom::bindings::conversions::{
     ConversionResult, FromJSValConvertible, ToJSValConvertible, root_from_object,
 };
@@ -71,7 +70,22 @@ pub(crate) fn throw_dom_exception(
         Error::Abort => DOMErrorName::AbortError,
         Error::Timeout => DOMErrorName::TimeoutError,
         Error::InvalidNodeType => DOMErrorName::InvalidNodeTypeError,
-        Error::DataClone => DOMErrorName::DataCloneError,
+        Error::DataClone(message) => match message {
+            Some(custom_message) => unsafe {
+                assert!(!JS_IsExceptionPending(*cx));
+                let exception = DOMException::new_with_custom_message(
+                    global,
+                    DOMErrorName::DataCloneError,
+                    custom_message,
+                    can_gc,
+                );
+                rooted!(in(*cx) let mut thrown = UndefinedValue());
+                exception.to_jsval(*cx, thrown.handle_mut());
+                JS_SetPendingException(*cx, thrown.handle(), ExceptionStackBehavior::Capture);
+                return;
+            },
+            None => DOMErrorName::DataCloneError,
+        },
         Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
         Error::QuotaExceeded => DOMErrorName::QuotaExceededError,
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
@@ -79,6 +93,7 @@ pub(crate) fn throw_dom_exception(
         Error::NotReadable => DOMErrorName::NotReadableError,
         Error::Data => DOMErrorName::DataError,
         Error::Operation => DOMErrorName::OperationError,
+        Error::NotAllowed => DOMErrorName::NotAllowedError,
         Error::Type(message) => unsafe {
             assert!(!JS_IsExceptionPending(*cx));
             throw_type_error(*cx, &message);
@@ -255,23 +270,6 @@ pub(crate) fn report_pending_exception(
             can_gc,
         );
     }
-}
-
-/// Throw an exception to signal that a `JSObject` can not be converted to a
-/// given DOM type.
-pub(crate) fn throw_invalid_this(cx: SafeJSContext, proto_id: u16) {
-    debug_assert!(unsafe { !JS_IsExceptionPending(*cx) });
-    let error = format!(
-        "\"this\" object does not implement interface {}.",
-        proto_id_to_name(proto_id)
-    );
-    unsafe { throw_type_error(*cx, &error) };
-}
-
-pub(crate) fn throw_constructor_without_new(cx: SafeJSContext, name: &str) {
-    debug_assert!(unsafe { !JS_IsExceptionPending(*cx) });
-    let error = format!("{} constructor: 'new' is required", name);
-    unsafe { throw_type_error(*cx, &error) };
 }
 
 pub(crate) trait ErrorToJsval {

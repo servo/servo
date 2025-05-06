@@ -19,6 +19,7 @@ test_valid_value("flood-opacity", "3");
 test_valid_value("flood-opacity", "-100%", "-1");
 test_valid_value("flood-opacity", "50%", "0.5");
 test_valid_value("flood-opacity", "300%", "3");
+test_valid_value("flood-opacity", "calc(0.5 * sign(10em - 1px))");
 
   ]]></script>
 </svg>

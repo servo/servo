@@ -16,7 +16,7 @@ let testFunction = async function(session, fakeDeviceController, t) {
     let eventWatcher = new EventWatcher(t, session, ["end", "watcherdone"]);
     let eventPromise = eventWatcher.wait_for(["end", "watcherdone"]);
 
-    // Start the video.rVFC callbacks while we are in the the XR Session.
+    // Start the video.rVFC callbacks while we are in the XR Session.
     let video = document.createElement('video');
     video.muted = true;
     video.src = getVideoURI('/media/movie_5');

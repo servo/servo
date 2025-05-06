@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#window
-[Global=Window, Exposed=Window /*, LegacyUnenumerableNamedProperties */]
+[Global=Window, Exposed=Window, LegacyUnenumerableNamedProperties, NeedResolve]
 /*sealed*/ interface Window : GlobalScope {
   // the current browsing context
   [LegacyUnforgeable, CrossOriginReadable] readonly attribute WindowProxy window;
@@ -27,8 +27,8 @@
   [CrossOriginCallable] undefined close();
   [CrossOriginReadable] readonly attribute boolean closed;
   undefined stop();
-  //[CrossOriginCallable] void focus();
-  //[CrossOriginCallable] void blur();
+  [CrossOriginCallable] undefined focus();
+  [CrossOriginCallable] undefined blur();
 
   // other browsing contexts
   [Replaceable, CrossOriginReadable] readonly attribute WindowProxy frames;
@@ -148,6 +148,7 @@ partial interface Window {
 partial interface Window {
   // Shouldn't be public, but just to make things work for now
   undefined webdriverCallback(optional any result);
+  undefined webdriverException(optional any result);
   undefined webdriverTimeout();
 };
 

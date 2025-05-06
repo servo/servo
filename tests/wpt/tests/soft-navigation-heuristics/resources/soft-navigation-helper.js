@@ -33,9 +33,10 @@ const testSoftNavigation =
           let paint_entries_promise =
               waitOnPaintEntriesPromise(firstClick);
           interacted = false;
+          const soft_nav_promise = waitOnSoftNav();
           interact(link, interactionFunc);
 
-          const navigation_id = await waitOnSoftNav();
+          const navigation_id = await soft_nav_promise;
           if (!first_navigation_id) {
             first_navigation_id = navigation_id;
           }
@@ -63,8 +64,9 @@ const testNavigationApi = (testName, navigateEventHandler, link) => {
     await waitInitialLCP();
     const preClickLcp = await getLcpEntries();
     let paint_entries_promise = waitOnPaintEntriesPromise();
+    const soft_nav_promise = waitOnSoftNav();
     interact(link);
-    const first_navigation_id = await waitOnSoftNav();
+    const first_navigation_id = await soft_nav_promise;
     await navigated;
     await paint_entries_promise;
     assert_equals(document.softNavigations, 1, 'Soft Navigation detected');

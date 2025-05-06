@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - outline and column color reference.</title>
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    height: 320px;
+    width: 320px;
+    forced-color-adjust: none;
+    row-rule-color: CanvasText;
+    row-rule-style: dotted;
+    column-rule-color: CanvasText;
+    column-rule-style: solid;
+  }
+  .grid-item {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<p>
+  The grid's column-rule-color and row-rule-color should be blue
+  when forced colors mode is off and CanvasText in forced colors mode.
+</p>
+<div class="grid">
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+  <div class="grid-item"></div>
+</div>

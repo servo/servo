@@ -78,6 +78,18 @@ pub struct NodeActorMsg {
     shadow_root_mode: Option<String>,
     traits: HashMap<String, ()>,
     attrs: Vec<AttrMsg>,
+
+    /// The `DOCTYPE` name if this is a `DocumentType` node, `None` otherwise
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+
+    /// The `DOCTYPE` public identifier if this is a `DocumentType` node, `None` otherwise
+    #[serde(skip_serializing_if = "Option::is_none")]
+    public_id: Option<String>,
+
+    /// The `DOCTYPE` system identifier if this is a `DocumentType` node, `None` otherwise
+    #[serde(skip_serializing_if = "Option::is_none")]
+    system_id: Option<String>,
 }
 
 pub struct NodeActor {
@@ -276,6 +288,9 @@ impl NodeInfoToProtocol for NodeInfo {
                     value: attr.value,
                 })
                 .collect(),
+            name: self.doctype_name,
+            public_id: self.doctype_public_identifier,
+            system_id: self.doctype_system_identifier,
         }
     }
 }

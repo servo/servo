@@ -1,0 +1,102 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+async function hasStats(pc, type) {
+  const report = await pc.getStats();
+  for (const stats of report.values()) {
+    if (stats.type == type) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function getInboundRtpPollUntilItExists(pc, kTimeoutMs = 10000) {
+  const t0 = performance.now();
+  while (performance.now() - t0 < kTimeoutMs) {
+    const report = await pc.getStats();
+    for (const stats of report.values()) {
+      if (stats.type == 'inbound-rtp') {
+        return stats;
+      }
+    }
+  }
+  return null;
+}
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  pc.addTransceiver('video');
+  assert_false(await hasStats(pc, 'outbound-rtp'),
+               'outbound-rtp does not exist after addTransceiver');
+  await pc.setLocalDescription();
+  assert_false(await hasStats(pc, 'outbound-rtp'),
+              'outbound-rtp does not exist in have-local-offer');
+}, `RTCOutboundRtpStreamStats does not exist as early as have-local-offer`);
+
+// This test does not exchange ICE candidates, meaning no packets are sent.
+// We should still see outbound-rtp stats because they are created by the O/A.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+
+  // Offer to send. See previous test for assertions that the outbound-rtp is
+  // not created this early, which this test does not care about.
+  pc1.addTransceiver('video');
+  await pc1.setLocalDescription();
+
+  // Answer to send.
+  await pc2.setRemoteDescription(pc1.localDescription);
+  const [transceiver] = pc2.getTransceivers();
+  transceiver.direction = 'sendrecv';
+  assert_false(await hasStats(pc2, 'outbound-rtp'),
+               'outbound-rtp does not exist in has-remote-offer');
+  await pc2.setLocalDescription();
+  assert_true(await hasStats(pc2, 'outbound-rtp'),
+              'outbound-rtp exists after answerer returns to stable');
+
+  // Complete offerer negotiation.
+  await pc1.setRemoteDescription(pc2.localDescription);
+  assert_true(await hasStats(pc1, 'outbound-rtp'),
+              'outbound-rtp exists after offerer returns to stable');
+}, `RTCOutboundRtpStreamStats exists after returning to stable`);
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  pc1.onicecandidate = e => pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = e => pc1.addIceCandidate(e.candidate);
+
+  // Negotaite to send, but don't send anything yet (track is null).
+  const {sender} = pc1.addTransceiver('video');
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+  assert_false(await hasStats(pc2, 'inbound-rtp'),
+               'inbound-rtp does not exist before packets are received');
+
+  // Start sending. This results in inbound-rtp being created.
+  const stream = await getNoiseStream({video:true});
+  const [track] = stream.getTracks();
+  await sender.replaceTrack(track);
+  const inboundRtp = await getInboundRtpPollUntilItExists(pc2);
+  assert_not_equals(
+      inboundRtp, null,
+      'inbound-rtp should be created in response to the sender having a track');
+  assert_greater_than(
+      inboundRtp.packetsReceived, 0,
+      'inbound-rtp must only exist after packets have been received');
+}, `RTCInboundRtpStreamStats are created by packet reception`);
+</script>

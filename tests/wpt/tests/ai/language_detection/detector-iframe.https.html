@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body></body>
+<script>
+'use strict';
+
+const { HTTPS_ORIGIN, HTTPS_NOTSAMESITE_ORIGIN } = get_host_info();
+const PATH = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+const IFRAME_PATH = PATH + 'resources/iframe-helper.html';
+
+const getId = (() => {
+  let idCount = 0;
+  return () => idCount++;
+})();
+
+function run_iframe_test(iframe, test_name) {
+  const id = getId();
+  iframe.contentWindow.postMessage({id, type: test_name}, '*');
+  const {promise, resolve, reject} = Promise.withResolvers();
+
+  window.onmessage = message => {
+    if (message.data.id !== id){
+      return;
+    }
+
+    if (message.data.success) {
+      resolve(message.data.success);
+    } else {
+      reject(message.data.err)
+    }
+  }
+
+  return promise;
+}
+
+function load_iframe(src, permission_policy) {
+  let iframe = document.createElement('iframe');
+  const {promise, resolve} = Promise.withResolvers();
+
+  iframe.onload = () => {
+    resolve(iframe);
+  }
+  iframe.src = src;
+  iframe.allow = permission_policy;
+  document.body.appendChild(iframe);
+
+  return promise;
+}
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permission_policy=*/"");
+  await promise_rejects_dom(t, 'NotAllowedError',
+    run_iframe_test(iframe, "LanguageDetectorCreate"));
+}, "Throw a 'NotAllowedError' when creating Language Detector within cross-origin iframe");
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, "language-detector");
+
+  assert_equals(
+    await run_iframe_test(iframe, "LanguageDetectorCreate"), 'Success');
+}, "Language Detector can be created within cross-origin iframe with permission policy");
+
+promise_test(async t => {
+  const src = HTTPS_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permission_policy=*/"");
+
+  assert_equals(
+    await run_iframe_test(iframe, "LanguageDetectorCreate"), 'Success');
+}, "Language Detector can be used within same-origin iframe");
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permission_policy=*/"");
+
+  assert_equals(
+    await run_iframe_test(iframe, "LanguageDetectorAvailability"), 'unavailable');
+}, "Language Detector is unavailable within cross-origin iframe");
+
+promise_test(async t => {
+  const src = HTTPS_NOTSAMESITE_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, "language-detector");
+
+  assert_in_array(
+  await run_iframe_test(iframe, "LanguageDetectorAvailability"),
+    ['downloadable', 'downloading', 'available']);
+}, "Language Detector is available within cross-origin iframe with permission policy");
+
+promise_test(async t => {
+  const src = HTTPS_ORIGIN + IFRAME_PATH;
+  const iframe = await load_iframe(src, /*permission_policy=*/"");
+
+  assert_in_array(
+    await run_iframe_test(iframe, "LanguageDetectorAvailability"),
+      ['downloadable', 'downloading', 'available']);
+}, "LanguageDetector is available within same-origin iframe");
+
+</script>

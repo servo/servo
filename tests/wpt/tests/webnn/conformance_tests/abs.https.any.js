@@ -14,11 +14,8 @@
 // MLOperand abs(MLOperand input);
 
 
-const getAbsPrecisionTolerance = (graphResources) => {
-  const toleranceValueDict = {float32: 0, float16: 0};
-  const expectedDataType =
-      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
-  return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
+const getAbsPrecisionTolerance = () => {
+  return {metricType: 'ULP', value: 0};
 };
 
 const absTests = [
@@ -535,6 +532,62 @@ const absTests = [
             30.09375,  74.1875, 95.625,     6.61328125, 31.28125,  53.21875
           ],
           'descriptor': {shape: [2, 1, 4, 1, 3], dataType: 'float16'}
+        }
+      }
+    }
+  },
+
+  // int8 tests
+  {
+    'name': 'abs int8 4D tensor',
+    'graph': {
+      'inputs': {
+        'absInput': {
+          'data': [
+            // int8 range: [/* -(2**7) */ -128, /* 2**7 - 1 */ 127]
+            // abs(-128) would overflow when data type is int8
+            -127, 0, 126, 127
+          ],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'int8'}
+        }
+      },
+      'operators': [{
+        'name': 'abs',
+        'arguments': [{'input': 'absInput'}],
+        'outputs': 'absOutput'
+      }],
+      'expectedOutputs': {
+        'absOutput': {
+          'data': [127, 0, 126, 127],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'int8'}
+        }
+      }
+    }
+  },
+
+  // int32 tests
+  {
+    'name': 'abs int32 4D tensor',
+    'graph': {
+      'inputs': {
+        'absInput': {
+          'data': [
+            // int32 range: [/* -(2**31) */ -2147483648, /* 2**31 - 1 */ 2147483647]
+            // abs(-2147483648) would overflow when data type is int32
+            -2147483647, 0, 2147483646, 2147483647
+          ],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'int32'}
+        }
+      },
+      'operators': [{
+        'name': 'abs',
+        'arguments': [{'input': 'absInput'}],
+        'outputs': 'absOutput'
+      }],
+      'expectedOutputs': {
+        'absOutput': {
+          'data': [2147483647, 0, 2147483646, 2147483647],
+          'descriptor': {shape: [1, 2, 2, 1], dataType: 'int32'}
         }
       }
     }

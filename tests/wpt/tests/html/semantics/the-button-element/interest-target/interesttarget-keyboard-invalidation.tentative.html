@@ -17,32 +17,30 @@
 
 <style>
   :has-interest {
+    background-color: purple;
+  }
+  :has-interest:has-partial-interest {
     background-color: red;
   }
-  :has-interest + button {
+  :has-partial-interest + button {
     background-color: green;
   }
   :root:has(:has-interest) #b5 {
     background-color: green;
   }
+  :target-of-interest:target-of-partial-interest {
+    background-color: yellow;
+  }
+  [interesttarget] {
+    interest-target-delay: 0s;
+  }
 </style>
 
 <script>
-const kAlt = "\uE00A";
-const kArrowUp = '\uE013';
-function keyboardActivate() {
-  return new test_driver.Actions()
-    .keyDown(kAlt)
-    .keyDown(kArrowUp)
-    .keyUp(kArrowUp)
-    .keyUp(kAlt)
-    .send();
-}
 buttons = Array.from(document.querySelectorAll('[interesttarget]'));
 async function runTest() {
   for (const b of buttons) {
     b.focus();
-    await keyboardActivate();
   }
   document.documentElement.classList.remove("reftest-wait");
 }

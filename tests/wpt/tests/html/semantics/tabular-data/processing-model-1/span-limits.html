@@ -29,6 +29,17 @@
   <!-- We'll add another 65534 rows later -->
 </table>
 
+<table>
+    <tr>
+        <td id="rowspan-limit-test1" rowspan=5></td>
+        <td id="rowspan-limit-test2" rowspan=0></td>
+        <td id="rowspan-limit-test3" rowspan=1000></td>
+        <td id="rowspan-limit-test4" rowspan=65534></td>
+        <td id="rowspan-limit-test5" rowspan=65535></td>
+        <td id="rowspan-limit-test6" rowspan=5555555></td>
+    </tr>
+</table>
+
 <script>
 var $ = document.querySelector.bind(document);
 
@@ -63,4 +74,34 @@ test(() => {
     assert_equals($("#d1").getBoundingClientRect().bottom,
                   $("#d2").getBoundingClientRect().bottom);
 }, "rowspan of 65535 must be treated as 65534");
+
+test(() => {
+    let td = document.createElement("td");
+    td.rowSpan = 5;
+    assert_equals(td.rowSpan, 5);
+
+    td.rowSpan = 0;
+    assert_equals(td.rowSpan, 0);
+
+    td.rowSpan = 1000;
+    assert_equals(td.rowSpan, 1000);
+
+    td.rowSpan = 65534;
+    assert_equals(td.rowSpan, 65534);
+
+    td.rowSpan = 65535;
+    assert_equals(td.rowSpan, 65534);
+
+    td.rowSpan = 555555;
+    assert_equals(td.rowSpan, 65534);
+}, "rowspan must be clamped to [0, 65534] when set via script");
+
+test(() => {
+    assert_equals(document.getElementById("rowspan-limit-test1").rowSpan, 5);
+    assert_equals(document.getElementById("rowspan-limit-test2").rowSpan, 0);
+    assert_equals(document.getElementById("rowspan-limit-test3").rowSpan, 1000);
+    assert_equals(document.getElementById("rowspan-limit-test4").rowSpan, 65534);
+    assert_equals(document.getElementById("rowspan-limit-test5").rowSpan, 65534);
+    assert_equals(document.getElementById("rowspan-limit-test6").rowSpan, 65534);
+}, "rowspan must be clamped to [0, 65534] when parsing attributes");
 </script>

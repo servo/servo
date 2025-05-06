@@ -40,6 +40,7 @@ class JobConfig(object):
     build_libservo: bool = False
     bencher: bool = False
     wpt_args: str = ""
+    number_of_wpt_chunks: int = 20
     # These are the fields that must match in between two JobConfigs for them to be able to be
     # merged. If you modify any of the fields above, make sure to update this line as well.
     merge_compatibility_fields: ClassVar[List[str]] = ['workflow', 'profile', 'wpt_args']
@@ -55,6 +56,7 @@ class JobConfig(object):
         self.unit_tests |= other.unit_tests
         self.build_libservo |= other.build_libservo
         self.bencher |= other.bencher
+        self.number_of_wpt_chunks = max(self.number_of_wpt_chunks, other.number_of_wpt_chunks)
         self.update_name()
         return True
 
@@ -154,6 +156,9 @@ class Config(object):
             if word in ["fail-fast", "failfast", "fail_fast"]:
                 self.fail_fast = True
                 continue  # skip over keyword
+            if word == "wpt":
+                words.extend(["linux-wpt"])
+                continue  # skip over keyword
             if word == "full":
                 words.extend(["linux-unit-tests", "linux-wpt", "linux-bencher"])
                 words.extend(["macos-unit-tests", "windows-unit-tests", "android", "ohos", "lint"])
@@ -198,6 +203,7 @@ class TestParser(unittest.TestCase):
                               'matrix': [{
                                   'bencher': False,
                                   'name': 'Linux (Unit Tests)',
+                                  'number_of_wpt_chunks': 20,
                                   'profile': 'release',
                                   'unit_tests': True,
                                   'build_libservo': False,
@@ -212,6 +218,7 @@ class TestParser(unittest.TestCase):
                              {"fail_fast": False, "matrix": [
                               {
                                   "name": "Linux (Unit Tests, WPT, Bencher)",
+                                  'number_of_wpt_chunks': 20,
                                   "workflow": "linux",
                                   "wpt": True,
                                   "profile": "release",
@@ -222,6 +229,7 @@ class TestParser(unittest.TestCase):
                               },
                               {
                                   "name": "MacOS (Unit Tests)",
+                                  'number_of_wpt_chunks': 20,
                                   "workflow": "macos",
                                   "wpt": False,
                                   "profile": "release",
@@ -232,6 +240,7 @@ class TestParser(unittest.TestCase):
                               },
                               {
                                   "name": "Windows (Unit Tests)",
+                                  'number_of_wpt_chunks': 20,
                                   "workflow": "windows",
                                   "wpt": False,
                                   "profile": "release",
@@ -242,6 +251,7 @@ class TestParser(unittest.TestCase):
                               },
                               {
                                   "name": "Android",
+                                  'number_of_wpt_chunks': 20,
                                   "workflow": "android",
                                   "wpt": False,
                                   "profile": "release",
@@ -252,6 +262,7 @@ class TestParser(unittest.TestCase):
                               },
                               {
                                   "name": "OpenHarmony",
+                                  'number_of_wpt_chunks': 20,
                                   "workflow": "ohos",
                                   "wpt": False,
                                   "profile": "release",
@@ -262,6 +273,7 @@ class TestParser(unittest.TestCase):
                               },
                               {
                                   "name": "Lint",
+                                  'number_of_wpt_chunks': 20,
                                   "workflow": "lint",
                                   "wpt": False,
                                   "profile": "release",
@@ -277,6 +289,7 @@ class TestParser(unittest.TestCase):
                               'matrix': [{
                                   'bencher': False,
                                   'name': 'Linux (WPT)',
+                                  'number_of_wpt_chunks': 20,
                                   'profile': 'release',
                                   'unit_tests': False,
                                   'build_libservo': False,
@@ -317,6 +330,10 @@ class TestParser(unittest.TestCase):
     def test_full(self):
         self.assertDictEqual(json.loads(Config("full").to_json()),
                              json.loads(Config("").to_json()))
+
+    def test_wpt_alias(self):
+        self.assertDictEqual(json.loads(Config("wpt").to_json()),
+                             json.loads(Config("linux-wpt").to_json()))
 
 
 def run_tests():

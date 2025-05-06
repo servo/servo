@@ -93,6 +93,46 @@ test((t) => {
   assert_equals(cs.height, '43px');
 }, 'Element can use <length> fallback if present');
 
+test((t) => {
+  let target = createTarget(t, main);
+  target.style = `
+    /* No position-anchor here */
+    left:anchor(right, 8.5%);
+    top:calc(8.5% + anchor(top, 1px));
+    width:anchor-size(width, 21%);
+    height:calc(21% + anchor-size(height, 1px));
+  `;
+  let cs = getComputedStyle(target);
+  assert_equals(cs.left, '17px');
+  assert_equals(cs.top, '18px');
+  assert_equals(cs.width, '42px');
+  assert_equals(cs.height, '43px');
+}, 'Element can use <length> fallback with percentage');
+
+test((t) => {
+  let target = createTarget(t, main);
+  target.style = `
+    /* No position-anchor here */
+    max-width:anchor-size(width, 28%);
+    max-height:calc(28% + anchor-size(height, 1px));
+  `;
+  let cs = getComputedStyle(target);
+  assert_equals(cs.maxWidth, '28%');
+  assert_equals(cs.maxHeight, 'calc(28% + 1px)');
+}, 'Element can use <length> fallback for max size with percentage');
+
+test((t) => {
+  let target = createTarget(t, main);
+  target.style = `
+    /* No position-anchor here */
+    margin-left:anchor-size(width, 6%);
+    margin-top:calc(6% + anchor-size(height, 1px));
+  `;
+  let cs = getComputedStyle(target);
+  assert_equals(cs.marginLeft, '12px');
+  assert_equals(cs.marginTop, '13px');
+}, 'Element can use <length> fallback for margin with percentage');
+
 // Now test that any invalid anchor*() behaves as invalid at computed-value
 // time if there's no fallback specified.
 

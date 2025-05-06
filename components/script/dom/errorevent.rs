@@ -142,6 +142,7 @@ impl ErrorEventMethods<crate::DomTypeHolder> for ErrorEvent {
             init.error.handle(),
             can_gc,
         );
+        event.upcast::<Event>().set_composed(init.parent.composed);
         Ok(event)
     }
 

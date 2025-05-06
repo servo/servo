@@ -263,4 +263,4 @@ class HTMLItem(pytest.Item):
     @staticmethod
     def _assert_sequence(nums):
         if nums and len(nums) > 0:
-            assert nums == list(range(1, nums[-1] + 1))
+            assert nums == list(range(nums[-1] + 1))

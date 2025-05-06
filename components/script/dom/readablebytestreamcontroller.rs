@@ -1612,7 +1612,7 @@ impl ReadableByteStreamController {
             let realm = enter_realm(&*global);
             let comp = InRealm::Entered(&realm);
             let result = underlying_source
-                .call_pull_algorithm(controller, can_gc)
+                .call_pull_algorithm(controller, &global, can_gc)
                 .unwrap_or_else(|| {
                     let promise = Promise::new(&global, can_gc);
                     promise.resolve_native(&(), can_gc);
@@ -1781,6 +1781,8 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#rbs-controller-private-cancel>
     pub(crate) fn perform_cancel_steps(
         &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
         reason: SafeHandleValue,
         can_gc: CanGc,
     ) -> Rc<Promise> {
@@ -1794,13 +1796,12 @@ impl ReadableByteStreamController {
             .underlying_source
             .get()
             .expect("Controller should have a source when the cancel steps are called into.");
-        let global = self.global();
 
         // Let result be the result of performing this.[[cancelAlgorithm]], passing in reason.
         let result = underlying_source
-            .call_cancel_algorithm(reason, can_gc)
+            .call_cancel_algorithm(cx, global, reason, can_gc)
             .unwrap_or_else(|| {
-                let promise = Promise::new(&global, can_gc);
+                let promise = Promise::new(global, can_gc);
                 promise.resolve_native(&(), can_gc);
                 Ok(promise)
             });
@@ -1808,11 +1809,10 @@ impl ReadableByteStreamController {
         let promise = result.unwrap_or_else(|error| {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            // TODO: check if `self.global()` is the right globalscope.
             error
                 .clone()
-                .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
-            let promise = Promise::new(&global, can_gc);
+                .to_jsval(cx, global, rval.handle_mut(), can_gc);
+            let promise = Promise::new(global, can_gc);
             promise.reject_native(&rval.handle(), can_gc);
             promise
         });

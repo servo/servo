@@ -2,6 +2,7 @@
 <meta charset=utf-8>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/common/utils.js"></script>
 <div id=log></div>
@@ -22,6 +23,14 @@ const origins = get_host_info();
   }
 ].forEach(({ origin, crossOrigin }) => {
   ["subframe", "navigate", "popup"].forEach(variant => {
+    // Due to `noopener` being enforced on Blob URLs where the corresponding
+    // origin is cross-site to the opening context's top-level site, require
+    // dispatcher.js to pass information back after window.open().
+    if (origin === origins.HTTPS_NOTSAMESITE_ORIGIN &&
+        crossOrigin === origins.HTTPS_ORIGIN &&
+        variant === "popup") {
+      return;
+    }
     async_test(t => {
       const id = token();
       const frame = document.createElement("iframe");
@@ -41,4 +50,29 @@ const origins = get_host_info();
     }, `Cross-Origin-Embedder-Policy and blob: URL from ${origin} in subframe via ${variant}`);
   });
 });
+
+// New test for the specific case using dispatcher.js for popups.
+promise_test(async t => {
+  const origin = origins.HTTPS_NOTSAMESITE_ORIGIN;
+  const crossOrigin = origins.HTTPS_ORIGIN;
+  const variant = "popup-dispatch";
+  const id = token();
+
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => { frame.remove(); });
+
+  const path = new URL("resources/blob-url-factory.html", window.location).pathname;
+  frame.src = `${origin}${path}?id=${id}&variant=${variant}&crossOrigin=${crossOrigin}`;
+  document.body.append(frame);
+
+  // Use dispatcher to wait for the message.
+  const message = await receive(id);
+  const data = JSON.parse(message);
+
+  assert_equals(data.origin, origin, "Message origin should match test origin");
+  assert_true(data.sameOriginNoCORPSuccess, "Same-origin fetch without CORP should succeed");
+  assert_true(data.crossOriginNoCORPFailure, "Cross-origin fetch without CORP should fail");
+
+}, `Cross-Origin-Embedder-Policy and blob: URL from ${origins.HTTPS_NOTSAMESITE_ORIGIN} in popup (using dispatcher)`);
+
 </script>

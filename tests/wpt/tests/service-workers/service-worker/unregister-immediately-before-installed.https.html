@@ -16,7 +16,7 @@
 // worker's state to 'redundant'.
 
 promise_test(async test => {
-  // This test keeps the the service worker in the 'parsed' state by using a
+  // This test keeps the service worker in the 'parsed' state by using a
   // script with an infinite loop.
   const script_url = 'resources/onparse-infiniteloop-worker.js';
   const scope_url =
@@ -34,7 +34,7 @@ promise_test(async test => {
  }, 'Clear-Site-Data must abort service worker registration.');
 
 promise_test(async test => {
-  // This test keeps the the service worker in the 'installing' state by using a
+  // This test keeps the service worker in the 'installing' state by using a
   // script with an install event waitUntil() promise that never resolves.
   const script_url = 'resources/oninstall-waituntil-forever.js';
   const scope_url =

@@ -186,6 +186,12 @@ the global scope.
 .. js:autofunction:: test_driver.remove_virtual_pressure_source
 ```
 
+### Viewport Segments ###
+```eval_rst
+.. js:autofunction:: test_driver.set_display_features
+.. js:autofunction:: test_driver.clear_display_features
+```
+
 ### Using test_driver in other browsing contexts ###
 
 Testdriver can be used in browsing contexts (i.e. windows or frames)

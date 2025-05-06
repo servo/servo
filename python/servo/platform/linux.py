@@ -10,20 +10,21 @@
 import distro
 import os
 import subprocess
+import shutil
 from typing import Optional, Tuple
 
 from .base import Base
 from .build_target import BuildTarget
 
-# Please keep these in sync with the packages on the wiki, using the instructions below
-# https://github.com/servo/servo/wiki/Building
+# Please keep these in sync with the packages in the book, using the instructions below
+# https://book.servo.org/hacking/setting-up-your-environment.html
 
 # https://packages.debian.org
 # https://packages.ubuntu.com
 # 1. open devtools
 # 2. paste in the whole APT_PKGS = [...]
 # 3. copy(`sudo apt install ${APT_PKGS.join(" ")}`)
-# 4. paste into https://github.com/servo/servo/wiki/Building#debian-based-distributions
+# 4. paste into https://github.com/servo/book/edit/main/src/hacking/setting-up-your-environment.md
 APT_PKGS = [
     'build-essential', 'ccache', 'clang', 'cmake', 'curl', 'g++', 'git',
     'gperf', 'libdbus-1-dev', 'libfreetype6-dev', 'libgl1-mesa-dri',
@@ -39,14 +40,15 @@ APT_PKGS = [
     'libharfbuzz-dev', 'liblzma-dev', 'libudev-dev', 'libunwind-dev',
     'libvulkan1', 'libx11-dev', 'libxcb-render0-dev', 'libxcb-shape0-dev',
     'libxcb-xfixes0-dev', 'libxmu-dev', 'libxmu6', 'libegl1-mesa-dev',
-    'llvm-dev', 'm4', 'xorg-dev', 'libxkbcommon0', "libxkbcommon-x11-0"
+    'llvm-dev', 'm4', 'xorg-dev', 'libxkbcommon0', "libxkbcommon-x11-0",
+    'tshark',
 ]
 
 # https://packages.fedoraproject.org
 # 1. open devtools
 # 2. paste in the whole DNF_PKGS = [...]
 # 3. copy(`sudo dnf install ${DNF_PKGS.join(" ")}`)
-# 4. paste into https://github.com/servo/servo/wiki/Building#fedora
+# 4. paste into https://github.com/servo/book/edit/main/src/hacking/setting-up-your-environment.md
 DNF_PKGS = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
             'libunwind-devel', 'mesa-libGL-devel', 'mesa-libEGL-devel',
             'glib2-devel', 'libX11-devel', 'libXrandr-devel', 'gperf',
@@ -58,13 +60,13 @@ DNF_PKGS = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
             'gstreamer1-plugins-good', 'gstreamer1-plugins-bad-free-devel',
             'gstreamer1-plugins-ugly-free', 'libjpeg-turbo-devel',
             'zlib-ng', 'libjpeg-turbo', 'vulkan-loader', 'libxkbcommon',
-            'libxkbcommon-x11']
+            'libxkbcommon-x11', 'wireshark-cli']
 
 # https://voidlinux.org/packages/
 # 1. open devtools
 # 2. paste in the whole XBPS_PKGS = [...]
 # 3. copy(`sudo xbps-install ${XBPS_PKGS.join(" ")}`)
-# 4. paste into https://github.com/servo/servo/wiki/Building#void-linux
+# 4. paste into https://github.com/servo/book/edit/main/src/hacking/setting-up-your-environment.md
 XBPS_PKGS = ['libtool', 'gcc', 'libXi-devel', 'freetype-devel',
              'libunwind-devel', 'MesaLib-devel', 'glib-devel', 'pkg-config',
              'libX11-devel', 'libXrandr-devel', 'gperf', 'bzip2-devel',
@@ -203,6 +205,12 @@ class Linux(Base):
         if not install:
             return False
 
+        def check_sudo():
+            if os.geteuid() != 0:
+                if shutil.which('sudo') is None:
+                    return False
+            return True
+
         def run_as_root(command, force=False):
             if os.geteuid() != 0:
                 command.insert(0, 'sudo')
@@ -211,6 +219,13 @@ class Linux(Base):
             return subprocess.call(command)
 
         print("Installing missing dependencies...")
+        if not check_sudo():
+            print("'sudo' command not found."
+                  " You may be able to install dependencies manually."
+                  " See https://github.com/servo/servo/wiki/Building.")
+            input("Press Enter to continue...")
+            return False
+
         if run_as_root(command + pkgs, force) != 0:
             raise EnvironmentError("Installation of dependencies failed.")
         return True

@@ -67,8 +67,6 @@
     var pageRule = sheet.rules[2];
     var style = pageRule.style;
     assert_equals(style.length, 3);
-    assert_equals(style.color, "inherit");
-    assert_equals(style.columnCount, "7");
     assert_equals(style.marginLeft, "111px");
 
     assert_equals(pageRule.cssRules.length, 18);

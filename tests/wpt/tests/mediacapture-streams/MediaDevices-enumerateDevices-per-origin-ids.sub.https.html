@@ -9,8 +9,8 @@
 <script src=permission-helper.js></script>
 </head>
 <body>
-  <iframe allow="camera 'src';microphone 'src'" id=same src="/mediacapture-streams/iframe-enumerate.html"></iframe>
-<iframe allow="camera 'src';microphone 'src'" id=cross src="https://{{hosts[][www1]}}:{{ports[https][0]}}/mediacapture-streams/iframe-enumerate.html"></iframe>
+  <iframe allow="camera 'src';microphone 'src';speaker-selection 'src'" id=same src="/mediacapture-streams/iframe-enumerate.html"></iframe>
+<iframe allow="camera 'src';microphone 'src';speaker-selection 'src'" id=cross src="https://{{hosts[][www1]}}:{{ports[https][0]}}/mediacapture-streams/iframe-enumerate.html"></iframe>
 <script>
 
   let deviceList;

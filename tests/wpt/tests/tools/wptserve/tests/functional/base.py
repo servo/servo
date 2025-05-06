@@ -92,7 +92,7 @@ class TestUsingH2Server:
         self.server.start()
 
         self.client = httpx.Client(base_url=f'https://{self.server.host}:{self.server.port}',
-                                   http2=True, verify=False)
+                                   http2=True, verify=False, timeout=30)
 
     def teardown_method(self, test_method):
         self.client.close()

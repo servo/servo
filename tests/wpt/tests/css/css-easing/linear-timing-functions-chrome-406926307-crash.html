@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Chrome crash bug 406926307</title>
+<link rel="help" href="https://crbug.com/406926307">
+<style>
+  div {
+    transition-timing-function: linear(0, 0.25, sibling-index());
+    transition-timing-function: linear(0, 0.25, sign(2em - 20px));
+  }
+</style>
+<p>Passes if test does not fail any CHECKs or DCHECKs.</p>

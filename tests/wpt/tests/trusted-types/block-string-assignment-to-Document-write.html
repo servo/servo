@@ -124,6 +124,9 @@
                 assert_equals(sink, "Document write");
               } else if (html === "assertSinkEqualsDocumentWriteLn") {
                 assert_equals(sink, "Document writeln");
+              } else if (html === "assertSinkEqualsDocumentWriteLn\n") {
+                // Ensure that new line characters aren't incorrectly added prior to processing
+                assert_unreached(`Should not process any other HTML, but got "${html}"`);
               }
 
               return html.replace("Hi", "Quack")

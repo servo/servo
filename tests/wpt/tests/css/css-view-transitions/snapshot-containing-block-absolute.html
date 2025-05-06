@@ -35,6 +35,7 @@ body {
 
 ::view-transition-group(target) {
   animation-duration: 50s;
+  animation-play-state: paused;
   top: unset;
   left: unset;
   right: 0px;
@@ -48,6 +49,16 @@ body {
   width: 700px;
   height: 500px;
   background-color: limegreen;
+}
+
+::view-transition-old(*) {
+  animation: unset;
+  opacity: 1;
+}
+
+::view-transition-new(*) {
+  animation: unset;
+  opacity: 0;
 }
 
 </style>

@@ -44,10 +44,10 @@ function runTest(config,qualifier) {
 
             assert_in_array(event.messageType, ['license-request', 'individualization-request']);
 
-            // Generate a license that expires 1 second from now.
-            var expiration = Date.now().valueOf() + 1000;
+            // Generate a license that expires 2 seconds from now.
+            var expiration = Date.now().valueOf() + 2000;
             config.messagehandler(event.messageType, event.message, { expiration: expiration }).then(function(response) {
-                // Wait 2 seconds before calling update() to ensure that the
+                // Wait 4 seconds before calling update() to ensure that the
                 // license has really expired. This is to avoid problems
                 // where the browser starts buffering frames as soon as a
                 // valid license is received.
@@ -59,10 +59,10 @@ function runTest(config,qualifier) {
                                              "expiration attribute should equal provided expiration time");
                         assert_greater_than(Date.now().valueOf(), expiration, "Starting play before license expired");
                         _video.play();
-                        // Wait 2 seconds to ensure that the video does not play.
-                        test.step_timeout(function() { test.done(); }, 2000);
+                        // Wait 4 seconds to ensure that the video does not play.
+                        test.step_timeout(function() { test.done(); }, 4000);
                     }).catch(onFailure);
-                }, 2000);
+                }, 4000);
             }).catch(onFailure);
         }
 

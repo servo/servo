@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>Align-items doesn't apply to OOF elements of inline elements when statically positioned because they would apply if not OOF.</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-self-auto">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-justify-self-auto">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-alignment">
+<link rel="help" href="https://issues.chromium.org/issues/409806799">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12121">
+<link rel="match" href="align-items-static-position-002-ref.tentative.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.inline {
+  display: inline;
+  color: transparent;
+  font: 10px Ahem;
+  line-height: 25px;
+  align-items: center;
+  justify-items: center;
+}
+
+.container {
+  border: 1px solid;
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: inline-block;
+  margin-left: 50px;
+  margin-bottom: 50px;
+}
+
+.abs {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  background: purple;
+}
+</style>
+<div class="container"><div class="inline">text
+  <div class="abs"></div>
+  <br>text
+</div></div>

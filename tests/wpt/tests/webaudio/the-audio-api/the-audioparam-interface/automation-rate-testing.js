@@ -40,7 +40,7 @@
 // channel 3, the difference between the outputs.
 //
 // Success is declared if the difference signal is not exactly zero.  This means
-// the the automations did different things, as expected.
+// the automations did different things, as expected.
 //
 // The promise from |startRendering| is returned.
 function doTest(context, should, options) {

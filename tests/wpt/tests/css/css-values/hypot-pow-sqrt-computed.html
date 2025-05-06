@@ -6,7 +6,12 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../support/numeric-testcommon.js"></script>
-<div id="target"></div>
+<div>
+  <div></div>
+  <div></div>
+  <div></div>
+  <div id="target"></div>
+</div>
 <script>
 
 // Identity tests
@@ -37,6 +42,11 @@ test_math_used('hypot(0% + 3px, 0% + 4px)', '5px');
 test_math_used('hypot(0% + 772.333px)', 'calc(0% + 772.333px)');
 test_math_used('hypot(0% + 772.35px)', 'calc(0% + 772.35px)');
 test_math_used('hypot(0% + 600px, 0% + 800px)', '1000px');
+
+//Test unresolved at parse time
+test_math_used('sqrt(sibling-index())', '2', {type: 'integer'});
+test_math_used('calc(1px * sqrt(sibling-index()))', '2px');
+test_math_used('sqrt(pow(sibling-index(), 2))', '4', {type: 'integer'});
 
 //Type checking hypot
 test_math_used('hypot(1px)', '1px');

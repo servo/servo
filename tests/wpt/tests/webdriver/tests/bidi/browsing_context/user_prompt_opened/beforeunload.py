@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 
 from .. import (
@@ -25,12 +26,12 @@ async def test_beforeunload(
 
     await setup_beforeunload_page(new_tab)
 
-    await bidi_session.send_command(
-        "browsingContext.navigate",
-        {
-            "context": new_tab["context"],
-            "url": url("/webdriver/tests/support/html/default.html"),
-        },
+    navigation_future = asyncio.create_task(
+        bidi_session.browsing_context.navigate(
+            context=new_tab["context"],
+            url=url("/webdriver/tests/support/html/default.html"),
+            wait="none"
+        )
     )
 
     event = await wait_for_future_safe(on_entry)
@@ -43,3 +44,6 @@ async def test_beforeunload(
         },
         event,
     )
+
+    # Cancel the navigation future to avoid pending task failures.
+    navigation_future.cancel()

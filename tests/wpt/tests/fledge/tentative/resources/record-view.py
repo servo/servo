@@ -1,0 +1,19 @@
+# This responds with an image reporting a view event to the origin provided in
+# the `eligible_origin` query param.
+def main(request, response):
+    eligible_origin = request.GET.get(b"eligible_origin")
+    response.status = (200, b"OK")
+    response.headers.set(b"Content-Type", b"image/png")
+    response.headers.set(
+        b"Ad-Auction-Record-Event",
+        b"type=\"view\", eligible-origins=(\"%s\")" % eligible_origin)
+    png = b"\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d" + \
+      b"\x49\x48\x44\x52\x00\x00\x00\x05\x00\x00\x00\x05" + \
+      b"\x08\x06\x00\x00\x00\x8d\x6f\x26\xe5\x00\x00\x00" + \
+      b"\x09\x70\x48\x59\x73\x00\x00\x0e\xc4\x00\x00\x0e" + \
+      b"\xc4\x01\x95\x2b\x0e\x1b\x00\x00\x00\x15\x49\x44" + \
+      b"\x41\x54\x08\x99\x63\x64\xf8\xcf\xf0\x9f\x01\x0d" + \
+      b"\x30\xa1\x0b\x50\x41\x10\x00\xcd\xaa\x02\x08\x0f" + \
+      b"\x23\x6b\x59\x00\x00\x00\x00\x49\x45\x4e\x44\xae" + \
+      b"\x42\x60\x82"
+    return png

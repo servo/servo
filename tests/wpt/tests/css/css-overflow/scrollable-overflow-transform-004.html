@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: Scrollable Overflow Transform Scroll Container</title>
+<link rel="author" title="Jo Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable" />
+<meta name="assert" content="Checks that the box of scroll container with transform contribute to the scrollable overflow.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+  .container {
+    width: 100px;
+    height: 100px;
+    overflow: auto;
+    background: silver;
+    border: solid thick;
+    scrollbar-width: none;
+  }
+
+  .element {
+    width: 50px;
+    height: 50px;
+    overflow: scroll;
+    background: lime;
+  }
+
+  .element-content {
+    width: 500px;
+    height: 500px;
+    background: aqua;
+  }
+</style>
+<body onload="checkLayout('.container')">
+
+  <div class="container" data-expected-scroll-width="250">
+    <div style="transform: translateX(200px);" class="element">
+      <div class="element-content"></div>
+    </div>
+  </div>
+
+  <div class="container" data-expected-scroll-height="350">
+    <div style="transform: translateY(300px);" class="element">
+      <div class="element-content"></div>
+    </div>
+  </div>
+
+  <div class="container" data-expected-scroll-width="250" data-expected-scroll-height="350">
+    <div style="transform: translate(200px, 300px);" class="element">
+      <div class="element-content"></div>
+    </div>
+  </div>
+
+</body>

@@ -49,6 +49,37 @@ cookie_test(async t => {
 
 
 cookie_test(async t => {
+  const eventPromise = observeNextCookieChangeEvent();
+  await setCookieStringHttp('HTTP-cookie=ALREADY-EXPIRED; path=/; max-age=0');
+  await setCookieStringHttp('HTTP-alt-cookie=IGNORE; path=/; max-age=10');
+  assert_equals(
+    await getCookieStringHttp(),
+    'HTTP-alt-cookie=IGNORE',
+    'Already-expired cookie not included in HTTP');
+  await verifyCookieChangeEvent(
+    eventPromise,
+    {deleted: [], changed: [{name: 'HTTP-alt-cookie', value: 'IGNORE'}]},
+    'Deletion not observed after HTTP sets already-expired cookie');
+}, 'HTTP set already-expired cookie should not be observed by CookieStore');
+
+cookie_test(async t => {
+  let eventPromise = observeNextCookieChangeEvent();
+  await setCookieStringHttp('HTTP-cookie=VALUE; path=/');
+  await verifyCookieChangeEvent(
+    eventPromise, {changed: [{name: 'HTTP-cookie', value: 'VALUE'}]},
+    'Original cookie is observed.');
+
+  eventPromise = observeNextCookieChangeEvent();
+  // Overwrite the original cookie with a duplicate, this should not dispatch an event.
+  await setCookieStringHttp('HTTP-cookie=VALUE; path=/');
+  await setCookieStringHttp('HTTP-alt-cookie=IGNORE; path=/');
+  await verifyCookieChangeEvent(
+    eventPromise, {changed: [{name: 'HTTP-alt-cookie', value: 'IGNORE'}]},
+    'Duplicate cookie is not observed.');
+}, 'HTTP duplicate cookie should not be observed by CookieStore');
+
+
+cookie_test(async t => {
   let eventPromise = observeNextCookieChangeEvent();
   await setCookieStringHttp('HTTP-🍪=🔵; path=/');
   assert_equals(

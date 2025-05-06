@@ -1,0 +1,36 @@
+[package]
+name = "webgl"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "webgl"
+path = "lib.rs"
+
+[features]
+webgl_backtrace = ["canvas_traits/webgl_backtrace"]
+webxr = ["dep:webxr", "dep:webxr-api"]
+
+[dependencies]
+bitflags = { workspace = true }
+byteorder = { workspace = true }
+canvas_traits = { workspace = true }
+compositing_traits = { workspace = true }
+crossbeam-channel = { workspace = true }
+euclid = { workspace = true }
+fnv = { workspace = true }
+glow = { workspace = true }
+half = "2"
+ipc-channel = { workspace = true }
+log = { workspace = true }
+pixels = { path = "../pixels" }
+snapshot = { workspace = true }
+surfman = { workspace = true }
+webrender = { workspace = true }
+webrender_api = { workspace = true }
+webxr = { path = "../webxr", features = ["ipc"], optional = true }
+webxr-api = { workspace = true, features = ["ipc"], optional = true }

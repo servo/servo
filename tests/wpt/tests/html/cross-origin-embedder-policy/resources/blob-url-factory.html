@@ -1,22 +1,37 @@
 <body>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
 <script src="script-factory.js"></script>
 <script>
 const query = new URLSearchParams(window.location.search);
 const id = query.get("id");
 const variant = query.get("variant");
 let parent = "parent";
+let useDispatcher = false;
+
 if (variant === "subframe") {
   parent = "parent.parent";
 } else if (variant === "popup") {
   parent = "opener.parent";
+} else if (variant === "popup-dispatch") {
+  useDispatcher = true;
 }
-const blob = new Blob([`<script>${createScript(window.origin, query.get("crossOrigin"), parent, id)}<\/script>`], { type: "text/html" });
+
+const blobContent = `
+  <!doctype html>
+  <base href="${window.location.href}">
+  <script src="/common/utils.js"><\/script>
+  <script src="/common/dispatcher/dispatcher.js"><\/script>
+
+  <script>${createScript(window.origin, query.get("crossOrigin"), parent, id, useDispatcher)}<\/script>
+`;
+const blob = new Blob([blobContent], { type: "text/html" });
 const blobURL = URL.createObjectURL(blob);
 if (variant === "subframe") {
   const frame = document.createElement("iframe");
   frame.src = blobURL;
   document.body.append(frame);
-} else if (variant === "popup") {
+} else if (variant === "popup" || variant === "popup-dispatch") {
   window.open(blobURL);
 } else {
   window.location = blobURL;

@@ -18,13 +18,13 @@ promise_test(async t => {
   const initiator = await spawnWindow(t);
   const url1 = initiator.getExecutorURL({
     hostname: is_same_site ? undefined : '{{hosts[alt][www]}}',
-    executor: 'cacheable-executor.sub.html',
-    page: 1
+    page: 1,
+    pipe: 'header(Cache-Control,private\\,max-age=604800)'
   });
   const url2 = initiator.getExecutorURL({
     hostname: is_same_site ? undefined : '{{hosts[][]}}',
-    executor: 'cacheable-executor.sub.html',
-    page: 2
+    page: 2,
+    pipe: 'header(Cache-Control,private\\,max-age=604800)'
   });
 
   await initiator.forceSinglePrefetch(url1);

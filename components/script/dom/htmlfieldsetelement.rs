@@ -71,12 +71,12 @@ impl HTMLFieldSetElement {
         )
     }
 
-    pub(crate) fn update_validity(&self) {
+    pub(crate) fn update_validity(&self, can_gc: CanGc) {
         let has_invalid_child = self
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .flat_map(DomRoot::downcast::<Element>)
-            .any(|element| element.is_invalid(false));
+            .any(|element| element.is_invalid(false, can_gc));
 
         self.upcast::<Element>()
             .set_state(ElementState::VALID, !has_invalid_child);
@@ -87,12 +87,17 @@ impl HTMLFieldSetElement {
 
 impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-elements
-    fn Elements(&self) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(&self.owner_window(), self.upcast(), |element, _| {
-            element
-                .downcast::<HTMLElement>()
-                .is_some_and(HTMLElement::is_listed_element)
-        })
+    fn Elements(&self, can_gc: CanGc) -> DomRoot<HTMLCollection> {
+        HTMLCollection::new_with_filter_fn(
+            &self.owner_window(),
+            self.upcast(),
+            |element, _| {
+                element
+                    .downcast::<HTMLElement>()
+                    .is_some_and(HTMLElement::is_listed_element)
+            },
+            can_gc,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fieldset-disabled
@@ -153,8 +158,10 @@ impl VirtualMethods for HTMLFieldSetElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
-        self.super_type().unwrap().attribute_mutated(attr, mutation);
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        self.super_type()
+            .unwrap()
+            .attribute_mutated(attr, mutation, can_gc);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -216,7 +223,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status(CanGc::note());
+                        element.update_sequentially_focusable_status(can_gc);
                     }
                 } else {
                     for field in fields {
@@ -237,13 +244,13 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status(CanGc::note());
+                        element.update_sequentially_focusable_status(can_gc);
                     }
                 }
-                element.update_sequentially_focusable_status(CanGc::note());
+                element.update_sequentially_focusable_status(can_gc);
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation);
+                self.form_attribute_mutated(mutation, can_gc);
             },
             _ => {},
         }

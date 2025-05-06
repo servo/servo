@@ -4,7 +4,7 @@
 
 // https://drafts.csswg.org/cssom/#the-cssstylerule-interface
 [Exposed=Window]
-interface CSSStyleRule : CSSRule {
+interface CSSStyleRule : CSSGroupingRule {
   attribute DOMString selectorText;
   [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
 };

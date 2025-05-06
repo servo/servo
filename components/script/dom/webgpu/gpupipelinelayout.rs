@@ -5,8 +5,8 @@
 use std::borrow::Cow;
 
 use dom_struct::dom_struct;
-use webgpu::wgc::binding_model::PipelineLayoutDescriptor;
-use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest};
+use webgpu_traits::{WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest};
+use wgpu_core::binding_model::PipelineLayoutDescriptor;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::DomRefCell;

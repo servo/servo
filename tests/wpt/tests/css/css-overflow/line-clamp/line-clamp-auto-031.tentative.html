@@ -20,6 +20,9 @@
 .collapse-through {
   margin: 10px;
 }
+.rel {
+  position: relative;
+}
 .abspos {
   position: absolute;
   right: 0;
@@ -32,7 +35,8 @@
 <!--
   The bottom margin of the first `.inner` ends at the clamp boundary, and the
   bottom margin of `.collapse-through` ends after it. The clamp point therefore
-  is before `.collapse-through`, and so `.abpos` won't be visible.
+  is before `.collapse-through`, so `.rel` will be after the clamp point and
+  `.abpos` won't be visible.
 -->
 
 <div class="clamp">
@@ -41,7 +45,7 @@ Line 2
 Line 3
 Line 4</div>
 <div class="collapse-through"></div>
-<div class="abspos"></div>
+<div class="rel"><div class="abspos"></div></div>
 <div class="inner">Line 5
 Line 6
 Line 7

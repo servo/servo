@@ -1,0 +1,4 @@
+features:
+- name: context-fill-stroke
+  files:
+  - paint-context-*

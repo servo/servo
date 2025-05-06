@@ -1,0 +1,47 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<head>
+<title>Test dragging still occurs when mousedown moves the inner element</title>
+</head>
+<body>
+<div id="container">
+  <template shadowrootmode="open">
+    <div id="element" draggable="true" style="width: 40px; height: 40px; background-color:red;">
+      <slot id="slot"></slot>
+    </div>
+    <div id="element2"></div>
+  </template>
+  <div id="inner" style="width: 30px; height: 30px; background-color:black;"></div>
+</div>
+<script>
+
+promise_test(function() {
+  return new Promise(r => {
+    const element = container.shadowRoot.getElementById("element");
+
+    element.addEventListener("dragstart", function(e) {
+      assert_equals(e.target, element);
+      r();
+    });
+
+    element.addEventListener("mousedown", function() {
+      const element2 = container.shadowRoot.getElementById("element2");
+      const slot = container.shadowRoot.getElementById("slot");
+      element2.appendChild(slot);
+    });
+
+    new test_driver.Actions()
+    .pointerMove(0, 0, {origin: inner})
+    .pointerDown()
+    .pointerMove(10, 10, {origin:inner})
+    .pointerUp()
+    .send();
+  });
+}, "dragstart should still fire when the mousedown event moves the container of the inner element around");
+</script>
+</body>
+</html>

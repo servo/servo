@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .outer {
+        border: 2px solid rgb(96 139 168);
+        width: 200px;
+        height: 200px;
+    }
+
+    .container1 {
+        position: absolute;
+        top: 2px;
+        column-gap: 10px;
+        display: flex;
+    }
+
+    .items1 {
+        background: rgb(96 139 168 / 0.2);
+        height: 40px;
+        margin: 0px;
+        width: 60px;
+    }
+
+    .container2 {
+        position: absolute;
+        top: 60px;
+        column-gap: 10px;
+        display: flex;
+    }
+
+    .items2 {
+        background: rgb(96 139 168 / 0.2);
+        height: 130px;
+        margin: 0px;
+        width: 60px;
+    }
+
+    .row-gap {
+        position: absolute;
+        height: 10px;
+        width: 204px;
+        left: 0px;
+        top: 120px;
+        display: flex;
+        column-gap: 6px;
+    }
+
+    .row-gap-items {
+        width: 64px;
+        background: gold;
+    }
+
+    .column-gap1 {
+        position: absolute;
+        height: 44px;
+        width: 10px;
+        background: blue;
+        top: 0px;
+    }
+
+    .column-gap2 {
+        position: absolute;
+        height: 64px;
+        width: 10px;
+        background: blue;
+        top: 58px;
+    }
+
+    .spanner {
+        position: absolute;
+        background: cyan;
+        width: 200px;
+        height: 18px;
+        top: 42px;
+        left: 2px;
+        opacity: 0.5;
+    }
+
+    .column-gap3 {
+        position: absolute;
+        height: 76px;
+        width: 10px;
+        background: blue;
+        top: 128px;
+    }
+</style>
+
+<div class="outer">
+    <div class="container1">
+        <div class="items1"></div>
+        <div class="items1"></div>
+        <div class="items1"></div>
+    </div>
+    <div class="container2">
+        <div class="items2"></div>
+        <div class="items2"></div>
+        <div class="items2"></div>
+    </div>
+    <div class="column-gap1" style="left:62px;"></div>
+    <div class="column-gap1" style="left:132px;"></div>
+    <div class="column-gap2" style="left:62px;"></div>
+    <div class="column-gap2" style="left:132px;"></div>
+    <div class="spanner"></div>
+    <div class="column-gap3" style="left:62px;"></div>
+    <div class="column-gap3" style="left:132px;"></div>
+    <div class="row-gap">
+        <div class="row-gap-items"></div>
+        <div class="row-gap-items"></div>
+        <div class="row-gap-items"></div>
+    </div>
+</div>

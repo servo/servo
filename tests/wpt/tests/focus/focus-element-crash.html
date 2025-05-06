@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<meta name="assert" content="focus element adopted or remounted shouldn't crash.">
+
+<body>
+
+<!--focus element remounted test case-->
+<audio onloadstart="select.focus()" src=""></audio>
+<iframe id="iframe"></iframe>
+<table id="table">
+    <td>
+        <select id="select" onblur=";"></select>
+    </td>
+</table>
+<script>
+    window.addEventListener("load", _ => iframe.appendChild(table));
+</script>
+
+<!--focus element adopted test case-->
+<input id="username" type="text" placeholder="username">
+<input id="password" type="text" placeholder="password">
+</body>
+<script>
+    let search = document.getElementById("search");
+    let username = document.getElementById("username");
+    username.focus();
+    window.onload = () => document.adoptNode(username);
+    username.addEventListener("blur", function (e) {
+        document.body.append(`event:${e.type} fire.`)
+    });
+</script>
+</html>

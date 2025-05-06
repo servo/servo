@@ -30,4 +30,8 @@ test(() => {
   assert_throws_js(TypeError, () => CSSStyleValue.parseAll('--foo', ''));
 }, 'CSSStyleValue.parseAll() with invalid value for custom property throws TypeError');
 
+test(() => {
+  assert_throws_js(TypeError, () => CSSStyleValue.parseAll('width', ''));
+}, 'CSSStyleValue.parseAll() with invalid value for property throws TypeError');
+
 </script>

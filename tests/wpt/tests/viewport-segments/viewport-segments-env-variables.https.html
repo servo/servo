@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  /* The following styles set the margin top/left/bottom/right to the
+    values where the display feature between segments is, and the width and
+    height of the div to the width and height of the display feature */
+  @media (horizontal-viewport-segments: 2) {
+    div {
+      margin: env(viewport-segment-top 0 0, 10px)
+              env(viewport-segment-left 1 0, 10px)
+              env(viewport-segment-bottom 0 0, 10px)
+              env(viewport-segment-right 0 0, 10px);
+      width: calc(env(viewport-segment-left 1 0, 10px) -
+                  env(viewport-segment-right 0 0, 0px));
+      height: env(viewport-segment-height 0 0, 10px);
+    }
+  }
+
+  @media (vertical-viewport-segments: 2) {
+    div {
+      margin: env(viewport-segment-bottom 0 0, 11px)
+              env(viewport-segment-right 0 1, 11px)
+              env(viewport-segment-top 0 1, 11px)
+              env(viewport-segment-left 0 0, 11px);
+      width: env(viewport-segment-width 0 0, 11px);
+      height: calc(env(viewport-segment-top 0 1, 11px) -
+                    env(viewport-segment-bottom 0 0, 0px));
+    }
+  }
+
+  @media (horizontal-viewport-segments: 1) and
+          (vertical-viewport-segments: 1) {
+    div { opacity: 0.1; margin: 1px; width: 1px; height: 1px; }
+  }
+
+  @media (horizontal-viewport-segments: 2) and
+          (vertical-viewport-segments: 1) {
+    div { opacity: 0.2; }
+  }
+
+  @media (horizontal-viewport-segments: 1) and
+          (vertical-viewport-segments: 2) {
+    div { opacity: 0.3; }
+  }
+</style>
+</head>
+<body>
+  <div id='target'></div>
+</body>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  t.add_cleanup(async () => {
+    await test_driver.clear_display_features();
+  });
+
+  const displayFeatureLength = 10;
+  const target = document.querySelector('#target');
+  const targetComputedStyle = window.getComputedStyle(target);
+  assert_equals(targetComputedStyle.marginTop, '1px');
+  assert_equals(targetComputedStyle.marginRight,'1px');
+  assert_equals(targetComputedStyle.marginBottom,'1px');
+  assert_equals(targetComputedStyle.marginLeft, '1px');
+  assert_equals(targetComputedStyle.width, '1px');
+  assert_equals(targetComputedStyle.height, '1px');
+  assert_equals(targetComputedStyle.opacity, '0.1');
+
+  const horizontalViewportSegmentsMQL = window.matchMedia('(horizontal-viewport-segments: 2)');
+  let promise = new Promise(resolve => {
+    horizontalViewportSegmentsMQL.addEventListener(
+      'change',
+      () => { resolve(horizontalViewportSegmentsMQL.matches); },
+      { once: true }
+    );
+  });
+  const leftOffset =
+    Math.round(window.innerWidth / 2 - displayFeatureLength / 2);
+  await test_driver.set_display_features([{
+    orientation: 'vertical',
+    maskLength: displayFeatureLength,
+    offset: leftOffset
+  }]);
+  assert_true(await promise);
+  assert_equals(targetComputedStyle.marginTop, '0px');
+  assert_equals(targetComputedStyle.marginRight,
+    Math.round(window.innerWidth / 2 + displayFeatureLength / 2) + 'px');
+  assert_equals(targetComputedStyle.marginBottom, window.innerHeight + 'px');
+  assert_equals(targetComputedStyle.marginLeft, leftOffset + 'px');
+  assert_equals(targetComputedStyle.width, displayFeatureLength + 'px');
+  assert_equals(targetComputedStyle.height, window.innerHeight + 'px');
+  assert_equals(targetComputedStyle.opacity, '0.2');
+
+
+  const verticalViewportSegmentsMQL = window.matchMedia('(vertical-viewport-segments: 2)');
+  promise = new Promise(resolve => {
+    verticalViewportSegmentsMQL.addEventListener(
+      'change',
+      () => { resolve(verticalViewportSegmentsMQL.matches); },
+      { once: true }
+    );
+  });
+  const topOffset =
+    Math.round(window.innerHeight / 2 - displayFeatureLength / 2);
+  await test_driver.set_display_features([{
+    orientation: 'horizontal',
+    maskLength: displayFeatureLength,
+    offset: topOffset
+  }]);
+  assert_true(await promise);
+  assert_equals(targetComputedStyle.marginTop, topOffset + 'px');
+  assert_equals(targetComputedStyle.marginRight, window.innerWidth + 'px');
+  assert_equals(targetComputedStyle.marginBottom,
+    Math.round(window.innerHeight / 2 + displayFeatureLength / 2) + 'px');
+  assert_equals(targetComputedStyle.marginLeft, '0px');
+  assert_equals(targetComputedStyle.width, window.innerWidth + 'px');
+  assert_equals(targetComputedStyle.height, displayFeatureLength + 'px');
+  assert_equals(targetComputedStyle.opacity, '0.3');
+
+  const oneSegmentMQL = window.matchMedia('(vertical-viewport-segments: 1)');
+  promise = new Promise(resolve => {
+    oneSegmentMQL.addEventListener(
+      'change',
+      () => { resolve(oneSegmentMQL.matches); },
+      { once: true }
+    );
+  });
+  await test_driver.clear_display_features();
+  assert_true(await promise);
+  assert_equals(targetComputedStyle.marginTop, '1px');
+  assert_equals(targetComputedStyle.marginRight,'1px');
+  assert_equals(targetComputedStyle.marginBottom,'1px');
+  assert_equals(targetComputedStyle.marginLeft, '1px');
+  assert_equals(targetComputedStyle.width, '1px');
+  assert_equals(targetComputedStyle.height, '1px');
+  assert_equals(targetComputedStyle.opacity, '0.1');
+
+}, 'Tests the Viewport Segments Media Query change event handler.');
+</script>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Displays all the corner-shape-any.html variants side by side</title>
+<style>
+section {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    margin: 10px;
+    border: 2px solid grey;
+    border-radius: 2px;
+    background: lightgray;
+}
+
+label {
+    overflow-y: auto;
+    max-width: 250px;
+    max-height: 40px;
+    font-size: 10px;
+}
+
+iframe {
+    overflow: clip;
+    width: 250px;
+    height: 150px;
+    border: none;
+}
+
+main {
+    display: flex;
+    flex-wrap: wrap;
+}
+</style>
+<template id="scenario">
+    <section>
+        <label class="variant"></label>
+        Test:
+        <iframe class="test" frameborder="0" scrolling="no"></iframe>
+        Ref:
+        <iframe class="ref" frameborder="0" scrolling="no"></iframe>
+    </section>
+</template>
+<script>
+    addEventListener("DOMContentLoaded", async () => {
+        const test_files = ["corner-shape-render-precise.html", "corner-shape-render-fuzzy.html"]
+        const dom_parser = new DOMParser();
+        for (const test_file of test_files) {
+            const test_html = await (await fetch(test_file)).text();
+            const test_doc = dom_parser.parseFromString(test_html, "text/html");
+            const variants = Array.from(test_doc.querySelectorAll("meta[name=variant]")).map(m => m.content);
+            for (const variant of variants) {
+                const scenario = document.getElementById("scenario").content.cloneNode(true);
+                scenario.querySelector(".variant").innerText = variant;
+                scenario.querySelector(".test").src = `${test_file}${variant}`;
+                scenario.querySelector(".ref").src = `corner-shape-any-ref.html${variant}`;
+                document.querySelector("main").append(scenario);
+            }
+        }
+    });
+</script>
+<main></main>

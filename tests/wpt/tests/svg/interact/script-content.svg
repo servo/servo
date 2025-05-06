@@ -46,11 +46,9 @@
   <script>function s10() { return s11(); }</script>
 </desc>
 
-<!-- Becomes https://svgwg.org/svg2-draft/struct.html#UnknownElement
-     if the implementation does not support <discard> -->
-<discard>
+<unknown>
   <script>function s11() { return s12(); }</script>
-</discard>
+</unknown>
 
 <ellipse>
   <script>function s12() { return s13(); }</script>

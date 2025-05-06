@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<title>Test of sizing customizable select inside of flex</title>
+<link rel=author href="mailto:dbaron@chromium.org">
+
+<style>
+  .container > * {
+    display: inline-block;
+    vertical-align: top;
+    white-space: nowrap;
+  }
+
+  select {
+    appearance: base-select;
+  }
+</style>
+
+<div class="container">
+  <select>
+    <option>First Option</option>
+    <option>Second Option</option>
+  </select
+  ><div class="after">The content after the select.</div>
+</div>

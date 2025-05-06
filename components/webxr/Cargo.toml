@@ -25,15 +25,16 @@ ipc = ["webxr-api/ipc", "serde"]
 openxr-api = ["angle", "openxr", "winapi", "wio", "surfman/sm-angle-default"]
 
 [dependencies]
-webxr-api = { workspace = true }
 crossbeam-channel = { workspace = true }
+embedder_traits = { workspace = true }
 euclid = { workspace = true }
+glow = { workspace = true }
 log = { workspace = true }
 openxr = { workspace = true, optional = true }
-serde = { workspace = true, optional = true }
-glow = { workspace = true }
 raw-window-handle = { workspace = true }
+serde = { workspace = true, optional = true }
 surfman = { workspace = true, features = ["chains", "sm-raw-window-handle-06"] }
+webxr-api = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { workspace = true, features = ["dxgi", "d3d11", "winerror"], optional = true }

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, namespace_url, ns};
+use html5ever::{LocalName, ns};
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
 

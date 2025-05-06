@@ -6,13 +6,17 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_null(bidi_session, top_context, test_page, type_hint):
+async def test_null(bidi_session, top_context, test_page, wait_for_event, wait_for_future_safe, subscribe_events, type_hint):
+    await subscribe_events(["browsingContext.contextCreated"])
+
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=test_page, wait="complete"
     )
 
     current_top_level_context_id = top_context["context"]
+    on_context_created = wait_for_event("browsingContext.contextCreated")
     other_top_level_context = await bidi_session.browsing_context.create(type_hint=type_hint)
+    context_info = await wait_for_future_safe(on_context_created)
     other_top_level_context_id = other_top_level_context["context"]
 
     # Retrieve all top-level browsing contexts
@@ -32,6 +36,7 @@ async def test_null(bidi_session, top_context, test_page, type_hint):
         children=0,
         parent=None,
         url=test_page,
+        client_window=top_context["clientWindow"],
     )
 
     assert_browsing_context(
@@ -40,16 +45,22 @@ async def test_null(bidi_session, top_context, test_page, type_hint):
         children=0,
         parent=None,
         url="about:blank",
+        client_window=context_info["clientWindow"],
     )
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_top_level_context(bidi_session, top_context, test_page, type_hint):
+async def test_top_level_context(bidi_session, top_context, test_page, wait_for_event, wait_for_future_safe, subscribe_events, type_hint):
+
+    await subscribe_events(["browsingContext.contextCreated"])
+
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=test_page, wait="complete"
     )
 
+    on_context_created = wait_for_event("browsingContext.contextCreated")
     other_top_level_context = await bidi_session.browsing_context.create(type_hint=type_hint)
+    context_info = await wait_for_future_safe(on_context_created)
     other_top_level_context_id = other_top_level_context["context"]
     # Retrieve all browsing contexts of the newly opened tab/window
     contexts = await bidi_session.browsing_context.get_tree(root=other_top_level_context_id)
@@ -61,6 +72,7 @@ async def test_top_level_context(bidi_session, top_context, test_page, type_hint
         children=0,
         parent=None,
         url="about:blank",
+        client_window=context_info["clientWindow"],
     )
 
 
@@ -86,6 +98,7 @@ async def test_child_context(
         children=1,
         parent=None,
         url=test_page_nested_frames,
+        client_window=top_context["clientWindow"],
     )
 
     child1_info = root_info["children"][0]
@@ -96,6 +109,7 @@ async def test_child_context(
         parent_expected=False,
         parent=None,
         url=test_page_same_origin_frame,
+        client_window=top_context["clientWindow"],
     )
 
     # Now retrieve all browsing contexts for the first browsing context child
@@ -108,6 +122,7 @@ async def test_child_context(
         children=1,
         parent=root_info["context"],
         url=test_page_same_origin_frame,
+        client_window=top_context["clientWindow"],
     )
 
     assert child1_info["children"][0] == child_contexts[0]["children"][0]

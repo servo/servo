@@ -356,6 +356,9 @@ promise_test(async t => {
 
   let outputs = 0;
   callbacks.output = frame => {
+    if (outputs === 0) {
+      assert_equals(frame.timestamp, -42);
+    }
     outputs++;
     frame.close();
   };
@@ -368,7 +371,30 @@ promise_test(async t => {
 
   await decoder.flush();
   assert_equals(outputs, CONFIG.codec === 'vorbis' ? 1 : 2, 'outputs');
-}, 'Test decoding a with negative timestamp');
+}, 'Test decoding a with a negative timestamp');
+
+promise_test(async t => {
+  const callbacks = {};
+  const decoder = createAudioDecoder(t, callbacks);
+
+  let outputs = 0;
+  callbacks.output = frame => {
+    if (outputs === 0) {
+      assert_equals(frame.timestamp, 42);
+    }
+    outputs++;
+    frame.close();
+  };
+
+  decoder.configure(CONFIG);
+  decoder.decode(new EncodedAudioChunk(
+      {type: 'key', timestamp: 42, data: CHUNK_DATA[0]}));
+  decoder.decode(new EncodedAudioChunk(
+      {type: 'key', timestamp: CHUNKS[0].duration + 42, data: CHUNK_DATA[1]}));
+
+  await decoder.flush();
+  assert_equals(outputs, CONFIG.codec === 'vorbis' ? 1 : 2, 'outputs');
+}, 'Test decoding a with a positive timestamp');
 
 promise_test(async t => {
   const callbacks = {};

@@ -53,8 +53,20 @@ promise_test(async t => {
     ["currententrychange", "#2", { from, navigationType: "push" }],
     ["handler run", "#2", { from, navigationType: "push" }],
     ["committed fulfilled 2", "#2", { from, navigationType: "push" }],
+    ["transition.committed fulfilled 2", "#2", { from, navigationType: "push" }],
     ["committed rejected 1", "#2", { from, navigationType: "push" }],
     ["finished rejected 1", "#2", { from, navigationType: "push" }],
+    // Because of the reentrant nature of this test,
+    // "transition.committed fulfilled 1" and "transition.committed fulfilled 2"
+    // are for the same transition.committed promise: the one for the second
+    // navigation that interrupted the first. The first navigation never
+    // was aborted during navigate event dispatch, so there was never a
+    // transition.committed for it. But by the time
+    // recorder.setUpResultListeners(result1, " 1") runs, the second
+    // navigation's transition.committed had been installed, so we attached a
+    // listener to log it with the "1" label (in addition to the previous
+    // listener to log it with the "2" label).
+    ["transition.committed fulfilled 1", "#2", { from, navigationType: "push" }],
     ["promise microtask", "#2", { from, navigationType: "push" }],
     ["navigatesuccess", "#2", { from, navigationType: "push" }],
     ["finished fulfilled 2", "#2", null],

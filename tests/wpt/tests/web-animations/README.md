@@ -92,7 +92,7 @@ Guidelines for writing tests
     the test should be at least 100s in length.
 
 *   Avoid using `GLOBAL_CONSTS` that make the test harder to read.
-    It's fine to repeat the the same parameter values like `100 * MS_PER_SEC`
+    It's fine to repeat the same parameter values like `100 * MS_PER_SEC`
     over and over again since it makes it easy to read and debug a test in
     isolation.
     Remember, even if we do need to make all tests take, say 200s each, text

@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+
+use base::id::{DomExceptionId, DomExceptionIndex};
+use constellation_traits::DomException;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
@@ -13,7 +17,9 @@ use crate::dom::bindings::reflector::{
     Reflector, reflect_dom_object, reflect_dom_object_with_proto,
 };
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -47,6 +53,7 @@ pub(crate) enum DOMErrorName {
     NotReadableError,
     DataError,
     OperationError,
+    NotAllowedError,
 }
 
 impl DOMErrorName {
@@ -78,6 +85,7 @@ impl DOMErrorName {
             "NotReadableError" => Some(DOMErrorName::NotReadableError),
             "DataError" => Some(DOMErrorName::DataError),
             "OperationError" => Some(DOMErrorName::OperationError),
+            "NotAllowedError" => Some(DOMErrorName::NotAllowedError),
             _ => None,
         }
     }
@@ -129,6 +137,10 @@ impl DOMException {
             DOMErrorName::OperationError => {
                 "The operation failed for an operation-specific reason."
             },
+            DOMErrorName::NotAllowedError => {
+                r#"The request is not allowed by the user agent or the platform in the current context,
+                possibly because the user denied permission."#
+            },
         };
 
         (
@@ -154,6 +166,21 @@ impl DOMException {
 
         reflect_dom_object(
             Box::new(DOMException::new_inherited(message, name)),
+            global,
+            can_gc,
+        )
+    }
+
+    pub(crate) fn new_with_custom_message(
+        global: &GlobalScope,
+        code: DOMErrorName,
+        message: String,
+        can_gc: CanGc,
+    ) -> DomRoot<DOMException> {
+        let (_, name) = DOMException::get_error_data_by_code(code);
+
+        reflect_dom_object(
+            Box::new(DOMException::new_inherited(DOMString::from(message), name)),
             global,
             can_gc,
         )
@@ -198,5 +225,45 @@ impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
     // https://webidl.spec.whatwg.org/#dom-domexception-message
     fn Message(&self) -> DOMString {
         self.message.clone()
+    }
+}
+
+impl Serializable for DOMException {
+    type Index = DomExceptionIndex;
+    type Data = DomException;
+
+    // https://webidl.spec.whatwg.org/#idl-DOMException
+    fn serialize(&self) -> Result<(DomExceptionId, Self::Data), ()> {
+        let serialized = DomException {
+            message: self.message.to_string(),
+            name: self.name.to_string(),
+        };
+        Ok((DomExceptionId::new(), serialized))
+    }
+
+    // https://webidl.spec.whatwg.org/#idl-DOMException
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()>
+    where
+        Self: Sized,
+    {
+        Ok(Self::new_with_custom_message(
+            owner,
+            DOMErrorName::from(&DOMString::from_string(serialized.name)).ok_or(())?,
+            serialized.message,
+            can_gc,
+        ))
+    }
+
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<DomExceptionId, Self::Data>> {
+        match data {
+            StructuredData::Reader(reader) => &mut reader.exceptions,
+            StructuredData::Writer(writer) => &mut writer.exceptions,
+        }
     }
 }

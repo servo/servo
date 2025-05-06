@@ -1,5 +1,9 @@
 import time
 
+# TODO(https://crbug.com/406819294): Simplify relative import for util.
+import importlib
+util = importlib.import_module("speculation-rules.prefetch.resources.util")
+
 def main(request, response):
   response.headers.set("Cache-Control", "no-store")
   uuid = request.GET[b"uuid"]
@@ -33,17 +37,4 @@ def main(request, response):
       time.sleep(0.1)
       nvswait = request.server.stash.take(uuid)
 
-  content = (f'<!DOCTYPE html>\n'
-             f'<script src="/common/dispatcher/dispatcher.js"></script>\n'
-             f'<script src="utils.sub.js"></script>\n'
-             f'<script>\n'
-             f'  window.requestHeaders = {{\n'
-             f'    purpose: "{request.headers.get("Purpose", b"").decode("utf-8")}",\n'
-             f'    sec_purpose: "{request.headers.get("Sec-Purpose", b"").decode("utf-8")}",\n'
-             f'    referer: "{request.headers.get("Referer", b"").decode("utf-8")}",\n'
-             f'  }};\n'
-             f'  const uuid = new URLSearchParams(location.search).get("uuid");\n'
-             f'  window.executor = new Executor(uuid);\n'
-             f'</script>\n')
-
-  return content
+  return util.get_executor_html(request, '')

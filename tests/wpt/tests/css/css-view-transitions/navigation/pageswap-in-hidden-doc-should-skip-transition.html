@@ -9,7 +9,14 @@
   promise_test(async t => {
     let popup;
     onload = () => {
+      // Need to restore this browser window once after the window got minimized.
+      window.set_original_window_rect = rect => {
+        t.add_cleanup(async () => {
+          await test_driver.set_window_rect(rect);
+        });
+      };
       popup = window.open("resources/navigate-after-hide.html");
+
       t.add_cleanup(() => popup.close());
     };
 

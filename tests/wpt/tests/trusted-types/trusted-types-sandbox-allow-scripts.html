@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- The CSP spec says a sandbox directive in a <meta> tag is ignored, so we set
+     it and other rules in the .headers file. Please refer to that file. -->
+<link rel="help" href="https://github.com/w3c/trusted-types/issues/513">
+<script>
+  test(_ => {
+    assert_throws_js(TypeError, _ => {
+      window.trustedTypes.createPolicy("ForbiddenPolicyName",
+                                       { createHTML: x => x});
+    });
+    let p = window.trustedTypes.createPolicy("AllowedPolicyName",
+                                             { createHTML: x => `[${x}]`});
+    assert_equals(p.name, "AllowedPolicyName");
+    assert_equals(p.createHTML("Hello World!").toString(), "[Hello World!]");
+  }, "window.trustedTypes.createPolicy() in a sandboxed page with allow-scripts.");
+
+  test(_ => {
+    let div = document.createElement("div");
+    assert_throws_js(TypeError, _ => div.innerHTML = "abcd");
+    window.trustedTypes.createPolicy("default",
+                                     { createHTML: x => x.toUpperCase()});
+    div.innerHTML = "abcd";
+    assert_equals(div.innerHTML, "ABCD");
+  }, "Default Trusted Types policy in a sandboxed page with allow-scripts.");
+</script>

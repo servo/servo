@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.inline {
+  display: inline;
+  color: transparent;
+  font: 10px Ahem;
+  line-height: 25px;
+}
+
+.container {
+  border: 1px solid;
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: inline-block;
+  margin-left: 50px;
+  margin-bottom: 50px;
+}
+
+.abs {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  background: purple;
+}
+
+.vertRL {
+  writing-mode: vertical-rl;
+}
+
+.vertLR {
+  writing-mode: vertical-lr;
+}
+</style>
+<!-- start aligned -->
+<div class="container vertRL"><div class="inline">text
+  <div class="abs" style="top: 0px; right: 25px;"></div>
+</div></div>
+<div class="container vertLR"><div class="inline">text
+  <div class="abs" style="top: 0px; left: 25px;"></div>
+</div></div>
+<div class="container vertRL"><div class="inline">text
+  <div class="abs" style="top: 0px; right: 0px;"></div>
+</div></div>
+<br>
+<!-- end aligned -->
+<div class="container vertLR"><div class="inline">text
+  <div class="abs" style="top: -50px; right: 50px"></div>
+</div></div>
+<div class="container vertRL"><div class="inline">text
+  <div class="abs" style="bottom: 0px; left: 50px;"></div>
+</div></div>
+<div class="container vertLR"><div class="inline">text
+  <div class="abs" style="top: -50px; right: 0px;"></div>
+</div></div>
+<br>
+<!-- center aligned -->
+<div class="container vertLR"><div class="inline">text
+  <div class="abs" style="right: 12.5px; top: -25px;"></div>
+</div></div>
+<div class="container vertRL"><div class="inline">text
+  <div class="abs" style="top: 25px; left: 12.5px;"></div>
+</div></div>
+<div class="container vertLR"><div class="inline">text
+  <div class="abs" style="top: -25px; left: 25px;"></div>
+</div></div>

@@ -14,6 +14,25 @@ mathfont.drawRectangleGlyph(g, mathfont.em, v1, 0)
 f[nAryWhiteVerticalBarCodePoint].verticalVariants = "uni2AFF uni2AFF.display"
 mathfont.save(f)
 
+v1 = 3 * mathfont.em
+v2 = mathfont.em
+f = mathfont.create("largeop-displayoperatorminheight%d-2AFF-axisheight%d" % (v1, v2),
+                    "Copyright (c) 2025 Igalia S.L.")
+f.math.DisplayOperatorMinHeight = v1
+f.math.AxisHeight = v2
+mathfont.createSquareGlyph(f, nAryWhiteVerticalBarCodePoint)
+g = f.createChar(-1, "uni2AFF.display")
+p = g.glyphPen()
+p.moveTo(0, 0)
+p.lineTo(0, v1)
+p.lineTo(mathfont.em, v1)
+p.lineTo(mathfont.em, 0)
+p.closePath()
+g.width = mathfont.em
+g.italicCorrection = 0
+f[nAryWhiteVerticalBarCodePoint].verticalVariants = "uni2AFF uni2AFF.display"
+mathfont.save(f)
+
 v1 = 2 * mathfont.em
 v2 = 3 * mathfont.em
 f = mathfont.create("largeop-displayoperatorminheight%d-2AFF-italiccorrection%d" % (v1, v2),

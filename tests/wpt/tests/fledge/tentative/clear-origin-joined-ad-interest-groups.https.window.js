@@ -9,7 +9,7 @@
 // META: variant=?9-12
 // META: variant=?13-last
 
-"use strict;"
+"use strict";
 
 ///////////////////////////////////////////////////////////////////////////////
 // Basic tests with no interest groups joined.

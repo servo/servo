@@ -2,10 +2,10 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>CSS Masonry: masonry-slack getComputedStyle()</title>
+<title>CSS Masonry: item-tolerance getComputedStyle()</title>
 <link rel="help" href="https://drafts.csswg.org/css-grid-3">
 <link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
-<meta name="assert" content="masonry-slack computed value is as specified.">
+<meta name="assert" content="item-tolerance computed value is as specified.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
@@ -18,14 +18,14 @@
   }
 </style>
 <script>
-test_computed_value("masonry-slack", "normal");
+test_computed_value("item-tolerance", "normal");
 
-test_computed_value("masonry-slack", "10px");
-test_computed_value("masonry-slack", "20%");
-test_computed_value("masonry-slack", "calc(20% + 10px)");
+test_computed_value("item-tolerance", "10px");
+test_computed_value("item-tolerance", "20%");
+test_computed_value("item-tolerance", "calc(20% + 10px)");
 
-test_computed_value("masonry-slack", "calc(-0.5em + 10px)", "0px");
-test_computed_value("masonry-slack", "calc(0.5em + 10px)", "30px");
+test_computed_value("item-tolerance", "calc(-0.5em + 10px)", "0px");
+test_computed_value("item-tolerance", "calc(0.5em + 10px)", "30px");
 </script>
 </body>
 </html>

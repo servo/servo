@@ -1,0 +1,4 @@
+features:
+- name: pdf-viewer
+  files:
+  - plugins-and-mimetypes.html

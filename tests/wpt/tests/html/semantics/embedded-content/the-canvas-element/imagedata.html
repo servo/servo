@@ -43,12 +43,6 @@ test(function() {
 }, "ImageData(buffer, w, h), buffer.length == 4 * w * h must be true");
 
 test(function() {
-    assert_throws_js(TypeError, function() {
-        new ImageData(new Int8Array(1), 1);
-    });
-}, "ImageData(buffer, w, opt h), Uint8ClampedArray argument type check");
-
-test(function() {
     var imageData = new ImageData(new Uint8ClampedArray(24), 2);
     assert_equals(imageData.width, 2);
     assert_equals(imageData.height, 3);

@@ -22,7 +22,7 @@
     position: absolute;
     width: 10px;
     height: 10px;
-    inset: 10px;
+    inset: 10px 15px 20px 25px;
     position-anchor: --anchor;
   }
 </style>
@@ -46,20 +46,20 @@
   test_position_area("span-all", {left:145, top:145, width:10, height:10});
 
   // Single region spans
-  test_position_area("top left", {left:80, top:80, width:10, height:10});
-  test_position_area("top center", {left:145, top:80, width:10, height:10});
-  test_position_area("top right", {left:210, top:80, width:10, height:10});
-  test_position_area("center left", {left:80, top:145, width:10, height:10});
-  test_position_area("center center", {left:145, top:145, width:10, height:10});
-  test_position_area("center right", {left:210, top:145, width:10, height:10});
-  test_position_area("bottom left", {left:80, top:210, width:10, height:10});
-  test_position_area("bottom center", {left:145, top:210, width:10, height:10});
-  test_position_area("bottom right", {left:210, top:210, width:10, height:10});
+  test_position_area("top left", {left:75, top:70, width:10, height:10});
+  test_position_area("top center", {left:150, top:70, width:10, height:10});
+  test_position_area("top right", {left:225, top:70, width:10, height:10});
+  test_position_area("center left", {left:75, top:140, width:10, height:10});
+  test_position_area("center center", {left:150, top:140, width:10, height:10});
+  test_position_area("center right", {left:225, top:140, width:10, height:10});
+  test_position_area("bottom left", {left:75, top:210, width:10, height:10});
+  test_position_area("bottom center", {left:150, top:210, width:10, height:10});
+  test_position_area("bottom right", {left:225, top:210, width:10, height:10});
 
   // Multi-region spans
-  test_position_area("top span-left", {left:180, top:80, width:10, height:10});
-  test_position_area("top span-right", {left:110, top:80, width:10, height:10});
-  test_position_area("span-top left", {left:80, top:180, width:10, height:10});
-  test_position_area("span-bottom left", {left:80, top:110, width:10, height:10});
+  test_position_area("top span-left", {left:175, top:70, width:10, height:10});
+  test_position_area("top span-right", {left:125, top:70, width:10, height:10});
+  test_position_area("span-top left", {left:75, top:170, width:10, height:10});
+  test_position_area("span-bottom left", {left:75, top:110, width:10, height:10});
 
 </script>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    #outer {
+        width: 620px;
+        height: 200px;
+        background: yellow;
+    }
+
+    .inner1 {
+        border-top: 2px solid;
+        border-left: 2px solid;
+        border-right: 2px solid;
+        background: cyan;
+        height: 198px;
+        width: 296px;
+    }
+
+    .inner2 {
+        border-bottom: 2px solid;
+        border-left: 2px solid;
+        border-right: 2px solid;
+        position: absolute;
+        left: 320px;
+        top: 0px;
+        height: 130px;
+        width: 296px;
+        background: cyan
+    }
+
+    .inner-flex {
+        display: flex;
+        column-gap: 20px;
+    }
+
+    .inner-items {
+        background: hotpink;
+        width: 85.333px;
+    }
+
+    .column-gap1 {
+        width: 10px;
+        background: blue;
+        position: absolute;
+        top: 2px;
+    }
+
+    .column-gap2 {
+        width: 10px;
+        background: blue;
+        position: absolute;
+        top: 40px;
+    }
+
+    .spanner {
+        background: grey;
+        opacity: 0.5;
+        height: 18px;
+        width: 296px;
+    }
+
+    .row-gap1 {
+        height: 10px;
+        background: green;
+        position: relative;
+        width: 296px;
+        top: 105px;
+    }
+
+    .row-gap2 {
+        height: 10px;
+        background: green;
+        position: absolute;
+        width: 296px;
+        top: 105px;
+    }
+
+    .column-gap3 {
+        background: blue;
+        height: 130px;
+        position: absolute;
+        width: 10px;
+        top: 0px;
+    }
+</style>
+
+<div id="outer">
+    <div class="inner1">
+        <div class="inner-flex">
+            <div class="inner-items" style="height:20px;"></div>
+            <div class="inner-items" style="height:20px" ;></div>
+            <div class="inner-items" style="height:20px;"></div>
+        </div>
+        <div class="inner-flex" style="position: absolute; left:2px; top:40px">
+            <div class="inner-items" style="height:100px;"></div>
+            <div class="inner-items" style="height:100px" ;></div>
+            <div class="inner-items" style="height:100px;"></div>
+        </div>
+        <div class="inner-flex" style="position: absolute; left:2px; top:160px">
+            <div class="inner-items" style="height:40px;"></div>
+            <div class="inner-items" style="height:40px" ;></div>
+            <div class="inner-items" style="height:40px;"></div>
+        </div>
+        <div class="spanner"></div>
+        <div class="column-gap1" style="height: 20px; left:calc(2px + 85.333px + 5px)"></div>
+        <div class="column-gap1" style="height: 20px; left:calc(2px + 85.333px + 5px + 10px + 5px + 85.333px + 5px)">
+        </div>
+        <div class="column-gap2" style="height: 160px; left:calc(2px + 85.333px + 5px)"></div>
+        <div class="column-gap2" style="height: 160px; left:calc(2px + 85.333px + 5px + 10px + 5px + 85.333px + 5px)">
+        </div>
+        <div class="row-gap1"></div>
+    </div>
+    <div class="inner2">
+        <div class="inner-flex">
+            <div class="inner-items" style="height:100px"></div>
+            <div class="inner-items" style="height:100px"></div>
+            <div class="inner-items" style="height:100px"></div>
+        </div>
+        <div class="inner-flex" style="position: absolute; top:120px;">
+            <div class="inner-items" style="height:10px"></div>
+            <div class="inner-items" style="height:10px"></div>
+            <div class="inner-items" style="height:10px"></div>
+        </div>
+        <div class="column-gap3" style="left:calc(85.333px + 5px);"></div>
+        <div class="column-gap3" style="left:calc(85.333px + 5px + 10px + 5px + 85.333px + 5px);"></div>
+        <div class="row-gap2"></div>
+    </div>
+</div>

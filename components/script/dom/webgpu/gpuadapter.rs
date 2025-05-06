@@ -6,9 +6,10 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
-use webgpu::wgc::instance::RequestDeviceError;
-use webgpu::wgt::MemoryHints;
-use webgpu::{WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest, wgt};
+use webgpu_traits::{
+    RequestDeviceError, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
+};
+use wgpu_types::{self, MemoryHints};
 
 use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::gpusupportedlimits::set_limit;
@@ -72,9 +73,9 @@ impl GPUAdapter {
         channel: WebGPU,
         name: DOMString,
         extensions: Heap<*mut JSObject>,
-        features: wgt::Features,
-        limits: wgt::Limits,
-        info: wgt::AdapterInfo,
+        features: wgpu_types::Features,
+        limits: wgpu_types::Limits,
+        info: wgpu_types::AdapterInfo,
         adapter: WebGPUAdapter,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
@@ -116,8 +117,12 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
     ) -> Rc<Promise> {
         // Step 2
         let promise = Promise::new_in_current_realm(comp, can_gc);
-        let sender = route_promise(&promise, self);
-        let mut required_features = wgt::Features::empty();
+        let sender = route_promise(
+            &promise,
+            self,
+            self.global().task_manager().dom_manipulation_task_source(),
+        );
+        let mut required_features = wgpu_types::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
                 required_features.insert(feature);
@@ -130,7 +135,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             }
         }
 
-        let mut required_limits = wgt::Limits::default();
+        let mut required_limits = wgpu_types::Limits::default();
         if let Some(limits) = &descriptor.requiredLimits {
             for (limit, value) in (*limits).iter() {
                 if !set_limit(&mut required_limits, limit.as_ref(), *value) {
@@ -141,11 +146,12 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             }
         }
 
-        let desc = wgt::DeviceDescriptor {
+        let desc = wgpu_types::DeviceDescriptor {
             required_features,
             required_limits,
             label: Some(descriptor.parent.label.to_string()),
             memory_hints: MemoryHints::MemoryUsage,
+            trace: wgpu_types::Trace::Off,
         };
         let device_id = self.global().wgpu_id_hub().create_device_id();
         let queue_id = self.global().wgpu_id_hub().create_queue_id();
@@ -206,6 +212,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
 }
 
 impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
+    /// <https://www.w3.org/TR/webgpu/#dom-gpuadapter-requestdevice>
     fn handle_response(
         &self,
         response: WebGPUDeviceResponse,
@@ -213,6 +220,7 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
         can_gc: CanGc,
     ) {
         match response {
+            // 3.1 Let device be a new device with the capabilities described by descriptor.
             (device_id, queue_id, Ok(descriptor)) => {
                 let device = GPUDevice::new(
                     &self.global(),
@@ -229,27 +237,38 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
                 self.global().add_gpu_device(&device);
                 promise.resolve_native(&device, can_gc);
             },
+            // 1. If features are not supported reject promise with a TypeError.
             (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => promise.reject_error(
-                Error::Type(RequestDeviceError::UnsupportedFeature(f).to_string()),
+                Error::Type(
+                    wgpu_core::instance::RequestDeviceError::UnsupportedFeature(f).to_string(),
+                ),
                 can_gc,
             ),
-            (_, _, Err(RequestDeviceError::LimitsExceeded(_))) => {
+            // 2. If limits are not supported reject promise with an OperationError.
+            (_, _, Err(RequestDeviceError::LimitsExceeded(l))) => {
+                warn!(
+                    "{}",
+                    wgpu_core::instance::RequestDeviceError::LimitsExceeded(l)
+                );
                 promise.reject_error(Error::Operation, can_gc)
             },
-            (device_id, queue_id, Err(e)) => {
+            // 3. user agent otherwise cannot fulfill the request
+            (device_id, queue_id, Err(RequestDeviceError::Other(e))) => {
+                // 1. Let device be a new device.
                 let device = GPUDevice::new(
                     &self.global(),
                     self.channel.clone(),
                     self,
                     Heap::default(),
-                    wgt::Features::default(),
-                    wgt::Limits::default(),
+                    wgpu_types::Features::default(),
+                    wgpu_types::Limits::default(),
                     device_id,
                     queue_id,
                     String::new(),
                     can_gc,
                 );
-                device.lose(GPUDeviceLostReason::Unknown, e.to_string(), can_gc);
+                // 2. Lose the device(device, "unknown").
+                device.lose(GPUDeviceLostReason::Unknown, e, can_gc);
                 promise.resolve_native(&device, can_gc);
             },
         }

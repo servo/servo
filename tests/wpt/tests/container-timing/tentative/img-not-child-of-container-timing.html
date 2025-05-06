@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: observe containertiming attribute with an image that is not its child</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script src="/element-timing/resources/element-timing-helpers.js"></script>
+<script>
+  async_test(function (t) {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const observer = new PerformanceObserver(
+      function(entryList) {
+        assert_unreached("No entry is expected with nothing to paint");
+      }
+    );
+    observer.observe({entryTypes: ['container']});
+
+    // Wait 2 seconds for observations, then finish successfully
+    t.step_timeout(() => {
+      t.done();
+    }, 2000);
+    // Add the image during onload to be sure that the observer is registered
+    // in time.
+    window.onload = () => {
+      // Add a div that is the container timing root
+      const div = document.createElement('div');
+      div.setAttribute('containertiming', 'div_ct');
+      document.body.appendChild(div);
+      // Add image of width equal to 100 and height equal to 100.
+      const img = document.createElement('img');
+      img.src = '/container-timing/resources/square100.png';
+      img.setAttribute('id', 'img_id');
+      document.body.appendChild(img);
+    };
+  }, 'Containertiming observed without paintable contents and an image outside does not report observations.');
+</script>
+
+</body>

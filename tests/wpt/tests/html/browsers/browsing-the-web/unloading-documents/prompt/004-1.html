@@ -23,6 +23,6 @@ onload = function() {
 }
 </script>
 // child frame with no onbeforeunload listener. Should leave the parent as unsalvageable.
-// Adding the iframe prevents potential implementation bugs where the the recursive steps of #prompt-to-unload-a-document
+// Adding the iframe prevents potential implementation bugs where the recursive steps of #prompt-to-unload-a-document
 // would overwrite the salvageable state of the parent.
 <iframe></iframe>

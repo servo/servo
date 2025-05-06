@@ -1,0 +1,26 @@
+<!doctype html>
+<p>self-close.html?navs=n&channel=name will navigate n times, then close and notify the channel.</p>
+
+<script>
+window.onload = setTimeout(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  let n = parseInt(urlParams.get('navs')) || 0;
+
+  const channel = new BroadcastChannel(urlParams.get('channel'));
+
+  channel.postMessage({ name: 'load', href: window.location.href });
+
+  if (n > 0) {
+    urlParams.set('navs', n-1);
+    window.location.href = `${window.location.pathname}?${urlParams.toString()}#${n}`;
+  } else {
+    window.onbeforeunload = () => {
+        channel.postMessage({ name: 'beforeunload', history: history.length, closed: true });
+    }
+    window.close();
+    if (!window.closed) {
+        channel.postMessage({ name: 'close failed', history: history.length, closed: false });
+    }
+  }
+}, 0);
+</script>

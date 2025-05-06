@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors/#selectordef-popover-open">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+    .half-square {
+        width: 100px;
+        height: 50px;
+        background-color: red;
+    }
+    #p1-sibling:not(:has(+:popover-open)) {
+        background-color: green;
+    }
+    #p2-sibling:has(+:popover-open) {
+        background-color: green;
+    }
+    [popover] {
+        visibility: hidden;
+    }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div>
+    <div id="p1-sibling" class="half-square"></div>
+    <div popover id="p1">Popover 1</div>
+</div>
+
+<div>
+    <div id="p2-sibling" class="half-square"></div>
+    <div popover id="p2">Popover 2</div>
+</div>
+
+<script>
+    addEventListener("load", async () => {
+        p1.showPopover();
+        await new Promise(r => requestAnimationFrame(r));
+        p1.hidePopover();
+        await new Promise(r => requestAnimationFrame(r));
+        p2.showPopover();
+        document.documentElement.classList.remove("reftest-wait");
+    });
+</script>
+</html>

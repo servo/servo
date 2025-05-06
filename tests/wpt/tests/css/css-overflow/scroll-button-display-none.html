@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: focused ::scroll-button() does not crash after becoming display none</title>
+<link rel="help" href="http://crbug.com/402673873">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #scroller::scroll-button(left) {
+    content: "";
+    background-color: red;
+    height: 100px;
+    width: 100px;
+    top: 0;
+    left: 0;
+    position: absolute;
+  }
+
+  #scroller.hide::scroll-button(left) {
+    display: none;
+  }
+
+  #scroller {
+    width: 300px;
+    height: 300px;
+    overflow: auto;
+  }
+
+  #filler {
+    height: 20000x;
+  }
+</style>
+<div id="scroller">
+  <div id="filler"></div>
+</div>
+<script>
+  promise_test(async t => {
+    await new test_driver.Actions()
+      .pointerMove(15, 15)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    scroller.className = "hide";
+    document.documentElement.offsetTop;
+    await new test_driver.Actions()
+      .pointerMove(15, 15)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_true(true);
+  });
+</script>

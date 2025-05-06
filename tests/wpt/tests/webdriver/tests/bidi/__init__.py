@@ -68,6 +68,14 @@ def any_list_or_null(actual: Any) -> None:
         any_list(actual)
 
 
+def any_positive_int(actual):
+    def _(actual: Any) -> None:
+        any_int(actual)
+        assert actual > 0
+
+    return _
+
+
 def any_string(actual: Any) -> None:
     assert isinstance(actual, str)
 
@@ -206,9 +214,20 @@ async def get_document_dimensions(bidi_session, context: str):
     return remote_mapping_to_dict(result["value"])
 
 
+async def get_context_origin(bidi_session, context: Mapping[str, Any]) -> str:
+    result = await bidi_session.script.call_function(
+        function_declaration="""() => {
+          return window.location.origin;
+        }""",
+        target=ContextTarget(context["context"]),
+        await_promise=False)
+    return result["value"]
+
+
 def remote_mapping_to_dict(js_object) -> Dict:
     obj = {}
     for key, value in js_object:
-        obj[key] = value["value"]
+        if value["type"] != "null":
+            obj[key] = value["value"]
 
     return obj

@@ -165,7 +165,7 @@ where
     F: Future<Output = ()> + 'static + std::marker::Send,
 {
     fn execute(&self, fut: F) {
-        HANDLE.lock().unwrap().as_ref().unwrap().spawn(fut);
+        HANDLE.spawn(fut);
     }
 }
 

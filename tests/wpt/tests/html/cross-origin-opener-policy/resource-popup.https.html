@@ -40,7 +40,7 @@ const coop_resource_test = ({parentCoop, resourceCoop, resource, resourceName, v
       // redirected to the HTML document.
       bc.postMessage(null);
       // Prepare to close the "child" popup in the case that it has not yet
-      // redirected to the the HTML document.
+      // redirected to the HTML document.
       bc.onmessage = () => bc.postMessage(null);
     });
   }, `${resource} - parent COOP: "${parentCoop}"; child COOP: "${resourceCoop}"`);

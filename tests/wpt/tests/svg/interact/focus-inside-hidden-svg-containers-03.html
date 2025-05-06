@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tabbing through Non-Rendered SVG elements</title>
+<link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#interact-Focus">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<svg xmlns="http://www.w3.org/2000/svg">
+  <text tabindex='1' id="start" x="10" y="10">start</text>
+  <defs>
+    <text tabindex='2' id="middle" x="30" y="10">middle</text>
+  </defs>
+  <text tabindex='3' id="end" x="50" y="10">end</text>
+</svg>
+
+<script>
+  promise_test(async t => {
+    const start = document.getElementById('start');
+    const end = document.getElementById('end');
+
+    start.focus();
+    assert_equals(document.activeElement, start, "Start element should be focused initially");
+
+    // Simulate pressing the Tab key
+    await test_driver.send_keys(start, '\uE004'); // '\uE004' is the WebDriver key code for Tab
+
+    // Verify that the focus moved to the end element and middle element is skipped
+    assert_equals(document.activeElement, end, "End element should be focused after pressing Tab");
+  }, "Hidden SVG Tab focus test");
+</script>

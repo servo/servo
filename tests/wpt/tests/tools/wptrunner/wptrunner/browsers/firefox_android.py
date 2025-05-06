@@ -280,10 +280,12 @@ class FirefoxAndroidBrowser(Browser):
 
         self.leak_report_file = None
 
-        debug_args, cmd = browser_command(self.package_name,
-                                          self.binary_args if self.binary_args else [] +
-                                          [cmd_arg("marionette"), "about:blank"],
-                                          self.debug_info)
+        args = self.binary_args[:] if self.binary_args else []
+        args += [cmd_arg("marionette"),
+                 cmd_arg("remote-allow-system-access"), "about:blank"]
+
+        debug_args, cmd = browser_command(
+            self.package_name, args, self.debug_info)
 
         env = get_environ(self.chaos_mode_flags, self.env_extras)
 
@@ -354,7 +356,8 @@ class FirefoxAndroidBrowser(Browser):
                                  # We never want marionette to install extensions because
                                  # that doesn't work on Android; instead they are in the profile
                                  "extensions": [],
-                                 "supports_devtools": False}
+                                 "supports_devtools": False,
+                                 "supports_window_resize": False}
 
     def check_crash(self, process, test):
         if not os.environ.get("MINIDUMP_STACKWALK", "") and self.stackwalk_binary:

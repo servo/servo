@@ -8,7 +8,7 @@ use webxr_api::HitTestId;
 use crate::dom::bindings::codegen::Bindings::XRHitTestSourceBinding::XRHitTestSourceMethods;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
 use crate::script_runtime::CanGc;
 
@@ -31,14 +31,14 @@ impl XRHitTestSource {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         id: HitTestId,
         session: &XRSession,
         can_gc: CanGc,
     ) -> DomRoot<XRHitTestSource> {
         reflect_dom_object(
             Box::new(XRHitTestSource::new_inherited(id, session)),
-            global,
+            window,
             can_gc,
         )
     }

@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use webgpu::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
+use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
 
 use super::gpucompilationinfo::GPUCompilationInfo;
 use crate::dom::bindings::cell::DomRefCell;
@@ -95,7 +95,14 @@ impl GPUShaderModule {
             promise.clone(),
             can_gc,
         );
-        let sender = route_promise(&promise, &*shader_module);
+        let sender = route_promise(
+            &promise,
+            &*shader_module,
+            device
+                .global()
+                .task_manager()
+                .dom_manipulation_task_source(),
+        );
         device
             .channel()
             .0

@@ -21,22 +21,10 @@ impl ResourceReaderMethods for ResourceReaderInstance {
             },
             Resource::BadCertHTML => &include_bytes!("../../../../resources/badcert.html")[..],
             Resource::NetErrorHTML => &include_bytes!("../../../../resources/neterror.html")[..],
-            Resource::UserAgentCSS => &include_bytes!("../../../../resources/user-agent.css")[..],
-            Resource::ServoCSS => &include_bytes!("../../../../resources/servo.css")[..],
-            Resource::PresentationalHintsCSS => {
-                &include_bytes!("../../../../resources/presentational-hints.css")[..]
-            },
-            Resource::QuirksModeCSS => &include_bytes!("../../../../resources/quirks-mode.css")[..],
             Resource::RippyPNG => &include_bytes!("../../../../resources/rippy.png")[..],
             Resource::DomainList => &include_bytes!("../../../../resources/public_domains.txt")[..],
             Resource::BluetoothBlocklist => {
                 &include_bytes!("../../../../resources/gatt_blocklist.txt")[..]
-            },
-            Resource::MediaControlsCSS => {
-                &include_bytes!("../../../../resources/media-controls.css")[..]
-            },
-            Resource::MediaControlsJS => {
-                &include_bytes!("../../../../resources/media-controls.js")[..]
             },
             Resource::CrashHTML => &include_bytes!("../../../../resources/crash.html")[..],
             Resource::DirectoryListingHTML => {

@@ -17,6 +17,12 @@ const inactiveFrameTestFunctionGenerator = function(isCpuOptimized) {
                                 () => isCpuOptimized ? frame.getDepthInformation(view)
                                                      : glBinding.getDepthInformation(view),
                                 "getDepthInformation() should throw when ran outside RAF");
+              assert_throws_dom("InvalidStateError",
+                                () => session.pauseDepthSensing(),
+                                "pauseDepthSensing() should thrown when ran outside RAF");
+              assert_throws_dom("InvalidStateError",
+                                () => session.resumeDepthSensing(),
+                                "resumeDepthSensing() should thrown when ran outside RAF");
             });
             callbackCounter--;
           }

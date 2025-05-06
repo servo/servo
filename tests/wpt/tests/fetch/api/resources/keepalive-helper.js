@@ -117,7 +117,7 @@ function assertStashedTokenAsync(
  *
  * `unloadIframe` to unload the iframe before verifying stashed token to
  * simulate the situation that unloads after fetching. Note that this test is
- * different from `keepaliveRedirectInUnloadTest()` in that the the latter
+ * different from `keepaliveRedirectInUnloadTest()` in that the latter
  * performs fetch() call directly in `unload` event handler, while this test
  * does it in `load`.
  */

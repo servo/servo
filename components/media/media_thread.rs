@@ -5,11 +5,11 @@
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use compositing_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use fnv::FnvHashMap;
 use ipc_channel::ipc::{IpcSender, channel};
 use log::{trace, warn};
 use webrender_api::ExternalImageId;
-use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 
 /// GL player threading API entry point that lives in the
 /// constellation.

@@ -350,6 +350,16 @@ def get_network_event_timerange(start, end, bidi_session):
     return number_interval(start - 1, end + 1)
 
 
+def get_next_event_for_url(network_events, url):
+    """
+    Retrieve the next network event in the network_events list matching the
+    provided url.
+    """
+    return next(
+        e for e in network_events if e["request"]["url"] == url
+    )
+
+
 # Array of status and status text expected to be available in network events
 HTTP_STATUS_AND_STATUS_TEXT = [
     (101, "Switching Protocols"),

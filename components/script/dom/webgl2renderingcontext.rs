@@ -21,9 +21,11 @@ use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
-use script_layout_interface::HTMLCanvasDataSource;
+use script_bindings::interfaces::WebGL2RenderingContextHelpers;
 use servo_config::pref;
+use snapshot::Snapshot;
 use url::Host;
+use webrender_api::ImageKey;
 
 use crate::canvas_context::CanvasContext;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::{
@@ -548,11 +550,11 @@ impl WebGL2RenderingContext {
             return
         );
 
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = ipc::channel().unwrap();
         self.base.send_command(WebGLCommand::ReadPixels(
             src_rect, format, pixel_type, sender,
         ));
-        let src = receiver.recv().unwrap();
+        let (src, _) = receiver.recv().unwrap();
 
         for i in 0..src_rect.size.height as usize {
             let src_start = i * src_row_bytes as usize;
@@ -915,11 +917,7 @@ impl CanvasContext for WebGL2RenderingContext {
         self.base.resize();
     }
 
-    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
-        self.base.get_image_data_as_shared_memory()
-    }
-
-    fn get_image_data(&self) -> Option<Vec<u8>> {
+    fn get_image_data(&self) -> Option<Snapshot> {
         self.base.get_image_data()
     }
 
@@ -4704,8 +4702,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGL2RenderingContext> {
     #[allow(unsafe_code)]
-    fn canvas_data_source(self) -> HTMLCanvasDataSource {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         let this = self.unsafe_get();
         unsafe { (*this.base.to_layout().unsafe_get()).layout_handle() }
+    }
+}
+
+impl WebGL2RenderingContextHelpers for WebGL2RenderingContext {
+    fn is_webgl2_enabled(cx: JSContext, global: HandleObject) -> bool {
+        Self::is_webgl2_enabled(cx, global)
     }
 }

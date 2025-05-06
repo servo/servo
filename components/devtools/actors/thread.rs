@@ -7,6 +7,7 @@ use std::net::TcpStream;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use super::source::{Source, SourcesReply};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
@@ -49,22 +50,17 @@ struct ThreadInterruptedReply {
     type_: String,
 }
 
-#[derive(Serialize)]
-struct SourcesReply {
-    from: String,
-    sources: Vec<Source>,
-}
-
-#[derive(Serialize)]
-enum Source {}
-
 pub struct ThreadActor {
-    name: String,
+    pub name: String,
+    pub source_manager: Source,
 }
 
 impl ThreadActor {
     pub fn new(name: String) -> ThreadActor {
-        ThreadActor { name }
+        ThreadActor {
+            name: name.clone(),
+            source_manager: Source::new(name),
+        }
     }
 }
 
@@ -125,6 +121,8 @@ impl Actor for ThreadActor {
                 ActorMessageStatus::Processed
             },
 
+            // Client has attached to the thread and wants to load script sources.
+            // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#loading-script-sources>
             "sources" => {
                 let msg = SourcesReply {
                     from: self.name(),

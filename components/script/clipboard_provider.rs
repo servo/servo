@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::WebViewId;
+use constellation_traits::{ScriptToConstellationChan, ScriptToConstellationMessage};
 use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc::channel;
-use script_traits::{ScriptMsg, ScriptToConstellationChan};
 
 /// A trait which abstracts access to the embedder's clipboard in order to allow unit
 /// testing clipboard-dependent parts of `script`.
@@ -25,19 +25,17 @@ impl ClipboardProvider for EmbedderClipboardProvider {
     fn get_text(&mut self) -> Result<String, String> {
         let (tx, rx) = channel().unwrap();
         self.constellation_sender
-            .send(ScriptMsg::ForwardToEmbedder(EmbedderMsg::GetClipboardText(
-                self.webview_id,
-                tx,
-            )))
+            .send(ScriptToConstellationMessage::ForwardToEmbedder(
+                EmbedderMsg::GetClipboardText(self.webview_id, tx),
+            ))
             .unwrap();
         rx.recv().unwrap()
     }
     fn set_text(&mut self, s: String) {
         self.constellation_sender
-            .send(ScriptMsg::ForwardToEmbedder(EmbedderMsg::SetClipboardText(
-                self.webview_id,
-                s,
-            )))
+            .send(ScriptToConstellationMessage::ForwardToEmbedder(
+                EmbedderMsg::SetClipboardText(self.webview_id, s),
+            ))
             .unwrap();
     }
 }

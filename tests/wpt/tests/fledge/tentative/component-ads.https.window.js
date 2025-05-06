@@ -169,15 +169,14 @@ subsetTest(promise_test, async test => {
      window.fence.reportEvent({eventType: "beacon",
                                eventData: status,
                                destination: ["buyer"]});`);
-  await joinInterestGroup(
-      test, uuid,
-      { biddingLogicURL:
-          createBiddingScriptURL({
-              generateBid:
-                  'if (interestGroup.componentAds !== undefined) throw "unexpected componentAds"',
-              reportWin:
-                  `registerAdBeacon({beacon: "${createBidderBeaconURL(uuid)}"});` }),
-        ads: [{renderUrl: renderURL}]});
+  await joinInterestGroup(test, uuid, {
+    biddingLogicURL: createBiddingScriptURL({
+      generateBid:
+          'if (interestGroup.componentAds !== undefined) throw "unexpected componentAds"',
+      reportWin: `registerAdBeacon({beacon: "${createBidderBeaconURL(uuid)}"});`
+    }),
+    ads: [{renderURL: renderURL}]
+  });
   await runBasicFledgeAuctionAndNavigate(
       test, uuid,
       {decisionLogicURL: createDecisionScriptURL(

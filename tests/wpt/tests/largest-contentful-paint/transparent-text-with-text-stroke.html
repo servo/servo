@@ -40,8 +40,8 @@
 
       lcpEntries = await LcpEntryPromise('larger_text');
 
-      assert_equals(lcpEntries.length, 1,
-        "Transparent texts with text stroke decoration are should not be excluded from LCP.");
+      assert_equals(lcpEntries[lcpEntries.length - 1].id, 'larger_text',
+        "Transparent text with text stroke decoration was included in LCP but not at correct place in timeline.");
     }, "Transparent text with text stroke decoration should not be excluded from LCP.")
   </script>
 </body>

@@ -370,7 +370,7 @@ function assert_promise_resolves_after_event(
 }
 
 /**
- * Returns a promise that resolves after 100ms unless the the event is fired on
+ * Returns a promise that resolves after 100ms unless the event is fired on
  * the object in which case the promise rejects.
  * @param {EventTarget} object The target object to listen for events.
  * @param {string} event_name The event type to listen for.

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use html5ever::{local_name, namespace_url, ns};
+use html5ever::{local_name, ns};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;

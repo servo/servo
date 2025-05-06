@@ -91,5 +91,25 @@
       "requirements.txt",
       "requirements_android.txt"
     ]
+  },
+  "metadata-validate": {
+    "path": "metadata.py",
+    "script": "run_validate",
+    "parser": "get_parser_validate",
+    "help": "Validate metadata from wpt-metadata",
+    "virtualenv": true,
+    "requirements": [
+      "requirements_metadata.txt"
+    ]
+  },
+  "metadata-list": {
+    "path": "metadata.py",
+    "script": "run_list",
+    "parser": "get_parser_list",
+    "help": "List metadata with given labels from wpt-metadata",
+    "virtualenv": true,
+    "requirements": [
+      "requirements_metadata.txt"
+    ]
   }
 }

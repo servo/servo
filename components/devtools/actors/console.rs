@@ -30,6 +30,7 @@ use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::object::ObjectActor;
 use crate::actors::worker::WorkerActor;
 use crate::protocol::JsonPacketStream;
+use crate::resource::ResourceAvailable;
 use crate::{StreamId, UniqueId};
 
 trait EncodableConsoleMessage {
@@ -152,7 +153,7 @@ impl ConsoleActor {
             Root::BrowsingContext(bc) => UniqueId::Pipeline(
                 registry
                     .find::<BrowsingContextActor>(bc)
-                    .active_pipeline
+                    .active_pipeline_id
                     .get(),
             ),
             Root::DedicatedWorker(w) => UniqueId::Worker(registry.find::<WorkerActor>(w).worker_id),

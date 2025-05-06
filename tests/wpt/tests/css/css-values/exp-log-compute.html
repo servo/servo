@@ -29,6 +29,10 @@ test_math_used('calc(log((3 + 1) /2, 2)  / log(e) + exp(0*1)*2 * log(e))', '3', 
 test_math_used('calc(log((3 + 1) /2, 2)  / log(e, e) + exp(0*1)*2 * log(e, e))', '3', {type:'number', approx:0.1});
 test_math_used('calc(exp(0) + 1)', '2', {type:'number', approx:0.1});
 
+// Test unresolved at parse time
+test_math_used('calc(e - exp(sibling-index()))', '0', {type:'number', approx:0.1});
+test_math_used('calc(log(exp(2 * sibling-index())))', '2', {type:'number', approx:0.1});
+
 // Test nesting
 test_math_used('calc(log(exp(1)))', '1', {type:'number', approx:0.1});
 test_math_used('calc(log(exp(log(e))))', '1', {type:'number', approx:0.1});

@@ -87,7 +87,7 @@
 
 [
   () => new Request("about:blank", { method: "POST", body: new Blob([""], { type: "Text/Plain" }), headers: [["Content-Type", "Text/Html"]] }),
-  () => new Response(new Blob([""], { type: "Text/Plain" }, { headers: [["Content-Type", "Text/Html"]] }))
+  () => new Response(new Blob([""], { type: "Text/Plain" }), { headers: [["Content-Type", "Text/Html"]] })
 ].forEach(bodyContainerCreator => {
   const bodyContainer = bodyContainerCreator();
   const cloned = bodyContainer.clone();

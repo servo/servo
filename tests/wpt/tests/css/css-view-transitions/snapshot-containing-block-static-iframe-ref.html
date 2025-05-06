@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: use snapshot containing block for static position in iframe (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/#snapshot-containing-block-concept/">
+
+<style>
+#inner {
+  width: 400px;
+  height: 200px;
+}
+</style>
+<iframe id="inner" srcdoc="
+  <style>
+  body {
+    height: 200vh;
+    background: limegreen;
+    overflow: hidden;
+  }
+  </style>
+  <body></body>
+"></iframe>
+
+<script>
+onload = () => {
+  inner.contentWindow.scrollTo(0, 100);
+};
+</script>

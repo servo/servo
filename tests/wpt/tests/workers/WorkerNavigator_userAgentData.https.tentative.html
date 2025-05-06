@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title> WorkerNavigator.userAgentData </title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async () => {
+    const e = await new Promise((resolve) => {
+      const worker = new Worker("./support/WorkerNavigator.js");
+      worker.onmessage = resolve;
+    });
+    const highEntropyValues = await navigator.userAgentData.getHighEntropyValues([
+      "platformVersion", "wow64"
+    ]);
+
+    if (navigator.userAgentData.platform === "Linux") {
+      assert_true(e.data.platformVersion === "");
+      assert_equals(e.data.wow64, false);
+      assert_true(highEntropyValues.platformVersion === "");
+      assert_equals(highEntropyValues.wow64, false);
+    }
+  }, "Platform version and wow64-ness on Linux should contain fixed values");
+</script>

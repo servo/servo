@@ -63,6 +63,7 @@ export class Recorder {
   }
 
   setUpResultListeners(result, suffix = "") {
+
     result.committed.then(
       () => this.record(`committed fulfilled${suffix}`),
       err => this.recordWithError(`committed rejected${suffix}`, err)
@@ -71,6 +72,11 @@ export class Recorder {
     result.finished.then(
       () => this.record(`finished fulfilled${suffix}`),
       err => this.recordWithError(`finished rejected${suffix}`, err)
+    );
+
+    this.#navigationAPI.transition?.committed?.then(
+      () => this.record(`transition.committed fulfilled${suffix}`),
+      err => this.recordWithError(`transition.committed rejected${suffix}`, err)
     );
   }
 
@@ -113,6 +119,13 @@ export class Recorder {
   assert(expectedAsArray) {
     if (this.#skipCurrentChange) {
       expectedAsArray = expectedAsArray.filter(expected => expected[0] !== "currententrychange");
+    }
+    // TODO: Remove once https://github.com/whatwg/html/pull/10919 is merged.
+    if (!('committed' in NavigationTransition.prototype)) {
+      expectedAsArray = expectedAsArray.filter(expected => {
+         return !expected[0].includes("transition.committed fulfilled") &&
+                !expected[0].includes("transition.committed rejected")
+      });
     }
 
     // Doing this up front gives nicer error messages because

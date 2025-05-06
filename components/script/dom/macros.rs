@@ -292,6 +292,26 @@ macro_rules! make_uint_setter(
 );
 
 #[macro_export]
+macro_rules! make_clamped_uint_setter(
+    ($attr:ident, $htmlname:tt, $min:expr, $max:expr, $default:expr) => (
+        fn $attr(&self, value: u32) {
+            use $crate::dom::bindings::inheritance::Castable;
+            use $crate::dom::element::Element;
+            use $crate::dom::values::UNSIGNED_LONG_MAX;
+            use $crate::script_runtime::CanGc;
+            let value = if value > UNSIGNED_LONG_MAX {
+                $default
+            } else {
+                value.clamp($min, $max)
+            };
+
+            let element = self.upcast::<Element>();
+            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+        }
+    );
+);
+
+#[macro_export]
 macro_rules! make_limited_uint_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
         fn $attr(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
@@ -637,22 +657,6 @@ macro_rules! document_and_element_event_handlers(
     )
 );
 
-#[macro_export]
-macro_rules! rooted_vec {
-    (let mut $name:ident) => {
-        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
-        let mut $name = $crate::dom::bindings::trace::RootedVec::new(&mut root);
-    };
-    (let $name:ident <- $iter:expr) => {
-        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
-        let $name = $crate::dom::bindings::trace::RootedVec::from_iter(&mut root, $iter);
-    };
-    (let mut $name:ident <- $iter:expr) => {
-        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
-        let mut $name = $crate::dom::bindings::trace::RootedVec::from_iter(&mut root, $iter);
-    };
-}
-
 /// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.
 macro_rules! impl_performance_entry_struct(
     ($binding:ident, $struct:ident, $type:expr) => (
@@ -709,26 +713,3 @@ macro_rules! handle_potential_webgl_error {
         handle_potential_webgl_error!($context, $call, ())
     };
 }
-
-macro_rules! impl_rare_data (
-    ($type:ty) => (
-        fn rare_data(&self) -> Ref<Option<Box<$type>>> {
-            self.rare_data.borrow()
-        }
-
-        #[allow(dead_code)]
-        fn rare_data_mut(&self) -> RefMut<Option<Box<$type>>> {
-            self.rare_data.borrow_mut()
-        }
-
-        fn ensure_rare_data(&self) -> RefMut<Box<$type>> {
-            let mut rare_data = self.rare_data.borrow_mut();
-            if rare_data.is_none() {
-                *rare_data = Some(Default::default());
-            }
-            RefMut::map(rare_data, |rare_data| {
-                rare_data.as_mut().unwrap()
-            })
-        }
-    );
-);

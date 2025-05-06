@@ -7,13 +7,14 @@ use std::sync::atomic::Ordering;
 use std::{fmt, slice};
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use constellation_traits::UntrustedNodeAddress;
-use html5ever::{LocalName, Namespace, local_name, namespace_url, ns};
+use embedder_traits::UntrustedNodeAddress;
+use html5ever::{LocalName, Namespace, local_name, ns};
 use js::jsapi::JSObject;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{LayoutNodeType, StyleData};
+use selectors::Element as _;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, VisitedHandlingMode};
@@ -805,11 +806,35 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
         self.pseudo
     }
 
-    fn with_pseudo(&self, pseudo: PseudoElement) -> Self {
-        ServoThreadSafeLayoutElement {
-            element: self.element,
-            pseudo: Some(pseudo),
+    fn with_pseudo(&self, pseudo_element_type: PseudoElement) -> Option<Self> {
+        if pseudo_element_type.is_eager() &&
+            self.style_data()
+                .styles
+                .pseudos
+                .get(&pseudo_element_type)
+                .is_none()
+        {
+            return None;
         }
+
+        if pseudo_element_type == PseudoElement::DetailsSummary &&
+            (!self.has_local_name(&local_name!("details")) || !self.has_namespace(&ns!(html)))
+        {
+            return None;
+        }
+
+        if pseudo_element_type == PseudoElement::DetailsContent &&
+            (!self.has_local_name(&local_name!("details")) ||
+                !self.has_namespace(&ns!(html)) ||
+                self.get_attr(&ns!(), &local_name!("open")).is_none())
+        {
+            return None;
+        }
+
+        Some(ServoThreadSafeLayoutElement {
+            element: self.element,
+            pseudo: Some(pseudo_element_type),
+        })
     }
 
     fn type_id(&self) -> Option<LayoutNodeType> {
@@ -842,6 +867,10 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
 
     fn is_body_element_of_html_element_root(&self) -> bool {
         self.element.is_html_document_body_element()
+    }
+
+    fn is_root(&self) -> bool {
+        self.element.is_root()
     }
 }
 

@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use data_url::mime::Mime;
 use dom_struct::dom_struct;
-use mime::Mime;
 use net_traits::request::InsecureRequestsPolicy;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
@@ -43,6 +43,7 @@ impl XMLDocument {
         source: DocumentSource,
         doc_loader: DocumentLoader,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        has_trustworthy_ancestor_origin: bool,
     ) -> XMLDocument {
         XMLDocument {
             document: Document::new_inherited(
@@ -62,6 +63,7 @@ impl XMLDocument {
                 false,
                 false,
                 inherited_insecure_requests_policy,
+                has_trustworthy_ancestor_origin,
             ),
         }
     }
@@ -79,6 +81,7 @@ impl XMLDocument {
         source: DocumentSource,
         doc_loader: DocumentLoader,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
+        has_trustworthy_ancestor_origin: bool,
         can_gc: CanGc,
     ) -> DomRoot<XMLDocument> {
         let doc = reflect_dom_object(
@@ -94,6 +97,7 @@ impl XMLDocument {
                 source,
                 doc_loader,
                 inherited_insecure_requests_policy,
+                has_trustworthy_ancestor_origin,
             )),
             window,
             can_gc,

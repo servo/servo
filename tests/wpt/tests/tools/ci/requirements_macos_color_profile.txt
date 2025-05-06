@@ -1,4 +1,14 @@
-pyobjc-core==10.3.1
-pyobjc-framework-Cocoa==9.2
-pyobjc-framework-ColorSync==9.2
-pyobjc-framework-Quartz==9.2
+--only-binary pyobjc-core
+--only-binary pyobjc-framework-cocoa
+--only-binary pyobjc-framework-colorsync
+--only-binary pyobjc-framework-quartz
+
+pyobjc-core==10.3.2 ; python_full_version < '3.9'
+pyobjc-framework-cocoa==10.3.2 ; python_full_version < '3.9'
+pyobjc-framework-colorsync==10.3.2 ; python_full_version < '3.9'
+pyobjc-framework-quartz==10.3.2 ; python_full_version < '3.9'
+
+pyobjc-core==11.0 ; python_full_version >= '3.9'
+pyobjc-framework-cocoa==11.0 ; python_full_version >= '3.9'
+pyobjc-framework-colorsync==11.0 ; python_full_version >= '3.9'
+pyobjc-framework-quartz==11.0 ; python_full_version >= '3.9'

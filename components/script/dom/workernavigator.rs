@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::MutableHandleValue;
+use servo_config::pref;
 
 use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
@@ -85,7 +86,7 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-useragent
     fn UserAgent(&self) -> DOMString {
-        navigatorinfo::UserAgent(self.global().get_user_agent())
+        navigatorinfo::UserAgent(&pref!(user_agent))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-appversion
@@ -102,6 +103,11 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     #[allow(unsafe_code)]
     fn Languages(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
         to_frozen_array(&[self.Language()], cx, retval, can_gc)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-online>
+    fn OnLine(&self) -> bool {
+        true
     }
 
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension

@@ -18,12 +18,12 @@ use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::window::Window;
 use crate::realms::InRealm;
 use crate::script_runtime::{CanGc, JSContext};
 use crate::task_source::SendableTaskSource;
@@ -98,27 +98,17 @@ impl GamepadHapticActuator {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         gamepad_index: u32,
         supported_haptic_effects: GamepadSupportedHapticEffects,
         can_gc: CanGc,
     ) -> DomRoot<GamepadHapticActuator> {
-        Self::new_with_proto(global, gamepad_index, supported_haptic_effects, can_gc)
-    }
-
-    fn new_with_proto(
-        global: &GlobalScope,
-        gamepad_index: u32,
-        supported_haptic_effects: GamepadSupportedHapticEffects,
-        can_gc: CanGc,
-    ) -> DomRoot<GamepadHapticActuator> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object(
             Box::new(GamepadHapticActuator::new_inherited(
                 gamepad_index,
                 supported_haptic_effects,
             )),
-            global,
-            None,
+            window,
             can_gc,
         )
     }

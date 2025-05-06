@@ -15,7 +15,7 @@ const cspDirectives = [
 // the CSP directive connect-src 'none' and that fn is not itself triggering
 // a "connect-src" violation report.
 function trusted_type_violations_and_exception_for(fn) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     // Listen for security policy violations.
     let result = { violations: [], exception: null };
     let handler = e => {
@@ -33,7 +33,7 @@ function trusted_type_violations_and_exception_for(fn) {
 
     // Run the specified function and record any exception.
     try {
-      fn();
+      await fn();
     } catch(e) {
       result.exception = e;
     }

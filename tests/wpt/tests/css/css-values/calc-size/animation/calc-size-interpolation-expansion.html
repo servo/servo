@@ -32,8 +32,6 @@
  * not fully specified.  Once we have multiple implementations that
  * implement all of the necessary features for this test, we should
  * probably look at improving that interoperability.
- *
- * TODO: The sorting of the nodes in a multiplication seems wrong.
  */
 
 var TESTS = [
@@ -42,23 +40,23 @@ var TESTS = [
     start: "auto",
     end: "calc-size(any, 0px)",
     expected: {
-      0.75: "calc-size(auto, 0px + size * 0.25)",
+      0.75: "calc-size(auto, 0px + (0.25 * size))",
     },
   },
   {
     property: "height",
     start: "0px",
-    end: "calc-size(calc-size(min-content, size + 20px), size * 2)",
+    end: "calc-size(calc-size(min-content, size + 20px), 2 * size)",
     expected: {
-      0.75: "calc-size(calc-size(min-content, 20px + size), 0px + size * 2 * 0.75)",
+      0.75: "calc-size(calc-size(min-content, 20px + size), 0px + (1.5 * size))",
     },
   },
   {
     property: "height",
     start: "calc-size(min-content, size * 4)",
-    end: "calc-size(calc-size(min-content, size + 20px), size * 2)",
+    end: "calc-size(calc-size(min-content, size + 20px), 2 * size)",
     expected: {
-      0.75: "calc-size(min-content, size * 4 * 0.25 + (20px + size) * 2 * 0.75)",
+      0.75: "calc-size(min-content, size + (1.5 * (20px + size)))",
     },
   },
   {
@@ -89,32 +87,32 @@ var TESTS = [
   {
     property: "width",
     start: "calc-size(fit-content, 20px)",
-    end: "calc-size(calc-size(fit-content, 3 * size + 10px), min(size + 20px, size * 2 - 30px) + size * 2 + 80px)",
+    end: "calc-size(calc-size(fit-content, 3 * size + 10px), min(size + 20px, 2 * size - 30px) + ((2 * size) + 80px))",
     expected: {
-      0.75: "calc-size(fit-content, 5px + min(30px + 3 * size, 30px + 2 * 0.75 * (3 * size + 10px)) + (10px + 3 * size) * 2 * 0.75)",
-      0.75: "calc-size(fit-content, 5px + (80px + min(10px + 20px + size * 3, -30px + (10px + size * 3) * 2) + (10px + size * 3) * 2) * 0.75)",
+      0.75: "calc-size(fit-content, 5px + min(30px + (3 * size), 30px + (2 * 0.75 * (3 * size + 10px)) + (0.75 * 2 * (10px + (3 * size)))))",
+      0.75: "calc-size(fit-content, 5px + (0.75 * (80px + min(30px + (3 * size), -30px + (2 * (10px + (3 * size)))) + (2 * (10px + (3 * size))))))",
     },
   },
   {
     property: "width",
     start: "calc-size(50%, size)",
-    end: "calc-size(calc-size(45%, (size * 2)), size + 20px)",
+    end: "calc-size(calc-size(45%, (2 * size)), size + 20px)",
     expected: {
-      0.75: "calc-size(100%, size * 0.5 * 0.25 + (20px + size * 0.45 * 2) * 0.75)",
+      0.75: "calc-size(100%, (0.125 * size) + (0.75 * (20px + (0.9 * size))))",
     },
   },
   {
     property: "width",
     start: "calc-size(40%, size)",
-    end: "calc-size(calc-size(10px, (size * 2)), size + 20px)",
+    end: "calc-size(calc-size(10px, (2 * size)), size + 20px)",
     expected: {
-      0.75: "calc-size(100%, 30px + size * 0.4 * 0.25)",
+      0.75: "calc-size(100%, 30px + (0.1 * size))",
     },
   },
   {
     property: "width",
     start: "calc-size(80px, size)",
-    end: "calc-size(calc-size(10px, (size * 2)), size + 20px)",
+    end: "calc-size(calc-size(10px, (2 * size)), size + 20px)",
     expected: {
       0.75: "calc-size(any, 50px)",
     },

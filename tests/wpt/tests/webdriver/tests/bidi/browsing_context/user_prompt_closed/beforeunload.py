@@ -1,7 +1,8 @@
+import asyncio
 import pytest
-from webdriver.error import TimeoutException
 
-from tests.support.sync import AsyncPoll
+import webdriver.bidi.error as error
+
 
 pytestmark = pytest.mark.asyncio
 
@@ -26,12 +27,12 @@ async def test_beforeunload(
 
     on_entry = wait_for_event(USER_PROMPT_OPENED_EVENT)
 
-    await bidi_session.send_command(
-        "browsingContext.navigate",
-        {
-            "context": new_tab["context"],
-            "url": url("/webdriver/tests/support/html/default.html"),
-        },
+    navigated_future = asyncio.create_task(
+        bidi_session.browsing_context.navigate(
+            context=new_tab["context"],
+            url=url("/webdriver/tests/support/html/default.html"),
+            wait="none"
+        )
     )
 
     # Wait for prompt to appear.
@@ -50,3 +51,10 @@ async def test_beforeunload(
         "accepted": accept,
         "type": "beforeunload",
     }
+
+    # Wait for the navigation to finish or fail.
+    if accept:
+        await navigated_future
+    else:
+        with pytest.raises(error.UnknownErrorException):
+            await wait_for_future_safe(navigated_future)

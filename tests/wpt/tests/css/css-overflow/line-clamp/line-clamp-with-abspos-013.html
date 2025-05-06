@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: abspos whose containing block contains the clamp point gets painted</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-with-abspos-013-ref.html">
+<meta name="assert" content="Absolute positioned boxes in a line-clamp container are hidden if and only if their containing block precedes or contains the clamp point. In this case, the containing block contains the clamp point, so the abspos gets painted, even if its static position is after the clamp point.">
+<style>
+.clamp {
+  line-clamp: 4;
+  font: 16px / 32px serif;
+  padding: 0 4px;
+  white-space: pre;
+  background-color: yellow;
+}
+.rel {
+  position: relative;
+}
+.abspos {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  background-color: skyblue;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+<div class="rel">Line 4
+Line 5<div class="abspos"></div></div></div>

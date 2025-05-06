@@ -51,6 +51,11 @@ def run_tests(default_binary_path: str, **kwargs):
     os.environ["RUST_BACKTRACE"] = "1"
     os.environ["HOST_FILE"] = os.path.join(SERVO_ROOT, "tests", "wpt", "hosts")
 
+    # The pytest framework used in the webdriver conformance tests dumps the
+    # environment variables when unexpected results occur, and this variable
+    # makes CI logs unreadable.
+    github_context = os.environ.pop("GITHUB_CONTEXT", None)
+
     set_if_none(kwargs, "product", "servo")
     set_if_none(kwargs, "config", os.path.join(WPT_PATH, "config.ini"))
     set_if_none(kwargs, "include_manifest", os.path.join(WPT_PATH, "include.ini"))
@@ -141,6 +146,9 @@ def run_tests(default_binary_path: str, **kwargs):
         kwargs["include"] = unexpected_results_tests
         kwargs["pause_after_test"] = False
         wptrunner.run_tests(**kwargs)
+
+        if github_context:
+            os.environ["GITHUB_CONTEXT"] = github_context
 
         # Use the second run to mark tests from the first run as flaky, but
         # discard the results otherwise.

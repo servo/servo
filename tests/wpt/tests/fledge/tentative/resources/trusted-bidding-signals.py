@@ -20,10 +20,12 @@ def main(request, response):
     for param in request.url_parts.query.split("&"):
         pair = param.split("=", 1)
         if len(pair) != 2:
-            return fail(response, "Bad query parameter: " + param)
+            fail(response, "Bad query parameter: " + param)
+            return
         # Browsers should escape query params consistently.
         if "%20" in pair[1]:
-            return fail(response, "Query parameter should escape using '+': " + param)
+            fail(response, "Query parameter should escape using '+': " + param)
+            return
 
         # Hostname can't be empty. The empty string can be a key or interest group name, though.
         if pair[0] == "hostname" and hostname == None and len(pair[1]) > 0:
@@ -37,20 +39,22 @@ def main(request, response):
             continue
         if pair[0] == "slotSize" or pair[0] == "allSlotsRequestedSizes":
             continue
-        return fail(response, "Unexpected query parameter: " + param)
+        fail(response, "Unexpected query parameter: " + param)
+        return
 
     # If trusted signal keys are passed in, and one of them is "cors",
-    # add appropriate Access-Control-* headers to normal requests, and handle
-    # CORS preflights.
-    if keys and "cors" in keys and fledge_http_server_util.handle_cors_headers_and_preflight(
+    # add appropriate Access-Control-* headers to normal requests.
+    if keys and "cors" in keys and fledge_http_server_util.handle_cors_headers_fail_if_preflight(
             request, response):
         return
 
     # "interestGroupNames" and "hostname" are mandatory.
     if not hostname:
-        return fail(response, "hostname missing")
+        fail(response, "hostname missing")
+        return
     if not interestGroupNames:
-        return fail(response, "interestGroupNames missing")
+        fail(response, "interestGroupNames missing")
+        return
 
     response.status = (200, b"OK")
 
@@ -153,8 +157,3 @@ def main(request, response):
     if body != None:
         return body
     return json.dumps(responseBody)
-
-def fail(response, body):
-    response.status = (400, "Bad Request")
-    response.headers.set(b"Content-Type", b"text/plain")
-    return body

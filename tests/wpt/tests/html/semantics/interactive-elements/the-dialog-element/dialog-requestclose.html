@@ -10,6 +10,10 @@
 <dialog>Dialog</dialog>
 
 <script>
+function waitForRender() {
+  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
 const dialog = document.querySelector('dialog');
 function openDialog(openMethod) {
   assert_false(dialog.open);
@@ -31,14 +35,8 @@ function openDialog(openMethod) {
   assert_true(dialog.matches(':open'));
   assert_equals(dialog.matches(':modal'),openMethod === 'modal');
 }
-function getSignal(t) {
-  const controller = new AbortController();
-  const signal = controller.signal;
-  t.add_cleanup(() => controller.abort());
-  return signal;
-}
 
-async function setup(t,closedby) {
+function setup(t,closedby) {
   t.add_cleanup(() => {
     dialog.close();
     dialog.removeAttribute('closedby');
@@ -48,16 +46,14 @@ async function setup(t,closedby) {
   if (closedby) {
     dialog.setAttribute('closedby',closedby);
   }
-  // Be sure any pending close events get fired.
-  await new Promise(resolve => requestAnimationFrame(resolve));
-  return getSignal(t);
+  return t.get_signal();
 }
 
 ['modeless','modal','open'].forEach(openMethod => {
   [null,'any','closedrequest','none'].forEach(closedby => {
     const testDescription = `for ${openMethod} dialog with closedby=${closedby}`;
     promise_test(async (t) => {
-      await setup(t,closedby);
+      setup(t,closedby);
       openDialog(openMethod);
       dialog.requestClose();
       assert_false(dialog.open);
@@ -65,25 +61,35 @@ async function setup(t,closedby) {
     },`requestClose basic behavior ${testDescription}`);
 
     promise_test(async (t) => {
-      const signal = await setup(t,closedby);
+      const signal = setup(t,closedby);
       let events = [];
+      const { promise: untilFullyClosed, resolve: hasClosed } = Promise.withResolvers();
       dialog.addEventListener('cancel',() => events.push('cancel'),{signal});
-      dialog.addEventListener('close',() => events.push('close'),{signal});
+      dialog.addEventListener('close',() => {
+        events.push('close');
+        hasClosed();
+      },{signal});
       openDialog(openMethod);
       assert_array_equals(events,[]);
       dialog.requestClose();
       assert_false(dialog.open);
       assert_false(dialog.matches(':open'));
       assert_array_equals(events,['cancel'],'close is scheduled');
-      await new Promise(resolve => requestAnimationFrame(resolve));
+      await untilFullyClosed;
       assert_array_equals(events,['cancel','close']);
     },`requestClose fires both cancel and close ${testDescription}`);
 
     promise_test(async (t) => {
-      const signal = await setup(t,'none');
+      const signal = setup(t,'none');
       let events = [];
+      const { promise: untilFullyClosed, resolve: hasClosed } = Promise.withResolvers();
+      const { promise: untilFullyClosedAgain, resolve: hasClosedAgain } = Promise.withResolvers();
+      const closeResolvers = [hasClosed, hasClosedAgain];
       dialog.addEventListener('cancel',() => events.push('cancel'),{signal});
-      dialog.addEventListener('close',() => events.push('close'),{signal});
+      dialog.addEventListener('close',() => {
+        events.push('close');
+        closeResolvers.shift()();
+      },{signal});
       openDialog(openMethod);
       dialog.setAttribute('closedby',closedby);
       assert_array_equals(events,[]);
@@ -91,6 +97,7 @@ async function setup(t,closedby) {
       assert_false(dialog.open,'Adding closedby after dialog is open');
       assert_false(dialog.matches(':open'));
       assert_array_equals(events,['cancel']);
+      await untilFullyClosed;
       events=[];
       openDialog(openMethod);
       dialog.removeAttribute('closedby');
@@ -98,11 +105,13 @@ async function setup(t,closedby) {
       dialog.requestClose();
       assert_false(dialog.open,'Removing closedby after dialog is open');
       assert_array_equals(events,['cancel']);
+      await untilFullyClosedAgain;
+      assert_array_equals(events,['cancel', 'close']);
     },`closedby has no effect on dialog.requestClose() ${testDescription}`);
 
-    if (dialog.closedBy != "none") {
+    if (closedby != "none") {
       promise_test(async (t) => {
-        const signal = await setup(t,closedby);
+        const signal = setup(t,closedby);
         let shouldPreventDefault = true;
         dialog.addEventListener('cancel',(e) => {
           if (shouldPreventDefault) {
@@ -120,7 +129,7 @@ async function setup(t,closedby) {
       },`requestClose can be cancelled ${testDescription}`);
 
       promise_test(async (t) => {
-        const signal = await setup(t,closedby);
+        const signal = setup(t,closedby);
         dialog.addEventListener('cancel',(e) => e.preventDefault(),{signal});
         openDialog(openMethod);
         // No user activation here.
@@ -132,7 +141,7 @@ async function setup(t,closedby) {
       },`requestClose avoids abuse prevention logic ${testDescription}`);
 
       promise_test(async (t) => {
-        await setup(t,closedby);
+        setup(t,closedby);
         openDialog(openMethod);
         assert_equals(dialog.returnValue,'','Return value starts out empty');
         const returnValue = 'The return value';
@@ -149,7 +158,7 @@ async function setup(t,closedby) {
       },`requestClose(returnValue) passes along the return value ${testDescription}`);
 
       promise_test(async (t) => {
-        await setup(t,closedby);
+        setup(t,closedby);
         dialog.addEventListener('cancel',(e) => e.preventDefault(),{once:true});
         openDialog(openMethod);
         dialog.returnValue = 'foo';
@@ -164,23 +173,27 @@ async function setup(t,closedby) {
 });
 
 promise_test(async (t) => {
-  await setup(t);
+  setup(t);
   dialog.open = true;
   dialog.requestClose();
   assert_false(dialog.open);
 },`requestClose basic behavior when dialog is open via attribute`);
 
 promise_test(async (t) => {
-  const signal = await setup(t);
+  const signal = setup(t);
   let events = [];
+  const { promise: untilFullyClosed, resolve: hasClosed } = Promise.withResolvers();
   dialog.addEventListener('cancel',() => events.push('cancel'),{signal});
-  dialog.addEventListener('close',() => events.push('close'),{signal});
+  dialog.addEventListener('close',() => {
+    events.push('close')
+    hasClosed();
+  },{signal});
   dialog.open = true;
   assert_array_equals(events,[]);
   dialog.requestClose();
   assert_false(dialog.open);
   assert_array_equals(events,['cancel'],'close is scheduled');
-  await new Promise(resolve => requestAnimationFrame(resolve));
+  await untilFullyClosed;
   assert_array_equals(events,['cancel','close']);
 },`requestClose fires cancel and close when dialog is open via attribute`);
 

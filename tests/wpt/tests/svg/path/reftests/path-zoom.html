@@ -1,0 +1,33 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Test of dynamic zoom on path.</title>
+<link rel="help"
+      href="https://www.w3.org/TR/SVG2/paths.html#PathElement">
+<link rel="match"  href="path-zoom-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style type="text/css">
+  path {
+    stroke-width: 10px;
+    stroke: blue;
+    fill: lime;
+  }
+  svg {
+    width: 100px;
+    height: 100px;
+    border: 1px solid black;
+    background: red;
+  }
+</style>
+<script>
+function Zoom() {
+  document.getElementById("changeMyZoom").style.zoom = "400%";
+  takeScreenshot();
+}
+</script>
+<body onload="waitForAtLeastOneFrame().then(Zoom)">
+<svg id="changeMyZoom">
+  <path d="m 5 5 h90 v90 h-90 z"></path>
+</svg>
+</body>
+</html>

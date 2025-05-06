@@ -36,6 +36,6 @@
     assert_equals(response_cookies["type"], "prefetch");
 
     let requestHeaders = await agent.getRequestHeaders();
-    assert_equals(requestHeaders.sec_purpose, "prefetch;anonymous-client-ip");
+    assert_prefetched_anonymous_client_ip(requestHeaders);
   }, "speculation rules based prefetch should not use cookies for cross origin urls.");
 </script>

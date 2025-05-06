@@ -8,11 +8,11 @@ interface HTMLSourceElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   [CEReactions]
-           attribute DOMString src;
+           attribute USVString src;
   [CEReactions]
            attribute DOMString type;
   [CEReactions]
-            attribute DOMString srcset;
+            attribute USVString srcset;
   [CEReactions]
             attribute DOMString sizes;
   [CEReactions]

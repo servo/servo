@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{local_name, namespace_url, ns};
+use html5ever::{local_name, ns};
 use script_traits::DocumentActivity;
 
 use crate::document_loader::DocumentLoader;
@@ -92,10 +92,12 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         let namespace = namespace_from_domstring(maybe_namespace.to_owned());
 
         let content_type = match namespace {
-            ns!(html) => "application/xhtml+xml".parse().unwrap(),
-            ns!(svg) => mime::IMAGE_SVG,
-            _ => "application/xml".parse().unwrap(),
-        };
+            ns!(html) => "application/xhtml+xml",
+            ns!(svg) => "image/svg+xml",
+            _ => "application/xml",
+        }
+        .parse()
+        .unwrap();
 
         // Step 1.
         let doc = XMLDocument::new(
@@ -110,6 +112,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             DocumentSource::NotFromParser,
             loader,
             Some(self.document.insecure_requests_policy()),
+            self.document.has_trustworthy_ancestor_or_current_origin(),
             can_gc,
         );
 
@@ -137,12 +140,12 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
 
             // Step 4.
             if let Some(doc_type) = maybe_doctype {
-                doc_node.AppendChild(doc_type.upcast()).unwrap();
+                doc_node.AppendChild(doc_type.upcast(), can_gc).unwrap();
             }
 
             // Step 5.
             if let Some(ref elem) = maybe_elem {
-                doc_node.AppendChild(elem.upcast()).unwrap();
+                doc_node.AppendChild(elem.upcast(), can_gc).unwrap();
             }
         }
 
@@ -176,6 +179,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             false,
             self.document.allow_declarative_shadow_roots(),
             Some(self.document.insecure_requests_policy()),
+            self.document.has_trustworthy_ancestor_or_current_origin(),
             can_gc,
         );
 
@@ -183,7 +187,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             // Step 3.
             let doc_node = doc.upcast::<Node>();
             let doc_type = DocumentType::new(DOMString::from("html"), None, None, &doc, can_gc);
-            doc_node.AppendChild(doc_type.upcast()).unwrap();
+            doc_node.AppendChild(doc_type.upcast(), can_gc).unwrap();
         }
 
         {
@@ -196,7 +200,9 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 None,
                 can_gc,
             ));
-            doc_node.AppendChild(&doc_html).expect("Appending failed");
+            doc_node
+                .AppendChild(&doc_html, can_gc)
+                .expect("Appending failed");
 
             {
                 // Step 5.
@@ -207,7 +213,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                     None,
                     can_gc,
                 ));
-                doc_html.AppendChild(&doc_head).unwrap();
+                doc_html.AppendChild(&doc_head, can_gc).unwrap();
 
                 // Step 6.
                 if let Some(title_str) = title {
@@ -219,17 +225,17 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                         None,
                         can_gc,
                     ));
-                    doc_head.AppendChild(&doc_title).unwrap();
+                    doc_head.AppendChild(&doc_title, can_gc).unwrap();
 
                     // Step 6.2.
                     let title_text = Text::new(title_str, &doc, can_gc);
-                    doc_title.AppendChild(title_text.upcast()).unwrap();
+                    doc_title.AppendChild(title_text.upcast(), can_gc).unwrap();
                 }
             }
 
             // Step 7.
             let doc_body = HTMLBodyElement::new(local_name!("body"), None, &doc, None, can_gc);
-            doc_html.AppendChild(doc_body.upcast()).unwrap();
+            doc_html.AppendChild(doc_body.upcast(), can_gc).unwrap();
         }
 
         // Step 8.

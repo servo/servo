@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<div style="height: 300px"></div>
+<script>
+var is_setup = false;
+var port;
+var frame_id;
+
+function postReplyMessage(command) {
+  const message_target = (port ? port : parent);
+  message_target.postMessage({
+    command: command,
+    frame_id: frame_id,
+    scrollTop: document.documentElement.scrollTop
+  }, "*");
+}
+
+function handleMessage(event) {
+  switch (event.data.command) {
+    case 'setup':
+      is_setup = false;
+      port = event.source;
+      frame_id = event.data.frame_id;
+      if (document.scrollingElement.scrollLeft != 0 ||
+          document.scrollingElement.scrollTop != 0) {
+        document.scrollingElement.scrollTo(0, 0);
+      } else {
+        is_setup = true;
+        postReplyMessage('setup');
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+function handleScrollend() {
+  var command = 'onscrollend';
+
+  if (!is_setup &&
+      document.scrollingElement.scrollTop == 0 &&
+      document.scrollingElement.scrollLeft == 0) {
+    is_setup = true;
+    command = 'setup';
+  }
+
+  postReplyMessage(command);
+}
+
+window.addEventListener('message', handleMessage);
+window.addEventListener('scrollend', handleScrollend);
+</script>

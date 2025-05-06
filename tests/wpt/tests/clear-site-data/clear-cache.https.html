@@ -4,100 +4,111 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="support/clear-cache-helper.sub.js"></script>
 <script>
 
-// Here's the set-up for this test:
-// Step 1 (main window) Open first window with first url putting some resource
-//                      into the cache and maybe receiving clear-site-data header
-// Step 2 (first window) Message main window with uuid
-// Step 3 (main window) Open second window with second url
-// Step 4 (second window) Message main window with uuid (either cached or non-cached)
-// Optional Step 5 (main window) Open third window with third url
-// Optional Step 6 (third window) Message main window with uuid (either cached or non-cached)
-// Step 7 (main window): Assert first and last uuid not equal due to `clear-site-data: "cache"` header
-function test_cache_clear(test, params1, params2, params3) {
-    let cache_helper = "cache_helper=" + self.crypto.randomUUID() + "&";
-    let firstUrl = "/clear-site-data/support/clear-site-data-cache.py?" + cache_helper + params1
-    let secondUrl = "/clear-site-data/support/clear-site-data-cache.py?" + cache_helper + params2;
-    let thirdUrl = params3 ? "/clear-site-data/support/clear-site-data-cache.py?" + cache_helper + params3 : null;
-
-    return new Promise(resolve => {
-        window.addEventListener("message", test.step_func(e => {
-            // Result Step 2
-            let firstUuid = e.data;
-
-            window.addEventListener("message", test.step_func(e => {
-                // Result Step 4
-                let secondUuid = e.data;
-
-                if (thirdUrl === null) {
-                    // Step 7, skipping the optional step 5 and 6
-                    assert_not_equals(firstUuid, secondUuid);
-                    resolve();
-                } else {
-                    window.addEventListener("message", test.step_func(e => {
-                        // Result Step 6
-                        let thirdUuid = e.data;
-
-                        // Step 7
-                        assert_not_equals(firstUuid, thirdUuid);
-                        resolve();
-
-                    }), {once: true});
-
-                    // Step 5
-                    window.open(thirdUrl);
-                }
-
-            }), {once: true});
-
-            // Step 3
-            window.open(secondUrl);
-        }), {once: true});
-
-        // Step 1
-        window.open(firstUrl);
-    });
-}
-
-promise_test(t => {
-    return test_cache_clear(t, "response=single_html&cache&clear_first=cache", "response=single_html&cache&clear_first=cache");
+promise_test(test => {
+    const TEST_SITE = {
+        cache: true,
+        clearFirst: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE], assert_not_equals);
 }, "clear cache: Document with clear-cache header doesn't get cached");
 
-promise_test(t => {
-    return test_cache_clear(t, "response=single_html&cache&clear_first=all", "response=single_html&cache&clear_first=all");
+promise_test(test => {
+    const TEST_SITE = {
+        cache: true,
+        clearFirst: "all",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE], assert_not_equals);
 }, "clear all: Document with clear-cache header doesn't get cached");
 
-promise_test(t => {
-    return test_cache_clear(t, "response=html_embed_json&clear=cache", "response=html_embed_json&clear=cache");
-}, "clear cache: Fetch on docment with clear-cache header doesn't get cached");
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_json",
+        clear: "cache",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_json",
+    };
+    // Clear-Cache header doesn't affect fetch on document due to clear-cache
+    // being initiated in a point of time. The fetch happens later and stays
+    // in the cache.
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_equals);
+}, "clear cache: Fetch on docment with clear-cache header is unaffected");
 
-promise_test(t => {
-    return test_cache_clear(t, "response=html_embed_json&clear=all", "response=html_embed_json&clear=all");
-}, "clear all: Fetch on docment with clear-cache header doesn't get cached");
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_json",
+        clear: "all",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_json",
+    };
+    // same as above
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_equals);
+}, "clear all: Fetch on docment with clear-cache header is unaffected");
 
-promise_test(t => {
-    return test_cache_clear(t, "response=html_embed_json", "response=html_embed_json&clear=cache");
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_json",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_json",
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_not_equals);
 }, "clear cache: Previously cached fetch gets cleared");
 
-promise_test(t => {
-    return test_cache_clear(t, "response=html_embed_json", "response=html_embed_json&clear=all");
+promise_test(test => {
+    const TEST_SITE_INITAL = {
+        response: "html_embed_json",
+    };
+    const TEST_SITE_FINAL = {
+        response: "html_embed_json",
+        clear: "all",
+    };
+    return testCacheClear(test, [TEST_SITE_INITAL, TEST_SITE_FINAL], assert_not_equals);
 }, "clear all: Previously cached fetch gets cleared");
 
-promise_test(t => {
-    return test_cache_clear(t, "response=html_embed_json", "response=single_html&clear=cache", "response=html_embed_json");
+promise_test(test => {
+    const TEST_SITE = {
+        response: "html_embed_json",
+    };
+    const TEST_SITE_CLEAR = {
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR, TEST_SITE], assert_not_equals);
 }, "clear cache: Clear fetch on intermediate navigation");
 
-promise_test(t => {
-    return test_cache_clear(t, "response=html_embed_json", "response=single_html&clear=all", "response=html_embed_json");
+promise_test(test => {
+    const TEST_SITE = {
+        response: "html_embed_json",
+    };
+    const TEST_SITE_CLEAR = {
+        clear: "all",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR, TEST_SITE], assert_not_equals);
 }, "clear all: Clear fetch on intermediate navigation");
 
-promise_test(t => {
-    return test_cache_clear(t, "response=single_html&cache", "response=single_html&clear=cache", "response=single_html&cache");
+promise_test(test => {
+    const TEST_SITE = {
+        cache: true,
+    };
+    const TEST_SITE_CLEAR = {
+        clear: "cache",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR, TEST_SITE], assert_not_equals);
 }, "clear cache: Clear document in intermediate load");
 
-promise_test(t => {
-    return test_cache_clear(t, "response=single_html&cache", "response=single_html&clear=all", "response=single_html&cache");
+promise_test(test => {
+    const TEST_SITE = {
+        cache: true,
+    };
+    const TEST_SITE_CLEAR = {
+        clear: "all",
+    };
+    return testCacheClear(test, [TEST_SITE, TEST_SITE_CLEAR, TEST_SITE], assert_not_equals);
 }, "clear all: Clear document in intermediate load");
 
 </script>

@@ -1,9 +1,11 @@
+# TODO(https://crbug.com/406819294): Simplify relative import for util.
+import importlib
+util = importlib.import_module("speculation-rules.prefetch.resources.util")
 
 def main(request, response):
   def fmt(x):
     return f'"{x.decode("utf-8")}"' if x is not None else "undefined"
 
-  purpose = request.headers.get("Purpose", b"").decode("utf-8")
   sec_purpose = request.headers.get("Sec-Purpose", b"").decode("utf-8")
 
   headers = [
@@ -14,23 +16,12 @@ def main(request, response):
   status = 200 if request.auth.username is not None or sec_purpose.startswith(
       "prefetch") else 401
 
-  content = f'''
-  <!DOCTYPE html>
-  <script src="/common/dispatcher/dispatcher.js"></script>
-  <script src="utils.sub.js"></script>
-  <script>
-  window.requestHeaders = {{
-    purpose: "{purpose}",
-    sec_purpose: "{sec_purpose}"
-  }};
+  content = util.get_executor_html(
+    request,
+    f'''window.requestCredentials = {{
+        username: {fmt(request.auth.username)},
+        password: {fmt(request.auth.password)}
+      }};
+    ''')
 
-  window.requestCredentials = {{
-    username: {fmt(request.auth.username)},
-    password: {fmt(request.auth.password)}
-  }};
-
-  const uuid = new URLSearchParams(location.search).get('uuid');
-  window.executor = new Executor(uuid);
-  </script>
-  '''
   return status, headers, content

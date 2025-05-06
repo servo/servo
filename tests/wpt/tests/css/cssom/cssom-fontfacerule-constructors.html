@@ -52,9 +52,9 @@
 
             test(function(){
                 for (var i = 0; i < validRules.length; ++i) {
-                    assert_equals(validRules.item(i).style.toString(), '[object CSSStyleDeclaration]');
+                    assert_equals(validRules.item(i).style.toString(), '[object CSSFontFaceDescriptors]');
                 }
-            }, 'The style attribute must return a CSSStyleDeclaration block')
+            }, 'The style attribute must return a CSSFontFaceDescriptors block')
 
         </script>
 

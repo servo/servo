@@ -16,7 +16,7 @@
 // active worker's controlled clients to unload.
 
 promise_test(async test => {
-  // This test keeps the the service worker in the 'activating' state by using a
+  // This test keeps the service worker in the 'activating' state by using a
   // script with an activate event waitUntil() promise that never resolves.
   const script_url = 'resources/onactivate-waituntil-forever.js';
   const scope_url =

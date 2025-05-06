@@ -42,12 +42,22 @@ script
 |   "xxx"
 
 #data
-<img src="https://{{host}}/test-image" onclick="2+2" one="two">
+<a href="https://{{host}}/" onclick="2+2" one="two">
 #document
-| <img>
+| <a>
+|   href="https://{{host}}/"
+|   one="two"
+|   onclick="2+2"
+
+#data
+<a href="https://{{host}}/" onclick="2+2" one="two">
+#config
+{ "elements": ["a"], "attributes": ["href", "onclick", "one"]}
+#document
+| <a>
+|   href="https://{{host}}/"
 |   onclick="2+2"
 |   one="two"
-|   src="https://{{host}}/test-image"
 
 #data
 <img src="https://{{host}}/test-image" onclick="2+2" one="two">

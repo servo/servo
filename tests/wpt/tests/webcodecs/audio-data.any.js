@@ -88,6 +88,15 @@ test(t => {
 
 test(t => {
   let data = createDefaultAudioData();
+  data.close();
+  assert_equals(data.sampleRate, 0);
+  assert_equals(data.numberOfFrames, 0);
+  assert_equals(data.numberOfChannels, 0);
+  assert_equals(data.format, null);
+}, 'AudioData close');
+
+test(t => {
+  let data = createDefaultAudioData();
 
   let clone = data.clone();
 

@@ -38,14 +38,14 @@ test_valid_value("transform", "scale(1, 200%)", "scale(1, 2)");
 test_valid_value("transform", "scale(-250%)", "scale(-2.5)");
 test_valid_value("transform", "scale(-500%, -620%)", "scale(-5, -6.2)");
 
-test_valid_value("transform", "scaleX(7)");
-test_valid_value("transform", "scaleX(720%)", "scaleX(7.2)");
+test_valid_value("transform", "scaleX(7)", "scalex(7)");
+test_valid_value("transform", "scaleX(720%)", "scalex(7.2)");
 
-test_valid_value("transform", "scaleY(-8)");
-test_valid_value("transform", "scaleY(-85%)", "scaleY(-0.85)");
+test_valid_value("transform", "scaleY(-8)", "scaley(-8)");
+test_valid_value("transform", "scaleY(-85%)", "scaley(-0.85)");
 
-test_valid_value("transform", "scaleZ(4)");
-test_valid_value("transform", "scaleZ(25%)", "scaleZ(0.25)");
+test_valid_value("transform", "scaleZ(4)", "scalez(4)");
+test_valid_value("transform", "scaleZ(25%)", "scalez(0.25)");
 
 test_valid_value("transform", "scale3d(0.5, 2.5, 3)");
 test_valid_value("transform", "scale3d(50%, 250%, 300%)", "scale3d(0.5, 2.5, 3)");
@@ -62,11 +62,11 @@ test_valid_value("transform", "skew(90deg)");
 test_valid_value("transform", "skew(0, -90deg)", "skew(0deg, -90deg)");
 test_valid_value("transform", "skew(90deg, 0)", ["skew(90deg)", "skew(90deg, 0deg)"]);
 
-test_valid_value("transform", "skewX(0)", "skewX(0deg)");
-test_valid_value("transform", "skewX(90deg)");
+test_valid_value("transform", "skewX(0)", "skewx(0deg)");
+test_valid_value("transform", "skewX(90deg)", "skewx(90deg)");
 
-test_valid_value("transform", "skewY(0)", "skewY(0deg)");
-test_valid_value("transform", "skewY(-90deg)");
+test_valid_value("transform", "skewY(0)", "skewy(0deg)");
+test_valid_value("transform", "skewY(-90deg)", "skewy(-90deg)");
 
 test_valid_value("transform", "perspective(10px)");
 test_valid_value("transform", "perspective(none)");

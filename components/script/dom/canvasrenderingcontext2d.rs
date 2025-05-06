@@ -4,12 +4,12 @@
 
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg, FromScriptMsg};
 use dom_struct::dom_struct;
-use euclid::default::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::IpcSharedMemory;
+use euclid::default::Size2D;
 use profile_traits::ipc;
 use script_bindings::inheritance::Castable;
-use script_layout_interface::HTMLCanvasDataSource;
 use servo_url::ServoUrl;
+use snapshot::Snapshot;
+use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, CanvasHelpers, LayoutCanvasRenderingContextHelpers};
 use crate::canvas_state::CanvasState;
@@ -74,23 +74,12 @@ impl CanvasRenderingContext2D {
         reflect_dom_object(boxed, global, can_gc)
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions
-    pub(crate) fn set_bitmap_dimensions(&self, size: Size2D<u32>) {
-        self.reset_to_initial_state();
-        self.canvas_state
-            .get_ipc_renderer()
-            .send(CanvasMsg::Recreate(
-                Some(size.to_u64()),
-                self.canvas_state.get_canvas_id(),
-            ))
-            .unwrap();
-    }
-
     // https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state
     fn reset_to_initial_state(&self) {
         self.canvas_state.reset_to_initial_state();
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-canvas-set-bitmap-dimensions>
     pub(crate) fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.canvas_state.set_bitmap_dimensions(size);
     }
@@ -106,20 +95,17 @@ impl CanvasRenderingContext2D {
     pub(crate) fn send_canvas_2d_msg(&self, msg: Canvas2dMsg) {
         self.canvas_state.send_canvas_2d_msg(msg)
     }
-
-    pub(crate) fn get_rect(&self, rect: Rect<u32>) -> Vec<u8> {
-        let rect = Rect::new(
-            Point2D::new(rect.origin.x as u64, rect.origin.y as u64),
-            Size2D::new(rect.size.width as u64, rect.size.height as u64),
-        );
-        self.canvas_state.get_rect(self.canvas.size(), rect)
-    }
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
-    fn canvas_data_source(self) -> HTMLCanvasDataSource {
+    fn canvas_data_source(self) -> Option<ImageKey> {
         let canvas_state = &self.unsafe_get().canvas_state;
-        HTMLCanvasDataSource::Image(canvas_state.image_key())
+
+        if canvas_state.is_paintable() {
+            Some(canvas_state.image_key())
+        } else {
+            None
+        }
     }
 }
 
@@ -139,19 +125,19 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn resize(&self) {
-        self.set_bitmap_dimensions(self.size().cast())
+        self.set_canvas_bitmap_dimensions(self.size().cast())
     }
 
-    fn get_image_data_as_shared_memory(&self) -> Option<IpcSharedMemory> {
+    fn get_image_data(&self) -> Option<Snapshot> {
+        if !self.canvas_state.is_paintable() {
+            return None;
+        }
+
         let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender), self.get_canvas_id());
         self.canvas_state.get_ipc_renderer().send(msg).unwrap();
 
-        Some(receiver.recv().unwrap())
-    }
-
-    fn get_image_data(&self) -> Option<Vec<u8>> {
-        Some(self.get_rect(Rect::from_size(self.size().cast())))
+        Some(receiver.recv().unwrap().to_owned())
     }
 
     fn origin_is_clean(&self) -> bool {
@@ -640,6 +626,26 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-miterlimit
     fn SetMiterLimit(&self, limit: f64) {
         self.canvas_state.set_miter_limit(limit)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-setlinedash>
+    fn SetLineDash(&self, segments: Vec<f64>) {
+        self.canvas_state.set_line_dash(segments);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getlinedash>
+    fn GetLineDash(&self) -> Vec<f64> {
+        self.canvas_state.line_dash()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset>
+    fn LineDashOffset(&self) -> f64 {
+        self.canvas_state.line_dash_offset()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linedashoffset>
+    fn SetLineDashOffset(&self, offset: f64) {
+        self.canvas_state.set_line_dash_offset(offset);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowoffsetx

@@ -23,6 +23,7 @@ use crate::task_manager::TaskManager;
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq, VariantArray)]
 pub(crate) enum TaskSourceName {
     Canvas,
+    Clipboard,
     DOMManipulation,
     FileReading,
     /// <https://drafts.csswg.org/css-font-loading/#task-source>
@@ -48,6 +49,7 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
     fn from(value: TaskSourceName) -> Self {
         match value {
             TaskSourceName::Canvas => ScriptThreadEventCategory::ScriptEvent,
+            TaskSourceName::Clipboard => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::DOMManipulation => ScriptThreadEventCategory::ScriptEvent,
             TaskSourceName::FileReading => ScriptThreadEventCategory::FileRead,
             TaskSourceName::FontLoading => ScriptThreadEventCategory::FontLoading,

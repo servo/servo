@@ -1,0 +1,433 @@
+/*
+https://html.spec.whatwg.org/multipage/#form-controls
+*/
+
+@namespace url(http://www.w3.org/1999/xhtml);
+
+[hidden], area, base, basefont, datalist, head, link, menu[type=popup i], meta,
+noembed, noframes, param, rp, script, source, style, template, track, title {
+  display: none;
+}
+
+embed[hidden] { display: inline; height: 0; width: 0; }
+
+/* FIXME: only if scripting is enabled */
+noscript { display: none !important; }
+
+input[type=hidden i] { display: none !important; }
+
+
+html, body { display: block; }
+
+body { margin: 8px; }
+
+
+address, blockquote, center, div, figure, figcaption, footer, form, header, hr,
+legend, listing, main, p, plaintext, pre, summary, xmp {
+  display: block;
+}
+
+blockquote, figure, listing, p, plaintext, pre, xmp {
+  margin-top: 1em; margin-bottom: 1em;
+}
+
+blockquote, figure { margin-left: 40px; margin-right: 40px; }
+
+address { font-style: italic; }
+listing, plaintext, pre, xmp {
+  font-family: monospace; white-space: pre;
+}
+
+dialog:not([open]) { display: none; }
+dialog {
+  position: absolute;
+  left: 0; right: 0;
+  /* FIXME: support fit-content */
+  width: fit-content;
+  height: fit-content;
+  margin: auto;
+  border: solid;
+  padding: 1em;
+  background: white;
+  color: black;
+}
+/* FIXME: support ::backdrop */
+dialog::backdrop {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: rgba(0,0,0,0.1);
+}
+
+/* for small devices, modal dialogs go full-screen */
+@media screen and (max-width: 540px) {
+  /* FIXME: support :modal */
+  dialog:modal {
+    top: 0;
+    width: auto;
+    margin: 1em;
+  }
+}
+
+
+cite, dfn, em, i, var { font-style: italic; }
+b, strong { font-weight: bolder; }
+code, kbd, samp, tt { font-family: monospace; }
+big { font-size: larger; }
+small { font-size: smaller; }
+
+sub { vertical-align: sub; }
+sup { vertical-align: super; }
+sub, sup { line-height: normal; font-size: smaller; }
+
+ruby { display: ruby; }
+rt { display: ruby-text; }
+
+/*
+ * All tag names that can be links are listed here, because applying pseudo-class selectors
+ * disables style sharing, so we want to apply pseudo-class selectors to as few elements as
+ * possible.
+ */
+a:link, area:link, link:link { color: #0000EE; }
+a:visited, area:visited, link:visited { color: #551A8B; }
+a:link, a:visited,
+area:link, area:visited,
+link:link, link:visited { text-decoration: underline; cursor: pointer; }
+a:link[rel~=help], a:visited[rel~=help],
+area:link[rel~=help], area:visited[rel~=help],
+link:link[rel~=help], link:visited[rel~=help] { cursor: help; }
+
+/*
+ * FIXME: use `outline: auto;`
+ */
+a:focus, area:focus {
+  outline: thin dotted;
+}
+
+input:focus, textarea:focus, button:focus {
+  outline: thin solid black;
+}
+
+mark { background: yellow; color: black; }
+
+abbr[title], acronym[title] { text-decoration: dotted underline; }
+ins, u { text-decoration: underline; }
+del, s, strike { text-decoration: line-through; }
+blink { text-decoration: blink; }
+
+q::before { content: open-quote; }
+q::after { content: close-quote; }
+
+/*br { display-outside: newline; } /* this also has bidi implications */
+br::before { content: "\A"; white-space: pre }
+
+nobr { white-space: nowrap; }
+wbr { display-outside: break-opportunity; } /* this also has bidi implications */
+nobr wbr { white-space: normal; }
+
+
+/* Eventually we will want the following, but currently Servo does not
+   properly parse the :dir pseudo-selector.
+[dir=ltr i], bdi:dir(ltr), input[type=tel]:dir(ltr) { direction: ltr; }
+*/
+[dir=ltr i] { direction: ltr; }
+[dir=rtl i] { direction: rtl; }
+[dir=ltr i], [dir=rtl i], [dir=auto i] { unicode-bidi: isolate; }
+
+/* To ensure http://www.w3.org/TR/REC-html40/struct/dirlang.html#style-bidi:
+ *
+ * "When a block element that does not have a dir attribute is transformed to
+ * the style of an inline element by a style sheet, the resulting presentation
+ * should be equivalent, in terms of bidirectional formatting, to the
+ * formatting obtained by explicitly adding a dir attribute (assigned the
+ * inherited value) to the transformed element."
+ *
+ * and the rules in http://dev.w3.org/html5/spec/rendering.html#rendering
+ */
+address,
+article,
+aside,
+blockquote,
+body,
+caption,
+center,
+col,
+colgroup,
+dd,
+dir,
+div,
+dl,
+dt,
+fieldset,
+figcaption,
+figure,
+footer,
+form,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+header,
+hgroup,
+hr,
+html,
+legend,
+li,
+listing,
+main,
+marquee,
+menu,
+nav,
+noframes,
+ol,
+p,
+plaintext,
+pre,
+search,
+section,
+summary,
+table,
+tbody,
+td,
+tfoot,
+th,
+thead,
+tr,
+ul,
+xmp
+{
+  unicode-bidi: isolate;
+}
+
+bdi, output {
+  unicode-bidi: isolate;
+}
+
+bdo, bdo[dir] { unicode-bidi: isolate-override; }
+
+textarea[dir=auto i], pre[dir=auto i] { unicode-bidi: plaintext; }
+
+
+article, aside, h1, h2, h3, h4, h5, h6, hgroup, nav, section {
+  display: block;
+}
+
+h1 { margin-top: 0.67em; margin-bottom: 0.67em; font-size: 2.00em; font-weight: bold; }
+h2 { margin-top: 0.83em; margin-bottom: 0.83em; font-size: 1.50em; font-weight: bold; }
+h3 { margin-top: 1.00em; margin-bottom: 1.00em; font-size: 1.17em; font-weight: bold; }
+h4 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; font-weight: bold; }
+h5 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; font-weight: bold; }
+h6 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; font-weight: bold; }
+
+:matches(article, aside, nav, section) h1 { margin-top: 0.83em; margin-bottom: 0.83em; font-size: 1.50em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 1.00em; margin-bottom: 1.00em; font-size: 1.17em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) h1 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
+
+:matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 1.00em; margin-bottom: 1.00em; font-size: 1.17em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h2 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
+
+:matches(article, aside, nav, section) hgroup > h1 ~ h3 { margin-top: 1.33em; margin-bottom: 1.33em; font-size: 1.00em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h3 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h3 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
+
+:matches(article, aside, nav, section) hgroup > h1 ~ h4 { margin-top: 1.67em; margin-bottom: 1.67em; font-size: 0.83em; }
+:matches(article, aside, nav, section) :matches(article, aside, nav, section) hgroup > h1 ~ h4 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
+
+:matches(article, aside, nav, section) hgroup > h1 ~ h5 { margin-top: 2.33em; margin-bottom: 2.33em; font-size: 0.67em; }
+
+
+dir, dd, dl, dt, menu, ol, ul { display: block; }
+li { display: list-item; }
+
+dir, dl, menu, ol, ul { margin-top: 1em; margin-bottom: 1em; }
+
+:matches(dir, dl, menu, ol, ul) :matches(dir, dl, menu, ol, ul) {
+  margin-top: 0; margin-bottom: 0;
+}
+
+dd { margin-left: 40px; } /* FIXME: use margin-inline-start when supported */
+dir, menu, ol, ul { padding-left: 40px; } /* FIXME: use padding-inline-start when supported */
+
+ol { list-style-type: decimal; }
+
+dir, menu, ul { list-style-type: disc; }
+
+:matches(dir, menu, ol, ul) :matches(dir, menu, ul) {
+  list-style-type: circle;
+}
+
+:matches(dir, menu, ol, ul) :matches(dir, menu, ol, ul) :matches(dir, menu, ul) {
+  list-style-type: square;
+}
+
+
+table { display: table; }
+caption {
+  display: table-caption;
+  text-align: center;
+}
+colgroup, colgroup[hidden] { display: table-column-group; }
+col, col[hidden] { display: table-column; }
+thead, thead[hidden] { display: table-header-group; }
+tbody, tbody[hidden] { display: table-row-group; }
+tfoot, tfoot[hidden] { display: table-footer-group; }
+tr, tr[hidden] { display: table-row; }
+td, th, td[hidden], th[hidden] { display: table-cell; }
+
+colgroup[hidden], col[hidden], thead[hidden], tbody[hidden],
+tfoot[hidden], tr[hidden], td[hidden], th[hidden] {
+  visibility: collapse;
+}
+
+table {
+  box-sizing: border-box;
+  border-spacing: 2px;
+  border-collapse: separate;
+  text-indent: initial;
+}
+td, th { padding: 1px; }
+th {
+  font-weight: bold;
+  text-align: -moz-center-or-inherit;
+}
+
+thead, tbody, tfoot, table > tr { vertical-align: middle; }
+tr, td, th { vertical-align: inherit; }
+
+
+table, td, th { border-color: gray; }
+thead, tbody, tfoot, tr { border-color: inherit; }
+table:matches(
+  [rules=none i], [rules=groups i], [rules=rows i],
+  [rules=cols i], [rules=all i],
+  [frame=void i], [frame=above i], [frame=below i],
+  [frame=hsides i], [frame=lhs i], [frame=rhs i],
+  [frame=vsides i], [frame=box i], [frame=border i]
+),
+table:matches(
+  [rules=none i], [rules=groups i], [rules=rows i],
+  [rules=cols i], [rules=all i]
+) > tr > :matches(td, th),
+table:matches(
+  [rules=none i], [rules=groups i], [rules=rows i],
+  [rules=cols i], [rules=all i]
+) > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
+  border-color: black;
+}
+
+
+:matches(table, thead, tbody, tfoot, tr) > form {
+  display: none !important;
+}
+
+input, select, button, textarea {
+  letter-spacing: initial;
+  word-spacing: initial;
+  line-height: initial;
+  text-transform: initial;
+  text-indent: initial;
+  text-shadow: initial;
+  appearance: auto;
+}
+
+input:not([type=image i], [type=range i], [type=checkbox i], [type=radio i]) {
+  overflow: clip !important;
+  overflow-clip-margin: 0 !important;
+}
+
+input, select, textarea {
+  text-align: initial;
+}
+
+:autofill {
+  field-sizing: fixed !important;
+}
+
+input:is([type=reset i], [type=button i], [type=submit i]), button {
+  text-align: center;
+}
+
+input, textarea, select, button { display: inline-block; }
+
+input[type=hidden i], input[type=file i], input[type=image i] {
+  appearance: none;
+}
+
+input[type=radio i], input[type=checkbox i], input[type=reset i], input[type=button i], input[type=submit i],
+input[type=color i], input[type=search i], select, button {
+  box-sizing: border-box;
+}
+
+textarea { white-space: pre-wrap; }
+
+hr {
+  color: gray;
+  border-style: inset;
+  border-width: 1px;
+  margin-block-start: 0.5em;
+  margin-inline-end: auto;
+  margin-block-end: 0.5em;
+  margin-inline-start: auto;
+  overflow: hidden;
+}
+
+
+fieldset {
+  display: block; /* https://www.w3.org/Bugs/Public/show_bug.cgi?id=27018 */
+  margin-left: 2px; margin-right: 2px;
+  border: groove 2px;
+  border-color: ThreeDFace; /* FIXME: system color */
+  padding: 0.35em 0.625em 0.75em;
+  min-width: min-content;
+}
+
+legend {
+  padding-left: 2px; padding-right: 2px;
+}
+
+iframe:not([seamless]) { border: 2px inset; }
+iframe[seamless] { display: block; }
+video { object-fit: contain; }
+
+
+textarea { white-space: pre-wrap; }
+
+*|*:not(:root):fullscreen {
+  position:fixed !important;
+  top:0 !important; right:0 !important; bottom:0 !important; left:0 !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+  min-width:0 !important;
+  max-width:none !important;
+  min-height:0 !important;
+  max-height:none !important;
+  width:100% !important;
+  height:100% !important;
+  transform:none !important;
+
+  /* intentionally not !important */
+  object-fit:contain;
+
+  /* The internal-only -servo-top-layer property is used
+     to implement https://fullscreen.spec.whatwg.org/#top-layer */
+  -servo-top-layer: top;
+}
+
+iframe:fullscreen {
+  border:none !important;
+  padding:0 !important;
+}
+
+/* https://drafts.csswg.org/css-lists-3/#ua-stylesheet */
+*::marker {
+  text-align: end;
+  text-transform: none;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+  white-space: pre;
+}

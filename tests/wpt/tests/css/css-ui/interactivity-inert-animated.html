@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: animated interactivity:auto should not block click events</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#inertness">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  @keyframes --anim {
+    0% { interactivity: auto; }
+  }
+  #inert {
+    animation: --anim 10000s step-end;
+    interactivity: inert;
+    width: 100px;
+    height: 100px;
+    background: lime;
+  }
+</style>
+<div id="inert"></div>
+<script>
+  let clicked = false;
+  inert.addEventListener('click', () => clicked = true);
+
+  promise_test(async () => {
+    await test_driver.click(inert);
+    assert_true(clicked);
+  }, "Click event should work for interactivity:auto animation");
+
+</script>

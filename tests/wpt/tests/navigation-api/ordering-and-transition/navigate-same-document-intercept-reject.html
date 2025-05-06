@@ -42,6 +42,7 @@ promise_test(async t => {
     ["currententrychange", "#1", { from, navigationType: "push" }],
     ["handler run", "#1", { from, navigationType: "push" }],
     ["committed fulfilled", "#1", { from, navigationType: "push" }],
+    ["transition.committed fulfilled", "#1", { from, navigationType: "push" }],
     ["promise microtask", "#1", { from, navigationType: "push" }],
     ["navigateerror", "#1", { from, navigationType: "push" }],
     ["finished rejected", "#1", null],

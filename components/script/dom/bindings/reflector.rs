@@ -5,15 +5,14 @@
 //! The `Reflector` struct.
 
 use js::rust::HandleObject;
+use script_bindings::interfaces::GlobalScopeHelpers;
 
 use crate::DomTypes;
 use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::iterable::{Iterable, IterableIterator};
-use crate::dom::bindings::root::{Dom, DomRoot, Root};
-use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::globalscope::{GlobalScope, GlobalScopeHelpers};
-use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::globalscope::GlobalScope;
+use crate::realms::InRealm;
+use crate::script_runtime::CanGc;
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
@@ -42,31 +41,6 @@ where
     unsafe { T::WRAP(D::GlobalScope::get_cx(), global_scope, proto, obj, can_gc) }
 }
 
-pub(crate) trait DomGlobalGeneric<D: DomTypes>: DomObject {
-    /// Returns the [`GlobalScope`] of the realm that the [`DomObject`] was created in.  If this
-    /// object is a `Node`, this will be different from it's owning `Document` if adopted by. For
-    /// `Node`s it's almost always better to use `NodeTraits::owning_global`.
-    fn global_(&self, realm: InRealm) -> DomRoot<D::GlobalScope>
-    where
-        Self: Sized,
-    {
-        D::GlobalScope::from_reflector(self, realm)
-    }
-
-    /// Returns the [`GlobalScope`] of the realm that the [`DomObject`] was created in.  If this
-    /// object is a `Node`, this will be different from it's owning `Document` if adopted by. For
-    /// `Node`s it's almost always better to use `NodeTraits::owning_global`.
-    fn global(&self) -> DomRoot<D::GlobalScope>
-    where
-        Self: Sized,
-    {
-        let realm = AlreadyInRealm::assert_for_cx(D::GlobalScope::get_cx());
-        D::GlobalScope::from_reflector(self, InRealm::already(&realm))
-    }
-}
-
-impl<D: DomTypes, T: DomObject> DomGlobalGeneric<D> for T {}
-
 pub(crate) trait DomGlobal {
     fn global_(&self, realm: InRealm) -> DomRoot<GlobalScope>;
     fn global(&self) -> DomRoot<GlobalScope>;
@@ -81,35 +55,4 @@ impl<T: DomGlobalGeneric<crate::DomTypeHolder>> DomGlobal for T {
     }
 }
 
-pub(crate) use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
-
-/// A trait to provide a function pointer to wrap function for DOM objects.
-pub(crate) trait DomObjectWrap<D: DomTypes>:
-    Sized + DomObject + DomGlobalGeneric<D>
-{
-    /// Function pointer to the general wrap function type
-    #[allow(clippy::type_complexity)]
-    const WRAP: unsafe fn(
-        JSContext,
-        &D::GlobalScope,
-        Option<HandleObject>,
-        Box<Self>,
-        CanGc,
-    ) -> Root<Dom<Self>>;
-}
-
-/// A trait to provide a function pointer to wrap function for
-/// DOM iterator interfaces.
-pub(crate) trait DomObjectIteratorWrap<D: DomTypes>:
-    DomObjectWrap<D> + JSTraceable + Iterable
-{
-    /// Function pointer to the wrap function for `IterableIterator<T>`
-    #[allow(clippy::type_complexity)]
-    const ITER_WRAP: unsafe fn(
-        JSContext,
-        &D::GlobalScope,
-        Option<HandleObject>,
-        Box<IterableIterator<D, Self>>,
-        CanGc,
-    ) -> Root<Dom<IterableIterator<D, Self>>>;
-}
+pub(crate) use script_bindings::reflector::*;

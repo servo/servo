@@ -43,13 +43,21 @@ fn main() {
     let json: Value = serde_json::from_reader(File::open(json).unwrap()).unwrap();
     let mut map = phf_codegen::Map::new();
     for (key, value) in json.as_object().unwrap() {
-        map.entry(Bytes(key), value.as_str().unwrap());
+        let parts = value.as_array().unwrap();
+        map.entry(
+            Bytes(key),
+            &format!(
+                "Interface {{ define: {}, enabled: {} }}",
+                parts[0].as_str().unwrap(),
+                parts[1].as_str().unwrap()
+            ),
+        );
     }
     let phf = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("InterfaceObjectMapPhf.rs");
     let mut phf = File::create(phf).unwrap();
     writeln!(
         &mut phf,
-        "pub(crate) static MAP: phf::Map<&'static [u8], fn(JSContext, HandleObject)> = {};",
+        "pub(crate) static MAP: phf::Map<&'static [u8], Interface> = {};",
         map.build(),
     )
     .unwrap();

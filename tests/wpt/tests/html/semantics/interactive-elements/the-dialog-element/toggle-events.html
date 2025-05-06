@@ -324,17 +324,23 @@
       } else {
         assert_equals(toggleEventCounter, 0, "toggle event not fired");
       }
+      // Clean up for the next test.
+      document.body.prepend(mydialog);
+      mydialog.close();
+      await waitForTick();
     }, `dialog.${methodName}() should not open if beforetoggle removes`);
 
     promise_test(async (t) => {
+      assert_true(document.body.contains(mydialog),'still in the document');
+      assert_false(mydialog.open,'initially closed');
       const abortController = new AbortController();
       const signal = abortController.signal;
-      t.add_cleanup(async () => {
+      t.add_cleanup(() => {
         try { mydialog.hidePopover(); } catch {}
         try { mydialog.close(); } catch {}
         mydialog.removeAttribute('popover');
         abortController.abort();
-        await waitForTick();
+        waitForTick(); // Note that cleanups can't await
       });
       mydialog.setAttribute('popover', '');
       mydialog.addEventListener("beforetoggle", () => {
@@ -362,6 +368,9 @@
       } else {
         assert_equals(toggleEventCounter, 1, "toggle event was fired for showPopover");
       }
+      // Clean up for the next test.
+      mydialog.close();
+      await waitForTick();
     }, `dialog.${methodName}() should not open if beforetoggle calls showPopover`);
   });
 </script>

@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, LoadStatus};
-use html5ever::{LocalName, Prefix, local_name, namespace_url, ns};
+use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -141,9 +141,9 @@ impl VirtualMethods for HTMLBodyElement {
             .attribute_affects_presentational_hints(attr)
     }
 
-    fn bind_to_tree(&self, context: &BindContext) {
+    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context);
+            s.bind_to_tree(context, can_gc);
         }
 
         if !context.tree_is_in_a_document_tree {
@@ -176,7 +176,7 @@ impl VirtualMethods for HTMLBodyElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
         let do_super_mutate = match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let window = self.owner_window();
@@ -201,13 +201,14 @@ impl VirtualMethods for HTMLBodyElement {
                     &local_name!("onresize") |
                     &local_name!("onunload") |
                     &local_name!("onerror") => {
+                        let source = &**attr.value();
                         let evtarget = window.upcast::<EventTarget>(); // forwarded event
                         let source_line = 1; //TODO(#9604) obtain current JS execution line
                         evtarget.set_event_handler_uncompiled(
                             window.get_url(),
                             source_line,
                             &name[2..],
-                            DOMString::from((**attr.value()).to_owned()),
+                            source,
                         );
                         false
                     },
@@ -218,7 +219,9 @@ impl VirtualMethods for HTMLBodyElement {
         };
 
         if do_super_mutate {
-            self.super_type().unwrap().attribute_mutated(attr, mutation);
+            self.super_type()
+                .unwrap()
+                .attribute_mutated(attr, mutation, can_gc);
         }
     }
 }

@@ -118,4 +118,9 @@ testComments("a/* comment */b", "", "a/* comment */b");
 testComments("a/* comment */var(--t1)", "b", "a/**/b");
 testComments("var(--t1)b", "a/* comment */", "a/**/b");
 
+// Test comments within quotes.
+testComments("var(--t1)b", "'a/* unfinished '", "'a/* unfinished 'b");
+testComments("var(--t1)b", "\"a/* unfinished \"", "\"a/* unfinished \"b");
+testComments("var(--t1)b", "'a \" '/* comment */", "'a \" 'b");
+
 </script>

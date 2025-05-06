@@ -6,27 +6,27 @@ use std::cell::Cell;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use constellation_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Sender, unbounded};
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
 use net_traits::request::Referrer;
-use script_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use uuid::Uuid;
 
 use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
+use crate::dom::bindings::codegen::UnionTypes::TrustedScriptURLOrUSVString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
 use crate::dom::dedicatedworkerglobalscope::{
@@ -35,6 +35,7 @@ use crate::dom::dedicatedworkerglobalscope::{
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
+use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::realms::enter_realm;
@@ -162,11 +163,21 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        script_url: USVString,
+        script_url: TrustedScriptURLOrUSVString,
         worker_options: &WorkerOptions,
     ) -> Fallible<DomRoot<Worker>> {
+        // Step 1: Let compliantScriptURL be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedScriptURL,
+        // this's relevant global object, scriptURL, "Worker constructor", and "script".
+        let compliant_script_url = TrustedScriptURL::get_trusted_script_url_compliant_string(
+            global,
+            script_url,
+            "Worker",
+            "constructor",
+            can_gc,
+        )?;
         // Step 2-4.
-        let worker_url = match global.api_base_url().join(&script_url) {
+        let worker_url = match global.api_base_url().join(&compliant_script_url) {
             Ok(url) => url,
             Err(_) => return Err(Error::Syntax),
         };
@@ -213,6 +224,16 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                     devtools_sender.clone(),
                     page_info,
                 ));
+
+                let source_info = SourceInfo {
+                    url: worker_url.clone(),
+                    external: true, // Worker scripts are always external.
+                    worker_id: Some(worker_id),
+                };
+                let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
+                    pipeline_id,
+                    source_info,
+                ));
             }
         }
 
@@ -243,6 +264,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             control_receiver,
             context_sender,
             global.insecure_requests_policy(),
+            global.policy_container(),
         );
 
         let context = context_receiver

@@ -175,7 +175,6 @@ impl NodeList {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ChildrenList {
     node: Dom<Node>,
-    #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     last_visited: MutNullableDom<Node>,
     last_index: Cell<u32>,
 }

@@ -15,14 +15,15 @@ doctest = false
 
 [dependencies]
 base = { workspace = true }
+compositing_traits = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 headers = { workspace = true }
 http = { workspace = true }
-hyper_serde = { workspace = true }
 hyper-util = { workspace = true }
+hyper_serde = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
@@ -31,6 +32,7 @@ mime = { workspace = true }
 num-traits = { workspace = true }
 percent-encoding = { workspace = true }
 pixels = { path = "../../pixels" }
+profile_traits = { path = "../profile" }
 rustls-pki-types = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
@@ -38,4 +40,6 @@ servo_rand = { path = "../../rand" }
 servo_url = { path = "../../url" }
 url = { workspace = true }
 uuid = { workspace = true }
-webrender_traits = { workspace = true }
+
+[dev-dependencies]
+embedder_traits = { workspace = true, features = ["baked-default-resources"] }

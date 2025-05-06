@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MathML lengths (vi, vb)</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#css-styling">
+<link rel="help" href="https://w3c.github.io/mathml-core/#types-for-mathml-attribute-values">
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#relative-lengths">
+<link rel="help" href="https://www.w3.org/TR/css-values-4/#viewport-relative-units">
+<meta name="assert" content="Verify that vi and vb correctly take this element's inline and block axes/writing mode into consideration in MathML.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <iframe id="iframe" width="800" height="500"></iframe>
+  <script>
+    const epsilon = 0.5;
+    const percent = 8;
+
+    const doc = document.querySelector("#iframe").contentDocument;
+    const win = document.querySelector("#iframe").contentWindow;
+    const vw = win.innerWidth*percent*0.01;
+    const vh = win.innerHeight*percent*0.01;
+    ["horizontal-tb", "vertical-rl"].forEach(wm => {
+      test(function(t) {
+        t.add_cleanup(() => { doc.body.innerHTML = ""; });
+        doc.body.innerHTML = `
+          <style>html { writing-mode: ${wm}; }</style>
+          <math>
+            <mspace id="unitVi" width="${percent}vi"/>
+            <mspace id="unitVb" width="${percent}vb"/>
+          </math>
+        `.trim();
+        const vi = doc.querySelector("#unitVi").getBoundingClientRect().width;
+        const vb = doc.querySelector("#unitVb").getBoundingClientRect().width;
+
+        if (wm === "horizontal-tb") {
+          assert_approx_equals(vi, vw, epsilon, "vi in horizontal writing modes");
+          assert_approx_equals(vb, vh, epsilon, "vb in horizontal writing modes");
+        } else if (wm === "vertical-rl") {
+          assert_approx_equals(vi, vh, epsilon, "vi in vertical writing modes");
+          assert_approx_equals(vb, vw, epsilon, "vb in vertical writing modes");
+        }
+      }, `vi/vb in ${wm} writing modes`);
+    });
+  </script>
+</body>
+</html>

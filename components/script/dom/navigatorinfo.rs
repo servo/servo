@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
-
 use crate::dom::bindings::str::DOMString;
 
 #[allow(non_snake_case)]
@@ -66,8 +64,8 @@ pub(crate) fn Platform() -> DOMString {
 }
 
 #[allow(non_snake_case)]
-pub(crate) fn UserAgent(user_agent: Cow<'static, str>) -> DOMString {
-    DOMString::from(&*user_agent)
+pub(crate) fn UserAgent(user_agent: &str) -> DOMString {
+    DOMString::from(user_agent)
 }
 
 #[allow(non_snake_case)]

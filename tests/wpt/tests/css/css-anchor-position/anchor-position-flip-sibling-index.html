@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: flip anchor function with sibling-index()</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-fallbacks-try-tactic">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#funcdef-sibling-index">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  #anchor {
+    anchor-name: --a;
+    width: 100px;
+    height: 100px;
+  }
+  #abs {
+    position-anchor: --a;
+    position-try-fallbacks: flip-block;
+    position: absolute;
+    bottom: anchor(calc(20% * sibling-index()));
+    width: 100px;
+    height: 100px;
+    background: teal;
+  }
+</style>
+<div>
+  <div id="anchor"></div>
+  <div id="abs"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(abs).top, "60px", "100% - (20% multiplied by 2 (sibling-index())) of 100px")
+  }, "Percentage based top anchor() position with sibling-index() flipped to bottom");
+</script>

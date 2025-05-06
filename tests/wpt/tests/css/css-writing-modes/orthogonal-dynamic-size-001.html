@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com" />
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1954866" />
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="container" style="width: 100px; height: 50px; background-color: red">
+  <div style="height: 100%; width: 100px; writing-mode: vertical-lr; background-color: green;">
+  </div>
+</div>
+
+<script>
+container.offsetHeight;
+container.style.height = "100px";
+</script>

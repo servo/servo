@@ -33,9 +33,9 @@
          <slot></slot>
        </div>
       `;
-      assert_equals(getComputedStyle(target).zIndex, '3');
-      assert_equals(getComputedStyle(target).order, '3');
-      assert_equals(getComputedStyle(target).orphans, '3');
-      assert_equals(getComputedStyle(target).widows, '3');
-    }, 'Host children have sibling-index() and sibling-count() based on assignedNodes order');
+      assert_equals(getComputedStyle(target).zIndex, '4');
+      assert_equals(getComputedStyle(target).order, '4');
+      assert_equals(getComputedStyle(target).orphans, '4');
+      assert_equals(getComputedStyle(target).widows, '4');
+    }, 'Host children have sibling-index() and sibling-count() based on the DOM tree order');
 </script>

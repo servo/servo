@@ -7,6 +7,19 @@
 <meta name="assert" content="font-variant-emoji sets an emoji's presentation for the emoji default and text default emoji codepoints and affects the fallback font selection."/>
 <link rel="stylesheet" type="text/css" href="support/css/variation-sequences.css" />
 <style>
+    div {
+      height: 2em;
+      font: 24px/1.5 serif;
+    }
+
+    .color-first span {
+      font-family: ColorEmojiFont, MonoEmojiFont;
+    }
+
+    .mono-first span {
+      font-family: MonoEmojiFont, ColorEmojiFont;
+    }
+
     .emoji {
       font-variant-emoji: emoji;
     }
@@ -26,7 +39,7 @@
 See https://www.unicode.org/Public/15.1.0/ucd/emoji/emoji-data.txt.
 So when font-variant-emoji is set to `unicode`, the codepoint
 should be displayed in color. -->
-<div style="font-family: MonoEmojiFont, ColorEmojiFont;">
+<div class="mono-first">
   <span class="emoji">&#x1fae8;</span>
   <span class="text">&#x1fae8;</span>
   <span class="unicode">&#x1fae8;</span>
@@ -38,7 +51,7 @@ should be displayed in color. -->
 See https://www.unicode.org/Public/15.1.0/ucd/emoji/emoji-data.txt.
 So when font-variant-emoji is set to `unicode`, the codepoint
 should be displayed in monochrome. -->
-<div style="font-family: ColorEmojiFont, MonoEmojiFont;">
+<div class="color-first">
   <span class="emoji">&#x2139;</span>
   <span class="text">&#x2139;</span>
   <span class="unicode">&#x2139;</span>

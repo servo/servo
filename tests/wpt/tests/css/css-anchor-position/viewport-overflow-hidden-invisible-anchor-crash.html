@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://crbug.com/391903229">
+<style>
+html {
+  overflow: hidden;
+}
+.anchor, .element {
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+.anchor {
+  background: red;
+  anchor-name: --anchor;
+}
+.element {
+  position: absolute;
+  position-anchor: --anchor;
+  bottom: anchor(top);
+  left: 50px;
+}
+</style>
+<div style="height: 1000px"></div>
+<div class="element"></div>
+<div style="overflow: auto; width: 50px">
+  <div class="anchor"></div>
+</div>

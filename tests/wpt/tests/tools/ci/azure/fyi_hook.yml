@@ -10,7 +10,7 @@ jobs:
   displayName: 'wpt.fyi hook: ${{ parameters.artifactName }}'
   dependsOn: ${{ parameters.dependsOn }}
   pool:
-    vmImage: 'ubuntu-20.04'
+    vmImage: 'ubuntu-24.04'
   steps:
   - checkout: none
   - script: |

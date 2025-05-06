@@ -74,6 +74,29 @@ const reduceMinTests = [
     }
   },
   {
+    'name': 'reduceMin float32 1D constant tensor empty axes',
+    'graph': {
+      'inputs': {
+        'reduceMinInput': {
+          'data': [-58.76195526123047, 58.76195526123047],
+          'descriptor': {shape: [2], dataType: 'float32'},
+          'constant': true
+        }
+      },
+      'operators': [{
+        'name': 'reduceMin',
+        'arguments': [{'input': 'reduceMinInput'}, {'options': {'axes': []}}],
+        'outputs': 'reduceMinOutput'
+      }],
+      'expectedOutputs': {
+        'reduceMinOutput': {
+          'data': [-58.76195526123047, 58.76195526123047],
+          'descriptor': {shape: [2], dataType: 'float32'}
+        }
+      }
+    }
+  },
+  {
     'name': 'reduceMin float32 1D constant tensor default options',
     'graph': {
       'inputs': {

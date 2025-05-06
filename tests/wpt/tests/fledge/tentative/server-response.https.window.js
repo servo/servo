@@ -24,6 +24,8 @@
 // META: variant=?63-66
 // META: variant=?67-70
 
+"use strict";
+
 // These tests focus on the serverResponse field in AuctionConfig, e.g.
 // auctions involving bidding and auction services.
 

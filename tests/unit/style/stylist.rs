@@ -26,6 +26,7 @@ use style::stylist::{
 use style::thread_state::{self, ThreadState};
 use style::values::computed::Length;
 use style::values::computed::font::GenericFontFamily;
+use style::values::specified::font::QueryFontMetricsFlags;
 use stylo_atoms::Atom;
 use url::Url;
 
@@ -38,8 +39,7 @@ impl FontMetricsProvider for DummyMetricsProvider {
         _vertical: bool,
         _font: &Font,
         _base_size: Length,
-        _in_media_query: bool,
-        _retrieve_math_scales: bool,
+        _flags: QueryFontMetricsFlags,
     ) -> FontMetrics {
         Default::default()
     }

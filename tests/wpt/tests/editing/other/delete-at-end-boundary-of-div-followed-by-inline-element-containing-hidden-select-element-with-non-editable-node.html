@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Delete at end boundary of div followed by inline element containing hidden
+select element with non editable node</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+</head>
+<body>
+<div contenteditable="true" id="editableDiv"><div id="first">First block</div>
+<span id="second">Second block<select style="visibility:hidden"></select></span></div>
+<script>
+"use strict";
+
+const kDeleteKey = "\uE017";
+
+function sendDeleteKey() {
+  return new test_driver.Actions()
+    .keyDown(kDeleteKey)
+    .keyUp(kDeleteKey)
+    .send();
+}
+
+promise_test(async () => {
+  const firstDiv = document.getElementById("first");
+  await new test_driver.click(document.querySelector('#first'));
+  const range = document.createRange();
+  const selection = window.getSelection();
+  range.setStart(firstDiv.firstChild, 11);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  await sendDeleteKey();
+  const expected= "<div id=\"first\">First blockSecond block</div>"
+    + "<span id=\"second\"><select style=\"visibility:hidden\"></select></span>";
+  assert_equals(
+    editableDiv.innerHTML,
+    expected,
+    "The test should not crash and Second block should be merged with First block"
+  );
+}, "waiting for command to execute");
+</script>
+</body>
+</html>

@@ -123,6 +123,15 @@ promise_test(async t => {
   // makes the scroll timeline stale.
   // https://github.com/w3c/csswg-drafts/issues/8694
 
+  // runAndWaitForFrameUpdate will yield after the requestAnimationFrame callbacks
+  // have been serviced, which is prior to when stale timelines are updated.
+  // https://github.com/w3c/csswg-drafts/issues/12120
+  assert_approx_equals(timeline.currentTime.value, 60, 0.1);
+
+  // Now wait another beat such that the rest of the HTML Processing Model event loop
+  // has run and we can check whether stale timelines have been updated.
+  await new Promise(setTimeout);
+
   // With a single layout, timeline current time would be at 60%, but the
   // timeline would be stale.
   const expected_progress = 60 * maxScroll / (maxScroll + 1000);

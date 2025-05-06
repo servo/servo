@@ -1,0 +1,8 @@
+features:
+- name: clip-path-boxes
+  files:
+  - clip-path-inset-stroke-001.svg
+  - clip-path-inset-stroke-002.svg
+  - clip-path-shape-circle-003.svg
+  - clip-path-shape-circle-004.svg
+  - clip-path-shape-circle-005.svg

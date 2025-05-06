@@ -8,30 +8,23 @@
 use std::rc::Rc;
 
 use euclid::{Length, Scale};
-use servo::compositing::windowing::WindowMethods;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePixel};
-use servo::{Cursor, RenderingContext, WebView};
+use servo::{Cursor, RenderingContext, ScreenGeometry, WebView};
 
 use super::app_state::RunningAppState;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;
 
-pub trait WindowPortsMethods: WindowMethods {
+pub trait WindowPortsMethods {
     fn id(&self) -> winit::window::WindowId;
-    fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        self.device_pixel_ratio_override()
-            .unwrap_or_else(|| self.device_hidpi_factor())
-    }
-    fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
-    fn device_pixel_ratio_override(
-        &self,
-    ) -> Option<Scale<f32, DeviceIndependentPixel, DevicePixel>>;
+    fn screen_geometry(&self) -> ScreenGeometry;
+    fn device_hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
+    fn hidpi_scale_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel>;
     fn page_height(&self) -> f32;
     fn get_fullscreen(&self) -> bool;
     fn handle_winit_event(&self, state: Rc<RunningAppState>, event: winit::event::WindowEvent);
-    fn is_animating(&self) -> bool;
     fn set_title(&self, _title: &str) {}
     /// Request a new inner size for the window, not including external decorations.
     fn request_resize(&self, webview: &WebView, inner_size: DeviceIntSize)

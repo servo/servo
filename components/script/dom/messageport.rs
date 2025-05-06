@@ -4,30 +4,32 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::num::NonZeroU32;
+use std::ptr;
 use std::rc::Rc;
 
-use base::id::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
+use base::id::{MessagePortId, MessagePortIndex};
+use constellation_traits::{MessagePortImpl, PortMessageTask};
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
+use js::jsapi::{Heap, JS_NewObject, JSObject};
+use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use script_traits::PortMessageTask;
-use script_traits::transferable::MessagePortImpl;
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
     MessagePortMethods, StructuredSerializeOptions,
 };
 use crate::dom::bindings::conversions::root_from_object;
-use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::error::{Error, ErrorResult, ErrorToJsval};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::{self, StructuredData, StructuredDataReader};
+use crate::dom::bindings::structuredclone::{self, StructuredData};
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::transferable::{ExtractComponents, IdFromComponents, Transferable};
+use crate::dom::bindings::transferable::Transferable;
+use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
@@ -58,7 +60,7 @@ impl MessagePort {
     }
 
     /// Create a new port for an incoming transfer-received one.
-    fn new_transferred(
+    pub(crate) fn new_transferred(
         owner: &GlobalScope,
         transferred_port: MessagePortId,
         entangled_port: Option<MessagePortId>,
@@ -79,6 +81,20 @@ impl MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#entangle>
     pub(crate) fn entangle(&self, other_id: MessagePortId) {
         *self.entangled_port.borrow_mut() = Some(other_id);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#disentangle>
+    pub(crate) fn disentangle(&self) -> Option<MessagePortId> {
+        // Disentangle initiatorPort and otherPort, so that they are no longer entangled or associated with each other.
+        // Note: called from `disentangle_port` in the global, where the rest happens.
+        self.entangled_port.borrow_mut().take()
+    }
+
+    /// Has the port been disentangled?
+    /// Used when starting the port to fire the `close` event,
+    /// to cover the case of a disentanglement while in transfer.
+    pub(crate) fn disentangled(&self) -> bool {
+        self.entangled_port.borrow().is_none()
     }
 
     pub(crate) fn message_port_id(&self) -> &MessagePortId {
@@ -120,7 +136,7 @@ impl MessagePort {
         for port in ports {
             // Step 2
             if port.message_port_id() == self.message_port_id() {
-                return Err(Error::DataClone);
+                return Err(Error::DataClone(None));
             }
 
             // Step 4
@@ -157,10 +173,86 @@ impl MessagePort {
             .post_messageport_msg(*self.message_port_id(), task);
         Ok(())
     }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-crossrealmtransformsenderror>
+    pub(crate) fn cross_realm_transform_send_error(&self, error: HandleValue, can_gc: CanGc) {
+        // Perform PackAndPostMessage(port, "error", error),
+        // discarding the result.
+        let _ = self.pack_and_post_message("error", error, can_gc);
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessagehandlingerror>
+    #[allow(unsafe_code)]
+    pub(crate) fn pack_and_post_message_handling_error(
+        &self,
+        type_: &str,
+        value: HandleValue,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        // Let result be PackAndPostMessage(port, type, value).
+        let result = self.pack_and_post_message(type_, value, can_gc);
+
+        // If result is an abrupt completion,
+        if let Err(error) = result.as_ref() {
+            // Perform ! CrossRealmTransformSendError(port, result.[[Value]]).
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut rooted_error = UndefinedValue());
+            error
+                .clone()
+                .to_jsval(cx, &self.global(), rooted_error.handle_mut(), can_gc);
+            self.cross_realm_transform_send_error(rooted_error.handle(), can_gc);
+        }
+
+        result
+    }
+
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessage>
+    #[allow(unsafe_code)]
+    pub(crate) fn pack_and_post_message(
+        &self,
+        type_: &str,
+        value: HandleValue,
+        _can_gc: CanGc,
+    ) -> ErrorResult {
+        let cx = GlobalScope::get_cx();
+
+        // Let message be OrdinaryObjectCreate(null).
+        rooted!(in(*cx) let mut message = unsafe { JS_NewObject(*cx, ptr::null()) });
+        rooted!(in(*cx) let mut type_string = UndefinedValue());
+        unsafe {
+            type_.to_jsval(*cx, type_string.handle_mut());
+        }
+
+        // Perform ! CreateDataProperty(message, "type", type).
+        unsafe {
+            set_dictionary_property(*cx, message.handle(), "type", type_string.handle())
+                .expect("Setting the message type should not fail.");
+        }
+
+        // Perform ! CreateDataProperty(message, "value", value).
+        unsafe {
+            set_dictionary_property(*cx, message.handle(), "value", value)
+                .expect("Setting the message value should not fail.");
+        }
+
+        // Let targetPort be the port with which port is entangled, if any; otherwise let it be null.
+        // Done in `global.post_messageport_msg`.
+
+        // Let options be «[ "transfer" → « » ]».
+        let mut rooted = CustomAutoRooter::new(vec![]);
+        let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
+
+        // Run the message port post message steps providing targetPort, message, and options.
+        rooted!(in(*cx) let mut message_val = UndefinedValue());
+        unsafe {
+            message.to_jsval(*cx, message_val.handle_mut());
+        }
+        self.post_message_impl(cx, message_val.handle(), transfer)
+    }
 }
 
 impl Transferable for MessagePort {
-    type Id = MessagePortId;
+    type Index = MessagePortIndex;
     type Data = MessagePortImpl;
 
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
@@ -190,30 +282,13 @@ impl Transferable for MessagePort {
         Ok(transferred_port)
     }
 
-    fn serialized_storage(data: StructuredData<'_>) -> &mut Option<HashMap<Self::Id, Self::Data>> {
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<MessagePortId, Self::Data>> {
         match data {
             StructuredData::Reader(r) => &mut r.port_impls,
             StructuredData::Writer(w) => &mut w.ports,
         }
-    }
-
-    fn deserialized_storage(reader: &mut StructuredDataReader) -> &mut Option<Vec<DomRoot<Self>>> {
-        &mut reader.message_ports
-    }
-}
-
-impl IdFromComponents for MessagePortId {
-    fn from(namespace_id: PipelineNamespaceId, index: NonZeroU32) -> MessagePortId {
-        MessagePortId {
-            namespace_id,
-            index: MessagePortIndex(index),
-        }
-    }
-}
-
-impl ExtractComponents for MessagePortId {
-    fn components(&self) -> (PipelineNamespaceId, NonZeroU32) {
-        (self.namespace_id, self.index.0)
     }
 }
 
@@ -253,20 +328,24 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
-    fn Start(&self) {
+    fn Start(&self, can_gc: CanGc) {
         if self.detached.get() {
             return;
         }
-        self.global().start_message_port(self.message_port_id());
+        self.global()
+            .start_message_port(self.message_port_id(), can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
-    fn Close(&self) {
-        if self.detached.get() {
-            return;
-        }
+    fn Close(&self, can_gc: CanGc) {
+        // Set this's [[Detached]] internal slot value to true.
         self.detached.set(true);
-        self.global().close_message_port(self.message_port_id());
+
+        let global = self.global();
+        global.close_message_port(self.message_port_id());
+
+        // If this is entangled, disentangle it.
+        global.disentangle_port(self, can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
@@ -279,15 +358,19 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessage>
-    fn SetOnmessage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnmessage(&self, listener: Option<Rc<EventHandlerNonNull>>, can_gc: CanGc) {
         if self.detached.get() {
             return;
         }
         self.set_onmessage(listener);
         // Note: we cannot use the event_handler macro, due to the need to start the port.
-        self.global().start_message_port(self.message_port_id());
+        self.global()
+            .start_message_port(self.message_port_id(), can_gc);
     }
 
     // <https://html.spec.whatwg.org/multipage/#handler-messageport-onmessageerror>
     event_handler!(messageerror, GetOnmessageerror, SetOnmessageerror);
+
+    // <https://html.spec.whatwg.org/multipage/#handler-messageport-onclose>
+    event_handler!(close, GetOnclose, SetOnclose);
 }

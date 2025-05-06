@@ -15,7 +15,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::dom::xrhittestresult::XRHitTestResult;
 use crate::dom::xrhittestsource::XRHitTestSource;
 use crate::dom::xrjointpose::XRJointPose;
@@ -50,14 +50,14 @@ impl XRFrame {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
+        window: &Window,
         session: &XRSession,
         data: Frame,
         can_gc: CanGc,
     ) -> DomRoot<XRFrame> {
         reflect_dom_object(
             Box::new(XRFrame::new_inherited(session, data)),
-            global,
+            window,
             can_gc,
         )
     }
@@ -123,7 +123,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             return Ok(None);
         };
         Ok(Some(XRViewerPose::new(
-            &self.global(),
+            self.global().as_window(),
             &self.session,
             to_base,
             viewer_pose,
@@ -155,7 +155,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             return Ok(None);
         };
         let pose = space.then(&base_space.inverse());
-        Ok(Some(XRPose::new(&self.global(), pose, can_gc)))
+        Ok(Some(XRPose::new(self.global().as_window(), pose, can_gc)))
     }
 
     /// <https://immersive-web.github.io/webxr/#dom-xrframe-getpose>
@@ -185,7 +185,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
         };
         let pose = joint_frame.pose.then(&base_space.inverse());
         Ok(Some(XRJointPose::new(
-            &self.global(),
+            self.global().as_window(),
             pose.cast_unit(),
             Some(joint_frame.radius),
             can_gc,
@@ -198,7 +198,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             .hit_test_results
             .iter()
             .filter(|r| r.id == source.id())
-            .map(|r| XRHitTestResult::new(&self.global(), *r, self, CanGc::note()))
+            .map(|r| XRHitTestResult::new(self.global().as_window(), *r, self, CanGc::note()))
             .collect()
     }
 

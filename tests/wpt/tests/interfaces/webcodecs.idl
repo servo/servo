@@ -141,7 +141,7 @@ dictionary AudioDecoderConfig {
   required DOMString codec;
   [EnforceRange] required unsigned long sampleRate;
   [EnforceRange] required unsigned long numberOfChannels;
-  BufferSource description;
+  AllowSharedBufferSource description;
 };
 
 dictionary VideoDecoderConfig {

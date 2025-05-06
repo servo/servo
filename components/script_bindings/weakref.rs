@@ -29,7 +29,7 @@ use crate::root::DomRoot;
 /// stored for weak-referenceable bindings. We use slot 1 for holding it,
 /// this is unsafe for globals, we disallow weak-referenceable globals
 /// directly in codegen.
-pub const DOM_WEAK_SLOT: u32 = 1;
+pub(crate) const DOM_WEAK_SLOT: u32 = 1;
 
 /// A weak reference to a JS-managed DOM object.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]

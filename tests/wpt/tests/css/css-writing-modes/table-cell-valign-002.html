@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Writing Modes test: vertical-align in orthogonal table cell</title>
+
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#line-mappings">
+<meta assert="For the vertical-align property, the 'top' of the line box is its over edge; the 'bottom' of the line box is its under edge.">
+<link rel="match" href="reference/table-cell-valign-001-ref.html">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+
+<meta name="flags" content="ahem" />
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+table {
+  font: 50px/1 Ahem;
+}
+
+.v {
+  writing-mode: vertical-rl;
+}
+
+.h {
+  writing-mode: horizontal-tb;
+}
+
+td {
+  block-size: 2em;
+  padding: 0;
+  color: green;
+}
+
+/* If vertical-align works correctly on the cells, their green Ahem glyphs
+   should cover the red part of each background. */
+td:nth-child(1) {
+  vertical-align: top;
+  background: linear-gradient(to bottom, red 50%, transparent 50%);
+}
+td:nth-child(2) {
+  vertical-align: middle;
+  background: linear-gradient(to bottom, transparent 25%, red 25%, red 75%, transparent 75%);
+}
+td:nth-child(3) {
+  vertical-align: bottom;
+  background: linear-gradient(to bottom, transparent 50%, red 50%);
+}
+</style>
+
+<table class=v border=1>
+ <tr>
+  <td class=h>XX</td>
+  <td class=h>XX</td>
+  <td class=h>XX</td>
+ </tr>
+</table>

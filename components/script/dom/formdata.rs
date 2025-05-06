@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 use js::rust::HandleObject;
-use script_traits::serializable::BlobImpl;
 
 use super::bindings::trace::NoTrace;
 use crate::dom::bindings::cell::DomRefCell;
@@ -275,12 +275,13 @@ impl FormData {
         };
 
         let bytes = blob.get_bytes().unwrap_or_default();
+        let last_modified = blob.downcast::<File>().map(|file| file.get_modified());
 
         File::new(
             &self.global(),
             BlobImpl::new_from_bytes(bytes, blob.type_string()),
             name,
-            None,
+            last_modified,
             can_gc,
         )
     }

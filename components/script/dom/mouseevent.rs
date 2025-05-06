@@ -5,8 +5,8 @@
 use std::cell::Cell;
 use std::default::Default;
 
-use constellation_traits::CompositorHitTestResult;
 use dom_struct::dom_struct;
+use embedder_traits::CompositorHitTestResult;
 use euclid::default::Point2D;
 use js::rust::HandleObject;
 use servo_config::pref;
@@ -342,6 +342,9 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             None,
             can_gc,
         );
+        event
+            .upcast::<Event>()
+            .set_composed(init.parent.parent.parent.composed);
         Ok(event)
     }
 

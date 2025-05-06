@@ -4,6 +4,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
   test(() => {
-    assert_in_array('trust-token-redemption', document.featurePolicy.features());
+    assert_true(
+        document.featurePolicy.features().includes('trust-token-redemption'),
+        'trust token redemption should be in document.featurePolicy.features()');
   }, 'document.featurePolicy.features should advertise trust token redemption.');
 </script>

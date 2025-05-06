@@ -8,7 +8,7 @@
 // META: variant=?6-10
 // META: variant=?11-15
 
-'use strict;'
+'use strict';
 
 // These tests cover encodeUtf8 and decodeUtf8.
 

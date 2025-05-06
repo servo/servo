@@ -46,4 +46,8 @@ impl ProtocolHandler for UrlInfoProtocolHander {
     fn is_fetchable(&self) -> bool {
         true
     }
+
+    fn is_secure(&self) -> bool {
+        true
+    }
 }

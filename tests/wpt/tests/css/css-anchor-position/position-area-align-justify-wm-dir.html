@@ -22,7 +22,7 @@
     position: absolute;
     width: 10px;
     height: 10px;
-    inset: 10px;
+    inset: 10px 15px 20px 25px;
     position-anchor: --anchor;
   }
 </style>
@@ -41,10 +41,10 @@
     }, "Offsets for: " + position_area + " with writing-mode / direction: " + writing_direction);
   }
 
-  const top_left = {left:80, top:80, width:10, height:10};
-  const top_right = {left:210, top:80, width:10, height:10};
-  const bottom_left = {left:80, top:210, width:10, height:10};
-  const bottom_right = {left:210, top:210, width:10, height:10};
+  const top_left = {left:75, top:70, width:10, height:10};
+  const top_right = {left:225, top:70, width:10, height:10};
+  const bottom_left = {left:75, top:210, width:10, height:10};
+  const bottom_right = {left:225, top:210, width:10, height:10};
 
   anchored.style.writingMode = "horizontal-tb";
   anchored.style.direction = "ltr";

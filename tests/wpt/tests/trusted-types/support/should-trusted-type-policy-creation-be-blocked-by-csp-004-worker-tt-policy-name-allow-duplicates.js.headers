@@ -1,0 +1,2 @@
+Content-Security-Policy: connect-src 'none'
+Content-Security-Policy: trusted-types tt-policy-name 'allow-duplicates'

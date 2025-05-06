@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<head>
+<style>
+    .target {
+        --spread: 7px;
+        --offset-x: 10px;
+        --offset-y: 12px;
+        --width: 200px;
+        --height: 200px;
+        --border-width: 5px;
+        width: var(--width);
+        height: var(--height);
+        box-sizing: border-box;
+        corner-shape: bevel square scoop;
+        border-radius: 30%;
+        border: var(--border-width) solid purple;
+        overflow: clip;
+        background: blue;
+        position: relative;
+    }
+
+    .target::after {
+        content: " ";
+        display: block;
+        background: green;
+        corner-shape: inherit;
+        border-radius: inherit;
+        position: relative;
+        box-sizing: inherit;
+        left: calc(var(--offset-x) + var(--spread));
+        top: calc(var(--offset-y) + var(--spread));
+        width: calc(var(--width) - var(--spread) * 2 - var(--border-width) * 2);
+        height: calc(var(--height) - var(--spread) * 2 - var(--border-width) * 2);
+    }
+</style>
+</head>
+<body>
+    <div class="target"></div>
+</body>

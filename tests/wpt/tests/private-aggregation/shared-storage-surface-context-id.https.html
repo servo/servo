@@ -11,7 +11,7 @@
 'use strict';
 
 promise_test(async () => {
-  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+  await addModuleOnce("/private-aggregation/resources/shared-storage-helper-module.js");
 
   const data = {
     contributions: [{bucket: 1n, value: 2}]
@@ -25,7 +25,7 @@ promise_test(async () => {
 }, 'set context ID');
 
 promise_test(async () => {
-  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+  await addModuleOnce("/private-aggregation/resources/shared-storage-helper-module.js");
 
   const data = {
     contributions: [{bucket: 1n, value: 2}]
@@ -39,7 +39,7 @@ promise_test(async () => {
 }, 'set empty context ID');
 
 promise_test(async () => {
-  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+  await addModuleOnce("/private-aggregation/resources/shared-storage-helper-module.js");
 
   const data = {
     contributions: [{bucket: 1n, value: 2}]
@@ -53,7 +53,7 @@ promise_test(async () => {
 }, 'set max length context ID');
 
 promise_test(async (test) => {
-  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+  await addModuleOnce("/private-aggregation/resources/shared-storage-helper-module.js");
 
   const data = {
     contributions: [{bucket: 1n, value: 2}]

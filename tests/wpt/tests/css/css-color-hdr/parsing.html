@@ -20,6 +20,8 @@
   test_valid_value("dynamic-range-limit", "dynamic-range-limit-mix(dynamic-range-limit-mix(constrained 90%, no-limit 10%) 1%, no-limit 80%)");
   test_valid_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 1%, dynamic-range-limit-mix(constrained 2%, no-limit 10%) 80%)");
   test_valid_value("dynamic-range-limit", "dynamic-range-limit-mix(dynamic-range-limit-mix(no-limit 1%, standard 2%) 3%, dynamic-range-limit-mix(constrained 5%, no-limit 5%) 6%)");
+  test_valid_value("dynamic-range-limit", "dynamic-range-limit-mix(standard calc(50% * sign(10em - 1px)), constrained 50%)");
+
   test_invalid_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit 80%, standard 20%, )");
   test_invalid_value("dynamic-range-limit", "dynamic-range-limit-mix(no-limit, standard 20%)");
   test_invalid_value("dynamic-range-limit", "dynamic-range-limit-mix(constrained, no-limit, 80%)");

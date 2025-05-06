@@ -16,8 +16,16 @@ dictionary SecurePaymentConfirmationRequest {
     boolean showOptOut;
 };
 
+enum SecurePaymentConfirmationAvailability {
+  "available",
+  "unavailable-unknown-reason",
+  "unavailable-feature-not-enabled",
+  "unavailable-no-permission-policy",
+  "unavailable-no-user-verifying-platform-authenticator",
+};
+
 partial interface PaymentRequest {
-    static Promise<boolean> isSecurePaymentConfirmationAvailable();
+    static Promise<SecurePaymentConfirmationAvailability> securePaymentConfirmationAvailability();
 };
 
 partial dictionary AuthenticationExtensionsClientInputs {

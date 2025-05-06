@@ -78,6 +78,7 @@ pub enum WebDriverScriptCommand {
         IpcSender<Result<(), WebDriverCookieError>>,
     ),
     DeleteCookies(IpcSender<Result<(), ErrorStatus>>),
+    DeleteCookie(String, IpcSender<Result<(), ErrorStatus>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
     FindElementCSS(String, IpcSender<Result<Option<String>, ErrorStatus>>),
@@ -113,6 +114,7 @@ pub enum WebDriverScriptCommand {
     FocusElement(String, IpcSender<Result<(), ErrorStatus>>),
     ElementClick(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetActiveElement(IpcSender<Option<String>>),
+    GetComputedRole(String, IpcSender<Result<Option<String>, ErrorStatus>>),
     GetCookie(String, IpcSender<Vec<Serde<Cookie<'static>>>>),
     GetCookies(IpcSender<Vec<Serde<Cookie<'static>>>>),
     GetElementAttribute(
@@ -168,6 +170,7 @@ pub enum WebDriverJSError {
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
     BrowsingContextNotFound,
+    JSException(WebDriverJSValue),
     JSError,
     StaleElementReference,
     Timeout,

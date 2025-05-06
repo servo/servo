@@ -310,6 +310,138 @@
         handle_shared_worker.port.postMessage("Same-origin handle access");
         break;
       }
+      case "BlobURLDedicatedWorker": {
+        const fetch_unsuccessful_response = "fetch_unsuccessful";
+        const fetch_successful_response = "fetch_successful";
+
+        const can_blob_url_be_fetched_js = `
+          onmessage = async (e) => {
+            const blob_url = e.data;
+            try {
+              const blob = await fetch(blob_url).then(response => response.blob());
+              await blob.text();
+              postMessage("${fetch_successful_response}");
+            } catch(e) {
+              postMessage("${fetch_unsuccessful_response}");
+            }
+          };
+        `;
+
+        // case 1: create dedicated worker w/o granting storage access
+        const worker_blob_url = new Blob([can_blob_url_be_fetched_js], { type: 'text/javascript' });
+        const third_party_blob_url = URL.createObjectURL(worker_blob_url);
+
+        const worker_1 = new Worker(third_party_blob_url);
+
+        await MaybeSetStorageAccess("*", "*", "allowed");
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({all: true}));
+
+        const worker_blob = new Blob(["potato"]);
+        const first_party_blob_url = handle.createObjectURL(worker_blob);
+
+        const worker_response_promise = new Promise((resolve) => {
+          worker_1.onmessage = (e) => { resolve(e.data) };
+          worker_1.postMessage(first_party_blob_url);
+        });
+
+        const worker_response = await worker_response_promise;
+        if (worker_response === fetch_unsuccessful_response) {
+          message = "Dedicated worker expectedly failed fetching first-party blob URL from a third-party context without granting storage access.";
+        } else if (worker_response === fetch_successful_response) {
+          message = "Dedicated worker unexpectedly fetched first-party blob URL from a third-party context without granting storage access.";
+          break;
+        }
+
+        // case 2: create dedicated worker after storage access is granted
+        const worker_2 = new Worker(third_party_blob_url);
+        const worker_response_promise2 = new Promise((resolve) => {
+          worker_2.onmessage = (e) => { resolve(e.data) };
+          worker_2.postMessage(first_party_blob_url);
+        });
+        const worker_response2 = await worker_response_promise2;
+
+        URL.revokeObjectURL(third_party_blob_url);
+        handle.revokeObjectURL(first_party_blob_url);
+        worker_2.terminate();
+
+        if (worker_response2 === fetch_unsuccessful_response) {
+          message = "Dedicated worker unexpectedly failed fetching first-party blob URL from a third-party context with granting storage access.";
+          break;
+        } else if (worker_response2 === fetch_successful_response) {
+          message = "Blob URL DedicatedWorker tests completed successfully.";
+        }
+        break;
+      }
+      case "ThirdPartyBlobURL": {
+        await MaybeSetStorageAccess("*", "*", "allowed");
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({all: true}));
+        try {
+          const blob = await fetch(atob(id)).then(response => response.blob());
+          await blob.text();
+        } catch (e) {
+          message = "Third Party Blob URL tests completed successfully.";
+          break;
+        }
+        message = "Cross-partition third-party blob URL was accessible after granting storage access";
+        break;
+      }
+      case "BlobURLSharedWorker": {
+        const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({createObjectURL: true, revokeObjectURL: true, SharedWorker: true}));
+        const workerScript = await fetch('/storage-access-api/resources/shared-worker-relay.js').then(response => response.text());
+        const workerBlob = new Blob([workerScript], { type: 'text/javascript' });
+
+        const firstPartyBlobUrl = handle.createObjectURL(workerBlob);
+        const thirdPartyWorker = new SharedWorker(firstPartyBlobUrl);
+        var workerCreated = true;
+        await new Promise((resolve) => {
+          thirdPartyWorker.onerror = (event) => {
+            message = "Third-party SharedWorker not created from first-party blob URL unexpectedly.";
+            workerCreated = false;
+            resolve();
+          }
+          thirdPartyWorker.port.onmessage = (event) => {
+            message = "Third-party SharedWorker created from first-party blob URL.";
+            resolve();
+          }
+          thirdPartyWorker.port.postMessage("ping");
+        });
+        if (!workerCreated) {
+          break;
+        }
+
+        const firstPartyWorker = handle.SharedWorker(firstPartyBlobUrl);
+        await new Promise((resolve) => {
+          firstPartyWorker.onerror = (event) => {
+            message = "First-party SharedWorker not created from first-party blob URL unexpectedly.";
+            workerCreated = false;
+            resolve();
+          }
+          firstPartyWorker.port.onmessage = (event) => {
+            message = "First-party SharedWorker created from first-party blob URL.";
+            resolve();
+          }
+          firstPartyWorker.port.postMessage("ping");
+        });
+        if (!workerCreated) {
+          break;
+        }
+
+        const thirdPartyBlobUrl = URL.createObjectURL(workerBlob);
+        const worker = handle.SharedWorker(thirdPartyBlobUrl);
+        await new Promise((resolve) => {
+          worker.onerror = (event) => {
+            message = "Blob URL SharedWorker tests completed successfully.";
+            workerCreated = false;
+            resolve();
+          };
+          worker.port.onmessage = (event) => {
+            message = "First-party SharedWorker created from third-party blob URL unexpectedly.";
+            resolve();
+          }
+          worker.port.postMessage("ping");
+        });
+        break;
+      }
       case "unpartitioned": {
         await MaybeSetStorageAccess("*", "*", "allowed");
         await test_driver.set_permission({ name: 'storage-access' }, 'denied');

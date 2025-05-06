@@ -38,6 +38,10 @@ dictionary RTCCodecStats : RTCStats {
 
 dictionary RTCReceivedRtpStreamStats : RTCRtpStreamStats {
              unsigned long long   packetsReceived;
+             unsigned long long   packetsReceivedWithEct1;
+             unsigned long long   packetsReceivedWithCe;
+             unsigned long long   packetsReportedAsLost;
+             unsigned long long   packetsReportedAsLostButRecovered;
              long long            packetsLost;
              double               jitter;
 };
@@ -107,11 +111,13 @@ dictionary RTCRemoteInboundRtpStreamStats : RTCReceivedRtpStreamStats {
              double               totalRoundTripTime;
              double               fractionLost;
              unsigned long long   roundTripTimeMeasurements;
+             unsigned long long   packetsWithBleachedEct1Marking;
 };
 
 dictionary RTCSentRtpStreamStats : RTCRtpStreamStats {
-             unsigned long long packetsSent;
-             unsigned long long bytesSent;
+            unsigned long long packetsSent;
+            unsigned long long bytesSent;
+            unsigned long long packetsSentWithEct1;
 };
 
 dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
@@ -119,6 +125,7 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              DOMString            mediaSourceId;
              DOMString            remoteId;
              DOMString            rid;
+             unsigned long        encodingIndex;
              unsigned long long   headerBytesSent;
              unsigned long long   retransmittedPacketsSent;
              unsigned long long   retransmittedBytesSent;
@@ -225,6 +232,8 @@ dictionary RTCTransportStats : RTCStats {
              RTCDtlsRole           dtlsRole;
              DOMString             srtpCipher;
              unsigned long         selectedCandidatePairChanges;
+             unsigned long         ccfbMessagesSent;
+       unsigned long         ccfbMessagesReceived;
 };
 
 enum RTCDtlsRole {

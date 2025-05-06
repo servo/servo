@@ -19,18 +19,27 @@
     const document_loaded = new Promise(resolve => window.onload = resolve);
     await document_loaded;
 
-    const eval_error = new Promise(resolve => {
-      window.addEventListener('message', function(e) {
-        assert_not_equals(e.data, 'FAIL', 'eval was executed in the frame');
-        if (e.data === 'PASS')
-          resolve();
+    const eval_error = new Promise((resolve, reject) => {
+      window.addEventListener('message', function(event) {
+        try {
+          assert_not_equals(event.data, 'FAIL', 'eval was executed in the frame');
+          if (event.data === 'PASS') {
+            resolve();
+          }
+        } catch (e) {
+          reject(e);
+        }
       });
     });
-    const csp_violation_report = new Promise(resolve => {
-      window.addEventListener('message', function(e) {
-        if (e.data["violated-directive"]) {
-          assert_equals(e.data["violated-directive"], "script-src");
-          resolve();
+    const csp_violation_report = new Promise((resolve, reject) => {
+      window.addEventListener('message', function(event) {
+        try {
+          if (event.data["violated-directive"]) {
+            assert_equals(event.data["violated-directive"], "script-src");
+            resolve();
+          }
+        } catch (e) {
+          reject(e);
         }
       });
     });

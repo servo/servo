@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <title>beforematch fired on ScrollToTextFragment</title>
 <link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
-<link rel="help" href="https://github.com/WICG/display-locking">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-details-element">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -26,5 +26,5 @@ promise_test(t => new Promise((resolve, reject) => {
     'The matching closed details element should be open.');
   assert_true(results.pageYOffsetAfterRaf > 0,
     'The page should be scrolled down to the match.');
-}), 'Verifies that the beforematch event is fired on the matching element of a ScrollToTextFragment navigation.');
+}), 'Verifies that the target page has scrolled as a result of a ScrollToTextFragment navigation.');
 </script>

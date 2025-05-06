@@ -3,24 +3,12 @@
   <script nonce="123" src="/resources/testharness.js"></script>
   <script nonce="123"src="/resources/testharnessreport.js"></script>
   <script src="./support/csp-violations.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="script-src http: https: 'nonce-123' 'report-sample'">
+  <meta http-equiv="Content-Security-Policy" content="connect-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script'">
 </head>
 <body>
   <script nonce="123">
-  // CSP insists the "trusted-types: ..." directives are deliverd as headers
-  // (rather than as "<meta http-equiv" tags). This test assumes the following
-  // headers are set in the .headers file:
-  //
-  //   Content-Security-Policy: script-src 'unsafe-inline'; report-uri ...
-  //   Content-Security-Policy: connect-src 'none'
-  //   Content-Security-Policy: require-trusted-types-for 'script'
-  //
-  // The second rule is there so we can provoke a CSP violation report at will.
-  // The intent is that in order to test that a violation has *not* been thrown
-  // (and without resorting to abominations like timeouts), we force a *another*
-  // CSP violation (by violating the connect-src rule) and when that event is
-  // processed we can we sure that an earlier event - if it indeed occurred -
-  // must have already been processed.
-
   // A sample policy we use to test trustedTypes.createPolicy behaviour.
   const id = x => x;
   const a_policy = {

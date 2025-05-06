@@ -34,9 +34,11 @@ use js::rust::{
     CustomAutoRooterGuard, Handle, MutableHandleObject,
     MutableHandleValue as SafeMutableHandleValue,
 };
+#[cfg(feature = "webgpu")]
+use js::typedarray::{ArrayBuffer, HeapArrayBuffer};
 use js::typedarray::{
-    ArrayBuffer, ArrayBufferU8, ArrayBufferView, ArrayBufferViewU8, CreateWith, HeapArrayBuffer,
-    TypedArray, TypedArrayElement, TypedArrayElementCreator,
+    ArrayBufferU8, ArrayBufferView, ArrayBufferViewU8, CreateWith, TypedArray, TypedArrayElement,
+    TypedArrayElementCreator,
 };
 
 use crate::dom::bindings::error::{Error, Fallible};

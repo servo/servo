@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<style>
+     body {
+        margin: 0px;
+    }
+
+    .mc {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        width: 100px;
+        height: 100px;
+        columns: 2;
+        column-fill: auto;
+        column-gap: 10px;
+    }
+
+    .fake-column-gaps {
+        position: absolute;
+        top: 4px;
+        left: 45px;
+        display: flex;
+        height: 92px;
+        column-gap: 45px;
+    }
+
+    .column-gap {
+        width: 10px;
+        background: gold;
+    }
+</style>
+
+<div class="fake-column-gaps">
+    <div class="column-gap"></div>
+    <div class="column-gap"></div>
+    <div class="column-gap"></div>
+</div>
+<div class="mc">
+    <div style="height: 400px; background: cyan;">
+    </div>
+</div>

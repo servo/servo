@@ -282,6 +282,10 @@ impl TouchHandler {
         debug_assert!(old.is_some(), "Sequence already removed?");
     }
 
+    pub fn try_get_current_touch_sequence(&self) -> Option<&TouchSequenceInfo> {
+        self.touch_sequence_map.get(&self.current_sequence_id)
+    }
+
     pub fn get_current_touch_sequence_mut(&mut self) -> &mut TouchSequenceInfo {
         self.touch_sequence_map
             .get_mut(&self.current_sequence_id)
@@ -329,10 +333,7 @@ impl TouchHandler {
                 .active_touch_points
                 .push(TouchPoint::new(id, point));
             match touch_sequence.active_touch_points.len() {
-                2 => {
-                    touch_sequence.state = Pinching;
-                },
-                3.. => {
+                2.. => {
                     touch_sequence.state = MultiTouch;
                 },
                 0..2 => {
@@ -381,7 +382,8 @@ impl TouchHandler {
         {
             Some(i) => i,
             None => {
-                unreachable!("Got a touchmove event for a non-active touch point");
+                error!("Got a touchmove event for a non-active touch point");
+                return TouchMoveAction::NoAction;
             },
         };
         let old_point = touch_sequence.active_touch_points[idx].point;

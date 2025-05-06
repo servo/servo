@@ -7,7 +7,7 @@
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use js::rust::HandleObject;
-use webgpu::wgt::Features;
+use wgpu_types::Features;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{

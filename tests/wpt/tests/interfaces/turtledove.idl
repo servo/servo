@@ -206,6 +206,7 @@ partial interface Navigator {
 [Exposed=InterestGroupScriptRunnerGlobalScope]
 interface InterestGroupScriptRunnerGlobalScope {
   readonly attribute PrivateAggregation? privateAggregation;
+  readonly attribute ProtectedAudienceUtilities protectedAudience;
 };
 
 dictionary PASignalValue {
@@ -218,6 +219,12 @@ dictionary PAExtendedHistogramContribution {
   required (PASignalValue or bigint) bucket;
   required (PASignalValue or long) value;
   bigint filteringId = 0;
+};
+
+[Exposed=InterestGroupScriptRunnerGlobalScope]
+interface ProtectedAudienceUtilities {
+  Uint8Array encodeUtf8(USVString input);
+  USVString decodeUtf8(Uint8Array bytes);
 };
 
 [Exposed=InterestGroupBiddingAndScoringScriptRunnerGlobalScope]

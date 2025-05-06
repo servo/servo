@@ -14,7 +14,6 @@ interface WebTransportDatagramDuplexStream {
   WebTransportDatagramsWritable createWritable(
       optional WebTransportSendOptions options = {});
   readonly attribute ReadableStream readable;
-  readonly attribute WebTransportDatagramsWritable writable;
 
   readonly attribute unsigned long maxDatagramSize;
   attribute unrestricted double? incomingMaxAge;
