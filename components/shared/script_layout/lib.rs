@@ -20,6 +20,7 @@ use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{LoadData, ScrollState};
+use embedder_traits::resources::{self, Resource};
 use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
@@ -43,11 +44,13 @@ use style::context::QuirksMode;
 use style::data::ElementData;
 use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::media_queries::Device;
+use style::media_queries::{Device, MediaList};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
-use style::stylesheets::Stylesheet;
+use style::shared_lock::SharedRwLock;
+use style::stylesheets::{DocumentStyleSheet, Origin, Stylesheet};
+use url::Url;
 use webrender_api::ImageKey;
 use webrender_api::units::DeviceIntSize;
 
@@ -634,4 +637,44 @@ mod test {
         assert_eq!(image_animation_state.active_frame, 1);
         assert_eq!(image_animation_state.last_update_time, 0.101);
     }
+}
+
+pub fn parse_stylesheet_as_origin(
+    shared_lock: &SharedRwLock,
+    filename: &str,
+    content: &[u8],
+    origin: Origin,
+) -> Result<ServoArc<Stylesheet>, &'static str> {
+    let url = Url::parse(&format!("chrome://resources/{:?}", filename))
+        .ok()
+        .unwrap();
+    Ok(ServoArc::new(Stylesheet::from_bytes(
+        content,
+        url.into(),
+        None,
+        None,
+        origin,
+        MediaList::empty(),
+        shared_lock.clone(),
+        None,
+        None,
+        QuirksMode::NoQuirks,
+    )))
+}
+
+pub fn parse_ua_stylesheet(
+    shared_lock: &SharedRwLock,
+    filename: &str,
+    content: &[u8],
+) -> Result<DocumentStyleSheet, &'static str> {
+    parse_stylesheet_as_origin(shared_lock, filename, content, Origin::UserAgent)
+        .map(DocumentStyleSheet)
+}
+
+pub fn parse_resource_stylesheet(
+    shared_lock: &SharedRwLock,
+    resources: Resource,
+) -> Result<ServoArc<Stylesheet>, &'static str> {
+    let content = &resources::read_bytes(resources.clone());
+    parse_stylesheet_as_origin(shared_lock, resources.filename(), content, Origin::Author)
 }
