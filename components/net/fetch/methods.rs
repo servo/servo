@@ -737,7 +737,7 @@ impl RangeRequestBounds {
             RangeRequestBounds::Final(pos) => {
                 if let Some(len) = len {
                     if pos.start <= len as i64 {
-                        return Ok(pos.clone());
+                        return Ok(*pos);
                     }
                 }
                 Err("Tried to process RangeRequestBounds::Final without len")

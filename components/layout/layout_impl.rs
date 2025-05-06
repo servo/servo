@@ -69,7 +69,7 @@ use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength};
-use style::values::specified::font::KeywordInfo;
+use style::values::specified::font::{KeywordInfo, QueryFontMetricsFlags};
 use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
@@ -1100,8 +1100,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
         _vertical: bool,
         font: &Font,
         base_size: CSSPixelLength,
-        _in_media_query: bool,
-        _retrieve_math_scales: bool,
+        _flags: QueryFontMetricsFlags,
     ) -> FontMetrics {
         let font_context = &self.0;
         let font_group = self
