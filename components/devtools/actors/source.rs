@@ -86,16 +86,8 @@ impl SourceActor {
         }
     }
 
-    pub fn new_source(actors: &mut ActorRegistry, url: &ServoUrl, content: String) -> String {
+    pub fn new_source(actors: &mut ActorRegistry, content: String, content_type: String) -> String {
         let source_actor_name = actors.new_name("source");
-
-        // this can do better, we should find a way to identify content_type
-        // maybe get it directly from script?
-        let content_type = match url.path().rsplit('.').next() {
-            Some("js") => "application/javascript",
-            _ => "text/plain",
-        }
-        .to_string();
 
         let source_actor = SourceActor::new(source_actor_name.clone(), content, content_type);
         actors.register(Box::new(source_actor));
