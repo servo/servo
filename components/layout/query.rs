@@ -9,6 +9,7 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
+use script::layout_dom::ServoLayoutNode;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
@@ -20,7 +21,7 @@ use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapseValue;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
-use style::dom::{OpaqueNode, TElement};
+use style::dom::{NodeInfo, OpaqueNode, TElement, TNode};
 use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
@@ -46,7 +47,7 @@ use crate::fragment_tree::{
 };
 use crate::taffy::SpecificTaffyGridInfo;
 
-pub fn process_content_box_request<'dom>(node: impl LayoutNode<'dom> + 'dom) -> Option<Rect<Au>> {
+pub fn process_content_box_request(node: ServoLayoutNode<'_>) -> Option<Rect<Au>> {
     let rects: Vec<_> = node
         .fragments_for_pseudo(None)
         .iter()
@@ -61,7 +62,7 @@ pub fn process_content_box_request<'dom>(node: impl LayoutNode<'dom> + 'dom) -> 
     }))
 }
 
-pub fn process_content_boxes_request<'dom>(node: impl LayoutNode<'dom> + 'dom) -> Vec<Rect<Au>> {
+pub fn process_content_boxes_request(node: ServoLayoutNode<'_>) -> Vec<Rect<Au>> {
     node.fragments_for_pseudo(None)
         .iter()
         .filter_map(Fragment::cumulative_border_box_rect)
@@ -69,7 +70,7 @@ pub fn process_content_boxes_request<'dom>(node: impl LayoutNode<'dom> + 'dom) -
         .collect()
 }
 
-pub fn process_client_rect_request<'dom>(node: impl LayoutNode<'dom> + 'dom) -> Rect<i32> {
+pub fn process_client_rect_request(node: ServoLayoutNode<'_>) -> Rect<i32> {
     node.fragments_for_pseudo(None)
         .first()
         .map(Fragment::client_rect)
@@ -77,8 +78,8 @@ pub fn process_client_rect_request<'dom>(node: impl LayoutNode<'dom> + 'dom) -> 
 }
 
 /// <https://drafts.csswg.org/cssom-view/#scrolling-area>
-pub fn process_node_scroll_area_request<'dom>(
-    requested_node: Option<impl LayoutNode<'dom> + 'dom>,
+pub fn process_node_scroll_area_request(
+    requested_node: Option<ServoLayoutNode<'_>>,
     fragment_tree: Option<Arc<FragmentTree>>,
 ) -> Rect<i32> {
     let Some(tree) = fragment_tree else {
@@ -105,9 +106,9 @@ pub fn process_node_scroll_area_request<'dom>(
 
 /// Return the resolved value of property for a given (pseudo)element.
 /// <https://drafts.csswg.org/cssom/#resolved-value>
-pub fn process_resolved_style_request<'dom>(
+pub fn process_resolved_style_request(
     context: &SharedStyleContext,
-    node: impl LayoutNode<'dom> + 'dom,
+    node: ServoLayoutNode<'_>,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
 ) -> String {
@@ -361,9 +362,9 @@ fn resolve_grid_template(
     }
 }
 
-pub fn process_resolved_style_request_for_unstyled_node<'dom>(
+pub fn process_resolved_style_request_for_unstyled_node(
     context: &SharedStyleContext,
-    node: impl LayoutNode<'dom>,
+    node: ServoLayoutNode<'_>,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
 ) -> String {
@@ -434,9 +435,7 @@ struct OffsetParentFragments {
 }
 
 /// <https://www.w3.org/TR/2016/WD-cssom-view-1-20160317/#dom-htmlelement-offsetparent>
-fn offset_parent_fragments<'dom>(
-    node: impl LayoutNode<'dom> + 'dom,
-) -> Option<OffsetParentFragments> {
+fn offset_parent_fragments(node: ServoLayoutNode<'_>) -> Option<OffsetParentFragments> {
     // 1. If any of the following holds true return null and terminate this algorithm:
     //  * The element does not have an associated CSS layout box.
     //  * The element is the root element.
@@ -498,9 +497,7 @@ fn offset_parent_fragments<'dom>(
 }
 
 #[inline]
-pub fn process_offset_parent_query<'dom>(
-    node: impl LayoutNode<'dom> + 'dom,
-) -> Option<OffsetParentResponse> {
+pub fn process_offset_parent_query(node: ServoLayoutNode<'_>) -> Option<OffsetParentResponse> {
     // Only consider the first fragment of the node found as per a
     // possible interpretation of the specification: "[...] return the
     // y-coordinate of the top border edge of the first CSS layout box
@@ -580,7 +577,7 @@ pub fn process_offset_parent_query<'dom>(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
-pub fn get_the_text_steps<'dom>(node: impl LayoutNode<'dom>) -> String {
+pub fn get_the_text_steps(node: ServoLayoutNode<'_>) -> String {
     // Step 1: If element is not being rendered or if the user agent is a non-CSS user agent, then
     // return element's descendant text content.
     // This is taken care of in HTMLElemnent code
@@ -668,8 +665,8 @@ impl Default for RenderedTextCollectionState {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#rendered-text-collection-steps>
-fn rendered_text_collection_steps<'dom>(
-    node: impl LayoutNode<'dom>,
+fn rendered_text_collection_steps(
+    node: ServoLayoutNode<'_>,
     state: &mut RenderedTextCollectionState,
 ) -> Vec<InnerOrOuterTextItem> {
     // Step 1. Let items be the result of running the rendered text collection

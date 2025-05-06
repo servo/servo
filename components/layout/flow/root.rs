@@ -6,12 +6,13 @@ use app_units::Au;
 use atomic_refcell::AtomicRef;
 use compositing_traits::display_list::AxesScrollSensitivity;
 use malloc_size_of_derive::MallocSizeOf;
+use script::layout_dom::ServoLayoutNode;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use servo_arc::Arc;
-use style::dom::OpaqueNode;
+use style::dom::{NodeInfo, OpaqueNode, TNode};
 use style::properties::ComputedValues;
 use style::values::computed::Overflow;
 use style_traits::CSSPixel;
@@ -47,10 +48,7 @@ pub struct BoxTree {
 }
 
 impl BoxTree {
-    pub fn construct<'dom, Node>(context: &LayoutContext, root_element: Node) -> Self
-    where
-        Node: 'dom + Copy + LayoutNode<'dom> + Send + Sync,
-    {
+    pub fn construct(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
         let boxes = construct_for_root_element(context, root_element);
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
@@ -129,10 +127,7 @@ impl BoxTree {
     /// * how intrinsic content sizes are computed eagerly makes it hard
     ///   to update those sizes for ancestors of the node from which we
     ///   made an incremental update.
-    pub fn update<'dom, Node>(context: &LayoutContext, mut dirty_node: Node) -> bool
-    where
-        Node: 'dom + Copy + LayoutNode<'dom> + Send + Sync,
-    {
+    pub fn update(context: &LayoutContext, mut dirty_node: ServoLayoutNode<'_>) -> bool {
         #[allow(clippy::enum_variant_names)]
         enum UpdatePoint {
             AbsolutelyPositionedBlockLevelBox(ArcRefCell<BlockLevelBox>),
@@ -141,12 +136,9 @@ impl BoxTree {
             AbsolutelyPositionedTaffyLevelBox(ArcRefCell<TaffyItemBox>),
         }
 
-        fn update_point<'dom, Node>(
-            node: Node,
-        ) -> Option<(Arc<ComputedValues>, DisplayInside, UpdatePoint)>
-        where
-            Node: NodeExt<'dom>,
-        {
+        fn update_point(
+            node: ServoLayoutNode<'_>,
+        ) -> Option<(Arc<ComputedValues>, DisplayInside, UpdatePoint)> {
             if !node.is_element() {
                 return None;
             }
@@ -162,7 +154,7 @@ impl BoxTree {
                 return None;
             }
 
-            let layout_data = node.layout_data()?;
+            let layout_data = NodeExt::layout_data(&node)?;
             if layout_data.pseudo_before_box.borrow().is_some() {
                 return None;
             }
@@ -301,9 +293,9 @@ impl BoxTree {
     }
 }
 
-fn construct_for_root_element<'dom>(
+fn construct_for_root_element(
     context: &LayoutContext,
-    root_element: impl NodeExt<'dom>,
+    root_element: ServoLayoutNode<'_>,
 ) -> Vec<ArcRefCell<BlockLevelBox>> {
     let info = NodeAndStyleInfo::new(root_element, root_element.style(context));
     let box_style = info.style.get_box();
@@ -456,7 +448,7 @@ pub struct CanvasBackground {
 }
 
 impl CanvasBackground {
-    fn for_root_element<'dom>(context: &LayoutContext, root_element: impl NodeExt<'dom>) -> Self {
+    fn for_root_element(context: &LayoutContext, root_element: ServoLayoutNode<'_>) -> Self {
         let root_style = root_element.style(context);
 
         let mut style = root_style;

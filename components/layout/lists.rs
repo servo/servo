@@ -7,18 +7,14 @@ use style::properties::style_structs;
 use style::values::computed::Image;
 
 use crate::context::LayoutContext;
-use crate::dom::NodeExt;
 use crate::dom_traversal::{NodeAndStyleInfo, PseudoElementContentItem};
 use crate::replaced::ReplacedContents;
 
 /// <https://drafts.csswg.org/css-lists/#content-property>
-pub(crate) fn make_marker<'dom, Node>(
+pub(crate) fn make_marker<'dom>(
     context: &LayoutContext,
-    info: &NodeAndStyleInfo<Node>,
-) -> Option<(NodeAndStyleInfo<Node>, Vec<PseudoElementContentItem>)>
-where
-    Node: NodeExt<'dom>,
-{
+    info: &NodeAndStyleInfo<'dom>,
+) -> Option<(NodeAndStyleInfo<'dom>, Vec<PseudoElementContentItem>)> {
     let marker_info = info.pseudo(context, style::selector_parser::PseudoElement::Marker)?;
     let style = &marker_info.style;
     let list_style = style.get_list();

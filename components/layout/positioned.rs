@@ -16,7 +16,6 @@ use style::values::specified::align::AlignFlags;
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
@@ -57,9 +56,9 @@ impl AbsolutelyPositionedBox {
         Self { context }
     }
 
-    pub fn construct<'dom>(
+    pub fn construct(
         context: &LayoutContext,
-        node_info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
+        node_info: &NodeAndStyleInfo,
         display_inside: DisplayInside,
         contents: Contents,
     ) -> Self {

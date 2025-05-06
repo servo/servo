@@ -13,10 +13,12 @@ use euclid::{Scale, Size2D};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use pixels::Image;
+use script::layout_dom::ServoLayoutNode;
 use script_layout_interface::IFrameSize;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::object_fit::T as ObjectFit;
+use style::dom::TNode;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::url::ComputedUrl;
@@ -120,7 +122,7 @@ pub(crate) enum ReplacedContentKind {
 }
 
 impl ReplacedContents {
-    pub fn for_element<'dom>(element: impl NodeExt<'dom>, context: &LayoutContext) -> Option<Self> {
+    pub fn for_element(element: ServoLayoutNode<'_>, context: &LayoutContext) -> Option<Self> {
         if let Some(ref data_attribute_string) = element.as_typeless_object_with_data_attribute() {
             if let Some(url) = try_to_parse_image_data_url(data_attribute_string) {
                 return Self::from_image_url(
@@ -184,8 +186,8 @@ impl ReplacedContents {
         })
     }
 
-    pub fn from_image_url<'dom>(
-        element: impl NodeExt<'dom>,
+    pub fn from_image_url(
+        element: ServoLayoutNode<'_>,
         context: &LayoutContext,
         image_url: &ComputedUrl,
     ) -> Option<Self> {
@@ -213,8 +215,8 @@ impl ReplacedContents {
         None
     }
 
-    pub fn from_image<'dom>(
-        element: impl NodeExt<'dom>,
+    pub fn from_image(
+        element: ServoLayoutNode<'_>,
         context: &LayoutContext,
         image: &ComputedImage,
     ) -> Option<Self> {
