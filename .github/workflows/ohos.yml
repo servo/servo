@@ -240,3 +240,34 @@ jobs:
           [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
           # If the grep fails, then the trace output for the "page loaded" prompt is missing
           grep 'org\.servo\.servo-.* tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
+
+  bench-harmonyos-aarch64:
+    name: Bench Harmony OS aarch64
+    # Don't block servos Merge queue on this job failing.
+    # Since we just added this, there might be some hidden issues,
+    # so in the beginning we will just do a best effort approach but ignore errors.
+    continue-on-error: true
+    runs-on: hos-runner
+    if: github.repository == 'servo/servo'
+    needs: test-harmonyos-aarch64
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: Test hdc device
+        # First we ensure a device is actually connected and working.
+        run: hdc list targets && hdc shell echo hello world
+      - name: Sign the hap
+        run: |
+            ls -la
+            /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
+      - uses: bencherdev/bencher@main
+        with:
+          # Name of the artifact to download.
+          # If unspecified, all artifacts for the run are downloaded.
+          name: servoshell-hos-${{ inputs.profile }}.hap
+      - name: "run bench"
+        run: hitrace-bench --bencher -n 5
+      - name: Uploading to Bencher
+        run: |
+          bencher run --adapter json --file bench.json --project '${{ env.BENCHER_PROJECT }}' --token '${{ secrets.BENCHER_API_TOKEN }}' --github-actions '${{ secrets.GITHUB_TOKEN }}'
