@@ -489,6 +489,7 @@ impl DedicatedWorkerGlobalScope {
                         external: true, // Worker scripts are always external.
                         worker_id: Some(global.upcast::<WorkerGlobalScope>().get_worker_id()),
                         content: source.to_string(),
+                        content_type: metadata.content_type.map(|c_type| c_type.0.to_string()),
                     };
                     let _ = chan.send(ScriptToDevtoolsControlMsg::ScriptSourceLoaded(
                         pipeline_id,

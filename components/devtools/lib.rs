@@ -518,8 +518,11 @@ impl DevtoolsInstance {
     fn handle_script_source_info(&mut self, pipeline_id: PipelineId, source_info: SourceInfo) {
         let mut actors = self.actors.lock().unwrap();
 
-        let source_actor_name =
-            SourceActor::new_source(&mut actors, &source_info.url, source_info.content.clone());
+        let source_actor_name = SourceActor::new_source(
+            &mut actors,
+            source_info.content.clone(),
+            source_info.content_type.unwrap(),
+        );
 
         if let Some(worker_id) = source_info.worker_id {
             let Some(worker_actor_name) = self.actor_workers.get(&worker_id) else {
