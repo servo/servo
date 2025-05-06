@@ -2759,7 +2759,6 @@ impl Document {
 
                 let performance = window.Performance();
                 let timing = performance.Timing();
-                let start_time = (*performance.Now()).floor() as u64;
 
                 let event = Event::new(
                     window.upcast(),
@@ -2770,9 +2769,8 @@ impl Document {
                 );
                 event.set_trusted(true);
 
+                let start_time = (*performance.Now()).floor() as u64;
                 timing.update_load_event_start(start_time);
-                window.upcast::<EventTarget>().dispatch_event(&event, CanGc::note());
-                timing.update_load_event_end((*performance.Now()).floor() as u64);
 
                 // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
                 update_with_current_instant(&document.load_event_start);
@@ -2780,6 +2778,7 @@ impl Document {
                 debug!("About to dispatch load for {:?}", document.url());
                 window.dispatch_event_with_target_override(&event, CanGc::note());
 
+                timing.update_load_event_end((*performance.Now()).floor() as u64);
                 // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
                 update_with_current_instant(&document.load_event_end);
 
@@ -3027,19 +3026,10 @@ impl Document {
             let window = document.window();
             let performance = window.Performance();
             let timing = performance.Timing();
-            let start_time = (*performance.Now()).floor() as u64;
 
-            let event = Event::new(
-                window.upcast(),
-                atom!("DOMContentLoaded"),
-                EventBubbles::Bubbles,
-                EventCancelable::NotCancelable,
-                CanGc::note(),
-            );
-            event.set_trusted(true);
-
-            timing.update_dom_content_loaded_event_start(start_time);
-            window.upcast::<EventTarget>().dispatch_event(&event, CanGc::note());
+            update_with_current_instant(&document.dom_content_loaded_event_start);
+            timing.update_dom_content_loaded_event_start((*performance.Now()).floor() as u64);
+            document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::note());
             timing.update_dom_content_loaded_event_end((*performance.Now()).floor() as u64);
 
             update_with_current_instant(&document.dom_content_loaded_event_end);

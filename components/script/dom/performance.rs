@@ -157,10 +157,14 @@ impl Performance {
         (time_origin - CrossProcessInstant::epoch()).whole_milliseconds() as u64
     }
 
-    fn new_inherited(global: &GlobalScope, time_origin: CrossProcessInstant) -> Performance {
+    fn new_inherited(
+        global: &GlobalScope,
+        time_origin: CrossProcessInstant,
+        can_gc: CanGc,
+    ) -> Performance {
         let nav_start = Self::time_origin_to_millis(time_origin);
-        let timing = PerformanceTiming::new(global, nav_start);
-        let navigation = PerformanceNavigation::new(global, CanGc::note());
+        let timing = PerformanceTiming::new(global, nav_start, can_gc);
+        let navigation = PerformanceNavigation::new(global, can_gc);
         Performance {
             eventtarget: EventTarget::new_inherited(),
             buffer: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
@@ -182,7 +186,7 @@ impl Performance {
         can_gc: CanGc,
     ) -> DomRoot<Performance> {
         reflect_dom_object(
-            Box::new(Performance::new_inherited(global, navigation_start)),
+            Box::new(Performance::new_inherited(global, navigation_start, can_gc)),
             global,
             can_gc,
         )
