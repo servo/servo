@@ -564,4 +564,5 @@ pub struct SourceInfo {
     pub external: bool,
     pub worker_id: Option<WorkerId>,
     pub content: String,
+    pub content_type: Option<String>,
 }
