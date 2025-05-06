@@ -16,7 +16,7 @@ publish = false
 rust-version = "1.85.0"
 
 [workspace.dependencies]
-accountable-refcell = "0.2.0"
+accountable-refcell = { git = "https://github.com/kkoyung/accountable-refcell.git", branch = "move-filter-map" }
 aes = "0.8.4"
 aes-gcm = "0.10.3"
 aes-kw = { version = "0.2.1", features = ["alloc"] }

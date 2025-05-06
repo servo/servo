@@ -64,7 +64,7 @@ use xml5ever::serialize::TraversalScope::{
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
-use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut, ref_filter_map};
+use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::{
@@ -1474,7 +1474,7 @@ impl Element {
             // is "xmlns", and local name is prefix, or if prefix is null and it has an attribute
             // whose namespace is the XMLNS namespace, namespace prefix is null, and local name is
             // "xmlns", then return its value if it is not the empty string, and null otherwise."
-            let attr = ref_filter_map(self.attrs(), |attrs| {
+            let attr = Ref::filter_map(self.attrs(), |attrs| {
                 attrs.iter().find(|attr| {
                     if attr.namespace() != &ns!(xmlns) {
                         return false;
@@ -1487,7 +1487,8 @@ impl Element {
                         _ => false,
                     }
                 })
-            });
+            })
+            .ok();
 
             if let Some(attr) = attr {
                 return (**attr.value()).into();
