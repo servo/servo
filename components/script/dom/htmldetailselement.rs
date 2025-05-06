@@ -5,9 +5,14 @@
 use std::cell::{Cell, Ref};
 
 use dom_struct::dom_struct;
+use embedder_traits::resources::Resource;
 use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
+use script_layout_interface::parse_resource_stylesheet;
+use style::attr::AttrValue;
 
+use super::element::ElementCreator;
+use super::types::HTMLLinkElement;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
@@ -116,13 +121,49 @@ impl HTMLDetailsElement {
             )
             .expect("Attaching UA shadow root failed");
 
+        let link_element = HTMLLinkElement::new(
+            local_name!("link"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
+        link_element.upcast::<Element>().set_attribute(
+            &local_name!("rel"),
+            AttrValue::String("stylesheet".to_owned()),
+            can_gc,
+        );
+        root.upcast::<Node>()
+            .AppendChild(link_element.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let details_stylesheet = parse_resource_stylesheet(
+            link_element
+                .upcast::<Node>()
+                .owner_doc()
+                .style_shared_lock(),
+            Resource::DetailsCSS,
+        );
+        link_element.set_stylesheet(details_stylesheet.unwrap());
+
         let summary = HTMLSlotElement::new(local_name!("slot"), None, &document, None, can_gc);
+        summary.upcast::<Element>().set_attribute(
+            &local_name!("name"),
+            AttrValue::from_atomic("internal-main-summary".to_owned()),
+            can_gc,
+        );
         root.upcast::<Node>()
             .AppendChild(summary.upcast::<Node>(), can_gc)
             .unwrap();
 
         let fallback_summary =
             HTMLElement::new(local_name!("summary"), None, &document, None, can_gc);
+        fallback_summary.upcast::<Element>().set_attribute(
+            &local_name!("name"),
+            AttrValue::from_atomic("internal-fallback-summary".to_owned()),
+            can_gc,
+        );
         fallback_summary
             .upcast::<Node>()
             .SetTextContent(Some(DEFAULT_SUMMARY.into()), can_gc);
@@ -179,40 +220,6 @@ impl HTMLDetailsElement {
         }
         shadow_tree.descendants.Assign(slottable_children);
     }
-
-    fn update_shadow_tree_styles(&self, can_gc: CanGc) {
-        let shadow_tree = self.shadow_tree(can_gc);
-
-        let value = if self.Open() {
-            "display: block;"
-        } else {
-            // TODO: This should be "display: block; content-visibility: hidden;",
-            // but servo does not support content-visibility yet
-            "display: none;"
-        };
-        shadow_tree
-            .descendants
-            .upcast::<Element>()
-            .set_string_attribute(&local_name!("style"), value.into(), can_gc);
-
-        // Manually update the list item style of the implicit summary element.
-        // Unlike the other summaries, this summary is in the shadow tree and
-        // can't be styled with UA sheets
-        let implicit_summary_list_item_style = if self.Open() {
-            "disclosure-open"
-        } else {
-            "disclosure-closed"
-        };
-        let implicit_summary_style = format!(
-            "display: list-item;
-            counter-increment: list-item 0;
-            list-style: {implicit_summary_list_item_style} inside;"
-        );
-        shadow_tree
-            .implicit_summary
-            .upcast::<Element>()
-            .set_string_attribute(&local_name!("style"), implicit_summary_style.into(), can_gc);
-    }
 }
 
 impl HTMLDetailsElementMethods<crate::DomTypeHolder> for HTMLDetailsElement {
@@ -234,8 +241,6 @@ impl VirtualMethods for HTMLDetailsElement {
             .attribute_mutated(attr, mutation, can_gc);
 
         if attr.local_name() == &local_name!("open") {
-            self.update_shadow_tree_styles(can_gc);
-
             let counter = self.toggle_counter.get() + 1;
             self.toggle_counter.set(counter);
 
@@ -263,6 +268,5 @@ impl VirtualMethods for HTMLDetailsElement {
         self.super_type().unwrap().bind_to_tree(context, can_gc);
 
         self.update_shadow_tree_contents(CanGc::note());
-        self.update_shadow_tree_styles(CanGc::note());
     }
 }

@@ -6404,6 +6404,7 @@ dependencies = [
  "servo_url",
  "stylo",
  "stylo_traits",
+ "url",
  "webrender_api",
 ]
 
