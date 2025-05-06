@@ -221,9 +221,9 @@ impl BlobImpl {
     }
 
     /// Construct a BlobImpl from a slice of a parent.
-    pub fn new_sliced(rel_pos: RelativePos, parent: BlobId, type_string: String) -> BlobImpl {
+    pub fn new_sliced(range: RelativePos, parent: BlobId, type_string: String) -> BlobImpl {
         let blob_id = BlobId::new();
-        let blob_data = BlobData::Sliced(parent, rel_pos);
+        let blob_data = BlobData::Sliced(parent, range);
         BlobImpl {
             blob_id,
             type_string,
