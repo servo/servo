@@ -1040,10 +1040,35 @@ impl From<bool> for EventCancelable {
 }
 
 impl From<EventCancelable> for bool {
-    fn from(bubbles: EventCancelable) -> Self {
-        match bubbles {
+    fn from(cancelable: EventCancelable) -> Self {
+        match cancelable {
             EventCancelable::Cancelable => true,
             EventCancelable::NotCancelable => false,
+        }
+    }
+}
+
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
+pub(crate) enum EventComposed {
+    Composed,
+    NotComposed,
+}
+
+impl From<bool> for EventComposed {
+    fn from(boolean: bool) -> Self {
+        if boolean {
+            EventComposed::Composed
+        } else {
+            EventComposed::NotComposed
+        }
+    }
+}
+
+impl From<EventComposed> for bool {
+    fn from(composed: EventComposed) -> Self {
+        match composed {
+            EventComposed::Composed => true,
+            EventComposed::NotComposed => false,
         }
     }
 }

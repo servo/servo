@@ -66,7 +66,7 @@ impl TrustedTypePolicyFactory {
             (CheckResult::Allowed, Vec::new())
         };
 
-        global.report_csp_violations(violations);
+        global.report_csp_violations(violations, None);
 
         // Step 2: If allowedByCSP is "Blocked", throw a TypeError and abort further steps.
         if allowed_by_csp == CheckResult::Blocked {
@@ -230,7 +230,7 @@ impl TrustedTypePolicyFactory {
                     .should_sink_type_mismatch_violation_be_blocked_by_csp(
                         sink, sink_group, &input,
                     );
-                global.report_csp_violations(violations);
+                global.report_csp_violations(violations, None);
                 // Step 6.2: If disposition is “Allowed”, return stringified input and abort further steps.
                 if disposition == CheckResult::Allowed {
                     Ok(input)

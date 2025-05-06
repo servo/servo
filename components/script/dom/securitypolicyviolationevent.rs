@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::SecurityPolicyViolationEventBinding
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -70,12 +70,14 @@ impl SecurityPolicyViolationEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
+        composed: EventComposed,
         init: &SecurityPolicyViolationEventInit,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
@@ -83,6 +85,7 @@ impl SecurityPolicyViolationEvent {
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
+            event.set_composed(bool::from(composed));
         }
         ev
     }
@@ -92,10 +95,13 @@ impl SecurityPolicyViolationEvent {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
+        composed: EventComposed,
         init: &SecurityPolicyViolationEventInit,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, type_, bubbles, cancelable, init, can_gc)
+        Self::new_with_proto(
+            global, None, type_, bubbles, cancelable, composed, init, can_gc,
+        )
     }
 }
 
@@ -115,6 +121,7 @@ impl SecurityPolicyViolationEventMethods<crate::DomTypeHolder> for SecurityPolic
             Atom::from(type_),
             EventBubbles::from(init.parent.bubbles),
             EventCancelable::from(init.parent.cancelable),
+            EventComposed::from(init.parent.composed),
             init,
             can_gc,
         )
