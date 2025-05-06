@@ -256,6 +256,10 @@ test(function () {
   root.setAttributeNS(XMLNS_URI, 'xmlns:foo', '');
   assert_equals(serialize(root), '<root xmlns="" xmlns:foo=""/>');
 }, 'Check if a prefix bound to an empty namespace URI ("no namespace") serialize');
+
+test(function() {
+  assert_equals(serialize(document.createAttribute("foobar")), "")
+}, 'Attribute nodes are serialized as the empty string')
 </script>
  </body>
 </html>
