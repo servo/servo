@@ -242,6 +242,13 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
+    /// Return a node's bounding box in physical coordinates corresponding to it's Document
+    /// viewport coordinate space. Variation of [`LayoutThread::query_content_boxes`]
+    /// that returns union of it.
+    ///
+    /// Part of https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box
+    /// TODO(stevennovaryo): Rename and parameterize the function, allowing padding area
+    ///                      query and possibly, query without consideration of transform.
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
@@ -251,6 +258,11 @@ impl Layout for LayoutThread {
         self.process_post_composite_query(node, process_content_box_request)
     }
 
+    /// Return rectangles, each describing node's border area for it's fragmentation
+    /// boxes are in in physical coordinates and correspond to it's Document
+    /// viewport coordinate space.
+    ///
+    /// Part of https://drafts.csswg.org/cssom-view-1/#element-get-the-bounding-box
     #[cfg_attr(
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")

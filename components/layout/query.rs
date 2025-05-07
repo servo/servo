@@ -9,6 +9,7 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Vector2D};
 use euclid::{SideOffsets2D, Size2D};
 use itertools::Itertools;
+use log::debug;
 use script::layout_dom::ServoLayoutNode;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
@@ -48,7 +49,7 @@ use crate::fragment_tree::{
 use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
-/// Supposed helper for post composite query, query that requires the consideration of transform,
+/// Specific helper for post composite query, query that requires the consideration of transform,
 /// mapping of coordinates, scroll offset, etc.
 pub(crate) struct PostCompositeQueryHelper<'dom> {
     /// Get the scroll offset of a viewport (i.e. window).
@@ -65,7 +66,8 @@ impl PostCompositeQueryHelper<'_> {
         }
     }
 
-    /// Get the position property for current node.
+    /// Get the position property for current node. Mind that a [`LayoutNode`] might
+    /// not have a [`Fragment`] that correspond to it (e.g. 'display: contents').
     fn retrieve_position_property(node: ServoLayoutNode<'_>) -> Option<Position> {
         node.fragments_for_pseudo(None)
             .first()
@@ -73,23 +75,22 @@ impl PostCompositeQueryHelper<'_> {
             .map(|fragment| fragment.borrow().style.get_box().position)
     }
 
-    /// Find the parent node in containing block chain.
+    /// Find the parent node in containing block chain. Mind that the nodes that
+    /// does not generate boxes is ignored.
     fn parent_containing_block(
         node: ServoLayoutNode<'_>,
-        position: Option<Position>,
-    ) -> Option<ServoLayoutNode<'_>> {
-        fn established_containing_block(
-            style: &ServoArc<ComputedValues>,
-            fragment_flags: FragmentFlags,
-            position: Option<Position>,
+        position: Position,
+    ) -> Option<ServoLayoutNode> {
+        fn parent_establishes_containing_block_for_position(
+            parent_style: &ServoArc<ComputedValues>,
+            parent_fragment_flags: FragmentFlags,
+            descendant_position: Position,
         ) -> bool {
-            match position {
-                Some(Position::Absolute) => {
-                    style.establishes_containing_block_for_absolute_descendants(fragment_flags)
-                },
-                Some(Position::Fixed) => {
-                    style.establishes_containing_block_for_all_descendants(fragment_flags)
-                },
+            match descendant_position {
+                Position::Absolute => parent_style
+                    .establishes_containing_block_for_absolute_descendants(parent_fragment_flags),
+                Position::Fixed => parent_style
+                    .establishes_containing_block_for_all_descendants(parent_fragment_flags),
                 _ => true,
             }
         }
@@ -99,7 +100,7 @@ impl PostCompositeQueryHelper<'_> {
             if let Some(parent_fragment) = parent_node.fragments_for_pseudo(None).first() {
                 let established_containing_block = match parent_fragment {
                     Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                        established_containing_block(
+                        parent_establishes_containing_block_for_position(
                             &box_fragment.borrow().style,
                             box_fragment.borrow().base.flags,
                             position,
@@ -107,14 +108,14 @@ impl PostCompositeQueryHelper<'_> {
                     },
                     Fragment::Positioning(fragment) => {
                         fragment.borrow().style.as_ref().is_some_and(|style| {
-                            established_containing_block(
+                            parent_establishes_containing_block_for_position(
                                 style,
                                 fragment.borrow().base.flags,
                                 position,
                             )
                         })
                     },
-                    _ => continue,
+                    _ => false,
                 };
 
                 if established_containing_block {
@@ -174,34 +175,45 @@ pub(crate) fn node_to_root_transform(
 ) -> Vector2D<Au> {
     let mut translation = Vector2D::zero();
 
-    let mut current_position = PostCompositeQueryHelper::retrieve_position_property(node);
-    let mut maybe_parent_node =
-        PostCompositeQueryHelper::parent_containing_block(node, current_position);
+    let maybe_current_position = PostCompositeQueryHelper::retrieve_position_property(node);
+    let mut maybe_parent_node = match maybe_current_position {
+        Some(position) => PostCompositeQueryHelper::parent_containing_block(node, position),
+        None => node.parent_node(),
+    };
+
     while let Some(parent_node) = maybe_parent_node {
         if let Some(parent_fragment) = parent_node.fragments_for_pseudo(None).first() {
             let parent_fragment =
                 match PostCompositeQueryHelper::retrieve_box_fragment(parent_fragment) {
                     Some(box_fragment) => box_fragment,
-                    _ => continue,
+                    _ => {
+                        debug!("Found a non-BoxFragment Node.");
+                        maybe_parent_node = parent_node.parent_node();
+                        continue;
+                    },
                 };
 
             let scroll_offset = (helper.scroll_offset_getter)(&parent_fragment.borrow());
             translation += scroll_offset;
 
-            current_position = Some(parent_fragment.borrow().style.get_box().position);
+            let current_position = parent_fragment.borrow().style.get_box().position;
             maybe_parent_node =
                 PostCompositeQueryHelper::parent_containing_block(parent_node, current_position);
-            continue;
-        }
-        maybe_parent_node = parent_node.parent_node();
-    }
 
-    // We need to consider the root scroll offset for all element, except
-    // fixed positioned element that extend outside the viewport.
-    //
-    // https://drafts.csswg.org/css-position/#fixed-cb
-    if current_position != Some(Position::Fixed) {
-        translation += (helper.root_scroll_offset_getter)();
+            // We have reached the top of the box tree.
+            if maybe_parent_node.is_none() {
+                // We need to consider the root scroll offset for all element, except
+                // fixed positioned element that extend outside the viewport.
+                //
+                // https://drafts.csswg.org/css-position/#fixed-cb
+                if current_position != Position::Fixed {
+                    translation += (helper.root_scroll_offset_getter)();
+                }
+                break;
+            }
+        } else {
+            maybe_parent_node = parent_node.parent_node();
+        }
     }
 
     translation

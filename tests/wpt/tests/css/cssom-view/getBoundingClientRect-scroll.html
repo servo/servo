@@ -40,12 +40,13 @@
     </style>
   </head>
   <body>
+    <div id="target_fixed_uncontained" class="target_box position_fixed"></div>
     <div class="scroll_container fixed_containing_block">
       <div class="scroll_container absolute_containing_block">
         <div class="scroll_container">
-          <div id="target_static" class="target_box"></div>
-          <div id="target_absolute" class="target_box position_absolute"></div>
           <div id="target_fixed" class="target_box position_fixed"></div>
+          <div id="target_absolute" class="target_box position_absolute"></div>
+          <div id="target_static" class="target_box"></div>
           <div class="dummy_overflowing_box"></div>
         </div>
         <div class="dummy_overflowing_box"></div>
@@ -88,6 +89,14 @@
         assert_equals(fixedRect.width, 100, 'fixed positioned target width');
         assert_equals(fixedRect.height, 100, 'fixed positioned target height');
       }, "getBoundingClientRect for fixed element inside scroll container");
+      test(function() {
+        var target = document.querySelector('#target_fixed_uncontained');
+        let fixedUncontainedRect = target.getBoundingClientRect();
+        assert_equals(fixedUncontainedRect.left, 0, 'fixed positioned uncontained target left');
+        assert_equals(fixedUncontainedRect.top, 0, 'fixed positioned uncontained target top');
+        assert_equals(fixedUncontainedRect.width, 100, 'fixed positioned uncontained target width');
+        assert_equals(fixedUncontainedRect.height, 100, 'fixed positioned uncontained target height');
+      }, "getBoundingClientRect for uncontained fixed element");
     </script>
   </body>
 </html>
