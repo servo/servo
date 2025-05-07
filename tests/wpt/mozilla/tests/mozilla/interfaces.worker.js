@@ -137,6 +137,8 @@ test_interfaces([
   "WritableStream",
   "WritableStreamDefaultController",
   "WritableStreamDefaultWriter",
+  "TransformStream",
+  "TransformStreamDefaultController",
   "WGSLLanguageFeatures",
   "XMLHttpRequest",
   "XMLHttpRequestEventTarget",

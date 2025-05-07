@@ -44,7 +44,7 @@ use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
 use crate::dom::readablestream::ReadableStream;
-use crate::dom::types::DOMException;
+use crate::dom::types::{DOMException, TransformStream};
 use crate::dom::writablestream::WritableStream;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
@@ -65,6 +65,7 @@ pub(super) enum StructuredCloneTags {
     ReadableStream = 0xFFFF8006,
     DomException = 0xFFFF8007,
     WritableStream = 0xFFFF8008,
+    TransformStream = 0xFFFF8009,
     Max = 0xFFFFFFFF,
 }
 
@@ -85,6 +86,7 @@ impl From<TransferrableInterface> for StructuredCloneTags {
             TransferrableInterface::MessagePort => StructuredCloneTags::MessagePort,
             TransferrableInterface::ReadableStream => StructuredCloneTags::ReadableStream,
             TransferrableInterface::WritableStream => StructuredCloneTags::WritableStream,
+            TransferrableInterface::TransformStream => StructuredCloneTags::TransformStream,
         }
     }
 }
@@ -265,6 +267,7 @@ fn receiver_for_type(
         TransferrableInterface::MessagePort => receive_object::<MessagePort>,
         TransferrableInterface::ReadableStream => receive_object::<ReadableStream>,
         TransferrableInterface::WritableStream => receive_object::<WritableStream>,
+        TransferrableInterface::TransformStream => receive_object::<TransformStream>,
     }
 }
 
@@ -390,6 +393,7 @@ fn transfer_for_type(val: TransferrableInterface) -> TransferOperation {
         TransferrableInterface::MessagePort => try_transfer::<MessagePort>,
         TransferrableInterface::ReadableStream => try_transfer::<ReadableStream>,
         TransferrableInterface::WritableStream => try_transfer::<WritableStream>,
+        TransferrableInterface::TransformStream => try_transfer::<TransformStream>,
     }
 }
 
@@ -438,6 +442,7 @@ unsafe fn can_transfer_for_type(
         TransferrableInterface::MessagePort => can_transfer::<MessagePort>(obj, cx),
         TransferrableInterface::ReadableStream => can_transfer::<ReadableStream>(obj, cx),
         TransferrableInterface::WritableStream => can_transfer::<WritableStream>(obj, cx),
+        TransferrableInterface::TransformStream => can_transfer::<TransformStream>(obj, cx),
     }
 }
 
