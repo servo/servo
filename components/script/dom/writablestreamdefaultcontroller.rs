@@ -423,7 +423,6 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
-    #[allow(unsafe_code)]
     pub(crate) fn setup(
         &self,
         cx: SafeJSContext,
@@ -470,7 +469,7 @@ impl WritableStreamDefaultController {
         // Let startResult be the result of performing startAlgorithm. (This may throw an exception.)
         let start_result = self.start_algorithm(cx, global, can_gc)?;
 
-         // Let startPromise be a promise resolved with startResult.
+        // Let startPromise be a promise resolved with startResult.
         let start_promise = Promise::new(global, can_gc);
         start_promise.resolve_native(&start_result, can_gc);
 

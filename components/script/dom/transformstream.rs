@@ -56,7 +56,6 @@ struct TransformBackPressureChangePromiseFulfillment {
 
 impl Callback for TransformBackPressureChangePromiseFulfillment {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
-    #[allow(unsafe_code)]
     fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         // Let writable be stream.[[writable]].
         // Let state be writable.[[state]].
@@ -347,7 +346,6 @@ struct FlushPromiseRejection {
 
 impl Callback for FlushPromiseRejection {
     /// Reacting to flushpromise with the following fulfillment steps:
-    #[allow(unsafe_code)]
     fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
         // If flushPromise was rejected with reason r, then:
         // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], r).
