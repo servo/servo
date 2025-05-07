@@ -153,7 +153,6 @@ impl TransformStreamDefaultController {
         Ok(transform_promise)
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn perform_transform(
         &self,
         cx: SafeJSContext,
@@ -202,7 +201,6 @@ impl TransformStreamDefaultController {
         Ok(result)
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn perform_cancel(
         &self,
         cx: SafeJSContext,
@@ -239,7 +237,6 @@ impl TransformStreamDefaultController {
         Ok(result)
     }
 
-    #[allow(unsafe_code)]
     pub(crate) fn perform_flush(
         &self,
         cx: SafeJSContext,

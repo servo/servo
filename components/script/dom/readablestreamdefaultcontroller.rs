@@ -383,7 +383,6 @@ impl ReadableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
-    #[allow(unsafe_code)]
     pub(crate) fn setup(
         &self,
         stream: DomRoot<ReadableStream>,
