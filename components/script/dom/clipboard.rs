@@ -211,6 +211,7 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
         // Step 3.4.1.1.4 If representation’s MIME type essence is "text/plain", then:
 
         // Step 3.4.1.1.4.1 Set representation’s MIME type to mimeType.
+        // Note: Done when creating a new representation
 
         // Step 3.4.1.1.4.2 Let representationDataPromise be the representation’s data.
         // Step 3.4.1.1.4.3 React to representationDataPromise:
