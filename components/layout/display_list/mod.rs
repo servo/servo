@@ -1020,7 +1020,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             for extra_background in extra_backgrounds {
                 let positioning_area = extra_background.rect;
                 let painter = BackgroundPainter {
-                    style: &extra_background.style,
+                    style: &extra_background.style.borrow_mut().0,
                     painting_area_override: None,
                     positioning_area_override: Some(
                         positioning_area
