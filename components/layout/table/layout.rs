@@ -2063,7 +2063,7 @@ impl<'a> TableLayout<'a> {
             let column_group = column_group.borrow();
             let rect = make_relative_to_row_start(dimensions.get_column_group_rect(&column_group));
             fragment.add_extra_background(ExtraBackground {
-                style: column_group.base.style.clone(),
+                style: column_group.shared_background_style.clone(),
                 rect,
             })
         }
@@ -2072,7 +2072,7 @@ impl<'a> TableLayout<'a> {
             if !column.is_anonymous {
                 let rect = make_relative_to_row_start(dimensions.get_column_rect(column_index));
                 fragment.add_extra_background(ExtraBackground {
-                    style: column.base.style.clone(),
+                    style: column.shared_background_style.clone(),
                     rect,
                 })
             }
@@ -2085,7 +2085,7 @@ impl<'a> TableLayout<'a> {
             let rect =
                 make_relative_to_row_start(dimensions.get_row_group_rect(&row_group.borrow()));
             fragment.add_extra_background(ExtraBackground {
-                style: row_group.borrow().base.style.clone(),
+                style: row_group.borrow().shared_background_style.clone(),
                 rect,
             })
         }
@@ -2093,7 +2093,7 @@ impl<'a> TableLayout<'a> {
             let row = row.borrow();
             let rect = make_relative_to_row_start(row_fragment_layout.rect);
             fragment.add_extra_background(ExtraBackground {
-                style: row.base.style.clone(),
+                style: row.shared_background_style.clone(),
                 rect,
             })
         }

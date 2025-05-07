@@ -29,7 +29,7 @@ use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentFormattingContextContents,
     IndependentNonReplacedContents,
 };
-use crate::fragment_tree::BaseFragmentInfo;
+use crate::fragment_tree::{BackgroundStyle, BaseFragmentInfo, SharedBackgroundStyle};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{DisplayGeneratingBox, DisplayLayoutInternal};
 
@@ -722,9 +722,10 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
 
         let style = anonymous_info.style.clone();
         self.push_table_row(ArcRefCell::new(TableTrack {
-            base: LayoutBoxBase::new((&anonymous_info).into(), style),
+            base: LayoutBoxBase::new((&anonymous_info).into(), style.clone()),
             group_index: self.current_row_group_index,
             is_anonymous: true,
+            shared_background_style: SharedBackgroundStyle::new(BackgroundStyle(style)),
         }));
     }
 
@@ -766,6 +767,9 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         base: LayoutBoxBase::new(info.into(), info.style.clone()),
                         group_type: internal.into(),
                         track_range: next_row_index..next_row_index,
+                        shared_background_style: SharedBackgroundStyle::new(BackgroundStyle(
+                            info.style.clone(),
+                        )),
                     });
                     self.builder.table.row_groups.push(row_group.clone());
 
@@ -808,6 +812,9 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         base: LayoutBoxBase::new(info.into(), info.style.clone()),
                         group_index: self.current_row_group_index,
                         is_anonymous: false,
+                        shared_background_style: SharedBackgroundStyle::new(BackgroundStyle(
+                            info.style.clone(),
+                        )),
                     });
                     self.push_table_row(row.clone());
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(row)));
@@ -853,6 +860,9 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         base: LayoutBoxBase::new(info.into(), info.style.clone()),
                         group_type: internal.into(),
                         track_range: first_column..self.builder.table.columns.len(),
+                        shared_background_style: SharedBackgroundStyle::new(BackgroundStyle(
+                            info.style.clone(),
+                        )),
                     });
                     self.builder.table.column_groups.push(column_group.clone());
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::TrackGroup(
@@ -1135,6 +1145,9 @@ fn add_column(
         base: LayoutBoxBase::new(column_info.into(), column_info.style.clone()),
         group_index,
         is_anonymous,
+        shared_background_style: SharedBackgroundStyle::new(BackgroundStyle(
+            column_info.style.clone(),
+        )),
     });
     collection.extend(repeat(column.clone()).take(span as usize));
     column
