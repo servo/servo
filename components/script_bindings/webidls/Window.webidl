@@ -150,6 +150,10 @@ partial interface Window {
   undefined webdriverCallback(optional any result);
   undefined webdriverException(optional any result);
   undefined webdriverTimeout();
+  Element? webdriverElement(DOMString id);
+  Element? webdriverFrame(DOMString id);
+  Window? webdriverWindow(DOMString id);
+  ShadowRoot? webdriverShadowRoot(DOMString id);
 };
 
 // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
