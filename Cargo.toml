@@ -166,7 +166,7 @@ urlpattern = "0.3"
 uuid = { version = "1.12.1", features = ["v4"] }
 webdriver = "0.51.0"
 webgpu_traits = { path = "components/shared/webgpu" }
-webpki-roots = "0.26"
+webpki-roots = "1.0"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.67", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.67" }
 webxr-api = { path = "components/shared/webxr" }
