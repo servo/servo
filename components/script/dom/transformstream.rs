@@ -429,6 +429,7 @@ impl TransformStream {
     }
 
     /// <https://streams.spec.whatwg.org/#initialize-transform-stream>
+    #[allow(clippy::needless_borrow)]
     fn initialize(
         &self,
         cx: SafeJSContext,
@@ -665,7 +666,7 @@ impl TransformStream {
         // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], r).
         // Reject controller.[[finishPromise]] with r.
         let handler = PromiseNativeHandler::new(
-            &global,
+            global,
             Some(Box::new(CancelPromiseFulfillment {
                 readable: Dom::from_ref(&readable),
                 controller: Dom::from_ref(&controller),
@@ -677,7 +678,7 @@ impl TransformStream {
             })),
             can_gc,
         );
-        let realm = enter_realm(&*global);
+        let realm = enter_realm(global);
         let comp = InRealm::Entered(&realm);
         cancel_promise.append_native_handler(&handler, comp, can_gc);
 
@@ -734,7 +735,7 @@ impl TransformStream {
         // Reject controller.[[finishPromise]] with r.
 
         let handler = PromiseNativeHandler::new(
-            &global,
+            global,
             Some(Box::new(FlushPromiseFulfillment {
                 readable: Dom::from_ref(&readable),
                 controller: Dom::from_ref(&controller),
@@ -746,7 +747,7 @@ impl TransformStream {
             can_gc,
         );
 
-        let realm = enter_realm(&*global);
+        let realm = enter_realm(global);
         let comp = InRealm::Entered(&realm);
         flush_promise.append_native_handler(&handler, comp, can_gc);
         // Return controller.[[finishPromise]].
@@ -805,7 +806,7 @@ impl TransformStream {
         // Reject controller.[[finishPromise]] with r.
 
         let handler = PromiseNativeHandler::new(
-            &global,
+            global,
             Some(Box::new(SourceCancelPromiseFulfillment {
                 writeable: Dom::from_ref(&writable),
                 controller: Dom::from_ref(&controller),
@@ -824,7 +825,7 @@ impl TransformStream {
         let finish_promise = controller
             .get_finish_promise()
             .expect("finish promise is not set");
-        let realm = enter_realm(&*global);
+        let realm = enter_realm(global);
         let comp = InRealm::Entered(&realm);
         cancel_promise.append_native_handler(&handler, comp, can_gc);
         Ok(finish_promise)
