@@ -429,7 +429,7 @@ impl TransformStream {
     }
 
     /// <https://streams.spec.whatwg.org/#initialize-transform-stream>
-    #[allow(clippy::needless_borrow)]
+    #[allow(clippy::too_many_arguments)]
     fn initialize(
         &self,
         cx: SafeJSContext,

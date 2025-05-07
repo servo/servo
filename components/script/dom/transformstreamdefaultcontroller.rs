@@ -47,7 +47,7 @@ impl Callback for TransformTransformPromiseRejection {
             .error(cx, &self.controller.global(), v, can_gc);
 
         // Throw r.
-        unsafe { JS_SetPendingException(*cx, v.into(), ExceptionStackBehavior::Capture) };
+        // Note: this is dont on perform_transform()
     }
 }
 
