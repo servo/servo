@@ -192,7 +192,7 @@ impl TransformStreamDefaultController {
                 Promise::new_rejected(global, cx, error_val.handle(), can_gc)
             } else {
                 // Otherwise, return a promise resolved with undefined.
-                Promise::new_resolved(global, cx, &(), can_gc)
+                Promise::new_resolved(global, cx, (), can_gc)
             };
 
             promise
@@ -379,8 +379,8 @@ impl TransformStreamDefaultController {
 
         // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, error).
         rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-        error.to_jsval(cx, &global, rooted_error.handle_mut(), can_gc);
-        stream.error_writable_and_unblock_write(cx, &global, rooted_error.handle(), can_gc);
+        error.to_jsval(cx, global, rooted_error.handle_mut(), can_gc);
+        stream.error_writable_and_unblock_write(cx, global, rooted_error.handle(), can_gc);
     }
 }
 
