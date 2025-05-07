@@ -83,6 +83,25 @@ where
     }
 }
 
+impl<T> Evaluatable for Option<T>
+where
+    T: Evaluatable,
+{
+    fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
+        match self {
+            Some(expr) => expr.evaluate(context),
+            None => Ok(Value::Nodeset(vec![])),
+        }
+    }
+
+    fn is_primitive(&self) -> bool {
+        match self {
+            Some(expr) => expr.is_primitive(),
+            None => false,
+        }
+    }
+}
+
 impl Evaluatable for Expr {
     fn evaluate(&self, context: &EvaluationCtx) -> Result<Value, Error> {
         match self {
