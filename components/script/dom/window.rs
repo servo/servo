@@ -65,6 +65,7 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::interfaces::WindowHelpers;
+use script_bindings::root::Root;
 use script_layout_interface::{
     FragmentType, Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ReflowRequest,
     TrustedNodeAddress, combine_id_with_fragment_type,
@@ -146,6 +147,7 @@ use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::screen::Screen;
 use crate::dom::selection::Selection;
+use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
@@ -165,7 +167,7 @@ use crate::script_runtime::{CanGc, JSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::timers::{IsInterval, TimerCallback};
 use crate::unminify::unminified_path;
-use crate::webdriver_handlers::jsval_to_webdriver;
+use crate::webdriver_handlers::{find_node_by_unique_id_in_document, jsval_to_webdriver};
 use crate::{fetch, window_named_properties};
 
 /// A callback to call when a response comes back from the `ImageCache`.
@@ -1392,6 +1394,30 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         if let Some(chan) = opt_chan {
             let _ = chan.send(Err(WebDriverJSError::Timeout));
         }
+    }
+
+    fn WebdriverElement(&self, id: DOMString) -> Option<DomRoot<Element>> {
+        find_node_by_unique_id_in_document(&self.Document(), id.into())
+            .ok()
+            .and_then(Root::downcast)
+    }
+
+    fn WebdriverFrame(&self, id: DOMString) -> Option<DomRoot<Element>> {
+        find_node_by_unique_id_in_document(&self.Document(), id.into())
+            .ok()
+            .and_then(Root::downcast::<HTMLIFrameElement>)
+            .map(Root::upcast::<Element>)
+    }
+
+    fn WebdriverWindow(&self, _id: DOMString) -> Option<DomRoot<Window>> {
+        warn!("Window references are not supported in webdriver yet");
+        None
+    }
+
+    fn WebdriverShadowRoot(&self, id: DOMString) -> Option<DomRoot<ShadowRoot>> {
+        find_node_by_unique_id_in_document(&self.Document(), id.into())
+            .ok()
+            .and_then(Root::downcast)
     }
 
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle

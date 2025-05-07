@@ -137,6 +137,7 @@ mod font_context {
                         break;
                     },
                     SystemFontServiceMessage::Ping => {},
+                    SystemFontServiceMessage::CollectMemoryReport(..) => {},
                 }
             }
         }

@@ -574,7 +574,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
             "dom_offscreen_canvas_enabled",
             "dom_permissions_enabled",
             "dom_resize_observer_enabled",
-            "dom_serviceworker_enabled",
             "dom_svg_enabled",
             "dom_trusted_types_enabled",
             "dom_webgl2_enabled",

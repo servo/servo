@@ -16,6 +16,7 @@ use html5ever::{QualName, local_name, ns};
 use markup5ever::TokenizerResult;
 use script_bindings::trace::CustomTraceable;
 use servo_url::ServoUrl;
+use style::attr::AttrValue;
 use style::context::QuirksMode as StyleContextQuirksMode;
 use xml5ever::LocalName;
 
@@ -116,18 +117,34 @@ impl Tokenizer {
     }
 }
 
-fn start_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Result<()> {
-    let name = QualName::new(None, node.namespace().clone(), node.local_name().clone());
-    let attrs = node
-        .attrs()
-        .iter()
-        .map(|attr| {
-            let qname = QualName::new(None, attr.namespace().clone(), attr.local_name().clone());
-            let value = attr.value().clone();
-            (qname, value)
-        })
-        .collect::<Vec<_>>();
-    let attr_refs = attrs.iter().map(|(qname, value)| {
+/// <https://html.spec.whatwg.org/multipage/#html-fragment-serialisation-algorithm>
+fn start_element<S: Serializer>(element: &Element, serializer: &mut S) -> io::Result<()> {
+    let name = QualName::new(
+        None,
+        element.namespace().clone(),
+        element.local_name().clone(),
+    );
+
+    let mut attributes = vec![];
+
+    // The "is" value of an element is treated as if it was an attribute and it is serialized before all
+    // other attributes. If the element already has an "is" attribute then the "is" value is ignored.
+    if !element.has_attribute(&LocalName::from("is")) {
+        if let Some(is_value) = element.get_is() {
+            let qualified_name = QualName::new(None, ns!(), LocalName::from("is"));
+
+            attributes.push((qualified_name, AttrValue::String(is_value.to_string())));
+        }
+    }
+
+    // Collect all the "normal" attributes
+    attributes.extend(element.attrs().iter().map(|attr| {
+        let qname = QualName::new(None, attr.namespace().clone(), attr.local_name().clone());
+        let value = attr.value().clone();
+        (qname, value)
+    }));
+
+    let attr_refs = attributes.iter().map(|(qname, value)| {
         let ar: AttrRef = (qname, &**value);
         ar
     });

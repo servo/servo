@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 
+use content_security_policy as csp;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
@@ -33,7 +34,7 @@ use crate::stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 #[dom_struct]
 pub(crate) struct HTMLStyleElement {
     htmlelement: HTMLElement,
-    #[ignore_malloc_size_of = "Arc"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
@@ -97,8 +98,21 @@ impl HTMLStyleElement {
             return;
         }
 
-        let window = node.owner_window();
         let doc = self.owner_document();
+
+        // Step 5: If the Should element's inline behavior be blocked by Content Security Policy? algorithm
+        // returns "Blocked" when executed upon the style element, "style",
+        // and the style element's child text content, then return. [CSP]
+        if doc.should_elements_inline_type_behavior_be_blocked(
+            self.upcast(),
+            csp::InlineCheckType::Style,
+            &node.child_text_content(),
+        ) == csp::CheckResult::Blocked
+        {
+            return;
+        }
+
+        let window = node.owner_window();
         let data = node
             .GetTextContent()
             .expect("Element.textContent must be a string");

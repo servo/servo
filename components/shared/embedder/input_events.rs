@@ -61,15 +61,16 @@ pub enum MouseButton {
     Other(u16),
 }
 
-impl From<u16> for MouseButton {
-    fn from(value: u16) -> Self {
+impl<T: Into<u64>> From<T> for MouseButton {
+    fn from(value: T) -> Self {
+        let value = value.into();
         match value {
             0 => MouseButton::Left,
             1 => MouseButton::Middle,
             2 => MouseButton::Right,
             3 => MouseButton::Back,
             4 => MouseButton::Forward,
-            _ => MouseButton::Other(value),
+            _ => MouseButton::Other(value as u16),
         }
     }
 }

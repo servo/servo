@@ -53,6 +53,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -77,12 +78,27 @@ fn find_node_by_unique_id(
     pipeline: PipelineId,
     node_id: String,
 ) -> Result<DomRoot<Node>, ErrorStatus> {
-    match documents.find_document(pipeline).and_then(|document| {
-        document
-            .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
-            .find(|node| node.unique_id() == node_id)
-    }) {
+    match documents.find_document(pipeline) {
+        Some(doc) => find_node_by_unique_id_in_document(&doc, node_id),
+        None => {
+            if ScriptThread::has_node_id(&node_id) {
+                Err(ErrorStatus::StaleElementReference)
+            } else {
+                Err(ErrorStatus::NoSuchElement)
+            }
+        },
+    }
+}
+
+pub(crate) fn find_node_by_unique_id_in_document(
+    document: &Document,
+    node_id: String,
+) -> Result<DomRoot<Node>, ErrorStatus> {
+    match document
+        .upcast::<Node>()
+        .traverse_preorder(ShadowIncluding::Yes)
+        .find(|node| node.unique_id() == node_id)
+    {
         Some(node) => Ok(node),
         None => {
             if ScriptThread::has_node_id(&node_id) {

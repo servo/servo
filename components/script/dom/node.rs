@@ -3110,11 +3110,15 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#dom-node-childnodes>
     fn ChildNodes(&self, can_gc: CanGc) -> DomRoot<NodeList> {
-        self.ensure_rare_data().child_list.or_init(|| {
-            let doc = self.owner_doc();
-            let window = doc.window();
-            NodeList::new_child_list(window, self, can_gc)
-        })
+        if let Some(list) = self.ensure_rare_data().child_list.get() {
+            return list;
+        }
+
+        let doc = self.owner_doc();
+        let window = doc.window();
+        let list = NodeList::new_child_list(window, self, can_gc);
+        self.ensure_rare_data().child_list.set(Some(&list));
+        list
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-firstchild>

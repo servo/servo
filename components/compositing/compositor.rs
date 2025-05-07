@@ -26,9 +26,9 @@ use crossbeam_channel::{Receiver, Sender};
 use dpi::PhysicalSize;
 use embedder_traits::{
     CompositorHitTestResult, Cursor, InputEvent, MouseButtonEvent, MouseMoveEvent, ShutdownState,
-    TouchEventType, UntrustedNodeAddress, ViewportDetails,
+    TouchEventType, UntrustedNodeAddress, ViewportDetails, WheelDelta, WheelEvent, WheelMode,
 };
-use euclid::{Point2D, Rect, Scale, Size2D, Transform3D};
+use euclid::{Point2D, Rect, Scale, Size2D, Transform3D, Vector2D};
 use fnv::FnvHashMap;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use libc::c_void;
@@ -644,6 +644,26 @@ impl IOCompositor {
                 let point = dppx.transform_point(Point2D::new(x, y));
                 webview_renderer
                     .dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+            },
+
+            CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, delta_x, delta_y) => {
+                let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
+                    warn!("Handling input event for unknown webview: {webview_id}");
+                    return;
+                };
+                let delta = WheelDelta {
+                    x: delta_x,
+                    y: delta_y,
+                    z: 0.0,
+                    mode: WheelMode::DeltaPixel,
+                };
+                let dppx = webview_renderer.device_pixels_per_page_pixel();
+                let point = dppx.transform_point(Point2D::new(x, y));
+                let scroll_delta =
+                    dppx.transform_vector(Vector2D::new(delta_x as f32, delta_y as f32));
+                webview_renderer
+                    .dispatch_input_event(InputEvent::Wheel(WheelEvent { delta, point }));
+                webview_renderer.on_webdriver_wheel_action(scroll_delta, point);
             },
 
             CompositorMsg::SendInitialTransaction(pipeline) => {
