@@ -8,6 +8,7 @@
 # except according to those terms.
 
 from concurrent.futures import Future
+import logging
 from geckordp.actors.root import RootActor
 from geckordp.actors.descriptors.tab import TabActor
 from geckordp.actors.watcher import WatcherActor
@@ -22,13 +23,25 @@ import sys
 import time
 from threading import Thread
 from typing import Optional
+import unittest
+
+
+class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
+    # /path/to/servo/python/servo
+    script_path = None
+
+    def test_sources(self):
+        run_test(self, sources_test, os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
 
 
 def run_tests(script_path):
-    run_test(sources_test, os.path.join(script_path, "devtools_tests/sources"))
+    DevtoolsTests.script_path = script_path
+    verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
+    suite = unittest.TestLoader().loadTestsFromTestCase(DevtoolsTests)
+    return unittest.TextTestRunner(verbosity=verbosity).run(suite).wasSuccessful()
 
 
-def run_test(test_fun, test_dir):
+def run_test(test_case, test_fun, test_dir):
     print(f">>> {test_dir}", file=sys.stderr)
     server = None
     base_url = Future()
@@ -65,7 +78,7 @@ def run_test(test_fun, test_dir):
     try:
         client = RDPClient()
         client.connect("127.0.0.1", 6080)
-        test_fun(client, base_url)
+        test_fun(test_case, client, base_url)
     except Exception as e:
         raise e
     finally:
@@ -77,7 +90,7 @@ def run_test(test_fun, test_dir):
         thread.join()
 
 
-def sources_test(client, base_url):
+def sources_test(test_case, client, base_url):
     root = RootActor(client)
     tabs = root.list_tabs()
     tab_dict = tabs[0]
@@ -102,8 +115,8 @@ def sources_test(client, base_url):
     def on_source_resource(data):
         for [resource_type, sources] in data["array"]:
             try:
-                assert resource_type == "source"
-                assert [source["url"] for source in sources] == [f"{base_url}/classic.js", f"{base_url}/test.html", "https://servo.org/js/load-table.js"]
+                test_case.assertEqual(resource_type, "source")
+                test_case.assertEqual([source["url"] for source in sources], [f"{base_url}/classic.js", f"{base_url}/test.html", "https://servo.org/js/load-table.js"])
                 done.set_result(None)
             except Exception as e:
                 # Raising here does nothing, for some reason.

@@ -331,7 +331,9 @@ class MachCommands(CommandBase):
              description='Run tests for devtools.',
              category='testing')
     def test_devtools(self):
-        servo.devtools_tests.run_tests(SCRIPT_PATH)
+        print("Running devtools tests...")
+        passed = servo.devtools_tests.run_tests(SCRIPT_PATH)
+        return 0 if passed else 1
 
     @Command('test-wpt-failure',
              description='Run the tests harness that verifies that the test failures are reported correctly',
