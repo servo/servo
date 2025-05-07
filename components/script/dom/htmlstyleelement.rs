@@ -34,7 +34,7 @@ use crate::stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 #[dom_struct]
 pub(crate) struct HTMLStyleElement {
     htmlelement: HTMLElement,
-    #[ignore_malloc_size_of = "Arc"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableDom<CSSStyleSheet>,

@@ -5,14 +5,13 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use app_units::Au;
 use euclid::num::Zero;
 use fonts::platform::font::PlatformFont;
 use fonts::{
-    Font, FontData, FontDescriptor, FontIdentifier, FontTemplate, PlatformFontMethods,
-    ShapingFlags, ShapingOptions,
+    Font, FontData, FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef,
+    PlatformFontMethods, ShapingFlags, ShapingOptions,
 };
 use servo_url::ServoUrl;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
@@ -42,13 +41,7 @@ fn make_font(path: PathBuf) -> Font {
         variant: FontVariantCaps::Normal,
         pt_size: Au::from_px(24),
     };
-    Font::new(
-        Arc::new(atomic_refcell::AtomicRefCell::new(template)),
-        descriptor,
-        Some(data),
-        None,
-    )
-    .unwrap()
+    Font::new(FontTemplateRef::new(template), descriptor, Some(data), None).unwrap()
 }
 
 #[test]

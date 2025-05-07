@@ -4,9 +4,8 @@
 
 #![allow(unsafe_code)]
 
-use std::cell::{Cell, LazyCell, RefCell};
-use std::collections::{HashMap, HashSet};
-use std::ffi::c_void;
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::process;
 use std::sync::{Arc, LazyLock};
@@ -94,10 +93,6 @@ use crate::{BoxTree, FragmentTree};
 // And: https://gist.github.com/mukilan/ed57eb61b83237a05fbf6360ec5e33b0
 static STYLE_THREAD_POOL: Mutex<&style::global_style_data::STYLE_THREAD_POOL> =
     Mutex::new(&style::global_style_data::STYLE_THREAD_POOL);
-
-thread_local!(static SEEN_POINTERS: LazyCell<RefCell<HashSet<*const c_void>>> = const {
-    LazyCell::new(|| RefCell::new(HashSet::new()))
-});
 
 /// A CSS file to style the user agent stylesheet.
 static USER_AGENT_CSS: &[u8] = include_bytes!("./stylesheets/user-agent.css");
