@@ -19,7 +19,6 @@ import http.server
 import os.path
 import socketserver
 import subprocess
-import sys
 import time
 from threading import Thread
 from typing import Optional
@@ -30,12 +29,18 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     # /path/to/servo/python/servo
     script_path = None
 
-    def test_sources(self):
-        self.run_test(self.sources_test, os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+    def __init__(self, methodName="runTest"):
+        super().__init__(methodName)
+        self.servoshell = None
+        self.base_url = None
+        self.web_server = None
+        self.web_server_thread = None
 
-    def run_test(self, test_fun, test_dir):
-        print(f">>> {test_dir}", file=sys.stderr)
-        server = None
+    def test_sources(self):
+        self.run_servoshell(os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+        self.sources_test()
+
+    def run_servoshell(self, test_dir):
         base_url = Future()
 
         class Handler(http.server.SimpleHTTPRequestHandler):
@@ -48,40 +53,35 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                 pass
 
         def server_thread():
-            nonlocal server
-            server = socketserver.TCPServer(("0.0.0.0", 0), Handler)
-            base_url.set_result(f"http://127.0.0.1:{server.server_address[1]}")
-            server.serve_forever()
+            self.web_server = socketserver.TCPServer(("0.0.0.0", 0), Handler)
+            base_url.set_result(f"http://127.0.0.1:{self.web_server.server_address[1]}")
+            self.web_server.serve_forever()
 
         # Start a web server for the test.
-        thread = Thread(target=server_thread)
-        thread.start()
-        base_url = base_url.result(1)
+        self.web_server_thread = Thread(target=server_thread)
+        self.web_server_thread.start()
+        self.base_url = base_url.result(1)
 
         # Change this setting if you want to debug Servo.
         os.environ["RUST_LOG"] = "error,devtools=warn"
 
         # Run servoshell.
-        servoshell = subprocess.Popen(["target/release/servo", "--devtools=6080", f"{base_url}/test.html"])
+        self.servoshell = subprocess.Popen(["target/release/servo", "--devtools=6080", f"{self.base_url}/test.html"])
 
         # FIXME: Don’t do this
         time.sleep(1)
 
-        try:
-            client = RDPClient()
-            client.connect("127.0.0.1", 6080)
-            test_fun(client, base_url)
-        except Exception as e:
-            raise e
-        finally:
-            # Terminate servoshell.
-            servoshell.terminate()
+    def tearDown(self):
+        # Terminate servoshell.
+        self.servoshell.terminate()
 
-            # Stop the web server.
-            server.shutdown()
-            thread.join()
+        # Stop the web server.
+        self.web_server.shutdown()
+        self.web_server_thread.join()
 
-    def sources_test(self, client, base_url):
+    def sources_test(self):
+        client = RDPClient()
+        client.connect("127.0.0.1", 6080)
         root = RootActor(client)
         tabs = root.list_tabs()
         tab_dict = tabs[0]
@@ -107,7 +107,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             for [resource_type, sources] in data["array"]:
                 try:
                     self.assertEqual(resource_type, "source")
-                    self.assertEqual([source["url"] for source in sources], [f"{base_url}/classic.js", f"{base_url}/test.html", "https://servo.org/js/load-table.js"])
+                    self.assertEqual([source["url"] for source in sources], [f"{self.base_url}/classic.js", f"{self.base_url}/test.html", "https://servo.org/js/load-table.js"])
                     done.set_result(None)
                 except Exception as e:
                     # Raising here does nothing, for some reason.
