@@ -53,6 +53,7 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use style::properties::ComputedValues;
 use style::values::generics::length::GenericLengthPercentageOrAuto;
 pub use stylo_malloc_size_of::MallocSizeOfOps;
 use uuid::Uuid;
@@ -747,6 +748,12 @@ impl MallocSizeOf for ipc_channel::ipc::IpcSharedMemory {
 impl<T: MallocSizeOf> MallocSizeOf for accountable_refcell::RefCell<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.borrow().size_of(ops)
+    }
+}
+
+impl MallocSizeOf for servo_arc::Arc<ComputedValues> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.conditional_size_of(ops)
     }
 }
 

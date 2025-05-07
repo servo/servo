@@ -82,10 +82,11 @@ use style::properties::style_structs::Font;
 use style_traits::dom::OpaqueNode;
 
 use super::flow::BlockFormattingContext;
+use crate::SharedStyle;
 use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::{BaseFragmentInfo, Fragment, SharedBackgroundStyle};
+use crate::fragment_tree::{BaseFragmentInfo, Fragment};
 use crate::geom::PhysicalVec;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::BorderStyleColor;
@@ -98,12 +99,10 @@ pub struct Table {
     /// The style of this table. These are the properties that apply to the "wrapper" ie the element
     /// that contains both the grid and the captions. Not all properties are actually used on the
     /// wrapper though, such as background and borders, which apply to the grid.
-    #[conditional_malloc_size_of]
     style: Arc<ComputedValues>,
 
     /// The style of this table's grid. This is an anonymous style based on the table's style, but
     /// eliminating all the properties handled by the "wrapper."
-    #[conditional_malloc_size_of]
     grid_style: Arc<ComputedValues>,
 
     /// The [`BaseFragmentInfo`] for this table's grid. This is necessary so that when the
@@ -292,7 +291,7 @@ pub struct TableTrack {
     /// A shared container for this track's style, used to share the style for the purposes
     /// of drawing backgrounds in individual cells. This allows updating the style in a
     /// single place and having it affect all cell `Fragment`s.
-    shared_background_style: SharedBackgroundStyle,
+    shared_background_style: SharedStyle,
 }
 
 #[derive(Debug, MallocSizeOf, PartialEq)]
@@ -317,7 +316,7 @@ pub struct TableTrackGroup {
     /// A shared container for this track's style, used to share the style for the purposes
     /// of drawing backgrounds in individual cells. This allows updating the style in a
     /// single place and having it affect all cell `Fragment`s.
-    shared_background_style: SharedBackgroundStyle,
+    shared_background_style: SharedStyle,
 }
 
 impl TableTrackGroup {

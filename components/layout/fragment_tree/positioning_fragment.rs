@@ -25,7 +25,6 @@ pub(crate) struct PositioningFragment {
     pub scrollable_overflow: PhysicalRect<Au>,
 
     /// If this fragment was created with a style, the style of the fragment.
-    #[conditional_malloc_size_of]
     pub style: Option<ServoArc<ComputedValues>>,
 
     /// This [`PositioningFragment`]'s containing block rectangle in coordinates relative to
