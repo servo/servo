@@ -38,7 +38,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def test_sources(self):
         self.run_servoshell(os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.sources_test()
+        self.assert_sources_list([f"{self.base_url}/classic.js", f"{self.base_url}/test.html", "https://servo.org/js/load-table.js"])
 
     def run_servoshell(self, test_dir):
         base_url = Future()
@@ -79,7 +79,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.web_server.shutdown()
         self.web_server_thread.join()
 
-    def sources_test(self):
+    def assert_sources_list(self, expected_urls):
         client = RDPClient()
         client.connect("127.0.0.1", 6080)
         root = RootActor(client)
@@ -107,7 +107,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             for [resource_type, sources] in data["array"]:
                 try:
                     self.assertEqual(resource_type, "source")
-                    self.assertEqual([source["url"] for source in sources], [f"{self.base_url}/classic.js", f"{self.base_url}/test.html", "https://servo.org/js/load-table.js"])
+                    self.assertEqual([source["url"] for source in sources], expected_urls)
                     done.set_result(None)
                 except Exception as e:
                     # Raising here does nothing, for some reason.
