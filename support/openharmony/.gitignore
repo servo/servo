@@ -1,0 +1,4 @@
+# ignore generated files
+.hvigor
+# ignore secrets
+signing_config.json
