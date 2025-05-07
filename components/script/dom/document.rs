@@ -6569,9 +6569,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
-    document_and_element_event_handlers!();
-
     // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror
     event_handler!(fullscreenerror, GetOnfullscreenerror, SetOnfullscreenerror);
 

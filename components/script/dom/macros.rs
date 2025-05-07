@@ -523,21 +523,29 @@ macro_rules! global_event_handlers(
     );
     (NoOnload) => (
         event_handler!(abort, GetOnabort, SetOnabort);
+        event_handler!(auxclick, GetOnauxclick, SetOnauxclick);
         event_handler!(animationend, GetOnanimationend, SetOnanimationend);
         event_handler!(animationiteration, GetOnanimationiteration, SetOnanimationiteration);
+        event_handler!(beforeinput, GetOnbeforeinput, SetOnbeforeinput);
+        event_handler!(beforematch, GetOnbeforematch, SetOnbeforematch);
+        event_handler!(beforetoggle, GetOnbeforetoggle, SetOnbeforetoggle);
         event_handler!(cancel, GetOncancel, SetOncancel);
         event_handler!(canplay, GetOncanplay, SetOncanplay);
         event_handler!(canplaythrough, GetOncanplaythrough, SetOncanplaythrough);
         event_handler!(change, GetOnchange, SetOnchange);
         event_handler!(click, GetOnclick, SetOnclick);
         event_handler!(close, GetOnclose, SetOnclose);
+        event_handler!(command, GetOncommand, SetOncommand);
+        event_handler!(contextlost, GetOncontextlost, SetOncontextlost);
         event_handler!(contextmenu, GetOncontextmenu, SetOncontextmenu);
+        event_handler!(contextrestored, GetOncontextrestored, SetOncontextrestored);
+        event_handler!(copy, GetOncopy, SetOncopy);
         event_handler!(cuechange, GetOncuechange, SetOncuechange);
+        event_handler!(cut, GetOncut, SetOncut);
         event_handler!(dblclick, GetOndblclick, SetOndblclick);
         event_handler!(drag, GetOndrag, SetOndrag);
         event_handler!(dragend, GetOndragend, SetOndragend);
         event_handler!(dragenter, GetOndragenter, SetOndragenter);
-        event_handler!(dragexit, GetOndragexit, SetOndragexit);
         event_handler!(dragleave, GetOndragleave, SetOndragleave);
         event_handler!(dragover, GetOndragover, SetOndragover);
         event_handler!(dragstart, GetOndragstart, SetOndragstart);
@@ -561,20 +569,21 @@ macro_rules! global_event_handlers(
         event_handler!(mouseout, GetOnmouseout, SetOnmouseout);
         event_handler!(mouseover, GetOnmouseover, SetOnmouseover);
         event_handler!(mouseup, GetOnmouseup, SetOnmouseup);
-        event_handler!(wheel, GetOnwheel, SetOnwheel);
+        event_handler!(paste, GetOnpaste, SetOnpaste);
         event_handler!(pause, GetOnpause, SetOnpause);
         event_handler!(play, GetOnplay, SetOnplay);
         event_handler!(playing, GetOnplaying, SetOnplaying);
         event_handler!(progress, GetOnprogress, SetOnprogress);
         event_handler!(ratechange, GetOnratechange, SetOnratechange);
         event_handler!(reset, GetOnreset, SetOnreset);
+        event_handler!(scrollend, GetOnscrollend, SetOnscrollend);
         event_handler!(securitypolicyviolation, GetOnsecuritypolicyviolation, SetOnsecuritypolicyviolation);
         event_handler!(seeked, GetOnseeked, SetOnseeked);
         event_handler!(seeking, GetOnseeking, SetOnseeking);
         event_handler!(select, GetOnselect, SetOnselect);
         event_handler!(selectionchange, GetOnselectionchange, SetOnselectionchange);
         event_handler!(selectstart, GetOnselectstart, SetOnselectstart);
-        event_handler!(show, GetOnshow, SetOnshow);
+        event_handler!(slotchange, GetOnslotchange, SetOnslotchange);
         event_handler!(stalled, GetOnstalled, SetOnstalled);
         event_handler!(submit, GetOnsubmit, SetOnsubmit);
         event_handler!(suspend, GetOnsuspend, SetOnsuspend);
@@ -585,6 +594,11 @@ macro_rules! global_event_handlers(
         event_handler!(transitionrun, GetOntransitionrun, SetOntransitionrun);
         event_handler!(volumechange, GetOnvolumechange, SetOnvolumechange);
         event_handler!(waiting, GetOnwaiting, SetOnwaiting);
+        event_handler!(webkitanimationend, GetOnwebkitanimationend, SetOnwebkitanimationend);
+        event_handler!(webkitanimationiteration, GetOnwebkitanimationiteration, SetOnwebkitanimationiteration);
+        event_handler!(webkitanimationstart, GetOnwebkitanimationstart, SetOnwebkitanimationstart);
+        event_handler!(webkittransitionend, GetOnwebkittransitionend, SetOnwebkittransitionend);
+        event_handler!(wheel, GetOnwheel, SetOnwheel);
     )
 );
 
@@ -605,7 +619,9 @@ macro_rules! window_event_handlers(
         event_handler!(offline, GetOnoffline, SetOnoffline);
         event_handler!(online, GetOnonline, SetOnonline);
         event_handler!(pagehide, GetOnpagehide, SetOnpagehide);
+        event_handler!(pagereveal, GetOnpagereveal, SetOnpagereveal);
         event_handler!(pageshow, GetOnpageshow, SetOnpageshow);
+        event_handler!(pageswap, GetOnpageswap, SetOnpageswap);
         event_handler!(popstate, GetOnpopstate, SetOnpopstate);
         event_handler!(rejectionhandled, GetOnrejectionhandled,
                        SetOnrejectionhandled);
@@ -633,7 +649,9 @@ macro_rules! window_event_handlers(
         window_owned_event_handler!(offline, GetOnoffline, SetOnoffline);
         window_owned_event_handler!(online, GetOnonline, SetOnonline);
         window_owned_event_handler!(pagehide, GetOnpagehide, SetOnpagehide);
+        window_owned_event_handler!(pagereveal, GetOnpagereveal, SetOnpagereveal);
         window_owned_event_handler!(pageshow, GetOnpageshow, SetOnpageshow);
+        window_owned_event_handler!(pageswap, GetOnpageswap, SetOnpageswap);
         window_owned_event_handler!(popstate, GetOnpopstate, SetOnpopstate);
         window_owned_event_handler!(rejectionhandled, GetOnrejectionhandled,
                                     SetOnrejectionhandled);
@@ -644,17 +662,6 @@ macro_rules! window_event_handlers(
         window_owned_event_handler!(gamepadconnected, GetOngamepadconnected, SetOngamepadconnected);
         window_owned_event_handler!(gamepaddisconnected, GetOngamepaddisconnected, SetOngamepaddisconnected);
     );
-);
-
-// https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
-// see webidls/EventHandler.webidl
-// As more methods get added, just update them here.
-macro_rules! document_and_element_event_handlers(
-    () => (
-        event_handler!(cut, GetOncut, SetOncut);
-        event_handler!(copy, GetOncopy, SetOncopy);
-        event_handler!(paste, GetOnpaste, SetOnpaste);
-    )
 );
 
 /// DOM struct implementation for simple interfaces inheriting from PerformanceEntry.

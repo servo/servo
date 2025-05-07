@@ -154,7 +154,6 @@ partial /*sealed*/ interface Document {
   // also has obsolete members
 };
 Document includes GlobalEventHandlers;
-Document includes DocumentAndElementEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#Document-partial
 partial interface Document {
