@@ -36,11 +36,25 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.web_server = None
         self.web_server_thread = None
 
-    def test_sources(self):
-        self.run_servoshell(os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+    def test_sources_list(self):
+        self.run_servoshell(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
         self.assert_sources_list([f"{self.base_url}/classic.js", f"{self.base_url}/test.html", "https://servo.org/js/load-table.js"])
 
-    def run_servoshell(self, test_dir):
+    def test_sources_list_with_data_no_scripts(self):
+        self.run_servoshell(url="data:text/html,")
+        self.assert_sources_list([])
+
+    def test_sources_list_with_data_empty_inline_script(self):
+        self.run_servoshell(url="data:text/html,<script></script>")
+        self.assert_sources_list([])
+
+    def test_sources_list_with_data_inline_script(self):
+        self.run_servoshell(url="data:text/html,<script>;</script>")
+        self.assert_sources_list(["data:text/html,<script>;</script>"])
+
+    def run_servoshell(self, *, test_dir=None, url=None):
+        if test_dir is None:
+            test_dir = os.path.join(DevtoolsTests.script_path, "devtools_tests")
         base_url = Future()
 
         class Handler(http.server.SimpleHTTPRequestHandler):
@@ -66,7 +80,9 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         os.environ["RUST_LOG"] = "error,devtools=warn"
 
         # Run servoshell.
-        self.servoshell = subprocess.Popen(["target/release/servo", "--devtools=6080", f"{self.base_url}/test.html"])
+        if url is None:
+            url = f"{self.base_url}/test.html"
+        self.servoshell = subprocess.Popen(["target/release/servo", "--devtools=6080", url])
 
         # FIXME: Don’t do this
         time.sleep(1)
