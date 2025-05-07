@@ -467,11 +467,8 @@ impl WritableStreamDefaultController {
         stream.update_backpressure(backpressure, global, can_gc);
 
         // Let startResult be the result of performing startAlgorithm. (This may throw an exception.)
-        let start_result = self.start_algorithm(cx, global, can_gc)?;
-
         // Let startPromise be a promise resolved with startResult.
-        let start_promise = Promise::new(global, can_gc);
-        start_promise.resolve_native(&start_result, can_gc);
+        let start_promise = self.start_algorithm(cx, global, can_gc)?;
 
         let rooted_default_controller = DomRoot::from_ref(self);
 
