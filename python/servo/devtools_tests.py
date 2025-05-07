@@ -31,7 +31,100 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     script_path = None
 
     def test_sources(self):
-        run_test(self, sources_test, os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+        self.run_test(self.sources_test, os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+
+    def run_test(self, test_fun, test_dir):
+        print(f">>> {test_dir}", file=sys.stderr)
+        server = None
+        base_url = Future()
+
+        class Handler(http.server.SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, directory=test_dir, **kwargs)
+
+            def log_message(self, format, *args):
+                # Uncomment this to log requests.
+                # return super().log_message(format, *args)
+                pass
+
+        def server_thread():
+            nonlocal server
+            server = socketserver.TCPServer(("0.0.0.0", 0), Handler)
+            base_url.set_result(f"http://127.0.0.1:{server.server_address[1]}")
+            server.serve_forever()
+
+        # Start a web server for the test.
+        thread = Thread(target=server_thread)
+        thread.start()
+        base_url = base_url.result(1)
+
+        # Change this setting if you want to debug Servo.
+        os.environ["RUST_LOG"] = "error,devtools=warn"
+
+        # Run servoshell.
+        servoshell = subprocess.Popen(["target/release/servo", "--devtools=6080", f"{base_url}/test.html"])
+
+        # FIXME: Don’t do this
+        time.sleep(1)
+
+        try:
+            client = RDPClient()
+            client.connect("127.0.0.1", 6080)
+            test_fun(client, base_url)
+        except Exception as e:
+            raise e
+        finally:
+            # Terminate servoshell.
+            servoshell.terminate()
+
+            # Stop the web server.
+            server.shutdown()
+            thread.join()
+
+    def sources_test(self, client, base_url):
+        root = RootActor(client)
+        tabs = root.list_tabs()
+        tab_dict = tabs[0]
+        tab = TabActor(client, tab_dict["actor"])
+        watcher = tab.get_watcher()
+        watcher = WatcherActor(client, watcher["actor"])
+
+        target = Future()
+
+        def on_target(data):
+            if data["target"]["browsingContextID"] == tab_dict["browsingContextID"]:
+                target.set_result(data["target"])
+
+        client.add_event_listener(
+            watcher.actor_id, Events.Watcher.TARGET_AVAILABLE_FORM, on_target,
+        )
+        watcher.watch_targets(WatcherActor.Targets.FRAME)
+
+        done = Future()
+        target = target.result(1)
+
+        def on_source_resource(data):
+            for [resource_type, sources] in data["array"]:
+                try:
+                    self.assertEqual(resource_type, "source")
+                    self.assertEqual([source["url"] for source in sources], [f"{base_url}/classic.js", f"{base_url}/test.html", "https://servo.org/js/load-table.js"])
+                    done.set_result(None)
+                except Exception as e:
+                    # Raising here does nothing, for some reason.
+                    # Send the exception back so it can be raised.
+                    done.set_result(e)
+
+        client.add_event_listener(
+            target["actor"],
+            Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+            on_source_resource,
+        )
+        watcher.watch_resources([Resources.SOURCE])
+
+        result: Optional[Exception] = done.result(1)
+        if result:
+            raise result
+        client.disconnect()
 
 
 def run_tests(script_path):
@@ -39,98 +132,3 @@ def run_tests(script_path):
     verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
     suite = unittest.TestLoader().loadTestsFromTestCase(DevtoolsTests)
     return unittest.TextTestRunner(verbosity=verbosity).run(suite).wasSuccessful()
-
-
-def run_test(test_case, test_fun, test_dir):
-    print(f">>> {test_dir}", file=sys.stderr)
-    server = None
-    base_url = Future()
-
-    class Handler(http.server.SimpleHTTPRequestHandler):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, directory=test_dir, **kwargs)
-
-        def log_message(self, format, *args):
-            # Uncomment this to log requests.
-            # return super().log_message(format, *args)
-            pass
-
-    def server_thread():
-        nonlocal server
-        server = socketserver.TCPServer(("0.0.0.0", 0), Handler)
-        base_url.set_result(f"http://127.0.0.1:{server.server_address[1]}")
-        server.serve_forever()
-
-    # Start a web server for the test.
-    thread = Thread(target=server_thread)
-    thread.start()
-    base_url = base_url.result(1)
-
-    # Change this setting if you want to debug Servo.
-    os.environ["RUST_LOG"] = "error,devtools=warn"
-
-    # Run servoshell.
-    servoshell = subprocess.Popen(["target/release/servo", "--devtools=6080", f"{base_url}/test.html"])
-
-    # FIXME: Don’t do this
-    time.sleep(1)
-
-    try:
-        client = RDPClient()
-        client.connect("127.0.0.1", 6080)
-        test_fun(test_case, client, base_url)
-    except Exception as e:
-        raise e
-    finally:
-        # Terminate servoshell.
-        servoshell.terminate()
-
-        # Stop the web server.
-        server.shutdown()
-        thread.join()
-
-
-def sources_test(test_case, client, base_url):
-    root = RootActor(client)
-    tabs = root.list_tabs()
-    tab_dict = tabs[0]
-    tab = TabActor(client, tab_dict["actor"])
-    watcher = tab.get_watcher()
-    watcher = WatcherActor(client, watcher["actor"])
-
-    target = Future()
-
-    def on_target(data):
-        if data["target"]["browsingContextID"] == tab_dict["browsingContextID"]:
-            target.set_result(data["target"])
-
-    client.add_event_listener(
-        watcher.actor_id, Events.Watcher.TARGET_AVAILABLE_FORM, on_target,
-    )
-    watcher.watch_targets(WatcherActor.Targets.FRAME)
-
-    done = Future()
-    target = target.result(1)
-
-    def on_source_resource(data):
-        for [resource_type, sources] in data["array"]:
-            try:
-                test_case.assertEqual(resource_type, "source")
-                test_case.assertEqual([source["url"] for source in sources], [f"{base_url}/classic.js", f"{base_url}/test.html", "https://servo.org/js/load-table.js"])
-                done.set_result(None)
-            except Exception as e:
-                # Raising here does nothing, for some reason.
-                # Send the exception back so it can be raised.
-                done.set_result(e)
-
-    client.add_event_listener(
-        target["actor"],
-        Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-        on_source_resource,
-    )
-    watcher.watch_resources([Resources.SOURCE])
-
-    result: Optional[Exception] = done.result(1)
-    if result:
-        raise result
-    client.disconnect()
