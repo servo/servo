@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.servo.Servo</id>
+  <url type="homepage">https://servo.org</url>
+  <url type="bugtracker">https://github.com/servo/servo/issues</url>
+
+  <name>Servo</name>
+  <summary>Servo is a browser engine written in Rust.</summary>
+
+  <metadata_license>CC-BY-SA-4.0</metadata_license>
+  <project_license>MPL-2.0</project_license>
+
+  <recommends>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>gamepad</control>
+  </recommends>
+
+  <description>
+    <p>
+      Servo’s mission is to provide an independent, modular, embeddable web engine, which allows developers to deliver content and applications using web standards.
+    </p>
+    <p>
+    Servo is written in Rust, and shares code with Mozilla Firefox and the wider Rust ecosystem. Since its creation in 2012, Servo has contributed to W3C/WHATWG web standards by reporting specification issues and submitting new cross-browser automated tests, and core team members have co-edited new standards that have been adopted by other browsers. As a result, the Servo project helps drive the entire web platform forward while building on a platform of reusable, modular technologies that implement web standards.
+    </p>
+  </description>
+
+  <releases>
+    <release version="0.0.0" date="2021-01-26">
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1" />
+
+  <launchable type="desktop-id">org.servo.Servo.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Servo viewing servo.org</caption>
+      <image>https://servo.org/img/screenshot-servo.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Servo displaying Wikipedia</caption>
+      <image>https://servo.org/img/screenshot-wikipedia.png</image>
+    </screenshot>
+  </screenshots>
+</component>
