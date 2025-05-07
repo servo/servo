@@ -23,8 +23,9 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
-    WebDriverCommandMsg, WebDriverCookieError, WebDriverFrameId, WebDriverJSError,
-    WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverScriptCommand,
+    EmbedderMsg, EmbedderProxy, EventLoopWaker, WebDriverCommandMsg, WebDriverCookieError,
+    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
+    WebDriverScriptCommand,
 };
 use euclid::{Rect, Size2D};
 use http::method::Method;
@@ -57,8 +58,8 @@ use webdriver::common::{Cookie, Date, LocatorStrategy, Parameters, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{
-    CloseWindowResponse, CookieResponse, CookiesResponse, ElementRectResponse, NewSessionResponse,
-    NewWindowResponse, TimeoutsResponse, ValueResponse, WebDriverResponse, WindowRectResponse,
+    CookieResponse, CookiesResponse, ElementRectResponse, NewSessionResponse, NewWindowResponse,
+    TimeoutsResponse, ValueResponse, WebDriverResponse, WindowRectResponse,
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
@@ -100,8 +101,12 @@ fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
     }
 }
 
-pub fn start_server(port: u16, constellation_chan: Sender<EmbedderToConstellationMessage>) {
-    let handler = Handler::new(constellation_chan);
+pub fn start_server(
+    port: u16,
+    constellation_chan: Sender<EmbedderToConstellationMessage>,
+    embedder_proxy: EmbedderProxy,
+) {
+    let handler = Handler::new(constellation_chan, embedder_proxy);
     thread::Builder::new()
         .name("WebDriverHttpServer".to_owned())
         .spawn(move || {
@@ -118,6 +123,19 @@ pub fn start_server(port: u16, constellation_chan: Sender<EmbedderToConstellatio
             }
         })
         .expect("Thread spawning failed");
+}
+
+pub fn create_embedder_channel(
+    event_loop_waker: Box<dyn EventLoopWaker>,
+) -> (EmbedderProxy, Receiver<EmbedderMsg>) {
+    let (sender, receiver) = unbounded();
+    (
+        EmbedderProxy {
+            sender,
+            event_loop_waker,
+        },
+        receiver,
+    )
 }
 
 /// Represents the current WebDriver session and holds relevant session state.
@@ -189,6 +207,7 @@ struct Handler {
     load_status_sender: IpcSender<WebDriverLoadStatus>,
     session: Option<WebDriverSession>,
     constellation_chan: Sender<EmbedderToConstellationMessage>,
+    embedder_proxy: EmbedderProxy,
     resize_timeout: u32,
 }
 
@@ -400,7 +419,10 @@ impl<'de> Visitor<'de> for TupleVecMapVisitor {
 }
 
 impl Handler {
-    pub fn new(constellation_chan: Sender<EmbedderToConstellationMessage>) -> Handler {
+    pub fn new(
+        constellation_chan: Sender<EmbedderToConstellationMessage>,
+        embedder_proxy: EmbedderProxy,
+    ) -> Handler {
         // Create a pair of both an IPC and a threaded channel,
         // keep the IPC sender to clone and pass to the constellation for each load,
         // and keep a threaded receiver to block on an incoming load-status.
@@ -414,6 +436,7 @@ impl Handler {
             load_status_receiver,
             session: None,
             constellation_chan,
+            embedder_proxy,
             resize_timeout: 500,
         }
     }
@@ -623,10 +646,9 @@ impl Handler {
         cmd_msg: WebDriverScriptCommand,
     ) -> WebDriverResult<()> {
         let browsing_context_id = self.session()?.browsing_context_id;
-        let msg = EmbedderToConstellationMessage::WebDriverCommand(
+        self.embedder_proxy.send(EmbedderMsg::WebDriverToEmbedder(
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg),
-        );
-        self.constellation_chan.send(msg).unwrap();
+        ));
         Ok(())
     }
 
@@ -895,14 +917,7 @@ impl Handler {
                 .unwrap();
         }
 
-        Ok(WebDriverResponse::CloseWindow(CloseWindowResponse(
-            self.session()
-                .unwrap()
-                .window_handles
-                .values()
-                .cloned()
-                .collect(),
-        )))
+        self.handle_window_handles()
     }
 
     fn handle_new_window(

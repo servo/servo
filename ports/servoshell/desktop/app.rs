@@ -12,13 +12,18 @@ use std::time::Instant;
 use std::{env, fs};
 
 use ::servo::ServoBuilder;
+use constellation_traits::EmbedderToConstellationMessage;
+use crossbeam_channel::Receiver;
+use euclid::Point2D;
 use log::{info, trace, warn};
 use net::protocols::ProtocolRegistry;
-use servo::EventLoopWaker;
 use servo::config::opts::Opts;
 use servo::config::prefs::Preferences;
 use servo::servo_url::ServoUrl;
 use servo::user_content_manager::{UserContentManager, UserScript};
+use servo::{
+    EmbedderMsg, EventLoopWaker, InputEvent, MouseButtonEvent, MouseMoveEvent, WebDriverCommandMsg,
+};
 use url::Url;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -37,6 +42,16 @@ use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::{get_default_url, location_bar_input_to_url};
 use crate::prefs::ServoShellPreferences;
 
+pub struct WebDriverHandler {
+    pub receiver: Receiver<EmbedderMsg>,
+}
+
+impl WebDriverHandler {
+    pub fn new(receiver: Receiver<EmbedderMsg>) -> Self {
+        WebDriverHandler { receiver }
+    }
+}
+
 pub struct App {
     opts: Opts,
     preferences: Preferences,
@@ -44,6 +59,7 @@ pub struct App {
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
     minibrowser: Option<Minibrowser>,
+    webdriver_handler: Option<WebDriverHandler>,
     waker: Box<dyn EventLoopWaker>,
     initial_url: ServoUrl,
     t_start: Instant,
@@ -83,6 +99,7 @@ impl App {
             suspended: Cell::new(false),
             windows: HashMap::new(),
             minibrowser: None,
+            webdriver_handler: None,
             waker: events_loop.create_event_loop_waker(),
             initial_url: initial_url.clone(),
             t_start: t,
@@ -149,6 +166,14 @@ impl App {
 
         let servo = servo_builder.build();
         servo.setup_logging();
+
+        if let Some(port) = self.opts.webdriver_port {
+            let (embedder_proxy, receiver) =
+                webdriver_server::create_embedder_channel(self.waker.clone());
+            self.webdriver_handler = Some(WebDriverHandler::new(receiver));
+            let constellation_sender = servo.constellation_sender();
+            webdriver_server::start_server(port, constellation_sender, embedder_proxy);
+        }
 
         let running_state = Rc::new(RunningAppState::new(
             servo,
@@ -292,6 +317,56 @@ impl App {
             }
         }
     }
+
+    fn handle_webdriver_command_events(&self) {
+        let Some(webdriver_handler) = self.webdriver_handler.as_ref() else {
+            return;
+        };
+
+        let AppState::Running(running_state) = &self.state else {
+            return;
+        };
+
+        match webdriver_handler.receiver.try_recv() {
+            Ok(EmbedderMsg::WebDriverToEmbedder(WebDriverCommandMsg::MouseButtonAction(
+                webview_id,
+                action,
+                button,
+                x,
+                y,
+            ))) => {
+                let point = Point2D::new(x, y);
+                let webview = running_state.webviews_by_index(webview_id);
+                webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent {
+                    action,
+                    button,
+                    point,
+                }));
+            },
+            Ok(EmbedderMsg::WebDriverToEmbedder(WebDriverCommandMsg::MouseMoveAction(
+                webview_id,
+                x,
+                y,
+            ))) => {
+                let point = Point2D::new(x, y);
+                let webview = running_state.webviews_by_index(webview_id);
+                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+            },
+            Ok(EmbedderMsg::WebDriverToEmbedder(WebDriverCommandMsg::ScriptCommand(
+                browsing_context_id,
+                cmd_msg,
+            ))) => {
+                let msg = EmbedderToConstellationMessage::WebDriverCommand(
+                    WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd_msg),
+                );
+                let constellation_sender = running_state.servo().constellation_sender();
+                constellation_sender
+                    .send(msg)
+                    .expect("Failed to send WebDriver command");
+            },
+            _ => {},
+        }
+    }
 }
 
 impl ApplicationHandler<WakerEvent> for App {
@@ -430,6 +505,8 @@ impl ApplicationHandler<WakerEvent> for App {
 
         // Consume and handle any events from the Minibrowser.
         self.handle_servoshell_ui_events();
+
+        self.handle_webdriver_command_events();
 
         self.handle_events_with_winit(event_loop, window);
     }

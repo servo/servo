@@ -7,7 +7,9 @@ use std::time::{Duration, Instant};
 use std::{cmp, thread};
 
 use constellation_traits::EmbedderToConstellationMessage;
-use embedder_traits::{MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand};
+use embedder_traits::{
+    EmbedderMsg, MouseButtonAction, WebDriverCommandMsg, WebDriverScriptCommand,
+};
 use ipc_channel::ipc;
 use keyboard_types::webdriver::KeyInputState;
 use webdriver::actions::{
@@ -313,9 +315,9 @@ impl Handler {
             pointer_input_state.x as f32,
             pointer_input_state.y as f32,
         );
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+
+        self.embedder_proxy
+            .send(EmbedderMsg::WebDriverToEmbedder(cmd_msg));
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointerup-action
@@ -359,9 +361,9 @@ impl Handler {
             pointer_input_state.x as f32,
             pointer_input_state.y as f32,
         );
-        self.constellation_chan
-            .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-            .unwrap();
+
+        self.embedder_proxy
+            .send(EmbedderMsg::WebDriverToEmbedder(cmd_msg));
     }
 
     // https://w3c.github.io/webdriver/#dfn-dispatch-a-pointermove-action
@@ -481,9 +483,8 @@ impl Handler {
                 // Step 7.2
                 let cmd_msg =
                     WebDriverCommandMsg::MouseMoveAction(session.webview_id, x as f32, y as f32);
-                self.constellation_chan
-                    .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
-                    .unwrap();
+                self.embedder_proxy
+                    .send(EmbedderMsg::WebDriverToEmbedder(cmd_msg));
                 // Step 7.3
                 pointer_input_state.x = x;
                 pointer_input_state.y = y;

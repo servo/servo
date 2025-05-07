@@ -372,6 +372,8 @@ pub enum EmbedderMsg {
         DeviceIntRect,
         IpcSender<Option<usize>>,
     ),
+    /// A request from WebDriver server
+    WebDriverToEmbedder(WebDriverCommandMsg),
 }
 
 impl Debug for EmbedderMsg {
