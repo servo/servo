@@ -163,6 +163,11 @@ impl WebViewDelegate for RunningAppState {
         if focused {
             self.inner_mut().focused_webview_id = Some(webview.id());
             webview.show(true);
+            let url = webview
+                .url()
+                .map(|u| u.to_string())
+                .unwrap_or(String::from("about:blank"));
+            self.callbacks.host_callbacks.on_url_changed(url);
         } else if self.inner().focused_webview_id == Some(webview.id()) {
             self.inner_mut().focused_webview_id = None;
         }
