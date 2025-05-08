@@ -649,6 +649,8 @@ pub enum ScriptToConstellationMessage {
         JavaScriptEvaluationId,
         Result<JSValue, JavaScriptEvaluationError>,
     ),
+    /// Notify the completion of a webdriver command.
+    WebDriverInputComplete(u64),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {
