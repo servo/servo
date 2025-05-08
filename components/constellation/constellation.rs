@@ -132,7 +132,7 @@ use embedder_traits::{
     FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
-    WebDriverLoadStatus,
+    WebDriverLoadStatus, WebDriverCommandResponse,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -532,6 +532,7 @@ pub struct InitialConstellationState {
 struct WebDriverData {
     load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
     resize_channel: Option<IpcSender<Size2D<f32, CSSPixel>>>,
+    sync_channel: Option<Sender<WebDriverCommandResponse>>,
 }
 
 impl WebDriverData {
@@ -539,6 +540,7 @@ impl WebDriverData {
         WebDriverData {
             load_channel: None,
             resize_channel: None,
+            sync_channel: None,
         }
     }
 }
