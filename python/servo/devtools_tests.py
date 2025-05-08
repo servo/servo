@@ -25,6 +25,10 @@ from typing import Optional
 import unittest
 
 
+# Set this to true to log requests in the internal web servers.
+LOG_REQUESTS = False
+
+
 class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     # /path/to/servo/python/servo
     script_path = None
@@ -88,9 +92,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                 super().__init__(*args, directory=test_dir, **kwargs)
 
             def log_message(self, format, *args):
-                # Uncomment this to log requests.
-                # return super().log_message(format, *args)
-                pass
+                if LOG_REQUESTS:
+                    return super().log_message(format, *args)
 
         def server_thread():
             self.web_server = socketserver.TCPServer(("0.0.0.0", 0), Handler)
