@@ -292,6 +292,10 @@ impl TouchHandler {
             .expect("Current Touch sequence does not exist")
     }
 
+    fn try_get_current_touch_sequence_mut(&mut self) -> Option<&mut TouchSequenceInfo> {
+        self.touch_sequence_map.get_mut(&self.current_sequence_id)
+    }
+
     pub(crate) fn get_touch_sequence(&self, sequence_id: TouchSequenceId) -> &TouchSequenceInfo {
         self.touch_sequence_map
             .get(&sequence_id)
@@ -374,81 +378,87 @@ impl TouchHandler {
         id: TouchId,
         point: Point2D<f32, DevicePixel>,
     ) -> TouchMoveAction {
-        let touch_sequence = self.get_current_touch_sequence_mut();
-        let idx = match touch_sequence
-            .active_touch_points
-            .iter_mut()
-            .position(|t| t.id == id)
-        {
-            Some(i) => i,
-            None => {
-                error!("Got a touchmove event for a non-active touch point");
-                return TouchMoveAction::NoAction;
-            },
-        };
-        let old_point = touch_sequence.active_touch_points[idx].point;
-        let delta = point - old_point;
+        // As `TouchHandler` is per `WebViewRenderer` which is per `WebView` we might get a Touch Sequence Move that
+        // started with a down on a different webview. As the touch_sequence id is only changed on touch_down this
+        // move event gets a touch id which is already cleaned up.
+        if let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() {
+            let idx = match touch_sequence
+                .active_touch_points
+                .iter_mut()
+                .position(|t| t.id == id)
+            {
+                Some(i) => i,
+                None => {
+                    error!("Got a touchmove event for a non-active touch point");
+                    return TouchMoveAction::NoAction;
+                },
+            };
+            let old_point = touch_sequence.active_touch_points[idx].point;
+            let delta = point - old_point;
 
-        let action = match touch_sequence.touch_count() {
-            1 => {
-                if let Panning { ref mut velocity } = touch_sequence.state {
-                    // TODO: Probably we should track 1-3 more points and use a smarter algorithm
-                    *velocity += delta;
-                    *velocity /= 2.0;
-                    // update the touch point every time when panning.
+            let action = match touch_sequence.touch_count() {
+                1 => {
+                    if let Panning { ref mut velocity } = touch_sequence.state {
+                        // TODO: Probably we should track 1-3 more points and use a smarter algorithm
+                        *velocity += delta;
+                        *velocity /= 2.0;
+                        // update the touch point every time when panning.
+                        touch_sequence.active_touch_points[idx].point = point;
+                        TouchMoveAction::Scroll(delta, point)
+                    } else if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
+                        delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
+                    {
+                        touch_sequence.state = Panning {
+                            velocity: Vector2D::new(delta.x, delta.y),
+                        };
+                        // No clicks should be issued after we transitioned to move.
+                        touch_sequence.prevent_click = true;
+                        // update the touch point
+                        touch_sequence.active_touch_points[idx].point = point;
+                        TouchMoveAction::Scroll(delta, point)
+                    } else {
+                        // We don't update the touchpoint, so multiple small moves can
+                        // accumulate and merge into a larger move.
+                        TouchMoveAction::NoAction
+                    }
+                },
+                2 => {
+                    if touch_sequence.state == Pinching ||
+                        delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
+                        delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
+                    {
+                        touch_sequence.state = Pinching;
+                        let (d0, c0) = touch_sequence.pinch_distance_and_center();
+                        // update the touch point with the enough distance or pinching.
+                        touch_sequence.active_touch_points[idx].point = point;
+                        let (d1, c1) = touch_sequence.pinch_distance_and_center();
+                        let magnification = d1 / d0;
+                        let scroll_delta = c1 - c0 * Scale::new(magnification);
+                        TouchMoveAction::Zoom(magnification, scroll_delta)
+                    } else {
+                        // We don't update the touchpoint, so multiple small moves can
+                        // accumulate and merge into a larger move.
+                        TouchMoveAction::NoAction
+                    }
+                },
+                _ => {
                     touch_sequence.active_touch_points[idx].point = point;
-                    TouchMoveAction::Scroll(delta, point)
-                } else if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
-                    delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
-                {
-                    touch_sequence.state = Panning {
-                        velocity: Vector2D::new(delta.x, delta.y),
-                    };
-                    // No clicks should be issued after we transitioned to move.
-                    touch_sequence.prevent_click = true;
-                    // update the touch point
-                    touch_sequence.active_touch_points[idx].point = point;
-                    TouchMoveAction::Scroll(delta, point)
-                } else {
-                    // We don't update the touchpoint, so multiple small moves can
-                    // accumulate and merge into a larger move.
+                    touch_sequence.state = MultiTouch;
                     TouchMoveAction::NoAction
-                }
-            },
-            2 => {
-                if touch_sequence.state == Pinching ||
-                    delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
-                    delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
-                {
-                    touch_sequence.state = Pinching;
-                    let (d0, c0) = touch_sequence.pinch_distance_and_center();
-                    // update the touch point with the enough distance or pinching.
-                    touch_sequence.active_touch_points[idx].point = point;
-                    let (d1, c1) = touch_sequence.pinch_distance_and_center();
-                    let magnification = d1 / d0;
-                    let scroll_delta = c1 - c0 * Scale::new(magnification);
-                    TouchMoveAction::Zoom(magnification, scroll_delta)
-                } else {
-                    // We don't update the touchpoint, so multiple small moves can
-                    // accumulate and merge into a larger move.
-                    TouchMoveAction::NoAction
-                }
-            },
-            _ => {
-                touch_sequence.active_touch_points[idx].point = point;
-                touch_sequence.state = MultiTouch;
-                TouchMoveAction::NoAction
-            },
-        };
-        // If the touch action is not `NoAction` and the first move has not been processed,
-        //  set pending_touch_move_action.
-        if TouchMoveAction::NoAction != action &&
-            touch_sequence.prevent_move == TouchMoveAllowed::Pending
-        {
-            touch_sequence.update_pending_touch_move_action(action);
+                },
+            };
+            // If the touch action is not `NoAction` and the first move has not been processed,
+            //  set pending_touch_move_action.
+            if TouchMoveAction::NoAction != action &&
+                touch_sequence.prevent_move == TouchMoveAllowed::Pending
+            {
+                touch_sequence.update_pending_touch_move_action(action);
+            }
+
+            action
+        } else {
+            TouchMoveAction::NoAction
         }
-
-        action
     }
 
     pub fn on_touch_up(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
@@ -529,22 +539,24 @@ impl TouchHandler {
     }
 
     pub fn on_touch_cancel(&mut self, id: TouchId, _point: Point2D<f32, DevicePixel>) {
-        let touch_sequence = self.get_current_touch_sequence_mut();
-        match touch_sequence
-            .active_touch_points
-            .iter()
-            .position(|t| t.id == id)
-        {
-            Some(i) => {
-                touch_sequence.active_touch_points.swap_remove(i);
-            },
-            None => {
-                warn!("Got a touchcancel event for a non-active touch point");
-                return;
-            },
-        }
-        if touch_sequence.active_touch_points.is_empty() {
-            touch_sequence.state = Finished;
+        // A similar thing with touch move can happen here where the event is coming from a different webview.
+        if let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() {
+            match touch_sequence
+                .active_touch_points
+                .iter()
+                .position(|t| t.id == id)
+            {
+                Some(i) => {
+                    touch_sequence.active_touch_points.swap_remove(i);
+                },
+                None => {
+                    warn!("Got a touchcancel event for a non-active touch point");
+                    return;
+                },
+            }
+            if touch_sequence.active_touch_points.is_empty() {
+                touch_sequence.state = Finished;
+            }
         }
     }
 }

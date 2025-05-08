@@ -395,6 +395,7 @@ impl WebViewRenderer {
         self.dispatch_input_event(event);
     }
 
+    /// Send touch event to the pipeline. Returns true if the event was send
     fn send_touch_event(&self, mut event: TouchEvent) -> bool {
         let get_pipeline_details = |pipeline_id| self.pipelines.get(&pipeline_id);
         let Some(result) = self

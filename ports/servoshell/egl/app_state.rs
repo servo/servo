@@ -88,9 +88,6 @@ struct RunningAppStateInner {
 
     /// The HiDPI scaling factor to use for the display of [`WebView`]s.
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-
-    /// Touch events should not be processed if the compositor is paused
-    compositor_paused: bool,
 }
 
 struct ServoShellServoDelegate {
@@ -307,7 +304,6 @@ impl RunningAppState {
                 focused_webview_id: None,
                 animating_state_changed,
                 hidpi_scale_factor: Scale::new(hidpi_scale_factor),
-                compositor_paused: false,
             }),
         });
 
@@ -499,54 +495,46 @@ impl RunningAppState {
 
     /// Touch event: press down
     pub fn touch_down(&self, x: f32, y: f32, pointer_id: i32) {
-        if !self.inner().compositor_paused {
-            self.active_webview()
-                .notify_input_event(InputEvent::Touch(TouchEvent::new(
-                    TouchEventType::Down,
-                    TouchId(pointer_id),
-                    Point2D::new(x, y),
-                )));
-            self.perform_updates();
-        }
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Down,
+                TouchId(pointer_id),
+                Point2D::new(x, y),
+            )));
+        self.perform_updates();
     }
 
     /// Touch event: move touching finger
     pub fn touch_move(&self, x: f32, y: f32, pointer_id: i32) {
-        if !self.inner().compositor_paused {
-            self.active_webview()
-                .notify_input_event(InputEvent::Touch(TouchEvent::new(
-                    TouchEventType::Move,
-                    TouchId(pointer_id),
-                    Point2D::new(x, y),
-                )));
-            self.perform_updates();
-        }
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Move,
+                TouchId(pointer_id),
+                Point2D::new(x, y),
+            )));
+        self.perform_updates();
     }
 
     /// Touch event: Lift touching finger
     pub fn touch_up(&self, x: f32, y: f32, pointer_id: i32) {
-        if !self.inner().compositor_paused {
-            self.active_webview()
-                .notify_input_event(InputEvent::Touch(TouchEvent::new(
-                    TouchEventType::Up,
-                    TouchId(pointer_id),
-                    Point2D::new(x, y),
-                )));
-            self.perform_updates();
-        }
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Up,
+                TouchId(pointer_id),
+                Point2D::new(x, y),
+            )));
+        self.perform_updates();
     }
 
     /// Cancel touch event
     pub fn touch_cancel(&self, x: f32, y: f32, pointer_id: i32) {
-        if !self.inner().compositor_paused {
-            self.active_webview()
-                .notify_input_event(InputEvent::Touch(TouchEvent::new(
-                    TouchEventType::Cancel,
-                    TouchId(pointer_id),
-                    Point2D::new(x, y),
-                )));
-            self.perform_updates();
-        }
+        self.active_webview()
+            .notify_input_event(InputEvent::Touch(TouchEvent::new(
+                TouchEventType::Cancel,
+                TouchId(pointer_id),
+                Point2D::new(x, y),
+            )));
+        self.perform_updates();
     }
 
     /// Register a mouse movement.
@@ -652,7 +640,6 @@ impl RunningAppState {
         if let Err(e) = self.rendering_context.take_window() {
             warn!("Unbinding native surface from context failed ({:?})", e);
         }
-        self.inner_mut().compositor_paused = true;
         self.perform_updates();
     }
 
@@ -665,7 +652,6 @@ impl RunningAppState {
         {
             warn!("Binding native surface to context failed ({:?})", e);
         }
-        self.inner_mut().compositor_paused = false;
         self.perform_updates();
     }
 
