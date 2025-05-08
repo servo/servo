@@ -56,6 +56,11 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.run_servoshell(url="data:text/html,<script>;</script>")
         self.assert_sources_list(1, set([tuple(["data:text/html,<script>;</script>"])]))
 
+    def test_sources_list_with_data_external_classic_script(self):
+        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+        self.run_servoshell(url=f"data:text/html,<script src=\"{self.base_url}/classic.js\"></script>")
+        self.assert_sources_list(1, set([tuple([f"{self.base_url}/classic.js"])]))
+
     def test_sources_list_with_data_empty_inline_module_script(self):
         self.run_servoshell(url="data:text/html,<script type=module></script>")
         self.assert_sources_list(1, set([tuple()]))
