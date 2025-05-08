@@ -25,6 +25,7 @@ use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
     MouseButton, WebDriverCommandMsg, WebDriverCookieError, WebDriverFrameId, WebDriverJSError,
     WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverScriptCommand,
+    WebDriverCommandResponse,
 };
 use euclid::{Rect, Size2D};
 use http::method::Method;
@@ -187,8 +188,17 @@ struct Handler {
     /// for it to send us a load-status. Messages sent on it
     /// will be forwarded to the load_status_receiver.
     load_status_sender: IpcSender<WebDriverLoadStatus>,
+
     session: Option<WebDriverSession>,
+
+    /// The channel for sending Webdriver messages to the constellation.
     constellation_chan: Sender<EmbedderToConstellationMessage>,
+
+    constellation_sender: IpcSender<WebDriverCommandResponse>,
+
+    ///
+    constellation_receiver: IpcReceiver<WebDriverCommandResponse>,
+
     resize_timeout: u32,
 }
 
@@ -409,11 +419,16 @@ impl Handler {
         let (load_status_sender, receiver) = ipc::channel().unwrap();
         let (sender, load_status_receiver) = unbounded();
         ROUTER.route_ipc_receiver_to_crossbeam_sender(receiver, sender);
+
+        let (constellation_sender, constellation_receiver) = ipc::channel().unwrap();
+
         Handler {
             load_status_sender,
             load_status_receiver,
             session: None,
             constellation_chan,
+            constellation_sender,
+            constellation_receiver,
             resize_timeout: 500,
         }
     }

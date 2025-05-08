@@ -189,6 +189,12 @@ pub enum WebDriverFrameId {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub enum WebDriverCommandResponse {
+    WebDriverInputComplete(u64),
+    WebDriverLoadStatus(WebDriverLoadStatus),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverLoadStatus {
     Complete,
     Timeout,

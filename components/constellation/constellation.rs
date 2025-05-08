@@ -131,7 +131,7 @@ use embedder_traits::{
     AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy,
     FocusSequenceNumber, ImeEvent, InputEvent, MediaSessionActionType, MediaSessionEvent,
     MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent, Theme,
-    ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
+    ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus, WebDriverCommandResponse,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -531,6 +531,7 @@ pub struct InitialConstellationState {
 struct WebDriverData {
     load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
     resize_channel: Option<IpcSender<Size2D<f32, CSSPixel>>>,
+    sync_channel: Option<Sender<WebDriverCommandResponse>>,
 }
 
 impl WebDriverData {
@@ -538,6 +539,7 @@ impl WebDriverData {
         WebDriverData {
             load_channel: None,
             resize_channel: None,
+            sync_channel: None,
         }
     }
 }
@@ -1816,6 +1818,13 @@ where
                 // get memory report and send it back.
                 self.mem_profiler_chan
                     .send(mem::ProfilerMsg::Report(sender));
+            },
+            ScriptToConstellationMessage::WebDriverInputComplete(event_id) => {
+                self.webdriver
+                    .sync_channel
+                    .as_ref()
+                    .unwrap()
+                    .send(WebDriverCommandResponse::WebDriverInputComplete(event_id));
             },
         }
     }

@@ -644,6 +644,8 @@ pub enum ScriptToConstellationMessage {
     IFrameSizes(Vec<IFrameSizeMsg>),
     /// Request results from the memory reporter.
     ReportMemory(IpcSender<MemoryReportResult>),
+    /// Notify the completion of a webdriver command.
+    WebDriverInputComplete(u64),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {
