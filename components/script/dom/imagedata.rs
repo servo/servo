@@ -9,7 +9,7 @@ use std::vec::Vec;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
-use js::gc::{CustomAutoRooter, CustomAutoRooterGuard};
+use js::gc::CustomAutoRooterGuard;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
@@ -62,8 +62,7 @@ impl ImageData {
 
                 let data = CreateWith::Slice(&d[..]);
                 Uint8ClampedArray::create(*cx, data, js_object.handle_mut()).unwrap();
-                let mut rooted_typed_array = CustomAutoRooter::new(typed_array);
-                let data = CustomAutoRooterGuard::new(*cx, &mut rooted_typed_array);
+                auto_root!(in(*cx) let data = typed_array);
                 Self::new_with_data(global, None, width, Some(height), data, can_gc)
             } else {
                 Self::new_without_data(global, None, width, height, can_gc)
