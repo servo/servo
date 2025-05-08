@@ -15,7 +15,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{BindContext, ChildrenMutation, Node};
+use crate::dom::node::{BindContext, ChildrenMutation, Node, UnbindContext};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -58,20 +58,27 @@ impl HTMLTitleElement {
     fn notify_title_changed(&self) {
         let node = self.upcast::<Node>();
         if node.is_in_a_document_tree() {
-            node.owner_doc().title_changed();
+            let owner_doc = node.owner_doc();
+            owner_doc.update_title_element();
+            owner_doc.title_changed();
         }
+    }
+
+    pub(crate) fn text(&self) -> DOMString {
+        self.upcast::<Node>().child_text_content()
     }
 }
 
 impl HTMLTitleElementMethods<crate::DomTypeHolder> for HTMLTitleElement {
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn Text(&self) -> DOMString {
-        self.upcast::<Node>().child_text_content()
+        self.text()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn SetText(&self, value: DOMString, can_gc: CanGc) {
-        self.upcast::<Node>().SetTextContent(Some(value), can_gc)
+        self.upcast::<Node>().SetTextContent(Some(value), can_gc);
+        self.notify_title_changed();
     }
 }
 
@@ -96,9 +103,21 @@ impl VirtualMethods for HTMLTitleElement {
         if let Some(s) = self.super_type() {
             s.bind_to_tree(context, can_gc);
         }
-        let node = self.upcast::<Node>();
         if context.tree_is_in_a_document_tree {
-            node.owner_doc().title_changed();
+            let owner_doc = self.upcast::<Node>().owner_doc();
+            owner_doc.update_title_element();
+            owner_doc.title_changed();
+        }
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        if let Some(s) = self.super_type() {
+            s.unbind_from_tree(context, can_gc);
+        }
+        if context.tree_is_in_a_document_tree {
+            let owner_doc = self.upcast::<Node>().owner_doc();
+            owner_doc.update_title_element();
+            owner_doc.title_changed();
         }
     }
 
