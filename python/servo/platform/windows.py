@@ -41,11 +41,16 @@ def get_dependency_dir(package):
     return os.path.join(DEPENDENCIES_DIR, package, DEPENDENCIES[package])
 
 
-def _winget_import():
+def _winget_import(force: bool = False):
     try:
         # We install tools like LLVM / CMake, so we probably don't want to force-upgrade
         # a user installed version without good reason.
-        cmd =  ['winget','install', '--no-upgrade', '--interactive']
+        cmd =  ['winget','install', '--interactive']
+        if force:
+            cmd.append('--force')
+        else:
+            cmd.append('--no-upgrade')
+
         cmd.extend(WINGET_DEPENDENCIES)
         # output is printed to the terminal that `./mach bootstrap` is running in
         subprocess.run(cmd, encoding='utf-8')
