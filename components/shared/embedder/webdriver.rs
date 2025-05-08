@@ -24,6 +24,9 @@ use webrender_api::units::DeviceIntSize;
 
 use crate::{MouseButton, MouseButtonAction};
 
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct WebDriverMessageId(pub usize);
+
 /// Messages to the constellation originating from the WebDriver server.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
@@ -41,9 +44,23 @@ pub enum WebDriverCommandMsg {
     /// Act as if keys were pressed or release in the browsing context with the given ID.
     KeyboardAction(BrowsingContextId, KeyboardEvent),
     /// Act as if the mouse was clicked in the browsing context with the given ID.
-    MouseButtonAction(WebViewId, MouseButtonAction, MouseButton, f32, f32),
+    MouseButtonAction(
+        WebViewId,
+        MouseButtonAction,
+        MouseButton,
+        f32,
+        f32,
+        WebDriverMessageId,
+        IpcSender<WebDriverCommandResponse>,
+    ),
     /// Act as if the mouse was moved in the browsing context with the given ID.
-    MouseMoveAction(WebViewId, f32, f32),
+    MouseMoveAction(
+        WebViewId,
+        f32,
+        f32,
+        WebDriverMessageId,
+        IpcSender<WebDriverCommandResponse>,
+    ),
     /// Act as if the mouse wheel is scrolled in the browsing context given the given ID.
     WheelScrollAction(WebViewId, f32, f32, f64, f64),
     /// Set the window size.
@@ -190,7 +207,7 @@ pub enum WebDriverFrameId {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebDriverCommandResponse {
-    WebDriverInputComplete(u64),
+    WebDriverInputComplete(WebDriverMessageId),
     WebDriverLoadStatus(WebDriverLoadStatus),
 }
 
