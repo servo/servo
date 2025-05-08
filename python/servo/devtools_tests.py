@@ -38,27 +38,30 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def test_sources_list(self):
         self.run_servoshell(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.assert_sources_list([f"{self.base_url}/classic.js", f"{self.base_url}/test.html", "https://servo.org/js/load-table.js"])
+        self.assert_sources_list(2, set([
+            tuple([f"{self.base_url}/classic.js", f"{self.base_url}/test.html", f"https://servo.org/js/load-table.js"]),
+            tuple([f"{self.base_url}/worker.js"]),
+        ]))
 
     def test_sources_list_with_data_no_scripts(self):
         self.run_servoshell(url="data:text/html,")
-        self.assert_sources_list([])
+        self.assert_sources_list(1, set([tuple()]))
 
     def test_sources_list_with_data_empty_inline_classic_script(self):
         self.run_servoshell(url="data:text/html,<script></script>")
-        self.assert_sources_list([])
+        self.assert_sources_list(1, set([tuple()]))
 
     def test_sources_list_with_data_inline_classic_script(self):
         self.run_servoshell(url="data:text/html,<script>;</script>")
-        self.assert_sources_list(["data:text/html,<script>;</script>"])
+        self.assert_sources_list(1, set([tuple(["data:text/html,<script>;</script>"])]))
 
     def test_sources_list_with_data_empty_inline_module_script(self):
         self.run_servoshell(url="data:text/html,<script type=module></script>")
-        self.assert_sources_list([])
+        self.assert_sources_list(1, set([tuple()]))
 
     def test_sources_list_with_data_inline_module_script(self):
         self.run_servoshell(url="data:text/html,<script type=module>;</script>")
-        self.assert_sources_list(["data:text/html,<script type=module>;</script>"])
+        self.assert_sources_list(1, set([tuple(["data:text/html,<script type=module>;</script>"])]))
 
     def run_servoshell(self, *, test_dir=None, url=None):
         if test_dir is None:
@@ -103,7 +106,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.web_server.shutdown()
         self.web_server_thread.join()
 
-    def assert_sources_list(self, expected_urls):
+    def assert_sources_list(self, expected_targets: int, expected_urls_by_target: set[tuple[str]]):
         client = RDPClient()
         client.connect("127.0.0.1", 6080)
         root = RootActor(client)
@@ -113,41 +116,59 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         watcher = tab.get_watcher()
         watcher = WatcherActor(client, watcher["actor"])
 
-        target = Future()
+        done = Future()
+        targets = []
 
         def on_target(data):
-            if data["target"]["browsingContextID"] == tab_dict["browsingContextID"]:
-                target.set_result(data["target"])
+            try:
+                targets.append(data["target"])
+                if len(targets) == expected_targets:
+                    done.set_result(None)
+            except Exception as e:
+                # Raising here does nothing, for some reason.
+                # Send the exception back so it can be raised.
+                done.set_result(e)
 
         client.add_event_listener(
             watcher.actor_id, Events.Watcher.TARGET_AVAILABLE_FORM, on_target,
         )
         watcher.watch_targets(WatcherActor.Targets.FRAME)
+        watcher.watch_targets(WatcherActor.Targets.WORKER)
 
+        result: Optional[Exception] = done.result(1)
+        if result:
+            raise result
         done = Future()
-        target = target.result(1)
+        # NOTE: breaks if two targets have the same list of source urls.
+        # This should really be a multiset, but Python does not have multisets.
+        actual_urls_by_target: set[tuple[str]] = set()
 
         def on_source_resource(data):
             for [resource_type, sources] in data["array"]:
                 try:
                     self.assertEqual(resource_type, "source")
-                    self.assertEqual([source["url"] for source in sources], expected_urls)
-                    done.set_result(None)
+                    source_urls = tuple([source["url"] for source in sources])
+                    self.assertFalse(source_urls in sources)  # See NOTE above
+                    actual_urls_by_target.add(source_urls)
+                    if len(actual_urls_by_target) == expected_targets:
+                        done.set_result(None)
                 except Exception as e:
                     # Raising here does nothing, for some reason.
                     # Send the exception back so it can be raised.
                     done.set_result(e)
 
-        client.add_event_listener(
-            target["actor"],
-            Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-            on_source_resource,
-        )
+        for target in targets:
+            client.add_event_listener(
+                target["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_source_resource,
+            )
         watcher.watch_resources([Resources.SOURCE])
 
         result: Optional[Exception] = done.result(1)
         if result:
             raise result
+        self.assertEqual(actual_urls_by_target, expected_urls_by_target)
         client.disconnect()
 
 
