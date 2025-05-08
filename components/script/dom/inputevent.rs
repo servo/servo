@@ -24,7 +24,7 @@ pub(crate) struct InputEvent {
 
 impl InputEvent {
     #[allow(clippy::too_many_arguments)]
-    fn new(
+    pub fn new(
         window: &Window,
         proto: Option<HandleObject>,
         type_: DOMString,
