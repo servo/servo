@@ -90,7 +90,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::rc::{Rc, Weak};
-use std::sync::atomic::AtomicUsize;
 use std::sync::{Arc, Mutex};
 use std::{process, thread};
 
@@ -130,9 +129,10 @@ use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy,
-    FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JSValueError, MediaSessionActionType,
-    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
-    ReceiveJSValue, ScriptId, Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
+    FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationId,
+    JavaScriptEvaluationError, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
+    MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
+    WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -474,10 +474,6 @@ pub struct Constellation<STF, SWF> {
 
     /// The process manager.
     process_manager: ProcessManager,
-
-    /// Embedders can run arbitrary javascript via messages to the constellation.
-    /// We forward these messages to the script thread and store the callback in this struct.
-    evaluate_javascript_data: EvaluateJavaScriptData,
 }
 
 /// State needed to construct a constellation.
@@ -530,40 +526,6 @@ pub struct InitialConstellationState {
 
     /// User content manager
     pub user_content_manager: UserContentManager,
-}
-
-/// Id that identifies an execution of a script loaded via EvaluateJS function in constellation.
-#[derive(Debug, Deserialize, Serialize)]
-struct ScriptIdCounter(AtomicUsize);
-
-impl ScriptIdCounter {
-    fn new() -> Self {
-        ScriptIdCounter(AtomicUsize::new(0))
-    }
-
-    fn inc(&self) -> ScriptId {
-        self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-    }
-}
-
-/// Data needed for EvaluateJavaScript
-struct EvaluateJavaScriptData {
-    /// Embedders can run arbitrary javascript via messages to the constellation.
-    /// We forward these messages to the script thread but need to store the callback function.
-    /// We cannot use the ScriptIdCounter here because it does not implement Hash
-    pub(crate) callbacks: HashMap<ScriptId, Box<dyn ReceiveJSValue>>,
-
-    /// An Atomic Counter to assign callbacks to javascript execution
-    pub counter: ScriptIdCounter,
-}
-
-impl EvaluateJavaScriptData {
-    fn new() -> EvaluateJavaScriptData {
-        EvaluateJavaScriptData {
-            callbacks: HashMap::new(),
-            counter: ScriptIdCounter::new(),
-        }
-    }
 }
 
 /// Data needed for webdriver
@@ -780,7 +742,6 @@ where
                     rippy_data,
                     user_content_manager: state.user_content_manager,
                     process_manager: ProcessManager::new(state.mem_profiler_chan),
-                    evaluate_javascript_data: EvaluateJavaScriptData::new(),
                 };
 
                 constellation.run();
@@ -1517,26 +1478,52 @@ where
             EmbedderToConstellationMessage::PaintMetric(pipeline_id, paint_metric_event) => {
                 self.handle_paint_metric(pipeline_id, paint_metric_event);
             },
-            EmbedderToConstellationMessage::EvaluateJavaScript(webview_id, script, callback) => {
-                let id = self.evaluate_javascript_data.counter.inc();
-                self.evaluate_javascript_data.callbacks.insert(id, callback);
-                let pipeline_id = match self.browsing_contexts.get(&webview_id.0) {
-                    Some(browsing_context) => browsing_context.pipeline_id,
-                    None => {
-                        return warn!("{}: EvaluteJavaScript after closure", webview_id.0);
-                    },
-                };
-                let control_msg = ScriptThreadMessage::EvaluateJavaScript(pipeline_id, script, id);
-                let err = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.event_loop.send(control_msg),
-                    None => {
-                        return warn!("{}: ScriptCommand after closure", pipeline_id);
-                    },
-                };
-                if err.is_err() {
-                    warn!("Could not send to pipeline event loop");
-                }
+            EmbedderToConstellationMessage::EvaluateJavaScript(
+                webview_id,
+                evaluation_id,
+                script,
+            ) => {
+                self.handle_evaluate_javascript(webview_id, evaluation_id, script);
             },
+        }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
+    fn handle_evaluate_javascript(
+        &mut self,
+        webview_id: WebViewId,
+        evaluation_id: JavaScriptEvaluationId,
+        script: String,
+    ) {
+        let browsing_context_id = BrowsingContextId::from(webview_id);
+        let Some(pipeline) = self
+            .browsing_contexts
+            .get(&browsing_context_id)
+            .and_then(|browsing_context| self.pipelines.get(&browsing_context.pipeline_id))
+        else {
+            self.handle_finish_javascript_evaluation(
+                evaluation_id,
+                Err(JavaScriptEvaluationError::InternalError),
+            );
+            return;
+        };
+
+        if pipeline
+            .event_loop
+            .send(ScriptThreadMessage::EvaluateJavaScript(
+                pipeline.id,
+                evaluation_id,
+                script,
+            ))
+            .is_err()
+        {
+            self.handle_finish_javascript_evaluation(
+                evaluation_id,
+                Err(JavaScriptEvaluationError::InternalError),
+            );
         }
     }
 
@@ -1877,8 +1864,8 @@ where
                 self.mem_profiler_chan
                     .send(mem::ProfilerMsg::Report(sender));
             },
-            ScriptToConstellationMessage::EvaluatedJavaScriptResult(jsval, id) => {
-                self.handle_evaluated_javascript_result(jsval, id)
+            ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, result) => {
+                self.handle_finish_javascript_evaluation(evaluation_id, result)
             },
         }
     }
@@ -3245,18 +3232,16 @@ where
         feature = "tracing",
         tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
     )]
-    fn handle_evaluated_javascript_result(
+    fn handle_finish_javascript_evaluation(
         &mut self,
-        result: Result<JSValue, JSValueError>,
-        id: usize,
+        evaluation_id: JavaScriptEvaluationId,
+        result: Result<JSValue, JavaScriptEvaluationError>,
     ) {
-        if let Some(callback) = self.evaluate_javascript_data.callbacks.remove(&id) {
-            thread::spawn(move || {
-                callback.receive(result);
-            });
-        } else {
-            warn!("Could not find callback.")
-        }
+        self.embedder_proxy
+            .send(EmbedderMsg::FinishJavaScriptEvaluation(
+                evaluation_id,
+                result,
+            ));
     }
 
     #[cfg_attr(

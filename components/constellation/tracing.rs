@@ -177,7 +177,7 @@ mod from_script {
                 Self::TitleChanged(..) => target!("TitleChanged"),
                 Self::IFrameSizes(..) => target!("IFrameSizes"),
                 Self::ReportMemory(..) => target!("ReportMemory"),
-                Self::EvaluatedJavaScriptResult(..) => target!("EvaluatedScriptResult"),
+                Self::FinishJavaScriptEvaluation(..) => target!("FinishJavaScriptEvaluation"),
             }
         }
     }
@@ -240,6 +240,9 @@ mod from_script {
                 Self::ShutdownComplete => target_variant!("ShutdownComplete"),
                 Self::ShowNotification(..) => target_variant!("ShowNotification"),
                 Self::ShowSelectElementMenu(..) => target_variant!("ShowSelectElementMenu"),
+                Self::FinishJavaScriptEvaluation(..) => {
+                    target_variant!("FinishJavaScriptEvaluation")
+                },
             }
         }
     }

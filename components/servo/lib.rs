@@ -18,6 +18,7 @@
 //! `WindowMethods` trait.
 
 mod clipboard_delegate;
+mod javascript_evaluator;
 mod proxies;
 mod responders;
 mod servo_delegate;
@@ -82,6 +83,7 @@ pub use gleam::gl;
 use gleam::gl::RENDERER;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+use javascript_evaluator::JavaScriptEvaluator;
 pub use keyboard_types::*;
 use layout::LayoutFactoryImpl;
 use log::{Log, Metadata, Record, debug, warn};
@@ -196,6 +198,9 @@ pub struct Servo {
     compositor: Rc<RefCell<IOCompositor>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
+    /// A struct that tracks ongoing JavaScript evaluations and is responsible for
+    /// calling the callback when the evaluation is complete.
+    javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
     /// Tracks whether we are in the process of shutting down, or have shut down.
     /// This is shared with `WebView`s and the `ServoRenderer`.
     shutdown_state: Rc<Cell<ShutdownState>>,
@@ -487,10 +492,14 @@ impl Servo {
             opts.debug.convert_mouse_to_touch,
         );
 
+        let constellation_proxy = ConstellationProxy::new(constellation_chan);
         Self {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             compositor: Rc::new(RefCell::new(compositor)),
-            constellation_proxy: ConstellationProxy::new(constellation_chan),
+            javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
+                constellation_proxy.clone(),
+            ))),
+            constellation_proxy,
             embedder_receiver,
             shutdown_state,
             webviews: Default::default(),
@@ -737,6 +746,11 @@ impl Servo {
                     );
                     webview.delegate().request_unload(webview, request);
                 }
+            },
+            EmbedderMsg::FinishJavaScriptEvaluation(evaluation_id, result) => {
+                self.javascript_evaluator
+                    .borrow_mut()
+                    .finish_evaluation(evaluation_id, result);
             },
             EmbedderMsg::Keyboard(webview_id, keyboard_event) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {

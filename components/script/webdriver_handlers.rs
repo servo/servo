@@ -467,6 +467,38 @@ pub(crate) fn handle_execute_script(
     }
 }
 
+pub(crate) fn handle_execute_async_script(
+    window: Option<DomRoot<Window>>,
+    eval: String,
+    reply: IpcSender<WebDriverJSResult>,
+    can_gc: CanGc,
+) {
+    match window {
+        Some(window) => {
+            let cx = window.get_cx();
+            let reply_sender = reply.clone();
+            window.set_webdriver_script_chan(Some(reply));
+            rooted!(in(*cx) let mut rval = UndefinedValue());
+
+            let global_scope = window.as_global_scope();
+            if !global_scope.evaluate_js_on_global_with_result(
+                &eval,
+                rval.handle_mut(),
+                ScriptFetchOptions::default_classic_script(global_scope),
+                global_scope.api_base_url(),
+                can_gc,
+            ) {
+                reply_sender.send(Err(WebDriverJSError::JSError)).unwrap();
+            }
+        },
+        None => {
+            reply
+                .send(Err(WebDriverJSError::BrowsingContextNotFound))
+                .unwrap();
+        },
+    }
+}
+
 pub(crate) fn handle_get_browsing_context_id(
     documents: &DocumentCollection,
     pipeline: PipelineId,

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![allow(missing_docs)]
+
 use std::collections::HashMap;
 
 use base::id::{BrowsingContextId, WebViewId};

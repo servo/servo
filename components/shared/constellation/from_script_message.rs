@@ -15,8 +15,8 @@ use base::id::{
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
-    AnimationState, EmbedderMsg, FocusSequenceNumber, JSValue, JSValueError, MediaSessionEvent,
-    TouchEventResult, ViewportDetails,
+    AnimationState, EmbedderMsg, FocusSequenceNumber, JSValue, JavaScriptEvaluationId,
+    JavaScriptEvaluationError, MediaSessionEvent, TouchEventResult, ViewportDetails,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use http::{HeaderMap, Method};
@@ -644,8 +644,11 @@ pub enum ScriptToConstellationMessage {
     IFrameSizes(Vec<IFrameSizeMsg>),
     /// Request results from the memory reporter.
     ReportMemory(IpcSender<MemoryReportResult>),
-    /// Return the result of the evaluated javascript
-    EvaluatedJavaScriptResult(Result<JSValue, JSValueError>, usize),
+    /// Return the result of the evaluated JavaScript with the given [`JavaScriptEvaluationId`].
+    FinishJavaScriptEvaluation(
+        JavaScriptEvaluationId,
+        Result<JSValue, JavaScriptEvaluationError>,
+    ),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {
