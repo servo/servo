@@ -32,6 +32,7 @@ use glow::{
 };
 use half::f16;
 use ipc_channel::ipc::IpcSharedMemory;
+use itertools::Itertools;
 use log::{debug, error, trace, warn};
 use pixels::{self, PixelFormat, unmultiply_inplace};
 use surfman::chains::{PreserveBuffer, SwapChains, SwapChainsAPI};
@@ -2570,24 +2571,10 @@ impl WebGLImpl {
         chan.send((range_min, range_max, precision)).unwrap();
     }
 
-    fn get_extensions(gl: &Gl, chan: &WebGLSender<String>) {
-        let mut ext_count = [0];
-        unsafe {
-            gl.get_parameter_i32_slice(gl::NUM_EXTENSIONS, &mut ext_count);
-        }
-        // Fall back to the depricated extensions API if that fails
-        if unsafe { gl.get_error() } != gl::NO_ERROR {
-            chan.send(unsafe { gl.get_parameter_string(gl::EXTENSIONS) })
-                .unwrap();
-            return;
-        }
-        let ext_count = ext_count[0] as usize;
-        let mut extensions = Vec::with_capacity(ext_count);
-        for idx in 0..ext_count {
-            extensions.push(unsafe { gl.get_parameter_indexed_string(gl::EXTENSIONS, idx as u32) })
-        }
-        let extensions = extensions.join(" ");
-        chan.send(extensions).unwrap();
+    /// This is an implementation of `getSupportedExtensions()` from
+    /// <https://registry.khronos.org/webgl/specs/latest/1.0/#5.14>
+    fn get_extensions(gl: &Gl, result_sender: &WebGLSender<String>) {
+        let _ = result_sender.send(gl.supported_extensions().iter().join(" "));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6

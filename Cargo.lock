@@ -8557,6 +8557,7 @@ dependencies = [
  "glow",
  "half",
  "ipc-channel",
+ "itertools 0.14.0",
  "log",
  "pixels",
  "snapshot",
