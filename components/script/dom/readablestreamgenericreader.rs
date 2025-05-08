@@ -80,7 +80,6 @@ pub(crate) trait ReadableStreamGenericReader {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
-    #[allow(unsafe_code)]
     fn generic_release(&self, can_gc: CanGc) -> Fallible<()> {
         // Let stream be reader.[[stream]].
 
