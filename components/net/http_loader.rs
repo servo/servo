@@ -6,8 +6,10 @@ use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tungstenite::error::{Error, UrlError};
 
 use async_recursion::async_recursion;
+use async_tungstenite::tokio::client_async_tls_with_connector_and_config;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{HistoryStateId, PipelineId};
 use crossbeam_channel::Sender;
@@ -60,11 +62,13 @@ use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use tokio::net::TcpStream;
 use tokio::sync::mpsc::{
     Receiver as TokioReceiver, Sender as TokioSender, UnboundedReceiver, UnboundedSender, channel,
     unbounded_channel,
 };
 use tokio_stream::wrappers::ReceiverStream;
+use url::Url;
 
 use crate::async_runtime::HANDLE;
 use crate::connector::{CertificateErrorOverrideManager, Connector};
@@ -75,9 +79,11 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
 use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, main_fetch};
+use crate::hosts::replace_host;
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
+use crate::websocket_loader::create_request;
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1877,23 +1883,80 @@ async fn http_network_fetch(
         let _ = fetch_terminated_sender.send(false);
     }
 
-    let response_future = obtain_response(
-        &context.state.client,
-        &url,
-        &request.method,
-        &mut request.headers,
-        body,
-        request
-            .body
-            .as_ref()
-            .map(|body| body.source_is_null())
-            .unwrap_or(false),
-        &request.pipeline_id,
-        request_id.as_deref(),
-        is_xhr,
-        context,
-        fetch_terminated_sender,
-    );
+    // Switch on request's mode:
+    let response_future = match &request.mode {
+        RequestMode::WebSocket { protocols } => {
+            let req_url = request.url();
+            let req_origin = match request.origin {
+                Origin::Client => unreachable!(),
+                Origin::Origin(ref origin) => origin,
+            };
+            let client = create_request(
+                &req_url,
+                &req_origin.ascii_serialization(),
+                &protocols,
+                &context.state,
+            )
+            .unwrap();
+
+            let host_str = client
+                .uri()
+                .host()
+                .ok_or_else(|| Error::Url(UrlError::NoHostName))
+                .unwrap();
+            let host = replace_host(host_str);
+            let mut net_url = Url::parse(&client.uri().to_string())
+                .map_err(|e| Error::Url(UrlError::UnableToConnect(e.to_string())))
+                .unwrap();
+            net_url
+                .set_host(Some(&host))
+                .map_err(|e| Error::Url(UrlError::UnableToConnect(e.to_string())))
+                .unwrap();
+
+            let domain = net_url
+                .host()
+                .ok_or_else(|| Error::Url(UrlError::NoHostName))
+                .unwrap();
+            let port = net_url
+                .port_or_known_default()
+                .ok_or_else(|| Error::Url(UrlError::UnableToConnect("Unknown port".into())))
+                .unwrap();
+            let try_socket = TcpStream::connect((&*domain.to_string(), port)).await;
+            let socket = try_socket.map_err(Error::Io).unwrap();
+
+            // TODO(pylbrecht)
+            // let connector = TlsConnector::from(Arc::new(tls_config));
+
+            let (_stream, _response) =
+                client_async_tls_with_connector_and_config(client, socket, None, None)
+                    .await
+                    .unwrap();
+
+            // TODO(pylbrecht): match the return type of the other match arm
+
+            todo!()
+        },
+        _ => {
+            let response_future = obtain_response(
+                &context.state.client,
+                &url,
+                &request.method,
+                &mut request.headers,
+                body,
+                request
+                    .body
+                    .as_ref()
+                    .map(|body| body.source_is_null())
+                    .unwrap_or(false),
+                &request.pipeline_id,
+                request_id.as_deref(),
+                is_xhr,
+                context,
+                fetch_terminated_sender,
+            );
+            response_future
+        },
+    };
 
     let pipeline_id = request.pipeline_id;
     // This will only get the headers, the body is read later
