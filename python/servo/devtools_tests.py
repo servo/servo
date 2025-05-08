@@ -36,6 +36,14 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.web_server = None
         self.web_server_thread = None
 
+    # Classic script vs module script:
+    # - <https://html.spec.whatwg.org/multipage/#classic-script>
+    # - <https://html.spec.whatwg.org/multipage/#module-script>
+    # Worker scripts can be classic or module:
+    # - <https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script>
+    # - <https://html.spec.whatwg.org/multipage/#fetch-a-module-worker-script-tree>
+    # Non-worker(?) script sources can be inline, external, or blob.
+    # Worker script sources can be external or blob.
     def test_sources_list(self):
         self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
         self.run_servoshell()
