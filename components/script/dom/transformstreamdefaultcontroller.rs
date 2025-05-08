@@ -47,7 +47,7 @@ impl Callback for TransformTransformPromiseRejection {
             .error(cx, &self.controller.global(), v, can_gc);
 
         // Throw r.
-        // Note: this is dont on perform_transform()
+        // Note: this is done part of perform_transform().
     }
 }
 
@@ -173,7 +173,6 @@ impl TransformStreamDefaultController {
                 ExceptionHandling::Rethrow,
                 can_gc,
             );
-
             match call_result {
                 Ok(p) => p,
                 Err(e) => {
@@ -220,7 +219,6 @@ impl TransformStreamDefaultController {
                 ExceptionHandling::Rethrow,
                 can_gc,
             );
-
             match call_result {
                 Ok(p) => p,
                 Err(e) => {
@@ -254,7 +252,6 @@ impl TransformStreamDefaultController {
                 ExceptionHandling::Rethrow,
                 can_gc,
             );
-
             match call_result {
                 Ok(p) => p,
                 Err(e) => {

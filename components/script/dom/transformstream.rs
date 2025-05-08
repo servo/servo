@@ -49,6 +49,7 @@ struct TransformBackPressureChangePromiseFulfillment {
     #[ignore_malloc_size_of = "mozjs"]
     chunk: Box<Heap<JSVal>>,
 
+    /// The writable used in the fulfillment steps
     writable: Dom<WritableStream>,
 
     controller: Dom<TransformStreamDefaultController>,
@@ -73,7 +74,6 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
         // Return ! TransformStreamDefaultControllerPerformTransform(controller, chunk).
         rooted!(in(*cx) let mut chunk = UndefinedValue());
         chunk.set(self.chunk.get());
-
         let transform_result = self
             .controller
             .transform_stream_default_controller_perform_transform(
@@ -84,6 +84,8 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
             )
             .expect("perform transform failed");
 
+        // PerformTransformFulfillment and PerformTransformRejection do not need
+        // to be rooted because they only contain an Rc.
         let handler = PromiseNativeHandler::new(
             &self.writable.global(),
             Some(Box::new(PerformTransformFulfillment {
@@ -101,10 +103,10 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
     }
 }
 
-impl js::gc::Rootable for PerformTransformFulfillment {}
-
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+/// Reacting to fulfillment of performTransform as part of
+/// <https://streams.spec.whatwg.org/#transform-stream-default-sink-write-algorithm>
 struct PerformTransformFulfillment {
     #[ignore_malloc_size_of = "Rc is hard"]
     result_promise: Rc<Promise>,
@@ -117,10 +119,10 @@ impl Callback for PerformTransformFulfillment {
     }
 }
 
-impl js::gc::Rootable for PerformTransformRejection {}
-
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+/// Reacting to rejection of performTransform as part of
+/// <https://streams.spec.whatwg.org/#transform-stream-default-sink-write-algorithm>
 struct PerformTransformRejection {
     #[ignore_malloc_size_of = "Rc is hard"]
     result_promise: Rc<Promise>,
@@ -133,10 +135,10 @@ impl Callback for PerformTransformRejection {
     }
 }
 
-impl js::gc::Rootable for BackpressureChangeRejection {}
-
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+/// Reacting to rejection of backpressureChangePromise as part of
+/// <https://streams.spec.whatwg.org/#transform-stream-default-sink-write-algorithm>
 struct BackpressureChangeRejection {
     #[ignore_malloc_size_of = "Rc is hard"]
     result_promise: Rc<Promise>,
@@ -299,6 +301,7 @@ impl Callback for SourceCancelPromiseRejection {
 }
 
 impl js::gc::Rootable for FlushPromiseFulfillment {}
+
 /// Reacting to fulfillment of the flushpromise as part of
 /// <https://streams.spec.whatwg.org/#transform-stream-default-sink-close-algorithm>
 #[derive(JSTraceable, MallocSizeOf)]
@@ -359,7 +362,7 @@ impl Callback for FlushPromiseRejection {
     }
 }
 
-/// <https://streams.spec.whatwg.org/#ws-class>
+/// <https://streams.spec.whatwg.org/#ts-class>
 #[dom_struct]
 pub struct TransformStream {
     reflector_: Reflector,
@@ -450,6 +453,7 @@ impl TransformStream {
         //  Return ! TransformStreamDefaultSinkCloseAlgorithm(stream).
         // Set stream.[[writable]] to ! CreateWritableStream(startAlgorithm, writeAlgorithm,
         // closeAlgorithm, abortAlgorithm, writableHighWaterMark, writableSizeAlgorithm).
+        // Note: Those steps are implemented using UnderlyingSinkType::Transform.
 
         let writable = create_writable_stream(
             cx,
@@ -656,15 +660,6 @@ impl TransformStream {
         controller.clear_algorithms();
 
         // React to cancelPromise:
-        // If cancelPromise was fulfilled, then:
-        // If readable.[[state]] is "errored", reject controller.[[finishPromise]] with readable.[[storedError]].
-        // Otherwise:
-        // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], reason).
-        // Resolve controller.[[finishPromise]] with undefined.
-
-        // If cancelPromise was rejected with reason r, then:
-        // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], r).
-        // Reject controller.[[finishPromise]] with r.
         let handler = PromiseNativeHandler::new(
             global,
             Some(Box::new(CancelPromiseFulfillment {
@@ -723,17 +718,6 @@ impl TransformStream {
         controller.clear_algorithms();
 
         // React to flushPromise:
-
-        // If flushPromise was fulfilled, then:
-        // If readable.[[state]] is "errored", reject controller.[[finishPromise]] with readable.[[storedError]].
-        // Otherwise:
-        // Perform ! ReadableStreamDefaultControllerClose(readable.[[controller]]).
-        // Resolve controller.[[finishPromise]] with undefined.
-
-        // If flushPromise was rejected with reason r, then:
-        // Perform ! ReadableStreamDefaultControllerError(readable.[[controller]], r).
-        // Reject controller.[[finishPromise]] with r.
-
         let handler = PromiseNativeHandler::new(
             global,
             Some(Box::new(FlushPromiseFulfillment {
@@ -792,19 +776,6 @@ impl TransformStream {
         controller.clear_algorithms();
 
         // React to cancelPromise:
-
-        // If cancelPromise was fulfilled, then:
-        // If writable.[[state]] is "errored", reject controller.[[finishPromise]] with writable.[[storedError]].
-        // Otherwise:
-        // Perform ! WritableStreamDefaultControllerErrorIfNeeded(writable.[[controller]], reason).
-        // Perform ! TransformStreamUnblockWrite(stream).
-        // Resolve controller.[[finishPromise]] with undefined.
-
-        // If cancelPromise was rejected with reason r, then:
-        // Perform ! WritableStreamDefaultControllerErrorIfNeeded(writable.[[controller]], r).
-        // Perform ! TransformStreamUnblockWrite(stream).
-        // Reject controller.[[finishPromise]] with r.
-
         let handler = PromiseNativeHandler::new(
             global,
             Some(Box::new(SourceCancelPromiseFulfillment {
