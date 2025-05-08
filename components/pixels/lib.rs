@@ -294,9 +294,10 @@ pub fn generic_transform_inplace<
         match MULTIPLY {
             1 => {
                 let a = rgba[3];
-                multiply_u8_color(rgba[0], a);
-                multiply_u8_color(rgba[1], a);
-                multiply_u8_color(rgba[2], a);
+
+                rgba[0] = multiply_u8_color(rgba[0], a);
+                rgba[1] = multiply_u8_color(rgba[1], a);
+                rgba[2] = multiply_u8_color(rgba[2], a);
             },
             2 => {
                 let a = rgba[3] as u32;
