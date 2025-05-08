@@ -132,7 +132,8 @@ use embedder_traits::{
     FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
     JavaScriptEvaluationId, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
-    WebDriverLoadStatus, WebDriverCommandResponse,
+    WebDriverCommandResponse, WebDriverLoadStatus,
+    WebDriverMessageId,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -532,7 +533,7 @@ pub struct InitialConstellationState {
 struct WebDriverData {
     load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
     resize_channel: Option<IpcSender<Size2D<f32, CSSPixel>>>,
-    sync_channel: Option<Sender<WebDriverCommandResponse>>,
+    sync_channel: Option<IpcSender<WebDriverCommandResponse>>,
 }
 
 impl WebDriverData {
@@ -4838,7 +4839,11 @@ where
                 mouse_button,
                 x,
                 y,
+                id,
+                response_sender,
             ) => {
+                self.webdriver.sync_channel = Some(response_sender);
+
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverMouseButtonEvent(
                         webview_id,
@@ -4846,11 +4851,14 @@ where
                         mouse_button,
                         x,
                         y,
+                        id,
                     ));
             },
-            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y) => {
+            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, id, response_sender) => {
+                self.webdriver.sync_channel = Some(response_sender);
+
                 self.compositor_proxy
-                    .send(CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y));
+                    .send(CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, id));
             },
             WebDriverCommandMsg::WheelScrollAction(webview, x, y, delta_x, delta_y) => {
                 self.compositor_proxy

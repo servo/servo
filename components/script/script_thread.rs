@@ -1089,8 +1089,18 @@ impl ScriptThread {
                         event.pressed_mouse_buttons,
                         can_gc,
                     );
+
+                    if let Some(id) = mouse_button_event.webdriver_id {
+                        self.senders
+                            .pipeline_to_constellation_sender
+                            .send((
+                                pipeline_id,
+                                ScriptToConstellationMessage::WebDriverInputComplete(id),
+                            ))
+                            .unwrap();
+                    }
                 },
-                InputEvent::MouseMove(_) => {
+                InputEvent::MouseMove(mouse_button_event) => {
                     // The event itself is unecessary here, because the point in the viewport is in the hit test.
                     self.process_mouse_move_event(
                         &document,
@@ -1098,6 +1108,16 @@ impl ScriptThread {
                         event.pressed_mouse_buttons,
                         can_gc,
                     );
+
+                    if let Some(id) = mouse_button_event.webdriver_id {
+                        self.senders
+                            .pipeline_to_constellation_sender
+                            .send((
+                                pipeline_id,
+                                ScriptToConstellationMessage::WebDriverInputComplete(id),
+                            ))
+                            .unwrap();
+                    }
                 },
                 InputEvent::Touch(touch_event) => {
                     let touch_result =
@@ -3438,6 +3458,7 @@ impl ScriptThread {
                                     action: MouseButtonAction::Click,
                                     button: mouse_button_event.button,
                                     point: mouse_button_event.point,
+                                    webdriver_id: None,
                                 }),
                             });
                             return;

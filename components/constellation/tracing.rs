@@ -177,6 +177,7 @@ mod from_script {
                 Self::TitleChanged(..) => target!("TitleChanged"),
                 Self::IFrameSizes(..) => target!("IFrameSizes"),
                 Self::ReportMemory(..) => target!("ReportMemory"),
+                Self::WebDriverInputComplete(..) => target!("WebDriverInputComplete"),
                 Self::FinishJavaScriptEvaluation(..) => target!("FinishJavaScriptEvaluation"),
             }
         }
