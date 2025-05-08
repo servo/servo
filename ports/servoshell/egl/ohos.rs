@@ -24,7 +24,7 @@ use ohos_ime_sys::types::InputMethod_EnterKeyType;
 use servo::style::Zero;
 use servo::{
     AlertResponse, EventLoopWaker, InputMethodType, LoadStatus, MediaSessionPlaybackState,
-    PermissionRequest, SimpleDialog, WebView,
+    PermissionRequest, SimpleDialog, WebView, WebViewId,
 };
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
@@ -129,10 +129,19 @@ static PROMPT_TOAST: OnceLock<
     ThreadsafeFunction<String, (), String, false, false, PROMPT_QUEUE_SIZE>,
 > = OnceLock::new();
 
+/// Storing webview related items
+struct NativeWebViewComponents {
+    /// The id of the related webview
+    id: WebViewId,
+    /// The XComponentWrapper for the above webview
+    xcomponent: XComponentWrapper,
+    /// The WindowWrapper for the above webview
+    window: WindowWrapper,
+}
+
 /// Currently we do not support different contexts for different windows but we might want to change tabs.
 /// For this we store the window context for every tab and change the compositor by hand.
-static WEBVIEW_TO_RAW_HANDLE: Mutex<Vec<(XComponentWrapper, WindowWrapper)>> =
-    Mutex::new(Vec::new());
+static NATIVE_WEBVIEWS: Mutex<Vec<NativeWebViewComponents>> = Mutex::new(Vec::new());
 
 impl ServoAction {
     fn dispatch_touch_event(
@@ -192,28 +201,55 @@ impl ServoAction {
                 servo.present_if_needed();
             },
             Resize { width, height } => servo.resize(Coordinates::new(0, 0, *width, *height)),
-            FocusWebview(id) => {
-                servo.activate_webview(id.clone());
-                servo.pause_compositor();
-                let webview_lock = WEBVIEW_TO_RAW_HANDLE.lock().unwrap();
-                let (xcomponent_wrapper, window_wrapper) = webview_lock
-                    .get(*id as usize)
-                    .clone()
-                    .expect("Could not find window handle to webview");
-                let (window_handle, _, coordinates) =
-                    simpleservo::get_raw_window_handle(xcomponent_wrapper.0, window_wrapper.0);
-                servo.resume_compositor(window_handle, coordinates);
+            FocusWebview(arkts_id) => {
+                if let Some(native_webview_components) =
+                    NATIVE_WEBVIEWS.lock().unwrap().get(*arkts_id as usize)
+                {
+                    if (servo.active_webview().id() != native_webview_components.id) {
+                        servo.focus_webview(native_webview_components.id);
+                        servo.pause_compositor();
+                        let (window_handle, _, coordinates) = simpleservo::get_raw_window_handle(
+                            native_webview_components.xcomponent.0,
+                            native_webview_components.window.0,
+                        );
+                        servo.resume_compositor(window_handle, coordinates);
+                        let url = servo
+                            .active_webview()
+                            .url()
+                            .map(|u| u.to_string())
+                            .unwrap_or(String::from("about:blank"));
+                        SET_URL_BAR_CB
+                            .get()
+                            .map(|f| f.call(url, ThreadsafeFunctionCallMode::Blocking));
+                    }
+                } else {
+                    error!("Could not find webview to focus");
+                }
             },
             NewWebview(xcomponent, window) => {
                 servo.pause_compositor();
                 servo.new_toplevel_webview("about:blank".parse().unwrap());
                 let (window_handle, _, coordinates) =
                     simpleservo::get_raw_window_handle(xcomponent.0, window.0);
-                WEBVIEW_TO_RAW_HANDLE
+
+                servo.resume_compositor(window_handle, coordinates);
+                let webview = servo.newest_webview().expect("There should always be one");
+                let id = webview.id();
+                NATIVE_WEBVIEWS
                     .lock()
                     .unwrap()
-                    .push((xcomponent.clone(), window.clone()));
-                servo.resume_compositor(window_handle, coordinates);
+                    .push(NativeWebViewComponents {
+                        id: id,
+                        xcomponent: xcomponent.clone(),
+                        window: window.clone(),
+                    });
+                let url = webview
+                    .url()
+                    .map(|u| u.to_string())
+                    .unwrap_or(String::from("about:blank"));
+                SET_URL_BAR_CB
+                    .get()
+                    .map(|f| f.call(url, ThreadsafeFunctionCallMode::Blocking));
             },
         };
     }
@@ -271,11 +307,6 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
             let xc = xc_wrapper;
             let window = window_wrapper;
 
-            WEBVIEW_TO_RAW_HANDLE
-                .lock()
-                .unwrap()
-                .push((xc.clone(), window.clone()));
-
             let init_opts = if let Ok(ServoAction::Initialize(init_opts)) = rx.recv() {
                 init_opts
             } else {
@@ -283,6 +314,15 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
             };
             let servo = simpleservo::init(*init_opts, window.0, xc.0, wakeup, callbacks)
                 .expect("Servo initialization failed");
+
+            NATIVE_WEBVIEWS
+                .lock()
+                .unwrap()
+                .push(NativeWebViewComponents {
+                    id: servo.active_webview().id(),
+                    xcomponent: xc,
+                    window,
+                });
 
             info!("Surface created!");
             let native_vsync =

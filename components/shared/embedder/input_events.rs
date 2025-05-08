@@ -182,7 +182,7 @@ pub enum TouchEventType {
 pub struct TouchId(pub i32);
 
 /// An ID for a sequence of touch events between a `Down` and the `Up` or `Cancel` event.
-/// The ID is the same for all events between `Down`` and `Up`` or `Cancel``
+/// The ID is the same for all events between `Down` and `Up` or `Cancel`
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TouchSequenceId(u32);

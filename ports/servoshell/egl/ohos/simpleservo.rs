@@ -32,11 +32,11 @@ pub(crate) fn get_raw_window_handle(
 ) -> (RawWindowHandle, euclid::default::Size2D<i32>, Coordinates) {
     let window_size = unsafe { super::get_xcomponent_size(xcomponent, window) }
         .expect("Could not get native window size");
-    let (x, y) = unsafe { super::get_xcomponent_offset(xcomponent, window)}.expect("Could not get native window offset");
+    let (x, y) = unsafe { super::get_xcomponent_offset(xcomponent, window) }
+        .expect("Could not get native window offset");
     let coordinates = Coordinates::new(x, y, window_size.width, window_size.height);
     let native_window = NonNull::new(window).expect("Could not get native window");
     let window_handle = RawWindowHandle::OhosNdk(OhosNdkWindowHandle::new(native_window));
-    let coordinates = Coordinates::new(0, 0, window_size.width, window_size.height);
     (window_handle, window_size, coordinates)
 }
 
