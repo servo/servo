@@ -37,7 +37,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.web_server_thread = None
 
     def test_sources_list(self):
-        self.run_servoshell(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+        self.run_servoshell()
         self.assert_sources_list(2, set([
             tuple([f"{self.base_url}/classic.js", f"{self.base_url}/test.html", f"https://servo.org/js/load-table.js"]),
             tuple([f"{self.base_url}/worker.js"]),
@@ -63,7 +64,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.run_servoshell(url="data:text/html,<script type=module>;</script>")
         self.assert_sources_list(1, set([tuple(["data:text/html,<script type=module>;</script>"])]))
 
-    def run_servoshell(self, *, test_dir=None, url=None):
+    # Sets `base_url` and `web_server` and `web_server_thread`.
+    def start_web_server(self, *, test_dir=None):
         if test_dir is None:
             test_dir = os.path.join(DevtoolsTests.script_path, "devtools_tests")
         base_url = Future()
@@ -87,6 +89,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.web_server_thread.start()
         self.base_url = base_url.result(1)
 
+    # Sets `servoshell`.
+    def run_servoshell(self, *, url=None):
         # Change this setting if you want to debug Servo.
         os.environ["RUST_LOG"] = "error,devtools=warn"
 
@@ -100,11 +104,19 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def tearDown(self):
         # Terminate servoshell.
-        self.servoshell.terminate()
+        if self.servoshell is not None:
+            self.servoshell.terminate()
+            self.servoshell = None
 
         # Stop the web server.
-        self.web_server.shutdown()
-        self.web_server_thread.join()
+        if self.web_server is not None:
+            self.web_server.shutdown()
+            self.web_server = None
+        if self.web_server_thread is not None:
+            self.web_server_thread.join()
+            self.web_server_thread = None
+        if self.base_url is not None:
+            self.base_url = None
 
     def assert_sources_list(self, expected_targets: int, expected_urls_by_target: set[tuple[str]]):
         client = RDPClient()
