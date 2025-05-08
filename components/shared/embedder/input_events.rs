@@ -8,6 +8,8 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use webrender_api::units::DevicePoint;
 
+use crate::WebDriverMessageId;
+
 /// An input event that is sent from the embedder to Servo.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum InputEvent {
@@ -49,6 +51,7 @@ pub struct MouseButtonEvent {
     pub action: MouseButtonAction,
     pub button: MouseButton,
     pub point: DevicePoint,
+    pub webdriver_id: Option<WebDriverMessageId>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -102,6 +105,7 @@ pub enum MouseButtonAction {
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct MouseMoveEvent {
     pub point: DevicePoint,
+    pub webdriver_id: Option<WebDriverMessageId>,
 }
 
 /// The type of input represented by a multi-touch event.

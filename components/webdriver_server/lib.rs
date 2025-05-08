@@ -10,11 +10,13 @@ mod actions;
 mod capabilities;
 
 use std::borrow::ToOwned;
-use std::collections::{BTreeMap, HashMap};
+use std::cell::RefCell;
+use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
-use std::{env, fmt, mem, process, thread};
+use std::{env, fmt, process, thread};
 
 use base::id::{BrowsingContextId, WebViewId};
 use base64::Engine;
@@ -23,9 +25,9 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
-    MouseButton, WebDriverCommandMsg, WebDriverCookieError, WebDriverFrameId, WebDriverJSError,
-    WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverScriptCommand,
-    WebDriverCommandResponse,
+    MouseButton, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverCookieError,
+    WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus,
+    WebDriverMessageId, WebDriverScriptCommand,
 };
 use euclid::{Rect, Size2D};
 use http::method::Method;
@@ -44,8 +46,8 @@ use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use uuid::Uuid;
 use webdriver::actions::{
-    ActionSequence, PointerDownAction, PointerMoveAction, PointerOrigin, PointerType,
-    PointerUpAction,
+    ActionSequence, ActionsType, PointerAction, PointerActionItem, PointerActionParameters,
+    PointerDownAction, PointerMoveAction, PointerOrigin, PointerType, PointerUpAction,
 };
 use webdriver::capabilities::CapabilitiesMatching;
 use webdriver::command::{
@@ -64,6 +66,24 @@ use webdriver::response::{
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
 use crate::actions::{InputSourceState, PointerInputState};
+
+#[derive(Default)]
+pub struct IdGenerator {
+    counter: AtomicUsize,
+}
+
+impl IdGenerator {
+    pub const fn new() -> Self {
+        Self {
+            counter: AtomicUsize::new(0),
+        }
+    }
+
+    /// Returns a unique ID.
+    pub fn next(&self) -> WebDriverMessageId {
+        WebDriverMessageId(self.counter.fetch_add(1, Ordering::SeqCst))
+    }
+}
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     vec![
@@ -147,9 +167,13 @@ pub struct WebDriverSession {
     unhandled_prompt_behavior: String,
 
     // https://w3c.github.io/webdriver/#dfn-input-state-table
-    input_state_table: HashMap<String, InputSourceState>,
+    input_state_table: RefCell<HashMap<String, InputSourceState>>,
+
     // https://w3c.github.io/webdriver/#dfn-input-cancel-list
-    input_cancel_list: Vec<ActionSequence>,
+    input_cancel_list: RefCell<Vec<ActionSequence>>,
+
+    // https://w3c.github.io/webdriver/#dfn-actions-queue
+    actions_queue: RefCell<VecDeque<WebDriverMessageId>>,
 }
 
 impl WebDriverSession {
@@ -173,8 +197,9 @@ impl WebDriverSession {
             strict_file_interactability: false,
             unhandled_prompt_behavior: "dismiss and notify".to_string(),
 
-            input_state_table: HashMap::new(),
-            input_cancel_list: Vec::new(),
+            input_state_table: RefCell::new(HashMap::new()),
+            input_cancel_list: RefCell::new(Vec::new()),
+            actions_queue: RefCell::new(VecDeque::new()),
         }
     }
 }
@@ -194,10 +219,13 @@ struct Handler {
     /// The channel for sending Webdriver messages to the constellation.
     constellation_chan: Sender<EmbedderToConstellationMessage>,
 
+    /// The IPC sender which we can clone and pass along to the constellation
     constellation_sender: IpcSender<WebDriverCommandResponse>,
 
-    ///
+    /// Receiver notification from the constellation when a command is completed
     constellation_receiver: IpcReceiver<WebDriverCommandResponse>,
+
+    id_generator: IdGenerator,
 
     resize_timeout: u32,
 }
@@ -429,6 +457,7 @@ impl Handler {
             constellation_chan,
             constellation_sender,
             constellation_receiver,
+            id_generator: IdGenerator::new(),
             resize_timeout: 500,
         }
     }
@@ -1460,18 +1489,13 @@ impl Handler {
     }
 
     fn handle_release_actions(&mut self) -> WebDriverResult<WebDriverResponse> {
-        let input_cancel_list = {
-            let session = self.session_mut()?;
-            session.input_cancel_list.reverse();
-            mem::take(&mut session.input_cancel_list)
-        };
-
+        let input_cancel_list = self.session().unwrap().input_cancel_list.borrow();
         if let Err(error) = self.dispatch_actions(&input_cancel_list) {
             return Err(WebDriverError::new(error, ""));
         }
 
-        let session = self.session_mut()?;
-        session.input_state_table = HashMap::new();
+        let session = self.session()?;
+        session.input_state_table.borrow_mut().clear();
 
         Ok(WebDriverResponse::Void)
     }
@@ -1629,7 +1653,7 @@ impl Handler {
                     let id = Uuid::new_v4().to_string();
 
                     // Step 8.1
-                    self.session_mut()?.input_state_table.insert(
+                    self.session_mut()?.input_state_table.borrow_mut().insert(
                         id.clone(),
                         InputSourceState::Pointer(PointerInputState::new(&PointerType::Mouse)),
                     );
@@ -1645,12 +1669,34 @@ impl Handler {
                         y: 0.0,
                         ..Default::default()
                     };
+                    let pointer_move_action = ActionSequence {
+                        id: id.clone(),
+                        actions: ActionsType::Pointer {
+                            parameters: PointerActionParameters {
+                                pointer_type: PointerType::Mouse,
+                            },
+                            actions: vec![PointerActionItem::Pointer(PointerAction::Move(
+                                pointer_move_action,
+                            ))],
+                        },
+                    };
 
                     // Step 8.11. Construct pointer down action.
                     // Step 8.12. Set a property button to 0 on pointer down action.
                     let pointer_down_action = PointerDownAction {
                         button: i16::from(MouseButton::Left) as u64,
                         ..Default::default()
+                    };
+                    let pointer_down_action = ActionSequence {
+                        id: id.clone(),
+                        actions: ActionsType::Pointer {
+                            parameters: PointerActionParameters {
+                                pointer_type: PointerType::Mouse,
+                            },
+                            actions: vec![PointerActionItem::Pointer(PointerAction::Down(
+                                pointer_down_action,
+                            ))],
+                        },
                     };
 
                     // Step 8.13. Construct pointer up action.
@@ -1659,20 +1705,29 @@ impl Handler {
                         button: i16::from(MouseButton::Left) as u64,
                         ..Default::default()
                     };
+                    let pointer_up_action = ActionSequence {
+                        id: id.clone(),
+                        actions: ActionsType::Pointer {
+                            parameters: PointerActionParameters {
+                                pointer_type: PointerType::Mouse,
+                            },
+                            actions: vec![PointerActionItem::Pointer(PointerAction::Up(
+                                pointer_up_action,
+                            ))],
+                        },
+                    };
 
-                    // Step 8.16 Dispatch a list of actions with input state,
-                    // actions, session's current browsing context, and actions options.
-                    if let Err(error) =
-                        self.dispatch_pointermove_action(&id, &pointer_move_action, 0)
-                    {
-                        return Err(WebDriverError::new(error, ""));
-                    }
-
-                    self.dispatch_pointerdown_action(&id, &pointer_down_action);
-                    self.dispatch_pointerup_action(&id, &pointer_up_action);
+                    let _ = self.dispatch_actions(&[
+                        pointer_move_action,
+                        pointer_down_action,
+                        pointer_up_action,
+                    ]);
 
                     // Step 8.17 Remove an input source with input state and input id.
-                    self.session_mut()?.input_state_table.remove(&id);
+                    self.session_mut()?
+                        .input_state_table
+                        .borrow_mut()
+                        .remove(&id);
 
                     // Step 13
                     Ok(WebDriverResponse::Void)

@@ -620,7 +620,7 @@ impl IOCompositor {
                 }
             },
 
-            CompositorMsg::WebDriverMouseButtonEvent(webview_id, action, button, x, y) => {
+            CompositorMsg::WebDriverMouseButtonEvent(webview_id, action, button, x, y, id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
@@ -631,18 +631,21 @@ impl IOCompositor {
                     point,
                     action,
                     button,
+                    webdriver_id: Some(id),
                 }));
             },
 
-            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y) => {
+            CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, id) => {
                 let Some(webview_renderer) = self.webview_renderers.get_mut(webview_id) else {
                     warn!("Handling input event for unknown webview: {webview_id}");
                     return;
                 };
                 let dppx = webview_renderer.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
-                webview_renderer
-                    .dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+                webview_renderer.dispatch_input_event(InputEvent::MouseMove(MouseMoveEvent {
+                    point,
+                    webdriver_id: Some(id),
+                }));
             },
 
             CompositorMsg::WebDriverWheelScrollEvent(webview_id, x, y, delta_x, delta_y) => {

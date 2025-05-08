@@ -266,6 +266,7 @@ impl Window {
             action,
             button: mouse_button,
             point,
+            webdriver_id: None,
         }));
     }
 
@@ -563,7 +564,10 @@ impl WindowPortsMethods for Window {
                 point.y -= (self.toolbar_height() * self.hidpi_scale_factor()).0;
 
                 self.webview_relative_mouse_point.set(point);
-                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent { point }));
+                webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
+                    point,
+                    webdriver_id: None,
+                }));
             },
             WindowEvent::MouseWheel { delta, phase, .. } => {
                 let (mut dx, mut dy, mode) = match delta {
