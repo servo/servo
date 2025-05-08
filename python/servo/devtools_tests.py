@@ -44,13 +44,21 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.run_servoshell(url="data:text/html,")
         self.assert_sources_list([])
 
-    def test_sources_list_with_data_empty_inline_script(self):
+    def test_sources_list_with_data_empty_inline_classic_script(self):
         self.run_servoshell(url="data:text/html,<script></script>")
         self.assert_sources_list([])
 
-    def test_sources_list_with_data_inline_script(self):
+    def test_sources_list_with_data_inline_classic_script(self):
         self.run_servoshell(url="data:text/html,<script>;</script>")
         self.assert_sources_list(["data:text/html,<script>;</script>"])
+
+    def test_sources_list_with_data_empty_inline_module_script(self):
+        self.run_servoshell(url="data:text/html,<script type=module></script>")
+        self.assert_sources_list([])
+
+    def test_sources_list_with_data_inline_module_script(self):
+        self.run_servoshell(url="data:text/html,<script type=module>;</script>")
+        self.assert_sources_list(["data:text/html,<script type=module>;</script>"])
 
     def run_servoshell(self, *, test_dir=None, url=None):
         if test_dir is None:
