@@ -66,8 +66,8 @@ impl PostCompositeQueryHelper<'_> {
         }
     }
 
-    /// Get the position property for current node. Mind that a [`LayoutNode`] might
-    /// not have a [`Fragment`] that correspond to it (e.g. 'display: contents').
+    /// Get the position property for current node. It returns None for a [`LayoutNode`]
+    /// that doesn't have a [`Fragment`] that correspond to it (e.g. 'display: contents').
     fn retrieve_position_property(node: ServoLayoutNode<'_>) -> Option<Position> {
         node.fragments_for_pseudo(None)
             .first()
@@ -75,8 +75,8 @@ impl PostCompositeQueryHelper<'_> {
             .map(|fragment| fragment.borrow().style.get_box().position)
     }
 
-    /// Find the parent node in containing block chain. Mind that the nodes that
-    /// does not generate boxes is ignored.
+    /// Find the parent node in containing block chain, ignoring the nodes that
+    /// does not generate boxes.
     fn parent_containing_block(
         node: ServoLayoutNode<'_>,
         position: Position,
