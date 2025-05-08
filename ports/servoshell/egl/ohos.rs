@@ -387,6 +387,7 @@ extern "C" fn on_dispatch_key_event(xc: *mut OH_NativeXComponent, _window: *mut 
 
 static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
     let mut builder = hilog::Builder::new();
+    builder.set_domain(hilog::LogDomain::new(0xE0C3));
     let filters = [
         "fonts",
         "servo",
@@ -678,7 +679,7 @@ impl EventLoopWaker for WakeupCallback {
     }
 
     fn wake(&self) {
-        info!("wake called!");
+        log::trace!("wake called!");
         self.chan.send(ServoAction::WakeUp).unwrap_or_else(|e| {
             error!("Failed to send wake message with: {e}");
         });
