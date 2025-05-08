@@ -4321,7 +4321,7 @@ impl Document {
             },
         };
 
-        self.global().report_csp_violations(violations);
+        self.global().report_csp_violations(violations, Some(el));
 
         result
     }

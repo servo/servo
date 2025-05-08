@@ -546,7 +546,8 @@ impl FetchResponseListener for ClassicContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations);
+        let elem = self.elem.root();
+        global.report_csp_violations(violations, Some(elem.upcast::<Element>()));
     }
 }
 

@@ -3606,7 +3606,8 @@ impl ScriptThread {
 
     fn handle_csp_violations(&self, id: PipelineId, _: RequestId, violations: Vec<csp::Violation>) {
         if let Some(global) = self.documents.borrow().find_global(id) {
-            global.report_csp_violations(violations);
+            // TODO(https://github.com/w3c/webappsec-csp/issues/687): Update after spec is resolved
+            global.report_csp_violations(violations, None);
         }
     }
 

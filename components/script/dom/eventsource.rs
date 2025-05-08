@@ -448,7 +448,7 @@ impl FetchResponseListener for EventSourceContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations);
+        global.report_csp_violations(violations, None);
     }
 }
 

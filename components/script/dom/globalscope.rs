@@ -106,6 +106,7 @@ use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
+use crate::dom::element::Element;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
@@ -115,6 +116,7 @@ use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
+use crate::dom::node::Node;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
@@ -2930,7 +2932,7 @@ impl GlobalScope {
 
         let (is_js_evaluation_allowed, violations) = csp_list.is_js_evaluation_allowed(source);
 
-        self.report_csp_violations(violations);
+        self.report_csp_violations(violations, None);
 
         is_js_evaluation_allowed == CheckResult::Allowed
     }
@@ -2957,7 +2959,7 @@ impl GlobalScope {
         let (result, violations) =
             csp_list.should_navigation_request_be_blocked(&request, NavigationCheckType::Other);
 
-        self.report_csp_violations(violations);
+        self.report_csp_violations(violations, None);
 
         result == CheckResult::Blocked
     }
@@ -3444,8 +3446,13 @@ impl GlobalScope {
         unreachable!();
     }
 
+    /// <https://www.w3.org/TR/CSP/#report-violation>
     #[allow(unsafe_code)]
-    pub(crate) fn report_csp_violations(&self, violations: Vec<Violation>) {
+    pub(crate) fn report_csp_violations(
+        &self,
+        violations: Vec<Violation>,
+        element: Option<&Element>,
+    ) {
         let scripted_caller =
             unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
         for violation in violations {
@@ -3471,7 +3478,38 @@ impl GlobalScope {
                 .line_number(scripted_caller.line)
                 .column_number(scripted_caller.col + 1)
                 .build(self);
-            let task = CSPViolationReportTask::new(self, report);
+            // Step 1: Let global be violation’s global object.
+            // We use `self` as `global`;
+            // Step 2: Let target be violation’s element.
+            let target = element.and_then(|event_target| {
+                // Step 3.1: If target is not null, and global is a Window,
+                // and target’s shadow-including root is not global’s associated Document, set target to null.
+                if let Some(window) = self.downcast::<Window>() {
+                    if !window
+                        .Document()
+                        .upcast::<Node>()
+                        .is_shadow_including_inclusive_ancestor_of(event_target.upcast())
+                    {
+                        return None;
+                    }
+                }
+                Some(event_target)
+            });
+            let target = match target {
+                // Step 3.2: If target is null:
+                None => {
+                    // Step 3.2.2: If target is a Window, set target to target’s associated Document.
+                    if let Some(window) = self.downcast::<Window>() {
+                        Trusted::new(window.Document().upcast())
+                    } else {
+                        // Step 3.2.1: Set target to violation’s global object.
+                        Trusted::new(self.upcast())
+                    }
+                },
+                Some(event_target) => Trusted::new(event_target.upcast()),
+            };
+            // Step 3: Queue a task to run the following steps:
+            let task = CSPViolationReportTask::new(Trusted::new(self), target, report);
             self.task_manager()
                 .dom_manipulation_task_source()
                 .queue(task);

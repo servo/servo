@@ -390,7 +390,7 @@ unsafe extern "C" fn content_security_policy_allows(
             RuntimeCode::WASM => csp_list.is_wasm_evaluation_allowed(),
         };
 
-        global.report_csp_violations(violations);
+        global.report_csp_violations(violations, None);
         allowed = is_evaluation_allowed == CheckResult::Allowed;
     });
     allowed
