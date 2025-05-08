@@ -104,10 +104,10 @@ impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
         // some WPT tests. This needs more investigation.
         if matches!(
             pseudo,
-            Some(PseudoElement::ServoAnonymousBox) |
-                Some(PseudoElement::ServoAnonymousTable) |
-                Some(PseudoElement::ServoAnonymousTableCell) |
-                Some(PseudoElement::ServoAnonymousTableRow)
+            Some(PseudoElement::ServoAnonymousBox)
+                | Some(PseudoElement::ServoAnonymousTable)
+                | Some(PseudoElement::ServoAnonymousTableCell)
+                | Some(PseudoElement::ServoAnonymousTableRow)
         ) {
             return Self::anonymous();
         }
@@ -364,8 +364,8 @@ fn traverse_pseudo_element_contents<'dom>(
                 };
                 // `display` is not inherited, so we get the initial value
                 debug_assert!(
-                    Display::from(anonymous_info.style.get_box().display) ==
-                        Display::GeneratingBox(display_inline)
+                    Display::from(anonymous_info.style.get_box().display)
+                        == Display::GeneratingBox(display_inline)
                 );
                 handler.handle_element(
                     anonymous_info,
@@ -443,6 +443,8 @@ fn generate_pseudo_element_content(
     match &pseudo_element_style.get_counters().content {
         Content::Items(items) => {
             let mut vec = vec![];
+            let mut quote_depth: usize = 0;
+
             for item in items.items.iter() {
                 match item {
                     ContentItem::String(s) => {
@@ -486,33 +488,66 @@ fn generate_pseudo_element_content(
                             vec.push(PseudoElementContentItem::Replaced(replaced_content));
                         }
                     },
-                    ContentItem::OpenQuote | ContentItem::CloseQuote => {
-                        // TODO(xiaochengh): calculate quote depth
-                        let maybe_quote = match &pseudo_element_style.get_list().quotes {
-                            Quotes::QuoteList(quote_list) => {
-                                quote_list.0.first().map(|quote_pair| {
-                                    get_quote_from_pair(
-                                        item,
-                                        &*quote_pair.opening,
-                                        &*quote_pair.closing,
-                                    )
-                                })
-                            },
+                    ContentItem::OpenQuote => {
+                        let quote_char_str = match &pseudo_element_style.get_list().quotes {
                             Quotes::Auto => {
                                 let lang = &pseudo_element_style.get_font()._x_lang;
-                                let quotes = quotes_for_lang(lang.0.as_ref(), 0);
-                                Some(get_quote_from_pair(item, &quotes.opening, &quotes.closing))
+                                quotes_for_lang(lang.0.as_ref(), quote_depth)
+                                    .opening
+                                    .to_string()
+                            },
+                            Quotes::QuoteList(list) => {
+                                if list.0.is_empty() {
+                                    String::new()
+                                } else {
+                                    let idx = std::cmp::min(quote_depth, list.0.len() - 1);
+                                    list.0[idx].opening.to_string()
+                                }
                             },
                         };
-                        if let Some(quote) = maybe_quote {
-                            vec.push(PseudoElementContentItem::Text(quote));
+                        if !quote_char_str.is_empty() {
+                            vec.push(PseudoElementContentItem::Text(quote_char_str));
                         }
+                        quote_depth += 1;
                     },
-                    ContentItem::Counter(_, _) |
-                    ContentItem::Counters(_, _, _) |
-                    ContentItem::NoOpenQuote |
+                    ContentItem::CloseQuote => {
+                        if quote_depth > 0 {
+                            quote_depth -= 1;
+                            let quote_char_str = match &pseudo_element_style.get_list().quotes {
+                                Quotes::Auto => {
+                                    let lang = &pseudo_element_style.get_font()._x_lang;
+                                    quotes_for_lang(lang.0.as_ref(), quote_depth)
+                                        .closing
+                                        .to_string()
+                                },
+                                Quotes::QuoteList(list) => {
+                                    if list.0.is_empty() {
+                                        String::new()
+                                    } else {
+                                        let idx = std::cmp::min(quote_depth, list.0.len() - 1);
+                                        list.0[idx].closing.to_string()
+                                    }
+                                },
+                            };
+                            if !quote_char_str.is_empty() {
+                                vec.push(PseudoElementContentItem::Text(quote_char_str));
+                            }
+                        }
+                        // If quote_depth is 0, close-quote is ignored as per spec.
+                        // If quote_depth is a negative number, it is regarded as 0 and ignored.
+                        quote_depth = 0;
+                    },
+                    ContentItem::NoOpenQuote => {
+                        quote_depth += 1; // Increment the quote depth without inserting a quote
+                    },
                     ContentItem::NoCloseQuote => {
-                        // TODO: Add support for counters and quotes.
+                        if quote_depth > 0 {
+                            quote_depth -= 1; // Decrement the quote depth without inserting a quote
+                        }
+                        // If quote_depth is 0, no-close-quote is ignored as per spec.
+                    },
+                    ContentItem::Counter(_, _) | ContentItem::Counters(_, _, _) => {
+                        // TODO: Add support for counters if needed.
                     },
                 }
             }
