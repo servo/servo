@@ -106,7 +106,7 @@ input[type="range"] {
   margin-left: 0;
 }
 
-#volume-level[type="range"]::-webkit-slider-thumb {
+/*#volume-level[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 18px;
@@ -117,7 +117,7 @@ input[type="range"] {
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0,0,0,0.2);
   transition: background 0.2s, border 0.2s;
-}
+}*/
 #volume-level[type="range"]:focus::-webkit-slider-thumb {
   border: 2px solid #fff;
 }
