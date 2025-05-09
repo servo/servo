@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[cfg(test)]
-mod headers;
-#[cfg(test)]
 mod htmlareaelement;
 #[cfg(test)]
 mod htmlimageelement;
