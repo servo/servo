@@ -13,8 +13,8 @@ use compositing_traits::WebViewTrait;
 use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
-    Cursor, InputEvent, LoadStatus, MediaSessionActionType, ScreenGeometry, Theme, TouchEventType,
-    ViewportDetails,
+    Cursor, InputEvent, LoadStatus, MediaSessionActionType, ReceiveJSValue, ScreenGeometry, Theme,
+    TouchEventType, ViewportDetails,
 };
 use euclid::{Point2D, Scale, Size2D};
 use servo_geometry::DeviceIndependentPixel;
@@ -548,6 +548,16 @@ impl WebView {
     /// that case, this might do nothing. Returns true if a paint was actually performed.
     pub fn paint(&self) -> bool {
         self.inner().compositor.borrow_mut().render()
+    }
+
+    pub fn evaluate_js(&self, script: String, callback: Box<dyn ReceiveJSValue>) {
+        self.inner()
+            .constellation_proxy
+            .send(EmbedderToConstellationMessage::EvaluateJavaScript(
+                self.id(),
+                script,
+                callback,
+            ));
     }
 }
 
