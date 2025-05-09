@@ -233,10 +233,6 @@ impl PipelineDetails {
         self.animations_running || self.animation_callbacks_running
     }
 
-    pub(crate) fn animation_callbacks_running(&self) -> bool {
-        self.animation_callbacks_running
-    }
-
     pub(crate) fn animating(&self) -> bool {
         !self.throttled && (self.animation_callbacks_running || self.animations_running)
     }
@@ -610,7 +606,7 @@ impl IOCompositor {
                     }
                 }
 
-                if recomposite_needed || self.animation_callbacks_running() {
+                if recomposite_needed || self.animations_or_animation_callbacks_running() {
                     self.set_needs_repaint(RepaintReason::NewWebRenderFrame);
                 }
             },
@@ -839,6 +835,10 @@ impl IOCompositor {
                             txn.update_image(key, desc, data.into(), &DirtyRect::All)
                         },
                     }
+                }
+                // if compositor is animating, possibly due to image animation, we need to generate new frame.
+                if self.animations_or_animation_callbacks_running() {
+                    self.generate_frame(&mut txn, RenderReasons::RESOURCE_UPDATE);
                 }
                 self.global.borrow_mut().send_transaction(txn);
             },
@@ -1337,13 +1337,6 @@ impl IOCompositor {
         self.webview_renderers
             .iter()
             .any(WebViewRenderer::animations_or_animation_callbacks_running)
-    }
-
-    /// Returns true if any animation callbacks (ie `requestAnimationFrame`) are waiting for a response.
-    fn animation_callbacks_running(&self) -> bool {
-        self.webview_renderers
-            .iter()
-            .any(WebViewRenderer::animation_callbacks_running)
     }
 
     /// Query the constellation to see if the current compositor
