@@ -4,7 +4,7 @@
 
 use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
-use std::iter::repeat;
+use std::iter::repeat_n;
 
 use atomic_refcell::AtomicRef;
 use log::warn;
@@ -1149,6 +1149,6 @@ fn add_column(
             column_info.style.clone(),
         )),
     });
-    collection.extend(repeat(column.clone()).take(span as usize));
+    collection.extend(repeat_n(column.clone(), span as usize));
     column
 }
