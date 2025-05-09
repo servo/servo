@@ -127,7 +127,7 @@ impl WebViewDelegate for RunningAppState {
         let available_size = coord.size();
         let screen_size = coord.size();
         Some(ScreenGeometry {
-            size,
+            size: screen_size,
             available_size,
             offset,
         })
