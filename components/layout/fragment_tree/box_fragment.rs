@@ -16,7 +16,7 @@ use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::specified::box_::DisplayOutside;
 
-use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
+use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::ArcRefCell;
 use crate::display_list::ToWebRender;
 use crate::formatting_contexts::Baselines;
@@ -241,6 +241,16 @@ impl BoxFragment {
 
     pub(crate) fn padding_border_margin(&self) -> PhysicalSides<Au> {
         self.margin + self.border + self.padding
+    }
+
+    pub(crate) fn is_root_element(&self) -> bool {
+        self.base.flags.intersects(FragmentFlags::IS_ROOT_ELEMENT)
+    }
+
+    pub(crate) fn is_body_element_of_html_element_root(&self) -> bool {
+        self.base
+            .flags
+            .intersects(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT)
     }
 
     pub fn print(&self, tree: &mut PrintTree) {
