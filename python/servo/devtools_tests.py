@@ -52,7 +52,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
         self.run_servoshell()
         self.assert_sources_list(2, set([
-            tuple([f"{self.base_url}/classic.js", f"{self.base_url}/test.html", f"https://servo.org/js/load-table.js"]),
+            tuple([f"{self.base_url}/classic.js", f"{self.base_url}/test.html", "https://servo.org/js/load-table.js"]),
             tuple([f"{self.base_url}/worker.js"]),
         ]))
 
