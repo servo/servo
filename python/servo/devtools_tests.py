@@ -25,6 +25,10 @@ from typing import Optional
 import unittest
 
 
+# Set this to true to log requests in the internal web servers.
+LOG_REQUESTS = False
+
+
 class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     # /path/to/servo/python/servo
     script_path = None
@@ -36,23 +40,49 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.web_server = None
         self.web_server_thread = None
 
+    # Classic script vs module script:
+    # - <https://html.spec.whatwg.org/multipage/#classic-script>
+    # - <https://html.spec.whatwg.org/multipage/#module-script>
+    # Worker scripts can be classic or module:
+    # - <https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script>
+    # - <https://html.spec.whatwg.org/multipage/#fetch-a-module-worker-script-tree>
+    # Non-worker(?) script sources can be inline, external, or blob.
+    # Worker script sources can be external or blob.
     def test_sources_list(self):
-        self.run_servoshell(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
-        self.assert_sources_list([f"{self.base_url}/classic.js", f"{self.base_url}/test.html", "https://servo.org/js/load-table.js"])
+        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+        self.run_servoshell()
+        self.assert_sources_list(2, set([
+            tuple([f"{self.base_url}/classic.js", f"{self.base_url}/test.html", "https://servo.org/js/load-table.js"]),
+            tuple([f"{self.base_url}/worker.js"]),
+        ]))
 
     def test_sources_list_with_data_no_scripts(self):
         self.run_servoshell(url="data:text/html,")
-        self.assert_sources_list([])
+        self.assert_sources_list(1, set([tuple()]))
 
-    def test_sources_list_with_data_empty_inline_script(self):
+    def test_sources_list_with_data_empty_inline_classic_script(self):
         self.run_servoshell(url="data:text/html,<script></script>")
-        self.assert_sources_list([])
+        self.assert_sources_list(1, set([tuple()]))
 
-    def test_sources_list_with_data_inline_script(self):
+    def test_sources_list_with_data_inline_classic_script(self):
         self.run_servoshell(url="data:text/html,<script>;</script>")
-        self.assert_sources_list(["data:text/html,<script>;</script>"])
+        self.assert_sources_list(1, set([tuple(["data:text/html,<script>;</script>"])]))
 
-    def run_servoshell(self, *, test_dir=None, url=None):
+    def test_sources_list_with_data_external_classic_script(self):
+        self.start_web_server(test_dir=os.path.join(DevtoolsTests.script_path, "devtools_tests/sources"))
+        self.run_servoshell(url=f"data:text/html,<script src=\"{self.base_url}/classic.js\"></script>")
+        self.assert_sources_list(1, set([tuple([f"{self.base_url}/classic.js"])]))
+
+    def test_sources_list_with_data_empty_inline_module_script(self):
+        self.run_servoshell(url="data:text/html,<script type=module></script>")
+        self.assert_sources_list(1, set([tuple()]))
+
+    def test_sources_list_with_data_inline_module_script(self):
+        self.run_servoshell(url="data:text/html,<script type=module>;</script>")
+        self.assert_sources_list(1, set([tuple(["data:text/html,<script type=module>;</script>"])]))
+
+    # Sets `base_url` and `web_server` and `web_server_thread`.
+    def start_web_server(self, *, test_dir=None):
         if test_dir is None:
             test_dir = os.path.join(DevtoolsTests.script_path, "devtools_tests")
         base_url = Future()
@@ -62,9 +92,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                 super().__init__(*args, directory=test_dir, **kwargs)
 
             def log_message(self, format, *args):
-                # Uncomment this to log requests.
-                # return super().log_message(format, *args)
-                pass
+                if LOG_REQUESTS:
+                    return super().log_message(format, *args)
 
         def server_thread():
             self.web_server = socketserver.TCPServer(("0.0.0.0", 0), Handler)
@@ -76,6 +105,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         self.web_server_thread.start()
         self.base_url = base_url.result(1)
 
+    # Sets `servoshell`.
+    def run_servoshell(self, *, url=None):
         # Change this setting if you want to debug Servo.
         os.environ["RUST_LOG"] = "error,devtools=warn"
 
@@ -89,13 +120,21 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def tearDown(self):
         # Terminate servoshell.
-        self.servoshell.terminate()
+        if self.servoshell is not None:
+            self.servoshell.terminate()
+            self.servoshell = None
 
         # Stop the web server.
-        self.web_server.shutdown()
-        self.web_server_thread.join()
+        if self.web_server is not None:
+            self.web_server.shutdown()
+            self.web_server = None
+        if self.web_server_thread is not None:
+            self.web_server_thread.join()
+            self.web_server_thread = None
+        if self.base_url is not None:
+            self.base_url = None
 
-    def assert_sources_list(self, expected_urls):
+    def assert_sources_list(self, expected_targets: int, expected_urls_by_target: set[tuple[str]]):
         client = RDPClient()
         client.connect("127.0.0.1", 6080)
         root = RootActor(client)
@@ -105,41 +144,59 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         watcher = tab.get_watcher()
         watcher = WatcherActor(client, watcher["actor"])
 
-        target = Future()
+        done = Future()
+        targets = []
 
         def on_target(data):
-            if data["target"]["browsingContextID"] == tab_dict["browsingContextID"]:
-                target.set_result(data["target"])
+            try:
+                targets.append(data["target"])
+                if len(targets) == expected_targets:
+                    done.set_result(None)
+            except Exception as e:
+                # Raising here does nothing, for some reason.
+                # Send the exception back so it can be raised.
+                done.set_result(e)
 
         client.add_event_listener(
             watcher.actor_id, Events.Watcher.TARGET_AVAILABLE_FORM, on_target,
         )
         watcher.watch_targets(WatcherActor.Targets.FRAME)
+        watcher.watch_targets(WatcherActor.Targets.WORKER)
 
+        result: Optional[Exception] = done.result(1)
+        if result:
+            raise result
         done = Future()
-        target = target.result(1)
+        # NOTE: breaks if two targets have the same list of source urls.
+        # This should really be a multiset, but Python does not have multisets.
+        actual_urls_by_target: set[tuple[str]] = set()
 
         def on_source_resource(data):
             for [resource_type, sources] in data["array"]:
                 try:
                     self.assertEqual(resource_type, "source")
-                    self.assertEqual([source["url"] for source in sources], expected_urls)
-                    done.set_result(None)
+                    source_urls = tuple([source["url"] for source in sources])
+                    self.assertFalse(source_urls in sources)  # See NOTE above
+                    actual_urls_by_target.add(source_urls)
+                    if len(actual_urls_by_target) == expected_targets:
+                        done.set_result(None)
                 except Exception as e:
                     # Raising here does nothing, for some reason.
                     # Send the exception back so it can be raised.
                     done.set_result(e)
 
-        client.add_event_listener(
-            target["actor"],
-            Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-            on_source_resource,
-        )
+        for target in targets:
+            client.add_event_listener(
+                target["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_source_resource,
+            )
         watcher.watch_resources([Resources.SOURCE])
 
         result: Optional[Exception] = done.result(1)
         if result:
             raise result
+        self.assertEqual(actual_urls_by_target, expected_urls_by_target)
         client.disconnect()
 
 
