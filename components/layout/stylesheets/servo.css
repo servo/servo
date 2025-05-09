@@ -87,6 +87,20 @@ input[type="file"] {
   border-style: none;
 }
 
+/*
+ * Here, We are directly aligning the content of single line form controls
+ * vertically, but ideally we should encapsulate this inside UA shadow DOM.
+ */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="url"],
+input[type="tel"],
+input[type="search"] {
+  line-height: -moz-block-height !important;
+}
+
 td[align="left"]    { text-align: left; }
 td[align="center"]  { text-align: center; }
 td[align="right"]   { text-align: right; }

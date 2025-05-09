@@ -261,6 +261,7 @@ impl InlineBoxContainerState {
                 flags,
                 Some(parent_container),
                 parent_container.text_decoration_line,
+                containing_block,
                 font_metrics,
             ),
             identifier: inline_box.identifier,
