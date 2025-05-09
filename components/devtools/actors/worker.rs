@@ -17,7 +17,7 @@ use servo_url::ServoUrl;
 use crate::StreamId;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
-use crate::resource::{ResourceAvailable, ResourceAvailableReply};
+use crate::resource::ResourceAvailable;
 
 #[derive(Clone, Copy)]
 #[allow(dead_code)]
@@ -59,10 +59,6 @@ impl WorkerActor {
 impl ResourceAvailable for WorkerActor {
     fn actor_name(&self) -> String {
         self.name.clone()
-    }
-
-    fn get_streams(&self) -> &RefCell<HashMap<StreamId, TcpStream>> {
-        &self.streams
     }
 }
 
@@ -129,28 +125,6 @@ impl Actor for WorkerActor {
             self.script_chan
                 .send(WantsLiveNotifications(TEST_PIPELINE_ID, false))
                 .unwrap();
-        }
-    }
-}
-
-impl WorkerActor {
-    pub(crate) fn resource_available<T: Serialize>(&self, resource: T, resource_type: String) {
-        self.resources_available(vec![resource], resource_type);
-    }
-
-    pub(crate) fn resources_available<T: Serialize>(
-        &self,
-        resources: Vec<T>,
-        resource_type: String,
-    ) {
-        let msg = ResourceAvailableReply::<T> {
-            from: self.name(),
-            type_: "resources-available-array".into(),
-            array: vec![(resource_type, resources)],
-        };
-
-        for stream in self.streams.borrow_mut().values_mut() {
-            let _ = stream.write_json_packet(&msg);
         }
     }
 }
