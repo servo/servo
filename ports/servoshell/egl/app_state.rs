@@ -38,6 +38,14 @@ impl Coordinates {
             viewport: Rect::new(Point2D::new(x, y), Size2D::new(width, height)),
         }
     }
+
+    pub fn origin(&self) -> Point2D<i32, DevicePixel> {
+        self.viewport.origin
+    }
+
+    pub fn size(&self) -> Size2D<i32, DevicePixel> {
+        self.viewport.size
+    }
 }
 
 pub(super) struct ServoWindowCallbacks {
@@ -115,11 +123,13 @@ impl ServoDelegate for ServoShellServoDelegate {
 impl WebViewDelegate for RunningAppState {
     fn screen_geometry(&self, _webview: WebView) -> Option<ScreenGeometry> {
         let coord = self.callbacks.coordinates.borrow();
-        let screen_size = DeviceIntSize::new(coord.viewport.size.width, coord.viewport.size.height);
+        let offset = coord.origin();
+        let available_size = coord.size();
+        let screen_size = coord.size();
         Some(ScreenGeometry {
-            size: screen_size,
-            available_size: screen_size,
-            offset: Point2D::zero(),
+            size,
+            available_size,
+            offset,
         })
     }
 
