@@ -149,10 +149,6 @@ impl ResourceAvailable for BrowsingContextActor {
     fn actor_name(&self) -> String {
         self.name.clone()
     }
-
-    fn get_streams(&self) -> &RefCell<HashMap<StreamId, TcpStream>> {
-        &self.streams
-    }
 }
 
 impl Actor for BrowsingContextActor {
