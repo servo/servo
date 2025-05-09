@@ -97,7 +97,10 @@ pub fn init(
     let Ok(window_size) = (unsafe { super::get_xcomponent_size(xcomponent, native_window) }) else {
         return Err("Failed to get xcomponent size");
     };
-    let coordinates = Coordinates::new(0, 0, window_size.width, window_size.height);
+    let Ok((x, y)) = (unsafe { super::get_xcomponent_offset(xcomponent, native_window) }) else {
+        return Err("Failed to get xcomponent offset");
+    };
+    let coordinates = Coordinates::new(x, y, window_size.width, window_size.height);
 
     let display_handle = RawDisplayHandle::Ohos(OhosDisplayHandle::new());
     let display_handle = unsafe { DisplayHandle::borrow_raw(display_handle) };
