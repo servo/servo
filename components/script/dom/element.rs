@@ -63,6 +63,7 @@ use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
 };
 
+use crate::conversions::Convert;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut, ref_filter_map};
@@ -80,7 +81,9 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     ScrollBehavior, ScrollToOptions, WindowMethods,
 };
-use crate::dom::bindings::codegen::UnionTypes::{NodeOrString, TrustedScriptURLOrUSVString};
+use crate::dom::bindings::codegen::UnionTypes::{
+    NodeOrString, TrustedHTMLOrNullIsEmptyString, TrustedHTMLOrString, TrustedScriptURLOrUSVString,
+};
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -151,6 +154,7 @@ use crate::dom::raredata::ElementRareData;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
+use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -2293,18 +2297,25 @@ impl Element {
         Ok(fragment)
     }
 
+    /// Step 4 of <https://html.spec.whatwg.org/multipage/#dom-element-insertadjacenthtml>
     pub(crate) fn fragment_parsing_context(
         owner_doc: &Document,
         element: Option<&Self>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
+        // If context is not an Element or all of the following are true:
         match element {
             Some(elem)
+                // context's node document is an HTML document;
+                // context's local name is "html"; and
+                // context's namespace is the HTML namespace,
                 if elem.local_name() != &local_name!("html") ||
                     !elem.html_element_in_html_document() =>
             {
                 DomRoot::from_ref(elem)
             },
+            // set context to the result of creating an element
+            // given this's node document, "body", and the HTML namespace.
             _ => DomRoot::upcast(HTMLBodyElement::new(
                 local_name!("body"),
                 None,
@@ -2416,6 +2427,13 @@ impl Element {
                 .expect("ensure_element_internals should only be called for an HTMLElement");
             Dom::from_ref(&*ElementInternals::new(elem, can_gc))
         }))
+    }
+
+    pub(crate) fn outer_html(&self, can_gc: CanGc) -> Fallible<DOMString> {
+        match self.GetOuterHTML(can_gc)? {
+            TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(str) => Ok(str),
+            TrustedHTMLOrNullIsEmptyString::TrustedHTML(_) => unreachable!(),
+        }
     }
 }
 
@@ -3071,7 +3089,17 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-sethtmlunsafe>
-    fn SetHTMLUnsafe(&self, html: DOMString, can_gc: CanGc) {
+    fn SetHTMLUnsafe(&self, html: TrustedHTMLOrString, can_gc: CanGc) -> ErrorResult {
+        // Step 1. Let compliantHTML be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, html, "Element setHTMLUnsafe", and "script".
+        let html = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            html,
+            "Element",
+            "setHTMLUnsafe",
+            can_gc,
+        )?);
         // Step 2. Let target be this's template contents if this is a template element; otherwise this.
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             DomRoot::upcast(template.Content(can_gc))
@@ -3081,6 +3109,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 3. Unsafely set HTML given target, this, and compliantHTML
         Node::unsafely_set_html(&target, self, html, can_gc);
+        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
@@ -3096,7 +3125,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
-    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<DOMString> {
+    fn GetInnerHTML(&self, can_gc: CanGc) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         let qname = QualName::new(
             self.prefix().clone(),
             self.namespace().clone(),
@@ -3113,16 +3142,28 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 .xml_serialize(XmlChildrenOnly(Some(qname)))
         };
 
-        Ok(result)
+        Ok(TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(result))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
-    fn SetInnerHTML(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
-        // Step 2.
+    fn SetInnerHTML(&self, value: TrustedHTMLOrNullIsEmptyString, can_gc: CanGc) -> ErrorResult {
+        // Step 1: Let compliantString be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, the given value, "Element innerHTML", and "script".
+        let value = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            value.convert(),
+            "Element",
+            "innerHTML",
+            can_gc,
+        )?);
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+            // Step 4: If context is a template element, then set context to
+            // the template element's template contents (a DocumentFragment).
             DomRoot::upcast(template.Content(can_gc))
         } else {
+            // Step 2: Let context be this.
             DomRoot::from_ref(self.upcast())
         };
 
@@ -3139,15 +3180,17 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             return Ok(());
         }
 
-        // Step 1.
+        // Step 3: Let fragment be the result of invoking the fragment parsing algorithm steps
+        // with context and compliantString.
         let frag = self.parse_fragment(value, can_gc)?;
 
+        // Step 5: Replace all with fragment within context.
         Node::replace_all(Some(frag.upcast()), &target, can_gc);
         Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
-    fn GetOuterHTML(&self, can_gc: CanGc) -> Fallible<DOMString> {
+    fn GetOuterHTML(&self, can_gc: CanGc) -> Fallible<TrustedHTMLOrNullIsEmptyString> {
         // FIXME: This should use the fragment serialization algorithm, which takes
         // care of distinguishing between html/xml documents
         let result = if self.owner_document().is_html_document() {
@@ -3157,27 +3200,39 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             self.upcast::<Node>().xml_serialize(XmlIncludeNode)
         };
 
-        Ok(result)
+        Ok(TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(result))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
-    fn SetOuterHTML(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetOuterHTML(&self, value: TrustedHTMLOrNullIsEmptyString, can_gc: CanGc) -> ErrorResult {
+        // Step 1: Let compliantString be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, the given value, "Element outerHTML", and "script".
+        let value = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            value.convert(),
+            "Element",
+            "outerHTML",
+            can_gc,
+        )?);
         let context_document = self.owner_document();
         let context_node = self.upcast::<Node>();
-        // Step 1.
+        // Step 2: Let parent be this's parent.
         let context_parent = match context_node.GetParentNode() {
             None => {
-                // Step 2.
+                // Step 3: If parent is null, return. There would be no way to
+                // obtain a reference to the nodes created even if the remaining steps were run.
                 return Ok(());
             },
             Some(parent) => parent,
         };
 
         let parent = match context_parent.type_id() {
-            // Step 3.
+            // Step 4: If parent is a Document, throw a "NoModificationAllowedError" DOMException.
             NodeTypeId::Document(_) => return Err(Error::NoModificationAllowed),
 
-            // Step 4.
+            // Step 5: If parent is a DocumentFragment, set parent to the result of
+            // creating an element given this's node document, "body", and the HTML namespace.
             NodeTypeId::DocumentFragment(_) => {
                 let body_elem = Element::create(
                     QualName::new(None, ns!(html), local_name!("body")),
@@ -3193,9 +3248,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             _ => context_node.GetParentElement().unwrap(),
         };
 
-        // Step 5.
+        // Step 6: Let fragment be the result of invoking the
+        // fragment parsing algorithm steps given parent and compliantString.
         let frag = parent.parse_fragment(value, can_gc)?;
-        // Step 6.
+        // Step 7: Replace this with fragment within this's parent.
         context_parent.ReplaceChild(frag.upcast(), context_node, can_gc)?;
         Ok(())
     }
@@ -3362,38 +3418,57 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn InsertAdjacentHTML(
         &self,
         position: DOMString,
-        text: DOMString,
+        text: TrustedHTMLOrString,
         can_gc: CanGc,
     ) -> ErrorResult {
-        // Step 1.
+        // Step 1: Let compliantString be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, string, "Element insertAdjacentHTML", and "script".
+        let text = DOMString::from(TrustedHTML::get_trusted_script_compliant_string(
+            &self.owner_global(),
+            text,
+            "Element",
+            "insertAdjacentHTML",
+            can_gc,
+        )?);
         let position = position.parse::<AdjacentPosition>()?;
 
+        // Step 2: Let context be null.
+        // Step 3: Use the first matching item from this list:
         let context = match position {
+            // If position is an ASCII case-insensitive match for the string "beforebegin"
+            // If position is an ASCII case-insensitive match for the string "afterend"
             AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
                 match self.upcast::<Node>().GetParentNode() {
+                    // Step 3.2: If context is null or a Document, throw a "NoModificationAllowedError" DOMException.
                     Some(ref node) if node.is::<Document>() => {
                         return Err(Error::NoModificationAllowed);
                     },
                     None => return Err(Error::NoModificationAllowed),
+                    // Step 3.1: Set context to this's parent.
                     Some(node) => node,
                 }
             },
+            // If position is an ASCII case-insensitive match for the string "afterbegin"
+            // If position is an ASCII case-insensitive match for the string "beforeend"
             AdjacentPosition::AfterBegin | AdjacentPosition::BeforeEnd => {
+                // Set context to this.
                 DomRoot::from_ref(self.upcast::<Node>())
             },
         };
 
-        // Step 2.
+        // Step 4.
         let context = Element::fragment_parsing_context(
             &context.owner_doc(),
             context.downcast::<Element>(),
             can_gc,
         );
 
-        // Step 3.
+        // Step 5: Let fragment be the result of invoking the
+        // fragment parsing algorithm steps with context and compliantString.
         let fragment = context.parse_fragment(text, can_gc)?;
 
-        // Step 4.
+        // Step 6.
         self.insert_adjacent(position, fragment.upcast(), can_gc)
             .map(|_| ())
     }
