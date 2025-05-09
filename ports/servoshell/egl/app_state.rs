@@ -163,6 +163,11 @@ impl WebViewDelegate for RunningAppState {
         if focused {
             self.inner_mut().focused_webview_id = Some(webview.id());
             webview.show(true);
+            let url = webview
+                .url()
+                .map(|u| u.to_string())
+                .unwrap_or(String::from("about:blank"));
+            self.callbacks.host_callbacks.on_url_changed(url);
         } else if self.inner().focused_webview_id == Some(webview.id()) {
             self.inner_mut().focused_webview_id = None;
         }
@@ -325,6 +330,19 @@ impl RunningAppState {
     pub(crate) fn add(&self, webview: WebView) {
         self.inner_mut().creation_order.push(webview.id());
         self.inner_mut().webviews.insert(webview.id(), webview);
+    }
+
+    pub(crate) fn activate_webview(&self, id: u32) {
+        let inner = self.inner();
+        let webview = inner
+            .creation_order
+            .get(id as usize)
+            .and_then(|id| inner.webviews.get(id));
+        if let Some(webview) = webview {
+            webview.focus();
+        } else {
+            error!("We could not find the webview with this id {id}");
+        }
     }
 
     fn inner(&self) -> Ref<RunningAppStateInner> {
