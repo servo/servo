@@ -31,7 +31,7 @@ use crate::actors::watcher::thread_configuration::{
     ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
 use crate::protocol::JsonPacketStream;
-use crate::resource::{ResourceAvailable, ResourceAvailableReply};
+use crate::resource::ResourceAvailable;
 use crate::{EmptyReplyMsg, StreamId, WorkerActor};
 
 pub mod network_parent;
@@ -291,28 +291,28 @@ impl Actor for WatcherActor {
                                     title: Some(target.title.borrow().clone()),
                                     url: Some(target.url.borrow().clone()),
                                 };
-                                target.resource_available(event, "document-event".into());
+                                target.resource_available(event, "document-event".into(), stream);
                             }
                         },
                         "source" => {
                             let thread_actor = registry.find::<ThreadActor>(&target.thread);
                             let sources = thread_actor.source_manager.sources();
-                            target.resources_available(sources.iter().collect(), "source".into());
+                            target.resources_available(
+                                sources.iter().collect(),
+                                "source".into(),
+                                stream,
+                            );
 
                             for worker_name in &root.workers {
                                 let worker = registry.find::<WorkerActor>(worker_name);
                                 let thread = registry.find::<ThreadActor>(&worker.thread);
                                 let worker_sources = thread.source_manager.sources();
 
-                                let msg = ResourceAvailableReply {
-                                    from: worker.name(),
-                                    type_: "resources-available-array".into(),
-                                    array: vec![(
-                                        "source".to_string(),
-                                        worker_sources.iter().cloned().collect(),
-                                    )],
-                                };
-                                let _ = stream.write_json_packet(&msg);
+                                worker.resources_available(
+                                    worker_sources.iter().collect(),
+                                    "source".into(),
+                                    stream,
+                                );
                             }
                         },
                         "console-message" | "error-message" => {},
