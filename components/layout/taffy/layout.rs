@@ -6,6 +6,8 @@ use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use style::Zero;
 use style::properties::ComputedValues;
+use style::values::computed::CSSPixelLength;
+use style::values::computed::length_percentage::CalcLengthPercentage;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayInside;
 use taffy::style_helpers::{TaffyMaxContent, TaffyMinContent};
@@ -107,12 +109,25 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         Self: 'a;
 
     fn get_core_container_style(&self, _node_id: taffy::NodeId) -> Self::CoreContainerStyle<'_> {
-        TaffyStyloStyle(self.style)
+        TaffyStyloStyle::new(self.style, false /* is_replaced */)
     }
 
     fn set_unrounded_layout(&mut self, node_id: taffy::NodeId, layout: &taffy::Layout) {
         let id = usize::from(node_id);
         (*self.source_child_nodes[id]).borrow_mut().taffy_layout = *layout;
+    }
+
+    #[allow(unsafe_code)]
+    fn resolve_calc_value(&self, val: *const (), basis: f32) -> f32 {
+        // SAFETY:
+        // - The calc `val` here is the same pointer we return to Taffy in `convert::length_percentage`
+        //   so it is safe to cast the type back to `*const CalcLengthPercentage`
+        // - Taffy guarantees that it never retains style values beyond the scope of it's style
+        //   computation methods, so we can be sure that the pointer we have passed it is still valid.
+        // - The reference we create here has a lifetime that does not escape this function, so it does
+        //   not matter if the pointer is later destroyed.
+        let calc = unsafe { &*(val as *const CalcLengthPercentage) };
+        calc.resolve(CSSPixelLength::new(basis)).px()
     }
 
     fn compute_child_layout(
@@ -302,7 +317,7 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
         &self,
         _node_id: taffy::prelude::NodeId,
     ) -> Self::GridContainerStyle<'_> {
-        TaffyStyloStyle(self.style)
+        TaffyStyloStyle::new(self.style, false /* is_replaced */)
     }
 
     fn get_grid_child_style(
@@ -311,7 +326,9 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
     ) -> Self::GridItemStyle<'_> {
         let id = usize::from(child_node_id);
         let child = (*self.source_child_nodes[id]).borrow();
-        TaffyStyloStyle(AtomicRef::map(child, |c| &*c.style))
+        let is_replaced = child.is_in_flow_replaced();
+        let stylo_style = AtomicRef::map(child, |c| &*c.style);
+        TaffyStyloStyle::new(stylo_style, is_replaced)
     }
 
     fn set_detailed_grid_info(

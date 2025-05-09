@@ -17,7 +17,9 @@ use crate::construct_modern::{ModernContainerBuilder, ModernItemKind};
 use crate::context::LayoutContext;
 use crate::dom::LayoutBox;
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
-use crate::formatting_contexts::IndependentFormattingContext;
+use crate::formatting_contexts::{
+    IndependentFormattingContext, IndependentFormattingContextContents,
+};
 use crate::fragment_tree::Fragment;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 
@@ -143,6 +145,16 @@ impl TaffyItemBox {
             TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ref positioned_box) => {
                 positioned_box.borrow().context.base.fragments()
             },
+        }
+    }
+
+    fn is_in_flow_replaced(&self) -> bool {
+        match &self.taffy_level_box {
+            TaffyItemBoxInner::InFlowBox(fc) => match fc.contents {
+                IndependentFormattingContextContents::NonReplaced(_) => false,
+                IndependentFormattingContextContents::Replaced(_) => true,
+            },
+            TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(_) => false,
         }
     }
 }
