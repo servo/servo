@@ -32,7 +32,7 @@ button {
   padding: 0;
   margin: 0;
 }
-button:active, button:focus {
+button:active, button:focus  {
   background: #222;
   outline: none;
 }
