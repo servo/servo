@@ -1974,7 +1974,7 @@ impl HTMLMediaElement {
         }
 
         let style = HTMLStyleElement::new(
-            local_name!("script"),
+            local_name!("style"),
             None,
             &document,
             None,

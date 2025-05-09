@@ -41,13 +41,13 @@
     return `
       <div class="controls">
         <button id="play-pause-button"></button>
-        <input id="progress" type="range" value="0" min="0" max="100" step="1"></input>
+        <input type="range" id="progress" max="100" min="0" value="0"></input>
         <span id="position-duration-box" class="hidden">
           <span id="position-text">#1</span>
           <span id="duration"> / #2</span>
         </span>
         <button id="volume-switch"></button>
-        <input id="volume-level" type="range" value="100" min="0" max="100" step="1"></input>
+        <input type="range" id="volume-level" value="100" min="0" max="100" step="1"></input>
         ${isAudioOnly ? "" : '<button id="fullscreen-switch" class="fullscreen"></button>'}
       </div>
     `;
@@ -61,19 +61,15 @@
   }
 
   function formatTime(time, showHours = false) {
-    // Format the duration as "h:mm:ss" or "m:ss"
-    time = Math.round(time / 1000);
-
+    if (isNaN(time) || !isFinite(time)) {
+        return "0:00";
+    }
+    time = Math.round(time); 
     const hours = Math.floor(time / 3600);
     const mins = Math.floor((time % 3600) / 60);
     const secs = Math.floor(time % 60);
-
-    const formattedHours =
-      hours || showHours ? `${hours.toString().padStart(2, "0")}:` : "";
-
-    return `${formattedHours}${mins
-      .toString()
-      .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    const formattedHours = hours || showHours ? `${hours}:` : "";
+    return `${formattedHours}${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
 
   class MediaControls {
@@ -94,7 +90,6 @@
 
       this.isAudioOnly = this.media.localName == "audio";
 
-      // Create root element and load markup.
       this.root = document.createElement("div");
       this.root.classList.add("root");
       this.root.innerHTML = generateMarkup(this.isAudioOnly);
@@ -115,7 +110,7 @@
         elementNames.push("fullscreen-switch");
       }
 
-      // Import elements.
+ 
       this.elements = {};
       elementNames.forEach(id => {
         this.elements[camelCase(id)] = this.controls.getElementById(id);
@@ -249,16 +244,13 @@
       });
     }
 
-    // State change handler
     onStateChange(from) {
       this.render(from);
     }
 
     render(from = this.state) {
       if (!this.isAudioOnly) {
-        // XXX This should ideally use clientHeight/clientWidth,
-        //     but for some reason I couldn't figure out yet,
-        //     using it breaks layout.
+        
         this.root.style.height = this.media.videoHeight;
         this.root.style.width = this.media.videoWidth;
       }
