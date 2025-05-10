@@ -17,7 +17,7 @@ use style::properties::ComputedValues;
 use style::values::specified::box_::DisplayOutside;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, FragmentFlags};
-use crate::ArcRefCell;
+use crate::SharedStyle;
 use crate::display_list::ToWebRender;
 use crate::formatting_contexts::Baselines;
 use crate::geom::{
@@ -40,15 +40,9 @@ pub(crate) enum BackgroundMode {
     /// Draw the background normally, getting information from the Fragment style.
     Normal,
 }
-
-#[derive(Debug, MallocSizeOf)]
-pub(crate) struct BackgroundStyle(#[conditional_malloc_size_of] pub ServoArc<ComputedValues>);
-
-pub(crate) type SharedBackgroundStyle = ArcRefCell<BackgroundStyle>;
-
 #[derive(MallocSizeOf)]
 pub(crate) struct ExtraBackground {
-    pub style: SharedBackgroundStyle,
+    pub style: SharedStyle,
     pub rect: PhysicalRect<Au>,
 }
 
@@ -64,7 +58,6 @@ pub(crate) enum SpecificLayoutInfo {
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 
-    #[conditional_malloc_size_of]
     pub style: ServoArc<ComputedValues>,
     pub children: Vec<Fragment>,
 

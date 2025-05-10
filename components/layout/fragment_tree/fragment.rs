@@ -22,6 +22,7 @@ use super::{
     Tag,
 };
 use crate::cell::ArcRefCell;
+use crate::flow::inline::SharedInlineStyles;
 use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
@@ -64,8 +65,7 @@ pub(crate) struct CollapsedMargin {
 #[derive(MallocSizeOf)]
 pub(crate) struct TextFragment {
     pub base: BaseFragment,
-    #[conditional_malloc_size_of]
-    pub parent_style: ServoArc<ComputedValues>,
+    pub inline_styles: SharedInlineStyles,
     pub rect: PhysicalRect<Au>,
     pub font_metrics: FontMetrics,
     pub font_key: FontInstanceKey,
@@ -78,14 +78,11 @@ pub(crate) struct TextFragment {
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
     pub selection_range: Option<ServoRange<ByteIndex>>,
-    #[conditional_malloc_size_of]
-    pub selected_style: ServoArc<ComputedValues>,
 }
 
 #[derive(MallocSizeOf)]
 pub(crate) struct ImageFragment {
     pub base: BaseFragment,
-    #[conditional_malloc_size_of]
     pub style: ServoArc<ComputedValues>,
     pub rect: PhysicalRect<Au>,
     pub clip: PhysicalRect<Au>,
@@ -97,7 +94,6 @@ pub(crate) struct IFrameFragment {
     pub base: BaseFragment,
     pub pipeline_id: PipelineId,
     pub rect: PhysicalRect<Au>,
-    #[conditional_malloc_size_of]
     pub style: ServoArc<ComputedValues>,
 }
 

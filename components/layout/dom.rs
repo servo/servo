@@ -26,7 +26,7 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flexbox::FlexLevelBox;
 use crate::flow::BlockLevelBox;
-use crate::flow::inline::InlineItem;
+use crate::flow::inline::{InlineItem, SharedInlineStyles};
 use crate::fragment_tree::Fragment;
 use crate::geom::PhysicalSize;
 use crate::replaced::CanvasInfo;
@@ -59,7 +59,7 @@ impl InnerDOMLayoutData {
 /// A box that is stored in one of the `DOMLayoutData` slots.
 #[derive(MallocSizeOf)]
 pub(super) enum LayoutBox {
-    DisplayContents,
+    DisplayContents(SharedInlineStyles),
     BlockLevel(ArcRefCell<BlockLevelBox>),
     InlineLevel(Vec<ArcRefCell<InlineItem>>),
     FlexLevel(ArcRefCell<FlexLevelBox>),
@@ -70,7 +70,7 @@ pub(super) enum LayoutBox {
 impl LayoutBox {
     fn invalidate_cached_fragment(&self) {
         match self {
-            LayoutBox::DisplayContents => {},
+            LayoutBox::DisplayContents(..) => {},
             LayoutBox::BlockLevel(block_level_box) => {
                 block_level_box.borrow().invalidate_cached_fragment()
             },
@@ -91,7 +91,7 @@ impl LayoutBox {
 
     pub(crate) fn fragments(&self) -> Vec<Fragment> {
         match self {
-            LayoutBox::DisplayContents => vec![],
+            LayoutBox::DisplayContents(..) => vec![],
             LayoutBox::BlockLevel(block_level_box) => block_level_box.borrow().fragments(),
             LayoutBox::InlineLevel(inline_items) => inline_items
                 .iter()

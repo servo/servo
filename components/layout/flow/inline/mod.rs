@@ -118,6 +118,7 @@ use super::{
 };
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
+use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::CollapsibleWithParentStartMargin;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::formatting_contexts::{
@@ -131,7 +132,7 @@ use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
-use crate::{ConstraintSpace, ContainingBlock, PropagatedBoxTreeData};
+use crate::{ConstraintSpace, ContainingBlock, PropagatedBoxTreeData, SharedStyle};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -171,6 +172,25 @@ pub(crate) struct InlineFormattingContext {
     /// Whether or not this is an [`InlineFormattingContext`] has right-to-left content, which
     /// will require reordering during layout.
     pub(super) has_right_to_left_content: bool,
+}
+
+/// [`TextRun`] and `TextFragment`s need a handle on their parent inline box (or inline
+/// formatting context root)'s style. In order to implement incremental layout, these are
+/// wrapped in [`SharedStyle`]. This allows updating the parent box tree element without
+/// updating every single descendant box tree node and fragment.
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct SharedInlineStyles {
+    pub style: SharedStyle,
+    pub selected: SharedStyle,
+}
+
+impl From<&NodeAndStyleInfo<'_>> for SharedInlineStyles {
+    fn from(info: &NodeAndStyleInfo) -> Self {
+        Self {
+            style: SharedStyle::new(info.style.clone()),
+            selected: SharedStyle::new(info.get_selected_style()),
+        }
+    }
 }
 
 /// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
@@ -1313,7 +1333,7 @@ impl InlineFormattingContextLayout<'_> {
     ) {
         let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
-            SegmentContentFlags::from(text_run.parent_style.get_inherited_text())
+            SegmentContentFlags::from(text_run.inline_styles.style.borrow().get_inherited_text())
         } else {
             SegmentContentFlags::empty()
         };
@@ -1398,13 +1418,12 @@ impl InlineFormattingContextLayout<'_> {
             TextRunLineItem {
                 text: vec![glyph_store],
                 base_fragment_info: text_run.base_fragment_info,
-                parent_style: text_run.parent_style.clone(),
+                inline_styles: text_run.inline_styles.clone(),
                 font_metrics,
                 font_key: ifc_font_info.key,
                 text_decoration_line: self.current_inline_container_state().text_decoration_line,
                 bidi_level,
                 selection_range,
-                selected_style: text_run.selected_style.clone(),
             },
         ));
     }
@@ -2363,8 +2382,9 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             },
             InlineItem::TextRun(text_run) => {
                 let text_run = &*text_run.borrow();
+                let parent_style = text_run.inline_styles.style.borrow();
                 for segment in text_run.shaped_text.iter() {
-                    let style_text = text_run.parent_style.get_inherited_text();
+                    let style_text = parent_style.get_inherited_text();
                     let can_wrap = style_text.text_wrap_mode == TextWrapMode::Wrap;
 
                     // TODO: This should take account whether or not the first and last character prevent

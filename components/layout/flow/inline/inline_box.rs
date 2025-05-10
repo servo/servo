@@ -8,7 +8,10 @@ use app_units::Au;
 use fonts::FontMetrics;
 use malloc_size_of_derive::MallocSizeOf;
 
-use super::{InlineContainerState, InlineContainerStateFlags, inline_container_needs_strut};
+use super::{
+    InlineContainerState, InlineContainerStateFlags, SharedInlineStyles,
+    inline_container_needs_strut,
+};
 use crate::ContainingBlock;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -20,6 +23,9 @@ use crate::style_ext::{LayoutStyle, PaddingBorderMargin};
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct InlineBox {
     pub base: LayoutBoxBase,
+    /// The [`SharedInlineStyles`] for this [`InlineBox`] that are used to share styles
+    /// with all [`super::TextRun`] children.
+    pub(super) shared_inline_styles: SharedInlineStyles,
     /// The identifier of this inline box in the containing [`super::InlineFormattingContext`].
     pub(super) identifier: InlineBoxIdentifier,
     /// Whether or not this is the first instance of an [`InlineBox`] before a possible
@@ -37,6 +43,7 @@ impl InlineBox {
     pub(crate) fn new(info: &NodeAndStyleInfo) -> Self {
         Self {
             base: LayoutBoxBase::new(info.into(), info.style.clone()),
+            shared_inline_styles: info.into(),
             // This will be assigned later, when the box is actually added to the IFC.
             identifier: InlineBoxIdentifier::default(),
             is_first_split: true,
@@ -48,6 +55,7 @@ impl InlineBox {
     pub(crate) fn split_around_block(&self) -> Self {
         Self {
             base: LayoutBoxBase::new(self.base.base_fragment_info, self.base.style.clone()),
+            shared_inline_styles: self.shared_inline_styles.clone(),
             is_first_split: false,
             is_last_split: false,
             ..*self

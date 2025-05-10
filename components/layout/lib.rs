@@ -38,12 +38,23 @@ pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
 pub use layout_impl::LayoutFactoryImpl;
 use malloc_size_of_derive::MallocSizeOf;
+use servo_arc::Arc as ServoArc;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::TextDecorationLine;
 
 use crate::geom::{LogicalVec2, SizeConstraint};
 use crate::style_ext::AspectRatio;
+
+/// At times, a style is "owned" by more than one layout object. For example, text
+/// fragments need a handle on their parent inline box's style. In order to make
+/// incremental layout easier to implement, another layer of shared ownership is added via
+/// [`SharedStyle`]. This allows updating the style in originating layout object and
+/// having all "depdendent" objects update automatically.
+///
+///  Note that this is not a cost-free data structure, so should only be
+/// used when necessary.
+pub(crate) type SharedStyle = ArcRefCell<ServoArc<ComputedValues>>;
 
 /// Represents the set of constraints that we use when computing the min-content
 /// and max-content inline sizes of an element.

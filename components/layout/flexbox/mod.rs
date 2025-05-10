@@ -90,7 +90,6 @@ impl FlexContainerConfig {
 pub(crate) struct FlexContainer {
     children: Vec<ArcRefCell<FlexLevelBox>>,
 
-    #[conditional_malloc_size_of]
     style: ServoArc<ComputedValues>,
 
     /// The configuration of this [`FlexContainer`].

@@ -174,7 +174,7 @@ impl BoxTree {
 
             let update_point =
                 match &*AtomicRef::filter_map(layout_data.self_box.borrow(), Option::as_ref)? {
-                    LayoutBox::DisplayContents => return None,
+                    LayoutBox::DisplayContents(..) => return None,
                     LayoutBox::BlockLevel(block_level_box) => match &*block_level_box.borrow() {
                         BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
                             if box_style.position.is_absolutely_positioned() =>
