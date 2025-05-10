@@ -59,6 +59,7 @@ mod from_constellation {
                 Self::GetScreenSize(..) => target!("GetScreenSize"),
                 Self::GetAvailableScreenSize(..) => target!("GetAvailableScreenSize"),
                 Self::CollectMemoryReport(..) => target!("CollectMemoryReport"),
+                Self::Viewport(..) => target!("Viewport"),
             }
         }
     }
