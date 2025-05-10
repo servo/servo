@@ -137,14 +137,23 @@ impl LayoutContext<'_> {
             if image_state.image_key() != image.id {
                 if image.should_animate() {
                     // i. Register/Replace tracking item in image_animation_manager.
-                    store.insert(node, ImageAnimationState::new(image));
+                    store.insert(
+                        node,
+                        ImageAnimationState::new(
+                            image,
+                            self.shared_context().current_time_for_animations,
+                        ),
+                    );
                 } else {
                     // ii. Cancel Action if the node's image is no longer animated.
                     store.remove(&node);
                 }
             }
         } else if image.should_animate() {
-            store.insert(node, ImageAnimationState::new(image));
+            store.insert(
+                node,
+                ImageAnimationState::new(image, self.shared_context().current_time_for_animations),
+            );
         }
     }
 

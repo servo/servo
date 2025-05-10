@@ -1280,6 +1280,14 @@ impl ScriptThread {
             if document.is_fully_active() {
                 window.reflow(ReflowGoal::UpdateTheRendering, can_gc);
             }
+            // Update the rendering of those does not require a reflow.
+            // e.g. animated images.
+            if document
+                .image_animation_manager()
+                .image_animations_present()
+            {
+                document.update_animated_image_active_frames();
+            }
 
             // TODO: Process top layer removals according to
             // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
