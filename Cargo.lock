@@ -21,7 +21,7 @@ checksum = "c71b1793ee61086797f5c80b6efa2b8ffa6d5dd703f118545808a7f2e27f7046"
 [[package]]
 name = "accountable-refcell"
 version = "0.2.1"
-source = "git+https://github.com/kkoyung/accountable-refcell.git?branch=move-filter-map#bb647c07e16c6688a64713f12a39bb1f7d4fb5b6"
+source = "git+https://github.com/jdm/accountable-refcell.git?rev=refs%2Fpull%2F6%2Fhead#642801c99bc2c62f856b467f6d3a7d0f6c787670"
 dependencies = [
  "backtrace",
 ]
