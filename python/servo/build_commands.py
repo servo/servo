@@ -13,10 +13,11 @@ import os.path as path
 import pathlib
 import shutil
 import stat
+import subprocess
 import sys
 
 from time import time
-from typing import Optional
+from typing import Optional, List
 
 import notifypy
 
@@ -38,6 +39,32 @@ from servo.platform.build_target import BuildTarget
 
 SUPPORTED_ASAN_TARGETS = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu",
                           "x86_64-apple-darwin", "x86_64-unknown-linux-gnu"]
+
+
+def get_rustc_llvm_version() -> Optional[List[int]]:
+    """Determine the LLVM version of `rustc` and return it as a List[major, minor, patch, ...]
+
+    In some cases we want to ensure that the LLVM version of rustc and clang match, e.g.
+    when using ASAN for both C/C++ and Rust code, we want to use the same ASAN implementation.
+    This function assumes that rustc points to the rust compiler we are interested in, which should
+    be valid in both rustup managed environment and on nix.
+    """
+    try:
+        result = subprocess.run(['rustc', '--version', '--verbose'], encoding='utf-8', capture_output=True)
+        result.check_returncode()
+        for line in result.stdout.splitlines():
+            line_lowercase = line.lower()
+            if line_lowercase.startswith("llvm version:"):
+                llvm_version = line_lowercase.strip("llvm version:")
+                llvm_version = llvm_version.strip()
+                version = llvm_version.split('.')
+                print(f"Info: rustc is using LLVM version {'.'.join(version)}")
+                return version
+        else:
+            print(f"Error: Couldn't find LLVM version in output of `rustc --version --verbose`: `{result.stdout}`")
+    except Exception as e:
+        print(f"Error: Failed to determine rustc version: {e}")
+    return None
 
 
 @CommandProvider
@@ -99,11 +126,30 @@ class MachCommands(CommandBase):
             env["RUSTFLAGS"] = env.get("RUSTFLAGS", "") + " -Zsanitizer=address"
             opts += ["-Zbuild-std"]
             kwargs["target_override"] = target_triple
-            # TODO: Investigate sanitizers in C/C++ code:
-            # env.setdefault("CFLAGS", "")
-            # env.setdefault("CXXFLAGS", "")
-            # env["CFLAGS"] += " -fsanitize=address"
-            # env["CXXFLAGS"] += " -fsanitize=address"
+
+            # Note: We want to use the same clang/LLVM version as rustc.
+            rustc_llvm_version = get_rustc_llvm_version()
+            if rustc_llvm_version is None:
+                raise RuntimeError("Unable to determine necessary clang version for ASAN support")
+            llvm_major: int = rustc_llvm_version[0]
+            target_clang = f"clang-{llvm_major}"
+            target_cxx = f"clang++-{llvm_major}"
+            if shutil.which(target_clang) is None or shutil.which(target_cxx) is None:
+                raise RuntimeError(f"--with-asan requires `{target_clang}` and `{target_cxx}` to be in PATH")
+            env.setdefault("TARGET_CC", target_clang)
+            env.setdefault("TARGET_CXX", target_cxx)
+            # TODO: We should also parse the LLVM version from the clang compiler we chose.
+            # It's unclear if the major version being the same is sufficient.
+
+            # We need to use `TARGET_CFLAGS`, since we don't want to compile host dependencies with ASAN,
+            # since that causes issues when building build-scripts / proc macros.
+            env.setdefault("TARGET_CFLAGS", "")
+            env.setdefault("TARGET_CXXFLAGS", "")
+            env["TARGET_CFLAGS"] += " -fsanitize=address"
+            env["TARGET_CXXFLAGS"] += " -fsanitize=address"
+            env["TARGET_LDFLAGS"] = "-static-libasan"
+            # By default build mozjs from source to enable ASAN with mozjs.
+            env.setdefault("MOZJS_FROM_SOURCE", "1")
 
             # asan replaces system allocator with asan allocator
             # we need to make sure that we do not replace it with jemalloc
