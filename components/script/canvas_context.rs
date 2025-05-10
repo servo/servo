@@ -125,7 +125,11 @@ impl CanvasContext for RenderingContext {
 
     fn resize(&self) {
         match self {
-            RenderingContext::Placeholder(context) => (*context.context().unwrap()).resize(),
+            RenderingContext::Placeholder(offscreen_canvas) => {
+                if let Some(context) = offscreen_canvas.context() {
+                    context.resize()
+                }
+            },
             RenderingContext::Context2d(context) => context.resize(),
             RenderingContext::WebGL(context) => context.resize(),
             RenderingContext::WebGL2(context) => context.resize(),
