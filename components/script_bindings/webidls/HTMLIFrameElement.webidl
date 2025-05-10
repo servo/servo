@@ -9,8 +9,8 @@ interface HTMLIFrameElement : HTMLElement {
 
   [CEReactions]
            attribute USVString src;
-  [CEReactions]
-           attribute DOMString srcdoc;
+  [CEReactions, SetterThrows]
+           attribute (TrustedHTML or DOMString) srcdoc;
 
   [CEReactions]
   attribute DOMString name;

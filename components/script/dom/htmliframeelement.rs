@@ -27,6 +27,8 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
+use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
@@ -40,6 +42,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::node::{Node, NodeDamage, NodeTraits, UnbindContext};
+use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::CanGc;
@@ -595,10 +598,29 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc
-    make_getter!(Srcdoc, "srcdoc");
+    fn Srcdoc(&self) -> TrustedHTMLOrString {
+        let element = self.upcast::<Element>();
+        element.get_trusted_html_attribute(&local_name!("srcdoc"))
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc
-    make_setter!(SetSrcdoc, "srcdoc");
+    fn SetSrcdoc(&self, value: TrustedHTMLOrString, can_gc: CanGc) -> Fallible<()> {
+        // Step 1: Let compliantString be the result of invoking the
+        // Get Trusted Type compliant string algorithm with TrustedHTML,
+        // this's relevant global object, the given value, "HTMLIFrameElement srcdoc", and "script".
+        let element = self.upcast::<Element>();
+        let local_name = &local_name!("srcdoc");
+        let value = TrustedHTML::get_trusted_script_compliant_string(
+            &element.owner_global(),
+            value,
+            "HTMLIFrameElement",
+            local_name,
+            can_gc,
+        )?;
+        // Step 2: Set an attribute value given this, srcdoc's local name, and compliantString.
+        element.set_attribute(local_name, AttrValue::String(value), can_gc);
+        Ok(())
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn Sandbox(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
