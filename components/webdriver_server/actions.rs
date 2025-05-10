@@ -16,9 +16,9 @@ use webdriver::actions::{
     PointerDownAction, PointerMoveAction, PointerOrigin, PointerType, PointerUpAction, WheelAction,
     WheelActionItem, WheelScrollAction,
 };
-use webdriver::error::ErrorStatus;
+use webdriver::error::{ErrorStatus, WebDriverError};
 
-use crate::Handler;
+use crate::{Handler, wait_for_script_response};
 
 // Interval between wheelScroll and pointerMove increments in ms, based on common vsync
 static POINTERMOVE_INTERVAL: u64 = 17;
@@ -399,8 +399,11 @@ impl Handler {
                     WebDriverScriptCommand::GetElementInViewCenterPoint(x.to_string(), sender),
                 )
                 .unwrap();
-
-                let Some(point) = receiver.recv().unwrap()? else {
+                let response = match wait_for_script_response(receiver) {
+                    Ok(response) => response,
+                    Err(WebDriverError { error, .. }) => return Err(error),
+                };
+                let Ok(Some(point)) = response else {
                     return Err(ErrorStatus::UnknownError);
                 };
                 point
@@ -645,19 +648,14 @@ impl Handler {
             .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
             .unwrap();
 
-        match receiver.recv() {
-            Ok(viewport_size) => {
-                if x < 0 ||
-                    x as f32 > viewport_size.width ||
-                    y < 0 ||
-                    y as f32 > viewport_size.height
-                {
-                    Err(ErrorStatus::MoveTargetOutOfBounds)
-                } else {
-                    Ok(())
-                }
-            },
-            Err(_) => Err(ErrorStatus::UnknownError),
+        let viewport_size = match wait_for_script_response(receiver) {
+            Ok(response) => response,
+            Err(WebDriverError { error, .. }) => return Err(error),
+        };
+        if x < 0 || x as f32 > viewport_size.width || y < 0 || y as f32 > viewport_size.height {
+            Err(ErrorStatus::MoveTargetOutOfBounds)
+        } else {
+            Ok(())
         }
     }
 }
