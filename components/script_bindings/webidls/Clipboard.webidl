@@ -9,7 +9,7 @@ typedef sequence<ClipboardItem> ClipboardItems;
 [SecureContext, Exposed=Window, Pref="dom_async_clipboard_enabled"]
 interface Clipboard : EventTarget {
   // Promise<ClipboardItems> read();
-  // Promise<DOMString> readText();
+  Promise<DOMString> readText();
   // Promise<undefined> write(ClipboardItems data);
   Promise<undefined> writeText(DOMString data);
 };

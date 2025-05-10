@@ -29,13 +29,13 @@ const CUSTOM_FORMAT_PREFIX: &str = "web ";
 
 /// <https://w3c.github.io/clipboard-apis/#representation>
 #[derive(JSTraceable, MallocSizeOf)]
-struct Representation {
+pub(super) struct Representation {
     #[no_trace]
     #[ignore_malloc_size_of = "Extern type"]
-    mime_type: Mime,
-    is_custom: bool,
+    pub mime_type: Mime,
+    pub is_custom: bool,
     #[ignore_malloc_size_of = "Rc is hard"]
-    data: Rc<Promise>,
+    pub data: Rc<Promise>,
 }
 
 #[dom_struct]

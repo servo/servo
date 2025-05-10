@@ -23,7 +23,7 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{Receiver, Sender, after, select, unbounded};
 use embedder_traits::{
-    WebDriverCommandMsg, WebDriverCookieError, WebDriverFrameId, WebDriverJSError,
+    MouseButton, WebDriverCommandMsg, WebDriverCookieError, WebDriverFrameId, WebDriverJSError,
     WebDriverJSResult, WebDriverJSValue, WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::{Rect, Size2D};
@@ -1619,7 +1619,10 @@ impl Handler {
                         InputSourceState::Pointer(PointerInputState::new(&PointerType::Mouse)),
                     );
 
-                    // Steps 8.3 - 8.6
+                    // Step 8.7. Construct a pointer move action.
+                    // Step 8.8. Set a property x to 0 on pointer move action.
+                    // Step 8.9. Set a property y to 0 on pointer move action.
+                    // Step 8.10. Set a property origin to element on pointer move action.
                     let pointer_move_action = PointerMoveAction {
                         duration: None,
                         origin: PointerOrigin::Element(WebElement(element_id)),
@@ -1628,32 +1631,32 @@ impl Handler {
                         ..Default::default()
                     };
 
-                    // Steps 8.7 - 8.8
+                    // Step 8.11. Construct pointer down action.
+                    // Step 8.12. Set a property button to 0 on pointer down action.
                     let pointer_down_action = PointerDownAction {
-                        button: 1,
+                        button: i16::from(MouseButton::Left) as u64,
                         ..Default::default()
                     };
 
-                    // Steps 8.9 - 8.10
+                    // Step 8.13. Construct pointer up action.
+                    // Step 8.14. Set a property button to 0 on pointer up action.
                     let pointer_up_action = PointerUpAction {
-                        button: 1,
+                        button: i16::from(MouseButton::Left) as u64,
                         ..Default::default()
                     };
 
-                    // Step 8.11
+                    // Step 8.16 Dispatch a list of actions with input state,
+                    // actions, session's current browsing context, and actions options.
                     if let Err(error) =
                         self.dispatch_pointermove_action(&id, &pointer_move_action, 0)
                     {
                         return Err(WebDriverError::new(error, ""));
                     }
 
-                    // Steps 8.12
                     self.dispatch_pointerdown_action(&id, &pointer_down_action);
-
-                    // Steps 8.13
                     self.dispatch_pointerup_action(&id, &pointer_up_action);
 
-                    // Step 8.14
+                    // Step 8.17 Remove an input source with input state and input id.
                     self.session_mut()?.input_state_table.remove(&id);
 
                     // Step 13
@@ -1915,6 +1918,15 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
     }
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-web-element-identifier>
+const ELEMENT_IDENTIFIER: &str = "element-6066-11e4-a52e-4f735466cecf";
+/// <https://w3c.github.io/webdriver/#dfn-web-frame-identifier>
+const FRAME_IDENTIFIER: &str = "frame-075b-4da1-b6ba-e579c2d3230a";
+/// <https://w3c.github.io/webdriver/#dfn-web-window-identifier>
+const WINDOW_IDENTIFIER: &str = "window-fcc6-11e5-b4f8-330a88ab9d7f";
+/// <https://w3c.github.io/webdriver/#dfn-shadow-root-identifier>
+const SHADOW_ROOT_IDENTIFIER: &str = "shadow-6066-11e4-a52e-4f735466cecf";
+
 fn webdriver_value_to_js_argument(v: &Value) -> String {
     match v {
         Value::String(s) => format!("\"{}\"", s),
@@ -1929,6 +1941,22 @@ fn webdriver_value_to_js_argument(v: &Value) -> String {
             format!("[{}]", elems.join(", "))
         },
         Value::Object(map) => {
+            let key = map.keys().next().map(String::as_str);
+            match (key, map.values().next()) {
+                (Some(ELEMENT_IDENTIFIER), Some(id)) => {
+                    return format!("window.webdriverElement({})", id);
+                },
+                (Some(FRAME_IDENTIFIER), Some(id)) => {
+                    return format!("window.webdriverFrame({})", id);
+                },
+                (Some(WINDOW_IDENTIFIER), Some(id)) => {
+                    return format!("window.webdriverWindow({})", id);
+                },
+                (Some(SHADOW_ROOT_IDENTIFIER), Some(id)) => {
+                    return format!("window.webdriverShadowRoot({})", id);
+                },
+                _ => {},
+            }
             let elems = map
                 .iter()
                 .map(|(k, v)| format!("{}: {}", k, webdriver_value_to_js_argument(v)))

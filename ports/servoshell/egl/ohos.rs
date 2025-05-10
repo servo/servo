@@ -28,8 +28,9 @@ use servo::{
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
     OH_NativeXComponent_GetKeyEventAction, OH_NativeXComponent_GetKeyEventCode,
-    OH_NativeXComponent_GetTouchEvent, OH_NativeXComponent_GetXComponentSize,
-    OH_NativeXComponent_KeyAction, OH_NativeXComponent_KeyCode, OH_NativeXComponent_KeyEvent,
+    OH_NativeXComponent_GetTouchEvent, OH_NativeXComponent_GetXComponentOffset,
+    OH_NativeXComponent_GetXComponentSize, OH_NativeXComponent_KeyAction,
+    OH_NativeXComponent_KeyCode, OH_NativeXComponent_KeyEvent,
     OH_NativeXComponent_RegisterCallback, OH_NativeXComponent_RegisterKeyEventCallback,
     OH_NativeXComponent_TouchEvent, OH_NativeXComponent_TouchEventType,
 };
@@ -267,6 +268,33 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
     info!("Returning from on_surface_created_cb");
 }
 
+/// Returns the offset of the surface relative to its parent's top left corner
+///
+/// # Safety
+///
+/// `xcomponent` and `native_window` must be valid, non-null and aligned pointers to a
+/// live xcomponent and associated native window surface.
+unsafe fn get_xcomponent_offset(
+    xcomponent: *mut OH_NativeXComponent,
+    native_window: *mut c_void,
+) -> Result<(i32, i32), i32> {
+    let mut x: f64 = 0.0;
+    let mut y: f64 = 0.0;
+
+    let result = unsafe {
+        OH_NativeXComponent_GetXComponentOffset(xcomponent, native_window, &raw mut x, &raw mut y)
+    };
+    if result != 0 {
+        error!("OH_NativeXComponent_GetXComponentOffset failed with {result}");
+        return Err(result);
+    }
+
+    Ok((
+        (x.round() as i64).try_into().expect("X offset too large"),
+        (y.round() as i64).try_into().expect("Y offset too large"),
+    ))
+}
+
 /// Returns the size of the surface
 ///
 /// # Safety
@@ -387,6 +415,7 @@ extern "C" fn on_dispatch_key_event(xc: *mut OH_NativeXComponent, _window: *mut 
 
 static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
     let mut builder = hilog::Builder::new();
+    builder.set_domain(hilog::LogDomain::new(0xE0C3));
     let filters = [
         "fonts",
         "servo",
@@ -678,7 +707,7 @@ impl EventLoopWaker for WakeupCallback {
     }
 
     fn wake(&self) {
-        info!("wake called!");
+        log::trace!("wake called!");
         self.chan.send(ServoAction::WakeUp).unwrap_or_else(|e| {
             error!("Failed to send wake message with: {e}");
         });

@@ -8,11 +8,14 @@ use std::iter::FusedIterator;
 use fonts::ByteIndex;
 use html5ever::{LocalName, local_name};
 use range::Range;
-use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use script::layout_dom::ServoLayoutNode;
+use script_layout_interface::wrapper_traits::{
+    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use selectors::Element as SelectorsElement;
 use servo_arc::Arc as ServoArc;
-use style::dom::{TElement, TShadowRoot};
+use style::dom::{NodeInfo, TElement, TNode, TShadowRoot};
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::generics::counters::{Content, ContentItem};
@@ -28,15 +31,15 @@ use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOuts
 /// A data structure used to pass and store related layout information together to
 /// avoid having to repeat the same arguments in argument lists.
 #[derive(Clone)]
-pub(crate) struct NodeAndStyleInfo<Node> {
-    pub node: Node,
+pub(crate) struct NodeAndStyleInfo<'dom> {
+    pub node: ServoLayoutNode<'dom>,
     pub pseudo_element_type: Option<PseudoElement>,
     pub style: ServoArc<ComputedValues>,
 }
 
-impl<'dom, Node: NodeExt<'dom>> NodeAndStyleInfo<Node> {
+impl<'dom> NodeAndStyleInfo<'dom> {
     fn new_with_pseudo(
-        node: Node,
+        node: ServoLayoutNode<'dom>,
         pseudo_element_type: PseudoElement,
         style: ServoArc<ComputedValues>,
     ) -> Self {
@@ -47,7 +50,7 @@ impl<'dom, Node: NodeExt<'dom>> NodeAndStyleInfo<Node> {
         }
     }
 
-    pub(crate) fn new(node: Node, style: ServoArc<ComputedValues>) -> Self {
+    pub(crate) fn new(node: ServoLayoutNode<'dom>, style: ServoArc<ComputedValues>) -> Self {
         Self {
             node,
             pseudo_element_type: None,
@@ -86,11 +89,8 @@ impl<'dom, Node: NodeExt<'dom>> NodeAndStyleInfo<Node> {
     }
 }
 
-impl<'dom, Node> From<&NodeAndStyleInfo<Node>> for BaseFragmentInfo
-where
-    Node: NodeExt<'dom>,
-{
-    fn from(info: &NodeAndStyleInfo<Node>) -> Self {
+impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
+    fn from(info: &NodeAndStyleInfo<'dom>) -> Self {
         let node = info.node;
         let pseudo = info.pseudo_element_type;
         let threadsafe_node = node.to_threadsafe();
@@ -174,29 +174,24 @@ pub(super) enum PseudoElementContentItem {
     Replaced(ReplacedContents),
 }
 
-pub(super) trait TraversalHandler<'dom, Node>
-where
-    Node: 'dom,
-{
-    fn handle_text(&mut self, info: &NodeAndStyleInfo<Node>, text: Cow<'dom, str>);
+pub(super) trait TraversalHandler<'dom> {
+    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>);
 
     /// Or pseudo-element
     fn handle_element(
         &mut self,
-        info: &NodeAndStyleInfo<Node>,
+        info: &NodeAndStyleInfo<'dom>,
         display: DisplayGeneratingBox,
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     );
 }
 
-fn traverse_children_of<'dom, Node>(
-    parent_element: Node,
+fn traverse_children_of<'dom>(
+    parent_element: ServoLayoutNode<'dom>,
     context: &LayoutContext,
-    handler: &mut impl TraversalHandler<'dom, Node>,
-) where
-    Node: NodeExt<'dom>,
-{
+    handler: &mut impl TraversalHandler<'dom>,
+) {
     traverse_eager_pseudo_element(PseudoElement::Before, parent_element, context, handler);
 
     let is_text_input_element = matches!(
@@ -240,13 +235,11 @@ fn traverse_children_of<'dom, Node>(
     traverse_eager_pseudo_element(PseudoElement::After, parent_element, context, handler);
 }
 
-fn traverse_element<'dom, Node>(
-    element: Node,
+fn traverse_element<'dom>(
+    element: ServoLayoutNode<'dom>,
     context: &LayoutContext,
-    handler: &mut impl TraversalHandler<'dom, Node>,
-) where
-    Node: NodeExt<'dom>,
-{
+    handler: &mut impl TraversalHandler<'dom>,
+) {
     // Clear any existing pseudo-element box slot, because markers are not handled like
     // `::before`` and `::after`. They are processed during box tree creation.
     element.unset_pseudo_element_box(PseudoElement::Marker);
@@ -286,14 +279,12 @@ fn traverse_element<'dom, Node>(
     }
 }
 
-fn traverse_eager_pseudo_element<'dom, Node>(
+fn traverse_eager_pseudo_element<'dom>(
     pseudo_element_type: PseudoElement,
-    node: Node,
+    node: ServoLayoutNode<'dom>,
     context: &LayoutContext,
-    handler: &mut impl TraversalHandler<'dom, Node>,
-) where
-    Node: NodeExt<'dom>,
-{
+    handler: &mut impl TraversalHandler<'dom>,
+) {
     assert!(pseudo_element_type.is_eager());
 
     // First clear any old contents from the node.
@@ -329,14 +320,12 @@ fn traverse_eager_pseudo_element<'dom, Node>(
     }
 }
 
-fn traverse_pseudo_element_contents<'dom, Node>(
-    info: &NodeAndStyleInfo<Node>,
+fn traverse_pseudo_element_contents<'dom>(
+    info: &NodeAndStyleInfo<'dom>,
     context: &LayoutContext,
-    handler: &mut impl TraversalHandler<'dom, Node>,
+    handler: &mut impl TraversalHandler<'dom>,
     items: Vec<PseudoElementContentItem>,
-) where
-    Node: NodeExt<'dom>,
-{
+) {
     let mut anonymous_info = None;
     for item in items {
         match item {
@@ -396,14 +385,12 @@ impl std::convert::TryFrom<Contents> for NonReplacedContents {
 }
 
 impl NonReplacedContents {
-    pub(crate) fn traverse<'dom, Node>(
+    pub(crate) fn traverse<'dom>(
         self,
         context: &LayoutContext,
-        info: &NodeAndStyleInfo<Node>,
-        handler: &mut impl TraversalHandler<'dom, Node>,
-    ) where
-        Node: NodeExt<'dom>,
-    {
+        info: &NodeAndStyleInfo<'dom>,
+        handler: &mut impl TraversalHandler<'dom>,
+    ) {
         match self {
             NonReplacedContents::OfElement | NonReplacedContents::OfTextControl => {
                 traverse_children_of(info.node, context, handler)
@@ -427,14 +414,11 @@ where
 }
 
 /// <https://www.w3.org/TR/CSS2/generate.html#propdef-content>
-fn generate_pseudo_element_content<'dom, Node>(
+fn generate_pseudo_element_content(
     pseudo_element_style: &ComputedValues,
-    element: Node,
+    element: ServoLayoutNode<'_>,
     context: &LayoutContext,
-) -> Vec<PseudoElementContentItem>
-where
-    Node: NodeExt<'dom>,
-{
+) -> Vec<PseudoElementContentItem> {
     match &pseudo_element_style.get_counters().content {
         Content::Items(items) => {
             let mut vec = vec![];
@@ -517,18 +501,14 @@ where
     }
 }
 
-pub enum ChildNodeIterator<Node> {
+pub enum ChildNodeIterator<'dom> {
     /// Iterating over the children of a node
-    Node(Option<Node>),
+    Node(Option<ServoLayoutNode<'dom>>),
     /// Iterating over the assigned nodes of a `HTMLSlotElement`
-    Slottables(<Vec<Node> as IntoIterator>::IntoIter),
+    Slottables(<Vec<ServoLayoutNode<'dom>> as IntoIterator>::IntoIter),
 }
 
-#[allow(clippy::unnecessary_to_owned)] // Clippy is wrong.
-pub(crate) fn iter_child_nodes<'dom, Node>(parent: Node) -> ChildNodeIterator<Node>
-where
-    Node: NodeExt<'dom>,
-{
+pub(crate) fn iter_child_nodes(parent: ServoLayoutNode<'_>) -> ChildNodeIterator<'_> {
     if let Some(element) = parent.as_element() {
         if let Some(shadow) = element.shadow_root() {
             return iter_child_nodes(shadow.as_node());
@@ -536,6 +516,7 @@ where
 
         let slotted_nodes = element.slotted_nodes();
         if !slotted_nodes.is_empty() {
+            #[allow(clippy::unnecessary_to_owned)] // Clippy is wrong.
             return ChildNodeIterator::Slottables(slotted_nodes.to_owned().into_iter());
         }
     }
@@ -544,11 +525,8 @@ where
     ChildNodeIterator::Node(first)
 }
 
-impl<'dom, Node> Iterator for ChildNodeIterator<Node>
-where
-    Node: NodeExt<'dom>,
-{
-    type Item = Node;
+impl<'dom> Iterator for ChildNodeIterator<'dom> {
+    type Item = ServoLayoutNode<'dom>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -562,4 +540,4 @@ where
     }
 }
 
-impl<'dom, Node> FusedIterator for ChildNodeIterator<Node> where Node: NodeExt<'dom> {}
+impl FusedIterator for ChildNodeIterator<'_> {}

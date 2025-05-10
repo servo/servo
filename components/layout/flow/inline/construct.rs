@@ -17,7 +17,6 @@ use super::{InlineBox, InlineBoxIdentifier, InlineBoxes, InlineFormattingContext
 use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::NodeExt;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::FloatBox;
 use crate::formatting_contexts::IndependentFormattingContext;
@@ -225,11 +224,7 @@ impl InlineFormattingContextBuilder {
         (identifier, block_in_inline_splits)
     }
 
-    pub(crate) fn push_text<'dom, Node: NodeExt<'dom>>(
-        &mut self,
-        text: Cow<'dom, str>,
-        info: &NodeAndStyleInfo<Node>,
-    ) {
+    pub(crate) fn push_text<'dom>(&mut self, text: Cow<'dom, str>, info: &NodeAndStyleInfo<'dom>) {
         let white_space_collapse = info.style.clone_white_space_collapse();
         let collapsed = WhitespaceCollapse::new(
             text.chars(),

@@ -85,7 +85,7 @@ use super::flow::BlockFormattingContext;
 use crate::cell::ArcRefCell;
 use crate::flow::BlockContainer;
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::{BaseFragmentInfo, Fragment};
+use crate::fragment_tree::{BaseFragmentInfo, Fragment, SharedBackgroundStyle};
 use crate::geom::PhysicalVec;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::BorderStyleColor;
@@ -288,6 +288,11 @@ pub struct TableTrack {
     /// Whether or not this [`TableTrack`] was anonymous, for instance created due to
     /// a `span` attribute set on a parent `<colgroup>`.
     is_anonymous: bool,
+
+    /// A shared container for this track's style, used to share the style for the purposes
+    /// of drawing backgrounds in individual cells. This allows updating the style in a
+    /// single place and having it affect all cell `Fragment`s.
+    shared_background_style: SharedBackgroundStyle,
 }
 
 #[derive(Debug, MallocSizeOf, PartialEq)]
@@ -308,6 +313,11 @@ pub struct TableTrackGroup {
 
     /// The range of tracks in this [`TableTrackGroup`].
     track_range: Range<usize>,
+
+    /// A shared container for this track's style, used to share the style for the purposes
+    /// of drawing backgrounds in individual cells. This allows updating the style in a
+    /// single place and having it affect all cell `Fragment`s.
+    shared_background_style: SharedBackgroundStyle,
 }
 
 impl TableTrackGroup {

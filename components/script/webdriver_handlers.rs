@@ -53,6 +53,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -77,12 +78,27 @@ fn find_node_by_unique_id(
     pipeline: PipelineId,
     node_id: String,
 ) -> Result<DomRoot<Node>, ErrorStatus> {
-    match documents.find_document(pipeline).and_then(|document| {
-        document
-            .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
-            .find(|node| node.unique_id() == node_id)
-    }) {
+    match documents.find_document(pipeline) {
+        Some(doc) => find_node_by_unique_id_in_document(&doc, node_id),
+        None => {
+            if ScriptThread::has_node_id(&node_id) {
+                Err(ErrorStatus::StaleElementReference)
+            } else {
+                Err(ErrorStatus::NoSuchElement)
+            }
+        },
+    }
+}
+
+pub(crate) fn find_node_by_unique_id_in_document(
+    document: &Document,
+    node_id: String,
+) -> Result<DomRoot<Node>, ErrorStatus> {
+    match document
+        .upcast::<Node>()
+        .traverse_preorder(ShadowIncluding::Yes)
+        .find(|node| node.unique_id() == node_id)
+    {
         Some(node) => Ok(node),
         None => {
             if ScriptThread::has_node_id(&node_id) {
@@ -183,7 +199,7 @@ unsafe fn is_arguments_object(cx: *mut JSContext, value: HandleValue) -> bool {
     jsstring_to_str(cx, class_name) == "[object Arguments]"
 }
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 struct HashableJSVal(u64);
 
 impl From<HandleValue<'_>> for HashableJSVal {
@@ -193,6 +209,7 @@ impl From<HandleValue<'_>> for HashableJSVal {
 }
 
 #[allow(unsafe_code)]
+/// <https://w3c.github.io/webdriver/#dfn-json-deserialize>
 pub(crate) fn jsval_to_webdriver(
     cx: SafeJSContext,
     global_scope: &GlobalScope,
@@ -215,12 +232,6 @@ unsafe fn jsval_to_webdriver_inner(
     val: HandleValue,
     seen: &mut HashSet<HashableJSVal>,
 ) -> WebDriverJSResult {
-    let hashable = val.into();
-    if seen.contains(&hashable) {
-        return Err(WebDriverJSError::JSError);
-    }
-    seen.insert(hashable);
-
     let _ac = enter_realm(global_scope);
     if val.get().is_undefined() {
         Ok(WebDriverJSValue::Undefined)
@@ -252,14 +263,26 @@ unsafe fn jsval_to_webdriver_inner(
                 _ => unreachable!(),
             };
         Ok(WebDriverJSValue::String(String::from(string)))
-    } else if val.get().is_object() {
+    }
+    // https://w3c.github.io/webdriver/#dfn-clone-an-object
+    else if val.get().is_object() {
+        let hashable = val.into();
+        // Step 1. If value is in `seen`, return error with error code javascript error.
+        if seen.contains(&hashable) {
+            return Err(WebDriverJSError::JSError);
+        }
+        //Step 2. Append value to `seen`.
+        seen.insert(hashable.clone());
+
         rooted!(in(cx) let object = match FromJSValConvertible::from_jsval(cx, val, ()).unwrap() {
             ConversionResult::Success(object) => object,
             _ => unreachable!(),
         });
         let _ac = JSAutoRealm::new(cx, *object);
 
-        if is_array_like::<crate::DomTypeHolder>(cx, val) || is_arguments_object(cx, val) {
+        let return_val = if is_array_like::<crate::DomTypeHolder>(cx, val) ||
+            is_arguments_object(cx, val)
+        {
             let mut result: Vec<WebDriverJSValue> = Vec::new();
 
             let length = match get_property::<u32>(
@@ -282,7 +305,7 @@ unsafe fn jsval_to_webdriver_inner(
                     return Err(WebDriverJSError::JSError);
                 },
             };
-
+            // Step 4. For each enumerable property in value, run the following substeps:
             for i in 0..length {
                 rooted!(in(cx) let mut item = UndefinedValue());
                 match get_property_jsval(cx, object.handle(), &i.to_string(), item.handle_mut()) {
@@ -303,7 +326,6 @@ unsafe fn jsval_to_webdriver_inner(
                     },
                 }
             }
-
             Ok(WebDriverJSValue::ArrayLike(result))
         } else if let Ok(element) = root_from_object::<Element>(*object, cx) {
             Ok(WebDriverJSValue::Element(WebElement(
@@ -312,7 +334,7 @@ unsafe fn jsval_to_webdriver_inner(
         } else if let Ok(window) = root_from_object::<Window>(*object, cx) {
             let window_proxy = window.window_proxy();
             if window_proxy.is_browsing_context_discarded() {
-                Err(WebDriverJSError::StaleElementReference)
+                return Err(WebDriverJSError::StaleElementReference);
             } else if window_proxy.browsing_context_id() == window_proxy.webview_id() {
                 Ok(WebDriverJSValue::Window(WebWindow(
                     window.Document().upcast::<Node>().unique_id(),
@@ -332,7 +354,12 @@ unsafe fn jsval_to_webdriver_inner(
                 &HandleValueArray::empty(),
                 value.handle_mut(),
             ) {
-                jsval_to_webdriver_inner(cx, global_scope, value.handle(), seen)
+                Ok(jsval_to_webdriver_inner(
+                    cx,
+                    global_scope,
+                    value.handle(),
+                    seen,
+                )?)
             } else {
                 throw_dom_exception(
                     SafeJSContext::from_ptr(cx),
@@ -340,7 +367,7 @@ unsafe fn jsval_to_webdriver_inner(
                     Error::JSFailed,
                     CanGc::note(),
                 );
-                Err(WebDriverJSError::JSError)
+                return Err(WebDriverJSError::JSError);
             }
         } else {
             let mut result = HashMap::new();
@@ -392,9 +419,12 @@ unsafe fn jsval_to_webdriver_inner(
                     }
                 }
             }
-
             Ok(WebDriverJSValue::Object(result))
-        }
+        };
+        // Step 5. Remove the last element of `seen`.
+        seen.remove(&hashable);
+        // Step 6. Return success with data `result`.
+        return_val
     } else {
         Err(WebDriverJSError::UnknownType)
     }

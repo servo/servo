@@ -428,7 +428,11 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
     #[cfg(target_env = "ohos")]
     let log_filter = {
         let filters = opt_match.opt_strs("log-filter").join(",");
-        (!filters.is_empty()).then_some(filters)
+        let log_filter = (!filters.is_empty()).then_some(filters).or_else(|| {
+            (!preferences.log_filter.is_empty()).then_some(preferences.log_filter.clone())
+        });
+        log::debug!("Set log_filter to: {:?}", log_filter);
+        log_filter
     };
 
     let mut debug_options = DebugOptions::default();
@@ -574,7 +578,6 @@ pub(crate) fn parse_command_line_arguments(args: Vec<String>) -> ArgumentParsing
             "dom_offscreen_canvas_enabled",
             "dom_permissions_enabled",
             "dom_resize_observer_enabled",
-            "dom_serviceworker_enabled",
             "dom_svg_enabled",
             "dom_trusted_types_enabled",
             "dom_webgl2_enabled",

@@ -414,7 +414,7 @@ impl DevtoolsInstance {
     }
 
     fn handle_page_error(
-        &self,
+        &mut self,
         pipeline_id: PipelineId,
         worker_id: Option<WorkerId>,
         page_error: PageError,
@@ -426,11 +426,13 @@ impl DevtoolsInstance {
         let actors = self.actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
-        console_actor.handle_page_error(page_error, id, &actors);
+        for stream in self.connections.values_mut() {
+            console_actor.handle_page_error(page_error.clone(), id.clone(), &actors, stream);
+        }
     }
 
     fn handle_console_message(
-        &self,
+        &mut self,
         pipeline_id: PipelineId,
         worker_id: Option<WorkerId>,
         console_message: ConsoleMessage,
@@ -442,7 +444,9 @@ impl DevtoolsInstance {
         let actors = self.actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
-        console_actor.handle_console_api(console_message, id, &actors);
+        for stream in self.connections.values_mut() {
+            console_actor.handle_console_api(console_message.clone(), id.clone(), &actors, stream);
+        }
     }
 
     fn find_console_actor(
@@ -529,7 +533,10 @@ impl DevtoolsInstance {
             };
 
             let worker_actor = actors.find::<WorkerActor>(worker_actor_name);
-            worker_actor.resource_available(source, "source".into());
+
+            for stream in self.connections.values_mut() {
+                worker_actor.resource_available(&source, "source".into(), stream);
+            }
         } else {
             let Some(browsing_context_id) = self.pipelines.get(&pipeline_id) else {
                 return;
@@ -556,7 +563,10 @@ impl DevtoolsInstance {
 
             // Notify browsing context about the new source
             let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
-            browsing_context.resource_available(source, "source".into());
+
+            for stream in self.connections.values_mut() {
+                browsing_context.resource_available(&source, "source".into(), stream);
+            }
         }
     }
 }

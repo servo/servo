@@ -159,6 +159,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, Error
     let mut child_process = process::Command::new(path_to_self);
     setup_common(&mut child_process, token);
 
+    #[allow(clippy::zombie_processes)]
     let child = child_process
         .spawn()
         .expect("Failed to start unsandboxed child process!");

@@ -97,6 +97,7 @@ enum ParseState {
     AfterDescriptor,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct SourceSet {
     image_sources: Vec<ImageSource>,
     source_size: SourceSizeList,
@@ -111,13 +112,13 @@ impl SourceSet {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct ImageSource {
     pub url: String,
     pub descriptor: Descriptor,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct Descriptor {
     pub width: Option<u32>,
     pub density: Option<f64>,
@@ -145,7 +146,7 @@ struct ImageRequest {
     parsed_url: Option<ServoUrl>,
     source_url: Option<USVString>,
     blocker: DomRefCell<Option<LoadBlocker>>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     image: Option<Arc<Image>>,
     #[no_trace]
@@ -162,7 +163,6 @@ pub(crate) struct HTMLImageElement {
     pending_request: DomRefCell<ImageRequest>,
     form_owner: MutNullableDom<HTMLFormElement>,
     generation: Cell<u32>,
-    #[ignore_malloc_size_of = "SourceSet"]
     source_set: DomRefCell<SourceSet>,
     last_selected_source: DomRefCell<Option<USVString>>,
     #[ignore_malloc_size_of = "promises are hard"]
@@ -298,7 +298,7 @@ impl FetchResponseListener for ImageContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations);
+        global.report_csp_violations(violations, None);
     }
 }
 

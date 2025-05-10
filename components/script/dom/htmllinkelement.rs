@@ -98,7 +98,7 @@ pub(crate) struct HTMLLinkElement {
     #[no_trace]
     relations: Cell<LinkRelations>,
 
-    #[ignore_malloc_size_of = "Arc"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     stylesheet: DomRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableDom<CSSStyleSheet>,
@@ -773,7 +773,7 @@ impl FetchResponseListener for PrefetchContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<csp::Violation>) {
         let global = &self.resource_timing_global();
-        global.report_csp_violations(violations);
+        global.report_csp_violations(violations, None);
     }
 }
 

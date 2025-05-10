@@ -254,7 +254,7 @@ interface CanvasPattern {
  Serializable]
 interface ImageData {
   [Throws] constructor(unsigned long sw, unsigned long sh/*, optional ImageDataSettings settings = {}*/);
-  [Throws] constructor(/* Uint8ClampedArray */ object data, unsigned long sw, optional unsigned long sh
+  [Throws] constructor(Uint8ClampedArray data, unsigned long sw, optional unsigned long sh
               /*, optional ImageDataSettings settings = {}*/);
 
   readonly attribute unsigned long width;

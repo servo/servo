@@ -11,6 +11,7 @@ use base::id::{BrowsingContextId, PipelineId};
 use html5ever::{local_name, ns};
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::Image;
+use script::layout_dom::ServoLayoutNode;
 use script_layout_interface::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
@@ -158,34 +159,31 @@ impl Drop for BoxSlot<'_> {
     }
 }
 
-pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
+pub(crate) trait NodeExt<'dom> {
     /// Returns the image if it’s loaded, and its size in image pixels
     /// adjusted for `image_density`.
-    fn as_image(self) -> Option<(Option<Arc<Image>>, PhysicalSize<f64>)>;
-    fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
-    fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)>;
-    fn as_video(self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)>;
-    fn as_typeless_object_with_data_attribute(self) -> Option<String>;
-    fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
+    fn as_image(&self) -> Option<(Option<Arc<Image>>, PhysicalSize<f64>)>;
+    fn as_canvas(&self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
+    fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)>;
+    fn as_video(&self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)>;
+    fn as_typeless_object_with_data_attribute(&self) -> Option<String>;
+    fn style(&self, context: &LayoutContext) -> ServoArc<ComputedValues>;
 
-    fn layout_data_mut(self) -> AtomicRefMut<'dom, InnerDOMLayoutData>;
-    fn layout_data(self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>>;
+    fn layout_data_mut(&self) -> AtomicRefMut<'dom, InnerDOMLayoutData>;
+    fn layout_data(&self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>>;
     fn element_box_slot(&self) -> BoxSlot<'dom>;
     fn pseudo_element_box_slot(&self, which: PseudoElement) -> BoxSlot<'dom>;
-    fn unset_pseudo_element_box(self, which: PseudoElement);
+    fn unset_pseudo_element_box(&self, which: PseudoElement);
 
     /// Remove boxes for the element itself, and its `:before` and `:after` if any.
-    fn unset_all_boxes(self);
+    fn unset_all_boxes(&self);
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
-    fn invalidate_cached_fragment(self);
+    fn invalidate_cached_fragment(&self);
 }
 
-impl<'dom, LayoutNodeType> NodeExt<'dom> for LayoutNodeType
-where
-    LayoutNodeType: 'dom + LayoutNode<'dom>,
-{
-    fn as_image(self) -> Option<(Option<Arc<Image>>, PhysicalSize<f64>)> {
+impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
+    fn as_image(&self) -> Option<(Option<Arc<Image>>, PhysicalSize<f64>)> {
         let node = self.to_threadsafe();
         let (resource, metadata) = node.image_data()?;
         let (width, height) = resource
@@ -201,7 +199,7 @@ where
         Some((resource, PhysicalSize::new(width, height)))
     }
 
-    fn as_video(self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)> {
+    fn as_video(&self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)> {
         let node = self.to_threadsafe();
         let data = node.media_data()?;
         let natural_size = if let Some(frame) = data.current_frame {
@@ -216,7 +214,7 @@ where
         ))
     }
 
-    fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)> {
+    fn as_canvas(&self) -> Option<(CanvasInfo, PhysicalSize<f64>)> {
         let node = self.to_threadsafe();
         let canvas_data = node.canvas_data()?;
         let source = canvas_data.source;
@@ -226,7 +224,7 @@ where
         ))
     }
 
-    fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)> {
+    fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)> {
         let node = self.to_threadsafe();
         match (node.iframe_pipeline_id(), node.iframe_browsing_context_id()) {
             (Some(pipeline_id), Some(browsing_context_id)) => {
@@ -236,8 +234,10 @@ where
         }
     }
 
-    fn as_typeless_object_with_data_attribute(self) -> Option<String> {
-        if self.type_id() != ScriptLayoutNodeType::Element(LayoutElementType::HTMLObjectElement) {
+    fn as_typeless_object_with_data_attribute(&self) -> Option<String> {
+        if LayoutNode::type_id(self) !=
+            ScriptLayoutNodeType::Element(LayoutElementType::HTMLObjectElement)
+        {
             return None;
         }
 
@@ -253,15 +253,15 @@ where
             .map(|string| string.to_owned())
     }
 
-    fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues> {
+    fn style(&self, context: &LayoutContext) -> ServoArc<ComputedValues> {
         self.to_threadsafe().style(context.shared_context())
     }
 
-    fn layout_data_mut(self) -> AtomicRefMut<'dom, InnerDOMLayoutData> {
-        if LayoutNode::layout_data(&self).is_none() {
+    fn layout_data_mut(&self) -> AtomicRefMut<'dom, InnerDOMLayoutData> {
+        if LayoutNode::layout_data(self).is_none() {
             self.initialize_layout_data::<DOMLayoutData>();
         }
-        LayoutNode::layout_data(&self)
+        LayoutNode::layout_data(self)
             .unwrap()
             .as_any()
             .downcast_ref::<DOMLayoutData>()
@@ -270,8 +270,8 @@ where
             .borrow_mut()
     }
 
-    fn layout_data(self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>> {
-        LayoutNode::layout_data(&self).map(|data| {
+    fn layout_data(&self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>> {
+        LayoutNode::layout_data(self).map(|data| {
             data.as_any()
                 .downcast_ref::<DOMLayoutData>()
                 .unwrap()
@@ -298,7 +298,7 @@ where
         BoxSlot::new(cell.clone())
     }
 
-    fn unset_pseudo_element_box(self, pseudo_element_type: PseudoElement) {
+    fn unset_pseudo_element_box(&self, pseudo_element_type: PseudoElement) {
         let data = self.layout_data_mut();
         let cell = match pseudo_element_type {
             PseudoElement::Before => &data.pseudo_before_box,
@@ -312,7 +312,7 @@ where
         *cell.borrow_mut() = None;
     }
 
-    fn unset_all_boxes(self) {
+    fn unset_all_boxes(&self) {
         let data = self.layout_data_mut();
         *data.self_box.borrow_mut() = None;
         *data.pseudo_before_box.borrow_mut() = None;
@@ -322,7 +322,7 @@ where
         // for DOM descendants of elements with `display: none`.
     }
 
-    fn invalidate_cached_fragment(self) {
+    fn invalidate_cached_fragment(&self) {
         let data = self.layout_data_mut();
         if let Some(data) = data.self_box.borrow_mut().as_mut() {
             data.invalidate_cached_fragment();
@@ -330,7 +330,7 @@ where
     }
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment> {
-        NodeExt::layout_data(*self)
+        NodeExt::layout_data(self)
             .and_then(|layout_data| {
                 layout_data
                     .for_pseudo(pseudo_element)

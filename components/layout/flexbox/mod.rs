@@ -17,7 +17,7 @@ use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::construct_modern::{ModernContainerBuilder, ModernItemKind};
 use crate::context::LayoutContext;
-use crate::dom::{LayoutBox, NodeExt};
+use crate::dom::LayoutBox;
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, Fragment};
@@ -98,9 +98,9 @@ pub(crate) struct FlexContainer {
 }
 
 impl FlexContainer {
-    pub fn construct<'dom>(
+    pub fn construct(
         context: &LayoutContext,
-        info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
+        info: &NodeAndStyleInfo<'_>,
         contents: NonReplacedContents,
         propagated_data: PropagatedBoxTreeData,
     ) -> Self {

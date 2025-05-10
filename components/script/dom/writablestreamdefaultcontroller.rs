@@ -12,6 +12,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
+use super::types::TransformStream;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::{
     UnderlyingSinkAbortCallback, UnderlyingSinkCloseCallback, UnderlyingSinkStartCallback,
@@ -290,8 +291,7 @@ pub enum UnderlyingSinkType {
         port: Dom<MessagePort>,
     },
     /// Algorithms supporting transform streams are implemented in Rust.
-    #[allow(unused)]
-    Transform(/*Dom<TransformStream>, Rc<Promise>*/),
+    Transform(Dom<TransformStream>, Rc<Promise>),
 }
 
 impl UnderlyingSinkType {
@@ -413,7 +413,7 @@ impl WritableStreamDefaultController {
             } => {
                 backpressure_promise.borrow_mut().take();
             },
-            UnderlyingSinkType::Transform() => {
+            UnderlyingSinkType::Transform(_, _) => {
                 return;
             },
         }
@@ -423,7 +423,6 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller>
-    #[allow(unsafe_code)]
     pub(crate) fn setup(
         &self,
         cx: SafeJSContext,
@@ -560,9 +559,9 @@ impl WritableStreamDefaultController {
                 // Let startAlgorithm be an algorithm that returns undefined.
                 Ok(Promise::new_resolved(global, cx, (), can_gc))
             },
-            UnderlyingSinkType::Transform() => {
+            UnderlyingSinkType::Transform(_, start_promise) => {
                 // Let startAlgorithm be an algorithm that returns startPromise.
-                todo!()
+                Ok(start_promise.clone())
             },
         }
     }
@@ -622,9 +621,11 @@ impl WritableStreamDefaultController {
                 }
                 promise
             },
-            UnderlyingSinkType::Transform() => {
+            UnderlyingSinkType::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSinkAbortAlgorithm(stream, reason).
-                todo!()
+                stream
+                    .transform_stream_default_sink_abort_algorithm(cx, global, reason, can_gc)
+                    .expect("Transform stream default sink abort algorithm should not fail.")
             },
         };
 
@@ -707,9 +708,11 @@ impl WritableStreamDefaultController {
                     .append_native_handler(&handler, comp, can_gc);
                 result_promise
             },
-            UnderlyingSinkType::Transform() => {
+            UnderlyingSinkType::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSinkWriteAlgorithm(stream, chunk).
-                todo!()
+                stream
+                    .transform_stream_default_sink_write_algorithm(cx, global, chunk, can_gc)
+                    .expect("Transform stream default sink write algorithm should not fail.")
             },
         }
     }
@@ -757,9 +760,11 @@ impl WritableStreamDefaultController {
                 // Return a promise resolved with undefined.
                 Promise::new_resolved(global, cx, (), can_gc)
             },
-            UnderlyingSinkType::Transform() => {
+            UnderlyingSinkType::Transform(stream, _) => {
                 // Return ! TransformStreamDefaultSinkCloseAlgorithm(stream).
-                todo!()
+                stream
+                    .transform_stream_default_sink_close_algorithm(cx, global, can_gc)
+                    .expect("Transform stream default sink close algorithm should not fail.")
             },
         }
     }
@@ -1038,7 +1043,7 @@ impl WritableStreamDefaultController {
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-error>
-    fn error(
+    pub(crate) fn error(
         &self,
         stream: &WritableStream,
         cx: SafeJSContext,

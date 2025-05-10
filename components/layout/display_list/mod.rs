@@ -153,10 +153,6 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// list building functions.
     current_clip_chain_id: ClipChainId,
 
-    /// The [OpaqueNode] handle to the node used to paint the page background
-    /// if the background was a canvas.
-    element_for_canvas_background: OpaqueNode,
-
     /// A [LayoutContext] used to get information about the device pixel ratio
     /// and get handles to WebRender images.
     pub context: &'a LayoutContext<'a>,
@@ -169,6 +165,11 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// This data is collected during the traversal of the fragment tree and used
     /// to paint the highlight at the very end.
     inspector_highlight: Option<InspectorHighlight>,
+
+    /// Whether or not the `<body>` element should be painted. This is false if the root `<html>`
+    /// element inherits the `<body>`'s background to paint the page canvas background.
+    /// See <https://drafts.csswg.org/css-backgrounds/#body-background>.
+    paint_body_background: bool,
 }
 
 struct InspectorHighlight {
@@ -218,12 +219,12 @@ impl DisplayList {
             current_scroll_node_id: self.compositor_info.root_reference_frame_id,
             current_reference_frame_scroll_node_id: self.compositor_info.root_reference_frame_id,
             current_clip_chain_id: ClipChainId::INVALID,
-            element_for_canvas_background: fragment_tree.canvas_background.from_element,
             context,
             display_list: self,
             inspector_highlight: context
                 .highlighted_dom_node
                 .map(InspectorHighlight::for_node),
+            paint_body_background: true,
         };
         fragment_tree.build_display_list(&mut builder, root_stacking_context);
 
@@ -999,12 +1000,17 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_background(&mut self, builder: &mut DisplayListBuilder) {
-        if self
-            .fragment
-            .base
-            .is_for_node(builder.element_for_canvas_background)
+        let flags = self.fragment.base.flags;
+
+        // The root element's background is painted separately as it might inherit the `<body>`'s
+        // background.
+        if flags.intersects(FragmentFlags::IS_ROOT_ELEMENT) {
+            return;
+        }
+        // If the `<body>` background was inherited by the root element, don't paint it again here.
+        if !builder.paint_body_background &&
+            flags.intersects(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT)
         {
-            // This background is already painted for the canvas, don’t paint it again here.
             return;
         }
 
@@ -1020,7 +1026,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             for extra_background in extra_backgrounds {
                 let positioning_area = extra_background.rect;
                 let painter = BackgroundPainter {
-                    style: &extra_background.style,
+                    style: &extra_background.style.borrow_mut().0,
                     painting_area_override: None,
                     positioning_area_override: Some(
                         positioning_area

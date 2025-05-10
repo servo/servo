@@ -37,3 +37,6 @@ types-requests
 
 # For mach package on macOS.
 Mako == 1.2.2
+
+# For devtools tests.
+geckordp == 1.0.3

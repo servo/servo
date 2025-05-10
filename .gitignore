@@ -57,6 +57,9 @@ webrender-captures/
 Session.vim
 Sessionx.vim
 
+# Zed
+/.zed
+
 /unminified-js
 /unminified-css
 

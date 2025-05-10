@@ -12,6 +12,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::{fmt, mem};
 
+use content_security_policy as csp;
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
@@ -179,7 +180,7 @@ pub struct Element {
     /// <https://dom.spec.whatwg.org/#concept-element-is-value>
     #[no_trace]
     is: DomRefCell<Option<LocalName>>,
-    #[ignore_malloc_size_of = "Arc"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     style_attribute: DomRefCell<Option<Arc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableDom<NamedNodeMap>,
@@ -2121,6 +2122,59 @@ impl Element {
         node.owner_doc().element_attr_will_change(self, attr);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#the-style-attribute>
+    fn update_style_attribute(&self, attr: &Attr, mutation: AttributeMutation) {
+        let doc = self.upcast::<Node>().owner_doc();
+        // Modifying the `style` attribute might change style.
+        *self.style_attribute.borrow_mut() = match mutation {
+            AttributeMutation::Set(..) => {
+                // This is the fast path we use from
+                // CSSStyleDeclaration.
+                //
+                // Juggle a bit to keep the borrow checker happy
+                // while avoiding the extra clone.
+                let is_declaration = matches!(*attr.value(), AttrValue::Declaration(..));
+
+                let block = if is_declaration {
+                    let mut value = AttrValue::String(String::new());
+                    attr.swap_value(&mut value);
+                    let (serialization, block) = match value {
+                        AttrValue::Declaration(s, b) => (s, b),
+                        _ => unreachable!(),
+                    };
+                    let mut value = AttrValue::String(serialization);
+                    attr.swap_value(&mut value);
+                    block
+                } else {
+                    let win = self.owner_window();
+                    let source = &**attr.value();
+                    // However, if the Should element's inline behavior be blocked by
+                    // Content Security Policy? algorithm returns "Blocked" when executed
+                    // upon the attribute's element, "style attribute", and the attribute's value,
+                    // then the style rules defined in the attribute's value must not be applied to the element. [CSP]
+                    if doc.should_elements_inline_type_behavior_be_blocked(
+                        self,
+                        csp::InlineCheckType::StyleAttribute,
+                        source,
+                    ) == csp::CheckResult::Blocked
+                    {
+                        return;
+                    }
+                    Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
+                        source,
+                        &UrlExtraData(doc.base_url().get_arc()),
+                        win.css_error_reporter(),
+                        doc.quirks_mode(),
+                        CssRuleType::Style,
+                    )))
+                };
+
+                Some(block)
+            },
+            AttributeMutation::Removed => None,
+        };
+    }
+
     // https://dom.spec.whatwg.org/#insert-adjacent
     pub(crate) fn insert_adjacent(
         &self,
@@ -3801,43 +3855,7 @@ impl VirtualMethods for Element {
             &local_name!("tabindex") | &local_name!("draggable") | &local_name!("hidden") => {
                 self.update_sequentially_focusable_status(can_gc)
             },
-            &local_name!("style") => {
-                // Modifying the `style` attribute might change style.
-                *self.style_attribute.borrow_mut() = match mutation {
-                    AttributeMutation::Set(..) => {
-                        // This is the fast path we use from
-                        // CSSStyleDeclaration.
-                        //
-                        // Juggle a bit to keep the borrow checker happy
-                        // while avoiding the extra clone.
-                        let is_declaration = matches!(*attr.value(), AttrValue::Declaration(..));
-
-                        let block = if is_declaration {
-                            let mut value = AttrValue::String(String::new());
-                            attr.swap_value(&mut value);
-                            let (serialization, block) = match value {
-                                AttrValue::Declaration(s, b) => (s, b),
-                                _ => unreachable!(),
-                            };
-                            let mut value = AttrValue::String(serialization);
-                            attr.swap_value(&mut value);
-                            block
-                        } else {
-                            let win = self.owner_window();
-                            Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
-                                &attr.value(),
-                                &UrlExtraData(doc.base_url().get_arc()),
-                                win.css_error_reporter(),
-                                doc.quirks_mode(),
-                                CssRuleType::Style,
-                            )))
-                        };
-
-                        Some(block)
-                    },
-                    AttributeMutation::Removed => None,
-                };
-            },
+            &local_name!("style") => self.update_style_attribute(attr, mutation),
             &local_name!("id") => {
                 *self.id_attribute.borrow_mut() = mutation.new_value(attr).and_then(|value| {
                     let value = value.as_atom();

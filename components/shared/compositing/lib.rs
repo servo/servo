@@ -14,6 +14,7 @@ use embedder_traits::{
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use pixels::Image;
 use strum_macros::IntoStaticStr;
 use style_traits::CSSPixel;
@@ -103,6 +104,8 @@ pub enum CompositorMsg {
     WebDriverMouseButtonEvent(WebViewId, MouseButtonAction, MouseButton, f32, f32),
     /// WebDriver mouse move event
     WebDriverMouseMoveEvent(WebViewId, f32, f32),
+    // Webdriver wheel scroll event
+    WebDriverWheelScrollEvent(WebViewId, f32, f32, f64, f64),
 
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebRenderPipelineId),
@@ -188,7 +191,7 @@ pub struct CompositionPipeline {
 }
 
 /// A mechanism to send messages from ScriptThread to the parent process' WebRender instance.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct CrossProcessCompositorApi(pub IpcSender<CompositorMsg>);
 
 impl CrossProcessCompositorApi {

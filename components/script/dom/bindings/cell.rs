@@ -10,6 +10,7 @@ pub(crate) use std::cell::{Ref, RefCell, RefMut};
 
 #[cfg(feature = "refcell_backtrace")]
 pub(crate) use accountable_refcell::{Ref, RefCell, RefMut};
+use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOfOps};
 
 use crate::dom::bindings::root::{assert_in_layout, assert_in_script};
 
@@ -20,6 +21,12 @@ use crate::dom::bindings::root::{assert_in_layout, assert_in_script};
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
 pub(crate) struct DomRefCell<T> {
     value: RefCell<T>,
+}
+
+impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for DomRefCell<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.value.borrow().conditional_size_of(ops)
+    }
 }
 
 // Functionality specific to Servo's `DomRefCell` type

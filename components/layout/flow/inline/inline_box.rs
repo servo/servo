@@ -12,7 +12,6 @@ use super::{InlineContainerState, InlineContainerStateFlags, inline_container_ne
 use crate::ContainingBlock;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom::NodeExt;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::layout_box_base::LayoutBoxBase;
@@ -35,7 +34,7 @@ pub(crate) struct InlineBox {
 }
 
 impl InlineBox {
-    pub(crate) fn new<'dom, Node: NodeExt<'dom>>(info: &NodeAndStyleInfo<Node>) -> Self {
+    pub(crate) fn new(info: &NodeAndStyleInfo) -> Self {
         Self {
             base: LayoutBoxBase::new(info.into(), info.style.clone()),
             // This will be assigned later, when the box is actually added to the IFC.

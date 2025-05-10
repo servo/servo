@@ -50,6 +50,7 @@ use std::cell::OnceCell;
 use std::collections::BinaryHeap;
 use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use style::values::generics::length::GenericLengthPercentageOrAuto;
@@ -577,6 +578,28 @@ impl<T: MallocSizeOf> MallocConditionalSizeOf for Arc<T> {
     }
 }
 
+impl<T> MallocUnconditionalShallowSizeOf for Rc<T> {
+    fn unconditional_shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        unsafe { ops.malloc_size_of(Rc::as_ptr(self)) }
+    }
+}
+
+impl<T: MallocSizeOf> MallocUnconditionalSizeOf for Rc<T> {
+    fn unconditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.unconditional_shallow_size_of(ops) + (**self).size_of(ops)
+    }
+}
+
+impl<T: MallocSizeOf> MallocConditionalSizeOf for Rc<T> {
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        if ops.have_seen_ptr(Rc::as_ptr(self)) {
+            0
+        } else {
+            self.unconditional_size_of(ops)
+        }
+    }
+}
+
 /// If a mutex is stored directly as a member of a data type that is being measured,
 /// it is the unique owner of its contents and deserves to be measured.
 ///
@@ -709,6 +732,12 @@ impl<T> MallocSizeOf for ipc_channel::ipc::IpcSender<T> {
     }
 }
 
+impl<T> MallocSizeOf for ipc_channel::ipc::IpcReceiver<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl MallocSizeOf for ipc_channel::ipc::IpcSharedMemory {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         self.len()
@@ -749,10 +778,14 @@ malloc_size_of_is_0!(std::time::SystemTime);
 malloc_size_of_is_0!(style::data::ElementData);
 malloc_size_of_is_0!(style::font_face::SourceList);
 malloc_size_of_is_0!(style::properties::ComputedValues);
+malloc_size_of_is_0!(style::properties::declaration_block::PropertyDeclarationBlock);
 malloc_size_of_is_0!(style::queries::values::PrefersColorScheme);
+malloc_size_of_is_0!(style::stylesheets::Stylesheet);
+malloc_size_of_is_0!(style::values::specified::source_size_list::SourceSizeList);
 malloc_size_of_is_0!(taffy::Layout);
 malloc_size_of_is_0!(unicode_bidi::Level);
 malloc_size_of_is_0!(unicode_script::Script);
+malloc_size_of_is_0!(urlpattern::UrlPattern);
 
 macro_rules! malloc_size_of_is_webrender_malloc_size_of(
     ($($ty:ty),+) => (
@@ -772,6 +805,7 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BorderStyle);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BoxShadowClipMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ColorF);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ExtendMode);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontInstanceKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GlyphInstance);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GradientStop);
@@ -813,6 +847,14 @@ where
 {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         <style::stylesheet_set::DocumentStylesheetSet<S> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+    }
+}
+
+impl<T> MallocSizeOf for style::shared_lock::Locked<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // TODO: fix this implementation when Locked derives MallocSizeOf.
+        0
+        //<style::shared_lock::Locked<T> as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
     }
 }
 
