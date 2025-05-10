@@ -902,7 +902,7 @@ pub(crate) fn handle_get_page_source(
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
                 .and_then(|document| match document.GetDocumentElement() {
-                    Some(element) => match element.GetOuterHTML(can_gc) {
+                    Some(element) => match element.outer_html(can_gc) {
                         Ok(source) => Ok(source.to_string()),
                         Err(_) => {
                             match XMLSerializer::new(document.window(), None, can_gc)

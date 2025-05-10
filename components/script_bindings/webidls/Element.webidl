@@ -82,7 +82,7 @@ interface Element : Node {
   [Throws]
   undefined insertAdjacentText(DOMString where_, DOMString data);
   [CEReactions, Throws]
-  undefined insertAdjacentHTML(DOMString position, DOMString html);
+  undefined insertAdjacentHTML(DOMString position, (TrustedHTML or DOMString) string);
 
   [Throws, Pref="dom_shadowdom_enabled"] ShadowRoot attachShadow(ShadowRootInit init);
   readonly attribute ShadowRoot? shadowRoot;
@@ -122,11 +122,11 @@ partial interface Element {
 
 // https://html.spec.whatwg.org/multipage/#dom-parsing-and-serialization
 partial interface Element {
-  [CEReactions] undefined setHTMLUnsafe(DOMString html);
+  [CEReactions, Throws] undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
   DOMString getHTML(optional GetHTMLOptions options = {});
 
-  [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString innerHTML;
-  [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString outerHTML;
+  [CEReactions, Throws] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
+  [CEReactions, Throws] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) outerHTML;
 };
 
 dictionary GetHTMLOptions {
