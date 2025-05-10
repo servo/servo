@@ -11,6 +11,7 @@ use std::rc::Rc;
 use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSharedMemory;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
@@ -1131,12 +1132,14 @@ impl ReadableStream {
 
     /// Return bytes for synchronous use, if the stream has all data in memory.
     /// Useful for native source integration only.
-    pub(crate) fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
+    pub(crate) fn get_in_memory_bytes(&self) -> Option<IpcSharedMemory> {
         match self.controller.borrow().as_ref() {
             Some(ControllerType::Default(controller)) => controller
                 .get()
                 .expect("Stream should have controller.")
-                .get_in_memory_bytes(),
+                .get_in_memory_bytes()
+                .as_deref()
+                .map(IpcSharedMemory::from_bytes),
             _ => {
                 unreachable!("Getting in-memory bytes for a stream with a non-default controller")
             },
