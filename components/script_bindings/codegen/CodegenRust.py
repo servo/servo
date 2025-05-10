@@ -838,18 +838,17 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         #    our own implementation code.
         templateBody = fill(
             """
-            { // Scope for our JSAutoRealm.
-
-                rooted!(in(*cx) let globalObj = CurrentGlobalOrNull(*cx));
-                let promiseGlobal = D::GlobalScope::from_object_maybe_wrapped(globalObj.handle().get(), *cx);
-
-                rooted!(in(*cx) let mut valueToResolve = $${val}.get());
-                if !JS_WrapValue(*cx, valueToResolve.handle_mut()) {
-                $*{exceptionCode}
+            match FromJSValConvertible::from_jsval(*cx, $${val}, ()) {
+                Ok(ConversionResult::Success(value)) => value,
+                Ok(ConversionResult::Failure(error)) => {
+                    $*{failOrPropagate}
                 }
-                D::Promise::new_resolved(&promiseGlobal, cx, valueToResolve.handle())
+                _ => {
+                    $*{exceptionCode}
+                },
             }
             """,
+            failOrPropagate=failOrPropagate,
             exceptionCode=exceptionCode)
 
         if isArgument:

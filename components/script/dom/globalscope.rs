@@ -3562,10 +3562,6 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
         GlobalScope::from_reflector(reflector, realm)
     }
 
-    unsafe fn from_object_maybe_wrapped(obj: *mut JSObject, cx: *mut JSContext) -> DomRoot<Self> {
-        GlobalScope::from_object_maybe_wrapped(obj, cx)
-    }
-
     fn origin(&self) -> &MutableOrigin {
         GlobalScope::origin(self)
     }

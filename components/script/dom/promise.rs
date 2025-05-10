@@ -29,7 +29,6 @@ use js::rust::wrappers::{
     ResolvePromise, SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
-use script_bindings::interfaces::PromiseHelpers;
 
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
@@ -388,16 +387,6 @@ fn create_native_handler_function(
     }
 }
 
-impl PromiseHelpers<crate::DomTypeHolder> for Promise {
-    fn new_resolved(
-        global: &GlobalScope,
-        cx: SafeJSContext,
-        value: impl ToJSValConvertible,
-    ) -> Rc<Promise> {
-        Promise::new_resolved(global, cx, value, CanGc::note())
-    }
-}
-
 impl FromJSValConvertibleRc for Promise {
     #[allow(unsafe_code)]
     unsafe fn from_jsval(
@@ -407,16 +396,12 @@ impl FromJSValConvertibleRc for Promise {
         if value.get().is_null() {
             return Ok(ConversionResult::Failure("null not allowed".into()));
         }
-        if !value.get().is_object() {
-            return Ok(ConversionResult::Failure("not an object".into()));
-        }
-        rooted!(in(cx) let obj = value.get().to_object());
 
         let cx = SafeJSContext::from_ptr(cx);
         let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
         let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
 
-        let promise = Promise::new_resolved(&global_scope, cx, *obj, CanGc::note());
+        let promise = Promise::new_resolved(&global_scope, cx, value, CanGc::note());
         Ok(ConversionResult::Success(promise))
     }
 }

@@ -11,12 +11,12 @@ pub(crate) mod base {
     };
     pub(crate) use js::error::throw_type_error;
     pub(crate) use js::jsapi::{
-        CurrentGlobalOrNull, HandleValue as RawHandleValue, HandleValueArray, Heap, IsCallable,
-        JS_NewObject, JSContext, JSObject,
+        HandleValue as RawHandleValue, HandleValueArray, Heap, IsCallable, JS_NewObject, JSContext,
+        JSObject,
     };
     pub(crate) use js::jsval::{JSVal, NullValue, ObjectOrNullValue, ObjectValue, UndefinedValue};
     pub(crate) use js::panic::maybe_resume_unwind;
-    pub(crate) use js::rust::wrappers::{Call, JS_WrapValue};
+    pub(crate) use js::rust::wrappers::Call;
     pub(crate) use js::rust::{HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
 
     pub(crate) use crate::callback::{
