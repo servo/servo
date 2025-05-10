@@ -131,7 +131,7 @@ use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
-use crate::{ConstraintSpace, ContainingBlock, PropagatedBoxTreeData};
+use crate::{ConstraintSpace, ContainingBlock, PropagatedBoxTreeData, SizeConstraint};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -1713,6 +1713,7 @@ impl InlineFormattingContext {
                 inline_container_state_flags,
                 None, /* parent_container */
                 self.text_decoration_line,
+                containing_block,
                 default_font_metrics.as_ref(),
             ),
             inline_box_state_stack: Vec::new(),
@@ -1811,6 +1812,7 @@ impl InlineContainerState {
         flags: InlineContainerStateFlags,
         parent_container: Option<&InlineContainerState>,
         parent_text_decoration_line: TextDecorationLine,
+        parent_containing_block: &ContainingBlock<'_>,
         font_metrics: Option<&FontMetrics>,
     ) -> Self {
         let text_decoration_line = parent_text_decoration_line | style.clone_text_decoration_line();
@@ -1819,6 +1821,7 @@ impl InlineContainerState {
             &style,
             &font_metrics,
             flags.contains(InlineContainerStateFlags::IS_SINGLE_LINE_TEXT_INPUT),
+            Some(&parent_containing_block.size.block),
         );
 
         let mut baseline_offset = Au::zero();
@@ -1945,6 +1948,7 @@ impl InlineContainerState {
                 font_metrics,
                 self.flags
                     .contains(InlineContainerStateFlags::IS_SINGLE_LINE_TEXT_INPUT),
+                None,
             ),
         )
     }
@@ -2189,6 +2193,7 @@ fn line_height(
     parent_style: &ComputedValues,
     font_metrics: &FontMetrics,
     is_single_line_text_input: bool,
+    parent_block_size: Option<&SizeConstraint>,
 ) -> Au {
     let font = parent_style.get_font();
     let font_size = font.font_size.computed_size();
@@ -2196,6 +2201,11 @@ fn line_height(
         LineHeight::Normal => font_metrics.line_gap,
         LineHeight::Number(number) => (font_size * number.0).into(),
         LineHeight::Length(length) => length.0.into(),
+        LineHeight::MozBlockHeight => match parent_block_size {
+            Some(SizeConstraint::Definite(au)) => *au,
+            Some(SizeConstraint::MinMax(min_au, _)) => *min_au,
+            None => font_metrics.line_gap,
+        },
     };
 
     // Single line text inputs line height is clamped to the size of `normal`. See

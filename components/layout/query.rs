@@ -168,20 +168,6 @@ pub fn process_resolved_style_request(
     // properties we might need to walk the Fragment tree to figure those out. We always
     // fall back to returning the computed value.
 
-    // For line height, the resolved value is the computed value if it
-    // is "normal" and the used value otherwise.
-    if longhand_id == LonghandId::LineHeight {
-        let font = style.get_font();
-        let font_size = font.font_size.computed_size();
-        return match font.line_height {
-            // There could be a fragment, but it's only interesting for `min-width` and `min-height`,
-            // so just pass None.
-            LineHeight::Normal => computed_style(None),
-            LineHeight::Number(value) => (font_size * value.0).to_css_string(),
-            LineHeight::Length(value) => value.0.to_css_string(),
-        };
-    }
-
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
     // The properties that we calculate below all resolve to the computed value
     // when the element is display:none or display:contents.
@@ -227,6 +213,21 @@ pub fn process_resolved_style_request(
             },
             _ => return computed_style(Some(fragment)),
         };
+
+        // For line height, the resolved value is the computed value if it
+        // is "normal" and the used value otherwise.
+        if longhand_id == LonghandId::LineHeight {
+            let font = style.get_font();
+            let font_size = font.font_size.computed_size();
+            return match font.line_height {
+                // There could be a fragment, but it's only interesting for `min-width` and `min-height`,
+                // so just pass None.
+                LineHeight::Normal => computed_style(None),
+                LineHeight::Number(value) => (font_size * value.0).to_css_string(),
+                LineHeight::Length(value) => value.0.to_css_string(),
+                LineHeight::MozBlockHeight => content_rect.size.height.to_css_string(),
+            };
+        }
 
         // https://drafts.csswg.org/css-grid/#resolved-track-list
         // > The grid-template-rows and grid-template-columns properties are
