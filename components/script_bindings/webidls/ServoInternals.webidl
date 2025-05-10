@@ -11,6 +11,7 @@
 Func="ServoInternals::is_servo_internal"]
 interface ServoInternals {
     Promise<object> reportMemory();
+    undefined allowCertOverride(ByteString cert);
 };
 
 partial interface Navigator {
