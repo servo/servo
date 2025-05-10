@@ -22,8 +22,7 @@ use servo_url::{Host, ServoUrl};
 pub struct HstsEntry {
     pub host: String,
     pub include_subdomains: bool,
-    pub max_age: Option<Duration>,
-    pub timestamp: Option<CrossProcessInstant>,
+    pub expires_at: Option<CrossProcessInstant>,
 }
 
 impl HstsEntry {
@@ -32,22 +31,22 @@ impl HstsEntry {
         subdomains: IncludeSubdomains,
         max_age: Option<Duration>,
     ) -> Option<HstsEntry> {
+        let expires_at =
+            max_age.map(|duration| CrossProcessInstant::now() + duration.try_into().unwrap());
         if host.parse::<Ipv4Addr>().is_ok() || host.parse::<Ipv6Addr>().is_ok() {
             None
         } else {
             Some(HstsEntry {
                 host,
                 include_subdomains: (subdomains == IncludeSubdomains::Included),
-                max_age,
-                timestamp: Some(CrossProcessInstant::now()),
+                expires_at,
             })
         }
     }
 
     pub fn is_expired(&self) -> bool {
-        match (self.max_age, self.timestamp) {
-            (Some(max_age), Some(timestamp)) => CrossProcessInstant::now() - timestamp >= max_age,
-
+        match self.expires_at {
+            Some(timestamp) => CrossProcessInstant::now() > timestamp,
             _ => false,
         }
     }
@@ -133,7 +132,7 @@ impl HstsList {
             for e in entries {
                 if e.matches_domain(&entry.host) {
                     e.include_subdomains = entry.include_subdomains;
-                    e.max_age = entry.max_age;
+                    e.expires_at = entry.expires_at;
                 }
             }
         }

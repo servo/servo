@@ -11,24 +11,11 @@ use net_traits::IncludeSubdomains;
 use time::Duration;
 
 #[test]
-fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {
+fn test_hsts_entry_is_not_expired_when_it_has_no_expires_at() {
     let entry = HstsEntry {
         host: "mozilla.org".to_owned(),
         include_subdomains: false,
-        max_age: Some(StdDuration::from_secs(20)),
-        timestamp: None,
-    };
-
-    assert!(!entry.is_expired());
-}
-
-#[test]
-fn test_hsts_entry_is_not_expired_when_it_has_no_max_age() {
-    let entry = HstsEntry {
-        host: "mozilla.org".to_owned(),
-        include_subdomains: false,
-        max_age: None,
-        timestamp: Some(CrossProcessInstant::now()),
+        expires_at: None,
     };
 
     assert!(!entry.is_expired());
@@ -39,8 +26,7 @@ fn test_hsts_entry_is_expired_when_it_has_reached_its_max_age() {
     let entry = HstsEntry {
         host: "mozilla.org".to_owned(),
         include_subdomains: false,
-        max_age: Some(StdDuration::from_secs(10)),
-        timestamp: Some(CrossProcessInstant::now() - Duration::seconds(20)),
+        expires_at: Some(CrossProcessInstant::now() - Duration::seconds(20)),
     };
 
     assert!(entry.is_expired());
@@ -378,8 +364,7 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
         vec![HstsEntry {
             host: "mozilla.org".to_owned(),
             include_subdomains: false,
-            max_age: Some(StdDuration::from_secs(20)),
-            timestamp: Some(CrossProcessInstant::now() - Duration::seconds(100)),
+            expires_at: Some(CrossProcessInstant::now() - Duration::seconds(100)),
         }],
     );
     let hsts_list = HstsList {
