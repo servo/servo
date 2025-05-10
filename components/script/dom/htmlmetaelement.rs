@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use content_security_policy::{CspList, PolicyDisposition, PolicySource};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
@@ -118,10 +119,45 @@ impl HTMLMetaElement {
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
     fn apply_csp_list(&self) {
         if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if let Some(head) = parent.downcast::<HTMLHeadElement>() {
-                head.set_content_security_policy();
+            if parent.downcast::<HTMLHeadElement>().is_some() {
+                self.set_content_security_policy();
             }
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
+    pub(crate) fn set_content_security_policy(&self) {
+        let doc = self.owner_document();
+
+        let meta_element = self.upcast::<Element>();
+
+        if meta_element
+            .get_string_attribute(&local_name!("http-equiv"))
+            .to_ascii_lowercase() !=
+            *"content-security-policy" ||
+            meta_element
+                .get_attribute(&ns!(), &local_name!("content"))
+                .is_none()
+        {
+            return;
+        }
+
+        let mut csp_list: Option<CspList> = None;
+
+        if let Some(ref content) = meta_element.get_attribute(&ns!(), &local_name!("content")) {
+            let content = content.value();
+            let content_val = content.trim();
+            if !content_val.is_empty() {
+                let policies =
+                    CspList::parse(content_val, PolicySource::Meta, PolicyDisposition::Enforce);
+                match csp_list {
+                    Some(ref mut csp_list) => csp_list.append(policies),
+                    None => csp_list = Some(policies),
+                }
+            }
+        }
+
+        doc.set_csp_list(csp_list);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
