@@ -28,6 +28,10 @@ typedef OnBeforeUnloadEventHandlerNonNull? OnBeforeUnloadEventHandler;
 [Exposed=Window]
 interface mixin GlobalEventHandlers {
            attribute EventHandler onabort;
+           attribute EventHandler onauxclick;
+           attribute EventHandler onbeforeinput;
+           attribute EventHandler onbeforematch;
+           attribute EventHandler onbeforetoggle;
            attribute EventHandler onblur;
            attribute EventHandler oncancel;
            attribute EventHandler oncanplay;
@@ -35,13 +39,17 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler onchange;
            attribute EventHandler onclick;
            attribute EventHandler onclose;
+           attribute EventHandler oncommand;
+           attribute EventHandler oncontextlost;
            attribute EventHandler oncontextmenu;
+           attribute EventHandler oncontextrestored;
+           attribute EventHandler oncopy;
            attribute EventHandler oncuechange;
+           attribute EventHandler oncut;
            attribute EventHandler ondblclick;
            attribute EventHandler ondrag;
            attribute EventHandler ondragend;
            attribute EventHandler ondragenter;
-           attribute EventHandler ondragexit;
            attribute EventHandler ondragleave;
            attribute EventHandler ondragover;
            attribute EventHandler ondragstart;
@@ -68,7 +76,7 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler onmouseout;
            attribute EventHandler onmouseover;
            attribute EventHandler onmouseup;
-           attribute EventHandler onwheel;
+           attribute EventHandler onpaste;
            attribute EventHandler onpause;
            attribute EventHandler onplay;
            attribute EventHandler onplaying;
@@ -77,11 +85,12 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler onreset;
            attribute EventHandler onresize;
            attribute EventHandler onscroll;
+           attribute EventHandler onscrollend;
            attribute EventHandler onsecuritypolicyviolation;
            attribute EventHandler onseeked;
            attribute EventHandler onseeking;
            attribute EventHandler onselect;
-           attribute EventHandler onshow;
+           attribute EventHandler onslotchange;
            attribute EventHandler onstalled;
            attribute EventHandler onsubmit;
            attribute EventHandler onsuspend;
@@ -89,6 +98,11 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler ontoggle;
            attribute EventHandler onvolumechange;
            attribute EventHandler onwaiting;
+           attribute EventHandler onwebkitanimationend;
+           attribute EventHandler onwebkitanimationiteration;
+           attribute EventHandler onwebkitanimationstart;
+           attribute EventHandler onwebkittransitionend;
+           attribute EventHandler onwheel;
 };
 
 // https://drafts.csswg.org/css-animations/#interface-globaleventhandlers-idl
@@ -123,18 +137,12 @@ interface mixin WindowEventHandlers {
            attribute EventHandler onoffline;
            attribute EventHandler ononline;
            attribute EventHandler onpagehide;
+           attribute EventHandler onpagereveal;
            attribute EventHandler onpageshow;
+           attribute EventHandler onpageswap;
            attribute EventHandler onpopstate;
            attribute EventHandler onrejectionhandled;
            attribute EventHandler onstorage;
            attribute EventHandler onunhandledrejection;
            attribute EventHandler onunload;
-};
-
-// https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
-[Exposed=Window]
-interface mixin DocumentAndElementEventHandlers {
-          attribute EventHandler oncopy;
-          attribute EventHandler oncut;
-          attribute EventHandler onpaste;
 };
