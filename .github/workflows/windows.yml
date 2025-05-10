@@ -7,6 +7,10 @@ on:
         required: false
         default: "release"
         type: string
+      build-args:
+        default: ""
+        required: false
+        type: string
       unit-tests:
         required: false
         default: false
@@ -161,7 +165,7 @@ jobs:
 
       - name: Build (${{ inputs.profile }})
         run: |
-          .\mach build --use-crown --locked --${{ inputs.profile }}
+          .\mach build --use-crown --locked --${{ inputs.profile }} ${{ inputs.build-args }}
           cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Copy resources
         if: ${{ runner.environment != 'self-hosted' }}

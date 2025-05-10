@@ -39,11 +39,12 @@ class JobConfig(object):
     unit_tests: bool = False
     build_libservo: bool = False
     bencher: bool = False
+    build_args: str = ""
     wpt_args: str = ""
     number_of_wpt_chunks: int = 20
     # These are the fields that must match in between two JobConfigs for them to be able to be
     # merged. If you modify any of the fields above, make sure to update this line as well.
-    merge_compatibility_fields: ClassVar[List[str]] = ['workflow', 'profile', 'wpt_args']
+    merge_compatibility_fields: ClassVar[List[str]] = ['workflow', 'profile', 'wpt_args', 'build_args']
 
     def merge(self, other: JobConfig) -> bool:
         """Try to merge another job with this job. Returns True if merging is successful
@@ -209,7 +210,8 @@ class TestParser(unittest.TestCase):
                                   'build_libservo': False,
                                   'workflow': 'linux',
                                   'wpt': False,
-                                  'wpt_args': ''
+                                  'wpt_args': '',
+                                  'build_args': ''
                               }]
                               })
 
@@ -225,7 +227,8 @@ class TestParser(unittest.TestCase):
                                   "unit_tests": True,
                                   'build_libservo': False,
                                   'bencher': True,
-                                  "wpt_args": ""
+                                  "wpt_args": "",
+                                  'build_args': ''
                               },
                               {
                                   "name": "MacOS (Unit Tests)",
@@ -236,7 +239,8 @@ class TestParser(unittest.TestCase):
                                   "unit_tests": True,
                                   'build_libservo': False,
                                   'bencher': False,
-                                  "wpt_args": ""
+                                  "wpt_args": "",
+                                  'build_args': ''
                               },
                               {
                                   "name": "Windows (Unit Tests)",
@@ -247,7 +251,8 @@ class TestParser(unittest.TestCase):
                                   "unit_tests": True,
                                   'build_libservo': False,
                                   'bencher': False,
-                                  "wpt_args": ""
+                                  "wpt_args": "",
+                                  'build_args': ''
                               },
                               {
                                   "name": "Android",
@@ -258,7 +263,8 @@ class TestParser(unittest.TestCase):
                                   "unit_tests": False,
                                   'build_libservo': False,
                                   'bencher': False,
-                                  "wpt_args": ""
+                                  "wpt_args": "",
+                                  'build_args': ''
                               },
                               {
                                   "name": "OpenHarmony",
@@ -269,7 +275,8 @@ class TestParser(unittest.TestCase):
                                   "unit_tests": False,
                                   'build_libservo': False,
                                   'bencher': False,
-                                  "wpt_args": ""
+                                  "wpt_args": "",
+                                  'build_args': ''
                               },
                               {
                                   "name": "Lint",
@@ -280,7 +287,9 @@ class TestParser(unittest.TestCase):
                                   "unit_tests": False,
                                   'build_libservo': False,
                                   'bencher': False,
-                                  "wpt_args": ""}
+                                  "wpt_args": "",
+                                  'build_args': ''
+                              }
                               ]})
 
     def test_job_merging(self):
@@ -295,7 +304,8 @@ class TestParser(unittest.TestCase):
                                   'build_libservo': False,
                                   'workflow': 'linux',
                                   'wpt': True,
-                                  'wpt_args': ''
+                                  'wpt_args': '',
+                                  'build_args': ''
                               }]
                               })
 
@@ -325,6 +335,11 @@ class TestParser(unittest.TestCase):
         a = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True, wpt_args="/css")
         self.assertFalse(a.merge(b), "Should not merge jobs that run different WPT tests.")
+        self.assertEqual(a, JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True))
+
+        a = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True)
+        b = JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True, build_args="--help")
+        self.assertFalse(a.merge(b), "Should not merge jobs with different build arguments.")
         self.assertEqual(a, JobConfig("Linux (Unit Tests)", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):

@@ -6,6 +6,10 @@ on:
         required: false
         default: "release"
         type: string
+      build-args:
+        default: ""
+        required: false
+        type: string
       wpt-args:
         default: ""
         required: false
@@ -166,7 +170,7 @@ jobs:
 
       - name: Build (${{ inputs.profile }})
         run: |
-          ./mach build --use-crown --locked --${{ inputs.profile }}
+          ./mach build --use-crown --locked --${{ inputs.profile }} ${{ inputs.build-args }}
           cp -r target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
         run: xvfb-run ./mach smoketest --${{ inputs.profile  }}
