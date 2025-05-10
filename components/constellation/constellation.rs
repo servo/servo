@@ -131,7 +131,8 @@ use embedder_traits::{
     AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy,
     FocusSequenceNumber, ImeEvent, InputEvent, MediaSessionActionType, MediaSessionEvent,
     MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent, Theme,
-    ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
+    ViewportDetails, WebDriverCommandMsg, WebDriverCommandResponse, WebDriverLoadStatus,
+    WebDriverMessageId,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -531,6 +532,7 @@ pub struct InitialConstellationState {
 struct WebDriverData {
     load_channel: Option<(PipelineId, IpcSender<WebDriverLoadStatus>)>,
     resize_channel: Option<IpcSender<Size2D<f32, CSSPixel>>>,
+    sync_channel: Option<IpcSender<WebDriverCommandResponse>>,
 }
 
 impl WebDriverData {
@@ -538,6 +540,7 @@ impl WebDriverData {
         WebDriverData {
             load_channel: None,
             resize_channel: None,
+            sync_channel: None,
         }
     }
 }
@@ -1816,6 +1819,12 @@ where
                 // get memory report and send it back.
                 self.mem_profiler_chan
                     .send(mem::ProfilerMsg::Report(sender));
+            },
+            ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
+                if let Some(reply_chan) = self.webdriver.sync_channel.as_ref() {
+                    let _ =
+                        reply_chan.send(WebDriverCommandResponse::WebDriverInputComplete(msg_id));
+                }
             },
         }
     }
@@ -4769,7 +4778,11 @@ where
                 mouse_button,
                 x,
                 y,
+                id,
+                response_sender,
             ) => {
+                self.webdriver.sync_channel = Some(response_sender);
+
                 self.compositor_proxy
                     .send(CompositorMsg::WebDriverMouseButtonEvent(
                         webview_id,
@@ -4777,11 +4790,14 @@ where
                         mouse_button,
                         x,
                         y,
+                        id,
                     ));
             },
-            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y) => {
+            WebDriverCommandMsg::MouseMoveAction(webview_id, x, y, id, response_sender) => {
+                self.webdriver.sync_channel = Some(response_sender);
+
                 self.compositor_proxy
-                    .send(CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y));
+                    .send(CompositorMsg::WebDriverMouseMoveEvent(webview_id, x, y, id));
             },
             WebDriverCommandMsg::WheelScrollAction(webview, x, y, delta_x, delta_y) => {
                 self.compositor_proxy
