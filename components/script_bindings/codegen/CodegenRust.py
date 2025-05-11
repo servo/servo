@@ -742,6 +742,19 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 "}")
         return templateBody
 
+    # A helper function for types that implement FromJSValConvertible trait
+    def fromJSValTemplate(config, errorHandler, exceptionCode):
+        return f"""match FromJSValConvertible::from_jsval(*cx, ${{val}}, {config}) {{
+    Ok(ConversionResult::Success(value)) => value,
+    Ok(ConversionResult::Failure(error)) => {{
+        {errorHandler}
+    }}
+    _ => {{
+        {exceptionCode}
+    }},
+}}
+"""
+
     assert not (isEnforceRange and isClamp)  # These are mutually exclusive
 
     if type.isSequence() or type.isRecord():
@@ -755,13 +768,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
 
-        templateBody = (f"match FromJSValConvertible::from_jsval(*cx, ${{val}}, {config}) {{\n"
-                        "    Ok(ConversionResult::Success(value)) => value,\n"
-                        "    Ok(ConversionResult::Failure(error)) => {\n"
-                        f"{indent(failOrPropagate, 8)}\n"
-                        "    }\n"
-                        f"    _ => {{ {exceptionCode} }},\n"
-                        "}")
+        templateBody = fromJSValTemplate(config, failOrPropagate, exceptionCode)
 
         return handleOptional(templateBody, declType, handleDefault("None"))
 
@@ -770,13 +777,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
 
-        templateBody = ("match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
-                        "    Ok(ConversionResult::Success(value)) => value,\n"
-                        "    Ok(ConversionResult::Failure(error)) => {\n"
-                        f"{indent(failOrPropagate, 8)}\n"
-                        "    }\n"
-                        f"    _ => {{ {exceptionCode} }},\n"
-                        "}")
+        templateBody = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
         dictionaries = [
             memberType
@@ -836,20 +837,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         #    once again be providing a Promise to signal completion of an
         #    operation, which would then not be exposed to anyone other than
         #    our own implementation code.
-        templateBody = fill(
-            """
-            match FromJSValConvertible::from_jsval(*cx, $${val}, ()) {
-                Ok(ConversionResult::Success(value)) => value,
-                Ok(ConversionResult::Failure(error)) => {
-                    $*{failOrPropagate}
-                }
-                _ => {
-                    $*{exceptionCode}
-                },
-            }
-            """,
-            failOrPropagate=failOrPropagate,
-            exceptionCode=exceptionCode)
+        templateBody = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
         if isArgument:
             declType = CGGeneric("&D::Promise")
@@ -959,14 +947,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isDOMString():
         nullBehavior = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
-        conversionCode = (
-            f"match FromJSValConvertible::from_jsval(*cx, ${{val}}, {nullBehavior}) {{\n"
-            "    Ok(ConversionResult::Success(strval)) => strval,\n"
-            "    Ok(ConversionResult::Failure(error)) => {\n"
-            f"{indent(failOrPropagate, 8)}\n"
-            "    }\n"
-            f"    _ => {{ {exceptionCode} }},\n"
-            "}")
+        conversionCode = fromJSValTemplate(nullBehavior, failOrPropagate, exceptionCode)
 
         if defaultValue is None:
             default = None
@@ -988,14 +969,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isUSVString():
         assert not isEnforceRange and not isClamp
 
-        conversionCode = (
-            "match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
-            "    Ok(ConversionResult::Success(strval)) => strval,\n"
-            "    Ok(ConversionResult::Failure(error)) => {\n"
-            f"{indent(failOrPropagate, 8)}\n"
-            "    }\n"
-            f"    _ => {{ {exceptionCode} }},\n"
-            "}")
+        conversionCode = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
         if defaultValue is None:
             default = None
@@ -1017,14 +991,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isByteString():
         assert not isEnforceRange and not isClamp
 
-        conversionCode = (
-            "match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
-            "    Ok(ConversionResult::Success(strval)) => strval,\n"
-            "    Ok(ConversionResult::Failure(error)) => {\n"
-            f"{indent(failOrPropagate, 8)}\n"
-            "    }\n"
-            f"    _ => {{ {exceptionCode} }},\n"
-            "}")
+        conversionCode = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
         if defaultValue is None:
             default = None
@@ -1055,12 +1022,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         else:
             handleInvalidEnumValueCode = "return true;"
 
-        template = (
-            "match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {"
-            f"    Err(_) => {{ {exceptionCode} }},\n"
-            "    Ok(ConversionResult::Success(v)) => v,\n"
-            f"    Ok(ConversionResult::Failure(error)) => {{ {handleInvalidEnumValueCode} }},\n"
-            "}")
+        template = fromJSValTemplate("()", handleInvalidEnumValueCode, exceptionCode)
 
         if defaultValue is not None:
             assert defaultValue.type.tag() == IDLType.Tags.domstring
@@ -1191,14 +1153,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type_needs_tracing(type):
             declType = CGTemplatedType("RootedTraceableBox", declType)
 
-        template = (
-            "match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {\n"
-            "    Ok(ConversionResult::Success(dictionary)) => dictionary,\n"
-            "    Ok(ConversionResult::Failure(error)) => {\n"
-            f"{indent(failOrPropagate, 8)}\n"
-            "    }\n"
-            f"    _ => {{ {exceptionCode} }},\n"
-            "}")
+        template = fromJSValTemplate("()", failOrPropagate, exceptionCode)
 
         return handleOptional(template, declType, handleDefault(empty))
 
@@ -1219,14 +1174,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.nullable():
         declType = CGWrapper(declType, pre="Option<", post=">")
 
-    template = (
-        f"match FromJSValConvertible::from_jsval(*cx, ${{val}}, {conversionBehavior}) {{\n"
-        "    Ok(ConversionResult::Success(v)) => v,\n"
-        "    Ok(ConversionResult::Failure(error)) => {\n"
-        f"{indent(failOrPropagate, 8)}\n"
-        "    }\n"
-        f"    _ => {{ {exceptionCode} }}\n"
-        "}")
+    template = fromJSValTemplate(conversionBehavior, failOrPropagate, exceptionCode)
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
