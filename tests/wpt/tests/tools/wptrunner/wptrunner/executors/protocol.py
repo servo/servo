@@ -5,7 +5,10 @@ import traceback
 from http.client import HTTPConnection
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, Tuple, Type
+from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, \
+    Tuple, Type, Union
+
+from webdriver.bidi.undefined import Undefined
 
 
 def merge_dicts(target, source):
@@ -452,7 +455,8 @@ class BidiEmulationProtocolPart(ProtocolPart):
 
     @abstractmethod
     async def set_geolocation_override(self,
-            coordinates: Optional[Mapping[str, Any]],
+            coordinates: Optional[Union[Mapping[str, Any], Undefined]],
+            error: Optional[Mapping[str, Any]],
             contexts: List[str]) -> None:
         pass
 

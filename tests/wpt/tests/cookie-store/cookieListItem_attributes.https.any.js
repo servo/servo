@@ -207,3 +207,20 @@ promise_test(async testCase => {
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.secure, true);
 }, 'CookieListItem - secure defaults to true');
+
+promise_test(async testCase => {
+  await cookieStore.delete('cookie-name');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+  });
+
+  let encodedCookie = encodeURIComponent(JSON.stringify("cookie-name=1; max-age=99999999999999999999999999999; path=/"));
+  await fetch(`/cookies/resources/cookie.py?set=${encodedCookie}`);
+
+  assert_equals(document.cookie, "cookie-name=1", 'The cookie was set as expected.');
+
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie.name, 'cookie-name');
+  assert_equals(cookie.value, '1');
+  assert_approx_equals(cookie.expires, kFourHundredDaysFromNow, kOneDay);
+}, "Test max-age attribute over the 400 days");

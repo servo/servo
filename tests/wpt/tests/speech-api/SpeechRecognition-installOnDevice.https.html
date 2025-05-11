@@ -2,17 +2,39 @@
 <title>SpeechRecognition installOnDevice</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
 promise_test(async (t) => {
   const validLang = "en-US";
   const invalidLang = "invalid language code";
-  window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const validDownloadableLang = "fr-FR";
+  window.SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
 
-  // Test that it returns a promise.
-  const validResultPromise = SpeechRecognition.installOnDevice(validLang);
+  // Attempt to call installOnDevice directly, without a user gesture with a
+  // language that is downloadable but not installed.
+  const installWithoutUserGesturePromise =
+    SpeechRecognition.installOnDevice(validDownloadableLang);
+
+  // Assert that the promise rejects with NotAllowedError.
+  await promise_rejects_dom(
+    t,
+    "NotAllowedError",
+    window.DOMException,
+    installWithoutUserGesturePromise,
+    "SpeechRecognition.installOnDevice() must reject with NotAllowedError if " +
+      "called without a user gesture."
+  );
+
+  // Test that it returns a promise when called with a valid language.
+  const validResultPromise = test_driver.bless(
+    "Call SpeechRecognition.installOnDevice with a valid language",
+    () => SpeechRecognition.installOnDevice(validLang)
+  );
   assert_true(
     validResultPromise instanceof Promise,
-    "installOnDevice should return a Promise."
+    "installOnDevice (with gesture) should return a Promise."
   );
 
   // Verify the resolved value is a boolean.
@@ -22,15 +44,17 @@ promise_test(async (t) => {
     "The resolved value of the installOnDevice promise should be a boolean."
   );
 
-  // Verify that the method returns true when called with a supported language code.
+  // Verify that the method returns true when called with a supported language.
   assert_equals(
     validResult,
     true,
-    "installOnDevice should resolve with `true` when called with a supported language code."
+    "installOnDevice should resolve with `true` when called with a " +
+      "supported language code."
   );
 
   // Verify that the newly installed language pack is available.
-  const availableOnDeviceResultPromise = SpeechRecognition.availableOnDevice(validLang);
+  const availableOnDeviceResultPromise =
+    SpeechRecognition.availableOnDevice(validLang);
   assert_true(
     availableOnDeviceResultPromise instanceof Promise,
     "availableOnDevice should return a Promise."
@@ -42,28 +66,58 @@ promise_test(async (t) => {
     "The resolved value of the availableOnDevice promise should be a string."
   );
 
-  assert_true(availableOnDeviceResult === "available",
-    "The resolved value of the availableOnDevice promise should be available."
+  assert_true(
+    availableOnDeviceResult === "available",
+    "The resolved value of the availableOnDevice promise should be 'available'."
   );
 
-  // Verify that installing an already installed language pack resolves to true.
-  const secondResultPromise = SpeechRecognition.installOnDevice(validLang);
+  // Verify that installing an already installed language resolves to true.
+  const secondResultPromise = test_driver.bless(
+    "Call SpeechRecognition.installOnDevice for an already installed language",
+    () => SpeechRecognition.installOnDevice(validLang)
+  );
+  assert_true(
+    secondResultPromise instanceof Promise,
+    "installOnDevice (with gesture, for already installed language) should " +
+      "return a Promise."
+  );
   const secondResult = await secondResultPromise;
+  assert_true(
+    typeof secondResult === "boolean",
+    "The resolved value of the second installOnDevice promise should be a " +
+      "boolean."
+  );
   assert_equals(
     secondResult,
     true,
-    "installOnDevice should resolve with `true` if the language is already installed."
+    "installOnDevice should resolve with `true` if the language is already " +
+      "installed."
   );
 
-  // Test that it returns a promise.
-  const invalidResultPromise = SpeechRecognition.installOnDevice(invalidLang);
+  // Test that it returns a promise and resolves to false for unsupported lang.
+  const invalidResultPromise = test_driver.bless(
+    "Call SpeechRecognition.installOnDevice with an unsupported language code",
+    () => SpeechRecognition.installOnDevice(invalidLang)
+  );
+  assert_true(
+    invalidResultPromise instanceof Promise,
+    "installOnDevice (with gesture, for unsupported language) should return " +
+      "a Promise."
+  );
   const invalidResult = await invalidResultPromise;
+  assert_true(
+    typeof invalidResult === "boolean",
+    "The resolved value of the installOnDevice promise (unsupported language) " +
+      "should be a boolean."
+  );
   assert_equals(
     invalidResult,
     false,
-    "installOnDevice should resolve with `false` when called with an unsupported language code."
+    "installOnDevice should resolve with `false` when called with an " +
+      "unsupported language code."
   );
-}, "SpeechRecognition.installOnDevice resolves with a boolean value.");
+}, "SpeechRecognition.installOnDevice resolves with a boolean value " +
+   "(with user gesture).");
 
 promise_test(async (t) => {
   const iframe = document.createElement("iframe");
@@ -78,7 +132,13 @@ promise_test(async (t) => {
     t,
     "InvalidStateError",
     frameDOMException,
-    frameSpeechRecognition.installOnDevice("en-US"),
+    test_driver.bless(
+      "Call SpeechRecognition.installOnDevice in a detached frame context",
+      () => {
+        return frameSpeechRecognition.installOnDevice("en-US");
+      }
+    )
   );
-}, "SpeechRecognition.installOnDevice rejects in a detached context.");
+}, "SpeechRecognition.installOnDevice rejects in a detached context " +
+   "(with user gesture).");
 </script>

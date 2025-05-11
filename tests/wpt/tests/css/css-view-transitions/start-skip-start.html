@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test start skip and then start on a view transition</title>
+  <link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
+</head>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  :root {
+    view-transition-name: none;
+  }
+  #target {
+    width: 100px;
+    height: 100px;
+    background: blue;
+    contain: paint;
+    view-transition-name: target;
+  }
+  #target.update-1 {
+    height: 150px;
+  }
+  #target.update-2 {
+    height: 200px;
+  }
+</style>
+
+<body>
+  <div id="target"></div>
+</body>
+<script>
+  promise_test(async t => {
+    let rejected_promise_tally = 0;
+    const target = document.getElementById("target");
+    assert_implements(document.startViewTransition,
+                      "Missing document.startViewTransition");
+
+    const verifyAbortedTransition = (promise) => {
+      return promise.then(
+        () => { assert_not_reached('transition aborted') },
+        (reason) => {
+          assert_true(reason instanceof DOMException);
+          assert_equals(reason.code, DOMException.ABORT_ERR);
+          rejected_promise_tally++;
+        });
+    };
+
+    const vt1 = document.startViewTransition(() => {
+      target.className = 'update-1';
+    });
+
+    vt1.skipTransition();
+    const vt2 = document.startViewTransition(() => {
+      assert_equals(target.className, 'update-1');
+      target.className = 'update-2';
+    });
+
+    vt2.skipTransition();
+    const vt3 = document.startViewTransition(() => {
+      assert_equals(target.className, 'update-2');
+    });
+
+    await verifyAbortedTransition(vt1.ready);
+    await verifyAbortedTransition(vt2.ready);
+    await vt3.ready;
+
+    assert_equals(rejected_promise_tally, 2,
+                  'first 2 transitions were skipped');
+    const sizeTransformAnimations = document.getAnimations().filter(a => {
+      return 'height' in a.effect.getKeyframes()[0];
+    });
+    assert_equals(sizeTransformAnimations.length, 1);
+    const startingHeight =
+        sizeTransformAnimations[0].effect.getKeyframes()[0].height;
+
+    assert_equals(startingHeight, '200px',
+                  'Height change applied before capture');
+
+  }, 'Synchronously starting a view transition blocks on DOM callback for ' +
+     'previously skipped transitions');
+
+</script>
+</html>

@@ -98,7 +98,7 @@ if (CSS.supports("d", "initial")) {
 // animation elements.
 
 if (CSS.supports("fill", "initial")) {
-  for (let e of ["animate", "animateMotion", "animateTransform", "discard", "set"]) {
+  for (let e of ["animate", "animateMotion", "animateTransform", "set"]) {
     test(function() {
       assertPresentationAttributeIsNotSupported(e, "fill", "blue", "fill");
     }, `fill presentation attribute not supported on ${e}`);

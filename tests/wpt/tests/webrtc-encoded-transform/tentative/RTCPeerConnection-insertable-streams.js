@@ -30,7 +30,7 @@ function areMetadataEqual(metadata1, metadata2, type) {
           metadata1.payloadType == metadata2.payloadType &&
           areArraysEqual(
               metadata1.contributingSources, metadata2.contributingSources) &&
-          metadata1.absCaptureTime == metadata2.absCaptureTime &&
+          metadata1.captureTime == metadata2.captureTime &&
           metadata1.frameId === metadata2.frameId &&
           areArraysEqual(metadata1.dependencies, metadata2.dependencies) &&
           metadata1.spatialIndex === metadata2.spatialIndex &&

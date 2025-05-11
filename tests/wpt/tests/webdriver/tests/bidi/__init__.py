@@ -132,7 +132,7 @@ def assert_handle(obj: Mapping[str, Any], should_contain_handle: bool) -> None:
         assert "handle" not in obj, f"Result should not contain `handle`. Actual: {obj}"
 
 
-async def create_console_api_message(bidi_session, context: str, text: str):
+async def create_console_api_message(bidi_session, context: Any, text: str):
     await bidi_session.script.call_function(
         function_declaration="""(text) => console.log(text)""",
         arguments=[{"type": "string", "value": text}],
@@ -142,7 +142,7 @@ async def create_console_api_message(bidi_session, context: str, text: str):
     return text
 
 
-async def get_device_pixel_ratio(bidi_session, context: str) -> float:
+async def get_device_pixel_ratio(bidi_session, context: Any) -> float:
     result = await bidi_session.script.call_function(
         function_declaration="""() => {
         return window.devicePixelRatio;
@@ -167,7 +167,7 @@ async def get_element_dimensions(bidi_session, context, element):
     return remote_mapping_to_dict(result["value"])
 
 
-async def get_viewport_dimensions(bidi_session, context: str,
+async def get_viewport_dimensions(bidi_session, context: Any,
       with_scrollbar: bool = True, quirk_mode: bool = False):
     if with_scrollbar:
         expression = """
@@ -198,7 +198,7 @@ async def get_viewport_dimensions(bidi_session, context: str,
     return remote_mapping_to_dict(result["value"])
 
 
-async def get_document_dimensions(bidi_session, context: str):
+async def get_document_dimensions(bidi_session, context: Any):
     expression = """
         ({
           height: document.documentElement.scrollHeight,

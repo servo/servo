@@ -272,9 +272,9 @@ class WebDriverBidiEmulationProtocolPart(BidiEmulationProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
 
-    async def set_geolocation_override(self, coordinates, contexts):
+    async def set_geolocation_override(self, coordinates, error, contexts):
         return await self.webdriver.bidi_session.emulation.set_geolocation_override(
-            coordinates=coordinates, contexts=contexts)
+            coordinates=coordinates, error=error, contexts=contexts)
 
 
 class WebDriverBidiPermissionsProtocolPart(BidiPermissionsProtocolPart):

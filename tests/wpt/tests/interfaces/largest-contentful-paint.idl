@@ -5,7 +5,6 @@
 
 [Exposed=Window]
 interface LargestContentfulPaint : PerformanceEntry {
-    readonly attribute DOMHighResTimeStamp renderTime;
     readonly attribute DOMHighResTimeStamp loadTime;
     readonly attribute unsigned long size;
     readonly attribute DOMString id;
@@ -13,3 +12,5 @@ interface LargestContentfulPaint : PerformanceEntry {
     readonly attribute Element? element;
     [Default] object toJSON();
 };
+
+LargestContentfulPaint includes PaintTimingMixin;

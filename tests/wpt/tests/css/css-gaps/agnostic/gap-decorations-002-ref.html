@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+  .container {
+    display: flex;
+    width: 120px;
+    height: 110px;
+    column-gap: 20px;
+    row-gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .item {
+    background: skyblue;
+    height: 50px;
+    width: 50px;
+    margin: 0;
+  }
+
+  .row-gap {
+    position: absolute;
+    top: 50px;
+    background: gold;
+    width: 120px;
+    height: 10px;
+  }
+
+  .column-gap {
+    position: absolute;
+    top: 0px;
+    left: 50px;
+    background: blue;
+    height: 110px;
+    width: 20px;
+  }
+
+</style>
+<div class="container">
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+    <div class="item"></div>
+</div>
+
+<div class="row-gap"></div>
+<div class="column-gap"></div>

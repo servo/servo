@@ -313,3 +313,11 @@ The module provides access to [Web Bluetooth](https://webbluetoothcg.github.io/w
 .. js:autofunction:: test_driver.bidi.bluetooth.simulate_preconnected_peripheral
 .. js:autofunction:: test_driver.bidi.bluetooth.request_device_prompt_updated
 ```
+
+### Emulation ###
+
+Emulation of browser APIs via [WebDriver BiDi Emulation](https://www.w3.org/TR/webdriver-bidi/#module-emulation).
+
+```eval_rst
+.. js:autofunction:: test_driver.bidi.emulation.set_geolocation_override
+```

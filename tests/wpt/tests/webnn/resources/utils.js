@@ -59,6 +59,13 @@ const getPrecisionTolerance = (graphResources, intermediateOperands) => {
                               op, graphResources, intermediateOperands)
                               .value;
         break;
+      case 'averagePool2d':
+      case 'maxPool2d':
+      case 'l2Pool2d':
+        toleranceValue += getPoolingOperatorsPrecisionTolerance(
+                              op, graphResources, intermediateOperands)
+                              .value;
+        break;
       default:
         const operatorTolerance =
             operatorToleranceDict[op.name]?.[expectedDataType];
@@ -1004,6 +1011,53 @@ const getConv2dPrecisionTolerance =
   const expectedDataType =
       getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
   return {metricType: 'ULP', value: toleranceValueDict[expectedDataType]};
+};
+
+const getPoolingOperatorsPrecisionTolerance =
+    (op, graphResources, intermediateOperands) => {
+  const args = op.arguments;
+  const operatorName = op.name;
+  const {inputs} = graphResources;
+  let inputShape;
+  const inputIndex = args[0][Object.keys(args[0])[0]];
+  if (inputs[inputIndex]) {
+    inputShape = inputs[inputIndex].descriptor.shape;
+  } else {
+    inputShape = intermediateOperands[inputIndex].shape;
+  }
+  const options =
+      args.length === 2 ? {...args[1][Object.keys(args[1])[0]]} : {};
+  let height;
+  let width;
+
+  if (options.windowDimensions) {
+    height = options.windowDimensions[0];
+    width = options.windowDimensions[1];
+  } else {
+    // If not present, the window dimensions are assumed to be the height
+    // and width dimensions of the input shape
+    if (options.layout && options.layout === 'nhwc') {
+      height = inputShape[1];
+      width = inputShape[2];
+    } else {
+      // nhwc layout of input
+      height = inputShape[2];
+      width = inputShape[3];
+    }
+  }
+
+  const tolerance = height * width + 2;
+  const toleranceDict = {
+    averagePool2d: {float32: tolerance, float16: tolerance},
+    l2Pool2d: {float32: tolerance, float16: tolerance},
+    maxPool2d: {float32: 0, float16: 0},
+  };
+  const expectedDataType =
+      getExpectedDataTypeOfSingleOutput(graphResources.expectedOutputs);
+  return {
+    metricType: 'ULP',
+    value: toleranceDict[operatorName][expectedDataType]
+  };
 };
 
 const getInstanceNormPrecisionTolerance = (graphResources) => {

@@ -1,4 +1,5 @@
 # mypy: allow-untyped-defs
+from webdriver.bidi.undefined import UNDEFINED
 
 webdriver = None
 
@@ -6,6 +7,22 @@ webdriver = None
 def do_delayed_imports():
     global webdriver
     import webdriver
+
+
+def get_browsing_context_id(context):
+    """
+    :param context: Either a string representing the browsing context id, or a
+    BiDi serialized window proxy object. In the latter case, the value is
+    extracted from the serialized object.
+    :return: The browsing context id.
+    """
+    if isinstance(context, str):
+        return context
+    elif isinstance(context, webdriver.bidi.protocol.BidiWindow):
+        # Context can be a serialized WindowProxy.
+        return context.browsing_context
+    raise ValueError("Unexpected context type: %s" % context)
+
 
 class BidiBluetoothHandleRequestDevicePrompt:
     name = "bidi.bluetooth.handle_request_device_prompt"
@@ -16,18 +33,10 @@ class BidiBluetoothHandleRequestDevicePrompt:
         self.protocol = protocol
 
     async def __call__(self, payload):
-        if payload["context"] is None:
+        if "context" not in payload:
             raise ValueError("Missing required parameter: context")
 
-        context = payload["context"]
-        if isinstance(context, str):
-            pass
-        elif isinstance(context, webdriver.bidi.protocol.BidiWindow):
-            # Context can be a serialized WindowProxy.
-            context = context.browsing_context
-        else:
-            raise ValueError("Unexpected context type: %s" % context)
-
+        context = get_browsing_context_id(payload["context"])
         prompt = payload["prompt"]
         accept = payload["accept"]
         device = payload["device"]
@@ -42,17 +51,10 @@ class BidiBluetoothSimulateAdapterAction:
         self.protocol = protocol
 
     async def __call__(self, payload):
-        if payload["context"] is None:
+        if "context" not in payload:
             raise ValueError("Missing required parameter: context")
 
-        context = payload["context"]
-        if isinstance(context, str):
-            pass
-        elif isinstance(context, webdriver.bidi.protocol.BidiWindow):
-            # Context can be a serialized WindowProxy.
-            context = context.browsing_context
-        else:
-            raise ValueError("Unexpected context type: %s" % context)
+        context = get_browsing_context_id(payload["context"])
 
         state = payload["state"]
         return await self.protocol.bidi_bluetooth.simulate_adapter(context,
@@ -68,17 +70,9 @@ class BidiBluetoothSimulatePreconnectedPeripheralAction:
         self.protocol = protocol
 
     async def __call__(self, payload):
-        if payload["context"] is None:
+        if "context" not in payload:
             raise ValueError("Missing required parameter: context")
-
-        context = payload["context"]
-        if isinstance(context, str):
-            pass
-        elif isinstance(context, webdriver.bidi.protocol.BidiWindow):
-            # Context can be a serialized WindowProxy.
-            context = context.browsing_context
-        else:
-            raise ValueError("Unexpected context type: %s" % context)
+        context = get_browsing_context_id(payload["context"])
 
         address = payload["address"]
         name = payload["name"]
@@ -97,22 +91,29 @@ class BidiEmulationSetGeolocationOverrideAction:
         self.protocol = protocol
 
     async def __call__(self, payload):
-        coordinates = payload['coordinates']
+        if "error" in payload and "coordinates" in payload:
+            raise ValueError(
+                "Params `error` and `coordinates` are mutually exclusive")
+
+        # If `error` is present, set it. Otherwise, do not pass it (error: None).
+        # Note, unlike `coordinates`, `error` cannot be `UNDEFINED`. It's either
+        # `None` and it's not passed, or some dict value which is passed.
+        error = payload['error'] if 'error' in payload else None
+        # If `error` is present, do not pass `coordinates` (coordinates: UNDEFINED).
+        # Otherwise, remove emulation (coordinates: None).
+        coordinates = payload['coordinates'] if 'coordinates' in payload else (
+            None if error is None else UNDEFINED)
+
+        if "contexts" not in payload:
+            raise ValueError("Missing required parameter: contexts")
         contexts = []
         for context in payload["contexts"]:
-            # Context can be either a browsing context id, or a BiDi serialized window. In the latter case, the
-            # value is extracted from the serialized object.
-            if isinstance(context, str):
-                contexts.append(context)
-            elif isinstance(context, webdriver.bidi.protocol.BidiWindow):
-                contexts.append(context.browsing_context)
-            else:
-                raise ValueError("Unexpected context type: %s" % context)
+            contexts.append(get_browsing_context_id(context))
         if len(contexts) == 0:
             raise ValueError("At least one context must be provided")
 
         return await self.protocol.bidi_emulation.set_geolocation_override(
-            coordinates, contexts)
+            coordinates, error, contexts)
 
 
 class BidiSessionSubscribeAction:
@@ -126,17 +127,10 @@ class BidiSessionSubscribeAction:
     async def __call__(self, payload):
         events = payload["events"]
         contexts = None
-        if payload["contexts"] is not None:
+        if "contexts" in payload and payload["contexts"] is not None:
             contexts = []
             for context in payload["contexts"]:
-                # Context can be either a browsing context id, or a BiDi serialized window. In the latter case, the
-                # value is extracted from the serialized object.
-                if isinstance(context, str):
-                    contexts.append(context)
-                elif isinstance(context, webdriver.bidi.protocol.BidiWindow):
-                    contexts.append(context.browsing_context)
-                else:
-                    raise ValueError("Unexpected context type: %s" % context)
+                contexts.append(get_browsing_context_id(context))
         return await self.protocol.bidi_events.subscribe(events, contexts)
 
 

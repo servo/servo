@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTTP Cache: Cache-Control with Pragma: no-cache</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  // According to https://www.rfc-editor.org/rfc/rfc9111.html#name-pragma
+  // the pragma header is deprecated.
+  // When there's a mismatch between pragma and Cache-Control then the latter
+  // should be respected, and the resource should be cached.
+  const url = 'resources/cached_pragma_rand.py'
+
+  // First fetch to populate the cache
+  const response1 = await fetch(url, { cache: 'default' });
+  assert_true(response1.ok, 'First fetch should succeed');
+  const text1 = await response1.text();
+
+  // Second fetch should be served from cache
+  const response2 = await fetch(url, { cache: 'default' });
+  assert_true(response2.ok, 'Second fetch should succeed');
+  const text2 = await response2.text();
+
+  assert_equals(text1, text2, 'Responses should be identical, indicating caching');
+}, 'Response with Cache-Control: max-age=2592000, public and Pragma: no-cache should be cached');
+</script>
+</body>

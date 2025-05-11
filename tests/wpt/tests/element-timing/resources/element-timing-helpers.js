@@ -19,7 +19,7 @@ function checkElementInternal(entry, expectedUrl, expectedIdentifier, expectedID
   assert_greater_than_equal(entry.paintTime, beforeRender, 'paintTime should represent the time when the UA started painting');
 
   // PaintTimingMixin
-  if ("presentationTime" in entry) {
+  if ("presentationTime" in entry && entry.presentationTime !== null) {
     assert_greater_than(entry.presentationTime, entry.paintTime);
     assert_equals(entry.presentationTime, entry.renderTime);
   } else {

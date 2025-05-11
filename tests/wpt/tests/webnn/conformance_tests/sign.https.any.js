@@ -122,7 +122,8 @@ const signTests = [
     'graph': {
       'inputs': {
         'signInput': {
-          'data': [-1, 0, 1, 2],
+          // int32 range: [/* -(2**31) */ -2147483648, /* 2**31 - 1 */ 2147483647]
+          'data': [-2147483648, 0, 2147483646, 2147483647],
           'descriptor': {shape: [2, 2], dataType: 'int32'}
         }
       },
@@ -166,7 +167,8 @@ const signTests = [
     'graph': {
       'inputs': {
         'signInput': {
-          'data': [-1, 0, 1, 2, -2, -1, 0, 1],
+          // int8 range: [/* -(2**7) */ -128, /* 2**7 - 1 */ 127]
+          'data': [-128, 0, 1, 2, -2, -1, 0, 127],
           'descriptor': {shape: [1, 2, 2, 2], dataType: 'int8'}
         }
       },
