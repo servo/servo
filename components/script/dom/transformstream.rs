@@ -3,9 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::collections::HashMap;
 use std::ptr::{self};
 use std::rc::Rc;
 
+use base::id::{MessagePortId, MessagePortIndex};
+use constellation_traits::MessagePortImpl;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, IsPromiseObject, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
@@ -14,6 +17,8 @@ use script_bindings::callback::ExceptionHandling;
 use script_bindings::realms::InRealm;
 
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
+use super::bindings::structuredclone::StructuredData;
+use super::bindings::transferable::Transferable;
 use super::promisenativehandler::Callback;
 use super::types::{TransformStreamDefaultController, WritableStream};
 use crate::dom::bindings::cell::DomRefCell;
@@ -995,5 +1000,68 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
     fn Writable(&self) -> DomRoot<WritableStream> {
         // Return this.[[writable]].
         self.writable.get().expect("writable stream is not set")
+    }
+}
+
+/// <https://streams.spec.whatwg.org/#ts-transfer>
+impl Transferable for TransformStream {
+    type Index = MessagePortIndex;
+    type Data = MessagePortImpl;
+
+    fn transfer(&self) -> Result<(MessagePortId, MessagePortImpl), ()> {
+        // Let readable be value.[[readable]].
+        let readable = self.get_readable();
+
+        // Let writable be value.[[writable]].
+        let writable = self.get_writable();
+
+        // If ! IsReadableStreamLocked(readable) is true, throw a "DataCloneError" DOMException.
+        if readable.is_locked() {
+            return Err(());
+        }
+
+        // If ! IsWritableStreamLocked(writable) is true, throw a "DataCloneError" DOMException.
+        if writable.is_locked() {
+            return Err(());
+        }
+
+        // Set dataHolder.[[readable]] to ! StructuredSerializeWithTransfer(readable, « readable »).
+        readable.transfer()?;
+
+        // Set dataHolder.[[writable]] to ! StructuredSerializeWithTransfer(writable, « writable »).
+        writable.transfer()
+    }
+
+    fn transfer_receive(
+        owner: &GlobalScope,
+        id: MessagePortId,
+        port_impl: MessagePortImpl,
+    ) -> Result<DomRoot<Self>, ()> {
+        let can_gc = CanGc::note();
+
+        // Let readableRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[readable]], the current Realm).
+        // Set value.[[readable]] to readableRecord.[[Deserialized]].
+        let readable = ReadableStream::transfer_receive(owner, id, port_impl.clone())?;
+
+        // Let writableRecord be ! StructuredDeserializeWithTransfer(dataHolder.[[writable]], the current Realm).
+        let writable = WritableStream::transfer_receive(owner, id, port_impl)?;
+
+        // Set value.[[readable]] to readableRecord.[[Deserialized]].
+        // Set value.[[writable]] to writableRecord.[[Deserialized]].
+        // Set value.[[backpressure]], value.[[backpressureChangePromise]], and value.[[controller]] to undefined.
+        let stream = TransformStream::new_with_proto(owner, None, can_gc);
+        stream.readable.set(Some(&readable));
+        stream.writable.set(Some(&writable));
+
+        Ok(stream)
+    }
+
+    fn serialized_storage<'a>(
+        data: StructuredData<'a, '_>,
+    ) -> &'a mut Option<HashMap<MessagePortId, Self::Data>> {
+        match data {
+            StructuredData::Reader(r) => &mut r.port_impls,
+            StructuredData::Writer(w) => &mut w.ports,
+        }
     }
 }
