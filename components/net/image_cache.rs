@@ -741,6 +741,7 @@ impl ImageCache for ImageCacheImpl {
                 requested_size.width() as f32 / natural_size.width() as f32,
                 requested_size.height() as f32 / natural_size.height() as f32,
             );
+            println!("Rasterizing at {requested_size:?}");
             let mut pixmap =
                 tiny_skia::Pixmap::new(requested_size.width(), requested_size.height()).unwrap();
             resvg::render(&vector_image.svg, transform, &mut pixmap.as_mut());
