@@ -62,6 +62,7 @@
 
   function formatTime(time, showHours = false) {
     // Format the duration as "h:mm:ss" or "m:ss"
+    if (isNaN(time) || !isFinite(time)) return "00:00";
     time = Math.round(time / 1000);
 
     const hours = Math.floor(time / 3600);
