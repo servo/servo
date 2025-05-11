@@ -125,6 +125,7 @@ use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlobjectelement::HTMLObjectElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloutputelement::HTMLOutputElement;
+use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::htmlstyleelement::HTMLStyleElement;
@@ -2172,6 +2173,34 @@ impl Element {
             },
             AttributeMutation::Removed => None,
         };
+    }
+
+    /// <https://www.w3.org/TR/CSP/#is-element-nonceable>
+    pub(crate) fn nonce_attribute_if_nonceable(&self) -> Option<String> {
+        // Step 1: If element does not have an attribute named "nonce", return "Not Nonceable".
+        let nonce_attribute = self.get_attribute(&ns!(), &local_name!("nonce"))?;
+        // Step 2: If element is a script element, then for each attribute of element’s attribute list:
+        if self.downcast::<HTMLScriptElement>().is_some() {
+            for attr in self.attrs().iter() {
+                // Step 2.1: If attribute’s name contains an ASCII case-insensitive match
+                // for "<script" or "<style", return "Not Nonceable".
+                let attr_name = attr.name().to_ascii_lowercase();
+                if attr_name.contains("<script") || attr_name.contains("<style") {
+                    return None;
+                }
+                // Step 2.2: If attribute’s value contains an ASCII case-insensitive match
+                // for "<script" or "<style", return "Not Nonceable".
+                let attr_value = attr.value().to_ascii_lowercase();
+                if attr_value.contains("<script") || attr_value.contains("<style") {
+                    return None;
+                }
+            }
+        }
+        // Step 3: If element had a duplicate-attribute parse error during tokenization, return "Not Nonceable".
+        // TODO(https://github.com/servo/servo/issues/4577 and https://github.com/whatwg/html/issues/3257):
+        // Figure out how to retrieve this information from the parser
+        // Step 4: Return "Nonceable".
+        Some(nonce_attribute.value().to_string().trim().to_owned())
     }
 
     // https://dom.spec.whatwg.org/#insert-adjacent
