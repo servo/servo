@@ -4313,7 +4313,7 @@ impl Document {
             },
             Some(csp_list) => {
                 let element = csp::Element {
-                    nonce: el.nonce_attribute_if_nonceable().map(Cow::Owned),
+                    nonce: el.nonce_value_if_nonceable().map(Cow::Owned),
                 };
                 csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source)
             },

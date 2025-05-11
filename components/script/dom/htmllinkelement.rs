@@ -31,7 +31,6 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
-use crate::dom::bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElement_Binding::HTMLElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -344,7 +343,7 @@ impl HTMLLinkElement {
             destination: Some(destination),
             integrity: String::new(),
             link_type: String::new(),
-            cryptographic_nonce_metadata: self.upcast::<HTMLElement>().Nonce().into(),
+            cryptographic_nonce_metadata: self.upcast::<Element>().nonce_value(),
             cross_origin: cors_setting_for_element(element),
             referrer_policy: referrer_policy_for_element(element),
             policy_container: document.policy_container().to_owned(),

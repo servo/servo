@@ -146,8 +146,8 @@ use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserve
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{
-    BindContext, ChildrenMutation, LayoutNodeHelpers, Node, NodeDamage, NodeFlags, NodeTraits,
-    ShadowIncluding, UnbindContext,
+    BindContext, ChildrenMutation, CloneChildrenFlag, LayoutNodeHelpers, Node, NodeDamage,
+    NodeFlags, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
@@ -2179,10 +2179,53 @@ impl Element {
         };
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#nonce-attributes>
+    pub(crate) fn update_nonce_internal_slot(&self, nonce: String) {
+        self.ensure_rare_data().cryptographic_nonce = nonce;
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#nonce-attributes>
+    pub(crate) fn nonce_value(&self) -> String {
+        match self.rare_data().as_ref() {
+            None => String::new(),
+            Some(rare_data) => rare_data.cryptographic_nonce.clone(),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#nonce-attributes>
+    pub(crate) fn update_nonce_post_connection(&self) {
+        // Whenever an element including HTMLOrSVGElement becomes browsing-context connected,
+        // the user agent must execute the following steps on the element:
+        if !self.upcast::<Node>().is_connected_with_browsing_context() {
+            return;
+        }
+        let global = self.owner_global();
+        // Step 1: Let CSP list be element's shadow-including root's policy container's CSP list.
+        let csp_list = match global.get_csp_list() {
+            None => return,
+            Some(csp_list) => csp_list,
+        };
+        // Step 2: If CSP list contains a header-delivered Content Security Policy,
+        // and element has a nonce content attribute whose value is not the empty string, then:
+        if !csp_list.contains_a_header_delivered_content_security_policy() ||
+            self.get_string_attribute(&local_name!("nonce")).is_empty()
+        {
+            return;
+        }
+        // Step 2.1: Let nonce be element's [[CryptographicNonce]].
+        let nonce = self.nonce_value();
+        // Step 2.2: Set an attribute value for element using "nonce" and the empty string.
+        self.set_string_attribute(&local_name!("nonce"), "".into(), CanGc::note());
+        // Step 2.3: Set element's [[CryptographicNonce]] to nonce.
+        self.update_nonce_internal_slot(nonce);
+    }
+
     /// <https://www.w3.org/TR/CSP/#is-element-nonceable>
-    pub(crate) fn nonce_attribute_if_nonceable(&self) -> Option<String> {
+    pub(crate) fn nonce_value_if_nonceable(&self) -> Option<String> {
         // Step 1: If element does not have an attribute named "nonce", return "Not Nonceable".
-        let nonce_attribute = self.get_attribute(&ns!(), &local_name!("nonce"))?;
+        if !self.has_attribute(&local_name!("nonce")) {
+            return None;
+        }
         // Step 2: If element is a script element, then for each attribute of element’s attribute list:
         if self.downcast::<HTMLScriptElement>().is_some() {
             for attr in self.attrs().iter() {
@@ -2204,7 +2247,7 @@ impl Element {
         // TODO(https://github.com/servo/servo/issues/4577 and https://github.com/whatwg/html/issues/3257):
         // Figure out how to retrieve this information from the parser
         // Step 4: Return "Nonceable".
-        Some(nonce_attribute.value().to_string().trim().to_owned())
+        Some(self.nonce_value().trim().to_owned())
     }
 
     // https://dom.spec.whatwg.org/#insert-adjacent
@@ -4186,6 +4229,31 @@ impl VirtualMethods for Element {
 
         if self.owner_document().is_html_document() != old_doc.is_html_document() {
             self.tag_name.clear();
+        }
+    }
+
+    fn post_connection_steps(&self) {
+        if let Some(s) = self.super_type() {
+            s.post_connection_steps();
+        }
+
+        self.update_nonce_post_connection();
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#nonce-attributes%3Aconcept-node-clone-ext>
+    fn cloning_steps(
+        &self,
+        copy: &Node,
+        maybe_doc: Option<&Document>,
+        clone_children: CloneChildrenFlag,
+        can_gc: CanGc,
+    ) {
+        if let Some(s) = self.super_type() {
+            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
+        }
+        let elem = copy.downcast::<Element>().unwrap();
+        if let Some(rare_data) = self.rare_data().as_ref() {
+            elem.update_nonce_internal_slot(rare_data.cryptographic_nonce.clone());
         }
     }
 }
