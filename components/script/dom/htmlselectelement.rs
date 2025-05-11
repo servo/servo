@@ -153,7 +153,7 @@ impl HTMLSelectElement {
         n
     }
 
-    // https://html.spec.whatwg.org/multipage/#concept-select-option-list
+    /// <https://html.spec.whatwg.org/multipage/#concept-select-option-list>
     pub(crate) fn list_of_options(
         &self,
     ) -> impl Iterator<Item = DomRoot<HTMLOptionElement>> + use<'_> {
@@ -353,8 +353,10 @@ impl HTMLSelectElement {
             .fire_bubbling_event(atom!("change"), can_gc);
     }
 
-    fn selected_option(&self) -> Option<DomRoot<HTMLOptionElement>> {
-        self.list_of_options().find(|opt_elem| opt_elem.Selected())
+    pub(crate) fn selected_option(&self) -> Option<DomRoot<HTMLOptionElement>> {
+        self.list_of_options()
+            .find(|opt_elem| opt_elem.Selected())
+            .or_else(|| self.list_of_options().next())
     }
 
     pub(crate) fn show_menu(&self, can_gc: CanGc) -> Option<usize> {
@@ -539,7 +541,8 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-value>
     fn Value(&self) -> DOMString {
-        self.selected_option()
+        self.list_of_options()
+            .find(|opt_elem| opt_elem.Selected())
             .map(|opt_elem| opt_elem.Value())
             .unwrap_or_default()
     }

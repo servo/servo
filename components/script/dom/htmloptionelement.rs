@@ -29,7 +29,7 @@ use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
-use crate::dom::node::{BindContext, Node, ShadowIncluding, UnbindContext};
+use crate::dom::node::{BindContext, ChildrenMutation, Node, ShadowIncluding, UnbindContext};
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
@@ -378,6 +378,28 @@ impl VirtualMethods for HTMLOptionElement {
             el.check_parent_disabled_state_for_option();
         } else {
             el.check_disabled_attribute();
+        }
+    }
+
+    fn children_changed(&self, mutation: &ChildrenMutation) {
+        if let Some(super_type) = self.super_type() {
+            super_type.children_changed(mutation);
+        }
+
+        // Changing the descendants of a selected option can change it's displayed label
+        // if it does not have a label attribute
+        if !self
+            .upcast::<Element>()
+            .has_attribute(&local_name!("label"))
+        {
+            if let Some(owner_select) = self.owner_select_element() {
+                if owner_select
+                    .selected_option()
+                    .is_some_and(|selected_option| self == &*selected_option)
+                {
+                    owner_select.update_shadow_tree(CanGc::note());
+                }
+            }
         }
     }
 }
