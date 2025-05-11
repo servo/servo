@@ -2,14 +2,19 @@ import pytest
 
 from webdriver.bidi.modules.emulation import CoordinatesOptions
 
-from . import get_current_geolocation, TEST_COORDINATES
+from . import TEST_COORDINATES
 
 
 pytestmark = pytest.mark.asyncio
 
 
 async def test_user_contexts(
-    bidi_session, url, create_user_context, new_tab, set_geolocation_permission
+    bidi_session,
+    url,
+    create_user_context,
+    new_tab,
+    get_current_geolocation,
+    set_geolocation_permission,
 ):
     user_context = await create_user_context()
     context_in_user_context_1 = await bidi_session.browsing_context.create(
@@ -29,12 +34,10 @@ async def test_user_contexts(
     await set_geolocation_permission(new_tab)
     await set_geolocation_permission(new_tab, user_context)
 
-    default_coordinates = await get_current_geolocation(
-        bidi_session, context_in_user_context_1
-    )
+    default_coordinates = await get_current_geolocation(context_in_user_context_1)
 
     assert default_coordinates != TEST_COORDINATES
-    assert await get_current_geolocation(bidi_session, new_tab) == default_coordinates
+    assert await get_current_geolocation(new_tab) == default_coordinates
 
     # Set geolocation override.
     await bidi_session.emulation.set_geolocation_override(
@@ -46,11 +49,8 @@ async def test_user_contexts(
         ),
     )
 
-    assert (
-        await get_current_geolocation(bidi_session, context_in_user_context_1)
-        == TEST_COORDINATES
-    )
-    assert await get_current_geolocation(bidi_session, new_tab) == default_coordinates
+    assert await get_current_geolocation(context_in_user_context_1) == TEST_COORDINATES
+    assert await get_current_geolocation(new_tab) == default_coordinates
 
     # Create a new context in the user context.
     context_in_user_context_2 = await bidi_session.browsing_context.create(
@@ -62,14 +62,16 @@ async def test_user_contexts(
         wait="complete",
     )
 
-    assert (
-        await get_current_geolocation(bidi_session, context_in_user_context_2)
-        == TEST_COORDINATES
-    )
+    assert await get_current_geolocation(context_in_user_context_2) == TEST_COORDINATES
 
 
 async def test_set_to_default_user_context(
-    bidi_session, new_tab, create_user_context, url, set_geolocation_permission
+    bidi_session,
+    new_tab,
+    create_user_context,
+    url,
+    get_current_geolocation,
+    set_geolocation_permission,
 ):
     user_context = await create_user_context()
     context_in_user_context_1 = await bidi_session.browsing_context.create(
@@ -89,7 +91,7 @@ async def test_set_to_default_user_context(
     await set_geolocation_permission(new_tab)
     await set_geolocation_permission(new_tab, user_context)
 
-    default_coordinates = await get_current_geolocation(bidi_session, new_tab)
+    default_coordinates = await get_current_geolocation(new_tab)
     assert default_coordinates != TEST_COORDINATES
 
     await bidi_session.emulation.set_geolocation_override(
@@ -103,10 +105,9 @@ async def test_set_to_default_user_context(
 
     # Make sure that the geolocation changes are only applied to the context associated with default user context.
     assert (
-        await get_current_geolocation(bidi_session, context_in_user_context_1)
-        == default_coordinates
+        await get_current_geolocation(context_in_user_context_1) == default_coordinates
     )
-    assert await get_current_geolocation(bidi_session, new_tab) == TEST_COORDINATES
+    assert await get_current_geolocation(new_tab) == TEST_COORDINATES
 
     # Create a new context in the default context.
     context_in_default_context_2 = await bidi_session.browsing_context.create(
@@ -120,8 +121,7 @@ async def test_set_to_default_user_context(
     )
 
     assert (
-        await get_current_geolocation(bidi_session, context_in_default_context_2)
-        == TEST_COORDINATES
+        await get_current_geolocation(context_in_default_context_2) == TEST_COORDINATES
     )
 
     # Reset geolocation override.
@@ -131,7 +131,11 @@ async def test_set_to_default_user_context(
 
 
 async def test_set_to_multiple_user_contexts(
-    bidi_session, create_user_context, url, set_geolocation_permission
+    bidi_session,
+    create_user_context,
+    url,
+    get_current_geolocation,
+    set_geolocation_permission,
 ):
     user_context_1 = await create_user_context()
     context_in_user_context_1 = await bidi_session.browsing_context.create(
@@ -164,18 +168,17 @@ async def test_set_to_multiple_user_contexts(
         ),
     )
 
-    assert (
-        await get_current_geolocation(bidi_session, context_in_user_context_1)
-        == TEST_COORDINATES
-    )
-    assert (
-        await get_current_geolocation(bidi_session, context_in_user_context_2)
-        == TEST_COORDINATES
-    )
+    assert await get_current_geolocation(context_in_user_context_1) == TEST_COORDINATES
+    assert await get_current_geolocation(context_in_user_context_2) == TEST_COORDINATES
 
 
 async def test_set_to_user_context_and_then_to_context(
-    bidi_session, create_user_context, url, new_tab, set_geolocation_permission
+    bidi_session,
+    create_user_context,
+    url,
+    new_tab,
+    get_current_geolocation,
+    set_geolocation_permission,
 ):
     user_context = await create_user_context()
     context_in_user_context_1 = await bidi_session.browsing_context.create(
@@ -195,9 +198,7 @@ async def test_set_to_user_context_and_then_to_context(
     await set_geolocation_permission(new_tab)
     await set_geolocation_permission(new_tab, user_context)
 
-    default_coordinates = await get_current_geolocation(
-        bidi_session, context_in_user_context_1
-    )
+    default_coordinates = await get_current_geolocation(context_in_user_context_1)
 
     assert default_coordinates != TEST_COORDINATES
 
@@ -222,7 +223,7 @@ async def test_set_to_user_context_and_then_to_context(
         ),
     )
     assert (
-        await get_current_geolocation(bidi_session, context_in_user_context_1)
+        await get_current_geolocation(context_in_user_context_1)
         == new_geolocation_coordinates
     )
 
@@ -232,7 +233,7 @@ async def test_set_to_user_context_and_then_to_context(
 
     # Make sure that after reload the geolocation is still updated.
     assert (
-        await get_current_geolocation(bidi_session, context_in_user_context_1)
+        await get_current_geolocation(context_in_user_context_1)
         == new_geolocation_coordinates
     )
 
@@ -246,10 +247,7 @@ async def test_set_to_user_context_and_then_to_context(
         wait="complete",
     )
     # Make sure that the geolocation override for the user context is applied.
-    assert (
-        await get_current_geolocation(bidi_session, context_in_user_context_2)
-        == TEST_COORDINATES
-    )
+    assert await get_current_geolocation(context_in_user_context_2) == TEST_COORDINATES
 
     await bidi_session.emulation.set_geolocation_override(
         contexts=[context_in_user_context_1["context"]],
@@ -258,6 +256,5 @@ async def test_set_to_user_context_and_then_to_context(
 
     # Make sure that the geolocation override was reset.
     assert (
-        await get_current_geolocation(bidi_session, context_in_user_context_1)
-        == default_coordinates
+        await get_current_geolocation(context_in_user_context_1) == default_coordinates
     )

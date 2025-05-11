@@ -34,7 +34,7 @@ interface ServiceWorkerRegistration : EventTarget {
   readonly attribute USVString scope;
   readonly attribute ServiceWorkerUpdateViaCache updateViaCache;
 
-  [NewObject] Promise<undefined> update();
+  [NewObject] Promise<ServiceWorkerRegistration> update();
   [NewObject] Promise<boolean> unregister();
 
   // event

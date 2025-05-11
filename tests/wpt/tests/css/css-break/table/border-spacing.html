@@ -5,7 +5,7 @@
   .cell > div { background:white; }
 </style>
 <p>No red should be seen below.</p>
-<div id="multicol" style="columns:2; column-fill:auto; height:70px; width:200px; line-height:20px;">
+<div id="multicol" style="columns:2; column-fill:auto; gap:0; height:70px; width:200px; line-height:20px;">
   <div style="position:relative; display:table; border-spacing:10px;">
     <div class="cell" style="display:table-cell; width:30px; background:red;">
       <div id="child1">1<br></div>
@@ -20,15 +20,20 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
   test(() => {
+    assert_equals(document.getElementById("child1").offsetLeft, 10);
     assert_equals(document.getElementById("child1").offsetTop, 10);
     assert_equals(document.getElementById("child1").offsetHeight, 20);
+    assert_equals(document.getElementById("child2").offsetLeft, 10);
     assert_equals(document.getElementById("child2").offsetTop, 30);
     assert_equals(document.getElementById("child2").offsetHeight, 20);
+    assert_equals(document.getElementById("child3").offsetLeft, 10);
     assert_equals(document.getElementById("child3").offsetTop, 50);
     assert_equals(document.getElementById("child3").offsetHeight, 20);
-    assert_equals(document.getElementById("child4").offsetTop, 70);
+    assert_equals(document.getElementById("child4").offsetLeft, 110);
+    assert_equals(document.getElementById("child4").offsetTop, 0);
     assert_equals(document.getElementById("child4").offsetHeight, 20);
-    assert_equals(document.getElementById("child5").offsetTop, 90);
+    assert_equals(document.getElementById("child5").offsetLeft, 110);
+    assert_equals(document.getElementById("child5").offsetTop, 20);
     assert_equals(document.getElementById("child5").offsetHeight, 20);
   }, "Table with border spacing");
 </script>

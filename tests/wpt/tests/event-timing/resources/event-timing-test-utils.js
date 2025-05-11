@@ -554,6 +554,17 @@ async function interactAndObserve(interactionType, target, observerPromise, key 
       interactionPromise = textSelectionAndBlockMain(target, 30);
       break;
     }
+    case 'orphan-keydown': {
+      addListeners(target, ['keydown']);
+      interactionPromise = new test_driver.Actions()
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerUp()
+        .addTick()
+        .keyDown('a')
+        .send();
+      break;
+    }
   }
   return Promise.all([interactionPromise, observerPromise]);
 }

@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <script src="/common/dispatcher/dispatcher.js" nonce="abc"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
 <script src="utils.sub.js" nonce="abc"></script>
 <script nonce="abc">
 // For a given string `str` that is escaped by WPT's `.sub.html` or
@@ -44,6 +47,39 @@ Object.keys(requestHeaders).forEach(key => {
     requestHeaders[key] = reverse_html_escape(requestHeaders[key]);
   }
 });
+
+// Add a link to the page in order to use during the test
+function add_link(id, url) {
+  const link_element = document.createElement("a");
+  const link_text = document.createTextNode(url);
+  link_element.setAttribute("href", url);
+  link_element.setAttribute("id", id);
+  link_element.appendChild(link_text);
+  document.body.appendChild(link_element);
+}
+
+// "id" is the id of the link that we need to hover on in order
+// to start the prefetch
+async function start_non_eager_prefetch_on_hover(id) {
+  let target = document.getElementById(id);
+
+  test_driver.set_test_context(window.opener);
+  // Inject the inputs to run this test.
+  await new test_driver.Actions().addPointer("mouse").pointerMove(0, 0, {origin: target}).send();
+}
+
+// "id" is the id of the link that we need to press on in order
+// to start the prefetch
+async function start_non_eager_prefetch_on_pointerdown(id) {
+  let target = document.getElementById(id);
+
+  test_driver.set_test_context(window.opener);
+  // Inject the inputs to run this test.
+  // Move mouse pointer outside of the anchor so that we don't start the
+  // navigation before making sure the prefetch request started server-side.
+  await new test_driver.Actions().addPointer("mouse").pointerMove(0, 0, {origin: target}).pointerDown().pointerMove(0, 0).pointerUp().send();
+}
+
 
 // The fetch request's URL sent to the server.
 window.requestUrl = reverse_html_escape(

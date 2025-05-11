@@ -280,8 +280,14 @@
                  * @param {object} params - Parameters for the command.
                  * @param {null|object} params.coordinates - The optional
                  * geolocation coordinates to set. Matches the
-                 * `emulation.GeolocationCoordinates <https://w3c.github.io/webdriver-bidi/#type-emulation-GeolocationCoordinates>`_
-                 * value. If null or omitted, the emulation will be removed.
+                 * `emulation.GeolocationCoordinates <https://w3c.github.io/webdriver-bidi/#commands-emulationsetgeolocationoverride>`_
+                 * value. If null or omitted and the `params.error` is set, the
+                 * emulation will be removed. Mutually exclusive with
+                 * `params.error`.
+                 * @param {object} params.error - The optional
+                 * geolocation error to emulate. Matches the
+                 * `emulation.GeolocationPositionError <https://w3c.github.io/webdriver-bidi/#commands-emulationsetgeolocationoverride>`_
+                 * value. Mutually exclusive with `params.coordinates`.
                  * @param {null|Array.<(Context)>} [params.contexts] The
                  * optional contexts parameter specifies which browsing contexts
                  * to set the geolocation override on. It should be either an

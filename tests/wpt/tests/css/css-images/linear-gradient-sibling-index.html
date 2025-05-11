@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>CSS Images Test: Linear gradient with sibling-index()</title>
+<link rel="help" href="https://drafts.csswg.org/css-images/#linear-gradients">
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#tree-counting">
+<link rel="match" href="linear-gradient-sibling-index-ref.html">
+<style>
+  .grad {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(blue calc(10px * sibling-index()), yellow);
+  }
+</style>
+<div>
+  <div></div>
+  <div class="grad"></div>
+  <div></div>
+  <div></div>
+  <div class="grad"></div>
+</div>

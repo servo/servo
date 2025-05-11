@@ -1400,6 +1400,8 @@
                 return "-0";
             }
             return String(val);
+        case "bigint":
+            return String(val) + 'n';
         case "object":
             if (val === null) {
                 return "null";
@@ -1771,19 +1773,24 @@
     /**
      * Assert that ``actual`` is a number less than ``expected``.
      *
-     * @param {number} actual - Test value.
-     * @param {number} expected - Number that ``actual`` must be less than.
+     * @param {number|bigint} actual - Test value.
+     * @param {number|bigint} expected - Value that ``actual`` must be less than.
      * @param {string} [description] - Description of the condition being tested.
      */
     function assert_less_than(actual, expected, description)
     {
         /*
-         * Test if a primitive number is less than another
+         * Test if a primitive number (or bigint) is less than another
          */
-        assert(typeof actual === "number",
+        assert(typeof actual === "number" || typeof actual === "bigint",
                "assert_less_than", description,
                "expected a number but got a ${type_actual}",
                {type_actual:typeof actual});
+
+        assert(typeof actual === typeof expected,
+               "assert_less_than", description,
+               "expected a ${type_expected} but got a ${type_actual}",
+               {type_expected:typeof expected, type_actual:typeof actual});
 
         assert(actual < expected,
                "assert_less_than", description,
@@ -1795,19 +1802,24 @@
     /**
      * Assert that ``actual`` is a number greater than ``expected``.
      *
-     * @param {number} actual - Test value.
-     * @param {number} expected - Number that ``actual`` must be greater than.
+     * @param {number|bigint} actual - Test value.
+     * @param {number|bigint} expected - Value that ``actual`` must be greater than.
      * @param {string} [description] - Description of the condition being tested.
      */
     function assert_greater_than(actual, expected, description)
     {
         /*
-         * Test if a primitive number is greater than another
+         * Test if a primitive number (or bigint) is greater than another
          */
-        assert(typeof actual === "number",
+        assert(typeof actual === "number" || typeof actual === "bigint",
                "assert_greater_than", description,
                "expected a number but got a ${type_actual}",
                {type_actual:typeof actual});
+
+        assert(typeof actual === typeof expected,
+               "assert_greater_than", description,
+               "expected a ${type_expected} but got a ${type_actual}",
+               {type_expected:typeof expected, type_actual:typeof actual});
 
         assert(actual > expected,
                "assert_greater_than", description,
@@ -1820,20 +1832,30 @@
      * Assert that ``actual`` is a number greater than ``lower`` and less
      * than ``upper`` but not equal to either.
      *
-     * @param {number} actual - Test value.
-     * @param {number} lower - Number that ``actual`` must be greater than.
-     * @param {number} upper - Number that ``actual`` must be less than.
+     * @param {number|bigint} actual - Test value.
+     * @param {number|bigint} lower - Value that ``actual`` must be greater than.
+     * @param {number|bigint} upper - Value that ``actual`` must be less than.
      * @param {string} [description] - Description of the condition being tested.
      */
     function assert_between_exclusive(actual, lower, upper, description)
     {
         /*
-         * Test if a primitive number is between two others
+         * Test if a primitive number (or bigint) is between two others
          */
-        assert(typeof actual === "number",
+        assert(typeof lower === typeof upper,
+               "assert_between_exclusive", description,
+               "expected lower (${type_lower}) and upper (${type_upper}) types to match (test error)",
+               {type_lower:typeof lower, type_upper:typeof upper});
+
+        assert(typeof actual === "number" || typeof actual === "bigint",
                "assert_between_exclusive", description,
                "expected a number but got a ${type_actual}",
                {type_actual:typeof actual});
+
+        assert(typeof actual === typeof lower,
+               "assert_between_exclusive", description,
+               "expected a ${type_lower} but got a ${type_actual}",
+               {type_lower:typeof lower, type_actual:typeof actual});
 
         assert(actual > lower && actual < upper,
                "assert_between_exclusive", description,
@@ -1846,20 +1868,25 @@
     /**
      * Assert that ``actual`` is a number less than or equal to ``expected``.
      *
-     * @param {number} actual - Test value.
-     * @param {number} expected - Number that ``actual`` must be less
+     * @param {number|bigint} actual - Test value.
+     * @param {number|bigint} expected - Value that ``actual`` must be less
      * than or equal to.
      * @param {string} [description] - Description of the condition being tested.
      */
     function assert_less_than_equal(actual, expected, description)
     {
         /*
-         * Test if a primitive number is less than or equal to another
+         * Test if a primitive number (or bigint) is less than or equal to another
          */
-        assert(typeof actual === "number",
+        assert(typeof actual === "number" || typeof actual === "bigint",
                "assert_less_than_equal", description,
                "expected a number but got a ${type_actual}",
                {type_actual:typeof actual});
+
+        assert(typeof actual === typeof expected,
+               "assert_less_than_equal", description,
+               "expected a ${type_expected} but got a ${type_actual}",
+               {type_expected:typeof expected, type_actual:typeof actual});
 
         assert(actual <= expected,
                "assert_less_than_equal", description,
@@ -1871,20 +1898,25 @@
     /**
      * Assert that ``actual`` is a number greater than or equal to ``expected``.
      *
-     * @param {number} actual - Test value.
-     * @param {number} expected - Number that ``actual`` must be greater
+     * @param {number|bigint} actual - Test value.
+     * @param {number|bigint} expected - Value that ``actual`` must be greater
      * than or equal to.
      * @param {string} [description] - Description of the condition being tested.
      */
     function assert_greater_than_equal(actual, expected, description)
     {
         /*
-         * Test if a primitive number is greater than or equal to another
+         * Test if a primitive number (or bigint) is greater than or equal to another
          */
-        assert(typeof actual === "number",
+        assert(typeof actual === "number" || typeof actual === "bigint",
                "assert_greater_than_equal", description,
                "expected a number but got a ${type_actual}",
                {type_actual:typeof actual});
+
+        assert(typeof actual === typeof expected,
+               "assert_greater_than_equal", description,
+               "expected a ${type_expected} but got a ${type_actual}",
+               {type_expected:typeof expected, type_actual:typeof actual});
 
         assert(actual >= expected,
                "assert_greater_than_equal", description,
@@ -1897,20 +1929,30 @@
      * Assert that ``actual`` is a number greater than or equal to ``lower`` and less
      * than or equal to ``upper``.
      *
-     * @param {number} actual - Test value.
-     * @param {number} lower - Number that ``actual`` must be greater than or equal to.
-     * @param {number} upper - Number that ``actual`` must be less than or equal to.
+     * @param {number|bigint} actual - Test value.
+     * @param {number|bigint} lower - Value that ``actual`` must be greater than or equal to.
+     * @param {number|bigint} upper - Value that ``actual`` must be less than or equal to.
      * @param {string} [description] - Description of the condition being tested.
      */
     function assert_between_inclusive(actual, lower, upper, description)
     {
         /*
-         * Test if a primitive number is between to two others or equal to either of them
+         * Test if a primitive number (or bigint) is between to two others or equal to either of them
          */
-        assert(typeof actual === "number",
+        assert(typeof lower === typeof upper,
+               "assert_between_inclusive", description,
+               "expected lower (${type_lower}) and upper (${type_upper}) types to match (test error)",
+               {type_lower:typeof lower, type_upper:typeof upper});
+
+        assert(typeof actual === "number" || typeof actual === "bigint",
                "assert_between_inclusive", description,
                "expected a number but got a ${type_actual}",
                {type_actual:typeof actual});
+
+        assert(typeof actual === typeof lower,
+               "assert_between_inclusive", description,
+               "expected a ${type_lower} but got a ${type_actual}",
+               {type_lower:typeof lower, type_actual:typeof actual});
 
         assert(actual >= lower && actual <= upper,
                "assert_between_inclusive", description,

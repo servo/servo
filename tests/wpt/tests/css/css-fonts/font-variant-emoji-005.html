@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="UTF-8" />
+<title>CSS Fonts: font-variant-emoji web font test</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-variant-emoji-prop" />
+<link rel="help" href="https://www.unicode.org/reports/tr51/tr51-25.html#Emoji_Properties_and_Data_Files" />
+<link rel="match" href="font-variant-emoji-005-ref.html"/>
+<meta name="assert" content="Digit-keycap sequences render as emoji if required, in preference to using the named font"/>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+body { background: white; }
+p { font: 16px/3 serif; }
+/* A color-emoji glyph in the span will be visible despite the white color;
+ * if color-emoji presentation is not used, the span will be invisible.
+ */
+span { color: white; font: 25px Ahem; }
+</style>
+
+<h4>Only lines 3 and 4 should show a keycap numeral:</h4>
+
+<p>1. text: <span style="font-variant-emoji: text">X1&#x20e3;X</span></p>
+
+<p>2. unicode: <span style="font-variant-emoji: unicode">X2&#x20e3;X</span></p>
+
+<p>3. emoji: <span style="font-variant-emoji: emoji">X3&#x20e3;X</span></p>
+
+<p>4. with VS16: <span style="font-variant-emoji: normal">X4&#xfe0f;&#x20e3;X</span></p>
+
+<p>5. emoji, with VS15: <span style="font-variant-emoji: emoji">X5&#xfe0e;&#x20e3;X</span></p>

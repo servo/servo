@@ -37,7 +37,7 @@ promise_test(async t => {
       const original = result.value;
       let clone = structuredClone(original);
       assert_equals(original.timestamp, clone.timestamp);
-      assert_equals(original.getMetadata().absCaptureTime, clone.getMetadata().absCaptureTime);
+      assert_equals(original.getMetadata().captureTime, clone.getMetadata().captureTime);
       assert_array_equals(Array.from(original.data), Array.from(clone.data));
       await writer2.write(clone);
       resolve();

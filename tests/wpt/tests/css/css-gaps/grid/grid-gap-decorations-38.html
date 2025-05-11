@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: grid column gaps are painted with different sized gaps and column-rule-outset 0.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="../agnostic/gap-decorations-002-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+
+  .grid-container {
+    height: 110px;
+    width: 120px;
+
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+
+    column-gap: 20px;
+    row-gap: 10px;
+
+    column-rule-color: blue;
+    column-rule-style: solid;
+    column-rule-width: 20px;
+
+    row-rule-color: gold;
+    row-rule-style: solid;
+    row-rule-width: 10px;
+
+    row-rule-break: intersection;
+    row-rule-outset: 0;
+  }
+
+  .grid-item {
+    background: skyblue;
+  }
+</style>
+<div class="grid-container">
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+</div>
