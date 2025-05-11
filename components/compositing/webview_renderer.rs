@@ -689,11 +689,6 @@ impl WebViewRenderer {
             action: MouseButtonAction::Up,
             point,
         }));
-        self.dispatch_input_event(InputEvent::MouseButton(MouseButtonEvent {
-            button,
-            action: MouseButtonAction::Click,
-            point,
-        }));
     }
 
     pub(crate) fn notify_scroll_event(
