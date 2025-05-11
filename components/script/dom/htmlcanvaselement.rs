@@ -103,10 +103,14 @@ impl EncodedImageType {
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#htmlcanvaselement>
 #[dom_struct]
 pub(crate) struct HTMLCanvasElement {
     htmlelement: HTMLElement,
-    context: DomRefCell<Option<RenderingContext>>,
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-canvas-context-mode>
+    context_mode: DomRefCell<Option<RenderingContext>>,
+
     // This id and hashmap are used to keep track of ongoing toBlob() calls.
     callback_id: Cell<u32>,
     #[ignore_malloc_size_of = "not implemented for webidl callbacks"]
@@ -121,7 +125,7 @@ impl HTMLCanvasElement {
     ) -> HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            context: DomRefCell::new(None),
+            context_mode: DomRefCell::new(None),
             callback_id: Cell::new(0),
             blob_callbacks: RefCell::new(HashMap::new()),
         }
@@ -146,7 +150,7 @@ impl HTMLCanvasElement {
     }
 
     fn recreate_contexts_after_resize(&self) {
-        if let Some(ref context) = *self.context.borrow() {
+        if let Some(ref context) = *self.context_mode.borrow() {
             context.resize()
         }
     }
@@ -156,14 +160,14 @@ impl HTMLCanvasElement {
     }
 
     pub(crate) fn origin_is_clean(&self) -> bool {
-        match *self.context.borrow() {
+        match *self.context_mode.borrow() {
             Some(ref context) => context.origin_is_clean(),
             _ => true,
         }
     }
 
     pub(crate) fn mark_as_dirty(&self) {
-        if let Some(ref context) = *self.context.borrow() {
+        if let Some(ref context) = *self.context_mode.borrow() {
             context.mark_as_dirty()
         }
     }
@@ -193,7 +197,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn data(self) -> HTMLCanvasData {
         let source = unsafe {
-            match self.unsafe_get().context.borrow_for_layout().as_ref() {
+            match self.unsafe_get().context_mode.borrow_for_layout().as_ref() {
                 Some(RenderingContext::Context2d(context)) => {
                     context.to_layout().canvas_data_source()
                 },
@@ -221,7 +225,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
 
 impl HTMLCanvasElement {
     pub(crate) fn context(&self) -> Option<Ref<RenderingContext>> {
-        ref_filter_map(self.context.borrow(), |ctx| ctx.as_ref())
+        ref_filter_map(self.context_mode.borrow(), |ctx| ctx.as_ref())
     }
 
     fn get_or_init_2d_context(&self, can_gc: CanGc) -> Option<DomRoot<CanvasRenderingContext2D>> {
@@ -235,7 +239,8 @@ impl HTMLCanvasElement {
         let window = self.owner_window();
         let size = self.get_size();
         let context = CanvasRenderingContext2D::new(window.as_global_scope(), self, size, can_gc);
-        *self.context.borrow_mut() = Some(RenderingContext::Context2d(Dom::from_ref(&*context)));
+        *self.context_mode.borrow_mut() =
+            Some(RenderingContext::Context2d(Dom::from_ref(&*context)));
         Some(context)
     }
 
@@ -263,7 +268,7 @@ impl HTMLCanvasElement {
             attrs,
             can_gc,
         )?;
-        *self.context.borrow_mut() = Some(RenderingContext::WebGL(Dom::from_ref(&*context)));
+        *self.context_mode.borrow_mut() = Some(RenderingContext::WebGL(Dom::from_ref(&*context)));
         Some(context)
     }
 
@@ -288,7 +293,7 @@ impl HTMLCanvasElement {
         let attrs = Self::get_gl_attributes(cx, options)?;
         let canvas = HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(DomRoot::from_ref(self));
         let context = WebGL2RenderingContext::new(&window, &canvas, size, attrs, can_gc)?;
-        *self.context.borrow_mut() = Some(RenderingContext::WebGL2(Dom::from_ref(&*context)));
+        *self.context_mode.borrow_mut() = Some(RenderingContext::WebGL2(Dom::from_ref(&*context)));
         Some(context)
     }
 
@@ -315,7 +320,7 @@ impl HTMLCanvasElement {
             .expect("Failed to get WebGPU channel")
             .map(|channel| {
                 let context = GPUCanvasContext::new(&global_scope, self, channel, can_gc);
-                *self.context.borrow_mut() =
+                *self.context_mode.borrow_mut() =
                     Some(RenderingContext::WebGPU(Dom::from_ref(&*context)));
                 context
             })
@@ -323,7 +328,7 @@ impl HTMLCanvasElement {
 
     /// Gets the base WebGLRenderingContext for WebGL or WebGL 2, if exists.
     pub(crate) fn get_base_webgl_context(&self) -> Option<DomRoot<WebGLRenderingContext>> {
-        match *self.context.borrow() {
+        match *self.context_mode.borrow() {
             Some(RenderingContext::WebGL(ref context)) => Some(DomRoot::from_ref(context)),
             Some(RenderingContext::WebGL2(ref context)) => Some(context.base_context()),
             _ => None,
@@ -352,7 +357,7 @@ impl HTMLCanvasElement {
     }
 
     pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
-        match self.context.borrow().as_ref() {
+        match self.context_mode.borrow().as_ref() {
             Some(context) => context.get_image_data(),
             None => {
                 let size = self.get_size();
@@ -431,12 +436,12 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     // https://html.spec.whatwg.org/multipage/#dom-canvas-width
     make_uint_getter!(Width, "width", DEFAULT_WIDTH);
 
-    // https://html.spec.whatwg.org/multipage/#dom-canvas-width
-    // When setting the value of the width or height attribute, if the context mode of the canvas element
-    // is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
-    // attribute's value unchanged.
+    /// <https://html.spec.whatwg.org/multipage/#dom-canvas-width>
     fn SetWidth(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
-        if let Some(RenderingContext::Placeholder(_)) = *self.context.borrow() {
+        // > When setting the value of the width or height attribute, if the context mode of the canvas element
+        // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
+        // > attribute's value unchanged.
+        if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
             return Err(Error::InvalidState);
         }
 
@@ -453,9 +458,12 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     // https://html.spec.whatwg.org/multipage/#dom-canvas-height
     make_uint_getter!(Height, "height", DEFAULT_HEIGHT);
 
-    // https://html.spec.whatwg.org/multipage/#dom-canvas-height
+    /// <https://html.spec.whatwg.org/multipage/#dom-canvas-height>
     fn SetHeight(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
-        if let Some(RenderingContext::Placeholder(_)) = *self.context.borrow() {
+        // > When setting the value of the width or height attribute, if the context mode of the canvas element
+        // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
+        // > attribute's value unchanged.
+        if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
             return Err(Error::InvalidState);
         }
 
@@ -478,7 +486,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         can_gc: CanGc,
     ) -> Fallible<Option<RootedRenderingContext>> {
         // Always throw an InvalidState exception when the canvas is in Placeholder mode (See table in the spec).
-        if let Some(RenderingContext::Placeholder(_)) = *self.context.borrow() {
+        if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
             return Err(Error::InvalidState);
         }
 
@@ -622,7 +630,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-transfercontroltooffscreen>
     fn TransferControlToOffscreen(&self, can_gc: CanGc) -> Fallible<DomRoot<OffscreenCanvas>> {
-        if self.context.borrow().is_some() {
+        if self.context_mode.borrow().is_some() {
             // Step 1.
             // If this canvas element's context mode is not set to none, throw an "InvalidStateError" DOMException.
             return Err(Error::InvalidState);
@@ -641,8 +649,9 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             Some(&Dom::from_ref(self)),
             can_gc,
         );
+
         // Step 4. Set this canvas element's context mode to placeholder.
-        *self.context.borrow_mut() =
+        *self.context_mode.borrow_mut() =
             Some(RenderingContext::Placeholder(offscreen_canvas.as_traced()));
 
         // Step 5. Return offscreenCanvas.
