@@ -163,6 +163,7 @@ skip = [
     # duplicated by winit
     "objc2-app-kit",
     "objc2-foundation",
+    "objc2",
 ]
 
 # github.com organizations to allow git sources for
