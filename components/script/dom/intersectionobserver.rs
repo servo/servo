@@ -524,11 +524,10 @@ impl IntersectionObserver {
 
         // Step 9
         // > Let targetArea be targetRect’s area.
-        let target_area = target_rect.size.width.0 * target_rect.size.height.0;
-
         // Step 10
         // > Let intersectionArea be intersectionRect’s area.
-        let intersection_area = intersection_rect.size.width.0 * intersection_rect.size.height.0;
+        // These steps are folded in Step 12, rewriting (w1 * h1) / (w2 * h2) as (w1 / w2) * (h1 / h2)
+        // to avoid multiplication overflows.
 
         // Step 11
         // > Let isIntersecting be true if targetRect and rootBounds intersect or are edge-adjacent,
@@ -545,9 +544,12 @@ impl IntersectionObserver {
         // Step 12
         // > If targetArea is non-zero, let intersectionRatio be intersectionArea divided by targetArea.
         // > Otherwise, let intersectionRatio be 1 if isIntersecting is true, or 0 if isIntersecting is false.
-        let intersection_ratio = match target_area {
-            0 => is_intersecting.into(),
-            _ => (intersection_area as f64) / (target_area as f64),
+        let intersection_ratio = if target_rect.size.width.0 == 0 || target_rect.size.height.0 == 0
+        {
+            is_intersecting.into()
+        } else {
+            (intersection_rect.size.width.0 as f64 / target_rect.size.width.0 as f64) *
+                (intersection_rect.size.height.0 as f64 / target_rect.size.height.0 as f64)
         };
 
         // Step 13
