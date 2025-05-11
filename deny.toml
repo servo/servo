@@ -159,6 +159,10 @@ skip = [
     # duplicated by font-kit
     "redox_users",
     "dirs-sys",
+
+    # duplicated by winit
+    "objc2-app-kit",
+    "objc2-foundation",
 ]
 
 # github.com organizations to allow git sources for
