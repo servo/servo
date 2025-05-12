@@ -23,6 +23,7 @@ use style::values::specified::Quotes;
 
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
+use crate::flow::inline::SharedInlineStyles;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags, Tag};
 use crate::quotes::quotes_for_lang;
 use crate::replaced::ReplacedContents;
@@ -185,6 +186,12 @@ pub(super) trait TraversalHandler<'dom> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     );
+
+    /// Notify the handler that we are about to recurse into a `display: contents` element.
+    fn enter_display_contents(&mut self, _: SharedInlineStyles) {}
+
+    /// Notify the handler that we have finished a `display: contents` element.
+    fn leave_display_contents(&mut self) {}
 }
 
 fn traverse_children_of<'dom>(
@@ -254,8 +261,15 @@ fn traverse_element<'dom>(
                 // <https://drafts.csswg.org/css-display-3/#valdef-display-contents>
                 element.unset_all_boxes()
             } else {
-                element.element_box_slot().set(LayoutBox::DisplayContents);
-                traverse_children_of(element, context, handler)
+                let shared_inline_styles: SharedInlineStyles =
+                    (&NodeAndStyleInfo::new(element, style)).into();
+                element
+                    .element_box_slot()
+                    .set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
+
+                handler.enter_display_contents(shared_inline_styles);
+                traverse_children_of(element, context, handler);
+                handler.leave_display_contents();
             }
         },
         Display::GeneratingBox(display) => {
@@ -308,8 +322,12 @@ fn traverse_eager_pseudo_element<'dom>(
         Display::Contents => {
             let items = generate_pseudo_element_content(&info.style, node, context);
             let box_slot = node.pseudo_element_box_slot(pseudo_element_type);
-            box_slot.set(LayoutBox::DisplayContents);
+            let shared_inline_styles: SharedInlineStyles = (&info).into();
+            box_slot.set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
+
+            handler.enter_display_contents(shared_inline_styles);
             traverse_pseudo_element_contents(&info, context, handler, items);
+            handler.leave_display_contents();
         },
         Display::GeneratingBox(display) => {
             let items = generate_pseudo_element_content(&info.style, node, context);

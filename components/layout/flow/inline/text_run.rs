@@ -26,7 +26,7 @@ use unicode_script::Script;
 use xi_unicode::linebreak_property;
 
 use super::line_breaker::LineBreaker;
-use super::{FontKeyAndMetrics, InlineFormattingContextLayout};
+use super::{FontKeyAndMetrics, InlineFormattingContextLayout, SharedInlineStyles};
 use crate::fragment_tree::BaseFragmentInfo;
 
 // These constants are the xi-unicode line breaking classes that are defined in
@@ -36,22 +36,6 @@ pub(crate) const XI_LINE_BREAKING_CLASS_GL: u8 = 12;
 pub(crate) const XI_LINE_BREAKING_CLASS_ZW: u8 = 28;
 pub(crate) const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
 pub(crate) const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 42;
-
-/// <https://www.w3.org/TR/css-display-3/#css-text-run>
-#[derive(Debug, MallocSizeOf)]
-pub(crate) struct TextRun {
-    pub base_fragment_info: BaseFragmentInfo,
-    #[conditional_malloc_size_of]
-    pub parent_style: Arc<ComputedValues>,
-    pub text_range: Range<usize>,
-
-    /// The text of this [`TextRun`] with a font selected, broken into unbreakable
-    /// segments, and shaped.
-    pub shaped_text: Vec<TextRunSegment>,
-    pub selection_range: Option<ServoRange<ByteIndex>>,
-    #[conditional_malloc_size_of]
-    pub selected_style: Arc<ComputedValues>,
-}
 
 // There are two reasons why we might want to break at the start:
 //
@@ -334,21 +318,49 @@ impl TextRunSegment {
     }
 }
 
+/// A single [`TextRun`] for the box tree. These are all descendants of
+/// [`super::InlineBox`] or the root of the [`super::InlineFormattingContext`].  During
+/// box tree construction, text is split into [`TextRun`]s based on their font, script,
+/// etc. When these are created text is already shaped.
+///
+/// <https://www.w3.org/TR/css-display-3/#css-text-run>
+#[derive(Debug, MallocSizeOf)]
+pub(crate) struct TextRun {
+    /// The [`BaseFragmentInfo`] for this [`TextRun`]. Usually this comes from the
+    /// original text node in the DOM for the text.
+    pub base_fragment_info: BaseFragmentInfo,
+
+    /// The [`crate::SharedStyle`] from this [`TextRun`]s parent element. This is
+    /// shared so that incremental layout can simply update the parent element and
+    /// this [`TextRun`] will be updated automatically.
+    pub inline_styles: SharedInlineStyles,
+
+    /// The range of text in [`super::InlineFormattingContext::text_content`] of the
+    /// [`super::InlineFormattingContext`] that owns this [`TextRun`]. These are UTF-8 offsets.
+    pub text_range: Range<usize>,
+
+    /// The text of this [`TextRun`] with a font selected, broken into unbreakable
+    /// segments, and shaped.
+    pub shaped_text: Vec<TextRunSegment>,
+
+    /// The selection range for the DOM text node that originated this [`TextRun`]. This
+    /// comes directly from the DOM.
+    pub selection_range: Option<ServoRange<ByteIndex>>,
+}
+
 impl TextRun {
     pub(crate) fn new(
         base_fragment_info: BaseFragmentInfo,
-        parent_style: Arc<ComputedValues>,
+        inline_styles: SharedInlineStyles,
         text_range: Range<usize>,
         selection_range: Option<ServoRange<ByteIndex>>,
-        selected_style: Arc<ComputedValues>,
     ) -> Self {
         Self {
             base_fragment_info,
-            parent_style,
+            inline_styles,
             text_range,
             shaped_text: Vec::new(),
             selection_range,
-            selected_style,
         }
     }
 
@@ -360,11 +372,12 @@ impl TextRun {
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
     ) {
-        let inherited_text_style = self.parent_style.get_inherited_text().clone();
+        let parent_style = self.inline_styles.style.borrow().clone();
+        let inherited_text_style = parent_style.get_inherited_text().clone();
         let letter_spacing = inherited_text_style
             .letter_spacing
             .0
-            .resolve(self.parent_style.clone_font().font_size.computed_size());
+            .resolve(parent_style.clone_font().font_size.computed_size());
         let letter_spacing = if letter_spacing.px() != 0. {
             Some(app_units::Au::from(letter_spacing))
         } else {
@@ -384,7 +397,13 @@ impl TextRun {
         let style_word_spacing: Option<Au> = specified_word_spacing.to_length().map(|l| l.into());
 
         let segments = self
-            .segment_text_by_font(formatting_context_text, font_context, font_cache, bidi_info)
+            .segment_text_by_font(
+                formatting_context_text,
+                font_context,
+                font_cache,
+                bidi_info,
+                &parent_style,
+            )
             .into_iter()
             .map(|(mut segment, font)| {
                 let word_spacing = style_word_spacing.unwrap_or_else(|| {
@@ -407,7 +426,7 @@ impl TextRun {
                 };
 
                 segment.shape_text(
-                    &self.parent_style,
+                    &parent_style,
                     formatting_context_text,
                     linebreaker,
                     &shaping_options,
@@ -430,8 +449,9 @@ impl TextRun {
         font_context: &FontContext,
         font_cache: &mut Vec<FontKeyAndMetrics>,
         bidi_info: &BidiInfo,
+        parent_style: &Arc<ComputedValues>,
     ) -> Vec<(TextRunSegment, FontRef)> {
-        let font_group = font_context.font_group(self.parent_style.clone_font());
+        let font_group = font_context.font_group(parent_style.clone_font());
         let mut current: Option<(TextRunSegment, FontRef)> = None;
         let mut results = Vec::new();
 
