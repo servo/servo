@@ -8,6 +8,9 @@ on:
       profile:
         required: true
         type: string
+      build-args:
+        required: true
+        type: string
       wpt-args:
         required: true
         type: string
@@ -35,6 +38,7 @@ jobs:
     secrets: inherit
     with:
       profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
       unit-tests: ${{ inputs.unit-tests }}
       build-libservo: ${{ inputs.build-libservo }}
       bencher: ${{ inputs.bencher }}
@@ -46,6 +50,7 @@ jobs:
     secrets: inherit
     with:
       profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
       wpt: ${{ inputs.wpt }}
       unit-tests: ${{ inputs.unit-tests }}
       build-libservo: ${{ inputs.build-libservo }}
@@ -59,6 +64,7 @@ jobs:
     secrets: inherit
     with:
       profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
       wpt: ${{ inputs.wpt }}
       number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
       unit-tests: ${{ inputs.unit-tests }}
