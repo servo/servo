@@ -90,12 +90,13 @@ use line::{
 use line_breaker::LineBreaker;
 use malloc_size_of_derive::MallocSizeOf;
 use range::Range;
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc;
 use style::Zero;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
-use style::context::QuirksMode;
+use style::context::{QuirksMode, SharedStyleContext};
 use style::properties::ComputedValues;
 use style::properties::style_structs::InheritedText;
 use style::values::generics::box_::VerticalAlignKeyword;
@@ -210,15 +211,41 @@ pub(crate) enum InlineItem {
         ArcRefCell<AbsolutelyPositionedBox>,
         usize, /* offset_in_text */
     ),
-    OutOfFlowFloatBox(#[conditional_malloc_size_of] Arc<FloatBox>),
+    OutOfFlowFloatBox(ArcRefCell<FloatBox>),
     Atomic(
-        #[conditional_malloc_size_of] Arc<IndependentFormattingContext>,
+        ArcRefCell<IndependentFormattingContext>,
         usize, /* offset_in_text */
         Level, /* bidi_level */
     ),
 }
 
 impl InlineItem {
+    pub(crate) fn repair_style(
+        &self,
+        context: &SharedStyleContext,
+        node: &ServoLayoutNode,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        match self {
+            InlineItem::StartInlineBox(inline_box) => {
+                inline_box.borrow_mut().repair_style(node, new_style);
+            },
+            InlineItem::EndInlineBox => {},
+            // TextRun holds a handle the `InlineSharedStyles` which is updated when repairing inline box
+            // and `display: contents` styles.
+            InlineItem::TextRun(..) => {},
+            InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => positioned_box
+                .borrow_mut()
+                .context
+                .repair_style(context, new_style),
+            InlineItem::OutOfFlowFloatBox(float_box) => float_box
+                .borrow_mut()
+                .contents
+                .repair_style(context, new_style),
+            InlineItem::Atomic(atomic, ..) => atomic.borrow_mut().repair_style(context, new_style),
+        }
+    }
+
     pub(crate) fn invalidate_cached_fragment(&self) {
         match self {
             InlineItem::StartInlineBox(inline_box) => {
@@ -232,11 +259,14 @@ impl InlineItem {
                     .base
                     .invalidate_cached_fragment();
             },
-            InlineItem::OutOfFlowFloatBox(float_box) => {
-                float_box.contents.base.invalidate_cached_fragment()
-            },
+            InlineItem::OutOfFlowFloatBox(float_box) => float_box
+                .borrow()
+                .contents
+                .base
+                .invalidate_cached_fragment(),
             InlineItem::Atomic(independent_formatting_context, ..) => {
                 independent_formatting_context
+                    .borrow()
                     .base
                     .invalidate_cached_fragment();
             },
@@ -252,9 +282,11 @@ impl InlineItem {
             InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
                 positioned_box.borrow().context.base.fragments()
             },
-            InlineItem::OutOfFlowFloatBox(float_box) => float_box.contents.base.fragments(),
+            InlineItem::OutOfFlowFloatBox(float_box) => {
+                float_box.borrow().contents.base.fragments()
+            },
             InlineItem::Atomic(independent_formatting_context, ..) => {
-                independent_formatting_context.base.fragments()
+                independent_formatting_context.borrow().base.fragments()
             },
         }
     }
@@ -978,6 +1010,7 @@ impl InlineFormattingContextLayout<'_> {
         .as_physical(Some(self.containing_block));
         self.fragments
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
+                self.root_nesting_level.style.clone(),
                 physical_line_rect,
                 fragments,
             )));
@@ -1770,7 +1803,7 @@ impl InlineFormattingContext {
                 InlineItem::EndInlineBox => layout.finish_inline_box(),
                 InlineItem::TextRun(run) => run.borrow().layout_into_line_items(&mut layout),
                 InlineItem::Atomic(atomic_formatting_context, offset_in_text, bidi_level) => {
-                    atomic_formatting_context.layout_into_line_items(
+                    atomic_formatting_context.borrow().layout_into_line_items(
                         &mut layout,
                         *offset_in_text,
                         *bidi_level,
@@ -1785,7 +1818,7 @@ impl InlineFormattingContext {
                     ));
                 },
                 InlineItem::OutOfFlowFloatBox(float_box) => {
-                    float_box.layout_into_line_items(&mut layout);
+                    float_box.borrow().layout_into_line_items(&mut layout);
                 },
             }
         }
@@ -2448,7 +2481,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 let InlineContentSizesResult {
                     sizes: outer,
                     depends_on_block_constraints,
-                } = atomic.outer_inline_content_sizes(
+                } = atomic.borrow().outer_inline_content_sizes(
                     self.layout_context,
                     &self.constraint_space.into(),
                     &LogicalVec2::zero(),

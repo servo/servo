@@ -6,6 +6,7 @@ use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutElement;
 use servo_arc::Arc;
+use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
@@ -217,6 +218,20 @@ impl IndependentFormattingContext {
             },
         }
     }
+
+    pub(crate) fn repair_style(
+        &mut self,
+        context: &SharedStyleContext,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        self.base.repair_style(new_style);
+        match &mut self.contents {
+            IndependentFormattingContextContents::NonReplaced(content) => {
+                content.repair_style(context, new_style);
+            },
+            IndependentFormattingContextContents::Replaced(..) => {},
+        }
+    }
 }
 
 impl IndependentNonReplacedContents {
@@ -333,6 +348,19 @@ impl IndependentNonReplacedContents {
     #[inline]
     pub(crate) fn is_table(&self) -> bool {
         matches!(self, Self::Table(_))
+    }
+
+    fn repair_style(&mut self, context: &SharedStyleContext, new_style: &Arc<ComputedValues>) {
+        match self {
+            IndependentNonReplacedContents::Flow(..) => {},
+            IndependentNonReplacedContents::Flex(flex_container) => {
+                flex_container.repair_style(new_style)
+            },
+            IndependentNonReplacedContents::Grid(taffy_container) => {
+                taffy_container.repair_style(new_style)
+            },
+            IndependentNonReplacedContents::Table(table) => table.repair_style(context, new_style),
+        }
     }
 }
 

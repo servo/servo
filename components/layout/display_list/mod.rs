@@ -471,18 +471,16 @@ impl Fragment {
             Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Positioning(positioning_fragment) => {
                 let positioning_fragment = positioning_fragment.borrow();
-                if let Some(style) = positioning_fragment.style.as_ref() {
-                    let rect = positioning_fragment
-                        .rect
-                        .translate(containing_block.origin.to_vector());
-                    self.maybe_push_hit_test_for_style_and_tag(
-                        builder,
-                        style,
-                        positioning_fragment.base.tag,
-                        rect,
-                        Cursor::Default,
-                    );
-                }
+                let rect = positioning_fragment
+                    .rect
+                    .translate(containing_block.origin.to_vector());
+                self.maybe_push_hit_test_for_style_and_tag(
+                    builder,
+                    &positioning_fragment.style,
+                    positioning_fragment.base.tag,
+                    rect,
+                    Cursor::Default,
+                );
             },
             Fragment::Image(image) => {
                 let image = image.borrow();

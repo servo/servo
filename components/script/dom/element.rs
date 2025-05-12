@@ -359,7 +359,7 @@ impl Element {
 
         if damage == NodeDamage::OtherNodeDamage {
             doc.note_node_with_dirty_descendants(self.upcast());
-            restyle.damage = RestyleDamage::rebuild_and_reflow();
+            restyle.damage = RestyleDamage::reconstruct();
         }
     }
 

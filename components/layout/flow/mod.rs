@@ -9,9 +9,11 @@ use app_units::{Au, MAX_AU};
 use inline::InlineFormattingContext;
 use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc;
 use style::Zero;
 use style::computed_values::clear::T as StyleClear;
+use style::context::SharedStyleContext;
 use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
@@ -21,6 +23,7 @@ use style::values::specified::{Display, TextAlignKeyword};
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
+use crate::dom::NodeExt;
 use crate::flow::float::{
     Clear, ContainingBlockPositionInfo, FloatBox, FloatSide, PlacementAmongFloats,
     SequentialLayoutState,
@@ -91,6 +94,36 @@ pub(crate) enum BlockLevelBox {
 }
 
 impl BlockLevelBox {
+    pub(crate) fn repair_style(
+        &mut self,
+        context: &SharedStyleContext,
+        node: &ServoLayoutNode,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        self.with_base_mut(|base| {
+            base.repair_style(new_style);
+        });
+
+        match self {
+            BlockLevelBox::Independent(independent_formatting_context) => {
+                independent_formatting_context.repair_style(context, new_style)
+            },
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => positioned_box
+                .borrow_mut()
+                .context
+                .repair_style(context, new_style),
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => {
+                float_box.contents.repair_style(context, new_style)
+            },
+            BlockLevelBox::OutsideMarker(outside_marker) => {
+                outside_marker.repair_style(context, node, new_style)
+            },
+            BlockLevelBox::SameFormattingContextBlock { base, .. } => {
+                base.repair_style(new_style);
+            },
+        }
+    }
+
     pub(crate) fn invalidate_cached_fragment(&self) {
         self.with_base(LayoutBoxBase::invalidate_cached_fragment);
     }
@@ -109,6 +142,20 @@ impl BlockLevelBox {
             },
             BlockLevelBox::OutOfFlowFloatBox(float_box) => callback(&float_box.contents.base),
             BlockLevelBox::OutsideMarker(outside_marker) => callback(&outside_marker.base),
+            BlockLevelBox::SameFormattingContextBlock { base, .. } => callback(base),
+        }
+    }
+
+    pub(crate) fn with_base_mut<T>(&mut self, callback: impl Fn(&mut LayoutBoxBase) -> T) -> T {
+        match self {
+            BlockLevelBox::Independent(independent_formatting_context) => {
+                callback(&mut independent_formatting_context.base)
+            },
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                callback(&mut positioned_box.borrow_mut().context.base)
+            },
+            BlockLevelBox::OutOfFlowFloatBox(float_box) => callback(&mut float_box.contents.base),
+            BlockLevelBox::OutsideMarker(outside_marker) => callback(&mut outside_marker.base),
             BlockLevelBox::SameFormattingContextBlock { base, .. } => callback(base),
         }
     }
@@ -359,6 +406,16 @@ impl OutsideMarker {
             PhysicalSides::zero(),
             None,
         )))
+    }
+
+    fn repair_style(
+        &mut self,
+        context: &SharedStyleContext,
+        node: &ServoLayoutNode,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        self.list_item_style = node.style(context);
+        self.base.repair_style(new_style);
     }
 }
 

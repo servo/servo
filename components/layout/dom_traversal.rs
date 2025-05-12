@@ -212,7 +212,10 @@ fn traverse_children_of<'dom>(
     );
 
     if is_text_input_element || is_textarea_element {
-        let info = NodeAndStyleInfo::new(parent_element, parent_element.style(context));
+        let info = NodeAndStyleInfo::new(
+            parent_element,
+            parent_element.style(context.shared_context()),
+        );
         let node_text_content = parent_element.to_threadsafe().node_text_content();
         if node_text_content.is_empty() {
             // The addition of zero-width space here forces the text input to have an inline formatting
@@ -231,7 +234,7 @@ fn traverse_children_of<'dom>(
     if !is_text_input_element && !is_textarea_element {
         for child in iter_child_nodes(parent_element) {
             if child.is_text_node() {
-                let info = NodeAndStyleInfo::new(child, child.style(context));
+                let info = NodeAndStyleInfo::new(child, child.style(context.shared_context()));
                 handler.handle_text(&info, child.to_threadsafe().node_text_content());
             } else if child.is_element() {
                 traverse_element(child, context, handler);
@@ -252,7 +255,7 @@ fn traverse_element<'dom>(
     element.unset_pseudo_element_box(PseudoElement::Marker);
 
     let replaced = ReplacedContents::for_element(element, context);
-    let style = element.style(context);
+    let style = element.style(context.shared_context());
     match Display::from(style.get_box().display) {
         Display::None => element.unset_all_boxes(),
         Display::Contents => {

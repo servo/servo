@@ -304,6 +304,25 @@ impl Fragment {
             _ => None,
         }
     }
+
+    pub(crate) fn repair_style(&self, style: &ServoArc<ComputedValues>) {
+        match self {
+            Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
+                box_fragment.borrow_mut().style = style.clone()
+            },
+            Fragment::Positioning(positioning_fragment) => {
+                positioning_fragment.borrow_mut().style = style.clone();
+            },
+            Fragment::AbsoluteOrFixedPositioned(positioned_fragment) => {
+                if let Some(ref fragment) = positioned_fragment.borrow().fragment {
+                    fragment.repair_style(style);
+                }
+            },
+            Fragment::Text(..) => unreachable!("Should never try to repair style of TextFragment"),
+            Fragment::Image(image_fragment) => image_fragment.borrow_mut().style = style.clone(),
+            Fragment::IFrame(iframe_fragment) => iframe_fragment.borrow_mut().style = style.clone(),
+        }
+    }
 }
 
 impl TextFragment {
