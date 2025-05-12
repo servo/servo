@@ -119,14 +119,9 @@ impl<'a> CanvasPaintThread<'a> {
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
-        let canvas_data = CanvasData::new(
-            size,
-            self.compositor_api.clone(),
-            self.font_context.clone(),
-            RaqoteBackend,
-        );
-        let image_key = canvas_data.image_key();
-        self.canvases.insert(canvas_id, Canvas::Raqote(canvas_data));
+        let canvas = Canvas::new(size, self.compositor_api.clone(), self.font_context.clone());
+        let image_key = canvas.image_key();
+        self.canvases.insert(canvas_id, canvas);
 
         (canvas_id, image_key)
     }
@@ -291,86 +286,145 @@ impl<'a> CanvasPaintThread<'a> {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 enum Canvas<'a> {
     Raqote(CanvasData<'a, RaqoteBackend>),
+    #[cfg(feature = "vello")]
+    Vello(CanvasData<'a, crate::vello_backend::VelloBackend>),
 }
 
 impl Canvas<'_> {
+    fn new(
+        size: Size2D<u64>,
+        compositor_api: CrossProcessCompositorApi,
+        font_context: Arc<FontContext>,
+    ) -> Self {
+        #[cfg(feature = "vello")]
+        if servo_config::pref!(dom_canvas_vello_enabled) {
+            return Self::Vello(CanvasData::new(
+                size,
+                compositor_api,
+                font_context,
+                crate::vello_backend::VelloBackend,
+            ));
+        }
+        Self::Raqote(CanvasData::new(
+            size,
+            compositor_api,
+            font_context,
+            RaqoteBackend,
+        ))
+    }
+
+    fn image_key(&self) -> ImageKey {
+        match self {
+            Canvas::Raqote(canvas_data) => canvas_data.image_key(),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.image_key(),
+        }
+    }
+
     fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_fill_style(style),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_fill_style(style),
         }
     }
 
     fn fill(&mut self) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.fill(),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.fill(),
         }
     }
 
     fn fill_text(&mut self, text: String, x: f64, y: f64, max_width: Option<f64>, is_rtl: bool) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.fill_text(text, x, y, max_width, is_rtl),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.fill_text(text, x, y, max_width, is_rtl),
         }
     }
 
     fn fill_rect(&mut self, rect: &Rect<f32>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.fill_rect(rect),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.fill_rect(rect),
         }
     }
 
     fn set_stroke_style(&mut self, style: FillOrStrokeStyle) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_stroke_style(style),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_stroke_style(style),
         }
     }
 
     fn stroke_rect(&mut self, rect: &Rect<f32>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.stroke_rect(rect),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.stroke_rect(rect),
         }
     }
 
     fn begin_path(&mut self) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.begin_path(),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.begin_path(),
         }
     }
 
     fn close_path(&mut self) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.close_path(),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.close_path(),
         }
     }
 
     fn fill_path(&mut self, path: &[PathSegment]) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.fill_path(path),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.fill_path(path),
         }
     }
 
     fn stroke(&mut self) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.stroke(),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.stroke(),
         }
     }
 
     fn stroke_path(&mut self, path: &[PathSegment]) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.stroke_path(path),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.stroke_path(path),
         }
     }
 
     fn clip(&mut self) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.clip(),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.clip(),
         }
     }
 
     fn is_point_in_path(&mut self, x: f64, y: f64, fill_rule: FillRule, chan: IpcSender<bool>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.is_point_in_path(x, y, fill_rule, chan),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.is_point_in_path(x, y, fill_rule, chan),
         }
     }
 
@@ -386,12 +440,18 @@ impl Canvas<'_> {
             Canvas::Raqote(canvas_data) => {
                 canvas_data.is_point_in_path_(path, x, y, fill_rule, chan)
             },
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => {
+                canvas_data.is_point_in_path_(path, x, y, fill_rule, chan)
+            },
         }
     }
 
     fn clear_rect(&mut self, rect: &Rect<f32>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.clear_rect(rect),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.clear_rect(rect),
         }
     }
 
@@ -413,6 +473,15 @@ impl Canvas<'_> {
                 smoothing_enabled,
                 is_premultiplied,
             ),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.draw_image(
+                data,
+                size,
+                dest_rect,
+                source_rect,
+                smoothing_enabled,
+                is_premultiplied,
+            ),
         }
     }
 
@@ -423,48 +492,64 @@ impl Canvas<'_> {
     ) -> snapshot::Snapshot {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.read_pixels(read_rect, canvas_size),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.read_pixels(read_rect, canvas_size),
         }
     }
 
     fn move_to(&mut self, point: &Point2D<f32>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.move_to(point),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.move_to(point),
         }
     }
 
     fn line_to(&mut self, point: &Point2D<f32>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.line_to(point),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.line_to(point),
         }
     }
 
     fn rect(&mut self, rect: &Rect<f32>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.rect(rect),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.rect(rect),
         }
     }
 
     fn quadratic_curve_to(&mut self, cp: &Point2D<f32>, pt: &Point2D<f32>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.quadratic_curve_to(cp, pt),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.quadratic_curve_to(cp, pt),
         }
     }
 
     fn bezier_curve_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, pt: &Point2D<f32>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.bezier_curve_to(cp1, cp2, pt),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.bezier_curve_to(cp1, cp2, pt),
         }
     }
 
     fn arc(&mut self, center: &Point2D<f32>, radius: f32, start: f32, end: f32, ccw: bool) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.arc(center, radius, start, end, ccw),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.arc(center, radius, start, end, ccw),
         }
     }
 
     fn arc_to(&mut self, cp1: &Point2D<f32>, cp2: &Point2D<f32>, radius: f32) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.arc_to(cp1, cp2, radius),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.arc_to(cp1, cp2, radius),
         }
     }
 
@@ -483,150 +568,202 @@ impl Canvas<'_> {
             Canvas::Raqote(canvas_data) => {
                 canvas_data.ellipse(center, radius_x, radius_y, rotation, start, end, ccw)
             },
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => {
+                canvas_data.ellipse(center, radius_x, radius_y, rotation, start, end, ccw)
+            },
         }
     }
 
     fn restore_context_state(&mut self) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.restore_context_state(),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.restore_context_state(),
         }
     }
 
     fn save_context_state(&mut self) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.save_context_state(),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.save_context_state(),
         }
     }
 
     fn set_line_width(&mut self, width: f32) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_line_width(width),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_line_width(width),
         }
     }
 
     fn set_line_cap(&mut self, cap: LineCapStyle) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_line_cap(cap),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_line_cap(cap),
         }
     }
 
     fn set_line_join(&mut self, join: LineJoinStyle) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_line_join(join),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_line_join(join),
         }
     }
 
     fn set_miter_limit(&mut self, limit: f32) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_miter_limit(limit),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_miter_limit(limit),
         }
     }
 
     fn set_line_dash(&mut self, items: Vec<f32>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_line_dash(items),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_line_dash(items),
         }
     }
 
     fn set_line_dash_offset(&mut self, offset: f32) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_line_dash_offset(offset),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_line_dash_offset(offset),
         }
     }
 
     fn set_transform(&mut self, matrix: &Transform2D<f32>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_transform(matrix),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_transform(matrix),
         }
     }
 
     fn set_global_alpha(&mut self, alpha: f32) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_global_alpha(alpha),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_global_alpha(alpha),
         }
     }
 
     fn set_global_composition(&mut self, op: CompositionOrBlending) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_global_composition(op),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_global_composition(op),
         }
     }
 
     fn set_shadow_offset_x(&mut self, value: f64) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_shadow_offset_x(value),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_shadow_offset_x(value),
         }
     }
 
     fn set_shadow_offset_y(&mut self, value: f64) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_shadow_offset_y(value),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_shadow_offset_y(value),
         }
     }
 
     fn set_shadow_blur(&mut self, value: f64) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_shadow_blur(value),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_shadow_blur(value),
         }
     }
 
     fn set_shadow_color(&mut self, color: AbsoluteColor) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_shadow_color(color),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_shadow_color(color),
         }
     }
 
     fn set_font(&mut self, font_style: FontStyleStruct) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_font(font_style),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_font(font_style),
         }
     }
 
     fn set_text_align(&mut self, text_align: TextAlign) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_text_align(text_align),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_text_align(text_align),
         }
     }
 
     fn set_text_baseline(&mut self, text_baseline: TextBaseline) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.set_text_baseline(text_baseline),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.set_text_baseline(text_baseline),
         }
     }
 
     fn measure_text(&mut self, text: String) -> TextMetrics {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.measure_text(text),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.measure_text(text),
         }
     }
 
     fn clip_path(&mut self, path: &[PathSegment]) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.clip_path(path),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.clip_path(path),
         }
     }
 
     fn get_transform(&self) -> Transform2D<f32> {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.get_transform(),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.get_transform(),
         }
     }
 
     fn put_image_data(&mut self, unwrap: Vec<u8>, rect: Rect<u64>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.put_image_data(unwrap, rect),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.put_image_data(unwrap, rect),
         }
     }
 
     fn update_image_rendering(&mut self) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.update_image_rendering(),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.update_image_rendering(),
         }
     }
 
     fn recreate(&mut self, size: Option<Size2D<u64>>) {
         match self {
             Canvas::Raqote(canvas_data) => canvas_data.recreate(size),
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => canvas_data.recreate(size),
         }
     }
 }
