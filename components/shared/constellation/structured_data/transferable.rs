@@ -24,9 +24,11 @@ pub enum Transferrable {
     ReadableStream,
     /// The `WritableStream` interface.
     WritableStream,
+    /// The `TransformStream` interface.
+    TransformStream,
 }
 
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 enum MessagePortState {
     /// <https://html.spec.whatwg.org/multipage/#detached>
     Detached,
@@ -40,7 +42,7 @@ enum MessagePortState {
     Disabled(bool),
 }
 
-#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 /// The data and logic backing the DOM managed MessagePort.
 pub struct MessagePortImpl {
     /// The current state of the port.
