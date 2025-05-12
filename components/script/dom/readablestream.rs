@@ -24,7 +24,7 @@ use js::typedarray::ArrayBufferViewU8;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
     ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode,
-    StreamPipeOptions,
+    ReadableWritablePair, StreamPipeOptions,
 };
 use script_bindings::str::DOMString;
 
@@ -2005,6 +2005,51 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             realm,
             can_gc,
         )
+    }
+
+    /// <https://streams.spec.whatwg.org/#rs-pipe-through>
+    fn PipeThrough(
+        &self,
+        transform: &ReadableWritablePair,
+        options: &StreamPipeOptions,
+    ) -> Fallible<DomRoot<ReadableStream>> {
+        let global = self.global();
+        let realm = enter_realm(&*global);
+        let comp = InRealm::Entered(&realm);
+        let cx = GlobalScope::get_cx();
+        let can_gc = CanGc::note();
+
+        // If ! IsReadableStreamLocked(this) is true, throw a TypeError exception.
+        if self.is_locked() {
+            return Err(Error::Type("Source stream is locked".to_owned()));
+        }
+
+        // If ! IsWritableStreamLocked(transform["writable"]) is true, throw a TypeError exception.
+        if transform.writable.is_locked() {
+            return Err(Error::Type("Destination stream is locked".to_owned()));
+        }
+
+        // Let signal be options["signal"] if it exists, or undefined otherwise.
+        // TODO: implement AbortSignal.
+
+        // Let promise be ! ReadableStreamPipeTo(this, transform["writable"],
+        // options["preventClose"], options["preventAbort"], options["preventCancel"], signal).
+        let promise = self.pipe_to(
+            cx,
+            &global,
+            &transform.writable,
+            options.preventAbort,
+            options.preventCancel,
+            options.preventClose,
+            comp,
+            can_gc,
+        );
+
+        // Set promise.[[PromiseIsHandled]] to true.
+        promise.set_promise_is_handled();
+
+        // Return transform["readable"].
+        Ok(transform.readable.clone())
     }
 }
 
