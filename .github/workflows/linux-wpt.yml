@@ -26,6 +26,7 @@ env:
   INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_PROD || '' }}
   INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING: ${{ !inputs.wpt-sync-from-upstream && secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET_STAGING || '' }}
   WPT_ALWAYS_SUCCEED_ARG: "${{ inputs.wpt-sync-from-upstream && '--always-succeed' || '' }}"
+  WGPU_BACKEND: "vulkan"
 
 jobs:
   chunks:
