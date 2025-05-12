@@ -20,15 +20,11 @@ use fnv::FnvHashSet;
 use log::{debug, warn};
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::{CSSPixel, PinchZoomFactor};
-use webrender::Transaction;
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DevicePixel, DevicePoint, DeviceRect, LayoutVector2D,
 };
-use webrender_api::{
-    ExternalScrollId, HitTestFlags, RenderReasons, SampledScrollOffset, ScrollLocation,
-};
+use webrender_api::{ExternalScrollId, HitTestFlags, ScrollLocation};
 
-use crate::IOCompositor;
 use crate::compositor::{PipelineDetails, ServoRenderer};
 use crate::touch::{TouchHandler, TouchMoveAction, TouchMoveAllowed, TouchSequenceState};
 
@@ -37,17 +33,17 @@ const MAX_ZOOM: f32 = 8.0;
 const MIN_ZOOM: f32 = 0.1;
 
 #[derive(Clone, Copy)]
-struct ScrollEvent {
+pub(crate) struct ScrollEvent {
     /// Scroll by this offset, or to Start or End
-    scroll_location: ScrollLocation,
+    pub(crate) scroll_location: ScrollLocation,
     /// Apply changes to the frame at this location
-    cursor: DeviceIntPoint,
+    pub(crate) cursor: DeviceIntPoint,
     /// The number of OS events that have been coalesced together into this one event.
-    event_count: u32,
+    pub(crate) event_count: u32,
 }
 
 #[derive(Clone, Copy)]
-enum ScrollZoomEvent {
+pub(crate) enum ScrollZoomEvent {
     /// An pinch zoom event that magnifies the view by the given factor.
     PinchZoom(f32),
     /// A scroll event that scrolls the scroll node at the given location by the
@@ -73,7 +69,7 @@ pub(crate) struct WebViewRenderer {
     /// Data that is shared by all WebView renderers.
     pub(crate) global: Rc<RefCell<ServoRenderer>>,
     /// Pending scroll/zoom events.
-    pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
+    pub(crate) pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
     /// Touch input state machine
     touch_handler: TouchHandler,
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
@@ -742,97 +738,11 @@ impl WebViewRenderer {
         self.on_scroll_window_event(scroll_location, cursor)
     }
 
-    pub(crate) fn process_pending_scroll_events(&mut self, compositor: &mut IOCompositor) {
-        if self.pending_scroll_zoom_events.is_empty() {
-            return;
-        }
-
-        // Batch up all scroll events into one, or else we'll do way too much painting.
-        let mut combined_scroll_event: Option<ScrollEvent> = None;
-        let mut combined_magnification = 1.0;
-        for scroll_event in self.pending_scroll_zoom_events.drain(..) {
-            match scroll_event {
-                ScrollZoomEvent::PinchZoom(magnification) => {
-                    combined_magnification *= magnification
-                },
-                ScrollZoomEvent::Scroll(scroll_event_info) => {
-                    let combined_event = match combined_scroll_event.as_mut() {
-                        None => {
-                            combined_scroll_event = Some(scroll_event_info);
-                            continue;
-                        },
-                        Some(combined_event) => combined_event,
-                    };
-
-                    match (
-                        combined_event.scroll_location,
-                        scroll_event_info.scroll_location,
-                    ) {
-                        (ScrollLocation::Delta(old_delta), ScrollLocation::Delta(new_delta)) => {
-                            // Mac OS X sometimes delivers scroll events out of vsync during a
-                            // fling. This causes events to get bunched up occasionally, causing
-                            // nasty-looking "pops". To mitigate this, during a fling we average
-                            // deltas instead of summing them.
-                            let old_event_count = Scale::new(combined_event.event_count as f32);
-                            combined_event.event_count += 1;
-                            let new_event_count = Scale::new(combined_event.event_count as f32);
-                            combined_event.scroll_location = ScrollLocation::Delta(
-                                (old_delta * old_event_count + new_delta) / new_event_count,
-                            );
-                        },
-                        (ScrollLocation::Start, _) | (ScrollLocation::End, _) => {
-                            // Once we see Start or End, we shouldn't process any more events.
-                            break;
-                        },
-                        (_, ScrollLocation::Start) | (_, ScrollLocation::End) => {
-                            // If this is an event which is scrolling to the start or end of the page,
-                            // disregard other pending events and exit the loop.
-                            *combined_event = scroll_event_info;
-                            break;
-                        },
-                    }
-                },
-            }
-        }
-
-        let zoom_changed =
-            self.set_pinch_zoom_level(self.pinch_zoom_level().get() * combined_magnification);
-        let scroll_result = combined_scroll_event.and_then(|combined_event| {
-            self.scroll_node_at_device_point(
-                combined_event.cursor.to_f32(),
-                combined_event.scroll_location,
-            )
-        });
-        if !zoom_changed && scroll_result.is_none() {
-            return;
-        }
-
-        let mut transaction = Transaction::new();
-        if zoom_changed {
-            compositor.send_root_pipeline_display_list_in_transaction(&mut transaction);
-        }
-
-        if let Some((pipeline_id, external_id, offset)) = scroll_result {
-            let offset = LayoutVector2D::new(-offset.x, -offset.y);
-            transaction.set_scroll_offsets(
-                external_id,
-                vec![SampledScrollOffset {
-                    offset,
-                    generation: 0,
-                }],
-            );
-            self.send_scroll_positions_to_layout_for_pipeline(pipeline_id);
-        }
-
-        compositor.generate_frame(&mut transaction, RenderReasons::APZ);
-        self.global.borrow_mut().send_transaction(transaction);
-    }
-
     /// Perform a hit test at the given [`DevicePoint`] and apply the [`ScrollLocation`]
     /// scrolling to the applicable scroll node under that point. If a scroll was
     /// performed, returns the [`PipelineId`] of the node scrolled, the id, and the final
     /// scroll delta.
-    fn scroll_node_at_device_point(
+    pub(crate) fn scroll_node_at_device_point(
         &mut self,
         cursor: DevicePoint,
         scroll_location: ScrollLocation,
@@ -888,7 +798,7 @@ impl WebViewRenderer {
         Scale::new(self.viewport_zoom.get())
     }
 
-    fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
+    pub(crate) fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
         if let Some(min) = self.min_viewport_zoom {
             zoom = f32::max(min.get(), zoom);
         }

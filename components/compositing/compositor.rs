@@ -55,7 +55,7 @@ use webrender_api::{
 
 use crate::InitialCompositorState;
 use crate::webview_manager::WebViewManager;
-use crate::webview_renderer::{UnknownWebView, WebViewRenderer};
+use crate::webview_renderer::{ScrollEvent, ScrollZoomEvent, UnknownWebView, WebViewRenderer};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -1668,12 +1668,102 @@ impl IOCompositor {
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
+        self.process_pending_scroll_and_zoom_events();
+        self.global.borrow().shutdown_state() != ShutdownState::FinishedShuttingDown
+    }
+
+    pub(crate) fn process_pending_scroll_and_zoom_events(&mut self) {
         let mut webview_renderers = take(&mut self.webview_renderers);
         for webview_renderer in webview_renderers.iter_mut() {
-            webview_renderer.process_pending_scroll_events(self);
+            if webview_renderer.pending_scroll_zoom_events.is_empty() {
+                continue;
+            }
+
+            // Batch up all scroll events into one, or else we'll do way too much painting.
+            let mut combined_scroll_event: Option<ScrollEvent> = None;
+            let mut combined_magnification = 1.0;
+            for scroll_event in webview_renderer.pending_scroll_zoom_events.drain(..) {
+                match scroll_event {
+                    ScrollZoomEvent::PinchZoom(magnification) => {
+                        combined_magnification *= magnification
+                    },
+                    ScrollZoomEvent::Scroll(scroll_event_info) => {
+                        let combined_event = match combined_scroll_event.as_mut() {
+                            None => {
+                                combined_scroll_event = Some(scroll_event_info);
+                                continue;
+                            },
+                            Some(combined_event) => combined_event,
+                        };
+
+                        match (
+                            combined_event.scroll_location,
+                            scroll_event_info.scroll_location,
+                        ) {
+                            (
+                                ScrollLocation::Delta(old_delta),
+                                ScrollLocation::Delta(new_delta),
+                            ) => {
+                                // Mac OS X sometimes delivers scroll events out of vsync during a
+                                // fling. This causes events to get bunched up occasionally, causing
+                                // nasty-looking "pops". To mitigate this, during a fling we average
+                                // deltas instead of summing them.
+                                let old_event_count = Scale::new(combined_event.event_count as f32);
+                                combined_event.event_count += 1;
+                                let new_event_count = Scale::new(combined_event.event_count as f32);
+                                combined_event.scroll_location = ScrollLocation::Delta(
+                                    (old_delta * old_event_count + new_delta) / new_event_count,
+                                );
+                            },
+                            (ScrollLocation::Start, _) | (ScrollLocation::End, _) => {
+                                // Once we see Start or End, we shouldn't process any more events.
+                                break;
+                            },
+                            (_, ScrollLocation::Start) | (_, ScrollLocation::End) => {
+                                // If this is an event which is scrolling to the start or end of the page,
+                                // disregard other pending events and exit the loop.
+                                *combined_event = scroll_event_info;
+                                break;
+                            },
+                        }
+                    },
+                }
+            }
+
+            let zoom_changed = webview_renderer.set_pinch_zoom_level(
+                webview_renderer.pinch_zoom_level().get() * combined_magnification,
+            );
+            let scroll_result = combined_scroll_event.and_then(|combined_event| {
+                webview_renderer.scroll_node_at_device_point(
+                    combined_event.cursor.to_f32(),
+                    combined_event.scroll_location,
+                )
+            });
+            if !zoom_changed && scroll_result.is_none() {
+                continue;
+            }
+
+            let mut transaction = Transaction::new();
+            if zoom_changed {
+                self.send_root_pipeline_display_list_in_transaction(&mut transaction);
+            }
+
+            if let Some((pipeline_id, external_id, offset)) = scroll_result {
+                let offset = LayoutVector2D::new(-offset.x, -offset.y);
+                transaction.set_scroll_offsets(
+                    external_id,
+                    vec![SampledScrollOffset {
+                        offset,
+                        generation: 0,
+                    }],
+                );
+                webview_renderer.send_scroll_positions_to_layout_for_pipeline(pipeline_id);
+            }
+
+            self.generate_frame(&mut transaction, RenderReasons::APZ);
+            self.global.borrow_mut().send_transaction(transaction);
         }
         self.webview_renderers = webview_renderers;
-        self.global.borrow().shutdown_state() != ShutdownState::FinishedShuttingDown
     }
 
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
