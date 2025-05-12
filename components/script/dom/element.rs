@@ -64,7 +64,7 @@ use xml5ever::serialize::TraversalScope::{
 };
 
 use crate::dom::activation::Activatable;
-use crate::dom::attr::{Attr, AttrHelpersForLayout};
+use crate::dom::attr::{Attr, AttrHelpersForLayout, is_relevant_attribute};
 use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut, ref_filter_map};
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -1701,7 +1701,7 @@ impl Element {
         assert!(attr.GetOwnerElement().as_deref() == Some(self));
         self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(Dom::from_ref(attr));
-        if attr.namespace() == &ns!() {
+        if is_relevant_attribute(attr.namespace(), attr.local_name()) {
             vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None), can_gc);
         }
     }
@@ -1843,7 +1843,7 @@ impl Element {
         local_name: &LocalName,
         value: DOMString,
     ) -> AttrValue {
-        if *namespace == ns!() {
+        if is_relevant_attribute(namespace, local_name) {
             vtable_for(self.upcast()).parse_plain_attribute(local_name, value)
         } else {
             AttrValue::String(value.into())
@@ -1898,7 +1898,7 @@ impl Element {
 
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
-            if attr.namespace() == &ns!() {
+            if is_relevant_attribute(attr.namespace(), attr.local_name()) {
                 vtable_for(self.upcast()).attribute_mutated(
                     &attr,
                     AttributeMutation::Removed,
@@ -2704,7 +2704,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             attr.set_owner(Some(self));
             self.attrs.borrow_mut()[position] = Dom::from_ref(attr);
             old_attr.set_owner(None);
-            if attr.namespace() == &ns!() {
+            if is_relevant_attribute(attr.namespace(), attr.local_name()) {
                 vtable.attribute_mutated(
                     attr,
                     AttributeMutation::Set(Some(&old_attr.value())),

@@ -82,6 +82,9 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         })
     }
 
+    // <https://html.spec.whatwg.org/multipage/#globaleventhandlers>
+    global_event_handlers!();
+
     // FIXME: The nonce should be stored in an internal slot instead of an
     // attribute (https://html.spec.whatwg.org/multipage/#cryptographicnonce)
     // https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce

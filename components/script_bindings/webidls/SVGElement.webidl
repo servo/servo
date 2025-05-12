@@ -18,7 +18,7 @@ interface SVGElement : Element {
   //void blur();
 };
 
-//SVGElement includes GlobalEventHandlers;
+SVGElement includes GlobalEventHandlers;
 //SVGElement includes SVGElementInstance;
 SVGElement includes ElementCSSInlineStyle;
 SVGElement includes HTMLOrSVGElement;
