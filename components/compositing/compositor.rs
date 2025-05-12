@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::create_dir_all;
 use std::iter::once;
-use std::mem::take;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -55,7 +54,7 @@ use webrender_api::{
 
 use crate::InitialCompositorState;
 use crate::webview_manager::WebViewManager;
-use crate::webview_renderer::{UnknownWebView, WebViewRenderer};
+use crate::webview_renderer::{PinchZoomResult, UnknownWebView, WebViewRenderer};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -1668,11 +1667,39 @@ impl IOCompositor {
         if let Err(err) = self.rendering_context.make_current() {
             warn!("Failed to make the rendering context current: {:?}", err);
         }
-        let mut webview_renderers = take(&mut self.webview_renderers);
-        for webview_renderer in webview_renderers.iter_mut() {
-            webview_renderer.process_pending_scroll_events(self);
+
+        let mut need_zoom = false;
+        let scroll_offset_updates: Vec<_> = self
+            .webview_renderers
+            .iter_mut()
+            .filter_map(|webview_renderer| {
+                let (zoom, scroll_result) =
+                    webview_renderer.process_pending_scroll_and_pinch_zoom_events();
+                need_zoom = need_zoom || (zoom == PinchZoomResult::DidPinchZoom);
+                scroll_result
+            })
+            .collect();
+
+        if need_zoom || !scroll_offset_updates.is_empty() {
+            let mut transaction = Transaction::new();
+            if need_zoom {
+                self.send_root_pipeline_display_list_in_transaction(&mut transaction);
+            }
+            for update in scroll_offset_updates {
+                let offset = LayoutVector2D::new(-update.offset.x, -update.offset.y);
+                transaction.set_scroll_offsets(
+                    update.external_scroll_id,
+                    vec![SampledScrollOffset {
+                        offset,
+                        generation: 0,
+                    }],
+                );
+            }
+
+            self.generate_frame(&mut transaction, RenderReasons::APZ);
+            self.global.borrow_mut().send_transaction(transaction);
         }
-        self.webview_renderers = webview_renderers;
+
         self.global.borrow().shutdown_state() != ShutdownState::FinishedShuttingDown
     }
 
