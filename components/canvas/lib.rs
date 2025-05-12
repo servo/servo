@@ -6,6 +6,8 @@
 
 mod backend;
 mod raqote_backend;
+#[cfg(feature = "vello")]
+mod vello_backend;
 
 pub mod canvas_data;
 pub mod canvas_paint_thread;
