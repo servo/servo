@@ -131,6 +131,7 @@ fn options() -> vello::RendererOptions {
         use_cpu: false,
         num_init_threads: NonZeroUsize::new(1),
         antialiasing_support: vello::AaSupport::area_only(),
+        pipeline_cache: None,
     }
 }
 

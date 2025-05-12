@@ -1062,9 +1062,9 @@ dependencies = [
 
 [[package]]
 name = "color"
-version = "0.2.3"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61c387f6cef110ee8eaf12fca5586d3d303c07c594f4a5f02c768b6470b70dbd"
+checksum = "010263546cea9f9f8385a5b7aad534b9e6448e62a0d3bf9da29d583308dd11bb"
 
 [[package]]
 name = "color_quant"
@@ -5621,9 +5621,9 @@ dependencies = [
 
 [[package]]
 name = "peniko"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ec061f435b573ff602b2c5690f1a5bfcf461327194654cfbfce4412b95cf2a1"
+checksum = "1f9529efd019889b2a205193c14ffb6e2839b54ed9d2720674f10f4b04d87ac9"
 dependencies = [
  "color",
  "kurbo",
@@ -6120,9 +6120,9 @@ dependencies = [
 
 [[package]]
 name = "read-fonts"
-version = "0.25.3"
+version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f9e8a4f503e5c8750e4cd3b32a4e090035c46374b305a15c70bad833dca05f"
+checksum = "600e807b48ac55bad68a8cb75cc3c7739f139b9248f7e003e01e080f589b5288"
 dependencies = [
  "bytemuck",
  "font-types",
@@ -7173,9 +7173,9 @@ checksum = "56199f7ddabf13fe5074ce809e7d3f42b42ae711800501b5b16ea82ad029c39d"
 
 [[package]]
 name = "skrifa"
-version = "0.26.6"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cc1aa86c26dbb1b63875a7180aa0819709b33348eb5b1491e4321fae388179d"
+checksum = "6fa1e5622e4f7b98877e8a19890efddcac1230cec6198bd9de91ec0e00010dc8"
 dependencies = [
  "bytemuck",
  "read-fonts",
@@ -8378,7 +8378,7 @@ checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
 [[package]]
 name = "vello"
 version = "0.4.0"
-source = "git+https://github.com/linebender/vello?rev=570b780d9203a53e6a6a2402f28564f88fff7d3e#570b780d9203a53e6a6a2402f28564f88fff7d3e"
+source = "git+https://github.com/sagudev/vello?branch=extend_mode_norm#5059273c9b825d7a613b0e246c4400fdedf7d8c3"
 dependencies = [
  "bytemuck",
  "futures-intrusive",
@@ -8396,7 +8396,7 @@ dependencies = [
 [[package]]
 name = "vello_encoding"
 version = "0.4.0"
-source = "git+https://github.com/linebender/vello?rev=570b780d9203a53e6a6a2402f28564f88fff7d3e#570b780d9203a53e6a6a2402f28564f88fff7d3e"
+source = "git+https://github.com/sagudev/vello?branch=extend_mode_norm#5059273c9b825d7a613b0e246c4400fdedf7d8c3"
 dependencies = [
  "bytemuck",
  "guillotiere",
@@ -8408,7 +8408,7 @@ dependencies = [
 [[package]]
 name = "vello_shaders"
 version = "0.4.0"
-source = "git+https://github.com/linebender/vello?rev=570b780d9203a53e6a6a2402f28564f88fff7d3e#570b780d9203a53e6a6a2402f28564f88fff7d3e"
+source = "git+https://github.com/sagudev/vello?branch=extend_mode_norm#5059273c9b825d7a613b0e246c4400fdedf7d8c3"
 dependencies = [
  "bytemuck",
  "naga 24.0.0",
