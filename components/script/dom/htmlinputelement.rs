@@ -26,6 +26,9 @@ use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
+use script_bindings::codegen::GenericBindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
 use style::attr::AttrValue;
 use style::str::{split_commas, str_join};
 use stylo_atoms::Atom;
@@ -34,11 +37,10 @@ use time::{Month, OffsetDateTime, Time};
 use unicode_bidi::{BidiClass, bidi_class};
 use url::Url;
 
-use super::bindings::str::{FromInputValueString, ToInputValueString};
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
@@ -48,30 +50,33 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, N
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueString, USVString};
 use crate::dom::clipboardevent::ClipboardEvent;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
+use crate::dom::element::{AttributeMutation, Element, ElementCreator, LayoutElementHelpers};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::filelist::{FileList, LayoutFileListHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmldatalistelement::HTMLDataListElement;
+use crate::dom::htmldivelement::HTMLDivElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
     SubmittedFrom,
 };
+use crate::dom::htmlstyleelement::HTMLStyleElement;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{
     BindContext, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
+use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::textcontrol::{TextControlElement, TextControlSelection};
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -91,6 +96,42 @@ const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+/// Contains references to the elements in the shadow tree for `<input type=range>`.
+///
+/// The shadow tree consists of a single div with the currently selected color as
+/// the background.
+struct InputTypeColorShadowTree {
+    color_value: Dom<HTMLDivElement>,
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[non_exhaustive]
+enum ShadowTree {
+    Color(InputTypeColorShadowTree),
+    // TODO: Add shadow trees for other input types (range etc) here
+}
+
+const COLOR_TREE_STYLE: &str = "
+#border {
+    width: fit-content;
+    height: fit-content;
+    padding: 4px;
+    border: 1px solid gray;
+    background-color: lightgray;
+    border-radius: 2px;
+}
+
+#color-value {
+    width: 64px;
+    height: 32px;
+    box-sizing: border-box;
+    border: 1px solid gray;
+}
+";
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-type>
 #[derive(Clone, Copy, Default, JSTraceable, PartialEq)]
@@ -320,6 +361,7 @@ pub(crate) struct HTMLInputElement {
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
+    shadow_tree: DomRefCell<Option<ShadowTree>>,
 }
 
 #[derive(JSTraceable)]
@@ -378,6 +420,7 @@ impl HTMLInputElement {
             form_owner: Default::default(),
             labels_node_list: MutNullableDom::new(None),
             validity_state: Default::default(),
+            shadow_tree: Default::default(),
         }
     }
 
@@ -1020,9 +1063,118 @@ impl HTMLInputElement {
 
         failed_flags
     }
+
+    /// Return a reference to the ShadowRoot that this element is a host of,
+    /// or create one if none exists.
+    fn shadow_root(&self, can_gc: CanGc) -> DomRoot<ShadowRoot> {
+        self.upcast::<Element>().shadow_root().unwrap_or_else(|| {
+            self.upcast::<Element>()
+                .attach_shadow(
+                    IsUserAgentWidget::Yes,
+                    ShadowRootMode::Closed,
+                    false,
+                    false,
+                    false,
+                    SlotAssignmentMode::Manual,
+                    can_gc,
+                )
+                .expect("Attaching UA shadow root failed")
+        })
+    }
+
+    fn create_color_shadow_tree(&self, can_gc: CanGc) {
+        let document = self.owner_document();
+        let shadow_root = self.shadow_root(can_gc);
+        Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
+
+        let border = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        border
+            .upcast::<Element>()
+            .SetId(DOMString::from("border"), can_gc);
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(border.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let color_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
+        color_value
+            .upcast::<Element>()
+            .SetId(DOMString::from("color-value"), can_gc);
+        border
+            .upcast::<Node>()
+            .AppendChild(color_value.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let style = HTMLStyleElement::new(
+            local_name!("style"),
+            None,
+            &document,
+            None,
+            ElementCreator::ScriptCreated,
+            can_gc,
+        );
+        style
+            .upcast::<Node>()
+            .SetTextContent(Some(DOMString::from(COLOR_TREE_STYLE)), can_gc);
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(style.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        let shadow_tree = ShadowTree::Color(InputTypeColorShadowTree {
+            color_value: color_value.as_traced(),
+        });
+        let _ = self.shadow_tree.borrow_mut().insert(shadow_tree);
+    }
+
+    /// Get a handle to the shadow tree for this input, assuming it's [InputType] is `Color`.
+    ///
+    /// If the input is not currently a shadow host, a new shadow tree will be created.
+    ///
+    /// If the input is a shadow host for a different kind of shadow tree then the old
+    /// tree will be removed and a new one will be created.
+    fn color_shadow_tree(&self, can_gc: CanGc) -> Ref<InputTypeColorShadowTree> {
+        let has_color_shadow_tree = self
+            .shadow_tree
+            .borrow()
+            .as_ref()
+            .is_some_and(|shadow_tree| matches!(shadow_tree, ShadowTree::Color(_)));
+        if !has_color_shadow_tree {
+            self.create_color_shadow_tree(can_gc);
+        }
+
+        let shadow_tree = self.shadow_tree.borrow();
+        Ref::filter_map(shadow_tree, |shadow_tree| {
+            let shadow_tree = shadow_tree.as_ref()?;
+            match shadow_tree {
+                ShadowTree::Color(color_tree) => Some(color_tree),
+                _ => None,
+            }
+        })
+        .ok()
+        .expect("UA shadow tree was not created")
+    }
+
+    fn update_shadow_tree_if_needed(&self, can_gc: CanGc) {
+        if self.input_type() == InputType::Color {
+            let color_shadow_tree = self.color_shadow_tree(can_gc);
+            let mut value = self.Value();
+            if value.str().is_valid_simple_color_string() {
+                value.make_ascii_lowercase();
+            } else {
+                value = DOMString::from("#000000");
+            }
+            let style = format!("background-color: {value}");
+            color_shadow_tree
+                .color_value
+                .upcast::<Element>()
+                .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+        }
+    }
 }
 
 pub(crate) trait LayoutHTMLInputElementHelpers<'dom> {
+    /// Return a string that represents the contents of the element for layout.
     fn value_for_layout(self) -> Cow<'dom, str>;
     fn size_for_layout(self) -> u32;
     fn selection_for_layout(self) -> Option<Range<usize>>;
@@ -1265,7 +1417,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn SetChecked(&self, checked: bool) {
         self.update_checked_state(checked, true);
-        update_related_validity_states(self, CanGc::note())
+        self.value_changed(CanGc::note());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-readonly
@@ -1357,7 +1509,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             },
         }
 
-        update_related_validity_states(self, can_gc);
+        self.value_changed(can_gc);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         Ok(())
     }
@@ -1732,18 +1884,6 @@ fn perform_radio_group_validation(elem: &HTMLInputElement, group: Option<&Atom>,
     }
 }
 
-fn update_related_validity_states(elem: &HTMLInputElement, can_gc: CanGc) {
-    match elem.input_type() {
-        InputType::Radio => {
-            perform_radio_group_validation(elem, elem.radio_group_name().as_ref(), can_gc)
-        },
-        _ => {
-            elem.validity_state()
-                .perform_validation_and_update(ValidationFlags::all(), can_gc);
-        },
-    }
-}
-
 // https://html.spec.whatwg.org/multipage/#radio-button-group
 fn in_same_group(
     other: &HTMLInputElement,
@@ -1913,7 +2053,7 @@ impl HTMLInputElement {
             InputType::Radio | InputType::Checkbox => {
                 self.update_checked_state(self.DefaultChecked(), false);
                 self.checked_changed.set(false);
-                update_related_validity_states(self, can_gc);
+                self.value_changed(can_gc);
             },
             InputType::Image => (),
             _ => (),
@@ -2356,6 +2496,23 @@ impl HTMLInputElement {
             },
         })
     }
+
+    fn update_related_validity_states(&self, can_gc: CanGc) {
+        match self.input_type() {
+            InputType::Radio => {
+                perform_radio_group_validation(self, self.radio_group_name().as_ref(), can_gc)
+            },
+            _ => {
+                self.validity_state()
+                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+            },
+        }
+    }
+
+    fn value_changed(&self, can_gc: CanGc) {
+        self.update_related_validity_states(can_gc);
+        self.update_shadow_tree_if_needed(can_gc);
+    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -2367,6 +2524,7 @@ impl VirtualMethods for HTMLInputElement {
         self.super_type()
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
+
         match *attr.local_name() {
             local_name!("disabled") => {
                 let disabled_state = match mutation {
@@ -2561,7 +2719,7 @@ impl VirtualMethods for HTMLInputElement {
             _ => {},
         }
 
-        update_related_validity_states(self, can_gc);
+        self.value_changed(can_gc);
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -2592,7 +2750,8 @@ impl VirtualMethods for HTMLInputElement {
         if self.input_type() == InputType::Radio {
             self.radio_group_updated(self.radio_group_name().as_ref());
         }
-        update_related_validity_states(self, can_gc);
+
+        self.value_changed(can_gc);
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
@@ -2738,7 +2897,7 @@ impl VirtualMethods for HTMLInputElement {
             }
         }
 
-        update_related_validity_states(self, can_gc);
+        self.value_changed(can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext
@@ -2760,7 +2919,7 @@ impl VirtualMethods for HTMLInputElement {
         elem.textinput
             .borrow_mut()
             .set_content(self.textinput.borrow().get_content());
-        update_related_validity_states(self, can_gc);
+        self.value_changed(can_gc);
     }
 }
 
@@ -2869,7 +3028,8 @@ impl Activatable for HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior
             // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):input-activation-behavior
-            InputType::Checkbox | InputType::Radio => true,
+            // https://html.spec.whatwg.org/multipage/input.html#color-state-(type=color):input-activation-behavior
+            InputType::Checkbox | InputType::Radio | InputType::Color => true,
             _ => false,
         }
     }
@@ -2915,7 +3075,7 @@ impl Activatable for HTMLInputElement {
         };
 
         if activation_state.is_some() {
-            update_related_validity_states(self, can_gc);
+            self.value_changed(can_gc);
         }
 
         activation_state
@@ -2974,7 +3134,7 @@ impl Activatable for HTMLInputElement {
             _ => (),
         }
 
-        update_related_validity_states(self, can_gc);
+        self.value_changed(can_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#input-activation-behavior>
@@ -3036,6 +3196,10 @@ impl Activatable for HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
             InputType::File => self.select_files(None, can_gc),
+            // https://html.spec.whatwg.org/multipage/input.html#color-state-(type=color):input-activation-behavior
+            InputType::Color => {
+                println!("Show the picker if applicable");
+            },
             _ => (),
         }
     }
