@@ -413,21 +413,21 @@ impl Handler {
         // Step 5 - 6
         self.check_viewport_bound(x, y)?;
 
-        // Step 9
+        // Step 7
         let duration = match action.duration {
             Some(duration) => duration,
             None => tick_duration,
         };
 
-        // Step 10
+        // Step 8
         if duration > 0 {
             thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
         }
 
-        // Step 11
+        // Step 9 - 18
         self.perform_pointer_move(source_id, duration, start_x, start_y, x, y, tick_start);
 
-        // Step 12
+        // Step 19
         Ok(())
     }
 
@@ -482,6 +482,7 @@ impl Handler {
                 // Step 7.2
                 let cmd_msg =
                     WebDriverCommandMsg::MouseMoveAction(session.webview_id, x as f32, y as f32);
+                //TODO: Need Synchronization here before updating `pointer_input_state`
                 self.constellation_chan
                     .send(EmbedderToConstellationMessage::WebDriverCommand(cmd_msg))
                     .unwrap();
