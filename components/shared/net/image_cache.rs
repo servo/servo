@@ -10,10 +10,11 @@ use ipc_channel::ipc::IpcSender;
 use log::debug;
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
-use pixels::{Image, ImageMetadata};
+use pixels::{CorsStatus, Image as RasterImage, ImageMetadata};
 use profile_traits::mem::Report;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use webrender_api::units::DeviceIntSize;
 
 use crate::FetchResponseMsg;
 use crate::request::CorsSettings;
@@ -22,12 +23,47 @@ use crate::request::CorsSettings;
 // Aux structs and enums.
 // ======================================================================
 
+pub type VectorImageId = PendingImageId;
+// Represents either a raster image for which the pixel data is available
+// or a vector image for which only the natural dimensions are available
+// and thus require an further rasterization step.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum Image {
+    Raster(#[conditional_malloc_size_of] Arc<RasterImage>),
+    Vector(ImageMetadata, VectorImageId, CorsStatus),
+}
+
+impl Image {
+    pub fn metadata(&self) -> ImageMetadata {
+        match self {
+            Image::Vector(metadata, ..) => *metadata,
+            Image::Raster(image) => ImageMetadata {
+                width: image.width,
+                height: image.height,
+            },
+        }
+    }
+
+    pub fn cors_status(&self) -> CorsStatus {
+        match self {
+            Image::Vector(_, _, cors_status) => *cors_status,
+            Image::Raster(image) => image.cors_status,
+        }
+    }
+
+    pub fn as_raster_image(&self) -> Option<Arc<RasterImage>> {
+        match self {
+            Image::Raster(image) => Some(image.clone()),
+            Image::Vector(..) => None,
+        }
+    }
+}
+
 /// Indicating either entire image or just metadata availability
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImageOrMetadataAvailable {
     ImageAvailable {
-        #[ignore_malloc_size_of = "Arc"]
-        image: Arc<Image>,
+        image: Image,
         url: ServoUrl,
         is_placeholder: bool,
     },
@@ -39,19 +75,19 @@ pub enum ImageOrMetadataAvailable {
 /// image load completes. It is typically used to trigger a reflow
 /// and/or repaint.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct ImageResponder {
+pub struct ImageLoadListener {
     pipeline_id: PipelineId,
     pub id: PendingImageId,
-    sender: IpcSender<PendingImageResponse>,
+    sender: IpcSender<ImageCacheMessage>,
 }
 
-impl ImageResponder {
+impl ImageLoadListener {
     pub fn new(
-        sender: IpcSender<PendingImageResponse>,
+        sender: IpcSender<ImageCacheMessage>,
         pipeline_id: PipelineId,
         id: PendingImageId,
-    ) -> ImageResponder {
-        ImageResponder {
+    ) -> ImageLoadListener {
+        ImageLoadListener {
             pipeline_id,
             sender,
             id,
@@ -63,11 +99,14 @@ impl ImageResponder {
         // This send can fail if thread waiting for this notification has panicked.
         // That's not a case that's worth warning about.
         // TODO(#15501): are there cases in which we should perform cleanup?
-        let _ = self.sender.send(PendingImageResponse {
+        let msg = PendingImageResponse {
             pipeline_id: self.pipeline_id,
             response,
             id: self.id,
-        });
+        };
+        let _ = self
+            .sender
+            .send(ImageCacheMessage::NotifyPendingImageLoadStatus(msg));
     }
 }
 
@@ -75,11 +114,11 @@ impl ImageResponder {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImageResponse {
     /// The requested image was loaded.
-    Loaded(#[conditional_malloc_size_of] Arc<Image>, ServoUrl),
+    Loaded(Image, ServoUrl),
     /// The request image metadata was loaded.
     MetadataLoaded(ImageMetadata),
     /// The requested image failed to load, so a placeholder was loaded instead.
-    PlaceholderLoaded(#[conditional_malloc_size_of] Arc<Image>, ServoUrl),
+    PlaceholderLoaded(#[conditional_malloc_size_of] Arc<RasterImage>, ServoUrl),
     /// Neither the requested image nor the placeholder could be loaded.
     None,
 }
@@ -93,6 +132,12 @@ pub struct PendingImageResponse {
     pub pipeline_id: PipelineId,
     pub response: ImageResponse,
     pub id: PendingImageId,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ImageCacheMessage {
+    NotifyPendingImageLoadStatus(PendingImageResponse),
+    VectorImageRasterizationCompleted(PipelineId, PendingImageId, DeviceIntSize),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -125,7 +170,7 @@ pub trait ImageCache: Sync + Send {
         url: ServoUrl,
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
-    ) -> Option<Arc<Image>>;
+    ) -> Option<Image>;
 
     fn get_cached_image_status(
         &self,
@@ -135,9 +180,24 @@ pub trait ImageCache: Sync + Send {
         use_placeholder: UsePlaceholder,
     ) -> ImageCacheResult;
 
+    fn rasterize_vector_image(
+        &self,
+        pipeline_id: PipelineId,
+        image_id: VectorImageId,
+        size: DeviceIntSize,
+    ) -> Option<RasterImage>;
+
+    fn add_rasterization_complete_listener(
+        &self,
+        pipeline_id: PipelineId,
+        image_id: VectorImageId,
+        size: DeviceIntSize,
+        sender: IpcSender<ImageCacheMessage>,
+    );
+
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.
-    fn add_listener(&self, listener: ImageResponder);
+    fn add_listener(&self, listener: ImageLoadListener);
 
     /// Inform the image cache about a response for a pending request.
     fn notify_pending_response(&self, id: PendingImageId, action: FetchResponseMsg);

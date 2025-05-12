@@ -750,6 +750,22 @@ impl<T: MallocSizeOf> MallocSizeOf for accountable_refcell::RefCell<T> {
     }
 }
 
+impl MallocSizeOf for mime::Mime {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // TODO
+        std::mem::size_of_val(self)
+    }
+}
+
+impl MallocSizeOf for resvg::usvg::Tree {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // TODO: This is not accurate as `usvg::Tree` contains
+        // dynamically allocated Vectors of reference counted
+        // objects.
+        std::mem::size_of_val(self)
+    }
+}
+
 malloc_size_of_hash_map!(indexmap::IndexMap<K, V, S>);
 malloc_size_of_hash_set!(indexmap::IndexSet<T, S>);
 

@@ -16,7 +16,7 @@ use crossbeam_channel::{Receiver, SendError, Sender, select};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::IpcSender;
 use net_traits::FetchResponseMsg;
-use net_traits::image_cache::PendingImageResponse;
+use net_traits::image_cache::ImageCacheMessage;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time};
 use script_traits::{Painter, ScriptThreadMessage};
@@ -40,7 +40,7 @@ pub(crate) enum MixedMessage {
     FromConstellation(ScriptThreadMessage),
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
-    FromImageCache(PendingImageResponse),
+    FromImageCache(ImageCacheMessage),
     #[cfg(feature = "webgpu")]
     FromWebGPUServer(WebGPUMsg),
     TimerFired,
@@ -103,7 +103,14 @@ impl MixedMessage {
                 MainThreadScriptMsg::Inactive => None,
                 MainThreadScriptMsg::WakeUp => None,
             },
-            MixedMessage::FromImageCache(response) => Some(response.pipeline_id),
+            MixedMessage::FromImageCache(response) => match response {
+                ImageCacheMessage::NotifyPendingImageLoadStatus(response) => {
+                    Some(response.pipeline_id)
+                },
+                ImageCacheMessage::VectorImageRasterizationCompleted(pipeline_id, ..) => {
+                    Some(*pipeline_id)
+                },
+            },
             MixedMessage::FromDevtools(_) | MixedMessage::TimerFired => None,
             #[cfg(feature = "webgpu")]
             MixedMessage::FromWebGPUServer(..) => None,
@@ -325,7 +332,7 @@ pub(crate) struct ScriptThreadSenders {
     /// messages on this channel are routed to crossbeam [`Sender`] on the router thread, which
     /// in turn sends messages to [`ScriptThreadReceivers::image_cache_receiver`].
     #[no_trace]
-    pub(crate) image_cache_sender: IpcSender<PendingImageResponse>,
+    pub(crate) image_cache_sender: IpcSender<ImageCacheMessage>,
 
     /// For providing contact with the time profiler.
     #[no_trace]
@@ -354,7 +361,7 @@ pub(crate) struct ScriptThreadReceivers {
 
     /// The [`Receiver`] which receives incoming messages from the `ImageCache`.
     #[no_trace]
-    pub(crate) image_cache_receiver: Receiver<PendingImageResponse>,
+    pub(crate) image_cache_receiver: Receiver<ImageCacheMessage>,
 
     /// For receiving commands from an optional devtools server. Will be ignored if no such server
     /// exists. When devtools are not active this will be [`crossbeam_channel::never()`].

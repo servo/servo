@@ -50,6 +50,7 @@ use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::stylesheets::Stylesheet;
 use webrender_api::ImageKey;
+use webrender_api::units::DeviceIntSize;
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
     fn as_any(&self) -> &dyn Any;
@@ -151,6 +152,13 @@ pub struct PendingImage {
     pub node: UntrustedNodeAddress,
     pub id: PendingImageId,
     pub origin: ImmutableOrigin,
+}
+
+#[derive(Debug)]
+pub struct PendingImageRasterization {
+    pub node: UntrustedNodeAddress,
+    pub id: PendingImageId,
+    pub size: DeviceIntSize,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -391,6 +399,8 @@ pub type IFrameSizes = FnvHashMap<BrowsingContextId, IFrameSize>;
 pub struct ReflowResult {
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
+    /// The list of vector images that were encountered that still need to be rasterized.
+    pub pending_rasterization_images: Vec<PendingImageRasterization>,
     /// The list of iframes in this layout and their sizes, used in order
     /// to communicate them with the Constellation and also the `Window`
     /// element of their content pages.

@@ -10,17 +10,19 @@ use fnv::FnvHashMap;
 use fonts::FontContext;
 use fxhash::FxHashMap;
 use net_traits::image_cache::{
-    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
+    Image as CachedImage, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, PendingImageId,
+    UsePlaceholder,
 };
 use parking_lot::{Mutex, RwLock};
 use pixels::Image as PixelImage;
-use script_layout_interface::{IFrameSizes, ImageAnimationState, PendingImage, PendingImageState};
+use script_layout_interface::{
+    IFrameSizes, ImageAnimationState, PendingImage, PendingImageRasterization, PendingImageState,
+};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
 use style::values::computed::image::{Gradient, Image};
-
-use crate::display_list::WebRenderImageInfo;
+use webrender_api::units::DeviceIntSize;
 
 pub struct LayoutContext<'a> {
     pub id: PipelineId,
@@ -39,11 +41,15 @@ pub struct LayoutContext<'a> {
     /// A list of in-progress image loads to be shared with the script thread.
     pub pending_images: Mutex<Vec<PendingImage>>,
 
+    /// A list of fully loaded vector images that need to be rasterized. This will be
+    /// shared with the script thread.
+    pub pending_rasterization_images: Mutex<Vec<PendingImageRasterization>>,
+
     /// A collection of `<iframe>` sizes to send back to script.
     pub iframe_sizes: Mutex<IFrameSizes>,
 
-    pub webrender_image_cache:
-        Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
+    pub resolved_image_cache:
+        Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), Option<CachedImage>>>>,
 
     pub node_image_animation_map: Arc<RwLock<FxHashMap<OpaqueNode, ImageAnimationState>>>,
 
@@ -51,15 +57,23 @@ pub struct LayoutContext<'a> {
     pub highlighted_dom_node: Option<OpaqueNode>,
 }
 
+pub struct LayoutImage {
+    pub image: CachedImage,
+    // image-set images can override the natural resolution
+    // and hence the final size for raster images
+    pub size: DeviceIntSize,
+}
+
 pub enum ResolvedImage<'a> {
     Gradient(&'a Gradient),
-    Image(WebRenderImageInfo),
+    Image(LayoutImage),
 }
 
 impl Drop for LayoutContext<'_> {
     fn drop(&mut self) {
         if !std::thread::panicking() {
             assert!(self.pending_images.lock().is_empty());
+            assert!(self.pending_rasterization_images.lock().is_empty());
         }
     }
 }
@@ -153,35 +167,55 @@ impl LayoutContext<'_> {
         node: OpaqueNode,
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
-    ) -> Result<WebRenderImageInfo, ResolveImageError> {
-        if let Some(existing_webrender_image) = self
-            .webrender_image_cache
+    ) -> Result<CachedImage, ResolveImageError> {
+        if let Some(cached_image) = self
+            .resolved_image_cache
             .read()
             .get(&(url.clone(), use_placeholder))
         {
-            return Ok(*existing_webrender_image);
+            return cached_image
+                .as_ref()
+                .map_or(Err(ResolveImageError::LoadError), |image| Ok(image.clone()));
         }
+
         let image_or_meta =
             self.get_or_request_image_or_meta(node, url.clone(), use_placeholder)?;
         match image_or_meta {
             ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
-                self.handle_animated_image(node, image.clone());
-                let image_info = WebRenderImageInfo {
-                    size: Size2D::new(image.width, image.height),
-                    key: image.id,
-                };
-                if image_info.key.is_none() {
-                    Ok(image_info)
-                } else {
-                    let mut webrender_image_cache = self.webrender_image_cache.write();
-                    webrender_image_cache.insert((url, use_placeholder), image_info);
-                    Ok(image_info)
+                if let Some(image) = image.as_raster_image() {
+                    self.handle_animated_image(node, image.clone());
                 }
+
+                let mut webrender_image_cache = self.resolved_image_cache.write();
+                webrender_image_cache.insert((url, use_placeholder), Some(image.clone()));
+                Ok(image)
             },
             ImageOrMetadataAvailable::MetadataAvailable(..) => {
                 Result::Err(ResolveImageError::OnlyMetadata)
             },
         }
+    }
+
+    pub fn rasterize_vector_image(
+        &self,
+        image_id: PendingImageId,
+        size: DeviceIntSize,
+        node: OpaqueNode,
+    ) -> Option<PixelImage> {
+        let pipeline_id = self.id;
+        let result = self
+            .image_cache
+            .rasterize_vector_image(pipeline_id, image_id, size);
+        if result.is_none() {
+            self.pending_rasterization_images
+                .lock()
+                .push(PendingImageRasterization {
+                    id: image_id,
+                    node: node.into(),
+                    size,
+                });
+        }
+        result
     }
 
     pub fn resolve_image<'a>(
@@ -206,12 +240,16 @@ impl LayoutContext<'_> {
                 // element and not just the node.
                 let image_url = image_url.url().ok_or(ResolveImageError::InvalidUrl)?;
                 let node = node.ok_or(ResolveImageError::MissingNode)?;
-                let webrender_info = self.get_webrender_image_for_url(
+                let image = self.get_webrender_image_for_url(
                     node,
                     image_url.clone().into(),
                     UsePlaceholder::No,
                 )?;
-                Ok(ResolvedImage::Image(webrender_info))
+                let size = Size2D::new(
+                    image.metadata().width as i32,
+                    image.metadata().height as i32,
+                );
+                Ok(ResolvedImage::Image(LayoutImage { image, size }))
             },
             Image::ImageSet(image_set) => {
                 image_set
@@ -221,17 +259,29 @@ impl LayoutContext<'_> {
                     .and_then(|image| {
                         self.resolve_image(node, &image.image)
                             .map(|info| match info {
-                                ResolvedImage::Image(mut image_info) => {
+                                ResolvedImage::Image(layout_image) => {
                                     // From <https://drafts.csswg.org/css-images-4/#image-set-notation>:
                                     // > A <resolution> (optional). This is used to help the UA decide
                                     // > which <image-set-option> to choose. If the image reference is
                                     // > for a raster image, it also specifies the image’s natural
                                     // > resolution, overriding any other source of data that might
                                     // > supply a natural resolution.
-                                    image_info.size = (image_info.size.to_f32() /
-                                        image.resolution.dppx())
-                                    .to_u32();
-                                    ResolvedImage::Image(image_info)
+                                    let image_metadata = layout_image.image.metadata();
+                                    let size = if layout_image.image.as_raster_image().is_some() {
+                                        let scale_factor = image.resolution.dppx();
+                                        Size2D::new(
+                                            image_metadata.width as f32 / scale_factor,
+                                            image_metadata.height as f32 / scale_factor,
+                                        )
+                                        .to_i32()
+                                    } else {
+                                        Size2D::new(image_metadata.width, image_metadata.height)
+                                            .to_i32()
+                                    };
+                                    ResolvedImage::Image(LayoutImage {
+                                        size,
+                                        ..layout_image
+                                    })
                                 },
                                 _ => info,
                             })

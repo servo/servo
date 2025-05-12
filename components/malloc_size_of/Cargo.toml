@@ -22,6 +22,8 @@ indexmap = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 markup5ever = { workspace = true }
+mime = { workspace = true }
+resvg = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_arc = { workspace = true }
 smallvec = { workspace = true }
