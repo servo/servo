@@ -21,6 +21,7 @@ use embedder_traits::EmbedderProxy;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use log::{debug, trace, warn};
+use malloc_size_of::MallocSizeOf;
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::request::{Destination, RequestBuilder, RequestId};
@@ -32,8 +33,10 @@ use net_traits::{
     WebSocketDomAction, WebSocketNetworkEvent,
 };
 use profile_traits::mem::{
-    ProcessReports, ProfilerChan as MemProfilerChan, ReportsChan, perform_memory_report,
+    ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, ReportsChan,
+    perform_memory_report,
 };
+use profile_traits::path;
 use profile_traits::time::ProfilerChan;
 use rustls::RootCertStore;
 use serde::{Deserialize, Serialize};
@@ -50,7 +53,7 @@ use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::methods::{CancellationListener, FetchContext, fetch};
 use crate::filemanager_thread::FileManager;
-use crate::hsts::HstsList;
+use crate::hsts::{self, HstsList};
 use crate::http_cache::HttpCache;
 use crate::http_loader::{HttpState, http_redirect_fetch};
 use crate::protocols::ProtocolRegistry;
@@ -176,7 +179,7 @@ fn create_http_states(
     ignore_certificate_errors: bool,
     embedder_proxy: EmbedderProxy,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
-    let mut hsts_list = HstsList::from_servo_preload();
+    let mut hsts_list = HstsList::default();
     let mut auth_cache = AuthCache::default();
     let http_cache = HttpCache::default();
     let mut cookie_jar = CookieStorage::new(150);
@@ -205,7 +208,7 @@ fn create_http_states(
 
     let override_manager = CertificateErrorOverrideManager::new();
     let private_http_state = HttpState {
-        hsts_list: RwLock::new(HstsList::from_servo_preload()),
+        hsts_list: RwLock::new(HstsList::default()),
         cookie_jar: RwLock::new(CookieStorage::new(150)),
         auth_cache: RwLock::new(AuthCache::default()),
         history_states: RwLock::new(HashMap::new()),
@@ -284,6 +287,11 @@ impl ResourceChannelManager {
         perform_memory_report(|ops| {
             let mut reports = public_http_state.memory_reports("public", ops);
             reports.extend(private_http_state.memory_reports("private", ops));
+            reports.push(Report {
+                path: path!["hsts-preload-list"],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: hsts::PRELOAD_LIST_ENTRIES.size_of(ops),
+            });
             msg.send(ProcessReports::new(reports));
         })
     }
