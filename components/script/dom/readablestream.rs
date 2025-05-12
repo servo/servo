@@ -2012,12 +2012,11 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         &self,
         transform: &ReadableWritablePair,
         options: &StreamPipeOptions,
+        realm: InRealm,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ReadableStream>> {
         let global = self.global();
-        let realm = enter_realm(&*global);
-        let comp = InRealm::Entered(&realm);
         let cx = GlobalScope::get_cx();
-        let can_gc = CanGc::note();
 
         // If ! IsReadableStreamLocked(this) is true, throw a TypeError exception.
         if self.is_locked() {
@@ -2041,7 +2040,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             options.preventAbort,
             options.preventCancel,
             options.preventClose,
-            comp,
+            realm,
             can_gc,
         );
 
