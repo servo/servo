@@ -12,9 +12,11 @@ use std::str::FromStr;
 use std::{f64, ptr};
 
 use dom_struct::dom_struct;
-use embedder_traits::{FilterPattern, InputMethodType};
+use embedder_traits::{EmbedderMsg, FilterPattern, InputMethodType, RgbColor};
 use encoding_rs::Encoding;
+use euclid::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Prefix, local_name, ns};
+use ipc_channel::ipc;
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_UnicodeSets, RegExpFlags,
@@ -25,7 +27,6 @@ use js::rust::{HandleObject, MutableHandleObject};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
-use profile_traits::ipc;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::{
     ShadowRootMode, SlotAssignmentMode,
 };
@@ -36,6 +37,7 @@ use stylo_dom::ElementState;
 use time::{Month, OffsetDateTime, Time};
 use unicode_bidi::{BidiClass, bidi_class};
 use url::Url;
+use webrender_api::units::DeviceIntRect;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::activation::Activatable;
@@ -116,20 +118,12 @@ enum ShadowTree {
 }
 
 const COLOR_TREE_STYLE: &str = "
-#border {
-    width: fit-content;
-    height: fit-content;
-    padding: 4px;
-    border: 1px solid gray;
-    background-color: lightgray;
-    border-radius: 2px;
-}
-
 #color-value {
-    width: 64px;
-    height: 32px;
+    width: 100%;
+    height: 100%;
     box-sizing: border-box;
     border: 1px solid gray;
+    border-radius: 2px;
 }
 ";
 
@@ -1087,20 +1081,11 @@ impl HTMLInputElement {
         let shadow_root = self.shadow_root(can_gc);
         Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
 
-        let border = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
-        border
-            .upcast::<Element>()
-            .SetId(DOMString::from("border"), can_gc);
-        shadow_root
-            .upcast::<Node>()
-            .AppendChild(border.upcast::<Node>(), can_gc)
-            .unwrap();
-
         let color_value = HTMLDivElement::new(local_name!("div"), None, &document, None, can_gc);
         color_value
             .upcast::<Element>()
             .SetId(DOMString::from("color-value"), can_gc);
-        border
+        shadow_root
             .upcast::<Node>()
             .AppendChild(color_value.upcast::<Node>(), can_gc)
             .unwrap();
@@ -1121,10 +1106,12 @@ impl HTMLInputElement {
             .AppendChild(style.upcast::<Node>(), can_gc)
             .unwrap();
 
-        let shadow_tree = ShadowTree::Color(InputTypeColorShadowTree {
-            color_value: color_value.as_traced(),
-        });
-        let _ = self.shadow_tree.borrow_mut().insert(shadow_tree);
+        let _ = self
+            .shadow_tree
+            .borrow_mut()
+            .insert(ShadowTree::Color(InputTypeColorShadowTree {
+                color_value: color_value.as_traced(),
+            }));
     }
 
     /// Get a handle to the shadow tree for this input, assuming it's [InputType] is `Color`.
@@ -1146,10 +1133,8 @@ impl HTMLInputElement {
         let shadow_tree = self.shadow_tree.borrow();
         Ref::filter_map(shadow_tree, |shadow_tree| {
             let shadow_tree = shadow_tree.as_ref()?;
-            match shadow_tree {
-                ShadowTree::Color(color_tree) => Some(color_tree),
-                _ => None,
-            }
+            let ShadowTree::Color(color_tree) = shadow_tree;
+            Some(color_tree)
         })
         .ok()
         .expect("UA shadow tree was not created")
@@ -1261,7 +1246,7 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
                 }
             },
             InputType::Color => {
-                return panic!("Input type color is explicitly not rendered as text");
+                unreachable!("Input type color is explicitly not rendered as text");
             },
             _ => {
                 let text = self.get_raw_textinput_value();
@@ -2097,8 +2082,9 @@ impl HTMLInputElement {
                     .collect()
             });
 
-            let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
-                .expect("Error initializing channel");
+            let (chan, recv) =
+                profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
+                    .expect("Error initializing channel");
             let msg =
                 FileManagerThreadMsg::SelectFiles(webview_id, filter, chan, origin, opt_test_paths);
             resource_threads
@@ -2125,8 +2111,9 @@ impl HTMLInputElement {
                 None => None,
             };
 
-            let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
-                .expect("Error initializing channel");
+            let (chan, recv) =
+                profile_traits::ipc::channel(self.global().time_profiler_chan().clone())
+                    .expect("Error initializing channel");
             let msg =
                 FileManagerThreadMsg::SelectFile(webview_id, filter, chan, origin, opt_test_path);
             resource_threads
@@ -2512,6 +2499,54 @@ impl HTMLInputElement {
     fn value_changed(&self, can_gc: CanGc) {
         self.update_related_validity_states(can_gc);
         self.update_shadow_tree_if_needed(can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
+    fn show_the_picker_if_applicable(&self, can_gc: CanGc) {
+        // FIXME: Implement most of this algorithm
+
+        // Step 2. If element is not mutable, then return.
+        if !self.is_mutable() {
+            return;
+        }
+
+        // Step 6. Otherwise, the user agent should show the relevant user interface for selecting a value for element,
+        // in the way it normally would when the user interacts with the control.
+        if self.input_type() == InputType::Color {
+            let (ipc_sender, ipc_receiver) =
+                ipc::channel::<Option<RgbColor>>().expect("Failed to create IPC channel!");
+            let document = self.owner_document();
+            let rect = self.upcast::<Node>().bounding_content_box_or_zero(can_gc);
+            let rect = Rect::new(
+                Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
+                Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+            );
+            let current_value = self.Value();
+            let current_color = RgbColor {
+                red: u8::from_str_radix(&current_value[1..3], 16).unwrap(),
+                green: u8::from_str_radix(&current_value[3..5], 16).unwrap(),
+                blue: u8::from_str_radix(&current_value[5..7], 16).unwrap(),
+            };
+            document.send_to_embedder(EmbedderMsg::ShowColorPicker(
+                document.webview_id(),
+                current_color,
+                DeviceIntRect::from_untyped(&rect.to_box2d()),
+                ipc_sender,
+            ));
+
+            let Ok(response) = ipc_receiver.recv() else {
+                log::error!("Failed to receive response");
+                return;
+            };
+
+            if let Some(selected_color) = response {
+                let formatted_color = format!(
+                    "#{:0>2x}{:0>2x}{:0>2x}",
+                    selected_color.red, selected_color.green, selected_color.blue
+                );
+                let _ = self.SetValue(formatted_color.into(), can_gc);
+            }
+        }
     }
 }
 
@@ -3028,7 +3063,7 @@ impl Activatable for HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):input-activation-behavior
             // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):input-activation-behavior
-            // https://html.spec.whatwg.org/multipage/input.html#color-state-(type=color):input-activation-behavior
+            // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
             InputType::Checkbox | InputType::Radio | InputType::Color => true,
             _ => false,
         }
@@ -3196,9 +3231,9 @@ impl Activatable for HTMLInputElement {
             },
             // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior
             InputType::File => self.select_files(None, can_gc),
-            // https://html.spec.whatwg.org/multipage/input.html#color-state-(type=color):input-activation-behavior
+            // https://html.spec.whatwg.org/multipage/#color-state-(type=color):input-activation-behavior
             InputType::Color => {
-                println!("Show the picker if applicable");
+                self.show_the_picker_if_applicable(can_gc);
             },
             _ => (),
         }

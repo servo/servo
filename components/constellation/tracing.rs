@@ -243,6 +243,7 @@ mod from_script {
                 Self::FinishJavaScriptEvaluation(..) => {
                     target_variant!("FinishJavaScriptEvaluation")
                 },
+                Self::ShowColorPicker(..) => target_variant!("ShowColorPicker"),
             }
         }
     }

@@ -1613,7 +1613,7 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     unsafe fn clear_style_and_layout_data(self);
 
     /// Whether this element is a `<input>` rendered as text or a `<textarea>`.
-    fn is_text_input(self) -> bool;
+    fn is_text_input(&self) -> bool;
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
     fn image_url(self) -> Option<ServoUrl>;
@@ -1778,7 +1778,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         self.unsafe_get().layout_data.borrow_mut_for_layout().take();
     }
 
-    fn is_text_input(self) -> bool {
+    fn is_text_input(&self) -> bool {
         let type_id = self.type_id_for_layout();
         if type_id ==
             NodeTypeId::Element(ElementTypeId::HTMLElement(
@@ -1789,14 +1789,11 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
             // FIXME: All the non-color input types currently render as text
             input.input_type() != InputType::Color
-        } else if type_id ==
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLTextAreaElement,
-            ))
-        {
-            true
         } else {
-            false
+            type_id ==
+                NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLTextAreaElement,
+                ))
         }
     }
 

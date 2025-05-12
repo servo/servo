@@ -380,6 +380,13 @@ pub enum EmbedderMsg {
         JavaScriptEvaluationId,
         Result<JSValue, JavaScriptEvaluationError>,
     ),
+    /// Indicates that the user has activated a `<input type=color>` element.
+    ShowColorPicker(
+        WebViewId,
+        RgbColor,
+        DeviceIntRect,
+        IpcSender<Option<RgbColor>>,
+    ),
 }
 
 impl Debug for EmbedderMsg {
@@ -920,4 +927,11 @@ pub enum JavaScriptEvaluationError {
     /// The script executed successfully, but Servo could not serialize the JavaScript return
     /// value into a [`JSValue`].
     SerializationError,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct RgbColor {
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
 }
