@@ -106,6 +106,12 @@ def handle_preset(s: str) -> Optional[JobConfig]:
                          wpt_args="_webgpu",  # run only webgpu cts
                          profile="production",  # WebGPU works to slow with debug assert
                          unit_tests=False)  # production profile does not work with unit-tests
+    elif any(word in s for word in ["vello"]):
+        return JobConfig("Vello WPT", Workflow.LINUX,
+                         wpt=True,  # reftests are mode for new layout
+                         wpt_args="--pref dom_canvas_vello_enabled",
+                         build_args="--features 'vello'"
+                         )
     elif any(word in s for word in ["lint", "tidy"]):
         return JobConfig("Lint", Workflow.LINT)
     else:
