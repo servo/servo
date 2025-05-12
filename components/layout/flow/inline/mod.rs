@@ -2241,6 +2241,10 @@ fn place_pending_floats(ifc: &mut InlineFormattingContextLayout, line_items: &mu
     }
 }
 
+/// Resolve line height for a given parameters.
+/// Argument `parent_block_size` is used only to resolve `-moz-block-height`,
+/// giving None `parent_block_size` will cause `-moz-block-height` to resolve
+/// like `normal`.
 fn line_height(
     parent_style: &ComputedValues,
     font_metrics: &FontMetrics,
@@ -2254,8 +2258,8 @@ fn line_height(
         LineHeight::Number(number) => (font_size * number.0).into(),
         LineHeight::Length(length) => length.0.into(),
         LineHeight::MozBlockHeight => match parent_block_size {
-            Some(SizeConstraint::Definite(au)) => *au,
-            Some(SizeConstraint::MinMax(min_au, _)) => *min_au,
+            Some(SizeConstraint::Definite(definite)) => *definite,
+            Some(SizeConstraint::MinMax(min_size, _)) => *min_size,
             None => font_metrics.line_gap,
         },
     };

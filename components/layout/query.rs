@@ -36,7 +36,7 @@ use style::values::computed::{Float, Size};
 use style::values::generics::font::LineHeight;
 use style::values::generics::position::AspectRatio;
 use style::values::specified::GenericGridTemplateComponent;
-use style::values::specified::box_::DisplayInside;
+use style::values::specified::box_::{DisplayInside, DisplayOutside};
 use style_traits::{ParsingMode, ToCss};
 
 use crate::ArcRefCell;
@@ -225,7 +225,25 @@ pub fn process_resolved_style_request(
                 LineHeight::Normal => computed_style(None),
                 LineHeight::Number(value) => (font_size * value.0).to_css_string(),
                 LineHeight::Length(value) => value.0.to_css_string(),
-                LineHeight::MozBlockHeight => content_rect.size.height.to_css_string(),
+                // For a non-block level fragment we need to find the containing block of it.
+                LineHeight::MozBlockHeight => {
+                    if style.clone_display().outside() == DisplayOutside::Inline {
+                        if let Some(parent_node) = node.parent_node() {
+                            match parent_node.fragments_for_pseudo(None).first() {
+                                Some(Fragment::Box(box_fragment)) |
+                                Some(Fragment::Float(box_fragment)) => {
+                                    return box_fragment
+                                        .borrow()
+                                        .content_rect
+                                        .height()
+                                        .to_css_string();
+                                },
+                                _ => {},
+                            }
+                        }
+                    }
+                    content_rect.size.height.to_css_string()
+                },
             };
         }
 
