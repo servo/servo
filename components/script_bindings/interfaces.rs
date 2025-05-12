@@ -3,10 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::rc::Rc;
 use std::thread::LocalKey;
 
-use js::conversions::ToJSValConvertible;
 use js::glue::JSPrincipalsCallbacks;
 use js::jsapi::{CallArgs, HandleObject as RawHandleObject, JSContext as RawJSContext, JSObject};
 use js::rust::{HandleObject, MutableHandleObject};
@@ -78,14 +76,6 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
     unsafe fn from_object(obj: *mut JSObject) -> DomRoot<D::GlobalScope>;
     fn from_reflector(reflector: &impl DomObject, realm: InRealm) -> DomRoot<D::GlobalScope>;
 
-    /// # Safety
-    /// `obj` must point to a valid, non-null JSObject.
-    /// `cx` must point to a valid, non-null RawJSContext.
-    unsafe fn from_object_maybe_wrapped(
-        obj: *mut JSObject,
-        cx: *mut RawJSContext,
-    ) -> DomRoot<D::GlobalScope>;
-
     fn origin(&self) -> &MutableOrigin;
 
     fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
@@ -99,15 +89,6 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
 
 pub trait DocumentHelpers {
     fn ensure_safe_to_run_script_or_layout(&self);
-}
-
-/// Operations that must be invoked from the generated bindings.
-pub trait PromiseHelpers<D: crate::DomTypes> {
-    fn new_resolved(
-        global: &D::GlobalScope,
-        cx: JSContext,
-        value: impl ToJSValConvertible,
-    ) -> Rc<D::Promise>;
 }
 
 pub trait ServoInternalsHelpers {
