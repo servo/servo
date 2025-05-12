@@ -1612,6 +1612,8 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     /// attempting to read or modify the opaque layout data of this node.
     unsafe fn clear_style_and_layout_data(self);
 
+    /// Whether this element is a `<input>` rendered as text or a `<textarea>`.
+    fn is_text_input(self) -> bool;
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
     fn image_url(self) -> Option<ServoUrl>;
@@ -1774,6 +1776,28 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     unsafe fn clear_style_and_layout_data(self) {
         self.unsafe_get().style_data.borrow_mut_for_layout().take();
         self.unsafe_get().layout_data.borrow_mut_for_layout().take();
+    }
+
+    fn is_text_input(self) -> bool {
+        let type_id = self.type_id_for_layout();
+        if type_id ==
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLInputElement,
+            ))
+        {
+            let input = self.unsafe_get().downcast::<HTMLInputElement>().unwrap();
+
+            // FIXME: All the non-color input types currently render as text
+            input.input_type() != InputType::Color
+        } else if type_id ==
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLTextAreaElement,
+            ))
+        {
+            true
+        } else {
+            false
+        }
     }
 
     fn text_content(self) -> Cow<'dom, str> {

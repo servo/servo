@@ -172,8 +172,7 @@ impl InputType {
     fn is_textual(&self) -> bool {
         matches!(
             *self,
-            InputType::Color |
-                InputType::Date |
+            InputType::Date |
                 InputType::DatetimeLocal |
                 InputType::Email |
                 InputType::Hidden |
@@ -277,9 +276,16 @@ impl From<&Atom> for InputType {
 
 #[derive(Debug, PartialEq)]
 enum ValueMode {
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value-value>
     Value,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value-default>
     Default,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value-default-on>
     DefaultOn,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-value-filename>
     Filename,
 }
 
@@ -803,7 +809,7 @@ impl HTMLInputElement {
             .map(DomRoot::from_ref)
     }
 
-    // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
+    /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-missing>
     fn suffers_from_being_missing(&self, value: &DOMString) -> bool {
         match self.input_type() {
             // https://html.spec.whatwg.org/multipage/#checkbox-state-(type%3Dcheckbox)%3Asuffering-from-being-missing
@@ -958,9 +964,9 @@ impl HTMLInputElement {
         failed_flags
     }
 
-    // https://html.spec.whatwg.org/multipage/#suffering-from-an-underflow
-    // https://html.spec.whatwg.org/multipage/#suffering-from-an-overflow
-    // https://html.spec.whatwg.org/multipage/#suffering-from-a-step-mismatch
+    /// * <https://html.spec.whatwg.org/multipage/#suffering-from-an-underflow>
+    /// * <https://html.spec.whatwg.org/multipage/#suffering-from-an-overflow>
+    /// * <https://html.spec.whatwg.org/multipage/#suffering-from-a-step-mismatch>
     fn suffers_from_range_issues(&self, value: &DOMString) -> ValidationFlags {
         if value.is_empty() || !self.does_value_as_number_apply() {
             return ValidationFlags::empty();
@@ -1075,16 +1081,15 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
                     Some(filelist) => {
                         let length = filelist.len();
                         if length == 0 {
-                            return DEFAULT_FILE_INPUT_VALUE.into();
-                        }
-                        if length == 1 {
+                            DEFAULT_FILE_INPUT_VALUE.into()
+                        } else if length == 1 {
                             match filelist.file_for_layout(0) {
-                                Some(file) => return file.name().to_string().into(),
-                                None => return DEFAULT_FILE_INPUT_VALUE.into(),
+                                Some(file) => file.name().to_string().into(),
+                                None => DEFAULT_FILE_INPUT_VALUE.into(),
                             }
+                        } else {
+                            format!("{} files", length).into()
                         }
-
-                        format!("{} files", length).into()
                     },
                     None => DEFAULT_FILE_INPUT_VALUE.into(),
                 }
@@ -1102,6 +1107,9 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
                 } else {
                     self.placeholder().into()
                 }
+            },
+            InputType::Color => {
+                return panic!("Input type color is explicitly not rendered as text");
             },
             _ => {
                 let text = self.get_raw_textinput_value();
@@ -1178,11 +1186,11 @@ impl TextControlElement for HTMLInputElement {
             InputType::Week |
             InputType::Time |
             InputType::DatetimeLocal |
-            InputType::Number |
-            InputType::Color => true,
+            InputType::Number => true,
 
             InputType::Button |
             InputType::Checkbox |
+            InputType::Color |
             InputType::File |
             InputType::Hidden |
             InputType::Image |
