@@ -135,7 +135,7 @@ pub(crate) trait GenericPathBuilder<B: Backend> {
         end_angle: f32,
         anticlockwise: bool,
     ) {
-        <PathBuilder as GenericPathBuilder<RaqoteBackend>>::ellipse(
+        Self::ellipse(
             self,
             origin,
             radius,
