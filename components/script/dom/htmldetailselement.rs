@@ -5,10 +5,9 @@
 use std::cell::{Cell, Ref};
 
 use dom_struct::dom_struct;
-use embedder_traits::resources::Resource;
 use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
-use script_layout_interface::parse_resource_stylesheet;
+use script_layout_interface::parse_details_stylesheet;
 use style::attr::AttrValue;
 
 use super::element::ElementCreator;
@@ -138,12 +137,11 @@ impl HTMLDetailsElement {
             .AppendChild(link_element.upcast::<Node>(), can_gc)
             .unwrap();
 
-        let details_stylesheet = parse_resource_stylesheet(
+        let details_stylesheet = parse_details_stylesheet(
             link_element
                 .upcast::<Node>()
                 .owner_doc()
                 .style_shared_lock(),
-            Resource::DetailsCSS,
         );
         link_element.set_stylesheet(details_stylesheet.unwrap());
 
