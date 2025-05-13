@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::num::NonZeroU64;
 use std::time::Duration as StdDuration;
 
-use base::cross_process_instant::CrossProcessInstant;
 use net::hsts::{HstsEntry, HstsList, HstsPreloadList};
 use net_traits::IncludeSubdomains;
-use time::Duration;
 
 #[test]
 fn test_hsts_entry_is_not_expired_when_it_has_no_expires_at() {
@@ -26,7 +25,7 @@ fn test_hsts_entry_is_expired_when_it_has_reached_its_max_age() {
     let entry = HstsEntry {
         host: "mozilla.org".to_owned(),
         include_subdomains: false,
-        expires_at: Some(CrossProcessInstant::now() - Duration::seconds(20)),
+        expires_at: Some(NonZeroU64::new(1).unwrap()),
     };
 
     assert!(entry.is_expired());
@@ -88,7 +87,7 @@ fn test_base_domain_in_entries_map() {
 }
 
 #[test]
-fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
+fn test_push_entry_with_0_max_age_is_not_secure() {
     let mut entries_map = HashMap::new();
     entries_map.insert(
         "mozilla.org".to_owned(),
@@ -115,6 +114,36 @@ fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
     );
 
     assert_eq!(list.is_host_secure("mozilla.org"), false)
+}
+
+fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
+    let mut entries_map = HashMap::new();
+    entries_map.insert(
+        "mozilla.org".to_owned(),
+        vec![
+            HstsEntry::new(
+                "mozilla.org".to_owned(),
+                IncludeSubdomains::NotIncluded,
+                Some(StdDuration::from_secs(500000)),
+            )
+            .unwrap(),
+        ],
+    );
+    let mut list = HstsList {
+        entries_map: entries_map,
+    };
+
+    assert_eq!(list.entries_map.get("mozilla.org").unwrap().len(), 1);
+
+    list.push(
+        HstsEntry::new(
+            "mozilla.org".to_owned(),
+            IncludeSubdomains::NotIncluded,
+            Some(StdDuration::ZERO),
+        )
+        .unwrap(),
+    );
+    assert_eq!(list.entries_map.get("mozilla.org").unwrap().len(), 0);
 }
 
 #[test]
@@ -394,7 +423,7 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
         vec![HstsEntry {
             host: "mozilla.org".to_owned(),
             include_subdomains: false,
-            expires_at: Some(CrossProcessInstant::now() - Duration::seconds(100)),
+            expires_at: Some(NonZeroU64::new(1).unwrap()),
         }],
     );
     let hsts_list = HstsList {

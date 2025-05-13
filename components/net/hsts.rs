@@ -4,10 +4,10 @@
 
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
+use std::num::NonZeroU64;
 use std::sync::LazyLock;
 use std::time::Duration;
 
-use base::cross_process_instant::CrossProcessInstant;
 use embedder_traits::resources::{self, Resource};
 use headers::{HeaderMapExt, StrictTransportSecurity};
 use http::HeaderMap;
@@ -18,14 +18,23 @@ use net_traits::pub_domains::reg_suffix;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use servo_url::{Host, ServoUrl};
+use time::UtcDateTime;
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct HstsEntry {
     pub host: String,
     pub include_subdomains: bool,
-    // TODO(sebsebmc): This is wrong, CrossProcessInstant epoch is system boot, persisting this to disk and
-    // loading it after reboot results in incorrect results
-    pub expires_at: Option<CrossProcessInstant>,
+    // Nonzero to allow for memory optimization
+    pub expires_at: Option<NonZeroU64>,
+}
+
+// Zero and negative times are all expired
+fn unix_timestamp_to_nonzerou64(timestamp: i64) -> NonZeroU64 {
+    if timestamp <= 0 {
+        NonZeroU64::new(1).unwrap()
+    } else {
+        NonZeroU64::new(timestamp.try_into().unwrap()).unwrap()
+    }
 }
 
 impl HstsEntry {
@@ -34,8 +43,9 @@ impl HstsEntry {
         subdomains: IncludeSubdomains,
         max_age: Option<Duration>,
     ) -> Option<HstsEntry> {
-        let expires_at =
-            max_age.map(|duration| CrossProcessInstant::now() + duration.try_into().unwrap());
+        let expires_at = max_age.map(|duration| {
+            unix_timestamp_to_nonzerou64((UtcDateTime::now() + duration).unix_timestamp())
+        });
         if host.parse::<Ipv4Addr>().is_ok() || host.parse::<Ipv6Addr>().is_ok() {
             None
         } else {
@@ -49,7 +59,9 @@ impl HstsEntry {
 
     pub fn is_expired(&self) -> bool {
         match self.expires_at {
-            Some(timestamp) => CrossProcessInstant::now() > timestamp,
+            Some(timestamp) => {
+                unix_timestamp_to_nonzerou64(UtcDateTime::now().unix_timestamp()) >= timestamp
+            },
             _ => false,
         }
     }
@@ -220,13 +232,6 @@ impl HstsList {
     pub fn push(&mut self, entry: HstsEntry) {
         let host = entry.host.clone();
         let base_domain = reg_suffix(&host);
-        {
-            // Remove expired entries, this seems to be as good a time as any and helps avoid a
-            // pathologic case where we would keep adding short lived HSTS entries and having to
-            // linear scan through increasing numbers of expired entries
-            let entries = self.entries_map.entry(base_domain.to_owned()).or_default();
-            entries.retain(|e| !e.is_expired());
-        }
         let have_domain = self.has_domain(&entry.host, base_domain);
         let have_subdomain = self.has_subdomain(&entry.host, base_domain);
 
@@ -234,13 +239,14 @@ impl HstsList {
         if !have_domain && !have_subdomain {
             entries.push(entry);
         } else if !have_subdomain {
-            for e in entries {
+            for e in entries.iter_mut() {
                 if e.matches_domain(&entry.host) {
                     e.include_subdomains = entry.include_subdomains;
                     e.expires_at = entry.expires_at;
                 }
             }
         }
+        entries.retain(|e| !e.is_expired());
     }
 
     /// Step 2.9 of <https://fetch.spec.whatwg.org/#concept-main-fetch>.
