@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use base::id::WebViewId;
 use constellation_traits::EmbedderToConstellationMessage;
-use embedder_traits::{JSValue, JavaScriptEvaluationId, JavaScriptEvaluationError};
+use embedder_traits::{JSValue, JavaScriptEvaluationError, JavaScriptEvaluationId};
 
 use crate::ConstellationProxy;
 

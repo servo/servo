@@ -50,9 +50,9 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, EmbedderMsg, FocusSequenceNumber, InputEvent, JavaScriptEvaluationId,
-    JavaScriptEvaluationError, MediaSessionActionType, MouseButton, MouseButtonAction,
-    MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
+    CompositorHitTestResult, EmbedderMsg, FocusSequenceNumber, InputEvent,
+    JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, MouseButton,
+    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;

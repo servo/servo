@@ -129,8 +129,8 @@ use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy,
-    FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationId,
-    JavaScriptEvaluationError, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
+    FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
+    JavaScriptEvaluationId, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
     WebDriverLoadStatus,
 };

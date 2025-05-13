@@ -56,10 +56,9 @@ fn evaluate_javascript(
 
     let saved_result = Rc::new(RefCell::new(None));
     let callback_result = saved_result.clone();
-    webview.evaluate_javascript(
-        script,
-        move |result| *callback_result.borrow_mut() = Some(result),
-    );
+    webview.evaluate_javascript(script, move |result| {
+        *callback_result.borrow_mut() = Some(result)
+    });
 
     let spin_result = saved_result.clone();
     let _ = servo_test.spin(move || Ok(spin_result.borrow().is_none()));

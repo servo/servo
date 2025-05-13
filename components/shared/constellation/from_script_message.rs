@@ -15,8 +15,8 @@ use base::id::{
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{
-    AnimationState, EmbedderMsg, FocusSequenceNumber, JSValue, JavaScriptEvaluationId,
-    JavaScriptEvaluationError, MediaSessionEvent, TouchEventResult, ViewportDetails,
+    AnimationState, EmbedderMsg, FocusSequenceNumber, JSValue, JavaScriptEvaluationError,
+    JavaScriptEvaluationId, MediaSessionEvent, TouchEventResult, ViewportDetails,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use http::{HeaderMap, Method};
