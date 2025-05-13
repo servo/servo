@@ -1097,10 +1097,15 @@ impl ScriptThread {
                                 pipeline_id,
                                 ScriptToConstellationMessage::WebDriverInputComplete(id),
                             ))
-                            .unwrap();
+                            .unwrap_or_else(|_| {
+                                warn!(
+                                    "ScriptThread failed to send WebDriverInputComplete: {:?}",
+                                    id
+                                );
+                            });
                     }
                 },
-                InputEvent::MouseMove(mouse_button_event) => {
+                InputEvent::MouseMove(mouse_move_event) => {
                     // The event itself is unecessary here, because the point in the viewport is in the hit test.
                     self.process_mouse_move_event(
                         &document,
@@ -1109,14 +1114,19 @@ impl ScriptThread {
                         can_gc,
                     );
 
-                    if let Some(id) = mouse_button_event.webdriver_id {
+                    if let Some(id) = mouse_move_event.webdriver_id {
                         self.senders
                             .pipeline_to_constellation_sender
                             .send((
                                 pipeline_id,
                                 ScriptToConstellationMessage::WebDriverInputComplete(id),
                             ))
-                            .unwrap();
+                            .unwrap_or_else(|e| {
+                                warn!(
+                                    "ScriptThread failed to send WebDriverInputComplete {:?}",
+                                    id
+                                );
+                            });
                     }
                 },
                 InputEvent::Touch(touch_event) => {

@@ -10,8 +10,8 @@ mod actions;
 mod capabilities;
 
 use std::borrow::ToOwned;
-use std::cell::RefCell;
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::cell::{Cell, RefCell};
+use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -171,9 +171,8 @@ pub struct WebDriverSession {
 
     // https://w3c.github.io/webdriver/#dfn-input-cancel-list
     input_cancel_list: RefCell<Vec<ActionSequence>>,
-
     // https://w3c.github.io/webdriver/#dfn-actions-queue
-    actions_queue: RefCell<VecDeque<WebDriverMessageId>>,
+    // Currently, we don't need a queue because only 1 thread run actions at a time.
 }
 
 impl WebDriverSession {
@@ -199,7 +198,6 @@ impl WebDriverSession {
 
             input_state_table: RefCell::new(HashMap::new()),
             input_cancel_list: RefCell::new(Vec::new()),
-            actions_queue: RefCell::new(VecDeque::new()),
         }
     }
 }
@@ -226,6 +224,8 @@ struct Handler {
     constellation_receiver: IpcReceiver<WebDriverCommandResponse>,
 
     id_generator: IdGenerator,
+
+    current_action_id: Cell<Option<WebDriverMessageId>>,
 
     resize_timeout: u32,
 }
@@ -458,6 +458,7 @@ impl Handler {
             constellation_sender,
             constellation_receiver,
             id_generator: IdGenerator::new(),
+            current_action_id: Cell::new(None),
             resize_timeout: 500,
         }
     }
@@ -1669,34 +1670,12 @@ impl Handler {
                         y: 0.0,
                         ..Default::default()
                     };
-                    let pointer_move_action = ActionSequence {
-                        id: id.clone(),
-                        actions: ActionsType::Pointer {
-                            parameters: PointerActionParameters {
-                                pointer_type: PointerType::Mouse,
-                            },
-                            actions: vec![PointerActionItem::Pointer(PointerAction::Move(
-                                pointer_move_action,
-                            ))],
-                        },
-                    };
 
                     // Step 8.11. Construct pointer down action.
                     // Step 8.12. Set a property button to 0 on pointer down action.
                     let pointer_down_action = PointerDownAction {
                         button: i16::from(MouseButton::Left) as u64,
                         ..Default::default()
-                    };
-                    let pointer_down_action = ActionSequence {
-                        id: id.clone(),
-                        actions: ActionsType::Pointer {
-                            parameters: PointerActionParameters {
-                                pointer_type: PointerType::Mouse,
-                            },
-                            actions: vec![PointerActionItem::Pointer(PointerAction::Down(
-                                pointer_down_action,
-                            ))],
-                        },
                     };
 
                     // Step 8.13. Construct pointer up action.
@@ -1705,23 +1684,26 @@ impl Handler {
                         button: i16::from(MouseButton::Left) as u64,
                         ..Default::default()
                     };
-                    let pointer_up_action = ActionSequence {
+
+                    let action_sequence = ActionSequence {
                         id: id.clone(),
                         actions: ActionsType::Pointer {
                             parameters: PointerActionParameters {
                                 pointer_type: PointerType::Mouse,
                             },
-                            actions: vec![PointerActionItem::Pointer(PointerAction::Up(
-                                pointer_up_action,
-                            ))],
+                            actions: vec![
+                                PointerActionItem::Pointer(PointerAction::Move(
+                                    pointer_move_action,
+                                )),
+                                PointerActionItem::Pointer(PointerAction::Down(
+                                    pointer_down_action,
+                                )),
+                                PointerActionItem::Pointer(PointerAction::Up(pointer_up_action)),
+                            ],
                         },
                     };
 
-                    let _ = self.dispatch_actions(&[
-                        pointer_move_action,
-                        pointer_down_action,
-                        pointer_up_action,
-                    ]);
+                    let _ = self.dispatch_actions(&[action_sequence]);
 
                     // Step 8.17 Remove an input source with input state and input id.
                     self.session_mut()?
