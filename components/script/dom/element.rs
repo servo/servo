@@ -1996,6 +1996,15 @@ impl Element {
             .unwrap_or_else(|_| TrustedScriptURLOrUSVString::USVString(USVString(value.to_owned())))
     }
 
+    pub(crate) fn get_trusted_html_attribute(&self, local_name: &LocalName) -> TrustedHTMLOrString {
+        assert_eq!(*local_name, local_name.to_ascii_lowercase());
+        let value = match self.get_attribute(&ns!(), local_name) {
+            Some(attr) => (&**attr.value()).into(),
+            None => "".into(),
+        };
+        TrustedHTMLOrString::String(value)
+    }
+
     pub(crate) fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
         match self.get_attribute(&ns!(), local_name) {
             Some(x) => x.Value(),
