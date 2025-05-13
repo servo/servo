@@ -23,6 +23,8 @@ use servo_url::{Host, ServoUrl};
 pub struct HstsEntry {
     pub host: String,
     pub include_subdomains: bool,
+    // TODO(sebsebmc): This is wrong, CrossProcessInstant epoch is system boot, persisting this to disk and
+    // loading it after reboot results in incorrect results
     pub expires_at: Option<CrossProcessInstant>,
 }
 
@@ -53,11 +55,11 @@ impl HstsEntry {
     }
 
     fn matches_domain(&self, host: &str) -> bool {
-        !self.is_expired() && self.host == host
+        self.host == host
     }
 
     fn matches_subdomain(&self, host: &str) -> bool {
-        !self.is_expired() && host.ends_with(&format!(".{}", self.host))
+        host.ends_with(&format!(".{}", self.host))
     }
 }
 
@@ -114,6 +116,7 @@ impl HstsPreloadList {
     pub fn is_host_secure(&self, host: &str) -> bool {
         let base_domain = reg_suffix(host);
         self.entries_map.get(base_domain).is_some_and(|entries| {
+            // No need to check for expiration in the preload list
             entries.iter().any(|e| {
                 if e.include_subdomains {
                     e.matches_subdomain(host) || e.matches_domain(host)
@@ -131,9 +134,11 @@ impl HstsPreloadList {
     }
 
     pub fn has_subdomain(&self, host: &str, base_domain: &str) -> bool {
-        self.entries_map
-            .get(base_domain)
-            .is_some_and(|entries| entries.iter().any(|e| e.matches_subdomain(host)))
+        self.entries_map.get(base_domain).is_some_and(|entries| {
+            entries
+                .iter()
+                .any(|e| e.include_subdomains && e.matches_subdomain(host))
+        })
     }
 
     pub fn push(&mut self, entry: HstsEntry) {
@@ -149,6 +154,8 @@ impl HstsPreloadList {
             for e in entries {
                 if e.matches_domain(&entry.host) {
                     e.include_subdomains = entry.include_subdomains;
+                    // TODO(sebsebmc): We could shrink the the HSTS preload memory use further by using a type
+                    // that doesn't store an expiry since all preload entries should be "forever"
                     e.expires_at = entry.expires_at;
                 }
             }
@@ -186,7 +193,7 @@ impl HstsList {
 
         let base_domain = reg_suffix(host);
         self.entries_map.get(base_domain).is_some_and(|entries| {
-            entries.iter().any(|e| {
+            entries.iter().filter(|e| !e.is_expired()).any(|e| {
                 if e.include_subdomains {
                     e.matches_subdomain(host) || e.matches_domain(host)
                 } else {
@@ -203,18 +210,23 @@ impl HstsList {
     }
 
     fn has_subdomain(&self, host: &str, base_domain: &str) -> bool {
-        self.entries_map
-            .get(base_domain)
-            .is_some_and(|entries| entries.iter().any(|e| e.matches_subdomain(host)))
+        self.entries_map.get(base_domain).is_some_and(|entries| {
+            entries
+                .iter()
+                .any(|e| e.include_subdomains && e.matches_subdomain(host))
+        })
     }
 
     pub fn push(&mut self, entry: HstsEntry) {
         let host = entry.host.clone();
         let base_domain = reg_suffix(&host);
-        // TODO(sebsebmc): has_domain and has_subdomain both check for *non-expired* entries and we never prune expired
-        // entries which means a website with a short HSTS lifetime could create a very long list of entries that we
-        // have to iterate through. We probably want to make the inner type a HashMap or use a check that ignores the
-        // expiry because we're either replacing or adding an entry here.
+        {
+            // Remove expired entries, this seems to be as good a time as any and helps avoid a
+            // pathologic case where we would keep adding short lived HSTS entries and having to
+            // linear scan through increasing numbers of expired entries
+            let entries = self.entries_map.entry(base_domain.to_owned()).or_default();
+            entries.retain(|e| !e.is_expired());
+        }
         let have_domain = self.has_domain(&entry.host, base_domain);
         let have_subdomain = self.has_subdomain(&entry.host, base_domain);
 

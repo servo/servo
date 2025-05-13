@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::time::Duration as StdDuration;
 
 use base::cross_process_instant::CrossProcessInstant;
-use net::hsts::{HstsEntry, HstsList};
+use net::hsts::{HstsEntry, HstsList, HstsPreloadList};
 use net_traits::IncludeSubdomains;
 use time::Duration;
 
@@ -141,6 +141,36 @@ fn test_push_entry_to_hsts_list_should_not_add_subdomains_whose_superdomain_is_a
 }
 
 #[test]
+fn test_push_entry_to_hsts_list_should_add_subdomains_whose_superdomain_doesnt_include() {
+    let mut entries_map = HashMap::new();
+    entries_map.insert(
+        "mozilla.org".to_owned(),
+        vec![
+            HstsEntry::new(
+                "mozilla.org".to_owned(),
+                IncludeSubdomains::NotIncluded,
+                None,
+            )
+            .unwrap(),
+        ],
+    );
+    let mut list = HstsList {
+        entries_map: entries_map,
+    };
+
+    list.push(
+        HstsEntry::new(
+            "servo.mozilla.org".to_owned(),
+            IncludeSubdomains::NotIncluded,
+            None,
+        )
+        .unwrap(),
+    );
+
+    assert_eq!(list.entries_map.get("mozilla.org").unwrap().len(), 2)
+}
+
+#[test]
 fn test_push_entry_to_hsts_list_should_update_existing_domain_entrys_include_subdomains() {
     let mut entries_map = HashMap::new();
     entries_map.insert(
@@ -230,7 +260,7 @@ fn test_push_entry_to_hsts_list_should_add_an_entry() {
 fn test_parse_hsts_preload_should_return_none_when_json_invalid() {
     let mock_preload_content = "derp";
     assert!(
-        HstsList::from_preload(mock_preload_content).is_none(),
+        HstsPreloadList::from_preload(mock_preload_content).is_none(),
         "invalid preload list should not have parsed"
     )
 }
@@ -239,7 +269,7 @@ fn test_parse_hsts_preload_should_return_none_when_json_invalid() {
 fn test_parse_hsts_preload_should_return_none_when_json_contains_no_entries_map_key() {
     let mock_preload_content = "{\"nothing\": \"to see here\"}";
     assert!(
-        HstsList::from_preload(mock_preload_content).is_none(),
+        HstsPreloadList::from_preload(mock_preload_content).is_none(),
         "invalid preload list should not have parsed"
     )
 }
@@ -252,7 +282,7 @@ fn test_parse_hsts_preload_should_decode_host_and_includes_subdomains() {
                                 \"include_subdomains\": false}\
                                 ]\
                                 }";
-    let hsts_list = HstsList::from_preload(mock_preload_content);
+    let hsts_list = HstsPreloadList::from_preload(mock_preload_content);
     let entries_map = hsts_list.unwrap().entries_map;
 
     assert_eq!(
@@ -376,6 +406,6 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
 
 #[test]
 fn test_preload_hsts_domains_well_formed() {
-    let hsts_list = HstsList::from_servo_preload();
+    let hsts_list = HstsPreloadList::from_servo_preload();
     assert!(!hsts_list.entries_map.is_empty());
 }
