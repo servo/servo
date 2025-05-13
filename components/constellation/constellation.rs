@@ -133,7 +133,6 @@ use embedder_traits::{
     JavaScriptEvaluationId, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
     MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
     WebDriverCommandResponse, WebDriverLoadStatus,
-    WebDriverMessageId,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -1869,6 +1868,15 @@ where
             },
             ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, result) => {
                 self.handle_finish_javascript_evaluation(evaluation_id, result)
+            },
+            ScriptToConstellationMessage::WebDriverInputComplete(msg_id) => {
+                if let Some(ref reply_chan) = self.webdriver.sync_channel {
+                    reply_chan
+                        .send(WebDriverCommandResponse::WebDriverInputComplete(msg_id))
+                        .unwrap_or_else(|_| {
+                            warn!("Failed to send WebDriverInputComplete {:?}", msg_id);
+                        });
+                }
             },
         }
     }
