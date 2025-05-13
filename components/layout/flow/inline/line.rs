@@ -887,10 +887,9 @@ fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Au 
     let font = parent_style.get_font();
     let font_size = font.font_size.computed_size();
     match font.line_height {
-        LineHeight::Normal => font_metrics.line_gap,
+        LineHeight::Normal | LineHeight::MozBlockHeight => font_metrics.line_gap,
         LineHeight::Number(number) => (font_size * number.0).into(),
         LineHeight::Length(length) => length.0.into(),
-        LineHeight::MozBlockHeight => font_metrics.line_gap,
     }
 }
 

@@ -20,8 +20,10 @@ use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapseValue;
+use style::computed_values::writing_mode;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use style::dom::{NodeInfo, OpaqueNode, TElement, TNode};
+use style::logical_geometry::LogicalSize;
 use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
@@ -45,6 +47,7 @@ use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse};
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
+use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
 pub fn process_content_box_request(node: ServoLayoutNode<'_>) -> Option<Rect<Au>> {
@@ -177,7 +180,13 @@ pub fn process_resolved_style_request(
     }
 
     let resolve_for_fragment = |fragment: &Fragment| {
-        let (content_rect, margins, padding, specific_layout_info) = match fragment {
+        let (
+            content_rect,
+            margins,
+            padding,
+            specific_layout_info,
+            cumulative_containing_block_rect,
+        ) = match fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
                 let box_fragment = box_fragment.borrow();
                 if style.get_box().position != Position::Static {
@@ -200,15 +209,27 @@ pub fn process_resolved_style_request(
                 let margins = box_fragment.margin;
                 let padding = box_fragment.padding;
                 let specific_layout_info = box_fragment.specific_layout_info.clone();
-                (content_rect, margins, padding, specific_layout_info)
+                let cumulative_containing_block_rect =
+                    box_fragment.cumulative_containing_block_rect;
+                (
+                    content_rect,
+                    margins,
+                    padding,
+                    specific_layout_info,
+                    cumulative_containing_block_rect,
+                )
             },
             Fragment::Positioning(positioning_fragment) => {
                 let content_rect = positioning_fragment.borrow().rect;
+                let cumulative_containing_block_rect = positioning_fragment
+                    .borrow()
+                    .cumulative_containing_block_rect;
                 (
                     content_rect,
                     SideOffsets2D::zero(),
                     SideOffsets2D::zero(),
                     None,
+                    cumulative_containing_block_rect,
                 )
             },
             _ => return computed_style(Some(fragment)),
@@ -225,24 +246,21 @@ pub fn process_resolved_style_request(
                 LineHeight::Normal => computed_style(None),
                 LineHeight::Number(value) => (font_size * value.0).to_css_string(),
                 LineHeight::Length(value) => value.0.to_css_string(),
-                // For a non-block level fragment we need to find the containing block of it.
                 LineHeight::MozBlockHeight => {
-                    if style.clone_display().outside() == DisplayOutside::Inline {
-                        if let Some(parent_node) = node.parent_node() {
-                            match parent_node.fragments_for_pseudo(None).first() {
-                                Some(Fragment::Box(box_fragment)) |
-                                Some(Fragment::Float(box_fragment)) => {
-                                    return box_fragment
-                                        .borrow()
-                                        .content_rect
-                                        .height()
-                                        .to_css_string();
-                                },
-                                _ => {},
-                            }
-                        }
+                    let mut content_rect = content_rect;
+                    let writing_mode = style.writing_mode;
+                    let base_fragment = fragment.base().expect(
+                        "Base Fragment should exist for BoxFragment or PositioningFragment",
+                    );
+
+                    // For a inline level fragment it would be the containing block of it.
+                    // But, we shouldn't need to find the writing mode, since it will inherit.
+                    if style.is_inline_box(base_fragment.flags) {
+                        content_rect = cumulative_containing_block_rect;
                     }
-                    content_rect.size.height.to_css_string()
+                    LogicalSize::from_physical(writing_mode, content_rect.size.to_untyped())
+                        .block
+                        .to_css_string()
                 },
             };
         }
