@@ -486,9 +486,11 @@ fn generate_pseudo_element_content(
                             vec.push(PseudoElementContentItem::Replaced(replaced_content));
                         }
                     },
+                    // https://drafts.csswg.org/css-content/#valdef-content-open-quote
                     ContentItem::OpenQuote => {
                         let quote_depth = context.get_quote_depth();
                         let maybe_quote = match &pseudo_element_style.get_list().quotes {
+                            // https://drafts.csswg.org/css-content/#quotes-property
                             Quotes::Auto => {
                                 let lang = &pseudo_element_style.get_font()._x_lang;
                                 let quote_pair = quotes_for_lang(lang.0.as_ref(), quote_depth);
@@ -517,11 +519,13 @@ fn generate_pseudo_element_content(
                         }
                         context.increment_quote_depth();
                     },
+                    // https://drafts.csswg.org/css-content/#valdef-content-close-quote
                     ContentItem::CloseQuote => {
                         let quote_depth = context.get_quote_depth();
                         if quote_depth > 0 {
                             let updated_depth = context.decrement_quote_depth();
                             let maybe_quote = match &pseudo_element_style.get_list().quotes {
+                                // https://drafts.csswg.org/css-content/#quotes-property
                                 Quotes::Auto => {
                                     let lang = &pseudo_element_style.get_font()._x_lang;
                                     let quote_pair =
@@ -552,9 +556,11 @@ fn generate_pseudo_element_content(
                             }
                         }
                     },
+                    // https://drafts.csswg.org/css-content/#valdef-content-no-open-quote
                     ContentItem::NoOpenQuote => {
                         context.increment_quote_depth();
                     },
+                    // https://drafts.csswg.org/css-content/#valdef-content-no-close-quote
                     ContentItem::NoCloseQuote => {
                         context.decrement_quote_depth();
                     },
