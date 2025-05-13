@@ -4207,6 +4207,9 @@ impl From<ElementTypeIdWrapper> for LayoutElementType {
                 LayoutElementType::HTMLTextAreaElement
             },
             ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
+                SVGGraphicsElementTypeId::SVGImageElement,
+            )) => LayoutElementType::SVGImageElement,
+            ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
                 SVGGraphicsElementTypeId::SVGSVGElement,
             )) => LayoutElementType::SVGSVGElement,
             _ => LayoutElementType::Element,

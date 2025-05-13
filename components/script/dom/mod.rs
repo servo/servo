@@ -547,6 +547,7 @@ pub(crate) mod submitevent;
 pub(crate) mod subtlecrypto;
 pub(crate) mod svgelement;
 pub(crate) mod svggraphicselement;
+pub(crate) mod svgimageelement;
 pub(crate) mod svgsvgelement;
 pub(crate) mod testbinding;
 pub(crate) mod testbindingiterable;
