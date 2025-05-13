@@ -647,7 +647,10 @@ impl LayoutThread {
             iframe_sizes: Mutex::default(),
             use_rayon: rayon_pool.is_some(),
             highlighted_dom_node: reflow_request.highlighted_dom_node,
+            quote_depth: Mutex::new(0),
         };
+
+        layout_context.reset_quote_depth();
 
         self.restyle_and_build_trees(
             &reflow_request,

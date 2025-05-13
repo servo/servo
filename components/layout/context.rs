@@ -49,6 +49,9 @@ pub struct LayoutContext<'a> {
 
     /// The DOM node that is highlighted by the devtools inspector, if any
     pub highlighted_dom_node: Option<OpaqueNode>,
+
+    /// The current quote depth to be used for the current layout pass.
+    pub quote_depth: Mutex<usize>,
 }
 
 pub enum ResolvedImage<'a> {
@@ -228,8 +231,8 @@ impl LayoutContext<'_> {
                                     // > for a raster image, it also specifies the image’s natural
                                     // > resolution, overriding any other source of data that might
                                     // > supply a natural resolution.
-                                    image_info.size = (image_info.size.to_f32() /
-                                        image.resolution.dppx())
+                                    image_info.size = (image_info.size.to_f32()
+                                        / image.resolution.dppx())
                                     .to_u32();
                                     ResolvedImage::Image(image_info)
                                 },
@@ -238,5 +241,28 @@ impl LayoutContext<'_> {
                     })
             },
         }
+    }
+
+    pub fn increment_quote_depth(&self) -> usize {
+        let mut depth = self.quote_depth.lock();
+        *depth += 1;
+        *depth
+    }
+
+    pub fn decrement_quote_depth(&self) -> usize {
+        let mut depth = self.quote_depth.lock();
+        if *depth > 0 {
+            *depth -= 1;
+        }
+        *depth
+    }
+
+    pub fn get_quote_depth(&self) -> usize {
+        *self.quote_depth.lock()
+    }
+
+    pub fn reset_quote_depth(&self) {
+        let mut depth = self.quote_depth.lock();
+        *depth = 0;
     }
 }
