@@ -43,6 +43,19 @@
            <tr><td>`,
         26, 34,
         "Table with collapsed border" ],
+      [ `<div style="display: flex">
+           <table style="width: 20px; height: 30px;
+                         border-width: 1px 2px 3px 4px; border-style: solid;
+                         border-collapse: separate; box-sizing: content-box">`,
+        26, 34,
+        "Flex-level table with separated border" ],
+      [ `<div style="display: flex">
+           <table style="width: 20px; height: 30px;
+                         border-width: 2px 4px 6px 8px; border-style: solid;
+                         border-collapse: collapse; box-sizing: content-box">
+             <tr><td>`,
+        26, 34,
+        "Flex-level table with collapsed border" ],
       [ `<table>
            <caption style="width: 40px; height: 50px; padding: 1px 2px 3px 4px">`,
         46, 54,

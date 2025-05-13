@@ -29,7 +29,9 @@ use super::{FlexContainer, FlexContainerConfig, FlexItemBox, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContextContents};
-use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags};
+use crate::fragment_tree::{
+    BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
+};
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2, Size, Sizes};
 use crate::layout_box_base::CacheableLayoutResult;
 use crate::positioned::{
@@ -142,6 +144,9 @@ struct FlexItemLayoutResult {
 
     // Whether or not this layout had a child that dependeded on block constraints.
     has_child_which_depends_on_block_constraints: bool,
+
+    // The specific layout info that this flex item had.
+    specific_layout_info: Option<SpecificLayoutInfo>,
 }
 
 impl FlexItemLayoutResult {
@@ -295,7 +300,8 @@ impl FlexLineItem<'_> {
                 .sides_to_flow_relative(item_margin)
                 .to_physical(container_writing_mode),
             None, /* clearance */
-        );
+        )
+        .with_specific_layout_info(self.layout_result.specific_layout_info);
 
         // If this flex item establishes a containing block for absolutely-positioned
         // descendants, then lay out any relevant absolutely-positioned children. This
@@ -1910,6 +1916,7 @@ impl FlexItem<'_> {
                     // size can differ from the hypothetical cross size, we should defer
                     // synthesizing until needed.
                     baseline_relative_to_margin_box: None,
+                    specific_layout_info: None,
                 })
             },
             IndependentFormattingContextContents::NonReplaced(non_replaced) => {
@@ -1944,6 +1951,7 @@ impl FlexItem<'_> {
                     content_block_size,
                     baselines: content_box_baselines,
                     depends_on_block_constraints,
+                    specific_layout_info,
                     ..
                 } = layout;
 
@@ -2012,6 +2020,7 @@ impl FlexItem<'_> {
                     containing_block_block_size: item_as_containing_block.size.block,
                     depends_on_block_constraints,
                     has_child_which_depends_on_block_constraints,
+                    specific_layout_info,
                 })
             },
         }
