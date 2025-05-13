@@ -18,7 +18,7 @@ use webdriver::actions::{
 };
 use webdriver::error::{ErrorStatus, WebDriverError};
 
-use crate::{Handler, wait_for_script_response};
+use crate::{Handler, WebElement, wait_for_script_response};
 
 // Interval between wheelScroll and pointerMove increments in ms, based on common vsync
 static POINTERMOVE_INTERVAL: u64 = 17;
@@ -393,20 +393,8 @@ impl Handler {
         let (x, y) = match action.origin {
             PointerOrigin::Viewport => (x_offset, y_offset),
             PointerOrigin::Pointer => (start_x + x_offset, start_y + y_offset),
-            PointerOrigin::Element(ref x) => {
-                let (sender, receiver) = ipc::channel().unwrap();
-                self.browsing_context_script_command(
-                    WebDriverScriptCommand::GetElementInViewCenterPoint(x.to_string(), sender),
-                )
-                .unwrap();
-                let response = match wait_for_script_response(receiver) {
-                    Ok(response) => response,
-                    Err(WebDriverError { error, .. }) => return Err(error),
-                };
-                let Ok(Some(point)) = response else {
-                    return Err(ErrorStatus::UnknownError);
-                };
-                point
+            PointerOrigin::Element(ref web_element) => {
+                self.get_element_origin_relative_coordinates(web_element)?
             },
         };
 
@@ -526,10 +514,13 @@ impl Handler {
         };
 
         // Step 3 - 4
-        // Get coordinates relative to an origin. Origin must be viewport.
+        // Get coordinates relative to an origin.
         let (x, y) = match action.origin {
             PointerOrigin::Viewport => (x_offset, y_offset),
-            _ => return Err(ErrorStatus::InvalidArgument),
+            PointerOrigin::Pointer => return Err(ErrorStatus::InvalidArgument),
+            PointerOrigin::Element(ref web_element) => {
+                self.get_element_origin_relative_coordinates(web_element)?
+            },
         };
 
         // Step 5 - 6
@@ -657,6 +648,26 @@ impl Handler {
             Err(ErrorStatus::MoveTargetOutOfBounds)
         } else {
             Ok(())
+        }
+    }
+
+    fn get_element_origin_relative_coordinates(
+        &self,
+        web_element: &WebElement,
+    ) -> Result<(i64, i64), ErrorStatus> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.browsing_context_script_command(WebDriverScriptCommand::GetElementInViewCenterPoint(
+            web_element.to_string(),
+            sender,
+        ))
+        .unwrap();
+        let response = match wait_for_script_response(receiver) {
+            Ok(response) => response,
+            Err(WebDriverError { error, .. }) => return Err(error),
+        };
+        match response? {
+            Some(point) => Ok(point),
+            None => Err(ErrorStatus::UnknownError),
         }
     }
 }
