@@ -231,8 +231,8 @@ impl LayoutContext<'_> {
                                     // > for a raster image, it also specifies the image’s natural
                                     // > resolution, overriding any other source of data that might
                                     // > supply a natural resolution.
-                                    image_info.size = (image_info.size.to_f32()
-                                        / image.resolution.dppx())
+                                    image_info.size = (image_info.size.to_f32() /
+                                        image.resolution.dppx())
                                     .to_u32();
                                     ResolvedImage::Image(image_info)
                                 },

@@ -104,10 +104,10 @@ impl<'dom> From<&NodeAndStyleInfo<'dom>> for BaseFragmentInfo {
         // some WPT tests. This needs more investigation.
         if matches!(
             pseudo,
-            Some(PseudoElement::ServoAnonymousBox)
-                | Some(PseudoElement::ServoAnonymousTable)
-                | Some(PseudoElement::ServoAnonymousTableCell)
-                | Some(PseudoElement::ServoAnonymousTableRow)
+            Some(PseudoElement::ServoAnonymousBox) |
+                Some(PseudoElement::ServoAnonymousTable) |
+                Some(PseudoElement::ServoAnonymousTableCell) |
+                Some(PseudoElement::ServoAnonymousTableRow)
         ) {
             return Self::anonymous();
         }
@@ -364,8 +364,8 @@ fn traverse_pseudo_element_contents<'dom>(
                 };
                 // `display` is not inherited, so we get the initial value
                 debug_assert!(
-                    Display::from(anonymous_info.style.get_box().display)
-                        == Display::GeneratingBox(display_inline)
+                    Display::from(anonymous_info.style.get_box().display) ==
+                        Display::GeneratingBox(display_inline)
                 );
                 handler.handle_element(
                     anonymous_info,

@@ -19,7 +19,7 @@
   .test2::before {
     content: open-quote;
   }
-  
+
   .test2::after {
     content: close-quote;
   }
@@ -28,7 +28,7 @@
   .test3::before {
     content: open-quote;
   }
-  
+
   .test3::after {
     content: open-quote "Test3 Inner" close-quote close-quote;
   }
@@ -37,22 +37,22 @@
   .test4::before {
     content: close-quote;
   }
-  
+
   /* close-quote will be ignored */
   .test5::before {
     content: open-quote;
   }
-  
-  .test5::after { 
+
+  .test5::after {
     content: no-close-quote;
   }
-  
+
   /* open-quote will be ignored */
   .test6::before {
     content: no-open-quote;
   }
-  
-  .test6::after { 
+
+  .test6::after {
     content: close-quote;
   }
 </style>
