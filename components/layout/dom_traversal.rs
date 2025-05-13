@@ -443,7 +443,6 @@ fn generate_pseudo_element_content(
     match &pseudo_element_style.get_counters().content {
         Content::Items(items) => {
             let mut vec = vec![];
-            let mut quote_depth: usize = 0;
 
             for item in items.items.iter() {
                 match item {
@@ -489,6 +488,7 @@ fn generate_pseudo_element_content(
                         }
                     },
                     ContentItem::OpenQuote => {
+                        let quote_depth = context.get_quote_depth();
                         let quote_char_str = match &pseudo_element_style.get_list().quotes {
                             Quotes::Auto => {
                                 let lang = &pseudo_element_style.get_font()._x_lang;
@@ -508,15 +508,16 @@ fn generate_pseudo_element_content(
                         if !quote_char_str.is_empty() {
                             vec.push(PseudoElementContentItem::Text(quote_char_str));
                         }
-                        quote_depth += 1;
+                        context.increment_quote_depth();
                     },
                     ContentItem::CloseQuote => {
+                        let quote_depth = context.get_quote_depth();
                         if quote_depth > 0 {
-                            quote_depth -= 1;
+                            let updated_depth = context.decrement_quote_depth();
                             let quote_char_str = match &pseudo_element_style.get_list().quotes {
                                 Quotes::Auto => {
                                     let lang = &pseudo_element_style.get_font()._x_lang;
-                                    quotes_for_lang(lang.0.as_ref(), quote_depth)
+                                    quotes_for_lang(lang.0.as_ref(), updated_depth)
                                         .closing
                                         .to_string()
                                 },
@@ -524,7 +525,7 @@ fn generate_pseudo_element_content(
                                     if list.0.is_empty() {
                                         String::new()
                                     } else {
-                                        let idx = std::cmp::min(quote_depth, list.0.len() - 1);
+                                        let idx = std::cmp::min(updated_depth, list.0.len() - 1);
                                         list.0[idx].closing.to_string()
                                     }
                                 },
@@ -533,18 +534,12 @@ fn generate_pseudo_element_content(
                                 vec.push(PseudoElementContentItem::Text(quote_char_str));
                             }
                         }
-                        // If quote_depth is 0, close-quote is ignored as per spec.
-                        // If quote_depth is a negative number, it is regarded as 0 and ignored.
-                        quote_depth = 0;
                     },
                     ContentItem::NoOpenQuote => {
-                        quote_depth += 1; // Increment the quote depth without inserting a quote
+                        context.increment_quote_depth();
                     },
                     ContentItem::NoCloseQuote => {
-                        if quote_depth > 0 {
-                            quote_depth -= 1; // Decrement the quote depth without inserting a quote
-                        }
-                        // If quote_depth is 0, no-close-quote is ignored as per spec.
+                        context.decrement_quote_depth();
                     },
                     ContentItem::Counter(_, _) | ContentItem::Counters(_, _, _) => {
                         // TODO: Add support for counters if needed.
