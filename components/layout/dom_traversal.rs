@@ -443,7 +443,6 @@ fn generate_pseudo_element_content(
     match &pseudo_element_style.get_counters().content {
         Content::Items(items) => {
             let mut vec = vec![];
-
             for item in items.items.iter() {
                 match item {
                     ContentItem::String(s) => {
@@ -489,24 +488,32 @@ fn generate_pseudo_element_content(
                     },
                     ContentItem::OpenQuote => {
                         let quote_depth = context.get_quote_depth();
-                        let quote_char_str = match &pseudo_element_style.get_list().quotes {
+                        let maybe_quote = match &pseudo_element_style.get_list().quotes {
                             Quotes::Auto => {
                                 let lang = &pseudo_element_style.get_font()._x_lang;
-                                quotes_for_lang(lang.0.as_ref(), quote_depth)
-                                    .opening
-                                    .to_string()
+                                let quote_pair = quotes_for_lang(lang.0.as_ref(), quote_depth);
+                                Some(get_quote_from_pair(
+                                    &item,
+                                    &quote_pair.opening,
+                                    &quote_pair.closing,
+                                ))
                             },
-                            Quotes::QuoteList(list) => {
-                                if list.0.is_empty() {
-                                    String::new()
+                            Quotes::QuoteList(quote_list) => {
+                                if quote_list.0.is_empty() {
+                                    None
                                 } else {
-                                    let idx = std::cmp::min(quote_depth, list.0.len() - 1);
-                                    list.0[idx].opening.to_string()
+                                    let idx = std::cmp::min(quote_depth, quote_list.0.len() - 1);
+                                    let quote_pair = &quote_list.0[idx];
+                                    Some(get_quote_from_pair(
+                                        &item,
+                                        &*quote_pair.opening,
+                                        &*quote_pair.closing,
+                                    ))
                                 }
                             },
                         };
-                        if !quote_char_str.is_empty() {
-                            vec.push(PseudoElementContentItem::Text(quote_char_str));
+                        if let Some(quote) = maybe_quote {
+                            vec.push(PseudoElementContentItem::Text(quote));
                         }
                         context.increment_quote_depth();
                     },
@@ -514,24 +521,34 @@ fn generate_pseudo_element_content(
                         let quote_depth = context.get_quote_depth();
                         if quote_depth > 0 {
                             let updated_depth = context.decrement_quote_depth();
-                            let quote_char_str = match &pseudo_element_style.get_list().quotes {
+                            let maybe_quote = match &pseudo_element_style.get_list().quotes {
                                 Quotes::Auto => {
                                     let lang = &pseudo_element_style.get_font()._x_lang;
-                                    quotes_for_lang(lang.0.as_ref(), updated_depth)
-                                        .closing
-                                        .to_string()
+                                    let quote_pair =
+                                        quotes_for_lang(lang.0.as_ref(), updated_depth);
+                                    Some(get_quote_from_pair(
+                                        &item,
+                                        &quote_pair.opening,
+                                        &quote_pair.closing,
+                                    ))
                                 },
-                                Quotes::QuoteList(list) => {
-                                    if list.0.is_empty() {
-                                        String::new()
+                                Quotes::QuoteList(quote_list) => {
+                                    if quote_list.0.is_empty() {
+                                        None
                                     } else {
-                                        let idx = std::cmp::min(updated_depth, list.0.len() - 1);
-                                        list.0[idx].closing.to_string()
+                                        let idx =
+                                            std::cmp::min(updated_depth, quote_list.0.len() - 1);
+                                        let quote_pair = &quote_list.0[idx];
+                                        Some(get_quote_from_pair(
+                                            &item,
+                                            &*quote_pair.opening,
+                                            &*quote_pair.closing,
+                                        ))
                                     }
                                 },
                             };
-                            if !quote_char_str.is_empty() {
-                                vec.push(PseudoElementContentItem::Text(quote_char_str));
+                            if let Some(quote) = maybe_quote {
+                                vec.push(PseudoElementContentItem::Text(quote));
                             }
                         }
                     },
