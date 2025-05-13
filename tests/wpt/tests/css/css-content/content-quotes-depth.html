@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Content: quote-depth behavior</title>
+<link rel="author" href="mailto:saku@email.sakupi01.com" title="saku">
+<link rel="help" href="https://www.w3.org/TR/css-content-3/#quotes">
+<meta name="assert" content="content quotes are correctly applied respecting to the depth of the element.">
+<link rel="match" href="content-quotes-depth-ref.html">
+<style>
+  :root {
+    quotes: "\201c" "\201d" "\2018" "\2019";
+  }
+
+  /* quotes made only with before */
+  .test1::before {
+    content: open-quote "Test1" close-quote;
+  }
+
+  /* quotes made only with before and after pseudo-elements */
+  .test2::before {
+    content: open-quote;
+  }
+  
+  .test2::after {
+    content: close-quote;
+  }
+
+  /* Nested quotes */
+  .test3::before {
+    content: open-quote;
+  }
+  
+  .test3::after {
+    content: open-quote "Test3 Inner" close-quote close-quote;
+  }
+
+  /* close-quote will be ignored */
+  .test4::before {
+    content: close-quote;
+  }
+  
+  /* close-quote will be ignored */
+  .test5::before {
+    content: open-quote;
+  }
+  
+  .test5::after { 
+    content: no-close-quote;
+  }
+  
+  /* open-quote will be ignored */
+  .test6::before {
+    content: no-open-quote;
+  }
+  
+  .test6::after { 
+    content: close-quote;
+  }
+</style>
+<body>
+  <div class="test1"></div>
+  <div class="test2">Test2</div>
+  <div class="test3">Test3</div>
+  <div class="test4">Test4</div>
+  <div class="test5">Test5</div>
+  <div class="test6">Test6</div>
+</body>
