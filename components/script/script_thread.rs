@@ -50,9 +50,9 @@ use devtools_traits::{
 };
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
-    CompositorHitTestResult, EmbedderMsg, FocusSequenceNumber, InputEvent, MediaSessionActionType,
-    MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails,
-    WebDriverScriptCommand,
+    CompositorHitTestResult, EmbedderMsg, FocusSequenceNumber, InputEvent,
+    JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, MouseButton,
+    MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::Point2D;
 use euclid::default::Rect;
@@ -156,6 +156,7 @@ use crate::script_runtime::{
 };
 use crate::task_queue::TaskQueue;
 use crate::task_source::{SendableTaskSource, TaskSourceName};
+use crate::webdriver_handlers::jsval_to_webdriver;
 use crate::{devtools, webdriver_handlers};
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
@@ -1877,6 +1878,9 @@ impl ScriptThread {
             },
             ScriptThreadMessage::SetScrollStates(pipeline_id, scroll_states) => {
                 self.handle_set_scroll_states(pipeline_id, scroll_states)
+            },
+            ScriptThreadMessage::EvaluateJavaScript(pipeline_id, evaluation_id, script) => {
+                self.handle_evaluate_javascript(pipeline_id, evaluation_id, script, can_gc);
             },
         }
     }
@@ -3814,6 +3818,53 @@ impl ScriptThread {
                 can_gc,
             )
         }
+    }
+
+    fn handle_evaluate_javascript(
+        &self,
+        pipeline_id: PipelineId,
+        evaluation_id: JavaScriptEvaluationId,
+        script: String,
+        can_gc: CanGc,
+    ) {
+        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+            let _ = self.senders.pipeline_to_constellation_sender.send((
+                pipeline_id,
+                ScriptToConstellationMessage::FinishJavaScriptEvaluation(
+                    evaluation_id,
+                    Err(JavaScriptEvaluationError::WebViewNotReady),
+                ),
+            ));
+            return;
+        };
+
+        let global_scope = window.as_global_scope();
+        let realm = enter_realm(global_scope);
+        let context = window.get_cx();
+
+        rooted!(in(*context) let mut return_value = UndefinedValue());
+        global_scope.evaluate_js_on_global_with_result(
+            &script,
+            return_value.handle_mut(),
+            ScriptFetchOptions::default_classic_script(global_scope),
+            global_scope.api_base_url(),
+            can_gc,
+        );
+        let result = match jsval_to_webdriver(
+            context,
+            global_scope,
+            return_value.handle(),
+            (&realm).into(),
+            can_gc,
+        ) {
+            Ok(ref value) => Ok(value.into()),
+            Err(_) => Err(JavaScriptEvaluationError::SerializationError),
+        };
+
+        let _ = self.senders.pipeline_to_constellation_sender.send((
+            pipeline_id,
+            ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, result),
+        ));
     }
 }
 

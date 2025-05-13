@@ -129,9 +129,10 @@ use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_content_manager::UserContentManager;
 use embedder_traits::{
     AnimationState, CompositorHitTestResult, Cursor, EmbedderMsg, EmbedderProxy,
-    FocusSequenceNumber, ImeEvent, InputEvent, MediaSessionActionType, MediaSessionEvent,
-    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent, Theme,
-    ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
+    FocusSequenceNumber, ImeEvent, InputEvent, JSValue, JavaScriptEvaluationError,
+    JavaScriptEvaluationId, MediaSessionActionType, MediaSessionEvent, MediaSessionPlaybackState,
+    MouseButton, MouseButtonAction, MouseButtonEvent, Theme, ViewportDetails, WebDriverCommandMsg,
+    WebDriverLoadStatus,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -1477,6 +1478,52 @@ where
             EmbedderToConstellationMessage::PaintMetric(pipeline_id, paint_metric_event) => {
                 self.handle_paint_metric(pipeline_id, paint_metric_event);
             },
+            EmbedderToConstellationMessage::EvaluateJavaScript(
+                webview_id,
+                evaluation_id,
+                script,
+            ) => {
+                self.handle_evaluate_javascript(webview_id, evaluation_id, script);
+            },
+        }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
+    fn handle_evaluate_javascript(
+        &mut self,
+        webview_id: WebViewId,
+        evaluation_id: JavaScriptEvaluationId,
+        script: String,
+    ) {
+        let browsing_context_id = BrowsingContextId::from(webview_id);
+        let Some(pipeline) = self
+            .browsing_contexts
+            .get(&browsing_context_id)
+            .and_then(|browsing_context| self.pipelines.get(&browsing_context.pipeline_id))
+        else {
+            self.handle_finish_javascript_evaluation(
+                evaluation_id,
+                Err(JavaScriptEvaluationError::InternalError),
+            );
+            return;
+        };
+
+        if pipeline
+            .event_loop
+            .send(ScriptThreadMessage::EvaluateJavaScript(
+                pipeline.id,
+                evaluation_id,
+                script,
+            ))
+            .is_err()
+        {
+            self.handle_finish_javascript_evaluation(
+                evaluation_id,
+                Err(JavaScriptEvaluationError::InternalError),
+            );
         }
     }
 
@@ -1816,6 +1863,9 @@ where
                 // get memory report and send it back.
                 self.mem_profiler_chan
                     .send(mem::ProfilerMsg::Report(sender));
+            },
+            ScriptToConstellationMessage::FinishJavaScriptEvaluation(evaluation_id, result) => {
+                self.handle_finish_javascript_evaluation(evaluation_id, result)
             },
         }
     }
@@ -3176,6 +3226,22 @@ where
         {
             self.resize_browsing_context(size, type_, browsing_context_id);
         }
+    }
+
+    #[cfg_attr(
+        feature = "tracing",
+        tracing::instrument(skip_all, fields(servo_profiling = true), level = "trace")
+    )]
+    fn handle_finish_javascript_evaluation(
+        &mut self,
+        evaluation_id: JavaScriptEvaluationId,
+        result: Result<JSValue, JavaScriptEvaluationError>,
+    ) {
+        self.embedder_proxy
+            .send(EmbedderMsg::FinishJavaScriptEvaluation(
+                evaluation_id,
+                result,
+            ));
     }
 
     #[cfg_attr(
@@ -4691,6 +4757,7 @@ where
                     NavigationHistoryBehavior::Replace,
                 );
             },
+            // TODO: This should use the ScriptThreadMessage::EvaluateJavaScript command
             WebDriverCommandMsg::ScriptCommand(browsing_context_id, cmd) => {
                 let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
                     Some(browsing_context) => browsing_context.pipeline_id,

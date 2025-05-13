@@ -13,8 +13,10 @@ pub mod resources;
 pub mod user_content_manager;
 mod webdriver;
 
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fmt::{Debug, Display, Error, Formatter};
+use std::hash::Hash;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -371,6 +373,12 @@ pub enum EmbedderMsg {
         Option<usize>,
         DeviceIntRect,
         IpcSender<Option<usize>>,
+    ),
+    /// Inform the embedding layer that a JavaScript evaluation has
+    /// finished with the given result.
+    FinishJavaScriptEvaluation(
+        JavaScriptEvaluationId,
+        Result<JSValue, JavaScriptEvaluationError>,
     ),
 }
 
@@ -856,4 +864,60 @@ impl Display for FocusSequenceNumber {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         Display::fmt(&self.0, f)
     }
+}
+
+/// An identifier for a particular JavaScript evaluation that is used to track the
+/// evaluation from the embedding layer to the script layer and then back.
+#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct JavaScriptEvaluationId(pub usize);
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub enum JSValue {
+    Undefined,
+    Null,
+    Boolean(bool),
+    Number(f64),
+    String(String),
+    Element(String),
+    Frame(String),
+    Window(String),
+    Array(Vec<JSValue>),
+    Object(HashMap<String, JSValue>),
+}
+
+impl From<&WebDriverJSValue> for JSValue {
+    fn from(value: &WebDriverJSValue) -> Self {
+        match value {
+            WebDriverJSValue::Undefined => Self::Undefined,
+            WebDriverJSValue::Null => Self::Null,
+            WebDriverJSValue::Boolean(value) => Self::Boolean(*value),
+            WebDriverJSValue::Int(value) => Self::Number(*value as f64),
+            WebDriverJSValue::Number(value) => Self::Number(*value),
+            WebDriverJSValue::String(value) => Self::String(value.clone()),
+            WebDriverJSValue::Element(web_element) => Self::Element(web_element.0.clone()),
+            WebDriverJSValue::Frame(web_frame) => Self::Frame(web_frame.0.clone()),
+            WebDriverJSValue::Window(web_window) => Self::Window(web_window.0.clone()),
+            WebDriverJSValue::ArrayLike(vector) => {
+                Self::Array(vector.iter().map(Into::into).collect())
+            },
+            WebDriverJSValue::Object(map) => Self::Object(
+                map.iter()
+                    .map(|(key, value)| (key.clone(), value.into()))
+                    .collect(),
+            ),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub enum JavaScriptEvaluationError {
+    /// An internal Servo error prevented the JavaSript evaluation from completing properly.
+    /// This indicates a bug in Servo.
+    InternalError,
+    /// The `WebView` on which this evaluation request was triggered is not ready. This might
+    /// happen if the `WebView`'s `Document` is changing due to ongoing load events, for instance.
+    WebViewNotReady,
+    /// The script executed successfully, but Servo could not serialize the JavaScript return
+    /// value into a [`JSValue`].
+    SerializationError,
 }

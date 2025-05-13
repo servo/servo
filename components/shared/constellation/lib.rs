@@ -19,8 +19,8 @@ use base::Epoch;
 use base::cross_process_instant::CrossProcessInstant;
 use base::id::{MessagePortId, PipelineId, WebViewId};
 use embedder_traits::{
-    CompositorHitTestResult, Cursor, InputEvent, MediaSessionActionType, Theme, ViewportDetails,
-    WebDriverCommandMsg,
+    CompositorHitTestResult, Cursor, InputEvent, JavaScriptEvaluationId, MediaSessionActionType,
+    Theme, ViewportDetails, WebDriverCommandMsg,
 };
 use euclid::Vector2D;
 pub use from_script_message::*;
@@ -92,6 +92,9 @@ pub enum EmbedderToConstellationMessage {
     SetScrollStates(PipelineId, Vec<ScrollState>),
     /// Notify the constellation that a particular paint metric event has happened for the given pipeline.
     PaintMetric(PipelineId, PaintMetricEvent),
+    /// Evaluate a JavaScript string in the context of a `WebView`. When execution is complete or an
+    /// error is encountered, a correpsonding message will be sent to the embedding layer.
+    EvaluateJavaScript(WebViewId, JavaScriptEvaluationId, String),
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the
