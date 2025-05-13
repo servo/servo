@@ -20,7 +20,6 @@ use base::Epoch;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use compositing_traits::CrossProcessCompositorApi;
 use constellation_traits::{LoadData, ScrollState};
-use embedder_traits::resources::{self, Resource};
 use embedder_traits::{Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::default::{Point2D, Rect};
 use fnv::FnvHashMap;
@@ -53,6 +52,9 @@ use style::stylesheets::{DocumentStyleSheet, Origin, Stylesheet};
 use url::Url;
 use webrender_api::ImageKey;
 use webrender_api::units::DeviceIntSize;
+
+/// A CSS file to style <details> element.
+static DETAILS_CSS: &[u8] = include_bytes!("../../layout/stylesheets/details.css");
 
 pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
     fn as_any(&self) -> &dyn Any;
@@ -671,10 +673,8 @@ pub fn parse_ua_stylesheet(
         .map(DocumentStyleSheet)
 }
 
-pub fn parse_resource_stylesheet(
+pub fn parse_details_stylesheet(
     shared_lock: &SharedRwLock,
-    resources: Resource,
 ) -> Result<ServoArc<Stylesheet>, &'static str> {
-    let content = &resources::read_bytes(resources.clone());
-    parse_stylesheet_as_origin(shared_lock, resources.filename(), content, Origin::Author)
+    parse_stylesheet_as_origin(shared_lock, "details.css", DETAILS_CSS, Origin::Author)
 }

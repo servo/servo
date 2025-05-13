@@ -66,7 +66,6 @@ pub fn sandbox_access_files_dirs() -> Vec<PathBuf> {
         .unwrap_or_default()
 }
 
-#[derive(Clone)]
 pub enum Resource {
     /// A list of GATT services that are blocked from being used by web bluetooth.
     /// The format of the file is a list of UUIDs, one per line, with an optional second word to specify the
@@ -110,9 +109,6 @@ pub enum Resource {
     DirectoryListingHTML,
     /// A HTML page that is used for the about:memory url.
     AboutMemoryHTML,
-    /// A CSS file to style the elements inside <details> element UA Shadow Tree.
-    /// It can be empty but then <details> element simply wouldn't work.
-    DetailsCSS,
 }
 
 impl Resource {
@@ -127,7 +123,6 @@ impl Resource {
             Resource::CrashHTML => "crash.html",
             Resource::DirectoryListingHTML => "directory-listing.html",
             Resource::AboutMemoryHTML => "about-memory.html",
-            Resource::DetailsCSS => "details.css",
         }
     }
 }
@@ -172,7 +167,6 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                 Resource::AboutMemoryHTML => {
                     &include_bytes!("../../../resources/about-memory.html")[..]
                 },
-                Resource::DetailsCSS => &include_bytes!("../../../resources/details.css")[..],
             }
             .to_owned()
         }
