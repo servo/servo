@@ -9,9 +9,11 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use embedder_traits::resources::{self, Resource};
+use fst::{Map, MapBuilder};
 use headers::{HeaderMapExt, StrictTransportSecurity};
 use http::HeaderMap;
 use log::{debug, error, info};
+use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::IncludeSubdomains;
 use net_traits::pub_domains::reg_suffix;
@@ -85,9 +87,14 @@ pub struct HstsList {
 /// it is split out to allow sharing between the private and public http state
 /// as well as potentially swpaping out the underlying type to something immutable
 /// and more efficient like FSTs or DAFSA/DAWGs.
-#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
-pub struct HstsPreloadList {
-    pub entries_map: HashMap<String, Vec<HstsEntry>>,
+#[derive(Clone, Debug)]
+pub struct HstsPreloadList(pub fst::Map<Vec<u8>>);
+
+impl MallocSizeOf for HstsPreloadList {
+    #[allow(unsafe_code)]
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        unsafe { ops.malloc_size_of(self.0.as_fst().as_inner().as_ptr()) }
+    }
 }
 
 pub static PRELOAD_LIST_ENTRIES: LazyLock<HstsPreloadList> =
@@ -95,89 +102,47 @@ pub static PRELOAD_LIST_ENTRIES: LazyLock<HstsPreloadList> =
 
 impl HstsPreloadList {
     /// Create an `HstsList` from the bytes of a JSON preload file.
-    pub fn from_preload(preload_content: &str) -> Option<HstsPreloadList> {
-        #[derive(Deserialize)]
-        struct HstsEntries {
-            entries: Vec<HstsEntry>,
-        }
-
-        let hsts_entries: Option<HstsEntries> = serde_json::from_str(preload_content).ok();
-
-        hsts_entries.map(|hsts_entries| {
-            let mut hsts_list: HstsPreloadList = HstsPreloadList::default();
-
-            for hsts_entry in hsts_entries.entries {
-                hsts_list.push(hsts_entry);
-            }
-
-            hsts_list
-        })
+    pub fn from_preload(preload_content: Vec<u8>) -> Option<HstsPreloadList> {
+        Map::new(preload_content).map(HstsPreloadList).ok()
     }
 
     pub fn from_servo_preload() -> HstsPreloadList {
         debug!("Intializing HSTS Preload list");
-        let list = resources::read_string(Resource::HstsPreloadList);
-        HstsPreloadList::from_preload(&list).unwrap_or_else(|| {
+        let map_bytes = resources::read_bytes(Resource::HstsPreloadList);
+        HstsPreloadList::from_preload(map_bytes).unwrap_or_else(|| {
             error!("HSTS preload file is invalid. Setting HSTS list to default values");
-            HstsPreloadList {
-                entries_map: Default::default(),
-            }
+            HstsPreloadList(MapBuilder::memory().into_map())
         })
     }
 
     pub fn is_host_secure(&self, host: &str) -> bool {
         let base_domain = reg_suffix(host);
-        self.entries_map.get(base_domain).is_some_and(|entries| {
-            // No need to check for expiration in the preload list
-            entries.iter().any(|e| {
-                if e.include_subdomains {
-                    e.matches_subdomain(host) || e.matches_domain(host)
-                } else {
-                    e.matches_domain(host)
-                }
-            })
-        })
-    }
+        let parts = host[..host.len() - base_domain.len()].rsplit_terminator('.');
+        let mut domain_to_test = base_domain.to_owned();
 
-    pub fn has_domain(&self, host: &str, base_domain: &str) -> bool {
-        self.entries_map
-            .get(base_domain)
-            .is_some_and(|entries| entries.iter().any(|e| e.matches_domain(host)))
-    }
+        if self.0.get(&domain_to_test).is_some_and(|key| {
+            // The FST map keys were constructed such that the parity represents the includeSubdomain flag
+            key % 2 == 1 || domain_to_test == host
+        }) {
+            return true;
+        }
 
-    pub fn has_subdomain(&self, host: &str, base_domain: &str) -> bool {
-        self.entries_map.get(base_domain).is_some_and(|entries| {
-            entries
-                .iter()
-                .any(|e| e.include_subdomains && e.matches_subdomain(host))
-        })
-    }
-
-    pub fn push(&mut self, entry: HstsEntry) {
-        let host = entry.host.clone();
-        let base_domain = reg_suffix(&host);
-        let have_domain = self.has_domain(&entry.host, base_domain);
-        let have_subdomain = self.has_subdomain(&entry.host, base_domain);
-
-        let entries = self.entries_map.entry(base_domain.to_owned()).or_default();
-        if !have_domain && !have_subdomain {
-            entries.push(entry);
-        } else if !have_subdomain {
-            for e in entries {
-                if e.matches_domain(&entry.host) {
-                    e.include_subdomains = entry.include_subdomains;
-                    // TODO(sebsebmc): We could shrink the the HSTS preload memory use further by using a type
-                    // that doesn't store an expiry since all preload entries should be "forever"
-                    e.expires_at = entry.expires_at;
-                }
+        // Check all further subdomains up to the passed host
+        for part in parts {
+            domain_to_test = format!("{}.{}", part, domain_to_test);
+            if self.0.get(&domain_to_test).is_some_and(|key| {
+                // The FST map keys were constructed such that the parity represents the includeSubdomain flag
+                key % 2 == 1 || domain_to_test == host
+            }) {
+                return true;
             }
         }
+        false
     }
 }
 
 impl HstsList {
     pub fn is_host_secure(&self, host: &str) -> bool {
-        debug!("HSTS: is {host} secure?");
         if PRELOAD_LIST_ENTRIES.is_host_secure(host) {
             info!("{host} is in the preload list");
             return true;

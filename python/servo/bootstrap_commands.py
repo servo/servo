@@ -8,6 +8,7 @@
 # except according to those terms.
 
 import base64
+import csv
 import glob
 import json
 import os
@@ -15,6 +16,7 @@ import os.path as path
 import re
 import subprocess
 import sys
+import tempfile
 import traceback
 import urllib
 
@@ -75,11 +77,11 @@ class MachCommands(CommandBase):
              description='Download the HSTS preload list',
              category='bootstrap')
     def bootstrap_hsts_preload(self, force=False):
-        preload_filename = "hsts_preload.json"
+        preload_filename = "hsts_preload.fstmap"
         preload_path = path.join(self.context.topdir, "resources")
 
         chromium_hsts_url = "https://chromium.googlesource.com/chromium/src" + \
-            "/net/+/master/http/transport_security_state_static.json?format=TEXT"
+            "/+/main/net/http/transport_security_state_static.json?format=TEXT"
 
         try:
             content_base64 = download_bytes("Chromium HSTS preload list", chromium_hsts_url)
@@ -87,28 +89,22 @@ class MachCommands(CommandBase):
             print("Unable to download chromium HSTS preload list; are you connected to the internet?")
             sys.exit(1)
 
-        content_decoded = base64.b64decode(content_base64)
+        content_decoded = base64.b64decode(content_base64).decode()
 
         # The chromium "json" has single line comments in it which, of course,
         # are non-standard/non-valid json. Simply strip them out before parsing
         content_json = re.sub(r'(^|\s+)//.*$', '', content_decoded, flags=re.MULTILINE)
-
         try:
             pins_and_static_preloads = json.loads(content_json)
-            entries = {
-                "entries": [
-                    {
-                        "host": e["name"],
-                        "include_subdomains": e.get("include_subdomains", False)
-                    }
-                    for e in pins_and_static_preloads["entries"]
-                ]
-            }
-
-            with open(path.join(preload_path, preload_filename), 'w') as fd:
-                json.dump(entries, fd, indent=4)
-        except ValueError:
-            print("Unable to parse chromium HSTS preload list, has the format changed?")
+            with tempfile.NamedTemporaryFile(mode="w") as csv_file:
+                writer = csv.writer(csv_file)
+                for idx, e in enumerate(sorted(pins_and_static_preloads["entries"], key=lambda e: e["name"])):
+                    next_id = idx * 2 + (1 if e.get("include_subdomains", False) else 0)
+                    writer.writerow([e["name"], str(next_id)])
+                csv_file.flush()
+                subprocess.run(["fst", "map", "--sorted", csv_file.name, path.join(preload_path, preload_filename)])
+        except ValueError as e:
+            print(f"Unable to parse chromium HSTS preload list, has the format changed? \n{e}")
             sys.exit(1)
 
     @Command('update-pub-domains',
