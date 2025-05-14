@@ -1626,8 +1626,8 @@ impl Handler {
                     let pointer_move_action = PointerMoveAction {
                         duration: None,
                         origin: PointerOrigin::Element(WebElement(element_id)),
-                        x: 0,
-                        y: 0,
+                        x: 0.0,
+                        y: 0.0,
                         ..Default::default()
                     };
 

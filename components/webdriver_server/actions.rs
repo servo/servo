@@ -36,8 +36,8 @@ pub(crate) enum InputSourceState {
 pub(crate) struct PointerInputState {
     subtype: PointerType,
     pressed: HashSet<u64>,
-    x: i64,
-    y: i64,
+    x: f64,
+    y: f64,
 }
 
 impl PointerInputState {
@@ -49,8 +49,8 @@ impl PointerInputState {
                 PointerType::Touch => PointerType::Touch,
             },
             pressed: HashSet::new(),
-            x: 0,
-            y: 0,
+            x: 0.0,
+            y: 0.0,
         }
     }
 }
@@ -394,7 +394,8 @@ impl Handler {
             PointerOrigin::Viewport => (x_offset, y_offset),
             PointerOrigin::Pointer => (start_x + x_offset, start_y + y_offset),
             PointerOrigin::Element(ref web_element) => {
-                self.get_element_origin_relative_coordinates(web_element)?
+                let point = self.get_element_origin_relative_coordinates(web_element)?;
+                (point.0 as f64, point.1 as f64)
             },
         };
 
@@ -425,10 +426,10 @@ impl Handler {
         &mut self,
         source_id: &str,
         duration: u64,
-        start_x: i64,
-        start_y: i64,
-        target_x: i64,
-        target_y: i64,
+        start_x: f64,
+        start_y: f64,
+        target_x: f64,
+        target_y: f64,
         tick_start: Instant,
     ) {
         let session = self.session.as_mut().unwrap();
@@ -456,8 +457,8 @@ impl Handler {
                 (target_x, target_y)
             } else {
                 (
-                    (duration_ratio * (target_x - start_x) as f64) as i64 + start_x,
-                    (duration_ratio * (target_y - start_y) as f64) as i64 + start_y,
+                    duration_ratio * (target_x - start_x) + start_x,
+                    duration_ratio * (target_y - start_y) + start_y,
                 )
             };
 
@@ -524,7 +525,7 @@ impl Handler {
         };
 
         // Step 5 - 6
-        self.check_viewport_bound(x, y)?;
+        self.check_viewport_bound(x as _, y as _)?;
 
         // Step 7 - 8
         let Some(delta_x) = action.deltaX else {
@@ -632,7 +633,7 @@ impl Handler {
         );
     }
 
-    fn check_viewport_bound(&self, x: i64, y: i64) -> Result<(), ErrorStatus> {
+    fn check_viewport_bound(&self, x: f64, y: f64) -> Result<(), ErrorStatus> {
         let (sender, receiver) = ipc::channel().unwrap();
         let cmd_msg =
             WebDriverCommandMsg::GetWindowSize(self.session.as_ref().unwrap().webview_id, sender);
@@ -644,7 +645,7 @@ impl Handler {
             Ok(response) => response,
             Err(WebDriverError { error, .. }) => return Err(error),
         };
-        if x < 0 || x as f32 > viewport_size.width || y < 0 || y as f32 > viewport_size.height {
+        if x < 0.0 || x > viewport_size.width.into() || y < 0.0 || y > viewport_size.height.into() {
             Err(ErrorStatus::MoveTargetOutOfBounds)
         } else {
             Ok(())
