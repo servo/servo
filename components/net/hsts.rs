@@ -176,26 +176,6 @@ impl HstsPreloadList {
 }
 
 impl HstsList {
-    /// Create an `HstsList` from the bytes of a JSON preload file.
-    pub fn from_preload(preload_content: &str) -> Option<HstsList> {
-        #[derive(Deserialize)]
-        struct HstsEntries {
-            entries: Vec<HstsEntry>,
-        }
-
-        let hsts_entries: Option<HstsEntries> = serde_json::from_str(preload_content).ok();
-
-        hsts_entries.map(|hsts_entries| {
-            let mut hsts_list: HstsList = HstsList::default();
-
-            for hsts_entry in hsts_entries.entries {
-                hsts_list.push(hsts_entry);
-            }
-
-            hsts_list
-        })
-    }
-
     pub fn is_host_secure(&self, host: &str) -> bool {
         debug!("HSTS: is {host} secure?");
         if PRELOAD_LIST_ENTRIES.is_host_secure(host) {
