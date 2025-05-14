@@ -178,6 +178,27 @@
     }
 
     bindEvents() {
+      // Store bound functions so we can remove them later
+      this.mouseMoveHandler = (e) => {
+        if (this.isDragging) {
+          this.setValue(e.clientX);
+        }
+      };
+      
+      this.mouseUpHandler = () => {
+        this.isDragging = false;
+      };
+      
+      this.touchMoveHandler = (e) => {
+        if (this.isDragging) {
+          this.setValue(e.touches[0].clientX);
+        }
+      };
+      
+      this.touchEndHandler = () => {
+        this.isDragging = false;
+      };
+
       // Mouse events
       this.container.addEventListener('mousedown', (e) => {
         this.isDragging = true;
@@ -185,15 +206,8 @@
         e.preventDefault();
       });
       
-      document.addEventListener('mousemove', (e) => {
-        if (this.isDragging) {
-          this.setValue(e.clientX);
-        }
-      });
-      
-      document.addEventListener('mouseup', () => {
-        this.isDragging = false;
-      });
+      document.addEventListener('mousemove', this.mouseMoveHandler);
+      document.addEventListener('mouseup', this.mouseUpHandler);
       
       // Touch events
       this.container.addEventListener('touchstart', (e) => {
@@ -202,15 +216,26 @@
         e.preventDefault();
       });
       
-      document.addEventListener('touchmove', (e) => {
-        if (this.isDragging) {
-          this.setValue(e.touches[0].clientX);
-        }
-      });
+      document.addEventListener('touchmove', this.touchMoveHandler);
+      document.addEventListener('touchend', this.touchEndHandler);
+    }
+
+    destroy() {
+      // Remove all event listeners
+      document.removeEventListener('mousemove', this.mouseMoveHandler);
+      document.removeEventListener('mouseup', this.mouseUpHandler);
+      document.removeEventListener('touchmove', this.touchMoveHandler);
+      document.removeEventListener('touchend', this.touchEndHandler);
       
-      document.addEventListener('touchend', () => {
-        this.isDragging = false;
-      });
+      // Remove DOM elements
+      if (this.container && this.container.parentNode) {
+        this.container.parentNode.removeChild(this.container);
+      }
+      
+      // Restore original input
+      if (this.originalInput) {
+        this.originalInput.style.display = '';
+      }
     }
   }
 
@@ -375,13 +400,31 @@
     }
 
     cleanup() {
+      // Remove mutation observer
       this.mutationObserver.disconnect();
+      
+      // Remove media event listeners
       this.mediaEvents.forEach(event => {
         this.media.removeEventListener(event, this);
       });
+      
+      // Remove control event listeners
       this.controlEvents.forEach(({ el, type }) => {
         el.removeEventListener(type, this);
       });
+      
+      // Clean up custom range inputs
+      if (this.customProgress) {
+        this.customProgress.destroy();
+      }
+      if (this.customVolume) {
+        this.customVolume.destroy();
+      }
+      
+      // Remove root element
+      if (this.root && this.root.parentNode) {
+        this.root.parentNode.removeChild(this.root);
+      }
     }
 
     onStateChange(from) {
