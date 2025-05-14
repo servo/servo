@@ -36,9 +36,6 @@ webgl-backtrace = false
 # that triggered it.
 dom-backtrace = false
 
-# Default to the “2020” implementation of CSS layout instead of the “2013” one.
-layout-2020 = true
-
 # Pick a media stack based on the target. Other values are "gstreamer" and "dummy"
 media-stack = "auto"
 
