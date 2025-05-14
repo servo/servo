@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
-use script::layout_dom::ServoLayoutElement;
+use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
@@ -223,12 +223,13 @@ impl IndependentFormattingContext {
     pub(crate) fn repair_style(
         &mut self,
         context: &SharedStyleContext,
+        node: &ServoLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         self.base.repair_style(new_style);
         match &mut self.contents {
             IndependentFormattingContextContents::NonReplaced(content) => {
-                content.repair_style(context, new_style);
+                content.repair_style(context, node, new_style);
             },
             IndependentFormattingContextContents::Replaced(..) => {},
         }
@@ -356,9 +357,16 @@ impl IndependentNonReplacedContents {
         matches!(self, Self::Table(_))
     }
 
-    fn repair_style(&mut self, context: &SharedStyleContext, new_style: &Arc<ComputedValues>) {
+    fn repair_style(
+        &mut self,
+        context: &SharedStyleContext,
+        node: &ServoLayoutNode,
+        new_style: &Arc<ComputedValues>,
+    ) {
         match self {
-            IndependentNonReplacedContents::Flow(..) => {},
+            IndependentNonReplacedContents::Flow(block_formatting_context) => {
+                block_formatting_context.repair_style(node, new_style);
+            },
             IndependentNonReplacedContents::Flex(flex_container) => {
                 flex_container.repair_style(new_style)
             },
